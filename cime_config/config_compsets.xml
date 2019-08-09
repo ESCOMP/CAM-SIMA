@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+
+<compsets version="2.0">
+
+  <help>
+    =========================================
+    compset naming convention
+    =========================================
+    The compset longname below has the specified order
+    atm, lnd, ice, ocn, river, glc wave cesm-options
+
+    The notation for the compset longname is
+    TIME_ATM[%phys]_LND[%phys]_ICE[%phys]_OCN[%phys]_ROF[%phys]_GLC[%phys]_WAV[%phys][_BGC%phys]
+    Where for the CAM specific compsets below the following is supported
+    TIME = Time period (e.g. 2000, HIST, RCP8...)
+    ATM  = [CAM40, CAM50, CAM60]
+    LND  = [CLM45, CLM50, SLND]
+    ICE  = [CICE, DICE, SICE]
+    OCN  = [DOCN, ,AQUAP, SOCN]
+    ROF  = [RTM, SROF]
+    GLC  = [CISM1, CISM2, SGLC]
+    WAV  = [SWAV]
+    BGC  = optional BGC scenario
+
+    The OPTIONAL %phys attributes specify submodes of the given system
+    For example DOCN%DOM is the data ocean model for DOCN
+    ALL the possible %phys choices for each component are listed
+    with the -list command for create_newcase
+    ALL data models must have a %phys option that corresponds to the data  model mode
+
+    Each compset node is associated with the following elements
+      - lname
+      - alias
+      - support  (optional description of the support level for this compset)
+    Each compset node can also have the following attributes
+      - grid  (optional regular expression match for grid to work with the compset)
+  </help>
+
+  <!-- ****************************** -->
+  <!-- CAM untested compsets -->
+  <!-- ****************************** -->
+
+  <!--CAM Physics Testbed -->
+
+  <compset>
+    <alias>F2000PT</alias>
+    <lname>2000_CAM%PT6_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_CISM2%NOEVOLVE_SWAV</lname>
+  </compset>
+
+  <!-- ENTRIES -->
+
+  <entries>
+
+    <entry id="SSTICE_DATA_FILENAME">
+      <values match ="last">
+        <value compset="2000"          grid=".+"                             >$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_1x1_2000climo_c180511.nc</value>
+        <value compset="2000"          grid="a%T31.*_oi%T31"                 >$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_48x96_2000climo_c180511.nc</value>
+        <value compset="2000"          grid="a%1.9x2.5.*_oi%1.9x2.5"         >$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_1.9x2.5_2000climo_c180511.nc</value>
+        <value compset="2000"          grid="a%0.9x1.25.*_oi%0.9x1.25"       >$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_0.9x1.25_2000climo_c180511.nc</value>
+        <value compset="2000"          grid="a%0.47x0.63.*_oi%0.47x0.63"     >$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_0.47x0.63_2000climo_c180511.nc</value>
+        <value compset="2000"          grid="a%0.23x0.31.*_oi%0.23x0.31"     >$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_0.23x0.31_2000climo_c180511.nc</value>
+      </values>
+
+    </entry>
+    <entry id="SSTICE_GRID_FILENAME">
+      <values match="first">
+        <value compset="DOCN%DOM" grid="a%T31.*_oi%T31" >$DIN_LOC_ROOT/atm/cam/ocnfrac/domain.camocn.48x96_gx3v7_100114.nc</value>
+        <value compset="DOCN%DOM" grid="a%1.9x2.5.*_oi%1.9x2.5">$DIN_LOC_ROOT/atm/cam/ocnfrac/domain.camocn.1.9x2.5_gx1v6_090403.nc </value>
+        <value compset="DOCN%DOM" grid="a%0.9x1.25.*_oi%0.9x1.25.*_m%gx1v6">$DIN_LOC_ROOT/atm/cam/ocnfrac/domain.camocn.0.9x1.25_gx1v6_090403.nc</value>
+        <value compset="DOCN%DOM" grid="a%0.9x1.25.*_oi%0.9x1.25.*_m%gx1v7">$DIN_LOC_ROOT/share/domains/domain.ocn.fv0.9x1.25_gx1v7.151020.nc</value>
+        <value compset="DOCN%DOM" grid="a%0.47x0.63.*_oi%0.47x0.63">$DIN_LOC_ROOT/atm/cam/ocnfrac/domain.camocn.0.47x0.63_gx1v6_090408.nc</value>
+        <value compset="DOCN%DOM" grid="a%0.23x0.31.*_oi%0.23x0.31">$DIN_LOC_ROOT/atm/cam/ocnfrac/domain.camocn.0.23x0.31_gx1v6_101108.nc</value>
+      </values>
+    </entry>
+
+  </entries>
+
+</compsets>
