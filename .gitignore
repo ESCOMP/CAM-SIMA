@@ -1,4 +1,5 @@
 # Ignore externals
+ccpp_framework
 chem_proc
 cime
 components
