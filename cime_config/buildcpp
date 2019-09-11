@@ -23,7 +23,7 @@ from CIME.case import Case
 from CIME.buildnml import parse_input
 #--------------------------------
 
-# Add CAM's "cime_config" external directory to python path:
+# Add CAM's "cime_config" directory to python path:
 testpath = os.path.join(CIMEROOT, os.pardir, "components", "cam", "cime_config")
 if os.path.isdir(testpath):
     sys.path.append(testpath)
@@ -97,7 +97,6 @@ def buildcpp(case):
    #----------------------------------------
 
     # Set number of vertical levels:
-    nlev_desc = "Number of vertical levels."
     if case_nlev:
         # Save variable for CPPDEFs:
         nlev = case_nlev
