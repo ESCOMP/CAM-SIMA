@@ -8,18 +8,32 @@ API for cam's configure
 #pylint: disable=too-many-branches, too-many-statements
 import os, sys, re
 
+# Location of "cime" external directory:
 CIMEROOT = os.environ.get("CIMEROOT")
 if CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
 sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
+# Import CIME libraries/functions:
+#--------------------------------
 from standard_script_setup import *
 
 from CIME.utils import run_cmd_no_fail
 from CIME.case import Case
 from CIME.buildnml import parse_input
+#--------------------------------
 
+# Add CAM's "cime_config" external directory to python path:
+testpath = os.path.join(CIMEROOT, os.pardir, "components", "cam", "cime_config")
+if os.path.isdir(testpath):
+    sys.path.append(testpath)
+else:
+    sys.path.append(os.path.join(CIMEROOT, os.pardir, "cime_config"))  
 
+# Import CAM's "config" structure:
+from config_cam import Config
+
+# Extract CIME log:
 logger = logging.getLogger(__name__)
 
 ###############################################################################
@@ -28,26 +42,24 @@ def buildcpp(case):
     """
     Invoke cam configure - output goes in `caseroot`/Buildconf/camconf
     """
-    caseroot = case.get_value("CASEROOT")
-    srcroot = case.get_value("SRCROOT")
-    exeroot = case.get_value("EXEROOT")
-    atm_grid = case.get_value("ATM_GRID")
-    pts_mode = case.get_value("PTS_MODE")
-    cam_dycore = case.get_value("CAM_DYCORE")
-    comp_ocn = case.get_value("COMP_OCN")
-    docn_mode = case.get_value("DOCN_MODE")
-    mpilib = case.get_value("MPILIB")
-    compiler = case.get_value("COMPILER") # for chem preprocessor
-    nthrds_atm = case.get_value("NTHRDS_ATM")
-    cam_config_opts = case.get_value("CAM_CONFIG_OPTS")
-    comp_interface=case.get_value("COMP_INTERFACE")
+    caseroot = case.get_value("CASEROOT")               # CIME case location
+    exeroot = case.get_value("EXEROOT")                 # CESM Executable location
+    atm_grid = case.get_value("ATM_GRID")               # Atmosphere (CAM) grid
+    comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
+    docn_mode = case.get_value("DOCN_MODE")             # Data-ocean (docn) mode
+    mpilib = case.get_value("MPILIB")                   # MPI library
+    nthrds_atm = case.get_value("NTHRDS_ATM")           # Number of CAM threads (OpenMP)
+    cam_config_opts = case.get_value("CAM_CONFIG_OPTS") # CAM configuration options
+    case_os    = case.get_value("OS")                   # Operating System
+    case_nx    = case.get_value("ATM_NX")               # Number of x-dimension grid-points (longitudes)
+    case_ny    = case.get_value("ATM_NY")               # Number of y-dimension grid-points (latitudes)
 
     # level information for CAM is part of the atm grid name - and must be stripped out
-    nlev = ''
+    case_nlev = ''
     match = re.match(r'(.+)z(\d+)', atm_grid)
     if match:
         atm_grid = match.groups()[0]
-        nlev = match.groups()[1]
+        case_nlev = match.groups()[1]
 
     # The following translation is hard-wired for backwards compatibility
     # to support the differences between how the scripts specify the land grid
@@ -64,73 +76,175 @@ def buildcpp(case):
     if atm_grid == 'ne30pg3':
         atm_grid = 'ne30np4.pg3'
 
+    # Save user options as list:
+    user_config_opts = cam_config_opts.split(" ")
 
-    # if need to build - then construct configure command
-    config_opts = ["-s", "-fc_type", compiler, "-ccsm_seq",
-                   "-dyn", cam_dycore, "-hgrid", atm_grid, "-cpl", comp_interface,
-                   "-usr_src", os.path.join(caseroot, "SourceMods", "src.cam")]
-
-    if nlev:
-        config_opts += ["-nlev", nlev]
-
-    # Some settings for single column mode.
-    if pts_mode:
-        config_opts.append("-scam")
-
-    if mpilib == 'mpi-serial':
-        config_opts.append("-nospmd")
-    else:
-        config_opts.append("-spmd")
-
-    if int(nthrds_atm) == 1:
-        config_opts.append("-nosmp")
-    else:
-        config_opts.append("-smp")
-
-    # The ocean component setting is only used by CAM to do attribute matching for
-    # setting default tuning parameter values.  In SOM mode we want to use the same
-    # tunings as the fully coupled B compset, so set the ocean component to pop in
-    # that case.
-
-    if docn_mode == 'som':
-        config_opts += ["-ocn", "pop"]
-    else:
-        config_opts += ["-ocn", comp_ocn]
-
-    # Add user options.
-    config_opts += cam_config_opts.split(" ")
-
-    if "-cosp" in config_opts:
-        config_opts += ["-cosp_libdir", os.path.join(exeroot, "atm", "obj", "cosp")]
+    if "-cosp" in user_config_opts:
+        user_config_opts += ["-cosp_libdir", os.path.join(exeroot, "atm", "obj", "cosp")]
 
     camconf = os.path.join(caseroot, "Buildconf", "camconf")
     if not os.path.isdir(camconf):
         os.makedirs(camconf)
 
-    # Construct the command itself.
-    testpath = os.path.join(srcroot, "components", "cam")
-    if os.path.exists(testpath):
-        srcroot = testpath
-    cmd = os.path.join(srcroot, "bld", "configure") + \
-          " " + " ".join(config_opts)
-    run_cmd_no_fail(cmd, from_dir=camconf)
+    # Set CAM's configure/cppdef variables:
+    #+++++++++++++++++++++++++++++++++++++
+ 
+    # Initalize CAM "configure" object:
+    config = Config()
 
-    # determine cppdefs - caseroot/camconf/CESM_cppdefs is created by the call to configure
-    with open(os.path.join(camconf, "CESM_cppdefs"), 'r') as f:
-        user_cppdefs = f.readline().rstrip()
-    if user_cppdefs:
-        case.set_value("CAM_CPPDEFS", user_cppdefs)
-        case.flush()
+   #----------------------------------------
+   # Set CAM grid variables (nlat,nlon,nlev):
+   #----------------------------------------
 
-    return user_cppdefs
+    # Set number of vertical levels:
+    nlev_desc = "Number of vertical levels."
+    if case_nlev:
+        # Save variable for CPPDEFs:
+        nlev = case_nlev
+    else:
+        #NOTE:  This could be specified in the physics suite file, or by other user inputs. -JN
+        # Save variable for CPPDEFs:
+        nlev = 30
+
+    # Set vertical levels in configure object:   
+    config.set_value("nlev", nlev)
+
+    # Set horizontal grid:
+    config.set_value("hgrid", atm_grid)
+
+    # Set number of latitudes in grid:
+    config.set_value("nlat", case_ny)
+
+    # Set number of longitudes in grid:     
+    config.set_value("nlon", case_nx)
+
+    #--------------------
+    # Set physics options (This is ideally just a place holder for variables
+    # that will be read-in via the user-specified physics suite file):
+    #--------------------
+
+    # Set macrophysics scheme: 
+    config.set_value("macrophys", "none")
+
+    # Save microphysics option for CPPDEFs:
+    microphys = "none"
+    
+    # Set microphysics scheme:
+    config.set_value("microphys", microphys)
+
+    # Set Planetary Boundary Layer (PBL) scheme:
+    config.set_value("pbl", "none")
+
+    # Set CAM Physics option:
+    config.set_value("phys", "adiabatic")
+
+    # Set radiation scheme:
+    config.set_value("rad", "none")
+
+    # Set dynamics options (Should this also be set by a suite file?):
+    if "-dyn" in user_config_opts:
+        # If dynamics flag is present, then set dynamics package to user specification:
+        dyn = user_config_opts[user_config_opts.index("-dyn")+1]
+        config.set_value("dyn", dyn)
+        
+        # Also replace "CAM_DYCORE" case variable with new dynamics package:
+        case.set_value("CAM_DYCORE", dyn)      
+    else:
+        # Otherwise, set to grid default dynamics package:
+        dyn = case.get_value("CAM_DYCORE")
+        config.set_value("dyn", dyn)
+
+    # Save chemistry option (Also set by suite file?) for CPPDEFs:
+    chem = "none"
+  
+    # Set chemistry options:
+    config.set_value("chem", chem)
+
+    # The ocean component setting is only used by CAM to do attribute matching for
+    # setting default tuning parameter values.  In SOM mode we want to use the same
+    # tunings as the fully coupled B compset, so set the ocean component to pop in
+    # that case.
+    if docn_mode == 'som':
+        config.set_value("ocn", "pop")
+    else:
+        config.set_value("ocn", comp_ocn)
+ 
+    # Set offline driver:
+    config.set_value("offline_drv", "stub")
+
+    #++++++++++++++++++++
+
+    # Print CAM configure settings and values to debug logger:
+    config.print_all()
+
+    #+++++++++++++++++++++++++
+    #Create CAM's cppdefs list:
+    #+++++++++++++++++++++++++ 
+
+    #Retrieve number of physics columns:
+    pcols = config.get_value("pcols")
+
+    #Retrieve number of physics subcolumns:
+    psubcols = config.get_value("psubcols")
+
+    # Set grid-related cppdefs:
+    cam_cppdefs = " -DPLON=%s -DPLAT=%s -DPLEV=%s -DPCOLS=%s -DPSUBCOLS=%s" \
+                  %(case_nx,case_ny,nlev,pcols,psubcols)
+
+    # Set tracer/constituent-related cppdefs:
+    #---------------------------------------
+    if chem == "none" and microphys == "none":
+        cam_cppdefs += " -DPCNST=1"                
+
+    # Extract Max number of radiatively-active constituents:
+    max_n_rad_cnst = config.get_value("max_n_rad_cnst")
+
+    cam_cppdefs += " -DN_RAD_CNST=%s" \
+                   %(max_n_rad_cnst)
+    #---------------------------------------    
+
+    # Set wavenumber-related cppdefs (needed outside Eulerian dycore?):
+    trm = config.get_value("trm")
+    trn = config.get_value("trn")
+    trk = config.get_value("trk")
+
+    cam_cppdefs += " -DPTRM=%s -DPTRN=%s -DPTRK=%s" \
+                   %(trm,trn,trk)
+
+    #---------------------------
+    # Set system-related cppdefs:
+    #---------------------------
+    if mpilib == 'mpi-serial':
+        cam_cppdefs += " -DSPMD"
+
+    if int(nthrds_atm) == 1:
+        cam_cppdefs += " -DTHREADED_OMP" 
+
+    #Set GPTL timing cppdefs:
+    if case_os.lower() == 'aix' or case_os.lower() == 'bg' or case_os.lower() == 'darwin':
+        cam_cppdefs += " -DHAVE_VPRINTF -DHAVE_TIMES -DHAVE_GETTIMEOFDAY -DHAVE_COMM_F2C"
+    else:
+        cam_cppdefs += " -DHAVE_VPRINTF -DHAVE_TIMES -DHAVE_GETTIMEOFDAY -DHAVE_COMM_F2C -DHAVE_NANOTIME -DBIT64 -DHAVE_SLASHPROC"
+    #---------------------------
+
+    # Update the case variable CAM_CPPDEFS with the above CPP definitions:
+    case.set_value("CAM_CPPDEFS", cam_cppdefs)
+
+    # Write the case variables to the case's XML files:
+    case.flush()
+
+    #Print CAM CPPDEFs to case log:
+    logger.info("CAM_CPPDEFS: %s", cam_cppdefs)
+
+    # Return CAM config object to _main_func():
+    return config
 
 ###############################################################################
 def _main_func():
 
     caseroot = parse_input(sys.argv)
     with Case(caseroot) as case:
-        cam_cppdefs = buildcpp(case)
-    logger.info("CAM_CPPDEFS: %s", cam_cppdefs)
+        config = buildcpp(case)
 
 if __name__ == "__main__":
     _main_func()

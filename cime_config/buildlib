@@ -44,7 +44,7 @@ def _build_cam():
         logger.info("     ...calling cam buildcpp to set build time options")
         try:
             mod = imp.load_source("buildcpp", cmd)
-            cam_cppdefs = mod.buildcpp(case)
+            config = mod.buildcpp(case)
         except:
             raise
 

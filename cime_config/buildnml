@@ -65,7 +65,7 @@ def buildnml(case, caseroot, compname):
         logger.info("     ...calling cam buildcpp to set build time options")
         try:
             mod = imp.load_source("buildcpp", cmd)
-            mod.buildcpp(case)
+            config = mod.buildcpp(case)
         except:
             raise
 

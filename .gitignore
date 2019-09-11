@@ -12,6 +12,7 @@ src/physics/silhs
 # Ignore compiled python
 buildnmlc
 buildcppc
+config_cam.pyc
 
 # Ignore editor temporaries and backups
 *~
