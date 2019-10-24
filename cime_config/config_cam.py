@@ -11,256 +11,167 @@ from CIME.utils import expect
 from standard_script_setup import *
 #--------------------------------
 
-class Config(object):
+class Config_gen:
 
-    ##############
+    """
+    Generic configuration class used
+    to store CAM configuration options.
+    """
 
-    # Number of vertical levels:
-    class Nlev(object):
-        def __init__(self):
-            self.value = None
-            self.desc  = "Number of vertical levels."
+    def __init__(self, name, desc, val, valid_vals):
 
-    # Horizontal grid:
-    class Hgrid(object):
-        def __init__(self):
-            self.value = None
-            self.desc  = "Horizontal grid specifier.  The recognized values depend on \n \
-                         the dynamics type and are contained in the horiz_grid.xml file." 
+        #Check that "name" is a string:
+        if not isinstance(name, str):
+            raise SystemExit("ERROR: Configuration variable name {} must be a string, not {}".format(name, type(name)))
 
-    # Number of latitudes in grid:
-    class Nlat(object):
-        def __init__(self):
-            self.value = None
-            self.desc  = "Number of unique latitude points in rectangular lat/lon grid."
+        #Check that "desc" is a string:
+        if not isinstance(desc, str):
+            raise SystemExit("ERROR: Configuration variable {} must have a string-type description, not {}".format(name, type(desc)))
 
-    # Number of longitudes in grid:
-    class Nlon(object):
-        def __init__(self):
-            self.value = None
-            self.desc  = "Number of unique longitude points in rectangular lat/lon grid."
+        #Add name and description to object:
+        self.name = name
+        self.desc = desc
 
-    # Max number of Fourier wavenumbers:
-    class Trm(object):
-        def __init__(self):
-            self.value = 1
-            self.desc  = "Maximum Fourier wavenumber."
+        #Check that the given value is either an integer or a string:
+        if not isinstance(val, (int, str)):
+            raise SystemExit("ERROR:  Value provided for variable {} must be either an integer or a string. Currently it is {}".format(name, type(val)))
 
-    # Hightest Legendre polynomial degree:
-    class Trn(object):
-        def __init__(self):
-            self.value = 1
-            self.desc  = "Highest degree of the Legendre polynomials for m=0."
+        #Check that "valid_vals" is either "None" or a tuple:
+        if valid_vals is not None:
+            if not isinstance(valid_vals, tuple):
+                raise SystemExit("ERROR: The valid values for variable {} must either be None or a tuple, not {}".format(name, type(valid_vals)))
 
-    # Hightest associated Legendre polynomial degree:
-    class Trk(object):
-        def __init__(self):
-            self.value = 1
-            self.desc  = "Highest degree of the associated Legendre polynomials." 
+            #If tuple, check that the first entry is either an integer or a string (all entries are examined later in "check_value"):
+            if not isinstance(valid_vals[0], (int, str)):
+                raise SystemExit("ERROR:  Valid value for variable {} must be either an integer or a string.  Currently it is {}".format(name, type(valid_vals[0])))
 
-    # Number of Atmospheric (physics) columsn per chunk:
-    class Pcols(object):
-        def __init__(self):
-            self.value = 16
-            self.desc  = "Maximum number of columns in a chunk (physics data structure)."
+        #Check that provided value is "valid" based on the valid values tuple:
+        self.check_value(val,valid_vals)
 
-    # Number of physics sub-columns:
-    class Psubcols(object):
-        def __init__(self):
-            self.value = 1
-            self.desc  = "Maximum number of sub-columns in a column (physics data structure)." 
+        #Add inputs to object:
+        self.value      = val
+        self.valid_vals = valid_vals
 
-    # CAM dynamical core:
-    class Dyn(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["eul", "fv", "se", "none"]
-            self.desc         = "Dynamics package: "+", ".join(self.valid_values)
+    #----------------
 
-    # CAM physics version:
-    class Phys(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["cam3", "cam4", "cam5", "cam6", "held_suarez", "adiabatic", "kessler", \
-                                 "tj2016", "spcam_sam1mom", "spcam_m2005"]
-            self.desc         = "Physics package: "+", ".join(self.valid_values)
-
-    # Planetary Boundary Layer (PBL) scheme:
-    class Pbl(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["uw", "hb", "hbr", "clubb_sgs", "spcam_sam1mom", "spcam_m2005", "none"]
-            self.desc         = "PBL package: "+", ".join(self.valid_values)
-
-    # Macrophysics scheme:
-    class Macrophys(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["rk", "park", "clubb_sgs", "spcam_sam1mom", "spcam_m2005", "none"]
-            self.desc         = "Macrophysics package: "+", ".join(self.valid_values)
-
-    # Microphysics scheme:
-    class Microphys(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["rk", "mg1", "mg2", "spcam_m2005", "spcam_sam1mom", "none"]
-            self.desc         = "Microphysics package: "+", ".join(self.valid_values)
-
-    # Radiation scheme:
-    class Rad(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["rrtmg", "camrt", "none"]
-            self.desc         = "Radiative transfer calculation: "+", ".join(self.valid_values)
-
-    # Max number of radiatively-active constituents:
-    class Max_n_rad_cnst(object):
-        def __init__(self):
-            self.value = 30
-            self.desc = "Maximum number of constituents that are radiatively active or in any one diagnostic list."
-
-    # CAM Chemistry scheme:
-    class Chem(object):
-        def __init__(self):
-            self.value        = None
-            self.valid_values = ["trop_mam3", "trop_mam4", "trop_mam7", "trop_mozart", "trop_strat_mam4_vbs", "trop_strat_mam4_vbsext", \
-                                 "waccm_ma", "waccm_mad", "waccm_mad_mam4", "waccm_ma_mam4", "waccm_ma_sulfur", "waccm_sc", "waccm_sc_mam4", \
-                                 "waccm_tsmlt_mam4", "terminator", "none"]
-            self.desc         = "Chemistry package: "+", ".join(self.valid_values)
-
-    #Ocean component model:
-    class Ocn(object):
-        def __init__(self):
-            self.value        = "docn"
-            self.valid_values = ["docn", "dom", "som", "socn", "aquaplanet", "pop", "mom"]
-            self.desc         = "Use data ocean model (docn or dom), stub ocean (socn), or aqua planet ocean \n \
-                                (aquaplanet) in cam build.  When built from the CESM scripts the value of \n \
-                                ocn may be set to pop or mom.  This doesn't impact how CAM is built, only how \n \
-                                attributes are matched when searching for namelist defaults.  If ocn is set \n \
-                                to som then the docn component is used."
-
-    #Offline driver type:
-    class Offline_drv(object):
-        def __init__(self):
-            self.value        = "stub"
-            self.valid_values = ["aur", "rad", "stub"] 
-            self.desc         = "Offline unit driver: \n \
-                                aur  : aurora module unit test \n \
-                                rad  : radiation offline unit drive \n \
-                                stub : stub offline unit driver"
-
-
-    def __init__(self): 
- 
+    def check_value(self,val,valid_vals):
+        
         """
-        Initalize all configure variables.
+        Checks input/given value to make sure
+        it is valid according to the
+        object's valid values tuple.
         """
 
-        #Number of vertical levels:
-        self.nlev = self.Nlev()
-  
-        #Horizontal grid:
-        self.hgrid = self.Hgrid()    
+        #Only check the given value if valid_vals is not "None":
+        if valid_vals is not None:
 
-        # Set number of latitudes in grid:
-        self.nlat = self.Nlat()
+            #Determine the length of valid values tuple:
+            valid_len = len(valid_vals)
 
-        # Set number of longitudes in grid:
-        self.nlon = self.Nlon()
+            #Pull out first valid value:
+            first_valid = valid_vals[0]
 
-        # Set spherical harmonics (not sure if this is used outside Eulerian dycore?):
-        self.trm = self.Trm()
- 
-        self.trn = self.Trn()
+            #Check if there is only one valid value:
+            if valid_len == 1:
 
-        self.trk = self.Trk()
+                #If valid value is only one integer, then just check that the given value is greater than it:
+                if isinstance(first_valid, int) and val < first_valid:
+                    raise SystemExit("Error: Value {} provided for variable {} is less than minimum valid value {}".format(val, self.name, first_valid))
 
-        # Set number of atmospheric (physics) columns per chunk:
-        self.pcols = self.Pcols()
+                #If valid value is only one string, then just check that the given value matches it:
+                if isinstance(first_valid, str) and val != first_valid:
+                    raise SystemExit("Error: Value {} provided for variable {} doesn't match valid value {}".format(val, self.name, first_valid))
 
-        # Set number of physics sub-columns:
-        self.psubcols = self.Psubcols()       
+            else:
 
-        # Set dynamical core:
-        self.dyn = self.Dyn()
+                #Check that the valid values are all of the same type:
+                if any(not isinstance(n, type(first_valid)) for n in valid_vals):
+                    raise SystemExit("ERROR: Valid values for variable {} must all be of the same type. Instead valid values are: {}".format(self.name, valid_vals))
 
-        # Set overall physics scheme:
-        self.phys = self.Phys()
+                #If valid values are two integers, then just check that the given value is in-between them:
+                if valid_len == 2 and isinstance(first_valid, int) and (val < first_valid or val > valid_vals[1]):
+                    raise SystemExit("ERROR: Value {} provided for variable {} is outside the valid range {} to {}".format(val, self.name, first_valid, valid_vals[1]))
 
-        # Set Planetary Boundary Layer (PBL) scheme:
-        self.pbl = self.Pbl()
+                #Otherwise, just make sure that the given value matches one of the valid values:
+                elif not any(n == val for n in valid_vals):
+                    raise SystemExit("ERROR:  Value {} provided for variable {} does not match any of the valid values: {}".format(val, self.name, valid_vals))
 
-        # Set macrophysics scheme:
-        self.macrophys = self.Macrophys()
+    #-------------------
 
-        # Set microphysics scheme:
-        self.microphys = self.Microphys()
+    def set_value(self, val):
 
-        # Set radiation scheme:
-        self.rad = self.Rad()
+        """
+        Set configure object's value to the one provided.
+        """    
 
-        # Set max number of radiatively-active constituents:
-        self.max_n_rad_cnst = self.Max_n_rad_cnst()
+        #First, check that the provided value is valid:
+        self.check_value(val, self.valid_vals)
 
-        # Set chemistry scheme:
-        self.chem = self.Chem()
+        #If ok, then set object's value to one provided:
+        self.value = val
 
-        # Set ocean component model:
-        self.ocn = self.Ocn()
+######################
 
-        # Set offline driver type:
-        self.offline_drv = self.Offline_drv()
-         
-        #Create dictionary for get/set functions:
-        self.var_dict = {
-                         "nlev"        : self.nlev,
-                         "hgrid"       : self.hgrid,  
-                         "nlat"        : self.nlat,
-                         "nlon"        : self.nlon,
-                         "trm"         : self.trm,
-                         "trn"         : self.trn,
-                         "trk"         : self.trk,
-                         "pcols"       : self.pcols,
-                         "psubcols"    : self.psubcols,
-                         "dyn"         : self.dyn,
-                         "phys"        : self.phys,
-                         "pbl"         : self.pbl,
-                         "macrophys"   : self.macrophys,
-                         "microphys"   : self.microphys,
-                         "rad"         : self.rad,
-                         "max_n_rad_cnst" : self.max_n_rad_cnst,
-                         "chem"        : self.chem,
-                         "ocn"         : self.ocn,        
-                         "offline_drv" : self.offline_drv
-        } #End of dictonary
+class Config_CAM:
 
-    ##############
+    """
+    Main CAM configuration object.
+    """
 
-    def print_var(self, varname):
+    def __init__(self):
+
+        """
+        Initalize configuration object
+        and associated dictionary.
+        """
+
+        self.config = dict()
+
+    #---------------
+
+    def create_config(self, name, desc, val, valid_vals):
+
+        """
+        Create new CAM "configure" object, and add it
+        to the configure dictionary.
+        """
+
+        #Create new CAM configure object:
+        conf_obj = Config_gen(name, desc, val, valid_vals)
+
+        #Add object to dictionary:
+        self.config[conf_obj.name] = conf_obj
+
+    #---------------
+
+    def print_config(self, obj_name):
 
         """
         Print the value and description of a specified
-        variable to the CIME debug log.   
+        CAM configure object to the CIME debug log.  
         """
 
-        #Loop up specific config variable:
-        var = self.var_dict[varname]
+        #Check that the given object name exists in the dictionary:
+        if obj_name in self.config:
+            obj = self.config[obj_name]
+        else:
+            raise SystemExit("ERROR: Invalid configuration name, {}".format(obj_name))
 
         #Extract CIME log:
         logger = logging.getLogger(__name__)
 
         #Print variable to logger: 
-        logger.debug("CAM config variable name: %s", varname)
-        logger.debug("CAM config variable description: %s", var.desc)
-        logger.debug("CAM config variable value: %s" ,var.value)
+        logger.debug("CAM config variable: {}".format(obj.name))
+        logger.debug("CAM config variable description: {}".format(obj.desc))
+        logger.debug("CAM config variable value: {}".format(obj.value))
 
-    ##############
+    #---------------
 
     def print_all(self):
 
         """
         Print the names, descriptions, and values of all CAM 
-        configuration variables.
+        configuration objects.
         """
    
         #Extract CIME log:
@@ -271,53 +182,53 @@ class Config(object):
         logger.debug("-----------------------------")
 
         #Loop over config dictionary values:
-        for varname, var in self.var_dict.items():
+        for obj_name in self.config:
             #Print variable to logger:
-            logger.debug("CAM config variable name: %s", varname)
-            logger.debug("CAM config variable description: %s", var.desc)
-            logger.debug("CAM config variable value: %s" ,var.value)            
-            logger.debug("-----------------------------")
+            self.print_config(obj_name)
 
-   #############
+        #Print additional separator (to help seperate this output from additional CIME output):
+        logger.debug("-----------------------------")
 
-    def set_value(self, varname, value):
+    #---------------
+
+    def set_value(self, obj_name, val):
 
         """
-        Set configure variable to specified value.
+        Set configure object's value to the value given.
         """
 
-        #Look up specific config variable:
-        var = self.var_dict[varname]
-
-        #Check if variable object has "valid_values" list attribute:
-        if hasattr(var, 'valid_values'):
-            #If list exists, check that input value is in list:
-            expect(value in var.valid_values, \
-                   "{} not in list of valid settings for {}, cannot configure CAM".format(value, varname))
-
-            #Set the value to the input value:
-            var.value = value
+        #First, check that the given object name exists in the dictionary:
+        if obj_name in self.config:
+            obj = self.config[obj_name]
         else:
-            #If not, then just set the value to the input value:
-            var.value = value  
+            raise SystemExit("ERROR: Invalid configuration name, {}".format(obj_name))
 
-    #############
+        #Next, check that the given value is either an integer or a string:
+        if not isinstance(val, (int, str)):
+            raise SystemExit("ERROR:  Value provided for variable {} must be either an integer or a string.  Currently it is type {}".format(name,type(val)))
 
-    def get_value(self, varname):
+        #Finally, set configure object's value to the value given:
+        obj.set_value(val)
+
+    #---------------
+
+    def get_value(self, obj_name):
 
         """
-        return value for specified configure variable.
+        return value for specified configure object.
         """  
+ 
+        #First check that the given object name exists in the dictionary:
+        if obj_name in self.config:
+            obj = self.config[obj_name]
+        else:
+            raise SystemExit("ERROR: Invalid configuration name, {}".format(obj_name)) 
 
-        #Look up specific config variable:
-        var = self.var_dict[varname]
-        
-        #return variable value:
-        return var.value  
+        #If it does, then return the object's value:
+        return obj.value  
 
 ############
 #End of file
 ############
-
  
   

@@ -8,12 +8,6 @@ API for cam's configure
 #pylint: disable=too-many-branches, too-many-statements
 import os, sys, re
 
-# Location of "cime" external directory:
-CIMEROOT = os.environ.get("CIMEROOT")
-if CIMEROOT is None:
-    raise SystemExit("ERROR: must set CIMEROOT environment variable")
-sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
-
 # Import CIME libraries/functions:
 #--------------------------------
 from standard_script_setup import *
@@ -23,15 +17,23 @@ from CIME.case import Case
 from CIME.buildnml import parse_input
 #--------------------------------
 
-# Add CAM's "cime_config" directory to python path:
-testpath = os.path.join(CIMEROOT, os.pardir, "components", "cam", "cime_config")
-if os.path.isdir(testpath):
-    sys.path.append(testpath)
-else:
-    sys.path.append(os.path.join(CIMEROOT, os.pardir, "cime_config"))  
+# Location of "cime" external directory:
+CIMEROOT = os.environ.get("CIMEROOT")
+if CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
 
-# Import CAM's "config" structure:
-from config_cam import Config
+# Check for location of CAM's "cime_config" directory:
+testpath = os.path.join(CIMEROOT, os.pardir, "components", "cam", "cime_config")
+if not os.path.isdir(testpath):
+    testpath = os.path.join(CIMEROOT, os.pardir, "cime_config")
+if not os.path.isdir(testpath):
+    raise SystemExit("ERROR: cannot find cime_config for CAM")
+
+# Add CAM's "cime_config" external directory to python path:
+sys.path.append(os.path.abspath(testpath))
+
+# Import CAM's configure structure:
+from config_cam import Config_CAM
 
 # Extract CIME log:
 logger = logging.getLogger(__name__)
@@ -77,99 +79,141 @@ def buildcpp(case):
         atm_grid = 'ne30np4.pg3'
 
     # Save user options as list:
-    user_config_opts = cam_config_opts.split(" ")
+    user_config_opts = [opt for opt in cam_config_opts.split(" ") if opt]
 
-    if "-cosp" in user_config_opts:
-        user_config_opts += ["-cosp_libdir", os.path.join(exeroot, "atm", "obj", "cosp")]
+    #Un-comment once COSP is re-implemented into CAMDEN:
+    #if "-cosp" in user_config_opts:
+    #    user_config_opts += ["-cosp_libdir", os.path.join(exeroot, "atm", "obj", "cosp")]
 
     camconf = os.path.join(caseroot, "Buildconf", "camconf")
     if not os.path.isdir(camconf):
         os.makedirs(camconf)
 
+    #+++++++++++++++++++++++++++++++++++++
     # Set CAM's configure/cppdef variables:
     #+++++++++++++++++++++++++++++++++++++
  
     # Initalize CAM "configure" object:
-    config = Config()
+    config = Config_CAM()
 
-   #----------------------------------------
-   # Set CAM grid variables (nlat,nlon,nlev):
-   #----------------------------------------
+    #----------------------------------------
+    # Set CAM grid variables (nlat,nlon,nlev):
+    #----------------------------------------
 
     # Set number of vertical levels:
     if case_nlev:
         # Save variable for CPPDEFs:
         nlev = case_nlev
     else:
-        #NOTE:  This could be specified in the physics suite file, or by other user inputs. -JN
         # Save variable for CPPDEFs:
         nlev = 30
 
-    # Set vertical levels in configure object:   
-    config.set_value("nlev", nlev)
+    # Add vertical levels to configure object:
+    nlev_desc = "Number of vertical levels."
+    config.create_config("nlev", nlev_desc, nlev, (1,))
 
-    # Set horizontal grid:
-    config.set_value("hgrid", atm_grid)
+    # Add number of latitudes in grid to configure object:
+    nlat_desc = "Number of unique latitude points in rectangular lat/lon grid."
+    config.create_config("nlat", nlat_desc, case_ny, None)
 
-    # Set number of latitudes in grid:
-    config.set_value("nlat", case_ny)
+    # Add number of longitudes in grid to configure object:     
+    nlon_desc = "Number of unique longitude points in rectangular lat/lon grid."
+    config.create_config("nlon", nlon_desc, case_nx, None)
 
-    # Set number of longitudes in grid:     
-    config.set_value("nlon", case_nx)
+    #------------------------
+    # Set CAM physics columns
+    #------------------------
 
-    #--------------------
-    # Set physics options (This is ideally just a place holder for variables
-    # that will be read-in via the user-specified physics suite file):
-    #--------------------
+    #Physics column per chunk:
+    pcols_desc = "Maximum number of columns in a chunk (physics data structure)."
+    config.create_config("pcols", pcols_desc, 16, (1,))
+ 
+    #Physics sub-columns:
+    psubcols_desc = "Maximum number of sub-columns in a column (physics data structure)."
+    config.create_config("psubcols", psubcols_desc, 1, (1,))   
 
-    # Set macrophysics scheme: 
-    config.set_value("macrophys", "none")
+    #---------------------
+    # Set dynamics options:
+    #---------------------
 
-    # Save microphysics option for CPPDEFs:
-    microphys = "none"
-    
-    # Set microphysics scheme:
-    config.set_value("microphys", microphys)
-
-    # Set Planetary Boundary Layer (PBL) scheme:
-    config.set_value("pbl", "none")
-
-    # Set CAM Physics option:
-    config.set_value("phys", "adiabatic")
-
-    # Set radiation scheme:
-    config.set_value("rad", "none")
-
-    # Set dynamics options (Should this also be set by a suite file?):
     if "-dyn" in user_config_opts:
         # If dynamics flag is present, then set dynamics package to user specification:
         dyn = user_config_opts[user_config_opts.index("-dyn")+1]
-        config.set_value("dyn", dyn)
         
         # Also replace "CAM_DYCORE" case variable with new dynamics package:
         case.set_value("CAM_DYCORE", dyn)      
     else:
         # Otherwise, set to grid default dynamics package:
         dyn = case.get_value("CAM_DYCORE")
-        config.set_value("dyn", dyn)
 
-    # Save chemistry option (Also set by suite file?) for CPPDEFs:
-    chem = "none"
+    #Add dynamics option to configure object:
+    dyn_valid_vals = ("eul", "fv", "se", "none")
+    dyn_desc       = "Dynamics package: "+", ".join(dyn_valid_vals)
+
+    config.create_config("dyn", dyn_desc, dyn, dyn_valid_vals)
+
+    #--------------------
+    # Set horizontal grid:
+    #--------------------
+
+    # Set valid horizontal grid options based on dynamical core being used:
+    if dyn == "fv":
+        hgrid_valid_vals = ("0.23x0.31", "0.47x0.63", "0.5x0.625", "0.9x1.25", 
+                            "1x1.25", "1.9x2.5", "2x2.5", "2.5x3.33", 
+                            "4x5", "10x15")
+    elif dyn == "se":
+        hgrid_valid_vals = ("ne5np4", "ne5np4.pg2", "ne5np4.pg3", "ne5np4.pg4", 
+                            "ne16np4", "ne16np4.pg3", "ne30np4", "ne30np4.pg2", 
+                            "ne30np4.pg3", "ne30np4.pg4", "ne60np4", "ne60np4.pg2", 
+                            "ne60np4.pg3", "ne60np4.pg4", "ne120np4", "ne120np4.pg2",
+                            "ne120np4.pg3", "ne120np4.pg4", "ne240np4", "ne240np4.pg2",
+                            "ne240np4.pg3", "ne0np4TESTONLY.ne5x4", "ne0np4CONUS.ne30x8")
+    elif dyn == "eul":
+        hgrid_valid_vals = ("512x1024", "256x512", "128x256", "64x128", 
+                            "48x96", "32x64", "8x16", "1x1")
+
+        #If using the Eulerian dycore, then add wavenumber variables as well:
+       
+        #wavenumber variable descriptions:
+        trm_desc = "Maximum Fourier wavenumber."
+        trn_desc = "Highest degree of the Legendre polynomials for m=0."
+        trk_desc = "Highest degree of the associated Legendre polynomials."
+
+        #Add variables to configure object:
+        config.create_config("trm", trm_desc, 1, (1,))
+        config.create_config("trn", trn_desc, 1, (1,))
+        config.create_config("trk", trk_desc, 1, (1,))
+    else:
+        hgrid_valid_vals = None
+
+    # Add horizontal grid to configure object:
+    hgrid_desc = "\n \
+                 Horizontal grid specifier.  The recognized values depend on \n \
+                 the dynamical core being used (if any)."
+    config.create_config("hgrid", hgrid_desc, atm_grid, hgrid_valid_vals)
+
+    #--------------------
+    # Set ocean component
+    #--------------------
+
+    ocn_valid_vals = ("docn", "dom", "som", "socn", "aquaplanet", "pop", "mom")
   
-    # Set chemistry options:
-    config.set_value("chem", chem)
+    ocn_desc = "\n \
+                Use data ocean model (docn or dom), stub ocean (socn), or aqua planet ocean \n \
+                (aquaplanet) in cam build.  When built from the CESM scripts the value of \n \
+                ocn may be set to pop or mom.  This doesn't impact how CAM is built, only how \n \
+                attributes are matched when searching for namelist defaults.  If ocn is set \n \
+                to som then the docn component is used."
 
     # The ocean component setting is only used by CAM to do attribute matching for
     # setting default tuning parameter values.  In SOM mode we want to use the same
     # tunings as the fully coupled B compset, so set the ocean component to pop in
     # that case.
+    
     if docn_mode == 'som':
-        config.set_value("ocn", "pop")
+        config.create_config("ocn", ocn_desc, "pop", ocn_valid_vals)
     else:
-        config.set_value("ocn", comp_ocn)
- 
-    # Set offline driver:
-    config.set_value("offline_drv", "stub")
+        config.create_config("ocn", ocn_desc, comp_ocn, ocn_valid_vals)
 
     #++++++++++++++++++++
 
@@ -187,28 +231,19 @@ def buildcpp(case):
     psubcols = config.get_value("psubcols")
 
     # Set grid-related cppdefs:
-    cam_cppdefs = " -DPLON=%s -DPLAT=%s -DPLEV=%s -DPCOLS=%s -DPSUBCOLS=%s" \
-                  %(case_nx,case_ny,nlev,pcols,psubcols)
+    cam_cppdefs = \
+    " -DPLON={} -DPLAT={} -DPLEV={} -DPCOLS={} -DPSUBCOLS={}".format(case_nx,case_ny,nlev,pcols,psubcols)  
 
-    # Set tracer/constituent-related cppdefs:
-    #---------------------------------------
-    if chem == "none" and microphys == "none":
-        cam_cppdefs += " -DPCNST=1"                
+    # Set wavenumber-related cppdefs if using Eulerian dycore:
+    if dyn == "eul":
+        
+        #Retrieve wavenumber values:
+        trm = config.get_value("trm")
+        trn = config.get_value("trn")
+        trk = config.get_value("trk")
 
-    # Extract Max number of radiatively-active constituents:
-    max_n_rad_cnst = config.get_value("max_n_rad_cnst")
-
-    cam_cppdefs += " -DN_RAD_CNST=%s" \
-                   %(max_n_rad_cnst)
-    #---------------------------------------    
-
-    # Set wavenumber-related cppdefs (needed outside Eulerian dycore?):
-    trm = config.get_value("trm")
-    trn = config.get_value("trn")
-    trk = config.get_value("trk")
-
-    cam_cppdefs += " -DPTRM=%s -DPTRN=%s -DPTRK=%s" \
-                   %(trm,trn,trk)
+        #Add to cppdefs:
+        cam_cppdefs += " -DPTRM={} -DPTRN={} -DPTRK={}".format(trm,trn,trk)
 
     #---------------------------
     # Set system-related cppdefs:
