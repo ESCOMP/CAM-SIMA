@@ -1,0 +1,28 @@
+[ccpp_table]
+  name = physics_types_parameter
+  type = module
+[ ncol ]
+  standard_name = horizontal_dimension
+  long_name = Number of horizontal columns
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ latitude ]
+  standard_name = latitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ longitude ]
+  standard_name = longitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ pver ]
+  standard_name = vertical_layer_dimension
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True

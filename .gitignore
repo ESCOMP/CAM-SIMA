@@ -13,6 +13,12 @@ src/physics/silhs
 # Ignore compiled python
 buildnmlc
 buildcppc
+*.pyc
+
+# Ignore test output
+test/unit/tmp
+test/include/*.mod
+test/include/*.o
 
 # Ignore editor temporaries and backups
 *~
