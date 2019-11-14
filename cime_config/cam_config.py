@@ -99,12 +99,14 @@ class Config_integer(Config_gen):
                 if n is not None and not isinstance(n,int):
                     raise Cam_config_type_error("ERROR:  Valid value for variable {} must be either None or an integer.  Currently it is {}".format(name, type(n)))
 
-        #Next, check that provided value is "valid" based on the valid values list or tuple:
-        self.check_value(val,valid_vals)
+        #If ok, then add valid_vals to object:
+        self.__valid_vals = valid_vals
 
-        #If everything is ok, then add inputs to object:
-        self.__value      = val
-        self.__valid_vals = valid_vals        
+        #Next, check that provided value is "valid" based on the valid values list or tuple:
+        self.check_value(val)
+
+        #If everything is ok, then add provided value to object:
+        self.__value = val
 
     #++++++++++++++++++++++++
 
@@ -121,7 +123,7 @@ class Config_integer(Config_gen):
 
     #++++++++++++++++++++++++
 
-    def check_value(self,val,valid_vals):
+    def check_value(self,val):
 
         """
         Checks input/given value to make sure
@@ -137,6 +139,9 @@ class Config_integer(Config_gen):
         must match at least one of the valid values
         included in that list.  
         """
+ 
+        #Extract valid values (valid_vals) from object:
+        valid_vals = self.valid_vals
 
         #Only check the given value if valid_vals is not "None":
         if valid_vals is not None:
@@ -182,7 +187,7 @@ class Config_integer(Config_gen):
         """
 
         #First, check that the provided value is valid:
-        self.check_value(val, self.valid_vals)
+        self.check_value(val)
 
         #If ok, then set object's value to one provided:
         self.value = val
@@ -220,12 +225,14 @@ class Config_string(Config_gen):
                 if not all(isinstance(n, str) for n in valid_vals):
                     raise Cam_config_type_error("ERROR:  All valid values for variable {} must be strings.".format(name))
 
-        #Next, check that provided value is "valid" based on the valid values list or tuple:
-        self.check_value(val,valid_vals)
-
-        #If everything is ok, then add inputs to object:
-        self.__value      = val
+        #If ok, then add valid_vals to object:
         self.__valid_vals = valid_vals
+
+        #Next, check that provided value is "valid" based on the valid values list or regular expression:
+        self.check_value(val)
+
+        #If everything is ok, then add provided value to object:
+        self.__value = val 
 
     #++++++++++++++++++++++++
 
@@ -243,7 +250,7 @@ class Config_string(Config_gen):
 
     #++++++++++++++++++++++++
 
-    def check_value(self,val,valid_vals):
+    def check_value(self,val):
         
         """
         Checks input/given value to make sure
@@ -259,6 +266,9 @@ class Config_string(Config_gen):
         assume the value must match the regular
         expression.. 
         """
+
+        #Extract valid values (valid_vals) from object:
+        valid_vals = self.valid_vals
 
         #Only check the given value if valid_vals is not None:
         if valid_vals is not None:
@@ -284,7 +294,7 @@ class Config_string(Config_gen):
         """    
 
         #First, check that the provided value is valid:
-        self.check_value(val, self.valid_vals)
+        self.check_value(val)
 
         #If ok, then set object's value to one provided:
         self.value = val
