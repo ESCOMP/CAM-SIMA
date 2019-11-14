@@ -630,7 +630,7 @@ if __name__ == "__main__":
     sys.path.append("test")
 
     #Import cam_config unit-testing routine:
-    from config_cam_tests import cam_config_test_routine
+    from cam_config_tests import cam_config_test_routine
 
     #Call testing routine:
     cam_config_test_routine()

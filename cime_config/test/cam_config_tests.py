@@ -4,11 +4,11 @@ CAM configure object classes, including
 their error-handling methods.
 """
 
-#---------------------------------------
-#Import generic python libraries/modules:
-#---------------------------------------
-from config_cam import Config_gen, Config_integer, Config_string
-from config_cam import Cam_config_type_error, Cam_config_val_error
+#----------------------------------------
+#Import required python libraries/modules:
+#----------------------------------------
+from cam_config import Config_gen, Config_integer, Config_string
+from cam_config import Cam_config_type_error, Cam_config_val_error
 import re 
 
 

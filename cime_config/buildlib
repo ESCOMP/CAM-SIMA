@@ -25,7 +25,7 @@ from CIME.build import get_standard_makefile_args
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import CAM's configure structure:
-from config_cam import Config_CAM
+from cam_config import Config_CAM
 
 logger = logging.getLogger(__name__)
 
