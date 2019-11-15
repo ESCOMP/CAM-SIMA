@@ -11,6 +11,9 @@ CIME case.
 #---------------------------------------
 import re 
 
+#Determine regular rexpression type instance (for later usage in Config_string):
+regex_type = type(re.compile(r" "))
+
 ####################################################################################
 #Error-handling classes
 ####################################################################################
@@ -175,7 +178,7 @@ class Config_integer(Config_gen):
             #If valid_vals is a list, then just check that the given value 
             #matches one of the valid values in the list:
             else:
-                if not any(n == val for n in valid_vals):
+                if not val in valid_vals:
                     raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match any of the valid values: {}".format(val, self.name, valid_vals))
             
     #++++++++++++++++++++++++
@@ -210,9 +213,6 @@ class Config_string(Config_gen):
 
         #Add generic attributes:
         Config_gen.__init__(self, name, desc)    
-
-        #Determine regular rexpression type instance:
-        regex_type = type(re.compile(r" ")) 
 
         #Check if Valid_vals is not None:
         if valid_vals is not None:
@@ -270,20 +270,17 @@ class Config_string(Config_gen):
         #Extract valid values (valid_vals) from object:
         valid_vals = self.valid_vals
 
-        #Only check the given value if valid_vals is not None:
-        if valid_vals is not None:
+        #If a list, then check that the given value 
+        #matches one of the valid values in the list:
+        if isinstance(valid_vals, list):
+            if not val in valid_vals:
+                raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match any of the valid values: {}".format(val, self.name, valid_vals))
 
-            #If a list, then check that the given value 
-            #matches one of the valid values in the list:
-            if isinstance(valid_vals, list):
-                if not any(n == val for n in valid_vals):
-                    raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match any of the valid values: {}".format(val, self.name, valid_vals))
-
-            else:
-                #If a regular expression object, then check that
-                #value is matched by the expression:
-                if valid_vals.match(val) is None:
-                    raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match the valid regular expression:".format(val, self.name))
+        elif valid_vals is not None:
+            #If a regular expression object, then check that
+            #value is matched by the expression:
+            if valid_vals.match(val) is None:
+                raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match the valid regular expression:".format(val, self.name))
 
     #++++++++++++++++++++++++
 
@@ -321,12 +318,7 @@ class Config_CAM:
         cam_config_opts = case.get_value("CAM_CONFIG_OPTS") # CAM configuration options 
         case_nx  = case.get_value("ATM_NX")                 # Number of x-dimension grid-points (longitudes)
         case_ny  = case.get_value("ATM_NY")                 # Number of y-dimension grid-points (latitudes)
-        docn_mode = case.get_value("DOCN_MODE")             # Data-ocean (docn) mode 
         comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
-
-        #If setting cpp-defs, then read in additional case variables:
-        if set_cppdefs:
-            mpilib = case.get_value("MPILIB")               # MPI library
 
         #The following translation is hard-wired for backwards compatibility
         #to support the differences between how the scripts specify the land grid
@@ -348,7 +340,7 @@ class Config_CAM:
         #-----------------------------------------------
 
         #Check if "-dyn" is specifed in user_config_opts:
-        if any("-dyn" == opt for opt in user_config_opts):
+        if "-dyn" in user_config_opts:
             #If so, then set variable to value specified:
             dyn_idx = user_config_opts.index("-dyn")
             user_dyn_opt = user_config_opts[dyn_idx+1]
@@ -410,8 +402,12 @@ class Config_CAM:
         # Set CAM dynamical core
         #-----------------------
 
+        #CAM dynamics package (dynamical core) meta-data:
         dyn_desc = "Dynamics package, which is set by the horizontal grid specified."   
         dyn_valid_vals = ["eul", "fv", "se", "fv3", "mpas", "none"]
+
+        #CAM horizontal grid meta-data:
+        hgrid_desc = "Horizontal grid specifier." 
 
         #Create regex expressions to search for the different dynamics grids:
         eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dy-core
@@ -420,22 +416,37 @@ class Config_CAM:
         fv3_grid_re = re.compile(r"C[0-9]+")                      # FV3 dy-core
         mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dy-core (not totally sure about this pattern) 
 
-        #Check if specified grid matches any of the pre-defined grid options:
+        #Check if specified grid matches any of the pre-defined grid options.
+        #If so, then add both the horizontal grid and dynamical core to the configure object:
         if fv_grid_re.match(atm_grid) is not None:
-            dyn = "fv"
-            hgrid_valid_vals = fv_grid_re
+            #Dynamical core: 
+            self.create_config("dyn", dyn_desc, "fv", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, fv_grid_re) 
+
         elif se_grid_re.match(atm_grid) is not None:
-            dyn = "se"
-            hgrid_valid_vals = se_grid_re
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "se", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, se_grid_re)
+
         elif fv3_grid_re.match(atm_grid) is not None:
-            dyn = "fv3"
-            hgrid_valid_vals = fv3_grid_re
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "fv3", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, fv3_grid_re)
+
         elif mpas_grid_re.match(atm_grid) is not None:
-            dyn = "mpas" 
-            hgrid_valid_vals = mpas_grid_re  
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "mpas", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, mpas_grid_re)
+
         elif eul_grid_re.match(atm_grid) is not None:   
-            dyn = "eul"
-            hgrid_valid_vals = eul_grid_re
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "eul", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, eul_grid_re)
 
             #If using the Eulerian dycore, then add wavenumber variables as well:
 
@@ -450,24 +461,17 @@ class Config_CAM:
             self.create_config("trk", trk_desc, 1, (1,None)) 
 
         elif atm_grid == "null":
-            dyn = "none"
-            hgrid_valid_vals = None
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "none", dyn_valid_vals)
+            #Atmospheric grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, None)
+
         else:
             raise Cam_config_val_error("ERROR:  The specified CAM horizontal grid {} does not match any expected value".format(atm_grid))
 
-        #If user-specified dynamics option is present, check that it matches the grid-derived value:
-        if user_dyn_opt is not None and user_dyn_opt != dyn:
+        #If user-specified dynamics option is present, then check that it matches the grid-derived value:
+        if user_dyn_opt is not None and user_dyn_opt != self.get_value("dyn"):
             raise Cam_config_val_error("ERROR: User-specified dynamics option {} does not match dycore expected from CIME grid: {}".format(user_dyn_opt, dyn))
-
-        #Add dynamical core to CAM config object:
-        self.create_config("dyn", dyn_desc, dyn, dyn_valid_vals)
-
-        #--------------------
-        # Set horizontal grid
-        #--------------------
-
-        hgrid_desc = "Horizontal grid specifier."
-        self.create_config("hgrid", hgrid_desc, atm_grid, hgrid_valid_vals)
 
         #--------------------
         # Set ocean component
