@@ -90,9 +90,22 @@ def cam_config_test_routine():
 
     val_string = "integer"
 
-    #Run Config_gen initalization check:
+    #Run create_config initalization check:
     num_pass = generate_config_pass(config, name, desc, val, valid_vals, val_string, num_pass)
 
+    #++++++++++++++++++++++++++++++++++++++++
+    #check repeating list name error-handling:
+    #++++++++++++++++++++++++++++++++++++++++
+
+    #Don't change any inputs.
+
+    #set error test message:
+    err_type = "config list error"
+
+    #Run create_config error-handle check:
+    num_pass, num_fail = generate_config_error(config, name, desc, val,
+                                               valid_vals, err_type, num_pass, num_fail)
+    
     #+++++++++++++++++++++++++++++++++
     #check generic name error-handling:
     #+++++++++++++++++++++++++++++++++
@@ -103,7 +116,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "Name error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -118,7 +131,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "Description error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -135,7 +148,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values type error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val, 
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -152,7 +165,7 @@ def cam_config_test_routine():
     #Set valid value string to help with error-reporting:
     val_string = "tuple"
 
-    #Run Config_integer initalization check:
+    #Run create_config initalization check:
     num_pass = generate_config_pass(config, name, desc, val, valid_vals, val_string, num_pass)
 
     #++++++++++++++++++++++++++++++++++++++++++
@@ -168,7 +181,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values all-None tuple error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -182,7 +195,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "Tuple length error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -196,7 +209,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "Minimum integer value error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)    
 
@@ -210,7 +223,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "Maximum integer value error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -224,7 +237,7 @@ def cam_config_test_routine():
     #Set valid value string to help with error-reporting:
     val_string = "list"
 
-    #Run Config_integer initalization check:
+    #Run create_config initalization check:
     num_pass = generate_config_pass(config, name, desc, val, valid_vals, val_string, num_pass)
 
     #+++++++++++++++++++++++++++++++++++++++++
@@ -237,7 +250,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values integer match error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -252,7 +265,7 @@ def cam_config_test_routine():
     #Set valid value string to help with error-reporting:
     val_string = "None (String value)"
 
-    #Run Config_integer initalization check:
+    #Run create_config initalization check:
     num_pass = generate_config_pass(config, name, desc, val, valid_vals, val_string, num_pass)
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -266,7 +279,7 @@ def cam_config_test_routine():
     #Set valid value string to help with error-reporting:
     val_string = "string list"
 
-    #Run Config_integer initalization check:
+    #Run create_config initalization check:
     num_pass = generate_config_pass(config, name, desc, val, valid_vals, val_string, num_pass)
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -280,7 +293,7 @@ def cam_config_test_routine():
     #Set valid value string to help with error-reporting:
     val_string = "regular expression"
 
-    #Run Config_integer initalization check:
+    #Run create_config initalization check:
     num_pass = generate_config_pass(config, name, desc, val, valid_vals, val_string, num_pass)
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -293,7 +306,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values string type error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -306,7 +319,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values non-string list error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -319,7 +332,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values string match error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 
@@ -332,7 +345,7 @@ def cam_config_test_routine():
     #set error test message:
     err_type = "valid values string regex match error"
 
-    #Run Conf_gen error-handle check:
+    #Run create_config error-handle check:
     num_pass, num_fail = generate_config_error(config, name, desc, val,
                                                valid_vals, err_type, num_pass, num_fail)
 

@@ -547,10 +547,15 @@ class Config_CAM:
 
         else:  
             #If neither an integer or a string, then throw an error:
-            raise SystemExit("ERROR: The input value for new CAM config variable {} must be either an integer or string.".format(name))
+            raise Cam_config_type_error("ERROR: The input value for new CAM config variable {} must be either an integer or string.".format(name))
 
-        #Add object to dictionary:
-        self.config[conf_obj.name] = conf_obj
+        #Next, check that object name isn't already in the config list:
+        if name in self.config:
+            #If so, then throw an error:
+            raise Cam_config_val_error("ERROR:  The CAM config variable {} already exists!  Any new config variable must be given a different name".format(name))
+        else:
+            #If not, then add object to dictionary:
+            self.config[name] = conf_obj
 
     #++++++++++++++++++++++++
 
@@ -565,7 +570,7 @@ class Config_CAM:
         if obj_name in self.config:
             obj = self.config[obj_name]
         else:
-            raise SystemExit("ERROR: Invalid configuration name, {}".format(obj_name))
+            raise  Cam_config_val_error("ERROR: Invalid configuration name, {}".format(obj_name))
 
         #Print variable to logger: 
         logger.debug("#{}".format(obj.desc))
@@ -604,11 +609,11 @@ class Config_CAM:
         if obj_name in self.config:
             obj = self.config[obj_name]
         else:
-            raise SystemExit("ERROR: Invalid configuration name, {}".format(obj_name))
+            raise Cam_config_val_error("ERROR: Invalid configuration name, {}".format(obj_name))
 
         #Next, check that the given value is either an integer or a string:
         if not isinstance(val, (int, str)):
-            raise SystemExit("ERROR:  Value provided for variable {} must be either an integer or a string.  Currently it is type {}".format(name,type(val)))
+            raise  Cam_config_type_error("ERROR:  Value provided for variable {} must be either an integer or a string.  Currently it is type {}".format(name,type(val)))
 
         #Finally, set configure object's value to the value given:
         obj.set_value(val)
@@ -625,7 +630,7 @@ class Config_CAM:
         if obj_name in self.config:
             obj = self.config[obj_name]
         else:
-            raise SystemExit("ERROR: Invalid configuration name, {}".format(obj_name)) 
+            raise  Cam_config_val_error("ERROR: Invalid configuration name, {}".format(obj_name)) 
 
         #If it does, then return the object's value:
         return obj.value  
