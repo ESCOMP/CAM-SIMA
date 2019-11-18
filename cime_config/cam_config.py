@@ -409,69 +409,65 @@ class Config_CAM:
         #CAM horizontal grid meta-data:
         hgrid_desc = "Horizontal grid specifier." 
 
+        #Create regex expressions to search for the different dynamics grids:
+        eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dy-core
+        fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")     # FV dy-core
+        se_grid_re = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?") # SE dy-core
+        fv3_grid_re = re.compile(r"C[0-9]+")                      # FV3 dy-core
+        mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dy-core (not totally sure about this pattern) 
+
         #Check if specified grid matches any of the pre-defined grid options.
         #If so, then add both the horizontal grid and dynamical core to the configure object:
-
-        # FV dy-core
-        fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*") 
         if fv_grid_re.match(atm_grid) is not None:
             #Dynamical core: 
             self.create_config("dyn", dyn_desc, "fv", dyn_valid_vals)
             #Horizontal grid:
             self.create_config("hgrid", hgrid_desc, atm_grid, fv_grid_re) 
+
+        elif se_grid_re.match(atm_grid) is not None:
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "se", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, se_grid_re)
+
+        elif fv3_grid_re.match(atm_grid) is not None:
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "fv3", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, fv3_grid_re)
+
+        elif mpas_grid_re.match(atm_grid) is not None:
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "mpas", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, mpas_grid_re)
+
+        elif eul_grid_re.match(atm_grid) is not None:   
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "eul", dyn_valid_vals)
+            #Horizontal grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, eul_grid_re)
+
+            #If using the Eulerian dycore, then add wavenumber variables as well:
+
+            #wavenumber variable descriptions:
+            trm_desc = "Maximum Fourier wavenumber."
+            trn_desc = "Highest degree of the Legendre polynomials for m=0."
+            trk_desc = "Highest degree of the associated Legendre polynomials."
+
+            #Add variables to configure object:
+            self.create_config("trm", trm_desc, 1, (1,None))
+            self.create_config("trn", trn_desc, 1, (1,None))
+            self.create_config("trk", trk_desc, 1, (1,None)) 
+
+        elif atm_grid == "null":
+            #Dynamical core:
+            self.create_config("dyn", dyn_desc, "none", dyn_valid_vals)
+            #Atmospheric grid:
+            self.create_config("hgrid", hgrid_desc, atm_grid, None)
+
         else:
-            # SE dy-core
-            se_grid_re = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?") #
-            if se_grid_re.match(atm_grid) is not None:
-                #Dynamical core:
-                self.create_config("dyn", dyn_desc, "se", dyn_valid_vals)
-                #Horizontal grid:
-                self.create_config("hgrid", hgrid_desc, atm_grid, se_grid_re)
-            else:
-                #FV3 dy-core
-                fv3_grid_re = re.compile(r"C[0-9]+") 
-                if fv3_grid_re.match(atm_grid) is not None:
-                    #Dynamical core:
-                    self.create_config("dyn", dyn_desc, "fv3", dyn_valid_vals)
-                    #Horizontal grid:
-                    self.create_config("hgrid", hgrid_desc, atm_grid, fv3_grid_re)
-                else:
-                    #MPAS dy-core
-                    mpas_grid_re = re.compile(r"mpasa[0-9]+") #Not totally sure about this pattern
-                    if mpas_grid_re.match(atm_grid) is not None:
-                        #Dynamical core:
-                        self.create_config("dyn", dyn_desc, "mpas", dyn_valid_vals)
-                        #Horizontal grid:
-                        self.create_config("hgrid", hgrid_desc, atm_grid, mpas_grid_re)
-                    else:
-                        # Eulerian dy-core
-                        eul_grid_re = re.compile(r"T[0-9]+")
-                        if eul_grid_re.match(atm_grid) is not None:   
-                            #Dynamical core:
-                            self.create_config("dyn", dyn_desc, "eul", dyn_valid_vals)
-                            #Horizontal grid:
-                            self.create_config("hgrid", hgrid_desc, atm_grid, eul_grid_re)
-
-                            #If using the Eulerian dycore, then add wavenumber variables as well:
-
-                            #wavenumber variable descriptions:
-                            trm_desc = "Maximum Fourier wavenumber."
-                            trn_desc = "Highest degree of the Legendre polynomials for m=0."
-                            trk_desc = "Highest degree of the associated Legendre polynomials."
-
-                            #Add variables to configure object:
-                            self.create_config("trm", trm_desc, 1, (1,None))
-                            self.create_config("trn", trn_desc, 1, (1,None))
-                            self.create_config("trk", trk_desc, 1, (1,None)) 
-                        else:
-                            #No dy-core (null grid):
-                            if atm_grid == "null":
-                                #Dynamical core:
-                                self.create_config("dyn", dyn_desc, "none", dyn_valid_vals)
-                                #Atmospheric grid:
-                                self.create_config("hgrid", hgrid_desc, atm_grid, None)
-                            else:
-                                raise Cam_config_val_error("ERROR:  The specified CAM horizontal grid {} does not match any expected value".format(atm_grid))
+            raise Cam_config_val_error("ERROR:  The specified CAM horizontal grid {} does not match any expected value".format(atm_grid))
 
         #If user-specified dynamics option is present, then check that it matches the grid-derived value:
         if user_dyn_opt is not None and user_dyn_opt != self.get_value("dyn"):
