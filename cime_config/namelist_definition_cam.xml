@@ -792,7 +792,6 @@
     <desc>
       1 for FFT filter always, 0 for combined algebraic/FFT filter.  The value 0
       is used for CAM3, otherwise it is using the value 1.
-      Default: UNKNOWN
     </desc>
     <values>
       <value phys="cam3">0</value>
@@ -815,7 +814,6 @@
       ldel2: 2nd-order velocity-component damping targetted to top layers,
              with coefficient del2coef
       
-      Default: UNKNOWN
     </desc>
     <values>
       <value>2</value>
@@ -1666,7 +1664,6 @@
     <desc>
       del^2 horizontal diffusion coefficient.  This is used above the Nth order
       diffusion.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>2.5D5</value>
@@ -1703,7 +1700,6 @@
     <group>dyn_eul_inparm</group>
     <desc>
       Nth order horizontal diffusion coefficient.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.0D18</value>
@@ -1890,7 +1886,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Gravity wave spectrum dimension (wave numbers are from -pgwv to pgwv).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>32</value>
@@ -1944,7 +1939,6 @@
     <desc>
       Apply limiters to tau before applying the efficiency factor, rather than
       afterward.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -1959,7 +1953,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Apply limiter on maximum wind tendency from stress divergence in gravity wave drag scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.true.</value>
@@ -1975,7 +1968,6 @@
     <desc>
       Efficiency associated with convective gravity waves from the Beres
       scheme (deep convection).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.1D0</value>
@@ -1993,7 +1985,6 @@
     <desc>
       Efficiency associated with convective gravity waves from the Beres
       scheme (shallow convection).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.03D0</value>
@@ -2005,7 +1996,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Efficiency associated with gravity waves from frontogenesis.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1.D0</value>
@@ -2017,7 +2007,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Efficiency associated with inertial gravity waves from frontogenesis.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.1D0</value>
@@ -2029,7 +2018,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Efficiency associated with orographic gravity waves.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.125D0</value>
@@ -2194,7 +2182,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Inverse Prandtl number used in gravity wave diffusion
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.25d0</value>
@@ -2220,7 +2207,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Scale SGH by land fraction in gravity wave drag
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.true.</value>
@@ -2235,7 +2221,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Frontogenesis function critical threshold.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1.25D-15</value>
@@ -2250,7 +2235,6 @@
     <desc>
       Full pathname of Beres lookup table data file for gravity waves sourced
       from deep convection.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/gw/newmfspectra40_dc25.nc</value>
@@ -2263,7 +2247,6 @@
     <desc>
       Full pathname of Beres lookup table data file for gravity waves sourced
       from shallow convection.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/gw/mfspectra_shallow_c140530.nc</value>
@@ -2275,7 +2258,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Background source strength (used for waves from frontogenesis).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1.5D-3</value>
@@ -2289,7 +2271,6 @@
     <group>gw_drag_nl</group>
     <desc>
       Background source strength (used for inertial waves from frontogenesis).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>12.0D-3</value>
@@ -2302,7 +2283,6 @@
     <desc>
       Whether or not to use tapering at the poles to reduce the effects of
       mid-scale gravity waves from frontogenesis.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>.false.</value>
@@ -2316,7 +2296,6 @@
     <desc>
       Whether or not to apply tapering at the top of the model (above 0.6E-02 Pa)
       to reduce undesired effects of gravity waves in the thermosphere/ionosphere.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -2335,7 +2314,6 @@
       splitting regimes ("DS" configuration).
       If .false. use single dividing streamline as in Scinocca &amp; McFarlane
       2000 ("SM" configuration).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>.true.</value>
@@ -2347,7 +2325,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       If true, then use smooth regimes
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>.false.</value>
@@ -2359,7 +2336,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       If true, then adujust tauoro
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>.true.</value>
@@ -2380,7 +2356,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Enhancement factor for downslope wind stress in DS configuration.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.0d0</value>
@@ -2392,7 +2367,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Enhancement factor for depth of downslope wind regime in DS configuration
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>2.0d0</value>
@@ -2404,7 +2378,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Lower inverse Froude number limits on linear ramp terminating downslope wind regime for high mountains in DS configuration
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>2.0d0</value>
@@ -2416,7 +2389,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Upper inverse Froude number limits on linear ramp terminating downslope wind regime for high mountains in DS configuration
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>3.0d0</value>
@@ -2428,7 +2400,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Enhancement factor for downslope wind stress in SM configuration.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>2.0d0</value>
@@ -2449,7 +2420,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       minimum surface displacement height for orographic waves (m)
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.01d0</value>
@@ -2461,7 +2431,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Minimum wind speed for orographic waves
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1.0d-3</value>
@@ -2473,7 +2442,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Minimum stratification allowing wave behavior
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.002d0</value>
@@ -2485,7 +2453,6 @@
     <group>gw_rdg_nl</group>
     <desc>
       Minimum stratification allowing wave behavior
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.1d0</value>
@@ -2512,7 +2479,6 @@
     <desc>
       Full pathname of time-variant boundary dataset for greenhouse gas surface
       values.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/ggas/ghg_hist_1765-2005_c091218.nc</value>
@@ -2525,7 +2491,6 @@
     <desc>
       CH4 volume mixing ratio.  This is used as the time invariant surface value
       of CH4 if no time varying values are specified.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1760.0e-9</value>
@@ -2538,7 +2503,6 @@
     <desc>
       CO2 volume mixing ratio.  This is used as the time invariant surface value
       of CO2 if no time varying values are specified.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>367.0e-6</value>
@@ -2564,7 +2528,6 @@
       CFC11 volume mixing ratio adjusted to reflect contributions from many GHG
       species.  This is used as the time invariant surface value of F11 if no
       time varying values are specified.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>653.45e-12</value>
@@ -2577,7 +2540,6 @@
     <desc>
       CFC12 volume mixing ratio.  This is used as the time invariant surface value
       of CFC12 if no time varying values are specified.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>535.0e-12</value>
@@ -2590,7 +2552,6 @@
     <desc>
       N2O volume mixing ratio.  This is used as the time invariant surface value
       of N2O if no time varying values are specified.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>316.0e-9</value>
@@ -2704,7 +2665,6 @@
       Full pathname of time-variant boundary dataset for greenhouse gas production/loss
       rates.  Only used by the simple prognostic GHG chemistry scheme that is
       enabled via the argument "-prog_species GHG" to configure.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/ggas/noaamisc.r8.nc</value>
@@ -4116,7 +4076,6 @@
     <group>rk_stratiform_nl</group>
     <desc>
       Threshold for autoconversion of cold ice in RK microphysics scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>5.0e-6</value>
@@ -4143,7 +4102,6 @@
     <group>rk_stratiform_nl</group>
     <desc>
       Threshold for autoconversion of warm ice in RK microphysics scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>4.0e-4</value>
@@ -4158,7 +4116,6 @@
     <group>rk_stratiform_nl</group>
     <desc>
       Tunable constant for evaporation of precip in RK microphysics scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>10.0e-6</value>
@@ -4176,7 +4133,6 @@
     <desc>
       Critical radius at which autoconversion become efficient in RK microphysics
       scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>10.0e-6</value>
@@ -4403,7 +4359,6 @@
       Switch to control whether MG microphysics should adjust the temperature
       at the level containing the cold point tropopause by using the value
       obtain by extrapolating between levels.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -4537,7 +4492,6 @@
       Subgrid scaling factor for relative humidity in ice nucleation code. If it has
       a value of -1, then indicates that the subgrid scaling factor will be
       calculated on the fly as 1 / qsatfac (i.e. the saturation scaling factor).
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.0D0</value>
@@ -4556,7 +4510,6 @@
       stratosphere. If it has a value of -1, then indicates that the subgrid
       scaling factor will be calculated on the fly as 1 / qsatfac (i.e. the
       saturation scaling factor).
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.0D0</value>
@@ -4627,7 +4580,6 @@
     <group>hkconv_nl</group>
     <desc>
       Rain water autoconversion coefficient for Hack shallow scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value dyn="fv">1.0e-4</value>
@@ -4651,7 +4603,6 @@
     <group>uwshcu_nl</group>
     <desc>
       Penetrative entrainment efficiency in UW shallow scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>10.0</value>
@@ -4694,7 +4645,6 @@
     <group>cldfrc_nl</group>
     <desc>
       Minimum rh for low stable clouds.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.900D0</value>
@@ -4743,7 +4693,6 @@
     <group>cldfrc_nl</group>
     <desc>
       Minimum rh for high stable clouds.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.800D0</value>
@@ -4764,7 +4713,6 @@
     <group>cldfrc_nl</group>
     <desc>
       parameter for shallow convection cloud fraction.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.07D0</value>
@@ -4779,7 +4727,6 @@
     <group>cldfrc_nl</group>
     <desc>
       parameter for shallow convection cloud fraction.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>500.0D0</value>
@@ -4791,7 +4738,6 @@
     <group>cldfrc_nl</group>
     <desc>
       parameter for deep convection cloud fraction.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.14D0</value>
@@ -4807,7 +4753,6 @@
     <group>cldfrc_nl</group>
     <desc>
       parameter for deep convection cloud fraction.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>500.0D0</value>
@@ -4819,7 +4764,6 @@
     <group>cldfrc_nl</group>
     <desc>
       top pressure bound for mid level cloud.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>75000.0D0</value>
@@ -4861,7 +4805,6 @@
     <desc>
       Scheme for ice cloud fraction: 1=wang &amp; sassen, 2=schiller (iciwc),
       3=wood &amp; field, 4=Wilson (based on smith), 5=modified slingo (ssat &amp; empyt cloud)
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1</value>
@@ -4878,7 +4821,6 @@
     <group>cldfrc_nl</group>
     <desc>
       Critical RH for ice clouds (Wilson &amp; Ballard scheme).
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.95D0</value>
@@ -4895,7 +4837,6 @@
     <group>cldfrc2m_nl</group>
     <desc>
       Minimum rh for ice cloud fraction &gt; 0.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.80D0</value>
@@ -4909,7 +4850,6 @@
     <group>cldfrc2m_nl</group>
     <desc>
       rhi at which ice cloud fraction = 1.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.1D0</value>
@@ -4924,7 +4864,6 @@
     <group>cldfrc2m_nl</group>
     <desc>
       Minimum rh for ice cloud fraction &gt; 0 in the stratosphere.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.0D0</value>
@@ -4937,7 +4876,6 @@
     <group>cldfrc2m_nl</group>
     <desc>
       rhi at which ice cloud fraction = 1 in the stratosphere.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.1D0</value>
@@ -4965,7 +4903,6 @@
     <group>zmconv_nl</group>
     <desc>
       Convective momentum transport parameter (upward)
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.4000D0</value>
@@ -4979,7 +4916,6 @@
     <group>zmconv_nl</group>
     <desc>
       Convective momentum transport parameter (downward)
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.4000D0</value>
@@ -4995,7 +4931,6 @@
     <group>zmconv_nl</group>
     <desc>
       Autoconversion coefficient over land in ZM deep convection scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.0030D0</value>
@@ -5021,7 +4956,6 @@
     <group>zmconv_nl</group>
     <desc>
       Autoconversion coefficient over ocean in ZM deep convection scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.0030D0</value>
@@ -5045,7 +4979,6 @@
     <group>zmconv_nl</group>
     <desc>
       Tunable evaporation efficiency for land in ZM deep convection scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>3.0E-6</value>
@@ -5059,7 +4992,6 @@
     <group>zmconv_nl</group>
     <desc>
       Tunable evaporation efficiency in ZM deep convection scheme.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>3.0E-6</value>
@@ -5119,7 +5051,6 @@
     <desc>
       Factor applied to the ice fall velocity computed from
       Stokes terminal velocity.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.0D0</value>
@@ -5525,7 +5456,6 @@
       two moment scheme for CAM5 and CAM6
       SPCAM has two different microphysics schemes: SPCAM_m2005 (Morrison et al 2005),
       SPCAM_sam1mom (Khairoutinov 2003)
-      Default: UNKNOWN (depends on value set in configure).
     </desc>
     <values>
       <value>NONE</value>
@@ -5545,7 +5475,6 @@
     <desc>
       Type of macrophysics scheme employed.  'park' for Park
       (1998); 'RK' for Rasch and Kristjansson (1998); 'CLUBB_SGS' clubb.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>none</value>
@@ -5562,7 +5491,6 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for CLUBB_SGS
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -5602,7 +5530,6 @@
     <group>blj_nl</group>
     <desc>
       Logical switch to turn on the beljaars scheme
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -5616,7 +5543,6 @@
     <desc>
       Logical switch to turn on turbulent mountain stress calculation in
       vertical diffusion routine.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -5633,7 +5559,6 @@
     <desc>
       Turbulent mountain stress parameter used when turbulent mountain stress calculation
       is turned on. See {{ hilight }}do_tms{{ closehilight }}.
-      Default: 1.0 for CAM, UNKNOWN for WACCM, T31
     </desc>
     <values>
       <value>1.0D0</value>
@@ -5646,7 +5571,6 @@
     <desc>
       Factor determining z_0 from orographic standard deviation [ no unit ]
       Used when turbulent mountain stress calc is turned on. See {{ hilight }}do_tms{{ closehilight }}.
-      Default: UNKNOWN for WACCM, T31
     </desc>
     <values>
       <value>0.075D0</value>
@@ -5712,7 +5636,6 @@
     <group>eddy_diff_nl</group>
     <desc>
       Moist entrainment enhancement parameter.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>30.D0</value>
@@ -5775,7 +5698,6 @@
     <desc>
       Logical switch to turn on implicit turbulent surface stress calculation in
       diffusion solver routine.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -5860,7 +5782,6 @@
     <group>clubbpbl_diff_nl</group>
     <desc>
       CLUBB timestep.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>300.0D0</value>
@@ -5873,7 +5794,6 @@
     <group>clubbpbl_diff_nl</group>
     <desc>
       Rain evaporation efficiency factor.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.0D0</value>
@@ -7411,7 +7331,6 @@
     <valid_values>heelis,weimer</valid_values>
     <desc>
       Electric potential model used in the waccmx ionosphere.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>heelis</value>
@@ -7446,7 +7365,6 @@
     <desc>
       Full pathname of dataset for coefficient data used in Weimer05
       high latitude electric potential model.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/efld/wei05sc_c080415.nc</value>
@@ -7480,7 +7398,6 @@
     <desc>
       Troposphere cloud physics will be done only below the top defined
       by this pressure (Pa).
-      Default: UNKNOWN
     </desc>
     <values>
       <value>1.D2</value>
@@ -7492,7 +7409,6 @@
     <group>ref_pres_nl</group>
     <desc>
       MAM affects climate only below the top defined by this pressure (Pa).
-      Default: 0 for non-MAM cases, otherwise UNKNOWN
     </desc>
     <values>
       <value>1.D-4</value>
@@ -7827,7 +7743,6 @@
       0 ==&gt; No
       1 ==&gt; Yes - Arithmetic average.
       2 ==&gt; Yes - Average in emissivity.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0</value>
@@ -7842,7 +7757,6 @@
     <group>conv_water_nl</group>
     <desc>
       Lower limit of cumulus cloud fraction.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>0.01d0</value>
@@ -8510,7 +8424,6 @@
     <desc>
       Full pathname of dataset for file that contains the solar photon energy spectra or TSI data
       as a time series
-      Default: UNKNOWN
     </desc>
     <values>
       <value phys="cam4">atm/cam/solar/solar_ave_sc19-sc23.c090810.nc</value>
@@ -8538,7 +8451,6 @@
     <desc>
       Full pathname of time-variant dataset for the time-dependent proxies for
       solar and geomagnetic activity( F10.7, F10.7a, Kp, Ap ).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/wasolar_ave.nc</value>
@@ -8554,7 +8466,6 @@
     <desc>
       Full pathname of time-variant  dataset for the time-dependent solar wind parameters
       (solar wind velocity and density; IMF By and Bz components).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/solar/solar_wind_imf_OMNI_WACCMX_2000001-2017365_c180731.nc</value>
@@ -8715,7 +8626,6 @@
       Setting use_topo_file=.false. allows the user to specify that PHIS, SGH,
       SGH30, and LANDM_COSLAT are all zero without having to supply a topo file
       full of zeros.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>.true.</value>
@@ -8733,7 +8643,6 @@
     <group>tropopause_nl</group>
     <desc>
       Full pathname of boundary dataset for tropopause climatology.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/ub/clim_p_trop.nc</value>
@@ -8827,7 +8736,6 @@
     <group>aerosol_nl</group>
     <desc>
       Tuning for below cloud scavenging of interstitial modal aerosols.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.1D0</value>
@@ -8840,7 +8748,6 @@
     <group>aerosol_nl</group>
     <desc>
       Tuning for in-cloud scavenging of interstitial modal aerosols.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.4D0</value>
@@ -8853,7 +8760,6 @@
     <group>aerosol_nl</group>
     <desc>
       Tuning for in-cloud scavenging of cloud-borne modal aerosols.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1.0D0</value>
@@ -8868,7 +8774,6 @@
     <group>aerosol_nl</group>
     <desc>
       Tuning for seasalt_emis
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>1.35D0</value>
@@ -8915,7 +8820,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of boundary dataset for airplane emissions.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/emis/emissions.aircraft.T42LR.nc</value>
@@ -8928,7 +8832,6 @@
     <desc>
       Full pathname of dataset containing soil moisture fraction information used in 'xactive_atm'
       method of calculating dry deposition of chemical tracers.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/dvel/clim_soilw.nc</value>
@@ -8941,7 +8844,6 @@
     <desc>
       Full pathname of dataset which contains the prescribed deposition velocities used
       in the 'table' method of calculating dry deposition  of chemical tracers.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/dvel/depvel_monthly.nc</value>
@@ -8954,7 +8856,6 @@
     <desc>
       Full pathname of dataset which contains land vegitation information used in 'xactive_atm'
       method of calculating dry deposition of chemical tracers.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/dvel/regrid_vegetation.nc</value>
@@ -8968,7 +8869,6 @@
     <desc>
       Full pathname of dataset which contains season information used in 'xactive_atm'
       method of calculating dry deposition of chemical tracers.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/dvel/season_wes.nc</value>
@@ -8980,7 +8880,6 @@
     <group>dust_nl</group>
     <desc>
       Tuning parameter for dust emissions.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>0.37D0</value>
@@ -9024,7 +8923,6 @@
     <desc>
       Full pathname of dataset for coefficient data used in WACCM to calculate ion drag
       for high solar fluxes from the Scherliess low latitude electric potential model.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/efld/coeff_hflux.dat</value>
@@ -9037,7 +8935,6 @@
     <desc>
       Full pathname of dataset for coefficient data used in WACCM to calculate ion drag
       for low solar fluxes from the Scherliess low latitude electric potential model.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/efld/coeff_lflux.dat</value>
@@ -9071,7 +8968,6 @@
     <desc>
       Full pathname of dataset for the neutral species absorption cross sections for EUV
       photo reactions producing electrons.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/electron_121129.dat</value>
@@ -9134,7 +9030,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset for EUVAC solar EUV model (0.05-121nm).
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/EUVAC_reference_c170222.nc</value>
@@ -9264,7 +9159,6 @@
     <group>chem_surfvals_nl</group>
     <desc>
       Full pathname of dataset for fixed lower boundary conditions.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/lb/LBC_1765-2100_1.9x2.5_CCMI_RCP60_za_RNOCStrend_c141002.nc</value>
@@ -9375,7 +9269,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset for chemical tracers constrained  in the stratosphere
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/ub/ubvals_b40.20th.track1_1996-2005_c110315.nc</value>
@@ -9424,7 +9317,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset for the neutral species absorption cross sections.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/photon_c130710.dat</value>
@@ -9436,7 +9328,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset for fast-tuv photolysis cross sections
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/phot/tuv_xsect.nc</value>
@@ -9448,7 +9339,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset of O2 cross sections for fast-tuv photolysis
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/phot/o2src.nc</value>
@@ -9460,7 +9350,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset of O2 and 03 column densities above the model for look-up-table photolysis
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/chem/trop_mozart/phot/exo_coldens.nc</value>
@@ -9483,7 +9372,6 @@
     <desc>
       Full pathname of the directory that contains the files specified in
       {{ hilight }}aircraft_specifier{{ closehilight }}.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/ggas</value>
@@ -9936,7 +9824,6 @@
     <desc>
       Full pathname of the directory that contains the files specified in
       {{ hilight }}prescribed_ozone_filelist{{ closehilight }}.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/ozone</value>
@@ -9949,7 +9836,6 @@
     <group>prescribed_ozone_nl</group>
     <desc>
       Filename of dataset for prescribed ozone.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>ozone_1.9x2.5_L26_2000clim_c091112.nc</value>
@@ -10152,7 +10038,6 @@
     <desc>
       Full pathname of the directory that contains the files specified in
       {{ hilight }}prescribed_strataero_filelist{{ closehilight }}.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/sulf</value>
@@ -10167,7 +10052,6 @@
     <group>prescribed_strataero_nl</group>
     <desc>
       Filename of dataset for prescribed volcaero.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>CESM_1949_2100_sad_V2_c130627.nc</value>
@@ -10265,7 +10149,6 @@
       Indicates whether to use the unified chemistry tropopause method to set prescribed
       stratospheric aerosols below the tropopause to zero.  This has a maximum altitude
       level corresponding to 300 hPa for latitudes poleward of 50 degrees.
-      Default: UNKNOWN
     </desc>
     <values>
       <value>.false.</value>
@@ -10277,7 +10160,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset for radiative source function used in look up table photloysis
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/RSF_GT200nm_v3.0_c080811.nc</value>
@@ -10290,7 +10172,6 @@
     <desc>
       Full pathname of dataset for the coefficients of the NOEM nitric oxide model used
       to calculate its upper boundary concentration.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/ub/snoe_eof.nc</value>
@@ -10302,7 +10183,6 @@
     <group>dust_nl</group>
     <desc>
       Full pathname of boundary dataset for soil erodibility factors.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/cam/dst/dst_source2x2tunedcam6-2x2-04062017.nc</value>
@@ -10342,7 +10222,6 @@
     <group>sulf_nl</group>
     <desc>
       Full pathname of dataset containing tropopheric sulfate aerosols
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/sulf/sulfate.ar5_camchem_c130304.nc</value>
@@ -10447,7 +10326,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of dataset for TGCM upper boundary
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/ub/tgcm_ubc_1993_c100204.nc</value>
@@ -10913,7 +10791,6 @@
     <desc>
       Full pathname of dataset for  Chebyshev polynomial Coeff data used for photolysis
       cross sections.
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/effxstex.txt</value>
@@ -10925,7 +10802,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of cross section dataset for long wavelengh photolysis
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/temp_prs_GT200nm_JPL10_c140624.nc</value>
@@ -10937,7 +10813,6 @@
     <group>chem_inparm</group>
     <desc>
       Full pathname of cross section dataset for short wavelengh photolysis
-      Default: UNKNOWN.
     </desc>
     <values>
       <value>atm/waccm/phot/xs_short_jpl10_c140303.nc</value>
@@ -11028,7 +10903,6 @@
       Indicates whether to use the unified chemistry tropopause method to set the
       tropopause used in gas phase and aerosol chemical processes.  This has a maximum altitude
       level corresponding to 300 hPa for latitudes poleward of 50 degrees.
-      Default: UNKNOWN
       </desc>
       <values>
         <value>.true.</value>
@@ -11207,7 +11081,6 @@
       <group>qbo_nl</group>
       <desc>
       Filepath for qbo forcing dataset.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>atm/waccm/qbo/qbocyclic28months.nc</value>
@@ -11376,7 +11249,6 @@
       0: tendencies
       1: adjustments
       2: hybrid
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>2</value>
@@ -11418,7 +11290,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Number of hyperviscosity subcycles per dynamics timestep.
-      Default: UNKNOWN
       </desc>
       <values>
         <value>2</value>
@@ -11433,7 +11304,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Number of hyperviscosity subcycles done in tracer advection code.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>1</value>
@@ -11506,7 +11376,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Number of dynamics steps per physics timestep.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>2</value>
@@ -11546,7 +11415,6 @@
       0: no scaling
       1: scale increment for cp consistency between dynamics and physics
       2: do 1 as well as take into account condensate effect on thermal energy
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>1</value>
@@ -11559,7 +11427,6 @@
       <desc>
       Hyperviscosity coefficient for u,v, T [m^4/s].
       If &lt; 0, se_nu is automatically set.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>-1</value>
@@ -11573,7 +11440,6 @@
       <desc>
       Hyperviscosity applied to divergence component of winds [m^4/s].
       If &lt; 0, uses se_nu_p.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>-1</value>
@@ -11587,7 +11453,6 @@
       <desc>
       Hyperviscosity coefficient applied to pressure-level thickness [m^4/s].
       If &lt; 0, se_nu_p is automatically set.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>-1</value>
@@ -11600,7 +11465,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Second-order viscosity applied only near the model top [m^2/s].
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>1.25e5</value>
@@ -11714,7 +11578,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Tracer advection is done every qsplit dynamics timesteps.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>1</value>
@@ -11739,7 +11602,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Vertically lagrangian code vertically remaps every rsplit tracer timesteps.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>3</value>
@@ -11754,7 +11616,6 @@
       <desc>
       Frequency with which diagnostic output is written to log (output every
       statefreq dynamics timesteps).
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>0</value>
@@ -11799,7 +11660,6 @@
       2: PPM vertical remap without mirroring at the boundaries
          (no bc's enforced, first-order at two cells bordering top and bottom
          boundaries)
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>1</value>
@@ -11937,7 +11797,6 @@
       <group>dyn_se_inparm</group>
       <desc>
       Number of threads to use for loops over elements.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>0</value>
@@ -11950,7 +11809,6 @@
       <desc>
       Number of threads to use when processing vertical loops. Normally
       equal to se_tracer_num_threads.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>0</value>
@@ -11963,7 +11821,6 @@
       <desc>
       Number of threads to use when processing loops over threads.
       Normally equal to se_vert_num_threads.
-      Default: UNKNOWN.
       </desc>
       <values>
         <value>0</value>
