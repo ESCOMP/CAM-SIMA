@@ -510,7 +510,7 @@
     <type>integer</type>
     <category>perf_dp_coup</category>
     <group>phys_grid_nl</group>
-    <valid_values>0,1,2,11,12,13</valid_values>
+    <valid_values>-1,0,1,2,11,12,13</valid_values>
     <desc>
       Dynamics/physics transpose method for nonlocal load-balance.
       0: use mpi_alltoallv.
@@ -554,6 +554,7 @@
     </desc>
     <values>
       <value dyn="eul">3</value>
+      <value>2</value>
     </values>
   </entry>
   <entry id="phys_twin_algorithm">
@@ -581,7 +582,7 @@
       'none', 'q_only' or 'all'.
     </desc>
     <values>
-      <value>'q_only'</value>
+      <value>q_only</value>
     </values>
   </entry>
   <entry id="do_circulation_diags">
@@ -623,7 +624,7 @@
           history variables.
     </desc>
     <values>
-      <value>'summary'</value>
+      <value>summary</value>
     </values>
   </entry>
 
@@ -670,6 +671,7 @@
       <value waccm_phys="1">8</value>
       <value hgrid="0.9x1.25" waccm_phys="1">16</value>
       <value hgrid="0.47x0.63" waccmx="1">32</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="fv_nspltrac">
@@ -688,6 +690,7 @@
       <value waccm_phys="1">2</value>
       <value hgrid="0.9x1.25" waccm_phys="1">4</value>
       <value hgrid="0.47x0.63" waccmx="1">16</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="fv_nspltvrm">
@@ -1219,7 +1222,6 @@
     <type>logical</type>
     <category>dyn_fv</category>
     <group>spmd_fv_inparm</group>
-    <valid_values>0,1,2</valid_values>
     <desc>
       True for mod_comm irregular communication handshaking for multiple tracers
     </desc>
@@ -1372,7 +1374,7 @@
       Control the writing of filew warning messages.
     </desc>
     <values>
-      <value>'off'</value>
+      <value>off</value>
     </values>
   </entry>
 
@@ -1503,7 +1505,7 @@
       srf heat flux field name in met data file
     </desc>
     <values>
-      <value>'SHFLX'</value>
+      <value>SHFLX</value>
     </values>
   </entry>
   <entry id="met_qflx_name">
@@ -1514,7 +1516,7 @@
       water vapor flux field name in met data file
     </desc>
     <values>
-      <value>'QFLX'</value>
+      <value>QFLX</value>
     </values>
   </entry>
   <entry id="met_shflx_factor">
@@ -3067,8 +3069,10 @@
     <desc>
       Collect all column data into a single field and output in ncol format,
       much faster than default when you have a lot of columns.
-      Default: false
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="fincl1lonlat">
     <type>char*128(1000)</type>
@@ -3312,7 +3316,7 @@
       Satellite track history filename specifier.  See {{ hilight }}hfilename_spec{{ closehilight }}
     </desc>
     <values>
-      <value>"%c.cam2.sat.%y-%m-%d-%s.nc"</value>
+      <value>%c.cam2.sat.%y-%m-%d-%s.nc</value>
     </values>
   </entry>
   <entry id="sathist_fincl">
@@ -3371,7 +3375,7 @@
       'YEARLY', 'CAMIOP', 'ENDOFRUN'.
     </desc>
     <values>
-      <value>'YEARLY'</value>
+      <value>YEARLY</value>
     </values>
   </entry>
   <entry id="inithist_all">
@@ -3466,8 +3470,10 @@
     <desc>
       If interpolate_output(k) = .true., then the k'th history file will be
       interpolated to a lat/lon grid before output.
-      Default: .false.
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="interpolate_nlat">
     <type>integer(10)</type>
@@ -3477,8 +3483,10 @@
       Size of latitude dimension of grid for interpolated output.
       If interpolate_nlat and interpolate_nlon are zero, reasonable values
       will be chosen by the dycore based on the run resolution.
-      Default: 0
     </desc>
+    <values>
+      <value>0</value>
+    </values>
   </entry>
   <entry id="interpolate_nlon">
     <type>integer(10)</type>
@@ -3488,8 +3496,10 @@
       Size of longitude dimension of grid for interpolated output.
       If interpolate_nlat and interpolate_nlon are zero, reasonable values
       will be chosen by the dycore based on the run resolution.
-      Default: 0
     </desc>
+    <values>
+      <value>0</value>
+    </values>
   </entry>
   <entry id="interpolate_type">
     <type>integer(10)</type>
@@ -3513,8 +3523,10 @@
       1: Equally spaced, including poles (FV scalars output grid).
       2: Gauss grid (CAM Eulerian).
       3: Equally spaced, no poles (FV staggered velocity).
-      Default: 1
     </desc>
+    <values>
+      <value>1</value>
+    </values>
   </entry>
 
 <!-- Initial Conditions -->
@@ -4212,6 +4224,7 @@
       <value microphys="mg1">0</value>
       <value microphys="mg2">0</value>
       <value microphys="mg3">0</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="micro_mg_dcs">
@@ -4289,6 +4302,7 @@
       <value microphys="mg1">1</value>
       <value microphys="mg2">1</value>
       <value microphys="mg3">1</value>
+      <value>1</value>
     </values>
   </entry>
   <entry id="micro_mg_precip_frac_method">
@@ -5449,7 +5463,7 @@
     <type>char*16</type>
     <category>conv</category>
     <group>phys_ctl_nl</group>
-    <valid_values>RK,MG,SPCAM_m2005,SPCAM_sam1mom</valid_values>
+    <valid_values>NONE,RK,MG,SPCAM_m2005,SPCAM_sam1mom</valid_values>
     <desc>
       Type of microphysics scheme employed.  'RK' for Rasch and Kristjansson
       (1998); 'MG' for Morrison and Gettelman (2008), Gettelman et al (2010)
@@ -5471,7 +5485,7 @@
     <type>char*16</type>
     <category>conv</category>
     <group>phys_ctl_nl</group>
-    <valid_values>park,RK,CLUBB_SGS</valid_values>
+    <valid_values>none,park,RK,CLUBB_SGS</valid_values>
     <desc>
       Type of macrophysics scheme employed.  'park' for Park
       (1998); 'RK' for Rasch and Kristjansson (1998); 'CLUBB_SGS' clubb.
@@ -7311,6 +7325,7 @@
       <value waccmx="1">5</value>
       <value hgrid="0.9x1.25" waccmx="1">30</value>
       <value hgrid="0.47x0.63" waccmx="1">90</value>
+      <value>5</value>
     </values>
   </entry>
   <entry id="ionos_edyn_active">
@@ -8021,7 +8036,7 @@
       Averaging flag for radiation driver output data.
     </desc>
     <values>
-      <value>'A'</value>
+      <value>A</value>
     </values>
   </entry>
   <entry id="rad_data_fdh">
@@ -8329,6 +8344,7 @@
     </desc>
     <values>
       <value scam="1">.true.</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="scm_zadv_T">
@@ -8340,7 +8356,7 @@
       Use specific type of vertical advection for T.  Possible choices are 'iop', 'eulc' and 'off'
     </desc>
     <values>
-      <value>'eulc'</value>
+      <value>eulc</value>
     </values>
   </entry>
   <entry id="scm_zadv_uv">
@@ -8352,7 +8368,7 @@
       Use specific type of vertical advection for uv. Possible choices are 'iop', 'eulc' and 'off'
     </desc>
     <values>
-      <value>'eulc'</value>
+      <value>eulc</value>
     </values>
   </entry>
   <entry id="scm_zadv_q">
@@ -8365,13 +8381,13 @@
     </desc>
     <values>
       <value scam="1">slt</value>
+      <value>slt</value>
     </values>
   </entry>
   <entry id="scm_iop_lhflxshflxTg">
     <type>logical</type>
     <category>scam</category>
     <group>scam_nl</group>
-    <valid_values>iop,eulc,slt,off</valid_values>
     <desc>
       Use the SCAM-IOP specified surface LHFLX/SHFLX/ustar/Tg instead of using internally-computed values
     </desc>
@@ -8383,7 +8399,6 @@
     <type>logical</type>
     <category>scam</category>
     <group>scam_nl</group>
-    <valid_values>iop,eulc,slt,off</valid_values>
     <desc>
       Use the SCAM-IOP specified observed water vapor at each time step instead of forecast value
     </desc>
@@ -8395,7 +8410,6 @@
     <type>logical</type>
     <category>scam</category>
     <group>scam_nl</group>
-    <valid_values>iop,eulc,slt,off</valid_values>
     <desc>
       Force scam to use the lat lon fields specified in the scam namelist not what is closest to IOP avail lat lon
     </desc>
@@ -8526,7 +8540,7 @@
       option to configure.
     </desc>
     <values>
-      <value>''</value>
+      <value />
     </values>
   </entry>
   <entry id="test_tracer_num">
@@ -8984,7 +8998,7 @@
       by {{ hilight }}srf_emis_specifier{{ closehilight }}.
     </desc>
     <values>
-      <value>'CYCLICAL'</value>
+      <value>CYCLICAL</value>
     </values>
   </entry>
   <entry id="srf_emis_cycle_yr">
@@ -9113,7 +9127,7 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'CYCLICAL'</value>
+      <value>CYCLICAL</value>
     </values>
   </entry>
   <entry id="flbc_cycle_yr">
@@ -9182,7 +9196,7 @@
       Type of time interpolation for fixed lower boundary data.
     </desc>
     <values>
-      <value>'CYCLICAL'</value>
+      <value>CYCLICAL</value>
     </values>
   </entry>
   <entry id="noy_ubc_filename">
@@ -9223,7 +9237,7 @@
       Type of time interpolation for NOy upper boundary conditions.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="noy_ubc_cycle_yr">
@@ -9438,7 +9452,7 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="gcr_ionization_cycle_yr">
@@ -9558,6 +9572,7 @@
     <values>
       <value aer_model="bam">CYCLICAL</value>
       <value aer_model="mam">CYCLICAL</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="prescribed_aero_cycle_yr">
@@ -9572,6 +9587,7 @@
     <values>
       <value aer_model="bam">2000</value>
       <value aer_model="mam">2000</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="prescribed_aero_fixed_ymd">
@@ -9668,6 +9684,7 @@
     <values>
       <value aer_model="bam">CYCLICAL</value>
       <value aer_model="mam">CYCLICAL</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="aerodep_flx_cycle_yr">
@@ -9682,6 +9699,7 @@
     <values>
       <value aer_model="bam">2000</value>
       <value aer_model="mam">2000</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="aerodep_flx_fixed_ymd">
@@ -9778,6 +9796,7 @@
     </desc>
     <values>
       <value ver="fixed_ch4">CYCLICAL</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="prescribed_ghg_cycle_yr">
@@ -9791,6 +9810,7 @@
     </desc>
     <values>
       <value ver="fixed_ch4">1995</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="prescribed_ghg_fixed_ymd">
@@ -9967,7 +9987,7 @@
       Name of variable containing volcaero data in the prescribed volcaero datasets.
     </desc>
     <values>
-      <value>'MMRVOLC'</value>
+      <value>MMRVOLC</value>
     </values>
   </entry>
   <entry id="prescribed_volcaero_rmfile">
@@ -9991,7 +10011,7 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="prescribed_volcaero_cycle_yr">
@@ -10101,7 +10121,7 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="prescribed_strataero_cycle_yr">
@@ -10256,7 +10276,7 @@
       Name of variable containing sulfate data in the prescribed sulfate datasets.
     </desc>
     <values>
-      <value>'SULFATE'</value>
+      <value>SULFATE</value>
     </values>
   </entry>
   <entry id="sulf_rmfile">
@@ -10280,7 +10300,7 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'CYCLICAL'</value>
+      <value>CYCLICAL</value>
     </values>
   </entry>
   <entry id="sulf_cycle_yr">
@@ -10341,7 +10361,7 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="tgcm_ubc_cycle_yr">
@@ -10424,7 +10444,7 @@
       Type of time interpolation type for data in  {{ hilight }}chlorine_loading_file{{ closehilight }}
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="chlorine_loading_fixed_tod">
@@ -10497,14 +10517,13 @@
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="linoz_data_rmfile">
     <type>logical</type>
     <category>cam_chem</category>
     <group>chem_inparm</group>
-    <valid_values>TRUE,FALSE</valid_values>
     <desc>
       Remove the file containing LINOZ data from local disk when no longer needed.
     </desc>
@@ -10732,7 +10751,7 @@
       Type of time interpolation for data in tracer_srcs files.
     </desc>
     <values>
-      <value>'SERIAL'</value>
+      <value>SERIAL</value>
     </values>
   </entry>
   <entry id="tracer_srcs_cycle_yr">
@@ -10836,7 +10855,7 @@
       Default: none
     </desc>
     <values>
-      <value>'O3_Prod = NO_HO2 + CH3O2_NO + HOCH2OO_NO + C2H5O2_NO + CH3CO3_NO + EO2_NO + C3H7O2_NO + PO2_NO + RO2_NO + ENEO2_NO + MACRO2_NOa + jhonitr + ',>
+      <value>'O3_Prod = NO_HO2 + CH3O2_NO + HOCH2OO_NO + C2H5O2_NO + CH3CO3_NO + EO2_NO + C3H7O2_NO + PO2_NO + RO2_NO + ENEO2_NO + MACRO2_NOa + jhonitr + ',
             'MCO3_NO + MEKO2_NO + ALKO2_NO + jalknit + .92*ISOPAO2_NO + .92*ISOPBO2_NO + ISOPNO3_NO + XO2_NO + ACBZO2_NO + BENZO2_NO + BZOO_NO + ',
             'C6H5O2_NO + DICARBO2_NO + MALO2_NO + MDIALO2_NO + PHENO2_NO + TOLO2_NO + XYLENO2_NO + XYLOLO2_NO + NTERPO2_NO + .9*TERP2O2_NO + .8*TERPO2_NO + jterpnit',
   'O3_Loss = O1D_H2O + OH_O3 + HO2_O3 + C2H4_O3 + C3H6_O3 + ISOP_O3 + MVK_O3 + MACR_O3 + MTERP_O3 + BCARY_O3',
@@ -10864,7 +10883,14 @@
   'OddOx_CLOxBROx_Loss = 2.0*CLO_O + 2.0*jcl2o2 + 2.0*CLO_CLOa + 2.0*CLO_CLOb + 2.0*BRO_CLOb + 2.0*BRO_CLOc + 2.0*BRO_BRO + 2.0*BRO_O + CLO_HO2 + BRO_HO2',
   'OddOx_Loss_Tot = 2.0*O_O3 + O1D_H2O + HO2_O + HO2_O3 + OH_O + OH_O3 + H_O3 + 2.0*NO2_O + 2.0*jno3_b + 2.0*CLO_O + 2.0*jcl2o2 + 2.0*CLO_CLOa + 2.0*CLO_CLOb + 2.0*BRO_CLOb +',
                   ' 2.0*BRO_CLOc + 2.0*BRO_BRO + 2.0*BRO_O + CLO_HO2 + BRO_HO2',
-  'OddOx_Prod_Tot = 2.0*jo2_a + 2.0*jo2_b'</value></values></entry><entry id="vmr_sums"><type>char*256(200)</type><category>cam_chem</category><group>species_sums_nl</group><desc>      
+      'OddOx_Prod_Tot = 2.0*jo2_a + 2.0*jo2_b'</value>
+    </values>
+  </entry>
+  <entry id="vmr_sums">
+    <type>char*256(200)</type>
+    <category>cam_chem</category>
+    <group>species_sums_nl</group>
+    <desc>
       Give the user the ability to specify species families (or groupings) diagnostics in volume mixing ratio.
       These group names can be added to history fincl variables.  The units are mole/mole.
       A "+" character at the end of a string indicates that the summation will continue with the next string.
@@ -10877,13 +10903,13 @@
              'NC4CHO + NOA + NTERPOOH + PBZNIT + TERPNIT'
        fincl1 = 'NOy','SOAG', ...
       Default: none
-      </desc>
-    </entry>
-    <entry id="mmr_sums">
-      <type>char*256(200)</type>
-      <category>cam_chem</category>
-      <group>species_sums_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="mmr_sums">
+    <type>char*256(200)</type>
+    <category>cam_chem</category>
+    <group>species_sums_nl</group>
+    <desc>
       Give the user the ability to specify species families (or groupings) diagnostics in mass mixing ratio.
       These group names can be added to history fincl variables. The units are kg/kg.
       A "+" character at the end of a string indicates that the summation will continue with the next string.
@@ -10893,317 +10919,318 @@
           'soa_a2 = soa1_a2 + soa2_a2 + soa3_a2 + soa4_a2 + soa5_a2'
        fincl1 = 'soa_a1','soa_a2', ...
       Default: none
-      </desc>
-    </entry>
-    <entry id="chem_use_chemtrop">
-      <type>logical</type>
-      <category>chemistry</category>
-      <group>chem_inparm</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="chem_use_chemtrop">
+    <type>logical</type>
+    <category>chemistry</category>
+    <group>chem_inparm</group>
+    <desc>
       Indicates whether to use the unified chemistry tropopause method to set the
       tropopause used in gas phase and aerosol chemical processes.  This has a maximum altitude
       level corresponding to 300 hPa for latitudes poleward of 50 degrees.
-      </desc>
-      <values>
-        <value>.true.</value>
-      </values>
-    </entry>
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
 
 <!-- WACCM_GHG Chemistry -->
 
-    <entry id="waccm_forcing_file">
-      <type>char*256</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+  <entry id="waccm_forcing_file">
+    <type>char*256</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       Filename of the prescribed waccm forcing data used with waccm_sc chemistry.
       This contains prescribed constituents for non-LTE calculations and heating rates
       for wavelengths less than 200 nm.
       Default: UNKNOWN.
-      </desc>
-      <values>
-        <value chem="waccm_sc">ghg_forcing_2000_c110321.nc</value>
-        <value chem="waccm_sc_mam4">SCWACCM_forcing_WACCM6_zm_5day_L70_1975-2014_c180216.nc</value>
-      </values>
-    </entry>
-    <entry id="waccm_forcing_datapath">
-      <type>char*256</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value chem="waccm_sc">ghg_forcing_2000_c110321.nc</value>
+      <value chem="waccm_sc_mam4">SCWACCM_forcing_WACCM6_zm_5day_L70_1975-2014_c180216.nc</value>
+    </values>
+  </entry>
+  <entry id="waccm_forcing_datapath">
+    <type>char*256</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       Full pathname of the directory that contains the files specified in
       {{ hilight }}waccm_forcing_filelist{{ closehilight }}.
       Default: UNKNOWN.
-      </desc>
-      <values>
-        <value chem="waccm_sc">atm/waccm/ub</value>
-        <value chem="waccm_sc_mam4">atm/waccm/waccm_forcing</value>
-      </values>
-    </entry>
-    <entry id="waccm_forcing_filelist">
-      <type>char*256</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value chem="waccm_sc">atm/waccm/ub</value>
+      <value chem="waccm_sc_mam4">atm/waccm/waccm_forcing</value>
+    </values>
+  </entry>
+  <entry id="waccm_forcing_filelist">
+    <type>char*256</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       A file that contains a sequence of filenames for prescribed waccm forcing data.
       The filenames in this file are relative to the directory specified
       by {{ hilight }}waccm_forcing_datapath{{ closehilight }}.
       Default: UNKNOWN.
-      </desc>
-    </entry>
-    <entry id="waccm_forcing_rmfile">
-      <type>logical</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="waccm_forcing_rmfile">
+    <type>logical</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       Remove the file containing prescribed waccm forcing data from local disk when no longer needed.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
-    <entry id="waccm_forcing_specifier">
-      <type>char*16(100)</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="waccm_forcing_specifier">
+    <type>char*16(100)</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       Names of variables containing concentrations and heating rate in the prescribed waccm forcing datasets.
       Default: none
-      </desc>
-    </entry>
-    <entry id="waccm_forcing_type">
-      <type>char*32</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <valid_values>CYCLICAL,SERIAL,INTERP_MISSING_MONTHS,FIXED</valid_values>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="waccm_forcing_type">
+    <type>char*32</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <valid_values>CYCLICAL,SERIAL,INTERP_MISSING_MONTHS,FIXED</valid_values>
+    <desc>
       Type of time interpolation for data in waccm_forcing files.
       Can be set to 'CYCLICAL', 'SERIAL', 'INTERP_MISSING_MONTHS', or 'FIXED'.
-      </desc>
-      <values>
-        <value>'CYCLICAL'</value>
-      </values>
-    </entry>
-    <entry id="waccm_forcing_cycle_yr">
-      <type>integer</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>CYCLICAL</value>
+    </values>
+  </entry>
+  <entry id="waccm_forcing_cycle_yr">
+    <type>integer</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       The  cycle year of the prescribed waccm forcing data
       if {{ hilight }}waccm_forcing_type{{ closehilight }}  is 'CYCLICAL'.
       Format: YYYY
-      </desc>
-      <values>
-        <value chem="waccm_sc">0</value>
-        <value chem="waccm_sc_mam4">2000</value>
-      </values>
-    </entry>
-    <entry id="waccm_forcing_fixed_ymd">
-      <type>integer</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value chem="waccm_sc">0</value>
+      <value chem="waccm_sc_mam4">2000</value>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="waccm_forcing_fixed_ymd">
+    <type>integer</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       The date at which the prescribed waccm forcing data is fixed
       if {{ hilight }}waccm_forcing_type{{ closehilight }} is 'FIXED'.
       Format: YYYYMMDD
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
-    <entry id="waccm_forcing_fixed_tod">
-      <type>integer</type>
-      <category>waccm_sc</category>
-      <group>waccm_forcing_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="waccm_forcing_fixed_tod">
+    <type>integer</type>
+    <category>waccm_sc</category>
+    <group>waccm_forcing_nl</group>
+    <desc>
       The time of day (seconds) corresponding to {{ hilight }}waccm_forcing_fixed_ymd{{ closehilight }}
       at which the prescribed waccm forcing data is fixed
       if {{ hilight }}waccm_forcing_type{{ closehilight }} is 'FIXED'.
       Default: 0 seconds
-      </desc>
-    </entry>
-    <entry id="h2orates">
-      <type>char*256</type>
-      <category>waccm_sc</category>
-      <group>chem_inparm</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="h2orates">
+    <type>char*256</type>
+    <category>waccm_sc</category>
+    <group>chem_inparm</group>
+    <desc>
       Full pathname of time-variant boundary dataset for H2O production/loss rates.
       Default: UNKNOWN.
-      </desc>
-      <values>
-        <value chem="waccm_sc">atm/waccm/phot/xh2o_c080826.nc</value>
-        <value chem="waccm_sc_mam4">atm/waccm/phot/xh2o_c080826.nc</value>
-      </values>
-    </entry>
+    </desc>
+    <values>
+      <value chem="waccm_sc">atm/waccm/phot/xh2o_c080826.nc</value>
+      <value chem="waccm_sc_mam4">atm/waccm/phot/xh2o_c080826.nc</value>
+    </values>
+  </entry>
 
 <!-- WACCM -->
 
-    <entry id="nlte_use_mo">
-      <type>logical</type>
-      <category>waccm_phys</category>
-      <group>radheat_nl</group>
-      <desc>
+  <entry id="nlte_use_mo">
+    <type>logical</type>
+    <category>waccm_phys</category>
+    <group>radheat_nl</group>
+    <desc>
       Determines which constituents are used from non-LTE calculations.
       TRUE implies use prognostic constituents.
       FALSE implies use constituents from dataset specified by {{ hilight }}waccm_forcing_file{{ closehilight }}.
       Default: TRUE for full chemistry WACCM; FALSE for WACCM_SC.
-      </desc>
-    </entry>
-    <entry id="nlte_limit_co2">
-      <type>logical</type>
-      <category>waccm_phys</category>
-      <group>radheat_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="nlte_limit_co2">
+    <type>logical</type>
+    <category>waccm_phys</category>
+    <group>radheat_nl</group>
+    <desc>
       If TRUE apply upper limit to CO2 concentrations passed to the Formichev non-LTE cooling calculation
       (code not intended for values greater than 720 ppmv).  Running with flag set to TRUE could lead to
       incorrect cooling rates if model CO2 exceeds 720 ppmv.  If FALSE simulation will abort if CO2 levels
       exceed this value at altitudes above 1 mbar.  The 720 ppmv CO2 limiter in the Formichev non-LTE cooling
       scheme is applied to all vertical levels regardless of this setting.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
-    <entry id="qbo_cyclic">
-      <type>logical</type>
-      <category>waccm_phys</category>
-      <group>qbo_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="qbo_cyclic">
+    <type>logical</type>
+    <category>waccm_phys</category>
+    <group>qbo_nl</group>
+    <desc>
       TRUE implies assume cyclic qbo data.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
-    <entry id="qbo_forcing_file">
-      <type>char*256</type>
-      <category>waccm_phys</category>
-      <group>qbo_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="qbo_forcing_file">
+    <type>char*256</type>
+    <category>waccm_phys</category>
+    <group>qbo_nl</group>
+    <desc>
       Filepath for qbo forcing dataset.
-      </desc>
-      <values>
-        <value>atm/waccm/qbo/qbocyclic28months.nc</value>
-      </values>
-    </entry>
-    <entry id="qbo_use_forcing">
-      <type>logical</type>
-      <category>waccm_phys</category>
-      <group>qbo_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>atm/waccm/qbo/qbocyclic28months.nc</value>
+    </values>
+  </entry>
+  <entry id="qbo_use_forcing">
+    <type>logical</type>
+    <category>waccm_phys</category>
+    <group>qbo_nl</group>
+    <desc>
       TRUE implies qbo package is active.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
-    <entry id="fixed_geomag_year">
-      <type>integer</type>
-      <category>waccm</category>
-      <group>geomag_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="fixed_geomag_year">
+    <type>integer</type>
+    <category>waccm</category>
+    <group>geomag_nl</group>
+    <desc>
       If set this year is used for setting geomagnetic coordinates through out the
       simulation.  If not set the model simulation year is used.
       Default: none
-      </desc>
-    </entry>
-    <entry id="igrf_geomag_coefs_file">
-      <type>char*256</type>
-      <category>waccm</category>
-      <group>geomag_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="igrf_geomag_coefs_file">
+    <type>char*256</type>
+    <category>waccm</category>
+    <group>geomag_nl</group>
+    <desc>
       International Geomagnetic Reference Field (IGRF) coefficients.
       Default: None.
-      </desc>
-      <values>
-        <value>atm/waccm/geomag/igrf_ceofs_c160412.nc</value>
-      </values>
-    </entry>
-    <entry id="epp_all_filepath">
-      <type>char*256</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>atm/waccm/geomag/igrf_ceofs_c160412.nc</value>
+    </values>
+  </entry>
+  <entry id="epp_all_filepath">
+    <type>char*256</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Filepath input dataset for ionization due to energetic particle precipitation.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_all_varname">
-      <type>char*80</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_all_varname">
+    <type>char*80</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Variable name in netCDF file {{ hilight }}epp_all_filepath{{ closehilight }} which contains
       ion pairs production rates.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_spe_filepath">
-      <type>char*256</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_spe_filepath">
+    <type>char*256</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Filepath input dataset for ionization due to solar proton events.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_spe_varname">
-      <type>char*80</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_spe_varname">
+    <type>char*80</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Variable name in netCDF file {{ hilight }}epp_spe_filepath{{ closehilight }} which contains
       ion pairs production rates.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_mee_filepath">
-      <type>char*256</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_mee_filepath">
+    <type>char*256</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Filepath input dataset for ionization due to medium energy electrons.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_mee_varname">
-      <type>char*80</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_mee_varname">
+    <type>char*80</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Variable name in netCDF file {{ hilight }}epp_mee_filepath{{ closehilight }} which contains
       ion pairs production rates.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_gcr_filepath">
-      <type>char*256</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_gcr_filepath">
+    <type>char*256</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Filepath input dataset for ionization due to galactic cosmic rays.
       Default: None.
-      </desc>
-    </entry>
-    <entry id="epp_gcr_varname">
-      <type>char*80</type>
-      <category>waccm</category>
-      <group>epp_ionization_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="epp_gcr_varname">
+    <type>char*80</type>
+    <category>waccm</category>
+    <group>epp_ionization_nl</group>
+    <desc>
       Variable name in netCDF file {{ hilight }}epp_gcr_filepath{{ closehilight }} which contains
       ion pairs production rates.
       Default: None.
-      </desc>
-    </entry>
+    </desc>
+  </entry>
 
 <!-- SE dycore -->
 
-    <entry id="se_qsize_condensate_loading">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>1,2,3,4,5,6</valid_values>
-      <desc>
+  <entry id="se_qsize_condensate_loading">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>1,2,3,4,5,6</valid_values>
+    <desc>
       Number of water tracers active in condensate-loading terms in dynamical core
       1: water vapor only
       2: water vapor and cloud liquid
@@ -11212,66 +11239,66 @@
       5: water vapor, cloud liquid, cloud ice, rain and snow
       6: water vapor, cloud liquid, cloud ice, rain, snow and graupel
       Default: 3 for CAM4, CAM5; 5 for CAM6; 1 for Held_Suarez, Adiabatic and Kessler
-      </desc>
-      <values>
-        <value>3</value>
-        <value phys="cam4">3</value>
-        <value phys="cam5">3</value>
-        <value phys="cam6">5</value>
-        <value phys="held_suarez">1</value>
-        <value phys="adiabatic">1</value>
-        <value phys="kessler">1</value>
-        <value phys="tj2016">1</value>
-      </values>
-    </entry>
-    <entry id="se_fine_ne">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>3</value>
+      <value phys="cam4">3</value>
+      <value phys="cam5">3</value>
+      <value phys="cam6">5</value>
+      <value phys="held_suarez">1</value>
+      <value phys="adiabatic">1</value>
+      <value phys="kessler">1</value>
+      <value phys="tj2016">1</value>
+    </values>
+  </entry>
+  <entry id="se_fine_ne">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Set for refined exodus meshes (variable viscosity).
       Viscosity in namelist specified for regions with a resolution equivilant
       to a uniform grid with se_ne = se_fine_ne.
       Default: -1 (not used)
-      </desc>
-      <values>
-        <value>0</value>
-        <value hgrid="ne0np4CONUS.ne30x8">120</value>
-      </values>
-    </entry>
-    <entry id="se_ftype">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>0,1,2</valid_values>
-      <desc>
+    </desc>
+    <values>
+      <value>0</value>
+      <value hgrid="ne0np4CONUS.ne30x8">120</value>
+    </values>
+  </entry>
+  <entry id="se_ftype">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>0,1,2</valid_values>
+    <desc>
       CAM physics forcing option:
       0: tendencies
       1: adjustments
       2: hybrid
-      </desc>
-      <values>
-        <value>2</value>
-      </values>
-    </entry>
-    <entry id="se_hypervis_power">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>2</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_power">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Scalar viscosity with variable coefficient.
       Use variable hyperviscosity based on element area limited by
       se_max_hypervis_courant.
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
-    <entry id="se_hypervis_scaling">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_scaling">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Use tensor hyperviscosity.
       Citation: Guba, O., Taylor, M. A., Ullrich, P. A., Overfelt, J. R., and
       Levy, M. N.: The spectral element method (SEM) on variable-resolution
@@ -11279,204 +11306,204 @@
       viscosity, Geosci. Model Dev., 7, 2803-2816,
       doi:10.5194/gmd-7-2803-2014, 2014.
       Default: 0 (i.e., not used)
-      </desc>
-      <values>
-        <value hypervis_type="tensor" se_refined_mesh="1">3.0D0</value>
-      </values>
-    </entry>
-    <entry id="se_hypervis_subcycle">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value hypervis_type="tensor" se_refined_mesh="1">3.0D0</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_subcycle">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of hyperviscosity subcycles per dynamics timestep.
-      </desc>
-      <values>
-        <value>2</value>
-        <value hgrid="ne16np4">4</value>
-        <value hgrid="ne0np4CONUS.ne30x8" hypervis_type="scalar">6</value>
-        <value hgrid="ne0np4CONUS.ne30x8" hypervis_type="tensor">8</value>
-      </values>
-    </entry>
-    <entry id="se_hypervis_subcycle_q">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>2</value>
+      <value hgrid="ne16np4">4</value>
+      <value hgrid="ne0np4CONUS.ne30x8" hypervis_type="scalar">6</value>
+      <value hgrid="ne0np4CONUS.ne30x8" hypervis_type="tensor">8</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_subcycle_q">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of hyperviscosity subcycles done in tracer advection code.
-      </desc>
-      <values>
-        <value>1</value>
-        <value hgrid="ne16np4">2</value>
-      </values>
-    </entry>
-    <entry id="se_limiter_option">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>0,4,8</valid_values>
-      <desc>
+    </desc>
+    <values>
+      <value>1</value>
+      <value hgrid="ne16np4">2</value>
+    </values>
+  </entry>
+  <entry id="se_limiter_option">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>0,4,8</valid_values>
+    <desc>
       Limiter used for horizontal tracer advection:
       0: None
       4: Sign-preserving limiter.
       8: Monotone limiter.
-      </desc>
-      <values>
-        <value>8</value>
-      </values>
-    </entry>
-    <entry id="se_max_hypervis_courant">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>8</value>
+    </values>
+  </entry>
+  <entry id="se_max_hypervis_courant">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Upper bound for Courant number, used to limit se_hypervis_power.
       Default: 1.0e99 (i.e., not used) unless se_refined_mesh=TRUE
-      </desc>
-      <values>
-        <value>1.0e99</value>
-        <value hypervis_type="scalar" se_refined_mesh="1">1.9</value>
-      </values>
-    </entry>
-    <entry id="se_mesh_file">
-      <type>char*256</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>1.0e99</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.9</value>
+    </values>
+  </entry>
+  <entry id="se_mesh_file">
+    <type>char*256</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Filename of exodus file to read grid from (generated by CUBIT or SQuadGen).
-      </desc>
-      <values>
-        <value>none</value>
-        <value hgrid="ne0np4CONUS.ne30x8">atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
-        <value hgrid="ne0np4TESTONLY.ne5x4">atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
-      </values>
-    </entry>
-    <entry id="se_ne">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>none</value>
+      <value hgrid="ne0np4CONUS.ne30x8">atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
+    </values>
+  </entry>
+  <entry id="se_ne">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of elements along a cube edge.
       Must match value of grid. Set this to zero to use a refined mesh.
       Default: UNKNOWN.
-      </desc>
-    </entry>
-    <entry id="se_npes">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="se_npes">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of PEs to be used by SE dycore.
       Default: Number of PEs used by CAM.
-      </desc>
-    </entry>
-    <entry id="se_nsplit">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="se_nsplit">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of dynamics steps per physics timestep.
-      </desc>
-      <values>
-        <value>2</value>
-        <value hgrid="ne16np4">1</value>
-        <value hgrid="ne5np4" waccm_phys="1">3</value>
-        <value hgrid="ne16np4" waccm_phys="1">3</value>
-        <value hgrid="ne30np4" waccm_phys="1">12</value>
-        <value hgrid="ne30np4" npg="2" waccm_phys="1">5</value>
-        <value hgrid="ne30np4" npg="3" waccm_phys="1">5</value>
-        <value hgrid="ne0np4CONUS.ne30x8">6</value>
-        <value hgrid="ne0np4TESTONLY.ne5x4">7</value>
-      </values>
-    </entry>
-    <entry id="se_variable_nsplit">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>2</value>
+      <value hgrid="ne16np4">1</value>
+      <value hgrid="ne5np4" waccm_phys="1">3</value>
+      <value hgrid="ne16np4" waccm_phys="1">3</value>
+      <value hgrid="ne30np4" waccm_phys="1">12</value>
+      <value hgrid="ne30np4" npg="2" waccm_phys="1">5</value>
+      <value hgrid="ne30np4" npg="3" waccm_phys="1">5</value>
+      <value hgrid="ne0np4CONUS.ne30x8">6</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">7</value>
+    </values>
+  </entry>
+  <entry id="se_variable_nsplit">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       If TRUE nsplit is dynamically adjusted (increased by 2 if vertical
       velocity Courant number is larger than 0.85) and reset when vertical
       velocity Courant number is less than 0.38
-      </desc>
-      <values>
-        <value>.false.</value>
-        <value npg="2" waccm_phys="1">.true.</value>
-        <value npg="3" waccm_phys="1">.true.</value>
-      </values>
-    </entry>
-    <entry id="se_phys_dyn_cp">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>0,1,2</valid_values>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+      <value npg="2" waccm_phys="1">.true.</value>
+      <value npg="3" waccm_phys="1">.true.</value>
+    </values>
+  </entry>
+  <entry id="se_phys_dyn_cp">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>0,1,2</valid_values>
+    <desc>
       Scaling of temperature increment for different levels of
       thermal energy consistency.
       0: no scaling
       1: scale increment for cp consistency between dynamics and physics
       2: do 1 as well as take into account condensate effect on thermal energy
-      </desc>
-      <values>
-        <value>1</value>
-      </values>
-    </entry>
-    <entry id="se_nu">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="se_nu">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Hyperviscosity coefficient for u,v, T [m^4/s].
       If &lt; 0, se_nu is automatically set.
-      </desc>
-      <values>
-        <value>-1</value>
-        <value hypervis_type="scalar" se_refined_mesh="1">1.0e13</value>
-      </values>
-    </entry>
-    <entry id="se_nu_div">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.0e13</value>
+    </values>
+  </entry>
+  <entry id="se_nu_div">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Hyperviscosity applied to divergence component of winds [m^4/s].
       If &lt; 0, uses se_nu_p.
-      </desc>
-      <values>
-        <value>-1</value>
-        <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
-      </values>
-    </entry>
-    <entry id="se_nu_p">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
+    </values>
+  </entry>
+  <entry id="se_nu_p">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Hyperviscosity coefficient applied to pressure-level thickness [m^4/s].
       If &lt; 0, se_nu_p is automatically set.
-      </desc>
-      <values>
-        <value>-1</value>
-        <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
-      </values>
-    </entry>
-    <entry id="se_nu_top">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
+    </values>
+  </entry>
+  <entry id="se_nu_top">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Second-order viscosity applied only near the model top [m^2/s].
-      </desc>
-      <values>
-        <value>1.25e5</value>
-        <value waccm_phys="1">1.0e6</value>
-        <value se_refined_mesh="1">2.0e5</value>
-      </values>
-    </entry>
-    <entry id="se_hypervis_dynamic_ref_state">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>1.25e5</value>
+      <value waccm_phys="1">1.0e6</value>
+      <value se_refined_mesh="1">2.0e5</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_dynamic_ref_state">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Hyperscosity for T and dp is applied to (T-Tref) and (dp-dp_ref) where
       Xref are reference states where the effect of topography has been removed
       (Simmons and Jiabin, 1991, QJRMS, Section 2a).
@@ -11485,174 +11512,174 @@
       based on Simmons and Jiabin (1991) but using smoothed dp_ref.
       If FALSE Tref is static reference state (Simmons and Jiabin) and dp_ref state
       derived from hydrostatic balance.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
-    <entry id="se_lcp_moist">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="se_lcp_moist">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       If TRUE the continous equations the dynamical core is based on will conserve a
       comprehensive moist total energy
       If FALSE the continous equations the dynamical core is based on will conserve
       a total energy based on cp for dry air and no condensates (same total energy as
       CAM physics uses).
       For more details see Lauritzen et al., (2018;DOI:10.1029/2017MS001257)
-      </desc>
-      <values>
-        <value>.true.</value>
-      </values>
-    </entry>
-    <entry id="se_large_Courant_incr">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="se_large_Courant_incr">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       If TRUE the CSLAM algorithm will work for Courant number larger than 1 with
       a low-order increment for tracer mass more than one grid cell width away
-      </desc>
-      <values>
-        <value>.true.</value>
-      </values>
-    </entry>
-    <entry id="se_fvm_supercycling">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="se_fvm_supercycling">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of SE rsplit time-steps CSLAM supercycles
       rsplit/se_fvm_supercycling must be an integer
-      </desc>
-      <values>
-        <value>-1</value>
-      </values>
-    </entry>
-    <entry id="se_fvm_supercycling_jet">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_fvm_supercycling_jet">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of SE rsplit time-steps CSLAM supercycles in the jet region
       (which is specified by kmin_jet and kmax_jet)
       rsplit/se_fvm_supercycling_jet must be an integer
       se_fvm_supercycling_jet/se_fvm_supercyling must be an integer
-      </desc>
-      <values>
-        <value>-1</value>
-      </values>
-    </entry>
-    <entry id="se_kmin_jet">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_kmin_jet">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Min level index where CSLAM runs with se_fvm_supercycling_jet
       (if se_fvm_supercycling_jet.ne.se_fvm_supercycling) or
       min index where are Courant number increment is active
       (se_large_Courant_incr=.true.)
-      </desc>
-      <values>
-        <value>-1</value>
-      </values>
-    </entry>
-    <entry id="se_kmax_jet">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_kmax_jet">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Max level index where CSLAM runs with se_fvm_supercycling_jet
       (if se_fvm_supercycling_jet.ne.se_fvm_supercycling) or
       max index where are Courant number increment is active
       (se_large_Courant_incr=.true.)
-      </desc>
-      <values>
-        <value>-1</value>
-      </values>
-    </entry>
-    <entry id="se_qsplit">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_qsplit">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Tracer advection is done every qsplit dynamics timesteps.
-      </desc>
-      <values>
-        <value>1</value>
-      </values>
-    </entry>
-    <entry id="se_refined_mesh">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="se_refined_mesh">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       TRUE specified use of a refined grid (mesh) for this run.
-      </desc>
-      <values>
-        <value>.false.</value>
-        <value hgrid="ne0np4CONUS.ne30x8">.true.</value>
-        <value hgrid="ne0np4TESTONLY.ne5x4">.true.</value>
-      </values>
-    </entry>
-    <entry id="se_rsplit">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+      <value hgrid="ne0np4CONUS.ne30x8">.true.</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">.true.</value>
+    </values>
+  </entry>
+  <entry id="se_rsplit">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Vertically lagrangian code vertically remaps every rsplit tracer timesteps.
-      </desc>
-      <values>
-        <value>3</value>
-        <value npg="2" waccm_phys="1">6</value>
-        <value npg="3" waccm_phys="1">6</value>
-      </values>
-    </entry>
-    <entry id="se_statefreq">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>3</value>
+      <value npg="2" waccm_phys="1">6</value>
+      <value npg="3" waccm_phys="1">6</value>
+    </values>
+  </entry>
+  <entry id="se_statefreq">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Frequency with which diagnostic output is written to log (output every
       statefreq dynamics timesteps).
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
-    <entry id="se_tstep_type">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_tstep_type">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Time stepping method for SE dycore
       se_tstep_type=1  RK2 followed by qsplit-1 Leapfrog steps; second-order accurate in time (CESM1.2.0 setting)
       se_tstep_type=2  RK2-SSP 3 stage (as used by tracers)
       se_tstep_type=3  classic Runga-Kutta (RK) 3 stage
       se_tstep_type=4  Kinnmark&amp;Gray Runga-Kutta (RK) 4 stage
-      </desc>
-      <values>
-        <value>4</value>
-      </values>
-    </entry>
-    <entry id="se_statediag_numtrac">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>4</value>
+    </values>
+  </entry>
+  <entry id="se_statediag_numtrac">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of tracers to include in logfile diagnostics for SE dycore
-      </desc>
-      <values>
-        <value>3</value>
-      </values>
-    </entry>
-    <entry id="se_vert_remap_q_alg">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>1,2</valid_values>
-      <desc>
+    </desc>
+    <values>
+      <value>3</value>
+    </values>
+  </entry>
+  <entry id="se_vert_remap_q_alg">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>1,2</valid_values>
+    <desc>
       CAM-SE vertical remap algorithm
       1: PPM vertical remap with mirroring at the boundaries
          (solid wall bc's, high-order throughout)
@@ -11660,326 +11687,326 @@
       2: PPM vertical remap without mirroring at the boundaries
          (no bc's enforced, first-order at two cells bordering top and bottom
          boundaries)
-      </desc>
-      <values>
-        <value>1</value>
-      </values>
-    </entry>
-    <entry id="se_write_restart_unstruct">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="se_write_restart_unstruct">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Set .true. to allow writing SE dynamics fields to the restart file using the
       unstructured grid format.  This allows the restart file to be used as an
       initial file, but its use as a restart file will introduce roundoff size
       differences into the simulation.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
 
 <!-- Nudging -->
-    <entry id="se_met_nudge_u">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+  <entry id="se_met_nudge_u">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Nudging factor for prescribed winds in SE dycore
       Units: 1/sec
-      </desc>
-      <values>
-        <value>2.0e-5</value>
-      </values>
-    </entry>
-    <entry id="se_met_nudge_t">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>2.0e-5</value>
+    </values>
+  </entry>
+  <entry id="se_met_nudge_t">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Nudging factor for prescribed temperature in SE dycore
       Units: 1/sec
-      </desc>
-      <values>
-        <value>2.0e-5</value>
-      </values>
-    </entry>
-    <entry id="se_met_nudge_p">
-      <type>real</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>2.0e-5</value>
+    </values>
+  </entry>
+  <entry id="se_met_nudge_p">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Nudging factor for prescribed surface pressure in SE dycore
       Units: 1/sec
-      </desc>
-      <values>
-        <value>0.0</value>
-      </values>
-    </entry>
-    <entry id="se_met_tevolve">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>0,1</valid_values>
-      <desc>
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="se_met_tevolve">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>0,1</valid_values>
+    <desc>
       Switch to turn on/off time evolution of dynamics nudging
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
 
 <!-- Physics grid entries -->
-    <entry id="se_fv_nphys">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+  <entry id="se_fv_nphys">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of equally-spaced horizontal physics points per spectral
       element. A number greater than zero will define [se_fv_nphys] equally
       spaced physics points in each direction (e.g., se_fv_nphys = 3 will
       result in 9 equally-spaced physics points per element).
       Default: 0 = feature disabled, use dynamics GLL points.
-      </desc>
-    </entry>
+    </desc>
+  </entry>
 
 <!-- Option to write SCRIP grid file -->
-    <entry id="se_write_grid_file">
-      <type>char*16</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <valid_values>no,SCRIP</valid_values>
-      <desc>
+  <entry id="se_write_grid_file">
+    <type>char*16</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <valid_values>no,SCRIP</valid_values>
+    <desc>
       If 'SCRIP', write a NetCDF file with the grid in SCRIP format.
       If using a finite-volume physics grid, write the FVM grid, otherwise
       write the native GLL grid.
       Note that if this option is used, the simulation will exit after writing.
-      </desc>
-      <values>
-        <value>no</value>
-      </values>
-    </entry>
-    <entry id="se_grid_filename">
-      <type>char*256</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>no</value>
+    </values>
+  </entry>
+  <entry id="se_grid_filename">
+    <type>char*256</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Name of grid file to write if se_write_grid_file is set.
       Default: Set according to active grid
-      </desc>
-    </entry>
-    <entry id="se_write_gll_corners">
-      <type>logical</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="se_write_gll_corners">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Set to true to write the SEMapping.nc file.
-      </desc>
-      <values>
-        <value>.false.</value>
-      </values>
-    </entry>
-    <entry id="native_mapping_outgrids">
-      <type>char*256(5)</type>
-      <category>se</category>
-      <group>native_mapping_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="native_mapping_outgrids">
+    <type>char*256(5)</type>
+    <category>se</category>
+    <group>native_mapping_nl</group>
+    <desc>
       List of SCRIP grid filenames each representing a destination grid. If provided during a CAM simulation running the spectral element dycore, mapping files will be created from the native cubed-sphere grid to each destination grid. Both native mapping (using the internal spectral element basis functions) and bilinear maps are created.
       Default: none
-      </desc>
-    </entry>
+    </desc>
+  </entry>
 
 <!-- SE performance (threading) entries -->
-    <entry id="se_horz_num_threads">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+  <entry id="se_horz_num_threads">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of threads to use for loops over elements.
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
-    <entry id="se_vert_num_threads">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_vert_num_threads">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of threads to use when processing vertical loops. Normally
       equal to se_tracer_num_threads.
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
-    <entry id="se_tracer_num_threads">
-      <type>integer</type>
-      <category>se</category>
-      <group>dyn_se_inparm</group>
-      <desc>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_tracer_num_threads">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
       Number of threads to use when processing loops over threads.
       Normally equal to se_vert_num_threads.
-      </desc>
-      <values>
-        <value>0</value>
-      </values>
-    </entry>
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
 
 <!-- Dycore testing  -->
 
-    <entry id="analytic_ic_type">
-      <type>char*80</type>
-      <category>dyn_test</category>
-      <group>analytic_ic_nl</group>
-      <valid_values>none,held_suarez_1994,moist_baroclinic_wave_dcmip2016,dry_baroclinic_wave_dcmip2016,dry_baroclinic_wave_jw2006</valid_values>
-      <desc>
+  <entry id="analytic_ic_type">
+    <type>char*80</type>
+    <category>dyn_test</category>
+    <group>analytic_ic_nl</group>
+    <valid_values>none,held_suarez_1994,moist_baroclinic_wave_dcmip2016,dry_baroclinic_wave_dcmip2016,dry_baroclinic_wave_jw2006</valid_values>
+    <desc>
       Specify the type of analytic initial conditions for an initial run.
       held_suarez_1994: Initial conditions specified in Held and Suarez (1994)
       moist_baroclinic_wave_dcmip2016: Moist baroclinic wave as used in the DCMIP 2016 experiments
       dry_baroclinic_wave_dcmip2016: Dry baroclinic wave as used in the DCMIP 2016 experiments
       dry_baroclinic_wave_jw2006: Dry baroclinic wave as specified in Jablonowski and Williamson (2006)
-      </desc>
-      <values>
-        <value>none</value>
-        <value phys="adiabatic">held_suarez_1994</value>
-        <value phys="held_suarez">held_suarez_1994</value>
-        <value phys="kessler">moist_baroclinic_wave_dcmip2016</value>
-        <value phys="tj2016">moist_baroclinic_wave_dcmip2016</value>
-      </values>
-    </entry>
-    <entry id="aqua_planet_sst">
-      <type>integer</type>
-      <category>driver</category>
-      <group>aquap_nl</group>
-      <valid_values>1,2,3,4,5,6,7,8,9,10,11</valid_values>
-      <desc>
+    </desc>
+    <values>
+      <value>none</value>
+      <value phys="adiabatic">held_suarez_1994</value>
+      <value phys="held_suarez">held_suarez_1994</value>
+      <value phys="kessler">moist_baroclinic_wave_dcmip2016</value>
+      <value phys="tj2016">moist_baroclinic_wave_dcmip2016</value>
+    </values>
+  </entry>
+  <entry id="aqua_planet_sst">
+    <type>integer</type>
+    <category>driver</category>
+    <group>aquap_nl</group>
+    <valid_values>1,2,3,4,5,6,7,8,9,10,11</valid_values>
+    <desc>
       Set the sst to a particular analytic solution.
-      </desc>
-      <values>
-        <value>1</value>
-      </values>
-    </entry>
-    <entry id="atm_dep_flux">
-      <type>logical</type>
-      <category>driver</category>
-      <group>phys_ctl_nl</group>
-      <desc>
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="atm_dep_flux">
+    <type>logical</type>
+    <category>driver</category>
+    <group>phys_ctl_nl</group>
+    <desc>
       If FALSE then CAM will set the deposition fluxes to zero before sending
       them to the coupler.  A side effect of setting the
       variable {{ hilight }}chem_rad_passive{{ closehilight }} to TRUE is that this variable
       will be set to FALSE (the deposition fluxes must be set to zero in order
       for the chemistry not to impact the climate).
-      </desc>
-      <values>
-        <value>.true.</value>
-      </values>
-    </entry>
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
 
 <!-- ========================================================================================  -->
 <!-- physical constants: -->
 
-    <entry id="sday">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+  <entry id="sday">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Length of siderial day [seconds].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="rearth">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="rearth">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Radius of Earth [m].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="gravit">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="gravit">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Acceleration of gravity [m/s**2].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="mwdry">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="mwdry">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Molecular weight of dry air [g/mol]
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="cpair">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="cpair">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Heat capacity of dry air at constant pressure [J/kg/K].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="mwh2o">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="mwh2o">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Molecular weight of water [g/mol].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="cpwv">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="cpwv">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Heat capacity of water vapor at constant pressure [J/kg/K].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="tmelt">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="tmelt">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Freezing point of water [K].
       Default: set to shr_const value
-      </desc>
-    </entry>
-    <entry id="omega">
-      <type>real</type>
-      <category>physconst</category>
-      <group>physconst_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="omega">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
       Planetary rotation rate (radians/second). Value set here is ONLY used in the atmosphere.
       Default: set to shr_const value
-      </desc>
-    </entry>
+    </desc>
+  </entry>
 
 <!-- for offine unit drivers -->
 
-    <entry id="offline_driver_infile">
-      <type>char*256</type>
-      <category>offline_unit_driver</category>
-      <group>offline_driver_nl</group>
-      <desc>
+  <entry id="offline_driver_infile">
+    <type>char*256</type>
+    <category>offline_unit_driver</category>
+    <group>offline_driver_nl</group>
+    <desc>
       Filepath for dataset for offline unit driver.
       Default: none
-      </desc>
-    </entry>
-    <entry id="offline_driver_fileslist">
-      <type>char*256</type>
-      <category>offline_unit_driver</category>
-      <group>offline_driver_nl</group>
-      <desc>
+    </desc>
+  </entry>
+  <entry id="offline_driver_fileslist">
+    <type>char*256</type>
+    <category>offline_unit_driver</category>
+    <group>offline_driver_nl</group>
+    <desc>
       List of filepaths for dataset for offline unit driver.
       Default: none
-      </desc>
-    </entry>
-  </entry_id>
+    </desc>
+  </entry>
+</entry_id>
