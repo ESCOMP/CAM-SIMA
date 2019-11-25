@@ -209,7 +209,7 @@ variable-naming-style=snake_case
 expected-line-ending-format=
 
 # Regexp for a line that is allowed to be longer than the limit.
-ignore-long-lines=(^\s*(# )?<?https?://\S+>?$)|(^\s*>>> .*$)
+ignore-long-lines=(^\s*(# )?<?https?://\S+>?$)|(^\s*>>> .*$)||(^\s*CCPPError:)
 
 # Number of spaces of indent required inside a hanging  or continued line.
 indent-after-paren=4

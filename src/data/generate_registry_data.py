@@ -23,7 +23,7 @@ sys.path.append(os.path.join(__CPFROOT, 'scripts'))
 # CCPP framework imports
 # pylint: disable=wrong-import-position
 from parse_tools import validate_xml_file, find_schema_version, read_xml_file
-from parse_tools import init_log, set_log_level, CCPPError, ParseInternalError
+from parse_tools import init_log, CCPPError, ParseInternalError
 from fortran_tools import FortranWriter
 # pylint: enable=wrong-import-position
 
@@ -645,19 +645,29 @@ class DDT(object):
 ###############################################################################
     """Registry DDT"""
 
-    def __init__(self, ddt_node, var_dict, dycore, logger):
+    def __init__(self, ddt_node, known_types, var_dict, dycore, logger):
         """Initialize a DDT from registry XML (<ddt_node>)
         <var_dict> is the dictionary where variables referenced in <ddt_node>
         must reside. Each DDT variable is removed from <var_dict>
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">><dessert>ice_cream</dessert></ddt>'), VarDict("foo", "module", None), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state">><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: Unknown DDT element type, 'dessert', in 'physics_state'
         """
         self.__type = ddt_node.get('type')
         self.__logger = logger
         self.__data = list()
-        self.__extends = ddt_node.get('extends', default=None)
+        extends = ddt_node.get('extends', default=None)
+        if extends is None:
+            self.__extends = None
+        else:
+            self.__extends = known_types.known_type(extends)
+        # End if
+        if extends and (not self.__extends):
+            emsg = ("DDT, '{}', extends type '{}', however, this type is "
+                    "not known")
+            raise CCPPError(emsg.format(self.ddt_type, extends))
+        # End if
         self.__bindc = ddt_node.get('bindC', default=False)
         if self.__extends and self.__bindc:
             emsg = ("DDT, '{}', cannot have both 'extends' and 'bindC' "
@@ -695,7 +705,11 @@ class DDT(object):
 
     def variable_list(self):
         """Return the variable list for this DDT"""
-        return self.__data
+        vlist = list(self.__data)
+        if self.__extends:
+            vlist.extend(self.__extends.ddt.variable_list())
+        # End if
+        return vlist
 
     def write_metadata(self, outfile):
         """Write out this DDT as CCPP metadata"""
@@ -709,7 +723,7 @@ class DDT(object):
     def write_definition(self, outfile, access, indent):
         """Write out the Fortran definition for this DDT
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">>></ddt>'), VarDict("foo", "module", None), 'eul', None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state">>></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: DDT, 'physics_state', has no member variables
         """
@@ -720,7 +734,7 @@ class DDT(object):
         # End if
         my_acc = 'private' if self.private else 'public'
         if self.extends:
-            acc_str = ', extends({})'.format(self.extends)
+            acc_str = ', extends({})'.format(self.extends.type_type)
         elif self.bindC:
             acc_str = ', bind(C)'
         elif my_acc != access:
@@ -790,7 +804,7 @@ class File(object):
         self.__name = file_node.get('name')
         self.__type = file_node.get('type')
         self.__known_types = known_types
-        self.__ddts = dict()
+        self.__ddts = OrderedDict()
         self.__use_statements = list()
         for obj in file_node:
             if obj.tag == 'variable':
@@ -798,7 +812,8 @@ class File(object):
                                   logger)
                 self.__var_dict.add_variable(newvar)
             elif obj.tag == 'ddt':
-                newddt = DDT(obj, self.__var_dict, dycore, logger)
+                newddt = DDT(obj, self.__known_types, self.__var_dict,
+                             dycore, logger)
                 dmsg = "Adding DDT {} from {} as a known type"
                 dmsg = dmsg.format(newddt.ddt_type, self.__name)
                 logging.debug(dmsg)
@@ -988,8 +1003,11 @@ def parse_command_line(args, description):
                               "(e.g., gravity_waves=True)"))
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Directory where output files will be written")
-    parser.add_argument("--debug", action='store_true',
-                        help='Increase logging', default=False)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--debug", action='store_true',
+                       help='Increase logging', default=False)
+    group.add_argument("--quiet", action='store_true',
+                       help='Disable logging except for errors', default=False)
     parser.add_argument("--indent", type=int, default=3,
                         help="Indent level for Fortran source code")
     pargs = parser.parse_args(args)
@@ -1028,7 +1046,8 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
     # End for
 
 ###############################################################################
-def gen_registry(registry_file, dycore, config, outdir, indent, debug):
+def gen_registry(registry_file, dycore, config, outdir, indent, loglevel,
+                 error_on_no_validate=False):
 ###############################################################################
     """Parse a registry XML file and generate source code and metadata.
     <dycore> is the name of the dycore for DP coupling specialization.
@@ -1037,29 +1056,37 @@ def gen_registry(registry_file, dycore, config, outdir, indent, debug):
     Source code and metadata is output to <outdir>.
     <indent> is the number of spaces between indent levels.
     Set <debug> to True for more logging output."""
-    logger = init_log(os.path.basename(__file__), logging.INFO)
-    if debug:
-        set_log_level(logger, logging.DEBUG)
-    # End if
+    logger = init_log(os.path.basename(__file__), loglevel)
     logger.info("Reading CAM registry from {}".format(registry_file))
     _, registry = read_xml_file(registry_file)
     # Validate the XML file
-    version = find_schema_version(registry, logger)
-    if debug:
+    version = find_schema_version(registry)
+    if (loglevel > 0) and (loglevel <= logging.DEBUG):
         verstr = '.'.join([str(x) for x in version])
         logger.debug("Found registry version, v{}".format(verstr))
     # End if
     try:
         emsg = "Invalid registry file, {}".format(registry_file)
         file_ok = validate_xml_file(registry_file, 'registry', version,
-                                    logger, schema_path=__CURRDIR)
+                                    logger, schema_path=__CURRDIR,
+                                    error_on_noxmllint=error_on_no_validate)
     except CCPPError as ccpperr:
         cemsg = "{}".format(ccpperr).split('\n')[0]
-        emsg += cemsg.replace('Execution of',
-                              '\nTry debugging').replace('failed:', '').rstrip()
+        if cemsg[0:12] == 'Execution of':
+            xstart = cemsg.find("'")
+            if xstart >= 0:
+                xend = cemsg[xstart + 1:].find("'") + xstart + 1
+                emsg += '\n' + cemsg[xstart + 1:xend]
+            # End if (else, just keep original message)
+        elif cemsg[0:18] == 'validate_xml_file:':
+            emsg += "\n" + cemsg
+        # End if
         file_ok = False
     # End if
     if not file_ok:
+        if error_on_no_validate:
+            raise CCPPError(emsg)
+        # End if
         logger.error(emsg)
         retcode = 1
     else:
@@ -1071,7 +1098,6 @@ def gen_registry(registry_file, dycore, config, outdir, indent, debug):
     # End if
     return retcode
 
-
 def main():
     """Function to execute when module called as a script"""
     args = parse_command_line(sys.argv[1:], __doc__)
@@ -1080,8 +1106,15 @@ def main():
     else:
         outdir = args.output_dir
     # End if
+    if args.debug:
+        loglevel = logging.DEBUG
+    elif args.quiet:
+        loglevel = logging.ERROR
+    else:
+        loglevel = logging.INFO
+    # End if
     retcode = gen_registry(args.registry_file, args.dycore.lower(),
-                           args.config, outdir, args.indent, args.debug)
+                           args.config, outdir, args.indent, loglevel)
     return retcode
 
 ###############################################################################

@@ -17,6 +17,7 @@ import os
 import glob
 import unittest
 import filecmp
+import logging
 import xml.etree.ElementTree as ET
 
 __TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -92,12 +93,15 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
         # Run test
-        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, False)
+        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+                               error_on_no_validate=True)
         # Check return code
         self.assertEqual(retcode, 0)
         # Make sure each output file was created
-        self.assertTrue(os.path.exists(out_meta))
-        self.assertTrue(os.path.exists(out_source))
+        amsg = "{} does not exist".format(out_meta)
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = "{} does not exist".format(out_source)
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
         self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False))
         self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False))
@@ -122,7 +126,8 @@ class RegistryTest(unittest.TestCase):
             out_meta = os.path.join(_TMP_DIR, out_meta_name)
             remove_files([out_source, out_meta])
             # Run dycore
-            retcode = gen_registry(filename, dycore, {}, _TMP_DIR, 2, False)
+            retcode = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
+                                   logging.ERROR, error_on_no_validate=True)
             # Check return code
             amsg = "Test failure for dycore = {}".format(dycore)
             self.assertEqual(retcode, 0, msg=amsg)
@@ -133,7 +138,9 @@ class RegistryTest(unittest.TestCase):
             if os.path.exists(gen_source):
                 os.rename(gen_source, out_source)
             # End if
+            amsg = "{} does not exist".format(out_meta)
             self.assertTrue(os.path.exists(out_meta), msg=amsg)
+            amsg = "{} does not exist".format(out_source)
             self.assertTrue(os.path.exists(out_source), msg=amsg)
             # For each output file, make sure it matches input file
             self.assertTrue(filecmp.cmp(in_meta, out_meta,
@@ -141,6 +148,48 @@ class RegistryTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(in_source, out_source,
                                         shallow=False), msg=amsg)
         # End for
+
+    def test_good_ddt_registry2(self):
+        """Test code and metadata generation from a good registry with DDTs
+        with extends and bindC attributes.
+        Check that generate_registry_data.py generates good
+        Fortran and metadata files.
+        Check that the DDT contains the proper information
+        depending on dycore"""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
+        out_name = "physics_types_ddt2"
+        out_source_name = out_name + '.F90'
+        out_meta_name = out_name + '.meta'
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
+        gen_source = os.path.join(_TMP_DIR, out_name + '.F90')
+        gen_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name)
+        out_meta = os.path.join(_TMP_DIR, out_meta_name)
+        remove_files([out_source, out_meta])
+        # Run dycore
+        retcode = gen_registry(filename, 'se', {}, _TMP_DIR, 2, logging.ERROR,
+                               error_on_no_validate=True)
+        # Check return code
+        self.assertEqual(retcode, 0)
+        # Make sure each output file was created
+        if os.path.exists(gen_meta):
+            os.rename(gen_meta, out_meta)
+        # End if
+        if os.path.exists(gen_source):
+            os.rename(gen_source, out_source)
+        # End if
+        amsg = "{} does not exist".format(out_meta)
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = "{} does not exist".format(out_source)
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
+        # For each output file, make sure it matches input file
+        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+                                    shallow=False))
+        self.assertTrue(filecmp.cmp(in_source, out_source,
+                                    shallow=False))
+    # End for
 
     def test_parameter(self):
         """Test a registry with a parameter.
@@ -176,7 +225,8 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+        retcode = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                               error_on_no_validate=True)
         # Check return code
         self.assertEqual(retcode, 0)
         # Make sure each output file was created
@@ -210,9 +260,14 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, False)
-        # Check return code
-        self.assertEqual(retcode, 1)
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # Check exception message
+        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
+                "tmp/reg_bad_version.xml")
+        self.assertEqual(emsg.format(out_source_name),
+                         str(verr.exception).split('\n')[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -248,9 +303,14 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, False)
-        # Check return code
-        self.assertEqual(retcode, 1)
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # Check exception message
+        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
+                "tmp/reg_no_std_name.xml")
+        self.assertEqual(emsg.format(out_source_name),
+                         str(verr.exception).split('\n')[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -287,9 +347,14 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
-        # Check return code
-        self.assertEqual(retcode, 1)
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # Check exception message
+        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
+                "tmp/reg_bad_dimensions.xml")
+        self.assertEqual(emsg.format(out_source_name),
+                         str(verr.exception).split('\n')[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -327,7 +392,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = "Dimension, 'vertical_dimension', not found for 'u'"
@@ -370,7 +436,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = "parameter, 'u', does not have an initial value"
@@ -418,7 +485,8 @@ class RegistryTest(unittest.TestCase):
         # Run test
         vmsg = 'Failed to flag a duplicate DDT type'
         with self.assertRaises(ValueError, msg=vmsg) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = 'Trying to add physics_state to registry, already defined in {}'
@@ -457,7 +525,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = "kind attribute illegal for DDT type physics_state"
@@ -496,7 +565,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = "phys_state is an unknown Variable type, physics_tend"
@@ -505,15 +575,15 @@ class RegistryTest(unittest.TestCase):
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
 
-    def test_ddt_with_incompatible_attr(self):
-        """Test a registry with a DDT with both the extends and bindC
+    def test_ddt_with_unknown_extends(self):
+        """Test a registry with a DDT which extends an unknown type
         attributes.
         Check that it raises an exception and does not generate any
         Fortran or metadata files"""
         # Setup test
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
-        filename = os.path.join(_TMP_DIR, "reg_ddt_incompatible_attributes.xml")
-        out_source_name = "physics_types_ddt_incompatible_attributes"
+        filename = os.path.join(_TMP_DIR, "reg_ddt_unknown_extends.xml")
+        out_source_name = "physics_types_ddt_unknown_extends"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
@@ -527,7 +597,6 @@ class RegistryTest(unittest.TestCase):
                     ltype = var.get('type')
                     if (var.tag == 'ddt') and (ltype == "physics_state"):
                         var.set('extends', 'physics_tend')
-                        var.set('bindC', "true")
                         break
                     # End if
                 # End for
@@ -537,7 +606,56 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = ("DDT, 'physics_state', extends type 'physics_tend', "
+                "however, this type is not known")
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_ddt_with_incompatible_attr(self):
+        """Test a registry with a DDT with both the extends and bindC
+        attributes.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
+        filename = os.path.join(_TMP_DIR, "reg_ddt_incompatible_attributes.xml")
+        out_source_name = "physics_types_ddt_incompatible_attributes"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        found_file = False
+        found_ddt = False
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt2'):
+                obj.set('name', out_source_name)
+                found_file = True
+                for var in obj:
+                    ltype = var.get('type')
+                    if (var.tag == 'ddt') and (ltype == "physics_state"):
+                        var.set('bindC', "true")
+                        found_ddt = True
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        self.assertTrue(found_file)
+        self.assertTrue(found_ddt)
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = ("DDT, 'physics_state', cannot have both 'extends' and "
@@ -579,7 +697,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = ("Variable, 'ice_cream', not found for DDT, 'physics_state', "
@@ -620,7 +739,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = "duplicate variable local_name, 'latitude', in "
@@ -662,7 +782,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, False)
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
         # End with
         # Check exception message
         emsg = "duplicate variable standard_name, 'latitude' from "
