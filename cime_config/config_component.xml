@@ -77,8 +77,8 @@
   <!--
     ===============
      Physics Testbed
-    ===============    
-  -->  
+    ===============
+  -->
     <desc option="PHYSTEST"     >CAM Physics Testbed (no dynamical core):</desc>
 
   </description>
@@ -164,7 +164,7 @@
       <value compset="_CAM%TJ16">-phys tj2016 -analytic_ic</value>
       <value compset="_CAM%HS94">-phys held_suarez</value>
       <value compset="_CAM%KESSLER">-phys kessler -chem terminator -analytic_ic</value> -->
-      <value compset="_CAM%PHYSTEST">-dyn none -physics_suites adiabatic_suite</value>
+      <value compset="_CAM%PHYSTEST">--dyn none --physics-suites adiabatic</value>
 
       <!-- Aquaplanet -->
 <!--      <value compset="_DOCN%SOMAQP">-aquaplanet</value>

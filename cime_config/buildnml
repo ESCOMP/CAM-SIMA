@@ -3,8 +3,11 @@
 """
 CAM namelist creator
 """
-# pylint: disable=multiple-imports
-import sys, os, shutil, filecmp, imp
+import sys
+import os
+import shutil
+import filecmp
+import logging
 
 _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
@@ -12,9 +15,8 @@ if _CIMEROOT is None:
 
 _LIBDIR = os.path.join(_CIMEROOT, "scripts", "Tools")
 sys.path.append(_LIBDIR)
-# pylint: disable=wildcard-import, wrong-import-position, invalid-name
-# pylint: disable=bad-whitespace, unused-wildcard-import, too-many-locals
-# pylint: disable=too-many-branches, too-many-statements
+# pylint: disable=wildcard-import, wrong-import-position
+# pylint: disable=unused-wildcard-import
 from standard_script_setup          import *
 from CIME.XML.standard_module_setup import *
 from CIME.buildnml                  import create_namelist_infile, parse_input
@@ -23,25 +25,26 @@ from CIME.utils                     import expect, run_cmd
 from CIME.nmlgen                    import NamelistGenerator
 
 # Save local (cime_config) directory path:
-cime_config_path = os.path.dirname(os.path.abspath(__file__))
+_CIME_CONFIG_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Add local (cime_config) directory to python path:
-sys.path.append(cime_config_path)
+sys.path.append(_CIME_CONFIG_PATH)
 
 # Import CAM's configure structure:
 from cam_config import ConfigCAM
 
 # Open CIME case log:
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 #################
 #HELPER FUNCTIONS
 #################
 
 # This simplifies the filename mangling for different cases.
-def _create_ic_filename(inst_string, i_or_r):
+def _create_ic_filename(inst_string, i_or_r,
+                        run_refcase, run_refdate, run_reftod):
     return "{}.cam{}.{}.{}-{}.nc".format( \
-    RUN_REFCASE, inst_string, i_or_r, RUN_REFDATE, RUN_REFTOD)
+    run_refcase, inst_string, i_or_r, run_refdate, run_reftod)
 
 ##################
 
@@ -56,17 +59,20 @@ def nml_attr_set(config):
     #Create new namelist attribute dictionary:
     cam_nml_attr_dict = dict()
 
-    #Loop over all CAM configuration settings in config dictionary:
-    for conf_name in config.config_dict:
-        #Extract config setting info from dictionary:
-        conf = config.config_dict[conf_name]
+    if config:
+        #Loop over all CAM configuration settings in config dictionary:
+        for conf_name in config.config_dict:
+            #Extract config setting info from dictionary:
+            conf = config.config_dict[conf_name]
 
-        #Determine if each configuration setting
-        #is also a namelist attribute:
-        if conf.is_nml_attr:
-            #If so, then add to attribute dictionary:
-            cam_nml_attr_dict[conf_name] = conf.value
-
+            #Determine if each configuration setting
+            #is also a namelist attribute:
+            if conf.is_nml_attr:
+                #If so, then add to attribute dictionary:
+                cam_nml_attr_dict[conf_name] = conf.value
+            # End if
+        # End for
+    # End if
     #Return namelist attribute dictionary:
     return cam_nml_attr_dict
 
@@ -77,45 +83,41 @@ def nml_attr_set(config):
 ###############################################################################
 def buildnml(case, caseroot, compname):
 ###############################################################################
+    # pylint: disable=too-many-locals
     """Build the cam namelist """
 
     # Build the component namelist
     if compname != "cam":
-        raise AttributeError
+        emsg = "CAM buildnml called with model={}"
+        raise AttributeError(emsg.format(compname))
+    # End if
+    # pylint: disable=bad-whitespace
     srcroot             = case.get_value("SRCROOT")
     rundir              = case.get_value("RUNDIR")
     din_loc_root        = case.get_value("DIN_LOC_ROOT")
     atm_ncpl            = case.get_value("ATM_NCPL")
-    CAM_NAMELIST_OPTS   = case.get_value("CAM_NAMELIST_OPTS")
-    CAM_NML_USE_CASE    = case.get_value("CAM_NML_USE_CASE")
-    DEBUG               = case.get_value("DEBUG")
-    NINST_ATM           = case.get_value("NINST_ATM")
-    RUN_TYPE            = case.get_value("RUN_TYPE")
-    RUN_STARTDATE       = case.get_value("RUN_STARTDATE")
-    RUN_REFCASE         = case.get_value("RUN_REFCASE")
-    RUN_REFDATE         = case.get_value("RUN_REFDATE")
-    RUN_REFTOD          = case.get_value("RUN_REFTOD")
+    cam_namelist_opts   = case.get_value("CAM_NAMELIST_OPTS")
+    cam_nml_use_case    = case.get_value("CAM_NML_USE_CASE")
+    debug               = case.get_value("DEBUG")
+    ninst_atm           = case.get_value("NINST_ATM")
+    run_type            = case.get_value("RUN_TYPE")
+    run_startdate       = case.get_value("RUN_STARTDATE")
+    run_refcase         = case.get_value("RUN_REFCASE")
+    run_refdate         = case.get_value("RUN_REFDATE")
+    run_reftod          = case.get_value("RUN_REFTOD")
+    # pylint: enable=bad-whitespace
 
     testsrc = os.path.join(srcroot, "components", "cam")
     if os.path.exists(testsrc):
         srcroot = testsrc
 
-    #-----------------------------------------------------------------------------------
-    # Call config_CAM to set the configuration options needed to generate CAM's namelist
-    #-----------------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
+    # Call config_CAM to set the configuration options needed to
+    #   generate CAM's namelist
+    #--------------------------------------------------------------------------
 
-    call_config = False
-    if not os.path.exists(os.path.join(caseroot,"LockedFiles","env_build.xml")):
-        call_config = True
-    else:
-        file1 = os.path.join(caseroot,"env_build.xml")
-        file2 = os.path.join(caseroot,"LockedFiles","env_build.xml")
-        if not filecmp.cmp(file1, file2):
-            call_config = True
-    if call_config:
-        logger.info("     ...calling ConfigCAM to set build time options")
-        #create CAM  configure object:
-        config = ConfigCAM(case, logger)
+    # Create CAM  configure object:
+    config = ConfigCAM(case, _LOGGER)
 
     #-----------------------------------------------------------------
     # Create namelist attribute dictionary (to set namelist defaults):
@@ -127,44 +129,47 @@ def buildnml(case, caseroot, compname):
     # Construct the namelist generator:
     #---------------------------------
 
-    #Determine directory for user modified namelist_definition_cam.xml:
+    # Determine directory for user modified namelist_definition_cam.xml:
     user_xml_dir = os.path.join(caseroot, "SourceMods", "src.cam")
     expect(os.path.isdir(user_xml_dir),
            "user_xml_dir %s does not exist " %user_xml_dir)
 
-    #User definition *replaces* existing definition:
+    # User definition *replaces* existing definition:
     user_definition = os.path.join(user_xml_dir, "namelist_definition_cam.xml")
     if os.path.isfile(user_definition):
-        #Print message to logger:
-        logger.info("     ...found namelist definition file in {}".format(user_xml_dir))
+        # Print message to logger:
+        _LOGGER.info("     ...found namelist definition file in %s",
+                     user_xml_dir)
 
-        #Set definition file:
+        # Set definition file:
         definition_file = [user_definition]
     else:
-        #If no user-defined file exists, then use standard file:
-        definition_file = [os.path.join(cime_config_path, "namelist_definition_cam.xml")]
+        # If no user-defined file exists, then use standard file:
+        definition_file = [os.path.join(_CIME_CONFIG_PATH,
+                                        "namelist_definition_cam.xml")]
 
-        #Check that the standard namelist file actually exists:
+        # Check that the standard namelist file actually exists:
         for file_ in definition_file:
-            expect(os.path.isfile(file_), "Namelist XML file %s not found!" % file_)
+            expect(os.path.isfile(file_),
+                   "Namelist XML file %s not found!" % file_)
 
-    #Create the namelist generator object - independent of instance:
+    # Create the namelist generator object - independent of instance:
     nmlgen = NamelistGenerator(case, definition_file)
 
     #-----------------------
-    #Loop over all instances
+    # Loop over all instances
     #-----------------------
 
-    #Set input data list file name:
+    # Set input data list file name:
     input_data_list = os.path.join(caseroot, "Buildconf", "cam.input_data_list")
 
-    #Determine the CAM confdir directory (and make it if it doesn't exist):
-    confdir = os.path.join(caseroot,"Buildconf","camconf")
+    # Determine the CAM confdir directory (and make it if it doesn't exist):
+    confdir = os.path.join(caseroot, "Buildconf", "camconf")
     if not os.path.isdir(confdir):
         os.makedirs(confdir)
 
-    #Convert instance number to integer:
-    ninst = int(NINST_ATM)
+    # Convert instance number to integer:
+    ninst = int(ninst_atm)
 
     for inst_counter in range(1, ninst+1):
 
@@ -176,14 +181,14 @@ def buildnml(case, caseroot, compname):
             os.remove(input_data_list)
 
         # -----------------------------------------------------
-        # determine instance string
+        # Determine instance string
         # -----------------------------------------------------
 
         inst_string = ""
         if ninst > 1:
             single_case_rpointer = os.path.join(rundir, "rpointer.atm")
             inst_string = '_%04d' % inst_counter
-            instance_rpointer = os.path.join(rundir,"rpointer.atm"+inst_string)
+            instance_rpointer = os.path.join(rundir, "rpointer.atm"+inst_string)
 
             # If multi-instance case does not have restart file, use
             # single-case restart for each instance
@@ -191,6 +196,8 @@ def buildnml(case, caseroot, compname):
             if os.path.isfile(single_case_rpointer) and \
                not os.path.isfile(instance_rpointer):
                 shutil.copy(single_case_rpointer, instance_rpointer)
+            # End if
+        # End if
 
         # -----------------------------------------------------
         # Create camconf/namelist
@@ -198,61 +205,73 @@ def buildnml(case, caseroot, compname):
 
         infile_lines = []
 
-        #Set "ncdata" namelist variable if doing a hybrid run:
-        if RUN_TYPE == 'hybrid':
-            ncdata = _create_ic_filename(inst_string, 'i')
+        # Set "ncdata" namelist variable if doing a hybrid run:
+        if run_type == 'hybrid':
+            ncdata = _create_ic_filename(inst_string, 'i',
+                                         run_refcase, run_refdate, run_reftod)
             # Fallback if no instance-specific file is found.
             if not os.path.isfile(os.path.join(rundir, ncdata)):
-                ncdata = _create_ic_filename('', 'i')
+                ncdata = _create_ic_filename('', 'i', run_refcase,
+                                             run_refdate, run_reftod)
+            # End if
             infile_lines.append(" ncdata = '" + ncdata + "'")
             if ninst > 1:
-                logger.info("%s is being used for ncdata", ncdata)
-
-        #Set "cam_branch_file" namelist variable if doing a branch run:
-        if RUN_TYPE == 'branch':
-            cam_branch_file = _create_ic_filename(inst_string, 'r')
+                _LOGGER.info("%s is being used for ncdata", ncdata)
+            # End if
+        # Set "cam_branch_file" namelist variable if doing a branch run:
+        elif run_type == 'branch':
+            cam_branch_file = _create_ic_filename(inst_string, 'r',
+                                                  run_refcase,
+                                                  run_refdate, run_reftod)
             # Fallback if no instance-specific file is found.
             if not os.path.isfile(os.path.join(rundir, cam_branch_file)):
-                cam_branch_file = _create_ic_filename('', 'r')
+                cam_branch_file = _create_ic_filename('', 'r', run_refcase,
+                                                      run_refdate, run_reftod)
+            # End if
             infile_lines.append(" cam_branch_file = '" + cam_branch_file + "'")
             if ninst > 1:
-                logger.info("%s is being used for cam_branch_file", cam_branch_file)
+                _LOGGER.info("%s is being used for cam_branch_file",
+                             cam_branch_file)
+            # End if
 
-        #Set "state_debug_checks" namelist variable to true if DEBUG is true:
-        if DEBUG:
+        # Set "state_debug_checks" namelist variable to true if DEBUG is true:
+        if debug:
             infile_lines.append(" state_debug_checks = .true.")
+        # End if
 
-        #Determine location and name of "user_nl_cam" files:
+        # Determine location and name of "user_nl_cam" files:
         user_nl_file = os.path.join(caseroot, "user_nl_cam" + inst_string)
 
-        #Determine location and name of namelist input file:
+        # Determine location and name of namelist input file:
         namelist_infile = os.path.join(confdir, "namelist_infile")
 
-        #Create CIME namelist input file:
-        create_namelist_infile(case, user_nl_file, namelist_infile, "\n".join(infile_lines))
+        # Create CIME namelist input file:
+        create_namelist_infile(case, user_nl_file, namelist_infile,
+                               "\n".join(infile_lines))
 
-        #Convert namelist input file to list:
+        # Convert namelist input file to list:
         namelist_infile_list = [namelist_infile]
 
         #-----------------------------
         # Initialize namelist defaults:
         #-----------------------------
 
-        #Initalize namelist defaults in used namelis groups:
+        # Initalize namelist defaults in used namelis groups:
         nmlgen.init_defaults(namelist_infile_list, cam_nml_dict)
 
         #--------------------------
         # Write out namelist groups:
         #--------------------------
 
-        #Create resolved CAM namelist file name:
+        # Create resolved CAM namelist file name:
         namelist_file = os.path.join(rundir, "atm_in")
 
-        #Change namelist file name depending on instance:
+        # Change namelist file name depending on instance:
         namelist_file += inst_string
 
-        #Create CAM namelist using CIME's nmlgen routine:
-        nmlgen.write_output_file(namelist_file, input_data_list, groups=config.nml_groups, sorted_groups=False)
+        # Create CAM namelist using CIME's nmlgen routine:
+        nmlgen.write_output_file(namelist_file, input_data_list,
+                                 groups=config.nml_groups, sorted_groups=False)
 
 ###############################################################################
 def _main_func():
@@ -260,6 +279,7 @@ def _main_func():
     caseroot = parse_input(sys.argv)
     with Case(caseroot) as case:
         buildnml(case, caseroot, "cam")
+    # End with
 
 if __name__ == "__main__":
     _main_func()

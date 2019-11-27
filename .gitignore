@@ -7,6 +7,7 @@ manage_externals.log
 src/physics/carma/base
 src/physics/clubb
 src/physics/cosp2/src
+src/physics/ncar_ccpp
 src/physics/silhs
 
 

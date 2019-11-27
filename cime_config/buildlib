@@ -3,92 +3,396 @@
 """
 create the cam library
 """
-#pylint: disable=multiple-imports, wrong-import-position, wildcard-import
-#pylint: disable=unused-wildcard-import, bad-whitespace, too-many-locals
-#pylint: disable=invalid-name
-import sys, os, filecmp, shutil, imp
+# Python system imports
+import sys
+import os
+import filecmp
+import glob
+import shutil
+import logging
 
-_CIMEROOT = os.environ.get("CIMEROOT")
-if _CIMEROOT is None:
+from cam_config import ConfigCAM # CAM's configure structure
+from cam_build_cache import BuildCacheCAM # Re-build consistency cache
+
+__CIMEROOT = os.environ.get("CIMEROOT")
+if __CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(__CIMEROOT, "scripts", "lib"))
 
-_LIBDIR = os.path.join(_CIMEROOT, "scripts", "Tools")
-sys.path.append(_LIBDIR)
-
-from standard_script_setup import *
+#pylint: disable=wrong-import-position
+# CIME imports
 from CIME.case import Case
 from CIME.utils import run_cmd, expect
+from CIME.utils import check_minimum_python_version, stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
+#pylint: enable=wrong-import-position
 
-# Add local (cime_config) directory to python path:
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+check_minimum_python_version(2, 7)
+stop_buffering_output()
 
-# Import CAM's configure structure:
-from cam_config import ConfigCAM
+_LOGGER = logging.getLogger(__name__)
+_FORTRAN_EXTENSIONS = ['.F90', '.F', '.f', '.f90']
 
-logger = logging.getLogger(__name__)
+###############################################################################
+
+class CamConfigError(ValueError):
+    """Class used to handle CAM config errors
+    (e.g., log user errors without backtrace)"""
+    # pylint: disable=useless-super-delegation
+    def __init__(self, message):
+        super(CamConfigError, self).__init__(message)
+    # pylint: enable=useless-super-delegation
+
+###############################################################################
+def _find_file(filename, search_dirs):
+###############################################################################
+    """Find file <filename> in the list of search directories, <search_dirs>.
+    Return the first match (full path, match dir) or None, None"""
+    match_file = None
+    match_path = None
+    for sdir in search_dirs:
+        test_path = os.path.join(sdir, filename)
+        if os.path.exists(test_path):
+            match_path = sdir
+            match_file = test_path
+            break
+        # End if
+    # End for
+    return match_file, match_path
+
+###############################################################################
+def _update_file(filename, source_path, bld_dir):
+###############################################################################
+    """If <filename> does not exist in <bld_dir>, copy <source_path>
+    into <bld_dir>.
+    If the file in <source_path> is different than <bld_dir>/<filename>,
+    overwrite it with <source_path>.
+    Take no action if the file in <source_path> is the same as
+    <bld_dir>/<filename>.
+    """
+    test_path = os.path.join(bld_dir, filename)
+    if os.path.exists(test_path):
+        if not filecmp.cmp(source_path, test_path, shallow=True):
+            os.remove(test_path)
+            shutil.copy2(source_path, bld_dir)
+        # End if
+    else:
+        shutil.copy2(source_path, bld_dir)
+    # End if
+
+###############################################################################
+def _find_schemes_in_sdf(suite_part):
+###############################################################################
+    """Parse the suite, <suite_part>, and find all of the scheme names
+    called by the suite.
+    NB: This function is recursive as schemes may be nested inside other
+        suite objects (e.g., group, subcycle)"""
+    scheme_list = list() # Attempt to retain ordering
+    for section in suite_part:
+        item_type = section.tag.lower()
+        if item_type == 'scheme':
+            scheme_name = section.text
+            if scheme_name and (scheme_name not in scheme_list):
+                scheme_list.append(scheme_name)
+            # End if
+        else:
+            for sub_section in section:
+                sub_schemes = _find_schemes_in_sdf(section)
+                for sscheme in sub_schemes:
+                    if sscheme not in scheme_list:
+                        scheme_list.append(sscheme)
+                    # End if
+                # End for
+            # End for
+        # End if
+    # End for
+    return scheme_list
+
+###############################################################################
+def _find_scheme_source(metadata_path):
+###############################################################################
+    """Given a path to a metadata file, find the associated Fortran file
+    in that directory. Log a warning if no Fortran file exists and return None.
+    """
+
+    source_file = None
+    base = metadata_path[0:-5]
+    for ext in _FORTRAN_EXTENSIONS:
+        test_file = base + ext
+        if os.path.exists(test_file):
+            source_file = test_file
+            break
+        # End if
+    # End for
+    if not source_file:
+        emsg = "WARNING: No Fortran for metadata file, '{}'"
+        _LOGGER.warning(emsg.format(metadata_path))
+    # End if
+    return source_file
+
+###############################################################################
+def _find_metadata_files(source_dirs, scheme_finder):
+###############################################################################
+    """Find all the metadata files (with associated Fortran source) in
+    <source_dirs>. Only include the first file with a given name.
+    Return a dictionary with keys of scheme names and values a tuple of the
+    metadata file containing that key scheme name and the associated Fortran
+    file.
+    <scheme_finder> is a function for finding schemes in a metadata file.
+    """
+    meta_files = {}
+    for dir in source_dirs:
+        for root, _, files in os.walk(dir):
+            if '.git' not in root:
+                for file in [x for x in files if x[-5:] == '.meta']:
+                    if file not in meta_files:
+                        path = os.path.join(root, file)
+                        # Check for Fortran source
+                        source_file = _find_scheme_source(path)
+                        if source_file:
+                            # Find all the schemes in the file
+                            schemes = scheme_finder(path)
+                            for scheme in schemes:
+                                meta_files[scheme] = (path, source_file)
+                            # End for
+                        # End if
+                    # End if
+                # End for
+            # End if
+        # End for
+    # End for
+    return meta_files
+
+###############################################################################
+def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
+                       dycore, reg_config):
+###############################################################################
+    """Generate the CAM data source and metadata from the registry,
+    if required (new case or changes to registry source(s) or script)."""
+    # Find the registry file, registry schema, and generation routine
+    # Try SourceMods first for each one.
+    data_path = os.path.join(atm_root, "src", "data")
+    data_search = [source_mods_dir, data_path]
+    registry_file, _ = _find_file("registry.xml", data_search)
+    registry_files = [registry_file]
+    gen_reg_file, gen_reg_path = _find_file("generate_registry_data.py",
+                                            data_search)
+    genreg_dir = os.path.join(bldroot, "cam_registry")
+    # Figure out if we need to generate new data source and metadata files
+    if os.path.exists(genreg_dir):
+        do_gen_registry = build_cache.registry_mismatch(gen_reg_file,
+                                                        registry_files,
+                                                        dycore, reg_config)
+    else:
+        os.makedirs(genreg_dir)
+        do_gen_registry = True
+    # End if
+    if do_gen_registry:
+        # Load and run the registry generator
+        sys.path.append(gen_reg_path)
+        #pylint: disable=wrong-import-position
+        try:
+            from generate_registry_data import gen_registry
+        except ImportError as ierr:
+            emsg = "ERROR: Cannot find generate_registry_data in '{}'"
+            raise CamConfigError(emsg.format(gen_reg_path))
+        # End try
+        #pylint: enable=wrong-import-position
+        for reg_file in registry_files:
+            retcode = gen_registry(reg_file, dycore, reg_config, genreg_dir, 3,
+                                   logger=_LOGGER, schema_paths=data_search)
+            emsg = "Unable to generate CAM data structures from {}, err = {}"
+            expect(retcode == 0, emsg.format(reg_file, retcode))
+        # End for
+        # save build details in the build cache
+        build_cache.update_registry(gen_reg_file, registry_files,
+                                    dycore, reg_config)
+    # End if
+
+    return genreg_dir, do_gen_registry
+
+###############################################################################
+def _generate_physics_suites(build_cache, case, config, atm_root,
+                             bldroot, reg_dir, source_mods_dir, force):
+###############################################################################
+    """Generate the source for the configured physics suites,
+    if required (new case or changes to suite source(s) or metadata)."""
+
+    # Physics source gets copied into blddir
+    physics_blddir = os.path.join(bldroot, "ccpp_physics")
+    if not os.path.exists(physics_blddir):
+        os.makedirs(physics_blddir)
+    # End if
+    # Add path to the CCPP Framework (SPIN)
+    spin_root = os.path.join(atm_root, "ccpp_framework")
+    sys.path.append(os.path.join(spin_root, 'scripts'))
+    #pylint: disable=wrong-import-position
+    from ccpp_capgen import capgen
+    from metadata_table import MetadataTable
+    from parse_tools import read_xml_file
+    #pylint: enable=wrong-import-position
+    # Collect all source directories
+    source_search = [source_mods_dir,
+                     os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
+    # Find all metadata files, organize by scheme name
+    all_scheme_files = _find_metadata_files(source_search,
+                                            MetadataTable.find_scheme_names)
+    # Find the SDFs
+    sdfs = list()
+    scheme_files = list()
+    for sdf in config.get_value('physics_suites').split(','):
+        sdf_path, _ = _find_file("suite_{}.xml".format(sdf), source_search)
+        if not sdf_path:
+            emsg = "ERROR: Unable to find SDF for, suite '{}'"
+            raise CamConfigError(emsg.format(sdf_path))
+        # End if
+        sdfs.append(sdf_path)
+        # Given an SDF, find all the schemes it calls
+        _, suite = read_xml_file(sdf_path)
+        sdf_schemes = _find_schemes_in_sdf(suite)
+        # For each scheme, find its metadata file
+        for scheme in sdf_schemes:
+            if scheme in all_scheme_files:
+                scheme_file = all_scheme_files[scheme][0]
+                if scheme_file not in scheme_files:
+                    scheme_files.append(scheme_file)
+                    scheme_src = all_scheme_files[scheme][1]
+                    _update_file(os.path.basename(scheme_src),
+                                 scheme_src, physics_blddir)
+                # End if (else, it is already in the list)
+            else:
+                emsg = "ERROR: No metadata file found for physics scheme, '{}'"
+                raise CamConfigError(emsg.format(scheme))
+            # End if
+        # End for
+    # End for
+    # Figure out if we need to generate new physics code
+    genccpp_dir = os.path.join(bldroot, "ccpp")
+    preproc_defs = case.get_value('CAM_CPPDEFS')
+    kind_phys = 'REAL64'
+    # reg_dir needs to be first as the DDTs are defined there.
+    host_files = glob.glob(os.path.join(reg_dir, "*.meta"))
+    ##XXgoldyXX: Add cam_in_t and cam_out_t
+    host_files.extend(glob.glob(os.path.join(atm_root, "src", "physics",
+                                             "utils", "*.meta")))
+    host_files.extend(glob.glob(os.path.join(atm_root, "src",
+                                             "data", "*.meta")))
+    if os.path.exists(genccpp_dir):
+        do_gen_ccpp = force or build_cache.ccpp_mismatch(sdfs, scheme_files,
+                                                         preproc_defs,
+                                                         kind_phys)
+    else:
+        os.makedirs(genccpp_dir)
+        do_gen_ccpp = True
+    # End if
+    if do_gen_ccpp:
+        cap_output_file = os.path.join(genccpp_dir, "capfiles.txt")
+        gen_hostcap = True
+        gen_docfiles = False
+        host_name = case.get_value('COMP_ATM')
+        capgen(host_files, scheme_files, sdfs, cap_output_file,
+               preproc_defs, gen_hostcap, gen_docfiles, genccpp_dir,
+               host_name, kind_phys, _LOGGER)
+        # save build details in the build cache
+        build_cache.update_ccpp(sdfs, scheme_files, preproc_defs, kind_phys)
+    # End if
+    return [physics_blddir, genccpp_dir]
 
 ###############################################################################
 def _build_cam():
 ###############################################################################
-
+    """Configure and build CAM"""
     caseroot, libroot, bldroot = parse_input(sys.argv)
-
-    with Case(caseroot, read_only=False) as case:
-
-        #----------------------------------------------------------
-        # Call Config_CAM to get configuration options and CPP defs.
-        #----------------------------------------------------------
-        logger.info("     ...calling Config_CAM to set build time options and cppdefs")
-
-        #create CAM configure object with cppdefs:
-        config = ConfigCAM(case, logger, set_cppdefs=True)
 
     with Case(caseroot) as case:
 
+        # Case variables
         casetools = case.get_value("CASETOOLS")
-        srcroot = case.get_value("SRCROOT")
+        atm_root = case.get_value("COMP_ROOT_DIR_ATM")
         gmake_j = case.get_value("GMAKE_J")
         gmake = case.get_value("GMAKE")
-        mach = case.get_value("MACH")
-
-        #Retrieve CAM cppdefs:
-        cam_cppdefs = case.get_value("CAM_CPPDEFS")
-
-        #Print CAM CPPDEFs to case log:
-        logger.info("CAM_CPPDEFS: %s", cam_cppdefs)
-
-        #-------------------------------------------------------
-        # Filepath is created in caseroot/camconf by the call
-        # to buildcpp - this needs to be copied to bldroot
-        #-------------------------------------------------------
-        filesrc = os.path.join(caseroot, "Buildconf", "camconf", "Filepath")
-        filedst = os.path.join(bldroot, "Filepath_tmp")
-        shutil.copy(filesrc, filedst)
-
-        filedst     = os.path.join(bldroot, "Filepath")
-        filedst_tmp = os.path.join(bldroot, "Filepath_tmp")
-        if os.path.isfile(filedst):
-            if not filecmp.cmp(filedst_tmp, filedst):
-                shutil.move(filedst_tmp, filedst)
+        # Case-derived variables
+        source_mods_dir = os.path.join(caseroot, "SourceMods", "src.cam")
+        if case.get_value("DEBUG"):
+            _LOGGER.setLevel(logging.DEBUG)
         else:
-            shutil.move(filedst_tmp, filedst)
+            _LOGGER.setLevel(logging.INFO)
+        # End if
+        # CAM config object and variables
+        config = ConfigCAM(case, _LOGGER)
+        dycore = config.get_value('dyn')
+        reg_config = {}
+
+        #-------------------------------------------------------
+        # Load a build cache, if available
+        #-------------------------------------------------------
+        build_cache = BuildCacheCAM(os.path.join(bldroot,
+                                                 "cam_build_cache.xml"))
+        #-------------------------------------------------------
+        # Create the physics derived data types
+        #-------------------------------------------------------
+        reg_dir, force_ccpp = _generate_registry(build_cache, atm_root,
+                                                 bldroot, source_mods_dir,
+                                                 dycore, reg_config)
+        #-------------------------------------------------------
+        # Call SPIN (CCPP Framework) to generate glue code
+        #-------------------------------------------------------
+        phys_dirs = _generate_physics_suites(build_cache, case, config,
+                                             atm_root, bldroot, reg_dir,
+                                             source_mods_dir, force_ccpp)
+        #--------------------------------------------------------------
+        # write out the cache here as we have completed pre-processing
+        #--------------------------------------------------------------
+        build_cache.write()
+
+        #-------------------------------------------------------
+        # Create the Filepath file with all the paths needed
+        # to build this configuration of CAM
+        #-------------------------------------------------------
+        filepath_src = os.path.join(caseroot, "Buildconf",
+                                    "camconf", "Filepath")
+        filepath_dst = os.path.join(bldroot, "Filepath")
+        paths = [source_mods_dir, reg_dir,
+                 os.path.join(atm_root, "src", "data"),
+                 os.path.join(atm_root, "src", "control"),
+                 os.path.join(atm_root, "src", "cpl",
+                              case.get_value("COMP_INTERFACE")),
+                 os.path.join(atm_root, "src", "dynamics", dycore),
+                 os.path.join(atm_root, "src", "physics", "utils"),
+                 os.path.join(atm_root, "src", "utils")]
+        for path in phys_dirs:
+            if path not in paths:
+                paths.append(path)
+            # End if
+        # End for
+        with open(filepath_src, "w") as filepath:
+            filepath.write("\n".join(paths))
+            filepath.write("\n")
+        # End with
+
+        # Move Filepath to the bld directory unless it has not changed
+        if os.path.isfile(filepath_dst):
+            if not filecmp.cmp(filepath_src, filepath_dst):
+                shutil.move(filepath_src, filepath_dst)
+            # End if
+        else:
+            shutil.move(filepath_src, filepath_dst)
+        # End if
 
         #-------------------------------------------------------
         # build the library
         #-------------------------------------------------------
-        complib  = os.path.join(libroot, "libatm.a")
+        complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
 
         cmd = "{} complib -j {} MODEL=cam COMPLIB={} -f {} {} " \
-            .format(gmake, gmake_j, complib, makefile, get_standard_makefile_args(case))
-        if cam_cppdefs:
-            cmd += " USER_CPPDEFS='{}'".format(cam_cppdefs)
+            .format(gmake, gmake_j, complib, makefile,
+                    get_standard_makefile_args(case))
 
         rc, out, err = run_cmd(cmd)
-        logger.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
-        expect(rc == 0, "Command %s failed with rc=%s" % (cmd, rc))
+        _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
+        expect(rc == 0, "Command {} failed with rc={}".format(cmd, rc))
 
 ###############################################################################
 

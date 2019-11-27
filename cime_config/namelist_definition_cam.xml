@@ -817,7 +817,7 @@
       ldiv4: 4th-order divergence damping
       ldel2: 2nd-order velocity-component damping targetted to top layers,
              with coefficient del2coef
-      
+
     </desc>
     <values>
       <value>2</value>
@@ -978,7 +978,7 @@
       optimal value for the associated parameter geopkblocks; for the last
       two subcycles of a timestep, method 0 is automatically used; see
       geopk.F90 and cd_core.F90.
-      
+
     </desc>
     <values>
       <value>0</value>
@@ -1335,14 +1335,14 @@
       in a Z subdomain, but note that the threading parallelism in the FV dycore
       is over levels, so for parallel efficiency it is best to have at least the
       number of levels in each Z subdomain as there are threads available.
-      
+
       There are a couple of rough rules of thumb to follow when setting the 2D
       decompositions.  The first is that the number of Y subdomains in the YZ
       decomposition should be the same as the number of Y subdomains in the XY
       decomposition (npr_yz(1) == npr_yz(4)).  The second is that the total
       number of YZ subdomains (npr_yz(1)*npr_yz(2)) should equal the total number
       of XY subdomains (npr_yz(3)*npr_yz(4)).
-      
+
       Default: ntask,1,1,ntask where ntask is the number of MPI tasks.  This is a
       1D decomposition in latitude.
     </desc>
@@ -2775,7 +2775,7 @@
     <desc>
       Sets the averaging flag for all variables on a particular history file
       series. Valid values are:
-      
+
        A ==&gt; Average
        B ==&gt; GMT 00:00:00 average
        I ==&gt; Instantaneous
@@ -2783,10 +2783,10 @@
        X ==&gt; Maximum
        L ==&gt; Local-time
        S ==&gt; Standard deviation
-      
+
       The default is to use the averaging flags for each variable that are set in
       the code via calls to subroutine addfld.
-      
+
       Defaults: set in code via the addfld and add_default subroutine calls.
     </desc>
   </entry>
@@ -2913,7 +2913,7 @@
       Field List.  The averaging flag for the output field can be specified by
       appending a ":" and a valid averaging flag to the field name.  Valid flags
       are:
-      
+
        A ==&gt; Average
        B ==&gt; GMT 00:00:00 average
        I ==&gt; Instantaneous
@@ -2921,7 +2921,7 @@
        X ==&gt; Maximum
        L ==&gt; Local-time
        S ==&gt; Standard deviation
-      
+
       Default:  set in code via the addfld and add_default subroutine calls.
     </desc>
   </entry>
@@ -3290,7 +3290,7 @@
     <category>history</category>
     <group>cam_history_nl</group>
     <desc>
-      
+
       Array of history filename specifiers.  The filenames of up to six history
       output files can be controlled via this variable.  Filename specifiers give
       generic formats for the filenames with specific date and time components,
@@ -3300,7 +3300,7 @@
       digits if needed); %m=month; %d=day; %s=seconds into current day; %%=%
       symbol.  Note that the caseid may be set using the namelist
       variable {{ hilight }}case_name{{ closehilight }}.
-      
+
       For example, for a simulation with caseid="test" and current date and time
       of 0000-12-31 0:00UT, a filename specifier of "%c.cam2.h%t.%y-%m.nc" would
       expand into "test.cam2.h0.0000-12.nc" for the first history file.  The
@@ -3313,7 +3313,7 @@
       model execution.  The first element is for the primary history file which
       is output by default as a monthly history file.  Entries 2 through 6 are
       user specified auxilliary output files.
-      
+
       Defaults: "%c.cam2.h0.%y-%m.nc", "%c.cam2.h1.%y-%m-%d-%s.nc", ...,
                 "%c.cam2.h5.%y-%m-%d-%s.nc"
     </desc>
@@ -3456,11 +3456,11 @@
     <group>cam_history_nl</group>
     <valid_values>1,2</valid_values>
     <desc>
-      
+
       Array specifying the precision of real data written to each history file
       series. Valid values are 1 or 2. '1' implies output real values are 8-byte
       and '2' implies output real values are 4-byte.
-      
+
       Default: 2,2,2,2,2,2,2,2,2,2
     </desc>
   </entry>
@@ -3469,14 +3469,14 @@
     <category>history</category>
     <group>cam_history_nl</group>
     <desc>
-      
+
       Array of write frequencies for each history file series.
       If {{ hilight }}nhtfrq(1){{ closehilight }} = 0, the file will be a monthly average.
       Only the first file series may be a monthly average.  If
       {{ hilight }}nhtfrq(i){{ closehilight }} &gt; 0, frequency is specified as number of
       timesteps.  If {{ hilight }}nhtfrq(i){{ closehilight }} &lt; 0, frequency is specified
       as number of hours.
-      
+
       Default: 0,-24,-24,-24,-24,-24,-24,-24,-24,-24
     </desc>
     <values>
@@ -3911,7 +3911,7 @@
     <desc>
       If true, MODIS simulator will be run and all non-subcolumn output
       will be saved.
-      
+
     </desc>
     <values>
       <value>.false.</value>
@@ -4022,7 +4022,7 @@
     <desc>
       This specifies the CAM history tape where COSP diagnostics will be written.
       Ignored/not used if any of the cosp_cfmip_* namelist variables are invoked.
-      
+
       This default is set in cospsimulator_intr.F90
     </desc>
     <values>
@@ -4036,7 +4036,7 @@
     <desc>
       If true, additional output is added to make it possible to
       run COSP off-line.
-      
+
       This default is set in cospsimulator_intr.F90
     </desc>
     <values>
@@ -4049,7 +4049,7 @@
     <group>cospsimulator_nl</group>
     <desc>
       This specifies the CAM history tape where extra COSP diagnostics will be written.
-      
+
       This default is set in cospsimulator_intr.F90
     </desc>
     <values>
@@ -4063,7 +4063,7 @@
     <desc>
       This specifies the frequency at which is COSP is called,
       every cosp_nradsteps radiation timestep.
-      
+
       This default is set in cospsimulator_intr.F90
     </desc>
     <values>
@@ -5932,7 +5932,7 @@
       Coefficient in the C8 skewness equation.  Increasing the value of C8b increases
       the damping of CLUBB's wp3 when skewness of w (vertical velocity) is large in
       magnitude.
-      
+
     </desc>
     <values>
       <value>0.0</value>
@@ -7096,51 +7096,6 @@
     </desc>
     <values>
       <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="swap_comm_protocol">
-    <type>integer</type>
-    <category>performance</category>
-    <group>spmd_utils_nl</group>
-    <desc>
-      Swap communication protocol option (reduced set):
-       3, 5:                  nonblocking send
-       2, 3, 4, 5:            nonblocking receive
-       4, 5:                  ready send
-    </desc>
-    <values>
-      <value>4</value>
-    </values>
-  </entry>
-  <entry id="swap_comm_maxreq">
-    <type>integer</type>
-    <category>performance</category>
-    <group>spmd_utils_nl</group>
-    <desc>
-      Swap communication maximum request count:
-       &lt;=0: do not limit number of outstanding send/receive requests
-        &gt;0: do not allow more than swap_comm_maxreq outstanding
-            nonblocking send requests or nonblocking receive requests
-    </desc>
-    <values>
-      <value>128</value>
-    </values>
-  </entry>
-  <entry id="fc_gather_flow_cntl">
-    <type>integer</type>
-    <category>performance</category>
-    <group>spmd_utils_nl</group>
-    <desc>
-      fc_gather flow control option:
-       &lt; 0 : use MPI_Gather
-       &gt;= 0: use point-to-point with handshaking messages and preposting
-             receive requests up to
-               max(min(1,fc_gather_flow_cntl),max_gather_block_size)
-             ahead. Default value is defined by private parameter
-             max_gather_block_size, which is currently set to 64.
-    </desc>
-    <values>
-      <value>64</value>
     </values>
   </entry>
 
@@ -9015,27 +8970,27 @@
     <group>chem_inparm</group>
     <desc>
       List of full pathnames of elevated emission (or external chemical forcings) datasets.
-      
+
       The chemistry package reads in elevated emission data from a set of netcdf files in
       units of "molecules/cm3/s".  Each tracer species emissions is read from its
       own file as directed by the namelist variable {{ hilight }}ext_frc_specifier{{ closehilight }}.  The
       {{ hilight }}ext_frc_specifier{{ closehilight }} variable tells the model which species have elevated
       emissions and the file path for the corresponding species.  That is, the
       {{ hilight }}ext_frc_specifier{{ closehilight }} variable is set something like:
-      
+
        ext_frc_specifier = 'SO2 -&gt; /path/vrt.emis.so2.nc',
                            'SO4 -&gt; /path/vrt.emis.so4.nc', etc...
-      
+
       Each emission file can have more than one source.  When the emission are
       read in the sources are summed to give a total emission field for the
       corresponding species.  The emission can be read in as time series of data,
       cycle over a given year, or be fixed to a given date.
-      
+
       The vertical coordinate in these emissions files should be 'altitude' (km) so that the
       vertical redistribution to the model layers is done using a mass conserving method.
       If the vertical coordinate is altitude then data needs to be ordered from the
       surface to the top (increasing altitude).
-      
+
       Default: UNKNOWN.
     </desc>
   </entry>
@@ -9474,11 +9429,11 @@
     <desc>
       A list of variable names of the concentration fields in the prescribed aerosol datasets
       and corresponding names used in the physics buffer seperated by colons.  For example:
-      
+
        prescribed_aero_specifier = 'pbuf_name1:ncdf_fld_name1','pbuf_name2:ncdf_fld_name2', ...
-      
+
       If there is no colon seperater then the specified name is used as both the pbuf_name and ncdf_fld_name,
-      
+
       Default: none
     </desc>
   </entry>
@@ -10139,22 +10094,22 @@
     <group>chem_inparm</group>
     <desc>
       List of full pathnames of surface emission datasets.
-      
+
       The chemistry package reads in emission data from a set of netcdf files in
       units of "molecules/cm2/s".  Each tracer species emissions is read from its
       own file as directed by the namelist variable {{ hilight }}srf_emis_specifier{{ closehilight }}.  The
       {{ hilight }}srf_emis_specifier{{ closehilight }} variable tells the model which species have emissions
       and the file path for the corresponding species.  That is, the
       {{ hilight }}srf_emis_specifier{{ closehilight }} variable is set something like:
-      
+
        srf_emis_specifier = 'CH4 -&gt; /path/emis.ch4.nc',
                             'CO  -&gt; /path/emis.co.nc', etc...
-      
+
       Each emission file can have more than one source.  When the emission are
       read in the sources are summed to give a total emission field for the
       corresponding species.  The emission can be read in as time series of data,
       cycle over a given year, or be fixed to a given date.
-      
+
       Default: UNKNOWN.
     </desc>
   </entry>
