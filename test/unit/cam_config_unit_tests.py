@@ -1,7 +1,7 @@
 """
 Python unit testing collection for the various
-CAM configure object classes, including
-their error-handling methods.
+public Config_CAM methods, including their
+error-handling processes.
 
 To run these unit tests, simply type:
 
@@ -17,7 +17,6 @@ which will currently run 19 tests, all of which should pass.
 #----------------------------------------
 #Import required python libraries/modules:
 #----------------------------------------
-import re 
 import logging
 import os
 import os.path
@@ -27,49 +26,52 @@ import sys
 import unittest
 
 #Adddirectory to python path:
-currdir      = os.path.abspath(os.path.dirname(__file__))
-cam_root_dir = os.path.join(currdir,os.pardir,os.pardir)
-cam_conf_dir = os.path.abspath(os.path.join(cam_root_dir,"cime_config"))
+CURRDIR = os.path.abspath(os.path.dirname(__file__))
+CAM_ROOT_DIR = os.path.join(CURRDIR, os.pardir, os.pardir)
+CAM_CONF_DIR = os.path.abspath(os.path.join(CAM_ROOT_DIR, "cime_config"))
 
 #Add "cime_config" directory to python path:
-sys.path.append(cam_conf_dir)
+sys.path.append(CAM_CONF_DIR)
 
 #Import CAM configure objects:
-from cam_config import Config_CAM
-from cam_config import Cam_config_type_error, Cam_config_val_error
+# pylint: disable=wrong-import-position
+from cam_config import ConfigCAM
+from cam_config import CamConfigTypeError, CamConfigValError
+# pylint: enable=wrong-import-position
 
 #++++++++++++++++++++++++++++++++++++++++++
 #Create "fake" CIME case to test Config_CAM
 #++++++++++++++++++++++++++++++++++++++++++
 
-class fake_case:
+class FakeCase:
 
+    # pylint: disable=too-few-public-methods
     """
-    Fake CIME case class with variables needed to test 
+    Fake CIME case class with variables needed to test
     the "Config_CAM" object.
     """
 
     def __init__(self):
-    
+
 
         #Create dictionary (so get_value works properly):
-        self.conf_opts = { 
-                           "ATM_GRID" : "f19_f19_mg17",
-                           "ATM_NX"   : 180,
-                           "ATM_NY"   : 90,
-                           "COMP_OCN" : "socn",
-                           "CAM_CONFIG_OPTS" : "-dyn none -physics_suites adiabatic_suite"
-                         }
+        self.conf_opts = {
+            "ATM_GRID" : "f19_f19_mg17",
+            "ATM_NX"   : 180,
+            "ATM_NY"   : 90,
+            "COMP_OCN" : "socn",
+            "CAM_CONFIG_OPTS" : "-dyn none -physics_suites adiabatic_suite"
+            }
 
     def get_value(self, key):
 
         """
-        Function used to return value 
+        Function used to return value
         from conf_opts dictionary,
         with the key as input.
         """
 
-        val = self.conf_opts[key]  
+        val = self.conf_opts[key]
 
         return val
 
@@ -77,7 +79,7 @@ class fake_case:
 #Main cam_config testing routine, used when script is run directly
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-class cam_config_test_routine(unittest.TestCase):
+class CamConfigTestRoutine(unittest.TestCase):
 
     """
     Runs all CAM configuriation tests, to ensure
@@ -89,448 +91,169 @@ class cam_config_test_routine(unittest.TestCase):
     def setUp(self):
 
         """Initalize Config_CAM object being tested."""
-  
-        #Initalize test counters:
-        num_pass = 0
-        num_fail = 0
 
         #create fake case:
-        fcase = fake_case()
+        fcase = FakeCase()
+
+        #Create python logger object:
+        logger = logging.getLogger("cam_config")
 
         #create CAM configure object:
-        test_config_cam = Config_CAM(fcase, logging)
-
-        #create list to add to test TestCase object:
-        self.obj_list = list()
+        test_config_cam = ConfigCAM(fcase, logger)
 
         #Add CAM configure object to unittest object list:
         self.test_config_cam = test_config_cam
 
-    #++++++++++++++++++++++++++++++++++++++++
-    #Check generic config class initalization:
-    #++++++++++++++++++++++++++++++++++++++++
+    #++++++++++++++++++++++++++++++++++++++++++++
+    #check that "get_value" method works properly
+    #++++++++++++++++++++++++++++++++++++++++++++
 
-    def test_create_config(self):
+    def test_config_get_value_check(self):
 
-        """Check that create_config can be run successfully."""
+        """Check that Config_CAM.get_value properly retrieves value"""
 
-        #set configuration options:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = None
+        #Get nlat ("ATM_NY") value:
+        testval = self.test_config_cam.get_value("pcols")
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+        #Check that testval matches ATM_NY set in the "fake" case:
+        self.assertEqual(testval, 16)
 
-        #create CAM configure object:
-        test_config.create_config(name, desc, val, valid_vals)
+    #++++++++++++++++++++++++++++++++++++++++++++
+    #check that "set_value" method works properly
+    #++++++++++++++++++++++++++++++++++++++++++++
 
-        #Check that object was created:
-        self.assertTrue(name in test_config.config)
+    def test_config_set_value_check(self):
 
-    #++++++++++++++++++++++++++++++++++++++++
-    #check repeating list name error-handling:
-    #++++++++++++++++++++++++++++++++++++++++
+        """Check that Config_CAM.set_value properly sets value"""
 
-    def test_config_exist_check(self):
+        #Set new value:
+        newval = 200
 
-        """Check that a configuration option can't be created twice."""
+        #Set nlev to "newval":
+        self.test_config_cam.set_value("nlev", newval)
 
-        #Use same input options as "test_create_config":
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = None
+        #Get new value:
+        testval = self.test_config_cam.get_value("nlev")
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Create "test" configure option:
-        test_config.create_config(name, desc, val, valid_vals)
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            #Try creating the same option again:
-            test_config.create_config(name, desc, val, valid_vals)
-    
-    #+++++++++++++++++++++++++++++++++
-    #check generic name error-handling:
-    #+++++++++++++++++++++++++++++++++
-
-    def test_config_name_check(self):
-
-        """Check that a configuration option's name cannot be None."""
-
-        #Use same input options, but with name being None: 
-        name       = None
-        desc       = "test object description"
-        val        = 1
-        valid_vals = None
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_type_error):
-            test_config.create_config(name, desc, val, valid_vals)
-
-    #++++++++++++++++++++++++++++++++++++++++
-    #check generic description error-handling:
-    #++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_desc_check(self):
-
-        """Check that a configuration option's description cannot be None.""" 
-
-        #Set input options, with desc being None:
-        name       = "test"
-        desc       = None
-        val        = 1
-        valid_vals = None
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_type_error):
-            test_config.create_config(name, desc, val, valid_vals)
+        #Check that testval matches
+        self.assertEqual(testval, newval)
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check valid_vals None/list/tuple error-handling:
+    #check that "print_config" method works properly
     #+++++++++++++++++++++++++++++++++++++++++++++++
 
-    def test_config_valid_vals_type_check(self):
+    def test_config_print_config_check(self):
 
-        """Check that the valid_vals variable cannot be a single integer."""
+        """
+        Check that Config_CAM.print_config properly prints to log
 
-        #Set input options, with valid vals being an integer:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = 5
+        Please note that this check only works with python 3.4
+        or greater, so if an earlier version is used this test
+        is skipped.
+        """
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+        if sys.version_info[0] < 3:
+            raise unittest.SkipTest("This test doesn't work with Python 2")
 
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_type_error):
-            test_config.create_config(name, desc, val, valid_vals)
+        if sys.version_info[1] < 4:
+            raise unittest.SkipTest("This test requires Python version 3.4 or later")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that valid values tuple also works for integer configration:
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def test_config_valid_vals_tuple(self):
+        #Create new logger for print_config test:
+        print_log = logging.getLogger("print_config")
 
-        """Check that a configure object can be created with a valid_vals tuple."""
+        #Create unittest log:
+        with self.assertLogs(print_log, level='DEBUG') as cmplog:
+            #Print variable information to logger via "print_config":
+            self.test_config_cam.print_config("nlon", print_log)
 
-        #set configuration options, with valid_vals being a tuple:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = (0,2)
+            #Check that log output matches what is expected:
+            self.assertEqual(cmplog.output, ['DEBUG:print_config:#Number of unique longitude points in rectangular lat/lon grid.',
+                                             'DEBUG:print_config:nlon = null'])
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "get_value" non-created variable error-handling
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        #create CAM configure object:
-        test_config.create_config(name, desc, val, valid_vals)
+    def test_config_get_value_list_check(self):
 
-        #Check that object was created:
-        self.assertTrue(name in test_config.config)
+        """Check that "get_value" throws the proper error when non-existent variable is requested"""
 
-    #++++++++++++++++++++++++++++++++++++++++++
-    #Check valid_vals all "None" error-handling:
-    #++++++++++++++++++++++++++++++++++++++++++
+        #Set error message:
+        ermsg = "ERROR: Invalid configuration name, 'fake variable'"
 
-    def test_config_tuple_Nones_check(self):
+        #Expect "Cam_config_val_error":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run "get_value" method on made-up variable name:
+            self.test_config_cam.get_value("fake variable")
 
-        """Check that a valid_vals tuple cannot be all Nones."""
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
 
-        #Set input options, with valid_vals being a tuple of Nones:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = (None, None)
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "set_value" non-created variable error-handling
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+    def test_config_set_value_list_check(self):
 
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
+        """Check that "set_value" throws the proper error when non-existent variable is requested"""
 
-    #++++++++++++++++++++++++++++++++++++++
-    #Check valid_vals length error-handling:
-    #++++++++++++++++++++++++++++++++++++++
+        #Set error message:
+        ermsg = "ERROR:  Invalid configuration name, 'fake variable'"
 
-    def test_config_tuple_length_check(self):
+        #Expect "Cam_config_val_error":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run "set_value" method on made-up variable name:
+            self.test_config_cam.set_value("fake variable", 200)
 
-        """Check that a valid_vals tuple cannot be length one."""
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
 
-        #Set input options, with valid_vals being a
-        #tuple of length one:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = (0,)
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "print_config" non-created variable error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
+    def test_config_print_config_list_check(self):
 
-    #+++++++++++++++++++++++++++++
-    #Evalulate minimum value check
-    #+++++++++++++++++++++++++++++
+        """Check that "print_config" throws the proper error when non-existent variable is requested"""
 
-    def test_config_min_integer_check(self):
+        #Set error message:
+        ermsg = "ERROR:  Invalid configuration name, 'fake variable'"
 
-        """Check that a given value cannot be less than the valid_vals min value."""
+        #Create new logger for print_config test:
+        print_log = logging.getLogger("print_config")
 
-        #Set input options, with given value less than
-        #valid_vals defined minimum:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = (2, None)
+        #Expect "Cam_config_val_error":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run "print_config" method on made-up variable name:
+            self.test_config_cam.print_config("fake variable", print_log)
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
 
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
 
-    #+++++++++++++++++++++++++++++
-    #Evalulate maximum value check
-    #+++++++++++++++++++++++++++++
+    #++++++++++++++++++++++++++++++++++++++++++++
+    #Check "set_value" input value error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++
 
-    def test_config_max_integer_check(self):
+    def test_config_set_value_type_check(self):
 
-        """Check that a given value cannot be greater than the valid_vals max value.""" 
+        """
+        Check that "set_value" throws the proper error when
+        the input value is of the wrong type.
+        """
 
-        #Set input options, with given value more than
-        #valid_vals defined maximum:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = (None, 0)
+        #Set error message:
+        ermsg = "ERROR:  Value provided for variable, 'nlev', must be either an integer or a string.  Currently it is type <type 'float'>"
 
-        #Read in CAM config object:
-        test_config = self.test_config_cam
+        #Expect "Cam_config_type_error":
+        with self.assertRaises(CamConfigTypeError) as typerr:
+            #Run "set_value" method on made-up variable name:
+            self.test_config_cam.set_value("nlev", 5.0)
 
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
-
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that valid values list also works for integer configration:
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_valid_vals_list(self):
-
-        """Check that a configure object can be created with a valid_vals integer list."""
-
-        #set configuration options, with valid_vals being a list:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = [0,1,2]
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #create CAM configure object:
-        test_config.create_config(name, desc, val, valid_vals)
-
-        #Check that object was created:
-        self.assertTrue(name in test_config.config)
-
-    #+++++++++++++++++++++++++++++++++++++++++
-    #Evalulate Config_integer list-match check
-    #+++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_integer_list_match_check(self):
-
-        """Check that a given integer value must be present in the valid_vals list."""
-
-        #Set input options, with given value missing
-        #from valid_vals list:
-        name       = "test"
-        desc       = "test object description"
-        val        = 1
-        valid_vals = [0,2,3]
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
-
-    #+++++++++++++++++++++++++++++++++++++++
-    #Check string config class initalization:
-    #+++++++++++++++++++++++++++++++++++++++
-
-    def test_config_string_value(self):
-
-        """Check that a configure object can be created with a given string value."""
-
-        #set configuration options,  with val being a string:
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = None
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #create CAM configure object:
-        test_config.create_config(name, desc, val, valid_vals)
-
-        #Check that object was created:
-        self.assertTrue(name in test_config.config)
-
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that valid values list also works for string configration:
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_valid_vals_string_list(self):
-
-        """Cheack that a configure object can be created with a valid_vals string list."""
-
-        #set configuration options,  with vallid_vals 
-        #being a list of strings:
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = ["option a", "option b"]
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #create CAM configure object:
-        test_config.create_config(name, desc, val, valid_vals)
-
-        #Check that object was created:
-        self.assertTrue(name in test_config.config)
-
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that valid values regular expression works for string configration as well:
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_valid_vals_regex(self):
-
-        """Check that a configure object can be created with a valid_vals regular expression."""
-
-        #set configuration options,  with valid_vals
-        #being a regular expression:
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = re.compile(r"option")
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #create CAM configure object:
-        test_config.create_config(name, desc, val, valid_vals)
-
-        #Check that object was created:
-        self.assertTrue(name in test_config.config)
-
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check Config_string valid_vals None/list error-handling:
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_string_valid_vals_type_check(self):
-
-        """Check that the valid_vals variable cannot be an integer when the given value is a string."""
-
-        #Set input options, with given value a string
-        #and valid_vals an integer:
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = 5
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_type_error):
-            test_config.create_config(name, desc, val, valid_vals)
-
-    #++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check Config_string all-string list error-handling:
-    #++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_valid_vals_all_strings_check(self):
-
-        """Check that a valid_vals list cannot contain both strings and integers."""
-
-        #Set input options, with given value a string
-        #and valid_vals a list with a string and integer:
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = ["option a", 5]
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_type_error):
-            test_config.create_config(name, desc, val, valid_vals)
-
-    #++++++++++++++++++++++++++++++++++++++++
-    #Evalulate Config_string list-match check
-    #++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_string_list_match_check(self):
-
-        """Check that a given string value must be present in the valid_vals list."""
-
-        #Set input options, with given value a string
-        #and valid_vals a list with a string and integer:
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = ["option b", "option c"] 
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
-
-    #+++++++++++++++++++++++++++++++++++++++++
-    #Evalulate Config_string regex-match check
-    #+++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_string_regex_match_check(self):
-
-        """Check that a given string value must match the valid_vals regular expression."""
-
-        #Set input options, with given value a string
-        #and valid_vals a regular expression that doesn't
-        #match given value.
-        name       = "test"
-        desc       = "test object description"
-        val        = "option a"
-        valid_vals = re.compile(r"badval")
-
-        #Read in CAM config object:
-        test_config = self.test_config_cam
-
-        #Check that exception is raised properly:
-        with self.assertRaises(Cam_config_val_error):
-            test_config.create_config(name, desc, val, valid_vals)
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(typerr.exception))
 
 
 #################################################
@@ -543,4 +266,3 @@ if __name__ == "__main__":
 ############
 #End of file
 ############
- 

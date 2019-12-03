@@ -1,6 +1,6 @@
 """
 Location of CAM's "config" python data structure, which
-is used to pass any needed data between the relevant CAM 
+is used to pass any needed data between the relevant CAM
 "cime_config" scripts, and which stores all meta-data and
 descriptions associated with the CAM configuration of a
 CIME case.
@@ -9,52 +9,73 @@ CIME case.
 #---------------------------------------
 #Import generic python libraries/modules:
 #---------------------------------------
-import re 
+import re
 
 #Determine regular rexpression type instance (for later usage in Config_string):
-regex_type = type(re.compile(r" "))
+REGEX_TYPE = type(re.compile(r" "))
 
 ####################################################################################
 #Error-handling classes
 ####################################################################################
 
-class Cam_config_val_error(ValueError):
+class CamConfigValError(ValueError):
     """Class used to handle CAM config value errors (e.g., log user errors without backtrace)"""
+    # pylint: disable=useless-super-delegation
     def __init__(self, message):
-        super(Cam_config_val_error, self).__init__(message)
+        super(CamConfigValError, self).__init__(message)
 
 ####################################################################################
 
-class Cam_config_type_error(TypeError):
+class CamConfigTypeError(TypeError):
     """Class used to handle CAM config type errors (e.g., log user errors without  backtrace)"""
     def __init_(self, message):
-        super(Cam_config_type_error, self).__init__(message)
+        super(CamConfigTypeError, self).__init__(message)
 
 ####################################################################################
 #CAM configure option classes
 ####################################################################################
 
-class Config_gen:
+class ConfigGen:
 
     """
     Generic configuration class used to
-    store CAM configuration names and 
+    store CAM configuration names and
     descriptions.
 
     Inputs to initalize class are:
     name -> Name of new CAM configure option
     desc -> Text description of CAM configure option
+
+    Doctests:
+
+    1. Check that ConfigGen works properly:
+
+    >>> ConfigGen("test", "test object description").name
+    'test'
+    >>> ConfigGen("test", "test object description").desc
+    'test object description'
+
+    2.  Check that inputs must be strings:
+
+    >>> ConfigGen(5, "test_object_description").name #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  Configuration variable name '5' must be a string, not <type 'int'>
+
+    >>> ConfigGen("test", {5,}).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, not <type 'tuple'>
+
     """
 
     def __init__(self, name, desc):
 
         #Check that "name" is a string:
         if not isinstance(name, str):
-            raise Cam_config_type_error("ERROR:  Configuration variable name {} must be a string, not {}".format(name, type(name)))
-             
+            raise CamConfigTypeError("ERROR:  Configuration variable name '{}' must be a string, not {}".format(name, type(name)))
+
         #Check that "desc" is a string:
         if not isinstance(desc, str):
-            raise Cam_config_type_error("ERROR:  Configuration variable {} must have a string-type description, not {}".format(name, type(desc)))
+            raise CamConfigTypeError("ERROR:  Configuration variable, '{}', must have a string-type description, not {}".format(name, type(desc)))
 
         #Add name and description to object:
         self.__name = name
@@ -75,38 +96,106 @@ class Config_gen:
 
 ####################################################################################
 
-class Config_integer(Config_gen):
+class ConfigInteger(ConfigGen):
 
     """
     Configuration class used to store
-    integer-based CAM configuration 
+    integer-based CAM configuration
     options.
 
     Inputs to initalize class are:
+    name                  -> Name of new CAM configure option
+    desc                  -> Text description of CAM configure option
     val                   -> Integer value for CAM configure option
     valid_vals (optional) -> Range or list of valid CAM configure option values (default is None)
+
+    Doctests:
+
+    1. Check that ConfigInteger works properly:
+
+    With no valid values:
+    >>> ConfigInteger("test", "test object description", 5).value
+    5
+
+    With valid values tuple:
+    >>> ConfigInteger("test", "test object description", 5, (1, 10)).valid_vals
+    (1, 10)
+
+    With valid values list:
+    >>> ConfigInteger("test", "test object description", 5, [4, 5, 6]).valid_vals
+    [4, 5, 6]
+
+    2.  Check that valid_vals must be None, a tuple, or a list:
+
+    >>> ConfigInteger("test", "test object description", 5, "valid_vals").valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  The valid values for variable, 'test', must either be None, a list, or a tuple, not <type 'str'>
+
+    3.  Check that elements in list/tuple must be type None or integer:
+
+    >>> ConfigInteger("test", "Test object description", 5, (1, 5.0)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  Valid value for variable, 'test', must be either None or an integer.  Currently it is <type 'float'>
+
+    4.  Evaluate if the "check_value" method works properly:
+
+    With tuple length < 2:
+    >>> ConfigInteger("test", "Test object description", 5, (1,)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: Error:  Valid values tuple for variable, 'test', must have two elements, not '1' elements
+
+    With tuple length > 2:
+    >>> ConfigInteger("test", "Test object description", 5, (1, 2, 10)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: Error:  Valid values tuple for variable, 'test', must have two elements, not '3' elements
+
+    With tuple full of Nones:
+    >>> ConfigInteger("test", "Test object description", 5, (None, None)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: Error:  Valid values tuple for variable, 'test', must contain at least one integer
+
+    With given value less than valid minimum:
+    >>> ConfigInteger("test", "Test object description", 5, (6, None)).value #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: Error:  Value, '5', provided for variable, 'test', is less than minimum valid value, '6'
+
+    With given value more than valid maximum:
+    >>> ConfigInteger("test", "Test object description", 5, (None, 4)).value #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: Error:  Value, '5', provided for variable, 'test', is greater than max valid value, '4'
+
+    With given value outside valid range:
+    >>> ConfigInteger("test", "Test object description", 5, (1, 4)).value #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: Error:  Value, '5', provided for variable, 'test', is outside valid value range, '(1, 4)'
+
+    With given value not present in valid value list:
+    >>> ConfigInteger("test,", "Test object description", 5, [3, 4, 6]).value #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: ERROR:  Value, '5', provided for variable, 'test', does not match any of the valid values: '[3, 4, 6]'
+
     """
 
     def __init__(self, name, desc, val, valid_vals=None):
 
         #Add generic attributes:
-        Config_gen.__init__(self, name, desc)
+        ConfigGen.__init__(self, name, desc)
 
         #Check that "valid_vals" is either "None", a list, or a tuple:
         if valid_vals is not None:
-            if not isinstance(valid_vals, (list,tuple)):
-                raise Cam_config_type_error("ERROR:  The valid values for variable {} must either be None, a list, or a tuple, not {}".format(name, type(valid_vals)))
+            if not isinstance(valid_vals, (list, tuple)):
+                raise CamConfigTypeError("ERROR:  The valid values for variable, '{}', must either be None, a list, or a tuple, not {}".format(name, type(valid_vals)))
 
             #If list or tuple, check that all entries are either "None" or integers:
-            for n in valid_vals:
-                if n is not None and not isinstance(n,int):
-                    raise Cam_config_type_error("ERROR:  Valid value for variable {} must be either None or an integer.  Currently it is {}".format(name, type(n)))
+            for valid_val in valid_vals:
+                if valid_val is not None and not isinstance(valid_val, int):
+                    raise CamConfigTypeError("ERROR:  Valid value for variable, '{}', must be either None or an integer.  Currently it is {}".format(name, type(valid_val)))
 
         #If ok, then add valid_vals to object:
         self.__valid_vals = valid_vals
 
         #Next, check that provided value is "valid" based on the valid values list or tuple:
-        self.check_value(val)
+        self.__check_value(val)
 
         #If everything is ok, then add provided value to object:
         self.__value = val
@@ -126,23 +215,23 @@ class Config_integer(Config_gen):
 
     #++++++++++++++++++++++++
 
-    def check_value(self,val):
+    def __check_value(self, val):
 
         """
         Checks input/given value to make sure
         it is valid according to the
         object's valid values list or tuple.
-        
+
         If a tuple, then assume the two
         valid values in the tuple represent a range,
         and check that the given value is
-        in-between that range. 
+        in-between that range.
 
         If a list, then assume the given value
         must match at least one of the valid values
-        included in that list.  
+        included in that list.
         """
- 
+
         #Extract valid values (valid_vals) from object:
         valid_vals = self.valid_vals
 
@@ -154,33 +243,33 @@ class Config_integer(Config_gen):
 
                 #Check that length of valid values tuple is 2:
                 if len(valid_vals) != 2:
-                    raise Cam_config_val_error("Error: Valid valudes tuple for variable {} must have two elements, not {} elements".format(self.name, len(valid_vals)))    
+                    raise CamConfigValError("Error:  Valid values tuple for variable, '{}', must have two elements, not '{}' elements".format(self.name, len(valid_vals)))
 
-                #If first valid value is "None", then just check that given value is less than second 
+                #If first valid value is "None", then just check that given value is less than second
                 #valid value, and that second value is an integer:
                 if valid_vals[0] is None:
                     if valid_vals[1] is None:
-                        raise Cam_config_val_error("Error:  Valid values tuple for variable {} must contain at least one integer".format(self.name))
-                    elif val > valid_vals[1]:
-                        raise Cam_config_val_error("Error:  Value {} provided for variable {} is greater than max valid value {}".format(val, self.name, valid_vals[1]))
+                        raise CamConfigValError("Error:  Valid values tuple for variable, '{}', must contain at least one integer".format(self.name))
+                    if val > valid_vals[1]:
+                        raise CamConfigValError("Error:  Value, '{}', provided for variable, '{}', is greater than max valid value, '{}'".format(val, self.name, valid_vals[1]))
 
-                #Next check if second value is "None".  If so, then just check that given value is greater 
+                #Next check if second value is "None".  If so, then just check that given value is greater
                 #than first valid value:
                 elif valid_vals[1] is None:
-                      if val < valid_vals[0]:
-                          raise Cam_config_val_error("Error:  Value {} provided for variable {} is less than minimum valid value {}".format(val, self.name, valid_vals[0]))
+                    if val < valid_vals[0]:
+                        raise CamConfigValError("Error:  Value, '{}', provided for variable, '{}', is less than minimum valid value, '{}'".format(val, self.name, valid_vals[0]))
 
                 #If both valid values are integers, then check that given value is between both valid values:
                 else:
-                      if val < valid_vals[0] or val > valid_vals[1]:
-                          raise Cam_config_val_error("Error:  Value {} provided for variable {} is outside valid value range {}".format(val, self.name, valid_vals))
+                    if val < valid_vals[0] or val > valid_vals[1]:
+                        raise CamConfigValError("Error:  Value, '{}', provided for variable, '{}', is outside valid value range, '{}'".format(val, self.name, valid_vals))
 
-            #If valid_vals is a list, then just check that the given value 
+            #If valid_vals is a list, then just check that the given value
             #matches one of the valid values in the list:
             else:
                 if not val in valid_vals:
-                    raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match any of the valid values: {}".format(val, self.name, valid_vals))
-            
+                    raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match any of the valid values: '{}'".format(val, self.name, valid_vals))
+
     #++++++++++++++++++++++++
 
     def set_value(self, val):
@@ -190,14 +279,14 @@ class Config_integer(Config_gen):
         """
 
         #First, check that the provided value is valid:
-        self.check_value(val)
+        self.__check_value(val)
 
         #If ok, then set object's value to one provided:
-        self.value = val
+        self.__value = val
 
 ####################################################################################
 
-class Config_string(Config_gen):
+class ConfigString(ConfigGen):
 
     """
     Configuration class used to store
@@ -205,34 +294,77 @@ class Config_string(Config_gen):
     options.
 
     Inputs to initalize class are:
-    val                   -> String value for CAM configure option
+    name                  -> Name of new CAM configure option
+    desc                  -> Text description of CAM configure option
+    val                   -> Integer value for CAM configure option
     valid_vals (optional) -> List of valid CAM configure option values (default is None)
+
+    Doctests:
+
+    1. Check that ConfigString works properly:
+
+    With no valid values:
+    >>> ConfigString("test", "test object description", "test_val").value
+    'test_val'
+
+    With valid values list:
+    >>> ConfigString("test", "test object description", "test_val", ["test_val", "test_val_II"]).valid_vals
+    ['test_val', 'test_val_II']
+
+    With valid values regular expression:
+    >>> ConfigString("test", "test_object description", "test_val", re.compile(r"test_val")).value
+    'test_val'
+
+    2. Check that valid_vals must be either None, a list, or a regular expression:
+
+    >>> ConfigString("test", "test object description", "test_val", "test_valid_vals").valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  The valid values for variable, 'test', must either be None, a list, or a regex object, not <type 'str'>
+
+    3. Check that if valid_vals is a list, all elements must be strings:
+
+    >>> ConfigString("test", "test object description", "test_val", ["test_val", 5]).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  All valid value list options for variable, 'test', must be strings.
+
+    4.  Evaluate if the "check_value" method works properly:
+
+    With given value not present in valid value list:
+    >>> ConfigString("test", "test object description", "test_val", ["real_val", "other_val"]).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: ERROR:  Value, 'test_val', provided for variable, 'test', does not match any of the valid values: '['real_val', 'other_val']'
+
+    With given value not matching the valid regular expression:
+    >>> ConfigString("test", "test object description", "test_val", re.compile(r"real_val")).value #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: ERROR:  Value, 'test_val', provided for variable, 'test', does not match the valid regular expression
+
     """
 
     def __init__(self, name, desc, val, valid_vals=None):
 
         #Add generic attributes:
-        Config_gen.__init__(self, name, desc)    
+        ConfigGen.__init__(self, name, desc)
 
         #Check if Valid_vals is not None:
         if valid_vals is not None:
             #If not None, check if valid_vals is either a list or a regular expression (regex) object:
-            if not isinstance(valid_vals, (list, regex_type)):
-                raise Cam_config_type_error("ERROR:  The valid values for variable {} must either be None, a list, or a regex object, not {}".format(name, type(valid_vals)))
+            if not isinstance(valid_vals, (list, REGEX_TYPE)):
+                raise CamConfigTypeError("ERROR:  The valid values for variable, '{}', must either be None, a list, or a regex object, not {}".format(name, type(valid_vals)))
 
             #If list, check that every entry is a string:
             if isinstance(valid_vals, list):
                 if not all(isinstance(n, str) for n in valid_vals):
-                    raise Cam_config_type_error("ERROR:  All valid values for variable {} must be strings.".format(name))
+                    raise CamConfigTypeError("ERROR:  All valid value list options for variable, '{}', must be strings.".format(name))
 
         #If ok, then add valid_vals to object:
         self.__valid_vals = valid_vals
 
         #Next, check that provided value is "valid" based on the valid values list or regular expression:
-        self.check_value(val)
+        self.__check_value(val)
 
         #If everything is ok, then add provided value to object:
-        self.__value = val 
+        self.__value = val
 
     #++++++++++++++++++++++++
 
@@ -246,12 +378,12 @@ class Config_string(Config_gen):
     def valid_vals(self):
         """Return the valid values of this config object"""
         return self.__valid_vals
-        
+
 
     #++++++++++++++++++++++++
 
-    def check_value(self,val):
-        
+    def __check_value(self, val):
+
         """
         Checks input/given value to make sure
         it is valid according to the
@@ -264,23 +396,23 @@ class Config_string(Config_gen):
 
         If a compiled regular expression, then
         assume the value must match the regular
-        expression.. 
+        expression.
         """
 
         #Extract valid values (valid_vals) from object:
         valid_vals = self.valid_vals
 
-        #If a list, then check that the given value 
+        #If a list, then check that the given value
         #matches one of the valid values in the list:
         if isinstance(valid_vals, list):
             if not val in valid_vals:
-                raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match any of the valid values: {}".format(val, self.name, valid_vals))
+                raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match any of the valid values: '{}'".format(val, self.name, valid_vals))
 
         elif valid_vals is not None:
             #If a regular expression object, then check that
             #value is matched by the expression:
             if valid_vals.match(val) is None:
-                raise Cam_config_val_error("ERROR:  Value {} provided for variable {} does not match the valid regular expression:".format(val, self.name))
+                raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match the valid regular expression".format(val, self.name))
 
     #++++++++++++++++++++++++
 
@@ -288,36 +420,69 @@ class Config_string(Config_gen):
 
         """
         Set configure object's value to the one provided.
-        """    
+        """
 
         #First, check that the provided value is valid:
-        self.check_value(val)
+        self.__check_value(val)
 
         #If ok, then set object's value to one provided:
-        self.value = val
+        self.__value = val
 
 ####################################################################################
 #MAIN CAM CONFIGURE OBJECT:
 ####################################################################################
 
-class Config_CAM:
+class ConfigCAM:
 
     """
     Main CAM configuration object.
+
+    Inputs to initalize class are:
+    case                   -> CIME case that uses CAM
+    logger                 -> Python logger object (ususally the CIME log)
+    set_cppdefs (optional) -> Logical which determines if CAM CPPDEFs are set or not (default is False)
+
+    Doctests:
+
+    1.  Check that "create_config" works properly:
+
+    With a given integer value:
+    >>> FCONFIG.create_config("test_int", "test object description", 5)
+    >>> FCONFIG.get_value("test_int")
+    5
+
+    With a given string value:
+    >>> FCONFIG.create_config("test_str", "test object description", "test_val")
+    >>> FCONFIG.get_value("test_str")
+    'test_val'
+
+    2.  Check that the same configure object can't be created twice:
+
+    >>> FCONFIG.create_config("test_int", "test object description", 5) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigValError: ERROR:  The CAM config variable, 'test_int', already exists!  Any new config variable must be given a different name
+
+    3.  Check that a configure object's given value must be either a string or integer:
+
+    >>> FCONFIG.create_config("test_list", "test_object_description", [5]) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_list', must be either an integer or a string, not <type 'list'>
+
     """
 
-    def __init__(self, case, logger, set_cppdefs=False):
+    def __init__(self, case, case_log, set_cppdefs=False):
 
+        # pylint: disable=too-many-locals
         """
         Initalize configuration object
         and associated dictionary.
         """
 
         #Read in needed case variables:
-        atm_grid = case.get_value("ATM_GRID")               # Atmosphere (CAM) grid 
-        cam_config_opts = case.get_value("CAM_CONFIG_OPTS") # CAM configuration options 
-        case_nx  = case.get_value("ATM_NX")                 # Number of x-dimension grid-points (longitudes)
-        case_ny  = case.get_value("ATM_NY")                 # Number of y-dimension grid-points (latitudes)
+        atm_grid = case.get_value("ATM_GRID")               # Atmosphere (CAM) grid
+        cam_config_opts = case.get_value("CAM_CONFIG_OPTS") # CAM configuration options
+        case_nx = case.get_value("ATM_NX")                  # Number of x-dimension grid-points (longitudes)
+        case_ny = case.get_value("ATM_NY")                  # Number of y-dimension grid-points (latitudes)
         comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
 
         #The following translation is hard-wired for backwards compatibility
@@ -325,7 +490,7 @@ class Config_CAM:
         #and how it is specified internally
 
         if atm_grid == 'ne30pg3':
-            atm_grid = 'ne30np4.pg3'  
+            atm_grid = 'ne30np4.pg3'
 
         #Level information for CAM is part of the atm grid name - and must be stripped out
         case_nlev = ''
@@ -348,10 +513,10 @@ class Config_CAM:
             #Also, check if dyn option is set to "none":
             if user_dyn_opt == "none":
                 #If so, then set the atmospheric grid to "null":
-                atm_grid  = "null" 
-                case_nlev = "null" 
-                case_nx   = "null"
-                case_ny   = "null"
+                atm_grid = "null"
+                case_nlev = "null"
+                case_nx = "null"
+                case_ny = "null"
 
         else:
             #If not, then just set variable to None:
@@ -392,37 +557,37 @@ class Config_CAM:
 
         #Physics column per chunk:
         pcols_desc = "Maximum number of columns in a chunk (physics data structure)."
-        self.create_config("pcols", pcols_desc, 16, (1,None))
+        self.create_config("pcols", pcols_desc, 16, (1, None))
 
         #Physics sub-columns:
         psubcols_desc = "Maximum number of sub-columns in a column (physics data structure)."
-        self.create_config("psubcols", psubcols_desc, 1, (1,None))
+        self.create_config("psubcols", psubcols_desc, 1, (1, None))
 
         #-----------------------
         # Set CAM dynamical core
         #-----------------------
 
         #CAM dynamics package (dynamical core) meta-data:
-        dyn_desc = "Dynamics package, which is set by the horizontal grid specified."   
+        dyn_desc = "Dynamics package, which is set by the horizontal grid specified."
         dyn_valid_vals = ["eul", "fv", "se", "fv3", "mpas", "none"]
 
         #CAM horizontal grid meta-data:
-        hgrid_desc = "Horizontal grid specifier." 
+        hgrid_desc = "Horizontal grid specifier."
 
         #Create regex expressions to search for the different dynamics grids:
         eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dy-core
         fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")     # FV dy-core
         se_grid_re = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?") # SE dy-core
         fv3_grid_re = re.compile(r"C[0-9]+")                      # FV3 dy-core
-        mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dy-core (not totally sure about this pattern) 
+        mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dy-core (not totally sure about this pattern)
 
         #Check if specified grid matches any of the pre-defined grid options.
         #If so, then add both the horizontal grid and dynamical core to the configure object:
         if fv_grid_re.match(atm_grid) is not None:
-            #Dynamical core: 
+            #Dynamical core:
             self.create_config("dyn", dyn_desc, "fv", dyn_valid_vals)
             #Horizontal grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, fv_grid_re) 
+            self.create_config("hgrid", hgrid_desc, atm_grid, fv_grid_re)
 
         elif se_grid_re.match(atm_grid) is not None:
             #Dynamical core:
@@ -442,7 +607,7 @@ class Config_CAM:
             #Horizontal grid:
             self.create_config("hgrid", hgrid_desc, atm_grid, mpas_grid_re)
 
-        elif eul_grid_re.match(atm_grid) is not None:   
+        elif eul_grid_re.match(atm_grid) is not None:
             #Dynamical core:
             self.create_config("dyn", dyn_desc, "eul", dyn_valid_vals)
             #Horizontal grid:
@@ -456,9 +621,9 @@ class Config_CAM:
             trk_desc = "Highest degree of the associated Legendre polynomials."
 
             #Add variables to configure object:
-            self.create_config("trm", trm_desc, 1, (1,None))
-            self.create_config("trn", trn_desc, 1, (1,None))
-            self.create_config("trk", trk_desc, 1, (1,None)) 
+            self.create_config("trm", trm_desc, 1, (1, None))
+            self.create_config("trn", trn_desc, 1, (1, None))
+            self.create_config("trk", trk_desc, 1, (1, None))
 
         elif atm_grid == "null":
             #Dynamical core:
@@ -467,11 +632,14 @@ class Config_CAM:
             self.create_config("hgrid", hgrid_desc, atm_grid, None)
 
         else:
-            raise Cam_config_val_error("ERROR:  The specified CAM horizontal grid {} does not match any expected value".format(atm_grid))
+            raise CamConfigValError("ERROR:  The specified CAM horizontal grid, '{}', does not match any expected value".format(atm_grid))
+
+        #Extract dynamics option:
+        dyn = self.get_value("dyn")
 
         #If user-specified dynamics option is present, then check that it matches the grid-derived value:
-        if user_dyn_opt is not None and user_dyn_opt != self.get_value("dyn"):
-            raise Cam_config_val_error("ERROR: User-specified dynamics option {} does not match dycore expected from CIME grid: {}".format(user_dyn_opt, dyn))
+        if user_dyn_opt is not None and user_dyn_opt != dyn:
+            raise CamConfigValError("ERROR:  User-specified dynamics option, '{}', does not match dycore expected from CIME grid: '{}'".format(user_dyn_opt, dyn))
 
         #--------------------
         # Set ocean component
@@ -492,7 +660,7 @@ class Config_CAM:
         # Print CAM configure settings and values to debug logger:
         #--------------------------------------------------------
 
-        self.print_all(logger)
+        self.print_all(case_log)
 
         #--------------------------------------
         #Set CAM CPP Definitions (if requested):
@@ -506,7 +674,7 @@ class Config_CAM:
 
             #Set grid-related cppdefs:
             cam_cppdefs = \
-            " -DPLON={} -DPLAT={} -DPLEV={} -DPCOLS={} -DPSUBCOLS={}".format(case_nx,case_ny,nlev,pcols,psubcols)
+            " -DPLON={} -DPLAT={} -DPLEV={} -DPCOLS={} -DPSUBCOLS={}".format(case_nx, case_ny, nlev, pcols, psubcols)
 
             #Set wavenumber-related cppdefs if using Eulerian dycore:
             if dyn == "eul":
@@ -517,7 +685,7 @@ class Config_CAM:
                 trk = self.get_value("trk")
 
                 #Add to cppdefs:
-                cam_cppdefs += " -DPTRM={} -DPTRN={} -DPTRK={}".format(trm,trn,trk)  
+                cam_cppdefs += " -DPTRM={} -DPTRN={} -DPTRK={}".format(trm, trn, trk)
 
             # Update the case variable CAM_CPPDEFS with the above CPP definitions:
             case.set_value("CAM_CPPDEFS", cam_cppdefs)
@@ -539,63 +707,63 @@ class Config_CAM:
         #Check for given value type:
         if isinstance(val, int):
             #If integer, then call integer configure object:
-            conf_obj = Config_integer(name, desc, val, valid_vals)
+            conf_obj = ConfigInteger(name, desc, val, valid_vals)
 
         elif isinstance(val, str):
-            #If string, then call string configure object:   
-            conf_obj = Config_string(name, desc, val, valid_vals)
+            #If string, then call string configure object:
+            conf_obj = ConfigString(name, desc, val, valid_vals)
 
-        else:  
+        else:
             #If neither an integer or a string, then throw an error:
-            raise Cam_config_type_error("ERROR: The input value for new CAM config variable {} must be either an integer or string.".format(name))
+            raise CamConfigTypeError("ERROR:  The input value for new CAM config variable, '{}', must be either an integer or a string, not {}".format(name, type(val)))
 
         #Next, check that object name isn't already in the config list:
         if name in self.config:
             #If so, then throw an error:
-            raise Cam_config_val_error("ERROR:  The CAM config variable {} already exists!  Any new config variable must be given a different name".format(name))
-        else:
-            #If not, then add object to dictionary:
-            self.config[name] = conf_obj
+            raise CamConfigValError("ERROR:  The CAM config variable, '{}', already exists!  Any new config variable must be given a different name".format(name))
+
+        #If not, then add object to dictionary:
+        self.config[name] = conf_obj
 
     #++++++++++++++++++++++++
 
-    def print_config(self, obj_name, logger):
+    def print_config(self, obj_name, case_log):
 
         """
         Print the value and description of a specified
-        CAM configure object to the CIME debug log.  
+        CAM configure object to the CIME debug log.
         """
 
         #Check that the given object name exists in the dictionary:
         if obj_name in self.config:
             obj = self.config[obj_name]
         else:
-            raise  Cam_config_val_error("ERROR: Invalid configuration name, {}".format(obj_name))
+            raise  CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
 
-        #Print variable to logger: 
-        logger.debug("#{}".format(obj.desc))
-        logger.debug("{} = {}".format(obj.name,obj.value))
+        #Print variable to logger:
+        case_log.debug("#{}".format(obj.desc))
+        case_log.debug("{} = {}".format(obj.name, obj.value))
 
     #++++++++++++++++++++++++
 
-    def print_all(self, logger):
+    def print_all(self, case_log):
 
         """
-        Print the names, descriptions, and values of all CAM 
+        Print the names, descriptions, and values of all CAM
         configuration objects.
         """
-   
+
         #Print separator:
-        logger.debug("CAM configuration variables:")
-        logger.debug("-----------------------------")
+        case_log.debug("CAM configuration variables:")
+        case_log.debug("-----------------------------")
 
         #Loop over config dictionary values:
         for obj_name in self.config:
             #Print variable to logger:
-            self.print_config(obj_name, logger)
+            self.print_config(obj_name, case_log)
 
         #Print additional separator (to help seperate this output from additional CIME output):
-        logger.debug("-----------------------------")
+        case_log.debug("-----------------------------")
 
     #++++++++++++++++++++++++
 
@@ -609,11 +777,11 @@ class Config_CAM:
         if obj_name in self.config:
             obj = self.config[obj_name]
         else:
-            raise Cam_config_val_error("ERROR: Invalid configuration name, {}".format(obj_name))
+            raise CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
 
         #Next, check that the given value is either an integer or a string:
         if not isinstance(val, (int, str)):
-            raise  Cam_config_type_error("ERROR:  Value provided for variable {} must be either an integer or a string.  Currently it is type {}".format(name,type(val)))
+            raise  CamConfigTypeError("ERROR:  Value provided for variable, '{}', must be either an integer or a string.  Currently it is type {}".format(obj_name, type(val)))
 
         #Finally, set configure object's value to the value given:
         obj.set_value(val)
@@ -624,16 +792,16 @@ class Config_CAM:
 
         """
         return value for specified configure object.
-        """  
- 
+        """
+
         #First check that the given object name exists in the dictionary:
         if obj_name in self.config:
             obj = self.config[obj_name]
         else:
-            raise  Cam_config_val_error("ERROR: Invalid configuration name, {}".format(obj_name)) 
+            raise  CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
 
         #If it does, then return the object's value:
-        return obj.value  
+        return obj.value
 
 ####################################################################################
 #IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!
@@ -642,20 +810,62 @@ class Config_CAM:
 #Call testing routine, if script is run directly
 if __name__ == "__main__":
 
-    #import python "sys" module:
-    import sys
+    #import modules needed for testing:
+    import doctest
+    import logging
 
-    #Add "test" directory to python's path:
-    sys.path.append("test")
+    #--------------------------------------
+    # Create fake case for Config_CAM tests
+    #--------------------------------------
 
-    #Import cam_config unit-testing routine:
-    from cam_config_tests import cam_config_test_routine
+    class FakeCase:
 
-    #Call testing routine:
-    cam_config_test_routine()
+        # pylint: disable=too-few-public-methods
+        """
+        Fake CIME case class with variables needed to test
+        the "Config_CAM" object.
+        """
+
+        def __init__(self):
+
+
+            #Create dictionary (so get_value works properly):
+            self.conf_opts = {
+                "ATM_GRID" : "f19_f19_mg17",
+                "ATM_NX"   : 180,
+                "ATM_NY"   : 90,
+                "COMP_OCN" : "socn",
+                "CAM_CONFIG_OPTS" : "-dyn none -physics_suites adiabatic_suite"
+                }
+
+        def get_value(self, key):
+
+            """
+            Function used to return value
+            from conf_opts dictionary,
+            with the key as input.
+            """
+
+            val = self.conf_opts[key]
+
+            return val
+
+    #------------------------------------------
+    #Create new "Config_CAM" object for testing
+    #------------------------------------------
+
+    #Create new "fake" CIME case:
+    FCASE = FakeCase()
+
+    #Create python logger object:
+    LOGGER = logging.getLogger("cam_config")
+
+    #Create ConfigCAM object using "fake" CIME case and logger:
+    FCONFIG = ConfigCAM(FCASE, LOGGER)
+
+    #Run doctests on this file's python objects:
+    doctest.testmod()
 
 ############
 #End of file
 ############
- 
-  
