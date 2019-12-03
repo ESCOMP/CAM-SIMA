@@ -25,7 +25,7 @@ from CIME.build import get_standard_makefile_args
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import CAM's configure structure:
-from cam_config import Config_CAM
+from cam_config import ConfigCAM
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def _build_cam():
         logger.info("     ...calling Config_CAM to set build time options and cppdefs")
 
         #create CAM configure object with cppdefs:
-        config = Config_CAM(case, logger, set_cppdefs=True)
+        config = ConfigCAM(case, logger, set_cppdefs=True)
 
     with Case(caseroot) as case:
 
