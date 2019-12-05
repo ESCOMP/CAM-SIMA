@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_simple" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="ncol" standard_name="horizontal_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of horizontal columns</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="latitude" standard_name="latitude"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension</dimensions>
+    </variable>
+    <variable local_name="longitude" standard_name="longitude"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension</dimensions>
+    </variable>
+  </file>
+</registry>

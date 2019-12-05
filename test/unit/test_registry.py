@@ -1,0 +1,798 @@
+#! /usr/bin/env python
+#-----------------------------------------------------------------------
+# Description:  Contains unit tests for testing CAM registry validation
+#               and code generation
+#
+# Assumptions:
+#
+# Command line arguments: none
+#
+# Usage: python test_registry.py         # run the unit tests
+#-----------------------------------------------------------------------
+
+"""Test gen_registry in generate_registry_data.py"""
+
+import sys
+import os
+import glob
+import unittest
+import filecmp
+import logging
+import xml.etree.ElementTree as ET
+
+__TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+__CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir))
+__REGISTRY_DIR = os.path.join(__CAM_ROOT, "src", "data")
+_SAMPLE_FILES_DIR = os.path.join(__TEST_DIR, "sample_files")
+_TMP_DIR = os.path.join(__TEST_DIR, "tmp")
+
+# Find python version
+PY3 = sys.version_info[0] > 2
+if PY3:
+    __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
+else:
+    __FILE_OPEN = (lambda x: open(x, 'r'))
+# End if
+
+if not os.path.exists(__REGISTRY_DIR):
+    raise ImportError("Cannot find registry directory")
+
+if not os.path.exists(_SAMPLE_FILES_DIR):
+    raise ImportError("Cannot find sample files directory")
+
+sys.path.append(__REGISTRY_DIR)
+
+# pylint: disable=wrong-import-position
+from generate_registry_data import gen_registry
+# pylint: enable=wrong-import-position
+
+###############################################################################
+def remove_files(file_list):
+###############################################################################
+    """Remove files in <file_list> if they exist"""
+    for fpath in file_list:
+        if os.path.exists(fpath):
+            os.remove(fpath)
+        # End if
+    # End for
+
+###############################################################################
+def read_xml_file(filename):
+###############################################################################
+    """Read XML file, <filename>, and return the XML tree and root
+    As this is a test script, errors will throw exceptions."""
+    with __FILE_OPEN(filename) as file_:
+        tree = ET.parse(file_)
+        root = tree.getroot()
+    # End with
+    return tree, root
+
+class RegistryTest(unittest.TestCase):
+
+    """Tests for `gen_registry`."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Clean output directory (tmp) before running tests"""
+        if not os.path.exists(_TMP_DIR):
+            os.mkdir(_TMP_DIR)
+        # End if
+        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*')))
+        super(cls, RegistryTest).setUpClass()
+
+    def test_good_simple_registry(self):
+        """Test that a good registry with only variables validates.
+        Check that generate_registry_data.py generates good
+        Fortran and metadata files"""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        out_source_name = "physics_types_simple"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        # Run test
+        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+                               error_on_no_validate=True)
+        # Check return code
+        self.assertEqual(retcode, 0)
+        # Make sure each output file was created
+        amsg = "{} does not exist".format(out_meta)
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = "{} does not exist".format(out_source)
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
+        # For each output file, make sure it matches input file
+        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False))
+        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False))
+
+    def test_good_ddt_registry(self):
+        """Test code and metadata generation from a good registry with a DDT.
+        Check that generate_registry_data.py generates good
+        Fortran and metadata files.
+        Check that the DDT contains the proper information
+        depending on dycore"""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
+        out_name = "physics_types_ddt"
+        for dycore in ['fv', 'eul', 'se']:
+            out_source_name = out_name + '_' + dycore + '.F90'
+            out_meta_name = out_name + '_' + dycore + '.meta'
+            in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
+            in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
+            gen_source = os.path.join(_TMP_DIR, out_name + '.F90')
+            gen_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+            out_source = os.path.join(_TMP_DIR, out_source_name)
+            out_meta = os.path.join(_TMP_DIR, out_meta_name)
+            remove_files([out_source, out_meta])
+            # Run dycore
+            retcode = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
+                                   logging.ERROR, error_on_no_validate=True)
+            # Check return code
+            amsg = "Test failure for dycore = {}".format(dycore)
+            self.assertEqual(retcode, 0, msg=amsg)
+            # Make sure each output file was created
+            if os.path.exists(gen_meta):
+                os.rename(gen_meta, out_meta)
+            # End if
+            if os.path.exists(gen_source):
+                os.rename(gen_source, out_source)
+            # End if
+            amsg = "{} does not exist".format(out_meta)
+            self.assertTrue(os.path.exists(out_meta), msg=amsg)
+            amsg = "{} does not exist".format(out_source)
+            self.assertTrue(os.path.exists(out_source), msg=amsg)
+            # For each output file, make sure it matches input file
+            self.assertTrue(filecmp.cmp(in_meta, out_meta,
+                                        shallow=False), msg=amsg)
+            self.assertTrue(filecmp.cmp(in_source, out_source,
+                                        shallow=False), msg=amsg)
+        # End for
+
+    def test_good_ddt_registry2(self):
+        """Test code and metadata generation from a good registry with DDTs
+        with extends and bindC attributes.
+        Check that generate_registry_data.py generates good
+        Fortran and metadata files.
+        Check that the DDT contains the proper information
+        depending on dycore"""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
+        out_name = "physics_types_ddt2"
+        out_source_name = out_name + '.F90'
+        out_meta_name = out_name + '.meta'
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
+        gen_source = os.path.join(_TMP_DIR, out_name + '.F90')
+        gen_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name)
+        out_meta = os.path.join(_TMP_DIR, out_meta_name)
+        remove_files([out_source, out_meta])
+        # Run dycore
+        retcode = gen_registry(filename, 'se', {}, _TMP_DIR, 2, logging.ERROR,
+                               error_on_no_validate=True)
+        # Check return code
+        self.assertEqual(retcode, 0)
+        # Make sure each output file was created
+        if os.path.exists(gen_meta):
+            os.rename(gen_meta, out_meta)
+        # End if
+        if os.path.exists(gen_source):
+            os.rename(gen_source, out_source)
+        # End if
+        amsg = "{} does not exist".format(out_meta)
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = "{} does not exist".format(out_source)
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
+        # For each output file, make sure it matches input file
+        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+                                    shallow=False))
+        self.assertTrue(filecmp.cmp(in_source, out_source,
+                                    shallow=False))
+    # End for
+
+    def test_parameter(self):
+        """Test a registry with a parameter.
+        Check that it validates and generates Fortran or metadata files
+        """
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_parameter.xml")
+        out_source_name = "physics_types_parameter"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename and add a parameter with an initial value
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                # Reset the filename
+                obj.set('name', out_source_name)
+                # Add a new variable with an unknown dimension
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "pver")
+                new_var.set("standard_name", "vertical_layer_dimension")
+                new_var.set("units", "count")
+                new_var.set("type", "integer")
+                new_var.set("allocatable", "parameter")
+                dims_elem = ET.SubElement(new_var, "initial_value")
+                dims_elem.text = '42'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        retcode = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                               error_on_no_validate=True)
+        # Check return code
+        self.assertEqual(retcode, 0)
+        # Make sure each output file was created
+        self.assertTrue(os.path.exists(out_meta))
+        self.assertTrue(os.path.exists(out_source))
+        # For each output file, make sure it matches input file
+        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False))
+        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False))
+
+    def test_bad_registry_version(self):
+        """Test a registry with a bad version number.
+        Check that it does not validate and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_bad_version.xml")
+        out_source_name = "physics_types_bad_ver"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Write bad version number
+        root.set('version', '1.1')
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                obj.set('name', out_source_name)
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # Check exception message
+        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
+                "tmp/reg_bad_version.xml")
+        self.assertEqual(emsg.format(out_source_name),
+                         str(verr.exception).split('\n')[0])
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_missing_standard_name(self):
+        """Test a registry with a missing standard name.
+        Check that it does not validate and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_no_std_name.xml")
+        out_source_name = "physics_types_no_std_name"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename and remove a standard name
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                # Reset the filename
+                obj.set('name', out_source_name)
+                # Find and remove the standard name for latitude
+                for var in obj:
+                    lname = var.get('local_name')
+                    if (var.tag == 'variable') and (lname == 'latitude'):
+                        del var.attrib['standard_name']
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # Check exception message
+        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
+                "tmp/reg_no_std_name.xml")
+        self.assertEqual(emsg.format(out_source_name),
+                         str(verr.exception).split('\n')[0])
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_bad_dimensions(self):
+        """Test a registry with a variable with bad dimensions.
+        Check that it does not validate and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_bad_dimensions.xml")
+        out_source_name = "physics_types_bad_dimensions"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename and add a new variable with bad dimensions
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                # Reset the filename
+                obj.set('name', out_source_name)
+                # Add a new variable with bad dimensions
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "u")
+                new_var.set("standard_name", "east_wind")
+                new_var.set("units", "m s-1")
+                new_var.set("type", "real")
+                new_var.set("kind", "kind_phys")
+                dims_elem = ET.SubElement(new_var, "dimensions")
+                dims_elem.text = 'ccpp_constant_one:horizontal_dimension:two'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # Check exception message
+        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
+                "tmp/reg_bad_dimensions.xml")
+        self.assertEqual(emsg.format(out_source_name),
+                         str(verr.exception).split('\n')[0])
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_unknown_dimensions(self):
+        """Test a registry with a variable with an unknown dimension.
+        Check that it does not validate and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_unknown_dimension.xml")
+        out_source_name = "physics_types_unknown_dimension"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename and add a variable with an unknown dimension
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                # Reset the filename
+                obj.set('name', out_source_name)
+                # Add a new variable with an unknown dimension
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "u")
+                new_var.set("standard_name", "east_wind")
+                new_var.set("units", "m s-1")
+                new_var.set("type", "real")
+                new_var.set("kind", "kind_phys")
+                dims_elem = ET.SubElement(new_var, "dimensions")
+                dims_elem.text = 'horizontal_dimension vertical_dimension'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "Dimension, 'vertical_dimension', not found for 'u'"
+        self.assertEqual(emsg.format(out_source_name), str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_no_init_value(self):
+        """Test a registry with a parameter with no initial value.
+        Check that it does not validate and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_no_init_value.xml")
+        out_source_name = "physics_types_no_init_value"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename and add a parameter with no initial value
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                # Reset the filename
+                obj.set('name', out_source_name)
+                # Add a new variable with an unknown dimension
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "u")
+                new_var.set("standard_name", "east_wind")
+                new_var.set("units", "m s-1")
+                new_var.set("type", "real")
+                new_var.set("kind", "kind_phys")
+                new_var.set("allocatable", "parameter")
+                dims_elem = ET.SubElement(new_var, "dimensions")
+                dims_elem.text = 'horizontal_dimension'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "parameter, 'u', does not have an initial value"
+        self.assertEqual(emsg.format(out_source_name), str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_duplicate_type(self):
+        """Test a registry with a duplicate DDT type.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
+        filename = os.path.join(_TMP_DIR, "reg_dup_ddt.xml")
+        out_source_name = "physics_types_dup_ddt"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
+                obj.set('name', out_source_name)
+                for var in obj:
+                    dtype = var.get('type')
+                    if (var.tag == 'ddt') and (dtype == "physics_state"):
+                        # Add a second DDT
+                        new_ddt = ET.SubElement(obj, "ddt")
+                        new_ddt.set("type", dtype)
+                        data_elem = ET.SubElement(new_ddt, "data")
+                        data_elem.set("dycore", "EUL")
+                        data_elem.text = 'latitude'
+                        data_elem = ET.SubElement(new_ddt, "data")
+                        data_elem.set("dycore", "EUL")
+                        data_elem.text = 'longitude'
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        vmsg = 'Failed to flag a duplicate DDT type'
+        with self.assertRaises(ValueError, msg=vmsg) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = 'Trying to add physics_state to registry, already defined in {}'
+        self.assertEqual(emsg.format(out_source_name), str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_ddt_with_kind(self):
+        """Test a registry with a DDT variable that has a kind attribute.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
+        filename = os.path.join(_TMP_DIR, "reg_ddt_with_kind.xml")
+        out_source_name = "physics_types_ddt_with_kind"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
+                obj.set('name', out_source_name)
+                for var in obj:
+                    lname = var.get('local_name')
+                    if (var.tag == 'variable') and (lname == "phys_state"):
+                        var.set('kind', 'ddt')
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "kind attribute illegal for DDT type physics_state"
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_ddt_with_unknown_type(self):
+        """Test a registry with a DDT variable of unknown type.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
+        filename = os.path.join(_TMP_DIR, "reg_ddt_var_unknown.xml")
+        out_source_name = "physics_types_ddt_var_unknown_type"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
+                obj.set('name', out_source_name)
+                for var in obj:
+                    lname = var.get('local_name')
+                    if (var.tag == 'variable') and (lname == "phys_state"):
+                        var.set('type', 'physics_tend')
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "phys_state is an unknown Variable type, physics_tend"
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_ddt_with_unknown_extends(self):
+        """Test a registry with a DDT which extends an unknown type
+        attributes.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
+        filename = os.path.join(_TMP_DIR, "reg_ddt_unknown_extends.xml")
+        out_source_name = "physics_types_ddt_unknown_extends"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
+                obj.set('name', out_source_name)
+                for var in obj:
+                    ltype = var.get('type')
+                    if (var.tag == 'ddt') and (ltype == "physics_state"):
+                        var.set('extends', 'physics_tend')
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = ("DDT, 'physics_state', extends type 'physics_tend', "
+                "however, this type is not known")
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_ddt_with_incompatible_attr(self):
+        """Test a registry with a DDT with both the extends and bindC
+        attributes.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
+        filename = os.path.join(_TMP_DIR, "reg_ddt_incompatible_attributes.xml")
+        out_source_name = "physics_types_ddt_incompatible_attributes"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        found_file = False
+        found_ddt = False
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt2'):
+                obj.set('name', out_source_name)
+                found_file = True
+                for var in obj:
+                    ltype = var.get('type')
+                    if (var.tag == 'ddt') and (ltype == "physics_state"):
+                        var.set('bindC', "true")
+                        found_ddt = True
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        self.assertTrue(found_file)
+        self.assertTrue(found_ddt)
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = ("DDT, 'physics_state', cannot have both 'extends' and "
+                "'bindC' attributes")
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_ddt_with_unknown_variable(self):
+        """Test a registry with a DDT with both the extends and bindC
+        attributes.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
+        filename = os.path.join(_TMP_DIR, "reg_ddt_unknown_variable.xml")
+        out_source_name = "physics_types_ddt_unknown_variable"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
+                obj.set('name', out_source_name)
+                for var in obj:
+                    ltype = var.get('type')
+                    if (var.tag == 'ddt') and (ltype == "physics_state"):
+                        data_elem = ET.SubElement(var, "data")
+                        data_elem.text = 'ice_cream'
+                        break
+                    # End if
+                # End for
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = ("Variable, 'ice_cream', not found for DDT, 'physics_state', "
+                "in 'physics_types_ddt_unknown_variable'")
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_duplicate_local_name(self):
+        """Test a registry with a duplicate local name.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_duplicate_local_name.xml")
+        out_source_name = "physics_types_duplicate_local_name"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                obj.set('name', out_source_name)
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "latitude")
+                new_var.set("standard_name", "east_wind")
+                new_var.set("units", "radians")
+                new_var.set("type", "real")
+                new_var.set("kind", "kind_phys")
+                dims_elem = ET.SubElement(new_var, "dimensions")
+                dims_elem.text = 'horizontal_dimension'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "duplicate variable local_name, 'latitude', in "
+        emsg += "physics_types_duplicate_local_name, already defined "
+        emsg += "with standard_name, 'latitude'"
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_duplicate_standard_name(self):
+        """Test a registry with a duplicate standard name.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        filename = os.path.join(_TMP_DIR, "reg_duplicate_standard_name.xml")
+        out_source_name = "physics_types_duplicate_standard_name"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Change output filename
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+                obj.set('name', out_source_name)
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "french_fries")
+                new_var.set("standard_name", "latitude")
+                new_var.set("units", "radians")
+                new_var.set("type", "real")
+                new_var.set("kind", "kind_phys")
+                dims_elem = ET.SubElement(new_var, "dimensions")
+                dims_elem.text = 'horizontal_dimension'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "duplicate variable standard_name, 'latitude' from "
+        emsg += "'french_fries' in 'physics_types_duplicate_standard_name'"
+        emsg += ", already defined with local_name, 'latitude'"
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+if __name__ == '__main__':
+    unittest.main()

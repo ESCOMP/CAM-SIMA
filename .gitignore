@@ -1,4 +1,5 @@
 # Ignore externals
+ccpp_framework
 chem_proc
 cime
 components
@@ -11,9 +12,12 @@ src/physics/silhs
 
 # Ignore compiled python
 buildnmlc
-buildlibc
-cam_config.pyc
-cam_config_tests.pyc
+*.pyc
+
+# Ignore test output
+test/unit/tmp
+test/include/*.mod
+test/include/*.o
 
 # Ignore editor temporaries and backups
 *~

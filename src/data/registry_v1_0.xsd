@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+
+<xs:schema elementFormDefault="qualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- identifier types -->
+
+  <xs:simpleType name="version_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[1-9][0-9]*[.][0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="fortran_id_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,63}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="type_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[iI][nN][tT][eE][gG][eE][rR]"/>
+      <xs:pattern value="[rR][eE][aA][lL]"/>
+      <xs:pattern value="[lL][oO][gG][iI][cC][aA][lL]"/>
+      <xs:pattern value="[cC][hH][aA][rR][aA][cC][tT][eE][rR]"/>
+      <xs:pattern value="[cC][oO][mM][pP][lL][eE][xX]"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="dycore_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z,]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="standard_name_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z][a-z0-9_]{0,256}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="units_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z][A-Za-z0-9 -]*"/>
+      <xs:pattern value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="meta_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="host"/>
+      <xs:pattern value="module"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="access_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="public"/>
+      <xs:pattern value="private"/>
+      <xs:pattern value="protected"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="reference_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,63}"/>
+      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,63}=>[A-Za-z][A-Za-z0-9_]{0,63}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="allocation_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="none"/>
+      <xs:pattern value="parameter"/>
+      <xs:pattern value="allocatable"/>
+      <xs:pattern value="pointer"/>
+      <xs:pattern value="target"/>
+      <xs:pattern value="allocatable, target"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="dimension_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,256}"/>
+      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,256}[:][A-Za-z][A-Za-z0-9_]{0,256}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- attributes -->
+
+  <xs:attribute name="access"        type="access_type"/>
+  <xs:attribute name="allocatable"   type="allocation_type"/>
+  <xs:attribute name="dycore"        type="dycore_type"/>
+  <xs:attribute name="extends"       type="fortran_id_type"/>
+  <xs:attribute name="kind"          type="fortran_id_type"/>
+  <xs:attribute name="local_name"    type="fortran_id_type"/>
+  <xs:attribute name="name"          type="fortran_id_type"/>
+  <xs:attribute name="standard_name" type="standard_name_type"/>
+  <xs:attribute name="type"          type="fortran_id_type"/>
+  <xs:attribute name="units"         type="units_type"/>
+  <xs:attribute name="version"       type="version_type"/>
+
+  <!-- definition of simple types -->
+
+  <xs:simpleType name="dimensions">
+    <xs:list itemType="dimension_type"/>
+  </xs:simpleType>
+
+  <!-- definition of complex types -->
+
+  <xs:complexType name="variable_type">
+    <xs:all>
+      <xs:element name="dimensions"    type="dimensions" minOccurs="0"/>
+      <xs:element name="long_name"     type="xs:string"  minOccurs="0"/>
+      <xs:element name="initial_value" type="xs:string"  minOccurs="0"/>
+    </xs:all>
+    <xs:attribute ref="local_name"    use="required"/>
+    <xs:attribute ref="standard_name" use="required"/>
+    <xs:attribute ref="units"         use="required"/>
+    <xs:attribute ref="type"          use="required"/>
+    <xs:attribute ref="kind"          use="optional" default=""/>
+    <xs:attribute ref="allocatable"   use="optional" default="none"/>
+    <xs:attribute ref="access"        use="optional" default="public"/>
+  </xs:complexType>
+
+  <xs:complexType name="data_type">
+    <xs:simpleContent>
+      <xs:extension base="standard_name_type">
+        <xs:attribute ref="dycore" use="optional" default=""/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ddt_type">
+    <xs:sequence>
+      <xs:element name="data"  type="data_type"
+                  minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="type"    use="required" type="fortran_id_type"/>
+    <xs:attribute name="private" use="optional" type="xs:boolean"
+                  default="false"/>
+    <xs:attribute name="bindC"   use="optional" type="xs:boolean"
+                  default="false"/>
+    <xs:attribute ref="extends"  use="optional" default=""/>
+  </xs:complexType>
+
+  <xs:complexType name="use_type">
+    <xs:attribute name="module"    type="fortran_id_type" use="required"/>
+    <xs:attribute name="reference" type="reference_type"  use="required"/>
+  </xs:complexType>
+
+  <!-- definition of registry elements -->
+
+  <xs:element name="file">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="use"      type="use_type"/>
+          <xs:element name="variable" type="variable_type"/>
+          <xs:element name="ddt"      type="ddt_type"/>
+        </xs:choice>
+      </xs:sequence>
+      <!-- The reason for fortran_id_type below that the filename must be
+           usable as a module name. Proper extensions will be added to
+           generated files.
+      -->
+      <xs:attribute name="name" type="fortran_id_type" use="required"/>
+      <xs:attribute name="type" type="meta_type"       use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="registry">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="file"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="name"    type="xs:string"    use="required"/>
+      <xs:attribute name="version" type="version_type" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
