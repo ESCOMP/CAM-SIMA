@@ -21,6 +21,12 @@ from CIME.utils import run_cmd, expect
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
 
+# Add local (cime_config) directory to python path:
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import CAM's configure structure:
+from cam_config import ConfigCAM
+
 logger = logging.getLogger(__name__)
 
 ###############################################################################
@@ -31,22 +37,13 @@ def _build_cam():
 
     with Case(caseroot, read_only=False) as case:
 
-        srcroot = case.get_value("SRCROOT")
-        #-------------------------------------------------------
-        # Call cam's buildcpp
-        #-------------------------------------------------------
-        testpath = os.path.join(srcroot, "components", "cam")
-        if os.path.exists(testpath):
-            srcroot = testpath
+        #----------------------------------------------------------
+        # Call Config_CAM to get configuration options and CPP defs.
+        #----------------------------------------------------------
+        logger.info("     ...calling Config_CAM to set build time options and cppdefs")
 
-        cmd = os.path.join(os.path.join(srcroot,
-                                        "cime_config", "buildcpp"))
-        logger.info("     ...calling cam buildcpp to set build time options")
-        try:
-            mod = imp.load_source("buildcpp", cmd)
-            cam_cppdefs = mod.buildcpp(case)
-        except:
-            raise
+        #create CAM configure object with cppdefs:
+        config = ConfigCAM(case, logger, set_cppdefs=True)
 
     with Case(caseroot) as case:
 
@@ -55,6 +52,12 @@ def _build_cam():
         gmake_j = case.get_value("GMAKE_J")
         gmake = case.get_value("GMAKE")
         mach = case.get_value("MACH")
+
+        #Retrieve CAM cppdefs:
+        cam_cppdefs = case.get_value("CAM_CPPDEFS")
+
+        #Print CAM CPPDEFs to case log:
+        logger.info("CAM_CPPDEFS: %s", cam_cppdefs)
 
         #-------------------------------------------------------
         # Filepath is created in caseroot/camconf by the call

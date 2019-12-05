@@ -12,7 +12,6 @@ src/physics/silhs
 
 # Ignore compiled python
 buildnmlc
-buildcppc
 *.pyc
 
 # Ignore test output
