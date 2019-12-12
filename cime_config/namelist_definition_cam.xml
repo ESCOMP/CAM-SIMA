@@ -591,7 +591,7 @@
     <group>circ_diag_nl</group>
     <desc>
       Turns on TEM circulation diagnostics history output.  Only valid for FV dycore.
-      
+
       Default: .false.,  unless it is overridden (WACCM with interactive chemistry and a few other specific
                 configurations do this)
     </desc>
@@ -622,6 +622,7 @@
       'off' causes the qneg3 and qneg4 warnings to be supressed.
       Note that these settings do not affect the availability of qneg
           history variables.
+      Default: summary
     </desc>
     <values>
       <value>summary</value>
@@ -941,6 +942,9 @@
       Flag to determine how to handle dpcoup warning messages
       Default: off
     </desc>
+    <values>
+      <value>off</value>
+    </values>
   </entry>
 
 <!-- MPI configuration for FV dycore -->
@@ -1841,8 +1845,11 @@
     <group>phys_ctl_nl</group>
     <desc>
       Whether or not to enable gravity waves produced by orography.
-      Default: UNKNOWN.
+      Default: FALSE
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="use_gw_front">
     <type>logical</type>
@@ -1850,8 +1857,11 @@
     <group>phys_ctl_nl</group>
     <desc>
       Whether or not to enable gravity waves produced by frontogenesis.
-      Default: UNKNOWN.
+      Default: FALSE
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="use_gw_front_igw">
     <type>logical</type>
@@ -1859,8 +1869,11 @@
     <group>phys_ctl_nl</group>
     <desc>
       Whether or not to enable inertial gravity waves produced by frontogenesis.
-      Default: UNKNOWN.
+      Default: FALSE
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="use_gw_convect_dp">
     <type>logical</type>
@@ -1868,8 +1881,11 @@
     <group>phys_ctl_nl</group>
     <desc>
       Whether or not to enable gravity waves produced by deep convection.
-      Default: UNKNOWN.
+      Default: FALSE
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="use_gw_convect_sh">
     <type>logical</type>
@@ -1877,6 +1893,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Whether or not to enable gravity waves produced by shallow convection.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -2655,6 +2672,9 @@
                           conditions dataset specified by {{ hilight }}flbc_file{{ closehilight }}.
       Default: FIXED
     </desc>
+    <values>
+      <value>FIXED</value>
+    </values>
   </entry>
 
 <!-- Greenhouse Gases: prognostic CH4, N2O, CFC11, CFC12 (original CAM versions) -->
@@ -3537,9 +3557,10 @@
     <group>cam_initfiles_nl</group>
     <desc>
       Full pathname of initial atmospheric state dataset (NetCDF format).
-      Default: UNKNOWN.
+      Default: UNSET
     </desc>
     <values>
+      <value>UNSET</value>
       <value analytic_ic="1" nlev="26">atm/cam/inic/cam_vcoords_L26_c180105.nc</value>
       <value analytic_ic="1" nlev="30">atm/cam/inic/cam_vcoords_L30_c180105.nc</value>
       <value analytic_ic="1" nlev="32">atm/cam/inic/cam_vcoords_L32_c180105.nc</value>
@@ -3678,6 +3699,7 @@
     <desc>
       Perturb the initial conditions for temperature randomly by up to the given
       amount. Only applied for initial simulations.
+      Default: 0.0
     </desc>
     <values>
       <value>0.0</value>
@@ -3692,6 +3714,9 @@
       Required for branch run.
       Default: none
     </desc>
+    <values>
+      <value>none</value>
+    </values>
   </entry>
   <entry id="readtrace">
     <type>logical</type>
@@ -4068,6 +4093,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Number of macrophysics/microphysics substeps.
+      Default: 1
     </desc>
     <values>
       <value>1</value>
@@ -4457,6 +4483,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch to turn on heterogeneous freezing code.
+      Default: FALSE, unless using "cam6" physics.
     </desc>
     <values>
       <value>.false.</value>
@@ -5085,6 +5112,11 @@
       Goff and Gratch (1946); 'MurphyKoop' for Murphy &amp; Koop (2005)
       Default: GoffGratch; except MurphyKoop for carma=cirrus or carma=cirrus_dust
     </desc>
+    <values>
+      <value>GoffGratch</value>
+      <value carma="cirrus">MurphyKoop</value>
+      <value carma="cirrus_dust">MurphyKoop</value>
+    </values>
   </entry>
 
 <!-- Physics sub-column switches -->
@@ -5096,6 +5128,7 @@
     <desc>
       Control use of sub-columns within macro/micro physics;
       'false' for no subcolumns.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -5305,7 +5338,11 @@
       <value>0.05</value>
     </values>
   </entry>
-  <entry id="subcol_silhs_hmp2_ip_on_hmm2_ip_slope%rr">
+
+<!--CIME currently does not allow for percent (%) symbols
+    to be prsent in entry ids. -->
+
+<!--  <entry id="subcol_silhs_hmp2_ip_on_hmm2_ip_slope%rr">
     <type>real</type>
     <category>conv</category>
     <group>subcol_silhs_nl</group>
@@ -5436,7 +5473,7 @@
     <values>
       <value>1.0</value>
     </values>
-  </entry>
+  </entry> -->
 
 <!-- Moist Convection and Microphysics -->
 
@@ -5444,14 +5481,14 @@
     <type>char*16</type>
     <category>conv</category>
     <group>phys_ctl_nl</group>
-    <valid_values>ZM,UNICON,off,CLUBB_SGS</valid_values>
+    <valid_values>UNSET,ZM,UNICON,off,CLUBB_SGS</valid_values>
     <desc>
       Type of deep convection scheme employed.  'ZM' for Zhang-McFarlane;
       'off' for none; or 'UNICON' which doesn't distinquish shallow and deep.
       Default: 'ZM' unless using 'UNICON', 'SPCAM' or 'pbl=none'
     </desc>
     <values>
-      <value>ZM</value>
+      <value>UNSET</value>
       <value silhs="1">off</value>
       <value unicon="1">UNICON</value>
       <value pbl="none">NONE</value>
@@ -5463,16 +5500,18 @@
     <type>char*16</type>
     <category>conv</category>
     <group>phys_ctl_nl</group>
-    <valid_values>NONE,RK,MG,SPCAM_m2005,SPCAM_sam1mom</valid_values>
+    <valid_values>UNSET,none,RK,MG,SPCAM_m2005,SPCAM_sam1mom</valid_values>
     <desc>
       Type of microphysics scheme employed.  'RK' for Rasch and Kristjansson
       (1998); 'MG' for Morrison and Gettelman (2008), Gettelman et al (2010)
       two moment scheme for CAM5 and CAM6
       SPCAM has two different microphysics schemes: SPCAM_m2005 (Morrison et al 2005),
       SPCAM_sam1mom (Khairoutinov 2003)
+      Default: UNSET
     </desc>
     <values>
-      <value>NONE</value>
+      <value>UNSET</value>
+      <value microphys="none">none</value>
       <value microphys="rk">RK</value>
       <value microphys="mg1">MG</value>
       <value microphys="mg2">MG</value>
@@ -5485,13 +5524,15 @@
     <type>char*16</type>
     <category>conv</category>
     <group>phys_ctl_nl</group>
-    <valid_values>none,park,RK,CLUBB_SGS</valid_values>
+    <valid_values>UNSET,none,park,RK,CLUBB_SGS</valid_values>
     <desc>
       Type of macrophysics scheme employed.  'park' for Park
       (1998); 'RK' for Rasch and Kristjansson (1998); 'CLUBB_SGS' clubb.
+      Default: UNSET
     </desc>
     <values>
-      <value>none</value>
+      <value>UNSET</value>
+      <value macrophys="none">none</value>
       <value macrophys="rk">rk</value>
       <value macrophys="park">park</value>
       <value macrophys="clubb_sgs">CLUBB_SGS</value>
@@ -5505,6 +5546,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for CLUBB_SGS
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -5516,7 +5558,7 @@
     <type>char*16</type>
     <category>conv</category>
     <group>phys_ctl_nl</group>
-    <valid_values>Hack,UW,CLUBB_SGS,UNICON,SPCAM_m2005,SPCAM_sam1mom</valid_values>
+    <valid_values>UNSET,NONE,Hack,UW,CLUBB_SGS,UNICON,SPCAM_m2005,SPCAM_sam1mom</valid_values>
     <desc>
       Type of shallow convection scheme employed.
        'Hack' for Hack shallow convection;
@@ -5525,9 +5567,10 @@
        'UNICON' which doesn't distinquish shallow and deep.
        'SPCAM_m2005' for SPCAM double moment
        'SPCAM_sam1mom' for SPCAM single moment
-      Default: UNKNOWN (depends on {{ hilight }}eddy_scheme{{ closehilight }}).
+      Default: UNSET
     </desc>
     <values>
+      <value>UNSET</value>
       <value pbl="none">NONE</value>
       <value pbl="uw">UW</value>
       <value pbl="uw" unicon="1">UNICON</value>
@@ -7048,6 +7091,9 @@
       climate.
       Default: fixed
     </desc>
+    <values>
+      <value>fixed</value>
+    </values>
   </entry>
 
 <!-- CARMA model - cirrus &amp; pmc -->
@@ -7210,13 +7256,16 @@
     <type>char*16</type>
     <category>build</category>
     <group>phys_ctl_nl</group>
-    <valid_values>cam3,cam4,cam5,cam6,adiabatic,held_suarez,kessler</valid_values>
+    <valid_values>UNSET,cam3,cam4,cam5,cam6,adiabatic,held_suarez,kessler</valid_values>
     <desc>
       Name of the CAM physics package.  N.B. this variable may not be set by
-      the user.  It is set by build-namelist via information in the configure
-      cache file to be consistent with how CAM was built.
-      Default: UNKNOWN
+      the user directly.  It is instead set by the compset or the CAM_CONFIG_OPTS
+      variable present in the case's env_build.xml file.
+      Default: UNSET
     </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
   </entry>
   <entry id="use_simple_phys">
     <type>logical</type>
@@ -7224,22 +7273,28 @@
     <group>phys_ctl_nl</group>
     <desc>
       Flag for simple physics package.  N.B. this variable may not be set by
-      the user.  It is set by build-namelist via information in the configure
-      cache file to be consistent with how CAM was built.
-      Default: UNKNOWN
+      the user.  It is instead set by the compset or the CAM_CONFIG_OPTS
+      variable present in the case's env_build.xml file.
+      Default: FALSE
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
   <entry id="cam_chempkg">
     <type>char*32</type>
     <category>build</category>
     <group>phys_ctl_nl</group>
-    <valid_values>trop_mam3,trop_mam4,trop_mam7,trop_mozart,trop_strat_mam4_vbs,trop_strat_mam4_vbsext,                                          waccm_ma,waccm_mad_mam4,waccm_ma_mam4,waccm_ma_sulfur,waccm_sc,waccm_sc_mam4,waccm_tsmlt_mam4,                                          terminator,none</valid_values>
+    <valid_values>UNSET,trop_mam3,trop_mam4,trop_mam7,trop_mozart,trop_strat_mam4_vbs,trop_strat_mam4_vbsext,waccm_ma,waccm_mad_mam4,waccm_ma_mam4,waccm_ma_sulfur,waccm_sc,waccm_sc_mam4,waccm_tsmlt_mam4,terminator,none</valid_values>
     <desc>
       Name of the CAM chemistry package.  N.B. this variable may not be set by
-      the user.  It is set by build-namelist via information in the configure
-      cache file to be consistent with how CAM was built.
-      Default: UNKNOWN
+      the user.  It is instead set by the compset or the CAM_CONFIG_OPTS
+      variable present in the case's env_build.xml file.
+      Default: UNSET
     </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
   </entry>
   <entry id="waccmx_opt">
     <type>char*16</type>
@@ -7250,6 +7305,7 @@
       Runtime options of upper thermosphere WACCM-X.  'ionosphere' for
       full ionosphere and neutral thermosphere, 'neutral' for just
       neutral thermosphere, and off for no WACCM-X.
+      Default: OFF
     </desc>
     <values>
       <value>off</value>
@@ -7363,7 +7419,7 @@
     </values>
   </entry>
   <entry id="epot_crit_colats">
-    <type>real*2</type>
+    <type>real(2)</type>
     <category>waccmx</category>
     <group>ionosphere_nl</group>
     <desc>
@@ -7484,6 +7540,7 @@
       If set to .true., turns on extra validation of physics_state objects
       in physics_update. Used mainly to track down which package is the
       source of invalid data in state.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7496,10 +7553,11 @@
     <type>integer</type>
     <category>pbl</category>
     <group>phys_ctl_nl</group>
-    <valid_values>0,1</valid_values>
+    <valid_values>0,1</valid_values> <!-- This should probably be converted to true/false -->
     <desc>
       Switch to turn on adjustment of the surface fluxes to reduce instabilities
       in the surface layer.  Set to 1 to turn on the adjustments.
+      Default: 0
     </desc>
     <values>
       <value>0</value>
@@ -7509,14 +7567,15 @@
     <type>char*16</type>
     <category>pbl</category>
     <group>phys_ctl_nl</group>
-    <valid_values>HB,diag_TKE,HBR,CLUBB_SGS,SPCAM_sam1mom,SPCAM_m2005</valid_values>
+    <valid_values>UNSET,HB,diag_TKE,HBR,CLUBB_SGS,SPCAM_sam1mom,SPCAM_m2005</valid_values>
     <desc>
       Type of eddy scheme employed by the vertical diffusion package.  'HB' for
       Holtslag and Boville; 'diag_TKE' for diagnostic tke version of Grenier and
       Bretherton; 'HBR' for Rasch modified version of 'HB'.
-      Default: UNKNOWN
+      Default: UNSET
     </desc>
     <values>
+      <value>UNSET</value>
       <value pbl="none">NONE</value>
       <value pbl="uw">diag_TKE</value>
       <value pbl="hb">HB</value>
@@ -7537,6 +7596,7 @@
       Switch to use new convective scavenging for modal aerosols.  This scheme
       replaces the call to ZM's convtran for the the modal aerosol number and
       mass mixing ratio constituents.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7551,6 +7611,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Produce output for the AMWG diagnostic package.
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
@@ -7562,6 +7623,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Produce output for the AMWG variability diagnostics.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7573,6 +7635,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for diagnostic output of the aerosol tendencies
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7584,6 +7647,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for diagnostic output of the aerosol optics
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7595,6 +7659,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for diagnostic output of eddy variables
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7606,6 +7671,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for cam4 T/Q budget diagnostic output
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7618,6 +7684,7 @@
     <valid_values>1,2,3,4,5,6</valid_values>
     <desc>
       History tape number T/Q budget output is written to.
+      Default: 1
     </desc>
     <values>
       <value>1</value>
@@ -7656,6 +7723,7 @@
     <desc>
       Switch for diagnostics specific to the current chemistry package or
       configuration.
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
@@ -7667,6 +7735,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for diagnostics specific to the current CARMA model.
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
@@ -7678,6 +7747,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for diagnostics specific to CLUBB.
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
@@ -7689,6 +7759,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch to turn on/off default output specific to CESM forcings.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7700,6 +7771,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch for diagnostics specific to dust.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7711,6 +7783,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch to turn on/off default output specific to WACCM-SC forcings.
+      Default: FALSE
     </desc>
     <values>
       <value>.false.</value>
@@ -7722,6 +7795,7 @@
     <group>phys_ctl_nl</group>
     <desc>
       Switch to turn on/off default output chemical species mixing ratios in the surface layer.
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
@@ -7733,8 +7807,11 @@
     <group>phys_ctl_nl</group>
     <desc>
       True when model is configured to use an offline driver.
-      Default: UNKNOWN.
+      Default: FALSE.
     </desc>
+    <values>
+      <value>.false.</value>
+    </values>
   </entry>
 
 <!-- Radiation -->
@@ -7742,11 +7819,16 @@
     <type>char*16</type>
     <category>radiation</category>
     <group>phys_ctl_nl</group>
-    <valid_values>rrtmg,camrt</valid_values>
+    <valid_values>UNSET,rrtmg,camrt</valid_values>
     <desc>
       Type of radiation scheme employed.
-      Default: UNKNOWN
+      Default: UNSET
     </desc>
+    <values>
+      <value>UNSET</value>
+      <value rad="rrtmg">rrtmg</value>
+      <value rad="camrt">camrt</value>
+    </values>
   </entry>
   <entry id="conv_water_in_rad">
     <type>integer</type>
@@ -7904,7 +7986,14 @@
       Default: UNKNOWN
     </desc>
   </entry>
-  <entry id="rad_climate">
+
+<!-- CIME doesn't allow for non-hardcoded integer array sizes.  Thus "n_rad_cnst"
+     can't be used here, unless CIME itself is modified, or unless CAM's
+     buildnml script is designed to automatically replace "n_rad_cnst"
+     with an actual integer value before the namlist definitions are used
+     by CIME. -->
+
+<!--  <entry id="rad_climate">
     <type>char*256(n_rad_cnst)</type>
     <category>radiation</category>
     <group>rad_cnst_nl</group>
@@ -8005,7 +8094,7 @@
       Analogous to rad_diag_1, but for the 10th diagnostic calculation.
       Default: none
     </desc>
-  </entry>
+  </entry> -->
   <entry id="rad_data_output">
     <type>logical</type>
     <category>radiation</category>
@@ -8098,12 +8187,13 @@
     <type>char*32</type>
     <category>radiation</category>
     <group>rad_cnst_nl</group>
-    <valid_values>slingo,gammadist</valid_values>
+    <valid_values>none,slingo,gammadist</valid_values>
     <desc>
       filepath and name for ice optics data for rrtmg
       Default: none
     </desc>
     <values>
+      <value>none</value>
       <value microphys="rk" rad="rrtmg">slingo</value>
       <value rad="rrtmg">gammadist</value>
     </values>
@@ -8112,12 +8202,13 @@
     <type>char*32</type>
     <category>radiation</category>
     <group>rad_cnst_nl</group>
-    <valid_values>ebertcurry,mitchell</valid_values>
+    <valid_values>none,ebertcurry,mitchell</valid_values>
     <desc>
       filepath and name for ice optics data for rrtmg
       Default: none
     </desc>
     <values>
+      <value>none</value>
       <value microphys="rk" rad="rrtmg">ebertcurry</value>
       <value rad="rrtmg">mitchell</value>
     </values>
@@ -8495,6 +8586,9 @@
       Can be set to "FIXED" or "SERIAL".
       Default: SERIAL
     </desc>
+    <values>
+      <value>SERIAL</value>
+    </values>
   </entry>
   <entry id="solar_data_ymd">
     <type>integer</type>
@@ -8590,9 +8684,10 @@
     <group>cam_initfiles_nl</group>
     <desc>
       Full pathname of time-invariant boundary dataset for topography fields.
-      Default: UNKNOWN.
+      Default: UNSET
     </desc>
     <values>
+      <value>UNSET</value>
       <value hgrid="256x512">atm/cam/topo/topo-from-cami_0000-01-01_256x512_L26_c030918.nc</value>
       <value hgrid="128x256">atm/cam/topo/USGS-gtopo30_128x256_c050520.nc</value>
       <value hgrid="64x128">atm/cam/topo/T42_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20180111.nc</value>
@@ -8640,6 +8735,7 @@
       Setting use_topo_file=.false. allows the user to specify that PHIS, SGH,
       SGH30, and LANDM_COSLAT are all zero without having to supply a topo file
       full of zeros.
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
@@ -11898,6 +11994,7 @@
       variable {{ hilight }}chem_rad_passive{{ closehilight }} to TRUE is that this variable
       will be set to FALSE (the deposition fluxes must be set to zero in order
       for the chemistry not to impact the climate).
+      Default: TRUE
     </desc>
     <values>
       <value>.true.</value>
