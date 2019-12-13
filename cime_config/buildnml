@@ -113,7 +113,7 @@ def buildnml(case, caseroot, compname):
         if not filecmp.cmp(file1, file2):
             call_config = True
     if call_config:
-        logger.info("     ...calling Config_CAM to set build time options")
+        logger.info("     ...calling ConfigCAM to set build time options")
         #create CAM  configure object:
         config = ConfigCAM(case, logger)
 
@@ -127,18 +127,26 @@ def buildnml(case, caseroot, compname):
     # Construct the namelist generator:
     #---------------------------------
 
-    #Determine directory for user modified namelist_definitions.xml and namelist_defaults.xml:
+    #Determine directory for user modified namelist_definition_cam.xml:
     user_xml_dir = os.path.join(caseroot, "SourceMods", "src.cam")
     expect(os.path.isdir(user_xml_dir),
-            "user_xml_dir %s does not exist " %user_xml_dir)
+           "user_xml_dir %s does not exist " %user_xml_dir)
 
     #User definition *replaces* existing definition:
-    definition_file = [os.path.join(cime_config_path, "namelist_definition_cam.xml")]
     user_definition = os.path.join(user_xml_dir, "namelist_definition_cam.xml")
     if os.path.isfile(user_definition):
+        #Print message to logger:
+        logger.info("     ...found namelist definition file in {}".format(user_xml_dir))
+
+        #Set definition file:
         definition_file = [user_definition]
-    for file_ in definition_file:
-        expect(os.path.isfile(file_), "Namelist XML file %s not found!" % file_)
+    else:
+        #If no user-defined file exists, then use standard file:
+        definition_file = [os.path.join(cime_config_path, "namelist_definition_cam.xml")]
+
+        #Check that the standard namelist file actually exists:
+        for file_ in definition_file:
+            expect(os.path.isfile(file_), "Namelist XML file %s not found!" % file_)
 
     #Create the namelist generator object - independent of instance:
     nmlgen = NamelistGenerator(case, definition_file)
@@ -217,7 +225,7 @@ def buildnml(case, caseroot, compname):
         #Determine location and name of "user_nl_cam" files:
         user_nl_file = os.path.join(caseroot, "user_nl_cam" + inst_string)
 
-        #Determin location and name of namelist input file:
+        #Determine location and name of namelist input file:
         namelist_infile = os.path.join(confdir, "namelist_infile")
 
         #Create CIME namelist input file:

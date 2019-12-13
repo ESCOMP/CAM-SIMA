@@ -5477,69 +5477,6 @@
 
 <!-- Moist Convection and Microphysics -->
 
-  <entry id="deep_scheme">
-    <type>char*16</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,ZM,UNICON,off,CLUBB_SGS</valid_values>
-    <desc>
-      Type of deep convection scheme employed.  'ZM' for Zhang-McFarlane;
-      'off' for none; or 'UNICON' which doesn't distinquish shallow and deep.
-      Default: 'ZM' unless using 'UNICON', 'SPCAM' or 'pbl=none'
-    </desc>
-    <values>
-      <value>UNSET</value>
-      <value silhs="1">off</value>
-      <value unicon="1">UNICON</value>
-      <value pbl="none">NONE</value>
-      <value phys="spcam_sam1mom">SPCAM</value>
-      <value phys="spcam_m2005">SPCAM</value>
-    </values>
-  </entry>
-  <entry id="microp_scheme">
-    <type>char*16</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,none,RK,MG,SPCAM_m2005,SPCAM_sam1mom</valid_values>
-    <desc>
-      Type of microphysics scheme employed.  'RK' for Rasch and Kristjansson
-      (1998); 'MG' for Morrison and Gettelman (2008), Gettelman et al (2010)
-      two moment scheme for CAM5 and CAM6
-      SPCAM has two different microphysics schemes: SPCAM_m2005 (Morrison et al 2005),
-      SPCAM_sam1mom (Khairoutinov 2003)
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
-      <value microphys="none">none</value>
-      <value microphys="rk">RK</value>
-      <value microphys="mg1">MG</value>
-      <value microphys="mg2">MG</value>
-      <value microphys="spcam_m2005">SPCAM_m2005</value>
-      <value microphys="spcam_sam1mom">SPCAM_sam1mom</value>
-      <value microphys="mg3">MG</value>
-    </values>
-  </entry>
-  <entry id="macrop_scheme">
-    <type>char*16</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,none,park,RK,CLUBB_SGS</valid_values>
-    <desc>
-      Type of macrophysics scheme employed.  'park' for Park
-      (1998); 'RK' for Rasch and Kristjansson (1998); 'CLUBB_SGS' clubb.
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
-      <value macrophys="none">none</value>
-      <value macrophys="rk">rk</value>
-      <value macrophys="park">park</value>
-      <value macrophys="clubb_sgs">CLUBB_SGS</value>
-      <value macrophys="spcam_sam1mom">SPCAM_sam1mom</value>
-      <value macrophys="spcam_m2005">SPCAM_m2005</value>
-    </values>
-  </entry>
   <entry id="do_clubb_sgs">
     <type>logical</type>
     <category>conv</category>
@@ -5552,33 +5489,6 @@
       <value>.false.</value>
       <value clubb_sgs="1">.true.</value>
       <value spcam_clubb_sgs="1">.true.</value>
-    </values>
-  </entry>
-  <entry id="shallow_scheme">
-    <type>char*16</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,NONE,Hack,UW,CLUBB_SGS,UNICON,SPCAM_m2005,SPCAM_sam1mom</valid_values>
-    <desc>
-      Type of shallow convection scheme employed.
-       'Hack' for Hack shallow convection;
-       'UW' for original McCaa UW pbl scheme, modified by Sungsu Park;
-       'CLUBB_SGS' for CLUBB_SGS
-       'UNICON' which doesn't distinquish shallow and deep.
-       'SPCAM_m2005' for SPCAM double moment
-       'SPCAM_sam1mom' for SPCAM single moment
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
-      <value pbl="none">NONE</value>
-      <value pbl="uw">UW</value>
-      <value pbl="uw" unicon="1">UNICON</value>
-      <value pbl="hb">Hack</value>
-      <value pbl="hbr">Hack</value>
-      <value pbl="clubb_sgs">CLUBB_SGS</value>
-      <value pbl="spcam_m2005">SPCAM</value>
-      <value pbl="spcam_sam1mom">SPCAM</value>
     </values>
   </entry>
   <entry id="do_beljaars">
@@ -7234,39 +7144,8 @@
     </values>
   </entry>
 
-<!-- Physics Buffer -->
-
-  <entry id="pbuf_global_allocate">
-    <type>logical</type>
-    <category>pbuf</category>
-    <group>pbuf_nl</group>
-    <desc>
-      Allocate all buffers as global.  This is a performance optimization on
-      machines for which allocation/deallocation of physpkg scope buffers on
-      every timestep was slow (Cray-X1).
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-
 <!-- Physics control -->
 
-  <entry id="cam_physpkg">
-    <type>char*16</type>
-    <category>build</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,cam3,cam4,cam5,cam6,adiabatic,held_suarez,kessler</valid_values>
-    <desc>
-      Name of the CAM physics package.  N.B. this variable may not be set by
-      the user directly.  It is instead set by the compset or the CAM_CONFIG_OPTS
-      variable present in the case's env_build.xml file.
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
-    </values>
-  </entry>
   <entry id="use_simple_phys">
     <type>logical</type>
     <category>build</category>
@@ -7279,21 +7158,6 @@
     </desc>
     <values>
       <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="cam_chempkg">
-    <type>char*32</type>
-    <category>build</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,trop_mam3,trop_mam4,trop_mam7,trop_mozart,trop_strat_mam4_vbs,trop_strat_mam4_vbsext,waccm_ma,waccm_mad_mam4,waccm_ma_mam4,waccm_ma_sulfur,waccm_sc,waccm_sc_mam4,waccm_tsmlt_mam4,terminator,none</valid_values>
-    <desc>
-      Name of the CAM chemistry package.  N.B. this variable may not be set by
-      the user.  It is instead set by the compset or the CAM_CONFIG_OPTS
-      variable present in the case's env_build.xml file.
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
     </values>
   </entry>
   <entry id="waccmx_opt">
@@ -7550,39 +7414,16 @@
 <!-- Planetary Boundary Layer and Vertical Diffusion -->
 
   <entry id="srf_flux_avg">
-    <type>integer</type>
+    <type>logical</type>
     <category>pbl</category>
     <group>phys_ctl_nl</group>
-    <valid_values>0,1</valid_values> <!-- This should probably be converted to true/false -->
     <desc>
       Switch to turn on adjustment of the surface fluxes to reduce instabilities
-      in the surface layer.  Set to 1 to turn on the adjustments.
-      Default: 0
+      in the surface layer.  Set to TRUE to turn on the adjustments.
+      Default: FALSE
     </desc>
     <values>
-      <value>0</value>
-    </values>
-  </entry>
-  <entry id="eddy_scheme">
-    <type>char*16</type>
-    <category>pbl</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,HB,diag_TKE,HBR,CLUBB_SGS,SPCAM_sam1mom,SPCAM_m2005</valid_values>
-    <desc>
-      Type of eddy scheme employed by the vertical diffusion package.  'HB' for
-      Holtslag and Boville; 'diag_TKE' for diagnostic tke version of Grenier and
-      Bretherton; 'HBR' for Rasch modified version of 'HB'.
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
-      <value pbl="none">NONE</value>
-      <value pbl="uw">diag_TKE</value>
-      <value pbl="hb">HB</value>
-      <value pbl="hbr">HBR</value>
-      <value pbl="clubb_sgs">CLUBB_SGS</value>
-      <value pbl="spcam_m2005">SPCAM_m2005</value>
-      <value pbl="spcam_sam1mom">SPCAM_sam1mom</value>
+      <value>.false.</value>
     </values>
   </entry>
 
@@ -7815,21 +7656,6 @@
   </entry>
 
 <!-- Radiation -->
-  <entry id="radiation_scheme">
-    <type>char*16</type>
-    <category>radiation</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>UNSET,rrtmg,camrt</valid_values>
-    <desc>
-      Type of radiation scheme employed.
-      Default: UNSET
-    </desc>
-    <values>
-      <value>UNSET</value>
-      <value rad="rrtmg">rrtmg</value>
-      <value rad="camrt">camrt</value>
-    </values>
-  </entry>
   <entry id="conv_water_in_rad">
     <type>integer</type>
     <category>radiation</category>

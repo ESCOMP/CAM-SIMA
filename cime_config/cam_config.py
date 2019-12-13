@@ -45,6 +45,7 @@ class ConfigGen:
     Inputs to initalize class are:
     name -> Name of new CAM configure option
     desc -> Text description of CAM configure option
+    is_nml_attr (optional) -> Logical that determines if option is also a namelist attribute (defaut is False)
 
     Doctests:
 
@@ -52,10 +53,14 @@ class ConfigGen:
 
     >>> ConfigGen("test", "test object description").name
     'test'
+
     >>> ConfigGen("test", "test object description").desc
     'test object description'
 
-    2.  Check that inputs must be strings:
+    >>> ConfigGen("test", "test object description", is_nml_attr=True).is_nml_attr
+    True
+
+    2.  Check that non-optional inputs must be strings:
 
     >>> ConfigGen(5, "test_object_description").name #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
@@ -67,7 +72,7 @@ class ConfigGen:
 
     """
 
-    def __init__(self, name, desc):
+    def __init__(self, name, desc, is_nml_attr=False):
 
         #Check that "name" is a string:
         if not isinstance(name, str):
@@ -77,9 +82,10 @@ class ConfigGen:
         if not isinstance(desc, str):
             raise CamConfigTypeError("ERROR:  Configuration variable, '{}', must have a string-type description, not {}".format(name, type(desc)))
 
-        #Add name and description to object:
+        #Add name, description, and namelist attribute logical to object:
         self.__name = name
         self.__desc = desc
+        self.__is_nml_attr = is_nml_attr
 
     #++++++++++++++++++++++++
 
@@ -93,6 +99,11 @@ class ConfigGen:
     def desc(self):
         """Return the description of this config object"""
         return self.__desc
+
+    @property
+    def is_nml_attr(self):
+        """Return the namelist attribute logical of this config object"""
+        return self.__is_nml_attr
 
 ####################################################################################
 
@@ -127,7 +138,7 @@ class ConfigInteger(ConfigGen):
     [4, 5, 6]
 
     With namelist attribute set to "True":
-    >>> ConfigInteger("test", "test object description", 5, [4, 5, 6], True).is_nml_attr
+    >>> ConfigInteger("test", "test object description", 5, [4, 5, 6], is_nml_attr=True).is_nml_attr
     True
 
     2.  Check that valid_vals must be None, a tuple, or a list:
@@ -184,7 +195,7 @@ class ConfigInteger(ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         #Add generic attributes:
-        ConfigGen.__init__(self, name, desc)
+        ConfigGen.__init__(self, name, desc, is_nml_attr)
 
         #Check that "valid_vals" is either "None", a list, or a tuple:
         if valid_vals is not None:
@@ -205,12 +216,9 @@ class ConfigInteger(ConfigGen):
         #If everything is ok, then add provided value to object:
         self.__value = val
 
-        #Finally, add namelist information:
-        self.__is_nml_attr = is_nml_attr
-
     #++++++++++++++++++++++++
 
-    #Create properties needed to return name and description without underscores:
+    #Create properties needed to return given value and valid values without underscores:
     @property
     def value(self):
         """Return the value of this config object"""
@@ -220,11 +228,6 @@ class ConfigInteger(ConfigGen):
     def valid_vals(self):
         """Return the valid values of this config object"""
         return self.__valid_vals
-
-    @property
-    def is_nml_attr(self):
-        """Return the namelist attribute logical of this config object"""
-        return self.__is_nml_attr
 
     #++++++++++++++++++++++++
 
@@ -330,7 +333,7 @@ class ConfigString(ConfigGen):
     'test_val'
 
     With namelist attribute set to "True":
-    >>> ConfigString("test", "test_object description", "test_val", re.compile(r"test_val"), True).is_nml_attr
+    >>> ConfigString("test", "test_object description", "test_val", re.compile(r"test_val"), is_nml_attr=True).is_nml_attr
     True
 
     2. Check that valid_vals must be either None, a list, or a regular expression:
@@ -362,7 +365,7 @@ class ConfigString(ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         #Add generic attributes:
-        ConfigGen.__init__(self, name, desc)
+        ConfigGen.__init__(self, name, desc, is_nml_attr)
 
         #Check if Valid_vals is not None:
         if valid_vals is not None:
@@ -384,12 +387,9 @@ class ConfigString(ConfigGen):
         #If everything is ok, then add provided value to object:
         self.__value = val
 
-        #Finally, add namelist information:
-        self.__is_nml_attr = is_nml_attr
-
     #++++++++++++++++++++++++
 
-    #Create properties needed to return name and description without underscores:
+    #Create properties needed to return given value and valid values without underscores:
     @property
     def value(self):
         """Return the value of this config object"""
@@ -399,11 +399,6 @@ class ConfigString(ConfigGen):
     def valid_vals(self):
         """Return the valid values of this config object"""
         return self.__valid_vals
-
-    @property
-    def is_nml_attr(self):
-        """Return the namelist attribute logical of this config object"""
-        return self.__is_nml_attr
 
     #++++++++++++++++++++++++
 
@@ -550,10 +545,10 @@ class ConfigCAM:
         #-----------------------------------------------
 
         #Create empty dictonary:
-        self.config_dict = dict()
+        self.__config_dict = dict()
 
         #Create namelist group list, starting with default namelist groups:
-        self.nml_groups = ['cam_initfiles_nl', 'phys_ctl_nl', 'qneg_nl']
+        self.__nml_groups = ['cam_initfiles_nl', 'phys_ctl_nl', 'qneg_nl']
 
         #----------------------------------------
         # Set CAM grid variables (nlat,nlon,nlev):
@@ -569,7 +564,7 @@ class ConfigCAM:
 
         # Add vertical levels to configure object:
         nlev_desc = "Number of vertical levels."
-        self.create_config("nlev", nlev_desc, nlev, None, True)  #"nlev" is a namelist attribute
+        self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)  #"nlev" is a namelist attribute
 
         # Add number of latitudes in grid to configure object:
         nlat_desc = "Number of unique latitude points in rectangular lat/lon grid."
@@ -613,33 +608,33 @@ class ConfigCAM:
         #If so, then add both the horizontal grid and dynamical core to the configure object:
         if fv_grid_re.match(atm_grid) is not None:
             #Dynamical core:
-            self.create_config("dyn", dyn_desc, "fv", dyn_valid_vals, True)     #"dyn" is a namelist attribute
+            self.create_config("dyn", dyn_desc, "fv", dyn_valid_vals, is_nml_attr=True)     #"dyn" is a namelist attribute
             #Horizontal grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, fv_grid_re, True) #'hgrid" is a namelist attribute
+            self.create_config("hgrid", hgrid_desc, atm_grid, fv_grid_re, is_nml_attr=True) #'hgrid" is a namelist attribute
 
         elif se_grid_re.match(atm_grid) is not None:
             #Dynamical core:
-            self.create_config("dyn", dyn_desc, "se", dyn_valid_vals, True)
+            self.create_config("dyn", dyn_desc, "se", dyn_valid_vals, is_nml_attr=True)
             #Horizontal grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, se_grid_re, True)
+            self.create_config("hgrid", hgrid_desc, atm_grid, se_grid_re, is_nml_attr=True)
 
         elif fv3_grid_re.match(atm_grid) is not None:
             #Dynamical core:
-            self.create_config("dyn", dyn_desc, "fv3", dyn_valid_vals, True)
+            self.create_config("dyn", dyn_desc, "fv3", dyn_valid_vals, is_nml_attr=True)
             #Horizontal grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, fv3_grid_re, True)
+            self.create_config("hgrid", hgrid_desc, atm_grid, fv3_grid_re, is_nml_attr=True)
 
         elif mpas_grid_re.match(atm_grid) is not None:
             #Dynamical core:
-            self.create_config("dyn", dyn_desc, "mpas", dyn_valid_vals, True)
+            self.create_config("dyn", dyn_desc, "mpas", dyn_valid_vals, is_nml_attr=True)
             #Horizontal grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, mpas_grid_re, True)
+            self.create_config("hgrid", hgrid_desc, atm_grid, mpas_grid_re, is_nml_attr=True)
 
         elif eul_grid_re.match(atm_grid) is not None:
             #Dynamical core:
-            self.create_config("dyn", dyn_desc, "eul", dyn_valid_vals, True)
+            self.create_config("dyn", dyn_desc, "eul", dyn_valid_vals, is_nml_attr=True)
             #Horizontal grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, eul_grid_re, True)
+            self.create_config("hgrid", hgrid_desc, atm_grid, eul_grid_re, is_nml_attr=True)
 
             #If using the Eulerian dycore, then add wavenumber variables as well:
 
@@ -655,9 +650,9 @@ class ConfigCAM:
 
         elif atm_grid == "null":
             #Dynamical core:
-            self.create_config("dyn", dyn_desc, "none", dyn_valid_vals, True)
+            self.create_config("dyn", dyn_desc, "none", dyn_valid_vals, is_nml_attr=True)
             #Atmospheric grid:
-            self.create_config("hgrid", hgrid_desc, atm_grid, None, True)
+            self.create_config("hgrid", hgrid_desc, atm_grid, None, is_nml_attr=True)
 
         else:
             raise CamConfigValError("ERROR:  The specified CAM horizontal grid, '{}', does not match any expected value".format(atm_grid))
@@ -682,7 +677,7 @@ class ConfigCAM:
                 This doesn't impact how the case is built, only how \n \
                 attributes are matched when searching for namelist defaults."
 
-        self.create_config("ocn", ocn_desc, comp_ocn, ocn_valid_vals, True)  #"ocn" is a namelist attribute
+        self.create_config("ocn", ocn_desc, comp_ocn, ocn_valid_vals, is_nml_attr=True)  #"ocn" is a namelist attribute
 
         #--------------------------------------------------------
         # Print CAM configure settings and values to debug logger:
@@ -722,10 +717,27 @@ class ConfigCAM:
             case.flush()
 
     #++++++++++++++++++++
-    #Config_CAM functions:
+    #ConfigCAM properties
     #++++++++++++++++++++
 
-    def create_config(self, name, desc, val, valid_vals=None, nml_attr=False):
+    #Create properties needed to return configure dictionary
+    # and namelist groups list without underscores:
+    @property
+    def config_dict(self):
+        """Return the configure dictionary of this object"""
+        return self.__config_dict
+
+    @property
+    def nml_groups(self):
+        """Return the namelist groups list of this object"""
+        return self.__nml_groups
+
+
+    #+++++++++++++++++++
+    #ConfigCAM functions:
+    #+++++++++++++++++++
+
+    def create_config(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         """
         Create new CAM "configure" object, and add it
@@ -735,11 +747,11 @@ class ConfigCAM:
         #Check for given value type:
         if isinstance(val, int):
             #If integer, then call integer configure object:
-            conf_obj = ConfigInteger(name, desc, val, valid_vals, nml_attr)
+            conf_obj = ConfigInteger(name, desc, val, valid_vals, is_nml_attr)
 
         elif isinstance(val, str):
             #If string, then call string configure object:
-            conf_obj = ConfigString(name, desc, val, valid_vals, nml_attr)
+            conf_obj = ConfigString(name, desc, val, valid_vals, is_nml_attr)
 
         else:
             #If neither an integer or a string, then throw an error:
@@ -751,7 +763,7 @@ class ConfigCAM:
             raise CamConfigValError("ERROR:  The CAM config variable, '{}', already exists!  Any new config variable must be given a different name".format(name))
 
         #If not, then add object to dictionary:
-        self.config_dict[name] = conf_obj
+        self.__config_dict[name] = conf_obj
 
     #++++++++++++++++++++++++
 
