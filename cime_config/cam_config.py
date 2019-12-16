@@ -195,7 +195,7 @@ class ConfigInteger(ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         #Add generic attributes:
-        ConfigGen.__init__(self, name, desc, is_nml_attr)
+        ConfigGen.__init__(self, name, desc, is_nml_attr=is_nml_attr)
 
         #Check that "valid_vals" is either "None", a list, or a tuple:
         if valid_vals is not None:
@@ -365,7 +365,7 @@ class ConfigString(ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         #Add generic attributes:
-        ConfigGen.__init__(self, name, desc, is_nml_attr)
+        ConfigGen.__init__(self, name, desc, is_nml_attr=is_nml_attr)
 
         #Check if Valid_vals is not None:
         if valid_vals is not None:
@@ -747,11 +747,11 @@ class ConfigCAM:
         #Check for given value type:
         if isinstance(val, int):
             #If integer, then call integer configure object:
-            conf_obj = ConfigInteger(name, desc, val, valid_vals, is_nml_attr)
+            conf_obj = ConfigInteger(name, desc, val, valid_vals, is_nml_attr=is_nml_attr)
 
         elif isinstance(val, str):
             #If string, then call string configure object:
-            conf_obj = ConfigString(name, desc, val, valid_vals, is_nml_attr)
+            conf_obj = ConfigString(name, desc, val, valid_vals, is_nml_attr=is_nml_attr)
 
         else:
             #If neither an integer or a string, then throw an error:
