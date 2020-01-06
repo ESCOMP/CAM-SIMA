@@ -242,17 +242,17 @@
     <variable local_name="ix_qv"
               standard_name="index_of_water_vapor_specific_humidity"
               units="count" type="integer">
-      <initial_value>None</initial_value>
+      <initial_value>1</initial_value>
     </variable>
     <variable local_name="ix_cld_liq"
               standard_name="index_of_cloud_liquid_water_mixing_ratio"
               units="count" type="integer">
-      <initial_value>None</initial_value>
+      <initial_value>2</initial_value>
     </variable>
     <variable local_name="ix_cld_ice"
               standard_name="index_of_rain_water_mixing_ratio"
               units="count" type="integer">
-      <initial_value>None</initial_value>
+      <initial_value>3</initial_value>
     </variable>
   </file>
 </registry>

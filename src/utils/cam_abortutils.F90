@@ -114,6 +114,8 @@ CONTAINS
       character(len=max_chars)               :: abort_msg
       type(open_file_pointer), pointer       :: of_ptr
 
+!!XXgoldyXX: v broken
+# if 0
       ! First, close all open PIO files
       of_ptr => open_files_head
       do while (associated(of_ptr))
@@ -122,6 +124,8 @@ CONTAINS
               log_shutdown_in="Emergency close")
          of_ptr => of_ptr%next
       end do
+#endif
+!!XXgoldyXX: ^ debug only
       if (present(file) .and. present(line)) then
          write(abort_msg, *) trim(message),' at ',trim(file),':',line
       else if (present(file)) then

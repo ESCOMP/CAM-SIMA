@@ -1197,7 +1197,7 @@ contains
          call endrun('Failed to open file,'//trim(fname)//', to write')
       else if(pio_iotask_rank(pio_subsystem) == 0) then
          write(iulog, *) 'Opened file ', trim(fname),  ' to write', file%fh
-         call cam_register_open_file(file, trim(fname))
+!         call cam_register_open_file(file, trim(fname))
       end if
 
    end subroutine cam_pio_createfile

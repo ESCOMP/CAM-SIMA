@@ -81,10 +81,7 @@ CONTAINS
    subroutine phys_run1(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
       use cam_abortutils, only: endrun
       use physics_types,  only: physics_state, physics_tend
-      use physics_grid,   only: columns_on_task
       use camsrfexch,     only: cam_in_t, cam_out_t
-      use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
-      use cam_ccpp_cap,   only: cam_ccpp_physics_run
 
       ! Dummy arguments
       real(kind_phys),     intent(in)    :: dtime_phys
@@ -92,35 +89,16 @@ CONTAINS
       type(physics_tend),  intent(inout) :: phys_tend
       type(cam_in_t),      intent(inout) :: cam_in
       type(cam_out_t),     intent(inout) :: cam_out
-      ! Local variables
-      character(len=512)                 :: errmsg
-      integer                            :: errflg = 0
-      integer                            :: part_ind
-      integer                            :: col_start
-      integer                            :: col_end
 
-      ! Initialize the physics timestep
-      call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
-           errmsg, errflg)
-      if (errflg /= 0) then
-         call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
-      end if
-      ! Threading vars
-      col_start = 1
-      col_end = columns_on_task
-      do part_ind = 1, len(suite_parts)
-         call cam_ccpp_physics_run(suite_name, suite_parts(part_ind),         &
-              col_start, col_end, dtime_phys, errmsg, errflg)
-         if (errflg /= 0) then
-            call endrun('cam_ccpp_physics_run: '//trim(errmsg))
-         end if
-      end do
    end subroutine phys_run1
 
    subroutine phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
       use cam_abortutils, only: endrun
       use physics_types,  only: physics_state, physics_tend
+      use physics_grid,   only: columns_on_task
       use camsrfexch,     only: cam_in_t, cam_out_t
+      use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
+      use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
 
       ! Dummy arguments
@@ -132,7 +110,28 @@ CONTAINS
       ! Local variables
       character(len=512) :: errmsg
       integer            :: errflg = 0
+      integer                            :: part_ind
+      integer                            :: col_start
+      integer                            :: col_end
 
+      ! Initialize the physics time step
+      call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
+           errmsg, errflg)
+      if (errflg /= 0) then
+         call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
+      end if
+      ! Threading vars
+      col_start = 1
+      col_end = columns_on_task
+      ! Run CCPP suite
+      do part_ind = 1, size(suite_parts, 1)
+         call cam_ccpp_physics_run(suite_name, suite_parts(part_ind),         &
+              col_start, col_end, dtime_phys, errmsg, errflg)
+         if (errflg /= 0) then
+            call endrun('cam_ccpp_physics_run: '//trim(errmsg))
+         end if
+      end do
+      ! Finalize the time step
       call cam_ccpp_physics_timestep_final(suite_name, dtime_phys,            &
            errmsg, errflg)
       if (errflg /= 0) then

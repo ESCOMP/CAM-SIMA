@@ -82,8 +82,8 @@ module atm_comp_mct
    ! rsfilename_spec_cam: Filename specifier for restart surface file
    character(len=cl)                :: rsfilename_spec_cam
 
-   integer,                 pointer :: dof(:) ! PIO decomp for restarts
-   type(seq_infodata_type), pointer :: infodata
+   integer,                 pointer :: dof(:) => NULL() ! PIO decomp 4 restarts
+   type(seq_infodata_type), pointer :: infodata => NULL()
 
    logical                          :: dart_mode = .false.
 
@@ -757,6 +757,7 @@ CONTAINS
       type(mct_string)         :: mstring       ! mct char type
       !-----------------------------------------------------------------------
 
+      nullify(iodesc)
       ! Determine and open surface restart dataset
 
       call seq_timemgr_EClockGetData(EClock, curr_yr=yr_spec,                 &
@@ -778,6 +779,7 @@ CONTAINS
       call cam_get_file(pname_srf_cam, fname_srf_cam)
 
       call cam_pio_openfile(File, fname_srf_cam, 0)
+      allocate(iodesc)
       call cam_pio_newdecomp(iodesc, (/ ngcols /), int(dof, PIO_OFFSET_KIND), &
            pio_double)
       allocate(tmp(size(dof)))
@@ -815,7 +817,8 @@ CONTAINS
          a2x_a%rattr(k,:) = tmp(:)
       end do
 
-      call pio_freedecomp(File,iodesc)
+      call pio_freedecomp(File, iodesc)
+      deallocate(iodesc)
       call cam_pio_closefile(File)
       deallocate(tmp)
 
@@ -856,11 +859,13 @@ real(r8) :: fillvalue = 9.87e36_r8
       type(mct_string)          :: mstring       ! mct char type
       !-----------------------------------------------------------------------
 
+      nullify(iodesc)
       fname_srf_cam = interpret_filename_spec(rsfilename_spec_cam,            &
            yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec,             &
            sec_spec= sec_spec)
 
       call cam_pio_createfile(File, fname_srf_cam, 0)
+      allocate(iodesc)
       call cam_pio_newdecomp(iodesc, (/ ngcols /), int(dof, PIO_OFFSET_KIND), &
            pio_double)
 
@@ -905,6 +910,7 @@ real(r8) :: fillvalue = 9.87e36_r8
       deallocate(varid_x2a, varid_a2x)
 
       call pio_freedecomp(File, iodesc)
+      deallocate(iodesc)
       call cam_pio_closefile(file)
 
    end subroutine atm_write_srfrest_mct

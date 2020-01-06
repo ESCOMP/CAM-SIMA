@@ -308,7 +308,7 @@ CONTAINS
    !===========================================================================
 
    subroutine get_dyn_grid_info(hdim1_d, hdim2_d, num_lev,                    &
-        dycore_name, dyn_columns)
+        dycore_name, index_model_top_layer, index_surface_layer, dyn_columns)
       use shr_const_mod,  only: SHR_CONST_PI
       use cam_abortutils, only: endrun
       use spmd_utils,     only: iam
@@ -317,6 +317,8 @@ CONTAINS
       integer,          intent(out)   :: hdim2_d ! # latitudes or 1
       integer,          intent(out)   :: num_lev ! # levels
       character(len=*), intent(out)   :: dycore_name
+      integer,          intent(out)   :: index_model_top_layer
+      integer,          intent(out)   :: index_surface_layer
       type(physics_column_t), pointer :: dyn_columns(:) ! Phys col in Dyn decomp
       ! Local variables
       integer                         :: lindex
@@ -333,6 +335,8 @@ CONTAINS
       hdim2_d = num_lats
       num_lev = num_levels
       dycore_name = 'NULL'
+      index_model_top_layer = 1
+      index_surface_layer = num_levels
       do lindex = 1, num_local_columns
          if (allocated(local_lats_rad)) then
             dyn_columns(lindex)%lat_rad = local_lats_rad(lindex)

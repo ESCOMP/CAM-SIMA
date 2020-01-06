@@ -41,7 +41,7 @@ module physics_grid
    integer,          protected, public :: pverp = 0
    integer,          protected, public :: num_global_phys_cols = 0
    integer,          protected, public :: columns_on_task = 0
-   integer,          protected, public :: index_top_layer = 1
+   integer,          protected, public :: index_top_layer = 0
    integer,          protected, public :: index_bottom_layer = 0
    integer,          protected, public :: index_top_interface = 1
    integer,          protected, public :: index_bottom_interface = 0
@@ -95,12 +95,23 @@ CONTAINS
       call t_startf("phys_grid_init")
 
       ! Gather info from the dycore
-      call get_dyn_grid_info(hdim1_d, hdim2_d, pver, dycore_name, dyn_columns)
+      call get_dyn_grid_info(hdim1_d, hdim2_d, pver, dycore_name,             &
+           index_top_layer, index_bottom_layer, dyn_columns)
       num_global_phys_cols = hdim1_d * hdim2_d
       pverp = pver + 1
       first_dyn_column = LBOUND(dyn_columns, 1)
       last_dyn_column = UBOUND(dyn_columns, 1)
       unstructured = hdim2_d <= 1
+      !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
+      !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
+      !!XXgoldyXX: This only has a 50% chance of working on a single level model
+      if (index_top_layer < index_bottom_layer) then
+         index_top_interface = index_top_layer
+         index_bottom_interface = index_bottom_layer + 1
+      else
+         index_bottom_interface = index_bottom_layer
+         index_top_interface = index_top_layer + 1
+      end if
 
       ! Set up the physics decomposition
       columns_on_task = size(dyn_columns)

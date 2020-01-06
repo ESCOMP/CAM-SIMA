@@ -172,11 +172,7 @@ class VarBase(object):
         and/or one of its array elements."""
         var_name = '{}{}'.format(ddt_str, self.local_name)
         if self.initial_value:
-            if self.initial_value.lower() == 'none':
-                init_val = ''
-            else:
-                init_val = self.initial_value
-            # End if
+            init_val = self.initial_value
         elif self.var_type.lower() == 'real':
             init_val = 'nan'
         elif self.var_type.lower() == 'integer':
@@ -517,7 +513,7 @@ class Variable(VarBase):
         # End if
         type_str = self.type_string + tpad
         # Initial value
-        if self.initial_value and (self.initial_value.lower() != 'none'):
+        if self.initial_value:
             if self.allocatable == "pointer":
                 init_str = " => {}".format(self.initial_value)
             elif not (self.allocatable[0:11] == 'allocatable'):
