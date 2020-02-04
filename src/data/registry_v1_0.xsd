@@ -108,12 +108,43 @@
 
   <!-- definition of complex types -->
 
-  <xs:complexType name="variable_type">
-    <xs:all>
-      <xs:element name="dimensions"    type="dimensions" minOccurs="0"/>
+  <xs:complexType name="array_element_type">
+    <xs:sequence>
       <xs:element name="long_name"     type="xs:string"  minOccurs="0"/>
       <xs:element name="initial_value" type="xs:string"  minOccurs="0"/>
-    </xs:all>
+    </xs:sequence>
+    <xs:attribute name="standard_name" type="standard_name_type"
+                  use="required"/>
+    <xs:attribute name="index_name"    type="standard_name_type"
+                  use="required"/>
+    <xs:attribute name="index_pos"     type="standard_name_type"
+                  use="required"/>
+    <xs:attribute ref="units"          use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="variable_type">
+    <xs:sequence>
+      <xs:element name="long_name"     type="xs:string"  minOccurs="0"/>
+      <xs:element name="dimensions"    type="dimensions" minOccurs="0"/>
+      <xs:element name="initial_value" type="xs:string"  minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute ref="local_name"    use="required"/>
+    <xs:attribute ref="standard_name" use="required"/>
+    <xs:attribute ref="units"         use="required"/>
+    <xs:attribute ref="type"          use="required"/>
+    <xs:attribute ref="kind"          use="optional" default=""/>
+    <xs:attribute ref="allocatable"   use="optional" default="none"/>
+    <xs:attribute ref="access"        use="optional" default="public"/>
+  </xs:complexType>
+
+  <xs:complexType name="array_type">
+    <xs:sequence>
+      <xs:element name="long_name"     type="xs:string"   minOccurs="0"/>
+      <xs:element name="dimensions"    type="dimensions"  minOccurs="0"/>
+      <xs:element name="initial_value" type="xs:string"   minOccurs="0"/>
+      <xs:element name="element"       type="array_element_type"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
     <xs:attribute ref="local_name"    use="required"/>
     <xs:attribute ref="standard_name" use="required"/>
     <xs:attribute ref="units"         use="required"/>
@@ -157,6 +188,7 @@
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element name="use"      type="use_type"/>
           <xs:element name="variable" type="variable_type"/>
+          <xs:element name="array"    type="array_type"/>
           <xs:element name="ddt"      type="ddt_type"/>
         </xs:choice>
       </xs:sequence>

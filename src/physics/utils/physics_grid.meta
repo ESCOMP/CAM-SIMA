@@ -1,0 +1,65 @@
+[ccpp-arg-table]
+  name = physics_grid
+  type = module
+[ num_global_phys_cols ]
+  standard_name = number_of_global_points
+  long_name = global number of columns
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ columns_on_task ]
+  standard_name = horizontal_dimension
+  long_name = number of columns on MPI task
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ pver ]
+  standard_name = vertical_layer_dimension
+  long_name = number of vertical layers
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ pverp ]
+  standard_name = vertical_interface_dimension
+  long_name = number of vertical layer interfaces
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ index_top_layer ]
+  standard_name = index_of_top_vertical_layer
+  long_name = Vertical coordinate index for uppermost layer
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ index_bottom_layer ]
+  standard_name = index_of_bottom_vertical_layer
+  long_name = Vertical coordinate index for lowest layer
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ index_top_interface ]
+  standard_name = index_of_top_vertical_interface
+  long_name = Vertical coordinate index for uppermost interface
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ index_bottom_interface ]
+  standard_name = index_of_bottom_vertical_interface
+  long_name = Vertical coordinate index for lowest interface
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ phys_grid_initialized ]
+  standard_name = test_of_physics_grid_initialization
+  units = flag
+  dimensions = ()
+  type = logical
+  protected = True

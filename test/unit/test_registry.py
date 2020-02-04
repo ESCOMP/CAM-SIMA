@@ -93,7 +93,8 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
         # Run test
-        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+        retcode = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+                               loglevel=logging.ERROR,
                                error_on_no_validate=True)
         # Check return code
         self.assertEqual(retcode, 0)
@@ -127,7 +128,8 @@ class RegistryTest(unittest.TestCase):
             remove_files([out_source, out_meta])
             # Run dycore
             retcode = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
-                                   logging.ERROR, error_on_no_validate=True)
+                                   ,
+                               loglevel=logging.ERROR, error_on_no_validate=True)
             # Check return code
             amsg = "Test failure for dycore = {}".format(dycore)
             self.assertEqual(retcode, 0, msg=amsg)
@@ -169,7 +171,8 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode = gen_registry(filename, 'se', {}, _TMP_DIR, 2, logging.ERROR,
+        retcode = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                               loglevel=logging.ERROR,
                                error_on_no_validate=True)
         # Check return code
         self.assertEqual(retcode, 0)
@@ -225,7 +228,8 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+        retcode = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                               loglevel=logging.ERROR,
                                error_on_no_validate=True)
         # Check return code
         self.assertEqual(retcode, 0)
@@ -261,7 +265,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # Check exception message
         emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
@@ -304,7 +309,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # Check exception message
         emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
@@ -348,7 +354,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # Check exception message
         emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
@@ -392,7 +399,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -436,7 +444,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -485,7 +494,8 @@ class RegistryTest(unittest.TestCase):
         # Run test
         vmsg = 'Failed to flag a duplicate DDT type'
         with self.assertRaises(ValueError, msg=vmsg) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -525,7 +535,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -565,7 +576,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -606,7 +618,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -654,7 +667,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -697,7 +711,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -739,7 +754,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message
@@ -782,7 +798,8 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2, logging.ERROR,
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # End with
         # Check exception message

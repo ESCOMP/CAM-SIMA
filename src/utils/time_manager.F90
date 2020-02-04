@@ -1,20 +1,28 @@
 module time_manager
 
-! Provide CAM specific time management.  This is a wrapper layer for the ESMF
-! time manager utility.
+   ! Provide CAM specific time management.  This is a wrapper layer for the ESMF
+   ! time manager utility.
 
-use ESMF
+   use ESMF,           only: ESMF_Calendar, ESMF_CalendarCreate
+   use ESMF,           only: ESMF_SUCCESS, ESMF_KIND_I8, ESMF_CalKind_Flag
+   use ESMF,           only: ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
+   use ESMF,           only: ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
+   use ESMF,           only: ESMF_TimeInterval
+   use ESMF,           only: ESMF_TimeIntervalGet, ESMF_TimeIntervalSet
+   use ESMF,           only: ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet
+   use ESMF,           only: ESMF_ClockAdvance
+   use ESMF,           only: operator(>), operator(>=), operator(<=)
+   use ESMF,           only: operator(+),  operator(-)
+   use shr_kind_mod,   only: r8 => shr_kind_r8, SHR_KIND_CS
+   use shr_cal_mod,    only: shr_cal_noleap, shr_cal_gregorian
+   use spmd_utils,     only: masterproc
+   use string_utils,   only: to_upper
+   use cam_abortutils, only: endrun
+   use cam_logfile,    only: iulog
 
-use shr_kind_mod,     only: r8 => shr_kind_r8, SHR_KIND_CS
-use shr_cal_mod,      only: shr_cal_noleap, shr_cal_gregorian
-use spmd_utils,       only: masterproc
-use string_utils,     only: to_upper
-use cam_abortutils,   only: endrun
-use cam_logfile,      only: iulog
-
-implicit none
-private
-save
+   implicit none
+   private
+   save
 
 ! Public methods
 
@@ -57,12 +65,11 @@ integer :: dtime = uninit_int               ! timestep in seconds
 character(len=32) :: calendar               ! Calendar type
 logical :: tm_first_restart_step = .false.  ! true for first step of a restart or branch run
 logical :: tm_perp_calendar = .false.       ! true when using perpetual calendar
-integer :: cal_type = uninit_int            ! calendar type
 
 ! The target attribute for tm_cal is needed (at least by NAG) because there are
 ! pointers to this object inside ESMF_Time objects.
 type(ESMF_Calendar), target :: tm_cal        ! calendar
-type(ESMF_Clock)            :: tm_clock      ! Model clock   
+type(ESMF_Clock)            :: tm_clock      ! Model clock
 type(ESMF_Time)             :: tm_perp_date  ! perpetual date
 
 !=========================================================================================
@@ -93,7 +100,6 @@ subroutine timemgr_init( &
 
    ! Local variables
    character(len=*), parameter :: sub = 'timemgr_init'
-   integer :: rc                            ! return code
    type(ESMF_Time) :: start_date            ! start date for run
    type(ESMF_Time) :: stop_date             ! stop date for run
    type(ESMF_Time) :: curr_date             ! temporary date used in logic
@@ -145,7 +151,7 @@ subroutine timemgr_init( &
 
 end subroutine timemgr_init
 
-!=========================================================================================
+!===========================================================================
 
 subroutine initialize_clock( start_date, ref_date, curr_date, stop_date )
 
@@ -166,7 +172,7 @@ subroutine initialize_clock( start_date, ref_date, curr_date, stop_date )
    integer :: rc                  ! return code
 
    if ( mod(86400,dtime) /= 0 ) then
-      call endrun (sub//': timestep must divide evenly into 1 day')
+      call endrun(sub//': timestep must divide evenly into 1 day')
    end if
 
    call ESMF_TimeIntervalSet(step_size, s=dtime, rc=rc)
@@ -179,7 +185,7 @@ subroutine initialize_clock( start_date, ref_date, curr_date, stop_date )
       write(iulog,*) ' Start date (yr, mon, day, tod): ', yr, mon, day, tod
       call ESMF_TimeGet( stop_date, yy=yr, mm=mon, dd=day, s=tod )
       write(iulog,*) ' Stop date  (yr, mon, day, tod): ', yr, mon, day, tod
-      call endrun
+      call endrun(sub//': stop date must be specified later than start date')
    end if
    if ( curr_date >= stop_date ) then
       write(iulog,*)sub, ': stop date must be specified later than current date: '
@@ -187,7 +193,7 @@ subroutine initialize_clock( start_date, ref_date, curr_date, stop_date )
       write(iulog,*) ' Current date (yr, mon, day, tod): ', yr, mon, day, tod
       call ESMF_TimeGet( stop_date, yy=yr, mm=mon, dd=day, s=tod )
       write(iulog,*) ' Stop date    (yr, mon, day, tod): ', yr, mon, day, tod
-      call endrun
+      call endrun(sub//': stop date must be specified later than current date')
    end if
 
    ! Initialize the clock
@@ -207,7 +213,7 @@ subroutine initialize_clock( start_date, ref_date, curr_date, stop_date )
 
 end subroutine initialize_clock
 
-!=========================================================================================
+!==============================================================================
 
 function TimeSetymd( ymd, tod, desc )
 !
@@ -222,11 +228,14 @@ function TimeSetymd( ymd, tod, desc )
    character(len=*), parameter :: sub = 'TimeSetymd'
    integer :: yr, mon, day          ! Year, month, day as integers
    integer :: rc                    ! return code
+   character(len=256) :: errmsg
 
    if ( (ymd < 0) .or. (tod < 0) .or. (tod > 24*3600) )then
-      write(iulog,*) sub//': error yymmdd is a negative number or time-of-day out of bounds', &
-                 ymd, tod
-      call endrun
+      write(errmsg, '(a,": ",a,", ymd = ",i0,", tod = ",i0)') sub,            &
+           'error yymmdd is a negative number or time-of-day out of bounds',  &
+           ymd, tod
+      write(iulog, *) trim(errmsg)
+      call endrun(trim(errmsg))
    end if
    yr  = ymd / 10000
    mon = (ymd - yr*10000) / 100
@@ -236,7 +245,7 @@ function TimeSetymd( ymd, tod, desc )
    call chkrc(rc, sub//': error return from ESMF_TimeSet: setting '//trim(desc))
 end function TimeSetymd
 
-!=========================================================================================
+!==============================================================================
 
 subroutine set_time_float_from_date( time, year, month, day, sec )
 !
@@ -267,9 +276,9 @@ subroutine set_time_float_from_date( time, year, month, day, sec )
         useday = 28
         call ESMF_TimeSet( date, yy=year, mm=month, dd=useday, s=sec, calendar=tm_cal, rc=rc)
      else  ! legitimate error, let the model quit
-        call chkrc(rc, sub//': error return from ESMF_TimeSet for set_time_float_from_date')        
-     endif 
-  endif  
+        call chkrc(rc, sub//': error return from ESMF_TimeSet for set_time_float_from_date')
+     endif
+  endif
 
   call ESMF_ClockGet(tm_clock, refTime=ref_date, rc=rc )
   call chkrc(rc, sub//': error return from ESMF_ClockGet for set_time_float_from_date')
@@ -326,6 +335,7 @@ integer function TimeGetymd( date, tod )
   character(len=*), parameter :: sub = 'TimeGetymd'
   integer :: yr, mon, day
   integer :: rc                          ! return code
+  character(len=128) :: errmsg
 
   call ESMF_TimeGet( date, yy=yr, mm=mon, dd=day, rc=rc)
   call chkrc(rc, sub//': error return from ESMF_TimeGet')
@@ -335,12 +345,13 @@ integer function TimeGetymd( date, tod )
      call chkrc(rc, sub//': error return from ESMF_TimeGet')
   end if
   if ( yr < 0 )then
-     write(iulog,*) sub//': error year is less than zero', yr
-     call endrun
+     write(errmsg, '(2a,i0,a)') sub, ': error year, (',yr,') is less than zero'
+     write(iulog, *) trim(errmsg)
+     call endrun(trim(errmsg))
   end if
 end function TimeGetymd
 
-!=========================================================================================
+!==============================================================================
 
 subroutine timemgr_set_date_time( new_ymd, new_tod )
 
@@ -375,7 +386,7 @@ subroutine timemgr_set_date_time( new_ymd, new_tod )
 
 end subroutine timemgr_set_date_time
 
-!=========================================================================================
+!==============================================================================
 
 subroutine init_calendar( )
 !
@@ -393,14 +404,14 @@ subroutine init_calendar( )
    else if ( trim(caltmp) == trim(shr_cal_gregorian) ) then
       cal_type = ESMF_CALKIND_GREGORIAN
    else
-      write(iulog,*)sub,': unrecognized calendar specified: ',calendar
-      call endrun
+      write(iulog,*)sub,': unrecognized calendar specified: ',trim(calendar)
+      call endrun(sub//': unrecognized calendar specified: '//trim(calendar))
    end if
    tm_cal = ESMF_CalendarCreate( name=caltmp, calkindflag=cal_type, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_CalendarSet')
 end subroutine init_calendar
 
-!=========================================================================================
+!==============================================================================
 
 subroutine timemgr_print()
 
@@ -550,7 +561,7 @@ subroutine get_curr_date(yr, mon, day, tod, offset)
       tod     ! time of day (seconds past 0Z)
 
    integer, optional, intent(in) :: offset  ! Offset from current time in seconds.
-                                            ! Positive for future times, negative 
+                                            ! Positive for future times, negative
                                             ! for previous times.
 
 ! Local variables
@@ -594,7 +605,7 @@ subroutine get_perp_date(yr, mon, day, tod, offset)
       tod     ! time of day (seconds past 0Z)
 
    integer, optional, intent(in) :: offset  ! Offset from current time in seconds.
-                                            ! Positive for future times, negative 
+                                            ! Positive for future times, negative
                                             ! for previous times.
 
 ! Local variables
@@ -773,7 +784,7 @@ function get_curr_calday(offset)
 
 ! Arguments
    integer, optional, intent(in) :: offset  ! Offset from current time in seconds.
-                                            ! Positive for future times, negative 
+                                            ! Positive for future times, negative
                                             ! for previous times.
 ! Return value
    real(r8) :: get_curr_calday
@@ -821,7 +832,7 @@ function get_curr_calday(offset)
 !
 ! The zenith angle calculation is only capable of using a 365-day calendar.
 ! If a Gregorian calendar is being used, the last day of a leap year (day 366)
-! is sent to the model as a repetition of the previous day (day 365). 
+! is sent to the model as a repetition of the previous day (day 365).
 ! This is done by decrementing calday by 1 immediately below.
 ! bundy, July 2008
 !
@@ -867,7 +878,7 @@ function get_calday(ymd, tod)
 !
 ! The zenith angle calculation is only capable of using a 365-day calendar.
 ! If a Gregorian calendar is being used, the last day of a leap year (day 366)
-! is sent to the model as a repetition of the previous day (day 365). 
+! is sent to the model as a repetition of the previous day (day 365).
 ! This is done by decrementing calday by 1 immediately below.
 ! bundy, July 2008
 !
@@ -882,7 +893,7 @@ function get_calday(ymd, tod)
    end if
 
 end function get_calday
-!=========================================================================================
+!==============================================================================
 
 character(len=SHR_KIND_CS) function timemgr_get_calendar_cf()
 
@@ -891,7 +902,7 @@ character(len=SHR_KIND_CS) function timemgr_get_calendar_cf()
 ! Local variables
    character(len=*), parameter  :: sub = 'timemgr_get_calendar_cf'
    character(len=len(calendar)) :: caltmp
-!-----------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
    caltmp = to_upper(trim(calendar) )
    if ( trim(caltmp) == trim(shr_cal_noleap) ) then
@@ -899,13 +910,13 @@ character(len=SHR_KIND_CS) function timemgr_get_calendar_cf()
    else if ( trim(caltmp) == trim(shr_cal_gregorian) ) then
       timemgr_get_calendar_cf = 'gregorian'
    else
-      write(iulog,*)sub,': unrecognized calendar specified: ',calendar
-      call endrun
+      write(iulog,*)sub,': unrecognized calendar specified: ',trim(calendar)
+      call endrun(sub//': unrecognized calendar specified: '//trim(calendar))
    end if
 
 end function timemgr_get_calendar_cf
-!=========================================================================================
- 
+!==============================================================================
+
 function timemgr_is_caltype( cal_in )
 
 ! Return true if incoming calendar type string matches actual calendar type in use
@@ -921,7 +932,7 @@ function timemgr_is_caltype( cal_in )
 
 end function timemgr_is_caltype
 !=========================================================================================
- 
+
 function is_end_curr_day()
 
 ! Return true if current timestep is last timestep in current day.
@@ -1074,7 +1085,6 @@ subroutine timemgr_time_ge(ymd1, tod1, ymd2, tod2, time2_ge_time1)
 
 ! Local variables
    character(len=*), parameter :: sub = 'timemgr_time_ge'
-   integer :: rc   ! return code
 
    type(ESMF_Time) :: time1, time2
 !-----------------------------------------------------------------------------------------
@@ -1114,7 +1124,7 @@ subroutine timemgr_time_inc(ymd1, tod1, ymd2, tod2, inc_s, inc_h, inc_d)
    type(ESMF_Time) :: date2
    type(ESMF_TimeInterval) :: t_interval
    integer :: year, month, day
-!-----------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
    ! set esmf time object
    date1 = TimeSetymd( ymd1, tod1, "date1" )
@@ -1141,7 +1151,7 @@ subroutine timemgr_time_inc(ymd1, tod1, ymd2, tod2, inc_s, inc_h, inc_d)
 
 end subroutine timemgr_time_inc
 
-!=========================================================================================
+!==============================================================================
 
 subroutine chkrc(rc, mes)
    integer, intent(in)          :: rc   ! return code from time management library

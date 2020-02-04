@@ -3,11 +3,23 @@
 <registry name="cam_registry" version="1.0">
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
-    <variable local_name="ncol" standard_name="horizontal_dimension"
-              units="count" type="integer" access="protected">
-      <long_name>Number of horizontal columns</long_name>
-      <initial_value>0</initial_value>
+    <!-- Constituent indices -->
+    <variable local_name="ix_qv"
+              standard_name="index_of_water_vapor_specific_humidity"
+              units="count" type="integer">
+      <initial_value>1</initial_value>
     </variable>
+    <variable local_name="ix_cld_liq"
+              standard_name="index_of_cloud_liquid_water_mixing_ratio"
+              units="count" type="integer">
+      <initial_value>2</initial_value>
+    </variable>
+    <variable local_name="ix_rain"
+              standard_name="index_of_rain_water_mixing_ratio"
+              units="count" type="integer">
+      <initial_value>3</initial_value>
+    </variable>
+    <!-- Coordinates -->
     <variable local_name="latitude" standard_name="latitude"
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
@@ -18,6 +30,7 @@
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
     </variable>
+    <!-- State variables -->
     <variable local_name="ps" standard_name="surface_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
@@ -30,7 +43,7 @@
       <long_name>surface pressure</long_name>
       <dimensions>horizontal_dimension</dimensions>
     </variable>
-    <variable local_name="phis" standard_name="surface_geopotential"
+    <variable local_name="phis" standard_name="geopotential_at_surface"
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
@@ -50,7 +63,7 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="s" standard_name="dry_static_energy"
+    <variable local_name="s" standard_name="dry_static_energy_content"
               units="J" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -60,44 +73,48 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="pmid" standard_name="midpoint_pressure"
+    <variable local_name="pmid" standard_name="air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="pmiddry" standard_name="midpoint_pressure_dry"
+    <variable local_name="pmiddry" standard_name="air_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="pdel" standard_name="layer_thickness"
+    <variable local_name="pdel" standard_name="pressure_thickness"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="pdeldry" standard_name="layer_thickness_dry"
+    <variable local_name="pdeldry"
+              standard_name="pressure_thickness_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="rpdel" standard_name="reciprocal_of_layer_thickness"
+    <variable local_name="rpdel"
+              standard_name="reciprocal_of_pressure_thickness"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
     <variable local_name="rpdeldry"
-              standard_name="reciprocal_layer_thickness_dry"
-              units="Pa" type="real" kind="kind_phys"
+              standard_name="reciprocal_of_pressure_thickness_of_dry_air"
+              units="Pa-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="lnpmid" standard_name="log_midpoint_pressure"
-              units="None" type="real" kind="kind_phys"
+    <!-- State helper values -->
+    <variable local_name="lnpmid" standard_name="natural_log_of_air_pressure"
+              units="1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="lnpmiddry" standard_name="log_midpoint_pressure_dry"
-              units="Pa" type="real" kind="kind_phys"
+    <variable local_name="lnpmiddry"
+              standard_name="natural_log_of_air_pressure_of_dry_air"
+              units="1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
@@ -108,19 +125,30 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
     <variable local_name="zm"
-              standard_name="geopotential_height_above_surface_at_midpoints"
+              standard_name="geopotential"
               units="m" type="real" kind="kind_phys"
               allocatable="pointer">
-      <dimensions>horizontal_dimension   vertical_layer_dimension</dimensions>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="q" standard_name="constituent_array"
+    <array local_name="q" standard_name="constituent_array"
               units="kg kg-1"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <dimensions>horizontal_dimension
-      vertical_layer_dimension
+      <dimensions>horizontal_dimension vertical_layer_dimension
       number_of_constituents</dimensions>
-    </variable>
+      <element standard_name="water_vapor_specific_humidity"
+               index_name="index_of_water_vapor_specific_humidity"
+               index_pos="number_of_constituents">
+      </element>
+      <element standard_name="cloud_liquid_water_mixing_ratio"
+               index_name="index_of_cloud_liquid_water_mixing_ratio"
+               index_pos="number_of_constituents">
+      </element>
+      <element standard_name="rain_water_mixing_ratio"
+               index_name="index_of_rain_water_mixing_ratio"
+               index_pos="number_of_constituents">
+      </element>
+    </array>
     <variable local_name="pint" standard_name="air_pressure_at_interface"
               units="Pa"
               type="real" kind="kind_phys"
@@ -128,7 +156,7 @@
       <long_name>Air pressure at model layer interfaces</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
     </variable>
-    <variable local_name="pintdry" standard_name="dry_air_pressure_at_interface"
+    <variable local_name="pintdry" standard_name="air_pressure_at_interface_of_dry_air"
               units="Pa"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -143,14 +171,14 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
     </variable>
     <variable local_name="lnpintdry"
-              standard_name="natural_log_of_dry_air_pressure_at_interface"
+              standard_name="natural_log_of_pressure_at_interface_of_dry_air"
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
     </variable>
     <variable local_name="zi"
-              standard_name="geopotential_height_above_surface_at_interfaces"
+              standard_name="geopotential_at_interface"
               units="m"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -161,16 +189,16 @@
               units="J"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <dimensions>horizontal_dimension</dimensions>
       <long_name>Vertically integrated total (kinetic + static) energy of initial state</long_name>
+      <dimensions>horizontal_dimension</dimensions>
     </variable>
     <variable local_name="te_cur"
               standard_name="vertically_integrated_total_energy_of_current_state"
               units="J"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <dimensions>horizontal_dimension</dimensions>
       <long_name>Vertically integrated total (kinetic + static) energy of current state</long_name>
+      <dimensions>horizontal_dimension</dimensions>
     </variable>
     <variable local_name="tw_ini"
               standard_name="vertically_integrated_total_water_of_initial_state"
@@ -186,6 +214,7 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
     </variable>
+    <!-- State tendencies -->
     <variable local_name="dTdt" standard_name="temperature_tendency"
               units="K s-1" type="real" kind="kind_phys"
               allocatable="pointer">
@@ -201,10 +230,14 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
+    <variable local_name="lagrangian_vertical"
+              standard_name="lagrangian_vertical_coordinate"
+              units="flag" type="logical">
+    </variable>
     <ddt type="physics_state">
       <data dycore="FV,EUL">surface_pressure</data>
       <data dycore="SE">dry_surface_pressure</data>
-      <data>surface_geopotential</data>
+      <data>geopotential_at_surface</data>
       <data>temperature</data>
       <data>eastward_wind</data>
       <data>northward_wind</data>
