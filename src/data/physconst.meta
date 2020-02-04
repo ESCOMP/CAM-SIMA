@@ -258,7 +258,7 @@
   dimensions = ()
   protected = True
 [ rair ]
-  standard_name = gas_constant_dry_air
+  standard_name = gas_constant_of_dry_air
   long_name = Dry air gas constant
   units = J K-1 kg-1
   type = real | kind = kind_phys
@@ -313,7 +313,7 @@
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ rairv ]
-  standard_name = pressure_dependent_gas_constant_dry_air
+  standard_name = pressure_dependent_gas_constant_of_dry_air
   units = enter units
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)

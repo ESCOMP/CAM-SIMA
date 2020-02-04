@@ -2,7 +2,7 @@ module dyn_grid
 
    use shr_kind_mod,        only: r8 => shr_kind_r8
    use shr_sys_mod,         only: shr_sys_flush
-   use cam_logfile,         only: iulog
+   use cam_logfile,         only: iulog, debug_output
    use spmd_utils,          only: masterproc
    use physics_column_type, only: physics_column_t
 
@@ -22,7 +22,6 @@ module dyn_grid
    integer               :: num_lons           = -1 ! Global (or 1 for unstruct)
    integer               :: num_local_columns  = -1
    integer               :: global_col_offset  = -HUGE(1)
-   integer,  allocatable :: lon_lat_indices(:, :)
    real(r8), allocatable :: local_lats_rad(:)
    real(r8), allocatable :: local_lons_rad(:)
    real(r8), allocatable :: local_lats_deg(:)
@@ -57,13 +56,14 @@ CONTAINS
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
       use pio,            only: iMap=>PIO_OFFSET_KIND, PIO_DOUBLE
       use pio,            only: PIO_BCAST_ERROR, pio_seterrorhandling
-      use pio,            only: pio_get_var, PIO_NOERR, pio_freedecomp
+      use pio,            only: pio_get_var, pio_freedecomp
       use pio,            only: pio_read_darray
-      use spmd_utils,     only: npes, iam
+      use spmd_utils,     only: npes, iam, masterprocid, mpicom
       use cam_pio_utils,  only: cam_pio_handle_error, cam_pio_find_var
       use cam_pio_utils,  only: cam_pio_var_info, pio_subsystem
-      use cam_pio_utils,  only: cam_pio_newdecomp, cam_pio_handle_error
+      use cam_pio_utils,  only: cam_pio_newdecomp
       use cam_abortutils, only: endrun
+      use cam_logfile,    only: cam_log_multiwrite
       use cam_initfiles,  only: initial_file_get_id
 
       ! Initialize a dynamics decomposition based on an input data file
@@ -83,7 +83,6 @@ CONTAINS
       integer                        :: lindex
       integer                        :: dimids(MAX_DIMS)
       integer                        :: dimlens(MAX_DIMS)
-      integer                        :: num_local_cols
       integer                        :: col_mod ! Temp for calculating decomp
       integer                        :: col_start, col_end
       integer                        :: start(1), kount(1)
@@ -91,7 +90,6 @@ CONTAINS
       integer(iMap),     allocatable :: ldof(:) ! For reading coordinates
       character(len=128)             :: var_name
       character(len=256)             :: dimnames(MAX_DIMS)
-      character(len=8)               :: column_name
       character(len=8)               :: lat_dim_name
       character(len=8)               :: lon_dim_name
       character(len=128)             :: errormsg
@@ -106,7 +104,7 @@ CONTAINS
       ! We will handle errors for this routine
       call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, err_handling)
       ! Find the latitude variable and dimension(s)
-      call cam_pio_find_var(fh_ini, (/ 'lat', 'lat_d' /), lat_name,           &
+      call cam_pio_find_var(fh_ini, (/ 'lat  ', 'lat_d' /), lat_name,         &
            lat_vardesc, var_found)
       if (var_found) then
          ! Find the variable latitude dimension info
@@ -114,11 +112,11 @@ CONTAINS
               dimlens, dimnames=dimnames, unlimDimID=time_id)
          lat_dim_name = dimnames(1)
          if (index(lat_dim_name, 'ncol') > 0) then
-            grid_is_latlon = .false. ! lat/lon dycore grid
+            grid_is_latlon = .false. ! Unstructured dycore grid
             num_lats = 1
             num_lons = dimlens(1)
          else if (index(lat_dim_name, 'lat') > 0) then
-            grid_is_latlon = .true. ! Unstructured dycore grid
+            grid_is_latlon = .true. ! lat/lon dycore grid
             num_lats = dimlens(1)
          else
             write(errormsg, '(4a)') subname,                                  &
@@ -130,8 +128,16 @@ CONTAINS
               "on initial data file"
          call endrun(errormsg)
       end if
+      if (masterproc .and. (debug_output > 0)) then
+         call shr_sys_flush(iulog) ! Make sure things line up
+         if (grid_is_latlon) then
+            write(iulog, *) subname, ': Grid is rectangular (lat / lon)'
+         else
+            write(iulog, *) subname, ': Grid is unstructured'
+         end if
+      end if
       ! Find the longitude variable and dimension(s)
-      call cam_pio_find_var(fh_ini, (/ 'lon', 'lon_d' /), lon_name,           &
+      call cam_pio_find_var(fh_ini, (/ 'lon  ', 'lon_d' /), lon_name,         &
            lon_vardesc, var_found)
       if (var_found) then
          ! Find the longitude variable dimension info
@@ -156,6 +162,13 @@ CONTAINS
               "on initial data file"
          call endrun(errormsg)
       end if
+      if (masterproc .and. (debug_output > 0)) then
+         if (grid_is_latlon) then
+            write(iulog, '(2a,i0,a,i0,a)') subname, ': Grid has ', num_lats,  &
+                 ' latitude coordinates, and ', num_lons,                     &
+                 ' longitude coordinates'
+         end if ! No else, we get a total column count below
+      end if
       ! Compute our decomposition
       num_global_columns = num_lons * num_lats
       num_local_columns = num_global_columns / npes
@@ -166,9 +179,19 @@ CONTAINS
          num_local_columns = num_local_columns + 1
       end if
       col_end = col_start + num_local_columns - 1
+      if (masterproc .and. (debug_output > 0)) then
+         write(iulog, '(2a,i0,a)') subname, ': Grid has ',                    &
+              num_global_columns, ' total columns'
+         call shr_sys_flush(iulog)
+      end if
+      if (debug_output > 2) then
+         ! Expensive, print out decomp info from every task
+         call cam_log_multiwrite(subname, ':  PE   # cols  start    end',     &
+              '(a,i4,i9,2i7)', (/ num_local_columns, col_start, col_end/))
+      end if
       ! Find a 3D variable and get its dimensions
-      call cam_pio_find_var(fh_ini, (/ 'U', 'u_snapshot' /), fieldname,       &
-           vardesc, var_found)
+      call cam_pio_find_var(fh_ini, (/ 'U         ', 'u_snapshot' /),         &
+           fieldname, vardesc, var_found)
       if (var_found) then
          ! Find the variable dimension info
          dimnames = ''
@@ -200,6 +223,10 @@ CONTAINS
       if (num_levels < 1) then
          write(errormsg, '(3a)') subname, ": Could not find number of levels"
          call endrun(errormsg)
+      end if
+      if (masterproc .and. (debug_output > 0)) then
+         write(iulog, '(2a,i0,a)') subname, ': Grid has ', num_levels, ' levels'
+         call shr_sys_flush(iulog)
       end if
       ! Find the local column coordinates
       ! Check the units
@@ -410,6 +437,7 @@ CONTAINS
       use pio,            only: pio_inq_att, pio_get_att, PIO_OFFSET_KIND
       use pio,            only: file_desc_t, var_desc_t
       use cam_abortutils, only: endrun
+      use cam_pio_utils,  only: cam_pio_handle_error
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -424,10 +452,12 @@ CONTAINS
       character(len=max_units_len) :: units
 
       ierr = pio_inq_att(file, vardesc, 'units', xtype, slen)
+      call cam_pio_handle_error(ierr, 'find_units: Unable to find units attr')
       if (slen > max_units_len) then
          call endrun('find_units: units string too long')
       end if
       ierr = pio_get_att(file, vardesc, 'units', units)
+      call cam_pio_handle_error(ierr, 'find_units: Unable to read units attr')
       units(slen+1:) = ' '
       is_degrees = .false.
       is_lat = .false.
@@ -497,7 +527,7 @@ CONTAINS
             exit
          end if
       end do
-      if (len_trim(found_name) == '') then
+      if (len_trim(found_name) == 0) then
          write(errmsg, '(2a,20("  ",a))') subname,                            &
               ": Did not find any of these dimensions on initial data file:", &
               (trim(dim_names(index)), index=1, len(dim_names))

@@ -112,7 +112,6 @@ CONTAINS
       integer :: ival   ! integer value of trailing digits
       integer :: exp    ! power of ten related to most sig digit processed
       integer :: digit  ! integer value of a single digit
-      integer :: ones   ! Value
 
       lstr   = last_sig_char(str)
       lnd    = last_index(str)

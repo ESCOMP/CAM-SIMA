@@ -87,7 +87,6 @@ CONTAINS
       character(len=cl) :: format    ! Format character string
       integer :: i, n  ! Loop variables
       logical :: previous              ! If should label with previous time-step
-      logical :: done
       character(len=128) :: errmsg
       character(len=*), parameter :: subname = 'INTERPRET_FILENAME_SPEC'
       !------------------------------------------------------------------------

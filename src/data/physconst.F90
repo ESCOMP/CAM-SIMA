@@ -19,7 +19,6 @@ module physconst
    use shr_const_mod,  only: shr_const_spval,   shr_const_omega
    use shr_const_mod,  only: shr_const_cpvir,   shr_const_tktrip
    use shr_const_mod,  only: shr_const_cpice
-   use shr_flux_mod,   only: shr_flux_adjust_constants
    use physics_grid,   only: pcols => columns_on_task, pver, pverp
    use cam_abortutils, only: endrun
    use constituents,   only: pcnst
@@ -168,8 +167,9 @@ CONTAINS
 
    ! Read namelist variables.
    subroutine physconst_readnl(nlfile)
-      use shr_const_mod,  only: r8 => shr_kind_r8
+      use shr_kind_mod,   only: r8 => shr_kind_r8
       use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
+      use shr_flux_mod,   only: shr_flux_adjust_constants
 !      use mpi,            only: mpi_bcast !!XXgoldyXX: Why not?
       use mpi,            only: mpi_real8
       use spmd_utils,     only: masterproc, masterprocid, mpicom

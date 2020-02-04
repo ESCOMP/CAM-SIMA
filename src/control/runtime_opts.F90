@@ -21,6 +21,7 @@ contains
 
    subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
 
+      use cam_logfile,         only: cam_logfile_readnl
       use cam_initfiles,       only: cam_initfiles_readnl
       use constituents,        only: cnst_readnl
 
@@ -68,6 +69,7 @@ contains
       ! Modules that read their own namelist are responsible for making sure
       ! all processes receive the values.
 
+      call cam_logfile_readnl(nlfilename)
 !      call physics_grid_readnl(nlfilename)
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)

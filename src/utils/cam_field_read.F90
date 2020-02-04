@@ -11,11 +11,11 @@ module cam_field_read
    use shr_kind_mod,   only: r8 => shr_kind_r8
    use shr_sys_mod,    only: shr_sys_flush
    use pio,            only: pio_offset_kind, file_desc_t, var_desc_t
-   use pio,            only: pio_inq_dimid, pio_max_var_dims, io_desc_t
+   use pio,            only: pio_max_var_dims, io_desc_t
    use pio,            only: pio_double, pio_setframe
    use spmd_utils,     only: masterproc
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
+   use cam_logfile,    only: iulog, debug_output
    !!XXgoldyXX: v support SCAM?
    !  use shr_scam_mod,   only: shr_scam_getCloseLatLon  ! Standardized system subroutines
    !  use scamMod,        only: scmlat,scmlon,single_column
@@ -24,9 +24,8 @@ module cam_field_read
    implicit none
    private
 
-   logical :: debug = .true.
    !!XXgoldyXX: v support SCAM?
-   integer :: single_column = .false.
+   logical :: single_column = .false.
    !!XXgoldyXX: ^ support SCAM?
 
    !
@@ -67,7 +66,95 @@ CONTAINS
       end if
       call cam_grid_get_dim_names(grid_id, dim1name, dim2name)
       call cam_grid_get_array_bounds(grid_id, dim_bounds)
+      if (masterproc .and. (debug_output > 0)) then
+         if (trim(dim1name) == trim(dim2name)) then
+            write(iulog, *) subname, ': grid ', grid_name, ' dimension = ',  &
+                 dim1name
+         else
+            write(iulog, *) subname, ': grid ', grid_name, ' dimensions = ',  &
+                 dim1name,' and ', dim2name
+         end if
+         call shr_sys_flush(iulog)
+      end if
+
    end subroutine get_grid_diminfo
+
+   subroutine print_input_field_info(dimlens, ndims, min_ndims, max_ndims,    &
+        dim_bounds, num_bounds, varname, subname)
+      use cam_logfile, only: cam_log_multiwrite
+
+      ! Dummy arguments
+      integer,          intent(in) :: dimlens(:)
+      integer,          intent(in) :: ndims
+      integer,          intent(in) :: min_ndims
+      integer,          intent(in) :: max_ndims
+      integer,          intent(in) :: dim_bounds(:,:)
+      integer,          intent(in) :: num_bounds
+      character(len=*), intent(in) :: varname
+      character(len=*), intent(in) :: subname
+      ! Local variables
+      integer                      :: ind
+      integer                      :: values(9)
+      integer                      :: num_vals
+      character(len=64)            :: fmt_str
+      character(len=128)           :: errormsg
+      character(len=8)             :: syntax(9)
+
+      if (ndims < max(min_ndims, 1)) then
+         call endrun(subname//': too few dimensions for '//trim(varname))
+      else if (ndims > min(max_ndims, 3)) then
+         write(errormsg, '(3a,i0)') ': too many dimensions for, ',      &
+              trim(varname), ', ', ndims
+         call endrun(subname//trim(errormsg))
+      else if (num_bounds < 1) then
+         call endrun(subname//': too few dimension boundss for '//trim(varname))
+      else if (num_bounds > 3) then
+         write(errormsg, '(3a,i0)') ': too many dimension bounds for, ',      &
+              trim(varname), ', ', num_bounds
+         call endrun(subname//trim(errormsg))
+      else if (debug_output > 2) then
+         num_vals = 0
+         do ind = 1, num_bounds
+            num_vals = num_vals + 1
+            values(num_vals) = dim_bounds(ind, 1)
+            num_vals = num_vals + 1
+            values(num_vals) = dim_bounds(ind, 2)
+         end do
+         do ind = 1, ndims
+            num_vals = num_vals + 1
+            values(num_vals) = dimlens(ind)
+         end do
+         errormsg = ':  task   b11   b12   b21   b22   b31   b32'
+         errormsg((12 * num_bounds) + 8:) = '    d1    d2    d3'
+         errormsg((6 * num_vals) + 8:) = ' '
+         write(fmt_str, '("(a,",a,",i5,",i0,"(i6))")') '": "', num_vals
+         call cam_log_multiwrite(subname, errormsg, fmt_str, values(1:num_vals))
+      else if (masterproc .and. (debug_output > 0)) then
+         num_vals = 0
+         do ind = 1, num_bounds
+            num_vals = num_vals + 1
+            values(num_vals) = dim_bounds(ind, 1)
+            syntax(num_vals) = ':'
+            num_vals = num_vals + 1
+            values(num_vals) = dim_bounds(ind, 2)
+            syntax(num_vals) = ','
+         end do
+         syntax(num_vals) = '), file('
+         do ind = 1, ndims
+            num_vals = num_vals + 1
+            values(num_vals) = dimlens(ind)
+            syntax(num_vals) = ','
+         end do
+         syntax(num_vals) = ')'
+         write(fmt_str, '("(2a,",i0,"(i0,a))")') num_vals
+         write(iulog, fmt_str) subname, ': field(',                           &
+              (values(ind), trim(syntax(ind)), ind = 1, num_vals)
+      end if ! else handled above
+      if (masterproc) then
+         call shr_sys_flush(iulog)
+      end if
+
+   end subroutine print_input_field_info
 
    !
    ! ROUTINE: infld_real8_1d
@@ -80,12 +167,11 @@ CONTAINS
       ! Local array, <field> is 1D
       !
 
-      use pio,              only: pio_get_var, pio_read_darray
-      use pio,              only: pio_setdebuglevel
-      use pio,              only: PIO_MAX_NAME, pio_inquire, pio_inq_dimname
+      use pio,              only: pio_read_darray
+      use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
-      use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
-      use cam_grid_support, only: max_hcoordname_len, cam_grid_is_block_indexed
+      use cam_grid_support, only: cam_grid_dimensions
+      use cam_grid_support, only: cam_grid_is_block_indexed
       use cam_pio_utils,    only: cam_pio_check_var
 
       ! Dummy arguments
@@ -102,7 +188,7 @@ CONTAINS
       ! LOCAL VARIABLES:
       type(io_desc_t), pointer                  :: iodesc
       integer                                   :: grid_id ! grid ID
-      integer                                   :: index, jndex
+      integer                                   :: jndex
       ! ierr: return status
       integer                                   :: ierr
       ! varid: variable id
@@ -123,10 +209,6 @@ CONTAINS
       logical                                   :: block_indexed
       logical                                   :: unstruct
       ! Offsets for reading global variables
-      ! strt: start col index for netcdf 1-d
-      integer                                   :: strt(1) = 1
-      ! cnt: ncol count for netcdf 1-d
-      integer                                   :: cnt (1) = 1
       integer                                   :: dim_bounds(2, 2)
       character(len=PIO_MAX_NAME)               :: dim1name, dim2name
       character(len=PIO_MAX_NAME)               :: tmpname
@@ -135,16 +217,11 @@ CONTAINS
       logical                                   :: readvar_tmp
       character(len=*),               parameter :: subname = 'INFLD_REAL8_1D'
 
-      ! For SCAM
-      real(r8)                  :: closelat, closelon
-      integer                   :: lonidx, latidx
-
       nullify(iodesc)
 
       !
       !-----------------------------------------------------------------------
       !
-      !    call pio_setdebuglevel(3)
 
       dim1name = ''
       dim2name = ''
@@ -169,7 +246,7 @@ CONTAINS
       else
          target_ndims = 1 ! 1D file ==> 1D field (logical 2D field)
       end if
-      if (debug .and. masterproc) then
+      if ((debug_output > 0) .and. masterproc) then
          if (present(gridname)) then
             write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
                  ', grid = ',trim(gridname)
@@ -191,24 +268,8 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         if (debug .and. masterproc) then
-            if (ndims < 1) then
-               call endrun(subname//': too few dimensions for '//trim(varname))
-            else if (ndims == 1) then
-               write(iulog, '(2a,3(i0,a))') subname, ': field(',              &
-                    dim_bounds(1,1), ':', dim_bounds(1,2), '), file(',        &
-                    dimlens(1), ')'
-            else if (ndims == 2) then
-               write(iulog, '(2a,4(i0,a))') subname, ': field(',              &
-                    dim_bounds(1,1), ':', dim_bounds(1,2), '), file(',        &
-                    dimlens(1), ', ', dimlens(2), ')'
-            else
-               write(errormsg, '(3a,i0)') ': too many dimensions for, ',      &
-                    trim(varname), ', ', ndims
-               call endrun(subname//trim(errormsg))
-            end if
-            call shr_sys_flush(iulog)
-         end if
+         call print_input_field_info(dimlens, ndims, 1, 2, dim_bounds, 1,     &
+              varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
             call endrun(subname//': too many dimensions for '//trim(varname))
@@ -216,6 +277,13 @@ CONTAINS
             ierr = pio_inq_dimname(ncid, dimids(ndims), tmpname)
             if (trim(tmpname) /= 'time') then
                call endrun(subname//': dimension mismatch for '//trim(varname))
+            end if
+            if (present(timelevel)) then
+               if (timelevel > dimlens(ndims)) then
+                  write(errormsg, '(a,i0,a,i0)') ': timelevel, ', timelevel,  &
+                       ', exceeds file limit, ', dimlens(ndims)
+                  call endrun(subname//errormsg)
+               end if
             end if
          else if (ndims < target_ndims) then
             call endrun(subname//': too few dimensions for '//trim(varname))
@@ -261,7 +329,6 @@ CONTAINS
             ndims = ndims - 1
          end if
 
-         ! NB: strt and cnt were initialized to 1
          if (single_column) then
             if (unstruct) then
                ! Clearly, this will not work for an unstructured dycore
@@ -298,12 +365,11 @@ CONTAINS
       ! Local array, <field> is 2D
       !
 
-      use pio,              only: pio_get_var, pio_read_darray
-      use pio,              only: pio_setdebuglevel
-      use pio,              only: PIO_MAX_NAME, pio_inquire, pio_inq_dimname
+      use pio,              only: pio_read_darray
+      use pio,              only: PIO_MAX_NAME, pio_inq_dimname
+      use cam_logfile,      only: cam_log_multiwrite
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
-      use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
-      use cam_grid_support, only: max_hcoordname_len, cam_grid_is_block_indexed
+      use cam_grid_support, only: cam_grid_dimensions,cam_grid_is_block_indexed
       use cam_pio_utils,    only: cam_pio_check_var
 
       ! Dummy arguments
@@ -345,10 +411,6 @@ CONTAINS
       logical                                 :: block_indexed
       logical                                 :: unstruct
       ! Offsets for reading global variables
-      ! strt: start col index for netcdf 1-d
-      integer                                 :: strt(1) = 1
-      ! cnt: ncol count for netcdf 1-d
-      integer                                 :: cnt (1) = 1
       integer                                 :: dim_bounds(2, 2)
       character(len=PIO_MAX_NAME)             :: dim1name, dim2name
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
@@ -358,16 +420,11 @@ CONTAINS
       logical                                 :: readvar_tmp
       character(len=*), parameter             :: subname = 'INFLD_REAL8_2D'
 
-      ! For SCAM
-      real(r8)                  :: closelat, closelon
-      integer                   :: lonidx, latidx
-
       nullify(iodesc)
 
       !
       !-----------------------------------------------------------------------
       !
-      !    call pio_setdebuglevel(3)
 
       dim1name = ''
       dim2name = ''
@@ -392,10 +449,10 @@ CONTAINS
       else
          target_ndims = 2 ! 2D file ==> 2D field (logical 2D or 3D field)
       end if
-      if (debug .and. masterproc) then
+      if ((debug_output > 0) .and. masterproc) then
          if (present(gridname)) then
             write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
-                 ', grid = ',trim(gridname)
+                 ', grid = ', trim(gridname)
          else
             write(iulog, '(4a)') subname, ': field = ', trim(varname),        &
                  ', grid = physgrid'
@@ -427,26 +484,8 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         if (debug .and. masterproc) then
-            if (ndims < 1) then
-               call endrun(subname//': too few dimensions for '//trim(varname))
-            else if (ndims == 2) then
-               write(iulog, '(2a,6(i0,a))') subname, ': field(',              &
-                    dim_bounds(1,1), ':', dim_bounds(1,2), ',',               &
-                    dim_bounds(2,1), ':', dim_bounds(2,2), '), file(',        &
-                    dimlens(1), ', ', dimlens(2), ')'
-            else if (ndims == 3) then
-               write(iulog, '(2a,7(i0,a))') subname, ': field(',              &
-                    dim_bounds(1,1), ':', dim_bounds(1,2), ',',               &
-                    dim_bounds(2,1), ':', dim_bounds(2,2), '), file(',        &
-                    dimlens(1), ', ', dimlens(2), ', ', dimlens(3), ')'
-            else
-               write(errormsg, '(3a,i0)') ': too many dimensions for, ',      &
-                    trim(varname), ', ', ndims
-               call endrun(subname//trim(errormsg))
-            end if
-            call shr_sys_flush(iulog)
-         end if
+         call print_input_field_info(dimlens, ndims, 2, 3, dim_bounds, 2,     &
+              varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
             call endrun(subname//': too many dimensions for '//trim(varname))
@@ -454,6 +493,13 @@ CONTAINS
             ierr = pio_inq_dimname(ncid, dimids(ndims), tmpname)
             if (trim(tmpname) /= 'time') then
                call endrun(subname//': dimension mismatch for '//trim(varname))
+            end if
+            if (present(timelevel)) then
+               if (timelevel > dimlens(ndims)) then
+                  write(errormsg, '(a,i0,a,i0)') ': timelevel, ', timelevel,  &
+                       ', exceeds file limit, ', dimlens(ndims)
+                  call endrun(subname//errormsg)
+               end if
             end if
          else if (ndims < target_ndims) then
             call endrun(subname//': too few dimensions for '//trim(varname))
@@ -507,13 +553,21 @@ CONTAINS
             if(present(timelevel)) then
                call pio_setframe(ncid, varid,                                 &
                     int(timelevel, kind=pio_offset_kind))
+               if (masterproc .and. (debug_output > 0)) then
+                  write(iulog, '(2a,i0)') subname, 'Setting time to frame ',  &
+                       timelevel
+                  call shr_sys_flush(iulog)
+               end if
             else
                call pio_setframe(ncid, varid, int(1, kind=pio_offset_kind))
+               if (masterproc .and. (debug_output > 0)) then
+                  write(iulog, '(2a)') subname, 'Setting time to frame 1'
+                  call shr_sys_flush(iulog)
+               end if
             end if
             ndims = ndims - 1
          end if
 
-         ! NB: strt and cnt were initialized to 1
          if (single_column) then
             if (unstruct) then
                ! Clearly, this will not work for an unstructured dycore
@@ -526,6 +580,7 @@ CONTAINS
             call cam_grid_get_decomp(grid_id, arraydimsize, dimlens(1:ndims), &
                  pio_double, iodesc, file_dnames=file_dnames(1:target_ndims))
             call pio_read_darray(ncid, varid, iodesc, field, ierr)
+            nullify(iodesc) ! Cached by cam_pio_utils
          end if
 
          if (masterproc) then
@@ -552,12 +607,10 @@ CONTAINS
       ! Local array, <field> is 3D
       !
 
-      use pio,              only: pio_get_var, pio_read_darray
-      use pio,              only: pio_setdebuglevel
-      use pio,              only: PIO_MAX_NAME, pio_inquire, pio_inq_dimname
+      use pio,              only: pio_read_darray
+      use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
-      use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
-      use cam_grid_support, only: max_hcoordname_len, cam_grid_is_block_indexed
+      use cam_grid_support, only: cam_grid_dimensions,cam_grid_is_block_indexed
       use cam_pio_utils,    only: cam_pio_check_var
 
       ! Dummy arguments
@@ -600,10 +653,6 @@ CONTAINS
       logical                                 :: block_indexed
       logical                                 :: unstruct
       ! Offsets for reading global variables
-      ! strt: start col index for netcdf 1-d
-      integer                                 :: strt(1) = 1
-      ! cnt: ncol count for netcdf 1-d
-      integer                                 :: cnt (1) = 1
       integer                                 :: dim_bounds(3, 2)
       character(len=PIO_MAX_NAME)             :: dim1name, dim2name
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
@@ -613,16 +662,11 @@ CONTAINS
       logical                                 :: readvar_tmp
       character(len=*), parameter             :: subname = 'INFLD_REAL8_3D'
 
-      ! For SCAM
-      real(r8)                  :: closelat, closelon
-      integer                   :: lonidx, latidx
-
       nullify(iodesc)
 
       !
       !-----------------------------------------------------------------------
       !
-      !    call pio_setdebuglevel(3)
 
       dim1name = ''
       dim2name = ''
@@ -647,10 +691,10 @@ CONTAINS
       else
          target_ndims = 3 ! 3D file ==> 3D field (logical 3D field)
       end if
-      if (debug .and. masterproc) then
+      if ((debug_output > 0) .and. masterproc) then
          if (present(gridname)) then
             write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
-                 ', grid = ',trim(gridname)
+                 ', grid = ', trim(gridname)
          else
             write(iulog, '(4a)') subname, ': field = ', trim(varname),        &
                  ', grid = physgrid'
@@ -694,28 +738,8 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         if (debug .and. masterproc) then
-            if (ndims < 2) then
-               call endrun(subname//': too few dimensions for '//trim(varname))
-            else if (ndims == 2) then
-               write(iulog, '(2a,8(i0,a))') subname, ': field(',              &
-                    dim_bounds(1,1), ':', dim_bounds(1,2), ',',               &
-                    dim_bounds(2,1), ':', dim_bounds(2,2), ',',               &
-                    dim_bounds(3,1), ':', dim_bounds(3,2), '), file(',        &
-                    dimlens(1), ', ', dimlens(2), ')'
-            else if (ndims == 3) then
-               write(iulog, '(2a,9(i0,a))') subname, ': field(',              &
-                    dim_bounds(1,1), ':', dim_bounds(1,2), ',',               &
-                    dim_bounds(2,1), ':', dim_bounds(2,2), ',',               &
-                    dim_bounds(3,1), ':', dim_bounds(3,2), '), file(',        &
-                    dimlens(1), ', ', dimlens(2), ', ', dimlens(3), ')'
-            else
-               write(errormsg, '(3a,i0)') ': too many dimensions for, ',      &
-                    trim(varname), ', ', ndims
-               call endrun(subname//trim(errormsg))
-            end if
-            call shr_sys_flush(iulog)
-         end if
+         call print_input_field_info(dimlens, ndims, 2, 3, dim_bounds, 3,     &
+              varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
             call endrun(subname//': too many dimensions for '//trim(varname))
@@ -723,6 +747,13 @@ CONTAINS
             ierr = pio_inq_dimname(ncid, dimids(ndims), tmpname)
             if (trim(tmpname) /= 'time') then
                call endrun(subname//': dimension mismatch for '//trim(varname))
+            end if
+            if (present(timelevel)) then
+               if (timelevel > dimlens(ndims)) then
+                  write(errormsg, '(a,i0,a,i0)') ': timelevel, ', timelevel,  &
+                       ', exceeds file limit, ', dimlens(ndims)
+                  call endrun(subname//errormsg)
+               end if
             end if
          else if (ndims < target_ndims) then
             call endrun(subname//': too few dimensions for '//trim(varname))
@@ -778,7 +809,6 @@ CONTAINS
             ndims = ndims - 1
          end if
 
-         ! NB: strt and cnt were initialized to 1
          if (single_column) then
             if (unstruct) then
                ! Clearly, this will not work for an unstructured dycore

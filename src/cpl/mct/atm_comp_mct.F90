@@ -49,7 +49,7 @@ module atm_comp_mct
    use time_manager,      only: get_curr_date, get_nstep, get_step_size
    use ioFileMod,         only: cam_get_file
    use perf_mod,          only: t_startf, t_stopf
-   use cam_logfile,       only: iulog
+   use cam_logfile,       only: cam_set_log_unit, iulog
    use cam_cpl_indices ! Temporary exception to naked use
 
    implicit none
@@ -195,7 +195,7 @@ CONTAINS
          if (masterproc) then
             inquire(file='atm_modelio.nml'//trim(inst_suffix), exist=exists)
             if (exists) then
-               iulog = shr_file_getUnit()
+               call cam_set_log_unit(shr_file_getUnit())
                call shr_file_setIO('atm_modelio.nml'//trim(inst_suffix), iulog)
             end if
 

@@ -237,6 +237,7 @@ def buildnml(case, caseroot, compname):
         # Set "state_debug_checks" namelist variable to true if DEBUG is true:
         if debug:
             infile_lines.append(" state_debug_checks = .true.")
+            infile_lines.append(" debug_output = 2")
         # End if
 
         # Determine location and name of "user_nl_cam" files:

@@ -1,20 +1,12 @@
 module cam_map_utils
   use pio,                 only: iMap=>PIO_OFFSET_KIND
   use cam_abortutils,      only: endrun
-  use cam_logfile,         only: iulog
-!!XXgoldyXX: v
-use spmd_utils, only: npes, iam, mpicom, masterproc
-use shr_sys_mod, only: shr_sys_flush
-!!XXgoldyXX: ^
 
   implicit none
   private
 
   public iMap
 
-!!XXgoldyXX: v
-logical, public, save :: goldy_debug = .false.
-!!XXgoldyXX: ^
   integer, private, save      :: unique_map_index = 0
   integer, private, parameter :: max_srcs         = 2
   integer, private, parameter :: max_dests        = 2
@@ -546,7 +538,7 @@ contains
   !
   !---------------------------------------------------------------------------
   integer(iMap) function cam_filemap_mapVal(this, index, dsize, dest_in)
-    ! Dummy arguments
+     ! Dummy arguments
     class(cam_filemap_t)                     :: this
     integer,                   intent(in)    :: index
     integer(iMap),             intent(in)    :: dsize(:)
@@ -557,7 +549,8 @@ contains
 
     if (associated(this%map)) then
       if (present(dest_in)) then
-        d = dest_in
+        d = 0
+        d(1:size(dest_in, 1)) = dest_in
       else
         d = this%dest
       end if
@@ -653,7 +646,8 @@ contains
   !---------------------------------------------------------------------------
   subroutine cam_filemap_get_filemap(this, fieldlens, filelens, filemap,      &
        src_in, dest_in, permutation_in)
-     use spmd_utils, only: iam
+     use spmd_utils,  only: iam
+     use cam_logfile, only: debug_output, cam_log_multiwrite
 
     ! Dummy arguments
     class(cam_filemap_t)                      :: this
@@ -673,7 +667,6 @@ contains
     integer                       :: fmind, j
     integer(iMap)                 :: mapSize, mapPos, pos, fileSize
     integer                       :: mapcnt         ! Dimension count
-    integer                       :: locsize        ! Total local # elements
     integer                       :: tind, tlen     ! Temporarys
     integer                       :: i1, i2, i3, i4, i5, i6, i7
     integer                       :: i(7)
@@ -851,6 +844,11 @@ contains
       call endrun(subname//'internal error, fmind')
     end if
     deallocate(dsize)
+    if (debug_output > 2) then
+       write(errmsg, *) ':   task  size   min   max'
+       call cam_log_multiwrite(subname, errmsg, '(a,": ",4i6)',               &
+            (/ size(filemap, 1), int(minval(filemap)), int(maxval(filemap)) /))
+    end if
   end subroutine cam_filemap_get_filemap
 
   integer function cam_filemap_get_blocksize(this, block_id)
@@ -1101,7 +1099,7 @@ contains
     logical,        optional, intent(in)     :: dups_ok_in ! Dup coords OK
 
     ! Local variables
-    integer                                  :: i, j
+    integer                                  :: i
     integer                                  :: ierr
     integer(iMap), pointer                   :: data(:) => NULL()
     integer,       pointer                   :: indices(:) => NULL()

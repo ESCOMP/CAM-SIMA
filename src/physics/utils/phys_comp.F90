@@ -40,6 +40,7 @@ CONTAINS
       use physics_data,   only: physics_read_data
       use physconst,      only: physconst_init
       use physics_types,  only: allocate_physics_types_fields
+      use physics_types,  only: lagrangian_vertical
       use constituents,   only: pcnst
       use cam_ccpp_cap,   only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,   only: ccpp_physics_suite_list
@@ -60,6 +61,9 @@ CONTAINS
       call physconst_init(columns_on_task, pver, pverp)
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
+      !!XXgoldyXX: This needs to be set based on the dycore
+      !!XXgoldyXX: Set via namelist?
+      lagrangian_vertical = .false.
       call ccpp_physics_suite_list(suite_names)
       suite_name = suite_names(1)
       call cam_ccpp_physics_initialize(suite_name, dtime_phys, errmsg, errflg)

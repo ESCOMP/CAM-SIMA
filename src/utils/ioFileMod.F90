@@ -10,7 +10,7 @@ module ioFileMod
 !
 !---------------------------------------------------------------------
 
-   use shr_kind_mod,     only: r8 => shr_kind_r8, CL => shr_kind_cl
+   use shr_kind_mod,     only: CL => shr_kind_cl
    use cam_abortutils,   only: endrun
    use spmd_utils,       only: masterproc
    use cam_logfile,      only: iulog
@@ -55,7 +55,6 @@ CONTAINS
       integer            :: i               ! loop index
       integer            :: klen            ! length of fulpath character string
       integer            :: maxlen          ! length of locfn input variable
-      integer            :: ierr            ! error status
       logical            :: lexist_in       ! true if local file exists
       logical            :: abort_on_failure
       character(len=192) :: errmsg

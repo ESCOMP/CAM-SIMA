@@ -103,19 +103,22 @@ CONTAINS
    end subroutine cam_register_close_file
 
    subroutine endrun(message, file, line)
+!!XXgoldyXX: v broken
+# if 0
       use pio, only : pio_closefile
+#endif
+!!XXgoldyXX: ^ debug only
       ! Parallel emergency stop
       ! Dummy arguments
       character(len=*),           intent(in) :: message
       character(len=*), optional, intent(in) :: file
       integer,          optional, intent(in) :: line
       ! Local variables
-      character(len=max_chars)               :: file_in
       character(len=max_chars)               :: abort_msg
-      type(open_file_pointer), pointer       :: of_ptr
-
 !!XXgoldyXX: v broken
 # if 0
+      type(open_file_pointer), pointer       :: of_ptr
+
       ! First, close all open PIO files
       of_ptr => open_files_head
       do while (associated(of_ptr))

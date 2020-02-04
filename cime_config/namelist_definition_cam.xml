@@ -11887,4 +11887,24 @@
       Default: none
     </desc>
   </entry>
+
+<!-- Debug flag -->
+
+<entry id="debug_output">
+    <type>integer</type>
+    <category>diagnostics</category>
+    <group>cam_logfile_nl</group>
+    <valid_values>0,1,2,3</valid_values>
+    <desc>
+      Include exra checks and logging output.
+      0: No extra checks or output
+      1: Extra informational output
+      2: Level 1 plus extra checks and informational output
+      3: All available checks and output
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+
 </entry_id>

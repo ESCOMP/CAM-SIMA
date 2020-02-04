@@ -3,7 +3,7 @@ module cam_pio_utils
 
    use shr_kind_mod, only: r8=>shr_kind_r8
    use shr_sys_mod,  only: shr_sys_flush
-   use cam_logfile,  only: iulog
+   use cam_logfile,  only: iulog, debug_output
    use perf_mod,     only: t_startf, t_stopf
    use pio,          only: iosystem_desc_t, file_desc_t, io_desc_t, var_desc_t
    use spmd_utils,   only: masterproc
@@ -475,7 +475,6 @@ contains
       use pio,         only: file_desc_t, var_desc_t
       use pio,         only: PIO_inq_varid, PIO_NOERR
       use pio,         only: PIO_seterrorhandling, PIO_BCAST_ERROR
-      use shr_sys_mod, only: shr_sys_flush ! Standardized system subroutines
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: ncid
@@ -608,10 +607,13 @@ contains
       use pio, only: pio_initdecomp, PIO_OFFSET_KIND, pio_iotype_pnetcdf
       use pio, only: io_desc_t, PIO_REARR_SUBSET, PIO_REARR_BOX
 
+      ! Dummy arguments
       type(io_desc_t),          pointer              :: iodesc
       integer,                           intent(in)  :: dims(:)
       integer(kind=PIO_OFFSET_KIND),     intent(in)  :: dof(:)
       integer,                           intent(in)  :: dtype
+      ! Local variable
+      character(len=*),         parameter :: subname = 'cam_pio_newdecomp'
 
       if(pio_iotype == pio_iotype_pnetcdf) then
          pio_rearranger = PIO_REARR_SUBSET
@@ -619,6 +621,10 @@ contains
          pio_rearranger = PIO_REARR_BOX
       endif
 
+      if (masterproc .and. (debug_output > 0)) then
+         write(iulog, *) subname, ': dims = ', dims
+         call shr_sys_flush(iulog)
+      end if
       call pio_initdecomp(pio_subsystem, dtype, dims, dof, iodesc,            &
            rearr=pio_rearranger)
 
@@ -703,7 +709,10 @@ contains
          curr%tag = tag
          iodesc_p => curr
       end if
-      !    if(masterproc) write(iulog,*) 'Using decomp: ',curr%tag
+      if(masterproc .and. (debug_output > 1)) then
+         write(iulog,*) "FIND_IODESC: Using decomp, '", curr%tag, "'"
+         call shr_sys_flush(iulog)
+      end if
 
    end subroutine find_iodesc
 

@@ -14,13 +14,13 @@ module physics_data
         'air_pressure_at_interface                                       ',   &
         'air_pressure_of_dry_air                                         ',   &
         'cloud_liquid_water_mixing_ratio                                 ',   &
-        'geopotential_height_above_surface_at_midpoints                  ',   &
+        'geopotential                                                    ',   &
         'natural_log_of_air_pressure                                     ',   &
         'natural_log_of_air_pressure_at_interface                        ',   &
-        'pressure_thickness_of_air_layer                                 ',   &
-        'pressure_thickness_of_air_layer_of_dry_air                      ',   &
+        'pressure_thickness                                              ',   &
+        'pressure_thickness_of_dry_air                                   ',   &
         'rain_water_mixing_ratio                                         ',   &
-        'reciprocal_pressure_thickness_of_air_layer                      ',   &
+        'reciprocal_pressure_thickness                                   ',   &
         'surface_geopotential                                            ',   &
         'temperature                                                     ',   &
         'water_vapor_specific_humidity                                   '    &
@@ -36,9 +36,9 @@ module physics_data
    end type stdname_to_fieldname
 
    type(stdname_to_fieldname) :: lookup_table(13) = (/                        &
-        ('pressure_thickness_of_air_layer                                 ',  &
+        ('pressure_thickness                                              ',  &
         (/ 'pdel_snapshot' /) ),                                              &
-        ('pressure_thickness_of_air_layer_of_dry_air                      ',  &
+        ('pressure_thickness_of_dry_air                                   ',  &
         (/ 'pdeldry' /) ),                                                    &
         ('water_vapor_specific_humidity                                   ',  &
         (/ 'Q_snapshot' /) ),                                                 &
@@ -46,7 +46,7 @@ module physics_data
         (/ 'CL_snapshot' /) ),                                                &
         ('rain_water_mixing_ratio                                         ',  &
         (/ 'RAINQM_snapshot' /) ),                                            &
-        ('geopotential_height_above_surface_at_midpoints                  ',  &
+        ('geopotential                                                    ',  &
         (/ 'zm_snapshot' /) ),                                                &
         ('temperature                                                     ',  &
         (/ 't_snapshot' /) ),                                                 &
@@ -60,7 +60,7 @@ module physics_data
         (/ 'pint_snapshot' /) ),                                              &
         ('air_pressure                                                    ',  &
         (/ 'pmid_snapshot' /) ),                                              &
-        ('reciprocal_pressure_thickness_of_air_layer                      ',  &
+        ('reciprocal_pressure_thickness                                   ',  &
         (/ 'rpdel_snapshot' /) ) /)
 #endif
 
@@ -83,7 +83,7 @@ CONTAINS
 
       read_standard_name = .false.
 
-      do index = 1, len(ccpp_required_data)
+      do index = 1, size(ccpp_required_data, 1)
          if (trim(stdname) == trim(ccpp_required_data(index))) then
             read_standard_name = .true.
 !            fieldname = lookup_table(index)%field_names(1)
@@ -116,9 +116,12 @@ CONTAINS
 
    subroutine read_field_2d(file, var_names, timestep, buffer)
       use shr_assert_mod, only: shr_assert_in_domain
+      use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
+      use spmd_utils,     only: masterproc
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun
+      use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
 
       ! Dummy arguments
@@ -135,6 +138,10 @@ CONTAINS
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
       if (var_found) then
+         if (masterproc) then
+            write(iulog, *) 'Reading input field, ', trim(found_name)
+            call shr_sys_flush(iulog)
+         end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
       else
@@ -151,9 +158,12 @@ CONTAINS
 
    subroutine read_field_3d(file, var_names, vcoord_name, timestep, buffer)
       use shr_assert_mod, only: shr_assert_in_domain
+      use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
+      use spmd_utils,     only: masterproc
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun
+      use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use physics_grid,   only: pver, pverp
 
@@ -180,6 +190,10 @@ CONTAINS
          else
             call endrun(subname//'Unknown vcoord_name, '//trim(vcoord_name))
          end if
+         if (masterproc) then
+            write(iulog, *) 'Reading input field, ', trim(found_name)
+            call shr_sys_flush(iulog)
+         end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=(/1, num_levs/))
@@ -205,10 +219,10 @@ CONTAINS
       type(file_desc_t), intent(inout) :: file
       integer,           intent(in)    :: timestep
 
-      if (read_standard_name('pressure_thickness_of_air_layer')) then
+      if (read_standard_name('pressure_thickness')) then
          call read_field(file, (/ 'pdel_snapshot' /), 'lev', timestep, pdel)
       end if
-      if (read_standard_name('pressure_thickness_of_air_layer_of_dry_air')) then
+      if (read_standard_name('pressure_thickness_of_dry_air')) then
          call read_field(file, (/ 'pdeldry_snapshot' /), 'lev',               &
               timestep, pdeldry)
       end if
@@ -225,7 +239,7 @@ CONTAINS
               phys_state%q(:,:,ix_cld_ice))
       end if
       if (read_standard_name(                                                 &
-           'geopotential_height_above_surface_at_midpoints')) then
+           'geopotential')) then
          call read_field(file, (/ 'zm_snapshot' /), 'lev', timestep, zm)
       end if
       if (read_standard_name('temperature')) then
@@ -252,7 +266,7 @@ CONTAINS
          call read_field(file, (/ 'pmiddry_snapshot' /), 'lev', timestep,     &
               pmiddry)
       end if
-      if (read_standard_name('reciprocal_pressure_thickness_of_air_layer')) then
+      if (read_standard_name('reciprocal_pressure_thickness')) then
          call read_field(file, (/ 'rpdel_snapshot' /), 'lev', timestep, rpdel)
       end if
 

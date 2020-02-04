@@ -590,7 +590,8 @@ class ConfigCAM:
         self.__config_dict = dict()
 
         # Create namelist group list, starting with default namelist groups
-        self.__nml_groups = ['cam_initfiles_nl', 'phys_ctl_nl', 'qneg_nl']
+        self.__nml_groups = ['cam_initfiles_nl', 'cam_logfile_nl',
+                             'phys_ctl_nl', 'qneg_nl']
 
         #----------------------------------------
         # Set CAM grid variables (nlat,nlon,nlev)

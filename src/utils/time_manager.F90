@@ -65,7 +65,6 @@ integer :: dtime = uninit_int               ! timestep in seconds
 character(len=32) :: calendar               ! Calendar type
 logical :: tm_first_restart_step = .false.  ! true for first step of a restart or branch run
 logical :: tm_perp_calendar = .false.       ! true when using perpetual calendar
-integer :: cal_type = uninit_int            ! calendar type
 
 ! The target attribute for tm_cal is needed (at least by NAG) because there are
 ! pointers to this object inside ESMF_Time objects.
@@ -101,7 +100,6 @@ subroutine timemgr_init( &
 
    ! Local variables
    character(len=*), parameter :: sub = 'timemgr_init'
-   integer :: rc                            ! return code
    type(ESMF_Time) :: start_date            ! start date for run
    type(ESMF_Time) :: stop_date             ! stop date for run
    type(ESMF_Time) :: curr_date             ! temporary date used in logic
@@ -1087,7 +1085,6 @@ subroutine timemgr_time_ge(ymd1, tod1, ymd2, tod2, time2_ge_time1)
 
 ! Local variables
    character(len=*), parameter :: sub = 'timemgr_time_ge'
-   integer :: rc   ! return code
 
    type(ESMF_Time) :: time1, time2
 !-----------------------------------------------------------------------------------------

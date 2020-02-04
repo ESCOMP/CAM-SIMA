@@ -195,8 +195,8 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
         try:
             from generate_registry_data import gen_registry
         except ImportError as ierr:
-            emsg = "ERROR: Cannot find generate_registry_data in '{}'"
-            raise CamConfigError(emsg.format(gen_reg_path))
+            emsg = "ERROR: Cannot find generate_registry_data in '{}'\n{}"
+            raise CamConfigError(emsg.format(gen_reg_path, ierr))
         # End try
         #pylint: enable=wrong-import-position
         for reg_file in registry_files:
@@ -291,6 +291,13 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
         gen_hostcap = True
         gen_docfiles = False
         host_name = case.get_value('COMP_ATM')
+        _LOGGER.debug("Calling capgen: ")
+        _LOGGER.debug("   host files: ".format(host_files))
+        _LOGGER.debug("   scheme files: ".format(scheme_files))
+        _LOGGER.debug("   suite definition files: ".format(sdfs))
+        _LOGGER.debug("   preproc defs: ".format(preproc_defs))
+        _LOGGER.debug("   output directory: ".format(genccpp_dir))
+        _LOGGER.debug("   kind_phys: ".format(kind_phys))
         capgen(host_files, scheme_files, sdfs, cap_output_file,
                preproc_defs, gen_hostcap, gen_docfiles, genccpp_dir,
                host_name, kind_phys, _LOGGER)
