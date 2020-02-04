@@ -14,7 +14,7 @@
               units="count" type="integer">
       <initial_value>2</initial_value>
     </variable>
-    <variable local_name="ix_cld_ice"
+    <variable local_name="ix_rain"
               standard_name="index_of_rain_water_mixing_ratio"
               units="count" type="integer">
       <initial_value>3</initial_value>
@@ -102,7 +102,7 @@
     </variable>
     <variable local_name="rpdeldry"
               standard_name="reciprocal_of_pressure_thickness_of_dry_air"
-              units="Pa" type="real" kind="kind_phys"
+              units="Pa-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>

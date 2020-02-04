@@ -213,7 +213,7 @@ CONTAINS
       use pio,           only: file_desc_t
       use physics_types, only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
       use physics_types, only: pint, pmid, pmiddry, rpdel
-      use physics_types, only: ix_qv, ix_cld_liq, ix_cld_ice
+      use physics_types, only: ix_qv, ix_cld_liq, ix_rain
 
       ! Dummy argument
       type(file_desc_t), intent(inout) :: file
@@ -236,7 +236,7 @@ CONTAINS
       end if
       if (read_standard_name('rain_water_mixing_ratio')) then
          call read_field(file, (/ 'RAINQM_snapshot' /), 'lev', timestep,      &
-              phys_state%q(:,:,ix_cld_ice))
+              phys_state%q(:,:,ix_rain))
       end if
       if (read_standard_name(                                                 &
            'geopotential')) then

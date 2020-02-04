@@ -20,7 +20,7 @@ CONTAINS
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
       !!XXgoldyXX: v see comment about pcnst
-      use physics_types,  only: ix_qv, ix_cld_liq, ix_cld_ice
+      use physics_types,  only: ix_qv, ix_cld_liq, ix_rain
       !!XXgoldyXX: ^ see comment about pcnst
 
       ! nlfile: filepath for file containing namelist input
@@ -37,7 +37,7 @@ CONTAINS
       pcnst = 3
       ix_qv = 1
       ix_cld_liq = 2
-      ix_cld_ice = 3
+      ix_rain = 3
       !!XXgoldyXX: ^ Need to figure out how to figure out pcnst
 
       if (masterproc) then
