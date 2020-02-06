@@ -3,7 +3,7 @@ module cam_pio_utils
 
    use shr_kind_mod, only: r8=>shr_kind_r8
    use shr_sys_mod,  only: shr_sys_flush
-   use cam_logfile,  only: iulog, debug_output
+   use cam_logfile,  only: iulog, debug_output, DEBUGOUT_NONE, DEBUGOUT_INFO
    use perf_mod,     only: t_startf, t_stopf
    use pio,          only: iosystem_desc_t, file_desc_t, io_desc_t, var_desc_t
    use spmd_utils,   only: masterproc
@@ -361,7 +361,7 @@ contains
       !-----------------------------------------------------------------------
       ! We will handle errors for this routine
 
-      call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, err_handling)
+      call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       dimids = -1
       ndims = 0
@@ -416,7 +416,7 @@ contains
 
       !-----------------------------------------------------------------------
       ! We will handle errors for this routine
-      call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, err_handling)
+      call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, oldmethod=err_handling)
       ret = PIO_inq_varid(ncid, trim(varname), varid)
       found = (ret == PIO_NOERR)
       call PIO_seterrorhandling(ncid, err_handling)
@@ -448,7 +448,7 @@ contains
       integer                          :: num_vars
 
       ! We will handle errors for this routine
-      call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, err_handling)
+      call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, oldmethod=err_handling)
       num_vars = size(var_names)
       found_name = ''
       found = .false.
@@ -492,7 +492,7 @@ contains
 
       !-----------------------------------------------------------------------
       ! We will handle errors for this routine
-      call pio_seterrorhandling(ncid, PIO_BCAST_ERROR, err_handling)
+      call pio_seterrorhandling(ncid, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       dimids = -1
       ndims = 0
@@ -624,7 +624,7 @@ contains
          pio_rearranger = PIO_REARR_BOX
       endif
 
-      if (masterproc .and. (debug_output > 0)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          write(iulog, *) subname, ': dims = ', dims
          call shr_sys_flush(iulog)
       end if
@@ -721,7 +721,7 @@ contains
          curr%tag = tag
          iodesc_p => curr
       end if
-      if(masterproc .and. (debug_output > 1)) then
+      if(masterproc .and. (debug_output > DEBUGOUT_INFO)) then
          write(iulog,*) "FIND_IODESC: Using decomp, '", curr%tag, "'"
          call shr_sys_flush(iulog)
       end if
@@ -759,7 +759,7 @@ contains
       end if
 
       ! We will handle errors for this routine
-      call pio_seterrorhandling(File, PIO_BCAST_ERROR, err_handling)
+      call pio_seterrorhandling(File, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       ierr = pio_inq_dimid(File, trim(name), dimid)
       if (ierr == PIO_NOERR) then
@@ -838,7 +838,7 @@ contains
       end if
 
       ! We will handle errors for this routine
-      call pio_seterrorhandling(File, PIO_BCAST_ERROR, err_handling)
+      call pio_seterrorhandling(File, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       ! Check to see if the variable already exists in the file
       ierr = pio_inq_varid(File, name, vardesc)
@@ -1270,7 +1270,8 @@ contains
 
       ! We will handle errors for this routine
 
-      call pio_seterrorhandling(pio_subsystem, PIO_BCAST_ERROR, err_handling)
+      call pio_seterrorhandling(pio_subsystem, PIO_BCAST_ERROR,               &
+           oldmethod=err_handling)
 
       ierr = pio_openfile(pio_subsystem, file, pio_iotype, fname, PIO_NOWRITE)
       cam_pio_fileexists = (ierr == PIO_NOERR)

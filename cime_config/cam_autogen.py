@@ -15,6 +15,9 @@ import logging
 import shutil
 import filecmp
 import glob
+##XXgoldyXX: See note below about when these imports can be removed
+import filecmp
+import shutil
 
 # Acquire python logger:
 _LOGGER = logging.getLogger(__name__)
@@ -172,13 +175,13 @@ def _find_metadata_files(source_dirs, scheme_finder):
 
     1.  Check that the function works properly if given the proper inputs:
 
-    >>> _find_metadata_files([TEST_SOURCE_MODS_DIR], MetadataTable.find_scheme_names) #doctest: +ELLIPSIS
+    >>> _find_metadata_files([TEST_SOURCE_MODS_DIR], find_scheme_names) #doctest: +ELLIPSIS
     {'temp_adjust': ('.../SourceMods/temp_adjust.meta', '.../SourceMods/temp_adjust.F90')}
 
     2.  Check that the function throws the correct error if no fortran file is found:
 
     >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
-                             MetadataTable.find_scheme_names) #doctest: +IGNORE_EXCEPTION_DETAIL
+                             find_scheme_names) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CamAutoGenError: ERROR: No fortran files were found for the following meta files:
     /glade/work/nusbaume/SE_projects/new_cam_sandbox/CAMDEN/test/unit/sample_files/write_init_files/../ref_pres.meta
@@ -222,6 +225,32 @@ def _find_metadata_files(source_dirs, scheme_finder):
 
     # Return meta_files dictionary:
     return meta_files
+
+###############################################################################
+def _update_genccpp_dir(utility_files, genccpp_dir):
+###############################################################################
+    """
+    Copy any non-generated source code into <genccpp_dir>.
+    Non-generated source code is any <utility_files> that are not
+      auto-generated.
+    Copy is only performed if correct code is not already present in
+      <genccpp_dir>.
+    XXgoldyXX: This is a temporary fix; this routine should go away when
+    all the source code can be compiled (currently, there are several files
+    in the source code directory which cannot be compiled by CAM).
+    """
+    for ufile in utility_files:
+        ufdir, uname = os.path.split(ufile)
+        if ufdir != genccpp_dir:
+            # First, check to see if file exists in <genccpp_dir>
+            gfile = os.path.join(genccpp_dir, uname)
+            docopy = (not os.path.exists(gfile)) or (not filecmp.cmp(ufile,
+                                                                     gfile))
+            if docopy:
+                _ = shutil.copy2(ufile, gfile)
+            # end if
+        # end if
+    # end for
 
 ###############################################################################
 def generate_registry(data_search, build_cache, atm_root, bldroot,
@@ -371,8 +400,11 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     # Import needed CCPP-framework scripts:
     try:
         from ccpp_capgen import capgen
-        from metadata_table import MetadataTable
+        from metadata_table import find_scheme_names
         from parse_tools import read_xml_file
+        ##XXgoldyXX: See note below about when these imports can be removed
+        from ccpp_datafile import DatatableReport
+        from ccpp_datafile import datatable_report
     except ImportError as ierr:
         emsg = "ERROR: Cannot find CCPP-framework routines in '{}'\n{}"
         raise CamAutoGenError(emsg.format(ccpp_scripts_path, ierr))
@@ -388,8 +420,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     source_search = [source_mods_dir,
                      os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
     # Find all metadata files, organize by scheme name
-    all_scheme_files = _find_metadata_files(source_search,
-                                            MetadataTable.find_scheme_names)
+    all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
     # Find the SDFs
     sdfs = list()
     scheme_files = list()
@@ -424,7 +455,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     kind_phys = 'REAL64'
 
     # Set location of CCPP "capfiles.txt" file:
-    cap_output_file = os.path.join(genccpp_dir, "capfiles.txt")
+    cap_output_file = os.path.join(genccpp_dir, "ccpp_datatable.xml")
 
     # reg_dir needs to be first as the DDTs are defined there.
     host_files = glob.glob(os.path.join(reg_dir, "*.meta"))
@@ -458,12 +489,20 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
         _LOGGER.debug("   kind_phys: '%s'", kind_phys)
 
         # generate CCPP caps
+        force_overwrite = False
         capgen(host_files, scheme_files, sdfs, cap_output_file,
                preproc_defs, gen_hostcap, gen_docfiles, genccpp_dir,
-               host_name, kind_phys, _LOGGER)
+               host_name, kind_phys, force_overwrite, _LOGGER)
 
         # save build details in the build cache
         build_cache.update_ccpp(sdfs, scheme_files, preproc_defs, kind_phys)
+        ##XXgoldyXX: v Temporary fix: Copy CCPP Framework source code into
+        ##XXgoldyXX: v   generated code directory
+        request = DatatableReport("utility_files")
+        ufiles_str = datatable_report(cap_output_file, request, ";")
+        utility_files = ufiles_str.split(';')
+        _update_genccpp_dir(utility_files, genccpp_dir)
+        ##XXgoldyXX: ^ Temporary fix:
     # End if
 
     # Remove CCPP scripts location from python path:
@@ -705,7 +744,7 @@ if __name__ == "__main__":
 
     # Import needed CCPP-framework module:
     #pylint: disable=unused-import
-    from metadata_table import MetadataTable
+    from metadata_table import find_scheme_names
     #pylint: enable=unused-import
 
     # Run additional doctests:

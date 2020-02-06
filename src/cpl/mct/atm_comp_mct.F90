@@ -749,6 +749,7 @@ CONTAINS
       integer                  :: day_spec      ! Current day
       integer                  :: sec_spec      ! Current time of day (sec)
       integer                  :: nf_x2a, nf_a2x, k
+      integer                  :: err_handling
       real(r8),    allocatable :: tmp(:)
       type(file_desc_t)        :: file
       type(io_desc_t), pointer :: iodesc
@@ -790,7 +791,8 @@ CONTAINS
          itemc = mct_string_toChar(mstring)
          call mct_string_clean(mstring)
 
-         call pio_seterrorhandling(File, pio_bcast_error)
+         call pio_seterrorhandling(File, pio_bcast_error,                     &
+              oldmethod=err_handling)
          rcode = pio_inq_varid(File, 'x2a_'//trim(itemc), varid)
          if (rcode == pio_noerr) then
             call pio_read_darray(File, varid, iodesc, tmp, rcode)
@@ -803,7 +805,7 @@ CONTAINS
             end if
             x2a_a%rattr(k,:) = 0._r8
          end if
-         call pio_seterrorhandling(File, pio_internal_error)
+         call pio_seterrorhandling(File, err_handling)
       end do
 
       nf_a2x = mct_aVect_nRattr(a2x_a)

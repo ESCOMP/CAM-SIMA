@@ -31,7 +31,7 @@ if __SPINSCRIPTS not in sys.path:
 from parse_tools import validate_xml_file, read_xml_file
 from parse_tools import find_schema_file, find_schema_version
 from parse_tools import init_log, CCPPError, ParseInternalError
-from metadata_table import MetadataTable
+from metadata_table import parse_metadata_file
 from fortran_tools import FortranWriter
 # pylint: enable=wrong-import-position
 
@@ -847,6 +847,9 @@ class VarDict(OrderedDict):
 
     def write_metadata(self, outfile):
         """Write out the variables in this dictionary as CCPP metadata"""
+        outfile.write('[ccpp-table-properties]\n')
+        outfile.write('  name = {}\n'.format(self.name))
+        outfile.write('  type = {}\n'.format(self.module_type))
         outfile.write('[ccpp-arg-table]\n')
         outfile.write('  name = {}\n'.format(self.name))
         outfile.write('  type = {}\n'.format(self.module_type))
@@ -953,6 +956,9 @@ class DDT:
 
     def write_metadata(self, outfile):
         """Write out this DDT as CCPP metadata"""
+        outfile.write('[ccpp-table-properties]\n')
+        outfile.write('  name = {}\n'.format(self.ddt_type))
+        outfile.write('  type = ddt\n')
         outfile.write('[ccpp-arg-table]\n')
         outfile.write('  name = {}\n'.format(self.ddt_type))
         outfile.write('  type = ddt\n')
@@ -1127,9 +1133,9 @@ class File:
         """Write out source code for the variables in this file"""
         ofilename = os.path.join(outdir, "{}.F90".format(self.name))
         logger.info("Writing registry source file, {}".format(ofilename))
-        with FortranWriter(ofilename, "w", indent=indent) as outfile:
-            # Define the module header
-            outfile.write('module {}\n'.format(self.name), 0)
+        file_desc = "Variables for registry source file, {}".format(self.name)
+        with FortranWriter(ofilename, "w", file_desc,
+                           self.name, indent=indent) as outfile:
             # Use statements (if any)
             module_list = list() # tuple of (module, type)
             for var in self.__var_dict.variable_list():
@@ -1164,8 +1170,7 @@ class File:
             # end for
             # More boilerplate
             outfile.write("", 0)
-            outfile.write("implicit none\nprivate", 1)
-            outfile.write("", 0)
+            outfile.write_preamble()
             # Write DDTs defined in this file
             for ddt in self.__ddts.values():
                 ddt.write_definition(outfile, 'private', 1)
@@ -1178,12 +1183,10 @@ class File:
             outfile.write('public :: {}'.format(self.allocate_routine_name()),
                           1)
             # end of module header
-            outfile.write("\nCONTAINS\n", 0)
+            outfile.write("", 0)
+            outfile.end_module_header()
             # Write data management subroutines
             self.write_allocate_routine(outfile)
-            # end of module
-            outfile.write('\nend module {}'.format(self.name), 0)
-
         # end with
 
     def allocate_routine_name(self):
@@ -1313,31 +1316,39 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
     known_ddts = known_types.known_ddt_names()
     mfiles = list()
     if os.path.exists(file_path):
-        meta_headers = MetadataTable.parse_metadata_file(file_path,
-                                                         known_ddts, logger)
+        meta_tables = parse_metadata_file(file_path, known_ddts, logger)
         logger.info("Parsing metadata_file, '{}'".format(file_path))
     else:
         emsg = "Metadata file, '{}', does not exist"
         raise CCPPError(emsg.format(file_path))
     # end if
     # Create a File object with no Variables
-    for mheader in meta_headers:
-        hname = mheader.title
-        htype = mheader.header_type
-        fname = mheader.name
+    for mtable in meta_tables:
+        htype = mtable.table_type
+        hname = mtable.table_name
         if htype not in ('host', 'module', 'ddt'):
             emsg = "Metadata type, '{}' not supported."
             raise CCPPError(emsg.format(htype))
         # end if
-        if htype == 'ddt':
-            section = '<file name="{}" type="{}"></file>'.format(fname, htype)
-        else:
-            section = '<file name="{}" type="{}"></file>'.format(hname, htype)
-        # end if
+        section = '<file name="{}" type="{}"></file>'.format(hname, htype)
         sect_xml = ET.fromstring(section)
         mfile = File(sect_xml, known_types, dycore, config,
                      logger, gen_code=False, file_path=file_path)
         # Add variables
+        # Note, we only support one section per table for host variables
+        sections = mtable.sections()
+        if len(sections) > 1:
+            emsg = "Too many metadata sections ([ccpp-arg-table]) for "
+            emsg += "metadata table, {}: [{}]"
+            snames = [s.title for s in sections]
+            raise CCPPError(emsg.format(hname, ", ".join(snames)))
+        # end if
+        if sections:
+            mheader = sections[0]
+        else:
+            emsg = "Missing metadata section ([ccpp-arg-table]) for {}"
+            raise CCPPError(emsg.format(hname))
+        # end if
         for var in mheader.variable_list(loop_vars=False, consts=False):
             prop = var.get_prop_value('local_name')
             vnode_str = '<variable local_name="{}"'.format(prop)
@@ -1350,10 +1361,11 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
             if kind and (typ != kind):
                 vnode_str += '\n          kind="{}"'.format(kind)
             # end if
-            vnode_str += '>'
             if var.get_prop_value('protected'):
                 vnode_str += '\n          access="protected"'
             # end if
+            # End of variable attributes
+            vnode_str += '>'
             dims = var.get_dimensions()
             if dims:
                 vdims = list()
@@ -1521,7 +1533,7 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
             emsg += "\n" + cemsg
         # end if
         file_ok = False
-    # end if
+    # end try
     if not file_ok:
         if error_on_no_validate:
             raise CCPPError(emsg)

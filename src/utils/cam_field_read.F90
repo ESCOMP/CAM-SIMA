@@ -15,7 +15,7 @@ module cam_field_read
    use pio,            only: pio_double, pio_setframe
    use spmd_utils,     only: masterproc
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog, debug_output
+   use cam_logfile,    only: iulog, debug_output, DEBUGOUT_NONE, DEBUGOUT_DEBUG
    !!XXgoldyXX: v support SCAM?
    !  use shr_scam_mod,   only: shr_scam_getCloseLatLon  ! Standardized system subroutines
    !  use scamMod,        only: scmlat,scmlon,single_column
@@ -66,7 +66,7 @@ CONTAINS
       end if
       call cam_grid_get_dim_names(grid_id, dim1name, dim2name)
       call cam_grid_get_array_bounds(grid_id, dim_bounds)
-      if (masterproc .and. (debug_output > 0)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          if (trim(dim1name) == trim(dim2name)) then
             write(iulog, '(5a)') subname, ': grid ', trim(grid_name),         &
                  ', dimension = ', trim(dim1name)
@@ -112,7 +112,7 @@ CONTAINS
          write(errormsg, '(3a,i0)') ': too many dimension bounds for, ',      &
               trim(varname), ', ', num_bounds
          call endrun(subname//trim(errormsg))
-      else if (debug_output > 2) then
+      else if (debug_output >= DEBUGOUT_DEBUG) then
          num_vals = 0
          do ind = 1, num_bounds
             num_vals = num_vals + 1
@@ -129,7 +129,7 @@ CONTAINS
          errormsg((6 * num_vals) + 8:) = ' '
          write(fmt_str, '("(a,",a,",i5,",i0,"(i6))")') '": "', num_vals
          call cam_log_multiwrite(subname, errormsg, fmt_str, values(1:num_vals))
-      else if (masterproc .and. (debug_output > 0)) then
+      else if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          num_vals = 0
          do ind = 1, num_bounds
             num_vals = num_vals + 1
@@ -264,7 +264,7 @@ CONTAINS
       else
          target_ndims = num_target_dims(2, unstruct)
       end if
-      if ((debug_output > 0) .and. masterproc) then
+      if ((debug_output > DEBUGOUT_NONE) .and. masterproc) then
          if (present(timelevel)) then
             write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
@@ -473,7 +473,7 @@ CONTAINS
       else
          target_ndims = num_target_dims(2, unstruct)
       end if
-      if ((debug_output > 0) .and. masterproc) then
+      if ((debug_output > DEBUGOUT_NONE) .and. masterproc) then
          if (present(timelevel)) then
             write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
@@ -583,14 +583,14 @@ CONTAINS
             if(present(timelevel)) then
                call pio_setframe(ncid, varid,                                 &
                     int(timelevel, kind=pio_offset_kind))
-               if (masterproc .and. (debug_output > 0)) then
+               if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
                   write(iulog, '(2a,i0)') subname, 'Setting time to frame ',  &
                        timelevel
                   call shr_sys_flush(iulog)
                end if
             else
                call pio_setframe(ncid, varid, int(1, kind=pio_offset_kind))
-               if (masterproc .and. (debug_output > 0)) then
+               if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
                   write(iulog, '(2a)') subname, 'Setting time to frame 1'
                   call shr_sys_flush(iulog)
                end if
