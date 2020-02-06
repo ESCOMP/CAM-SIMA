@@ -16,6 +16,7 @@ module cam_comp
 
    use spmd_utils,      only: masterproc, mpicom
    use cam_control_mod, only: cam_ctrl_init, cam_ctrl_set_orbit
+   use cam_control_mod, only: caseid, ctitle
    use runtime_opts,    only: read_namelist
    use time_manager,    only: timemgr_init, get_step_size
    use time_manager,    only: get_nstep, is_first_step, is_first_restart_step
@@ -65,14 +66,13 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-!      use history_defaults,     only: bldfld
       use cam_initfiles,        only: cam_initfiles_open
       use dyn_grid,             only: model_grid_init
       use phys_comp,            only: phys_init
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
       use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-!      use cam_history,          only: intht
+!      use cam_history,          only: hist_init_files
 !      use history_scam,         only: scm_intht
       use cam_pio_utils,        only: init_pio_subsystem
       use cam_instance,         only: inst_suffix
@@ -195,7 +195,7 @@ CONTAINS
       !    call scm_intht()
       ! end if
 !!XXgoldyXX: v need to import this
-!      call intht(model_doi_url)
+!      call hist_init_files(model_doi_url, caseid, ctitle)
 !!XXgoldyXX: ^ need to import this
 
    end subroutine cam_init
@@ -216,7 +216,7 @@ CONTAINS
       use stepon,    only: stepon_run1
 !      use ionosphere_interface, only: ionosphere_run1
 
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM 
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
       type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !----------------------------------------------------------

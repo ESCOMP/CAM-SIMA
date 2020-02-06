@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name = physics_types_simple
+  type = module
 [ccpp-arg-table]
   name = physics_types_simple
   type = module

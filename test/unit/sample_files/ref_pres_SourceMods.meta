@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name  = ref_pres
+  type  = module
 [ccpp-arg-table]
   name  = ref_pres
   type  = module
@@ -81,5 +84,3 @@
   units = magic
   type = real | kind = kind_phys
   dimensions = ()
-
-

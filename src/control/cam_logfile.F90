@@ -29,7 +29,11 @@ module cam_logfile
 ! Public data ----------------------------------------------------------
 !-----------------------------------------------------------------------
    integer, public, protected :: iulog = 6
-   integer, public, protected :: debug_output = 0
+   integer, public, parameter :: DEBUGOUT_NONE    = 0
+   integer, public, parameter :: DEBUGOUT_INFO    = 1
+   integer, public, parameter :: DEBUGOUT_VERBOSE = 2
+   integer, public, parameter :: DEBUGOUT_DEBUG   = 3
+   integer, public, protected :: debug_output = DEBUGOUT_NONE
 
 !-----------------------------------------------------------------------
 ! Private data ---------------------------------------------------------

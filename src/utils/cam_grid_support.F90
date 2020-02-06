@@ -265,8 +265,6 @@ module cam_grid_support
    !---------------------------------------------------------------------------
 
    ! Abstract interface for write_attr procedure of cam_grid_attribute_t class
-   ! NB: This will not compile on some pre-13 Intel compilers
-   !     (fails on 12.1.0.233 on Frankfurt, passes on 13.0.1.117 on Yellowstone)
    abstract interface
       subroutine write_cam_grid_attr(attr, File)
          use pio, only: file_desc_t
@@ -564,7 +562,7 @@ contains
       integer                             :: ierr
 
       ! We will handle errors for this routine
-      call pio_seterrorhandling(File, PIO_BCAST_ERROR,err_handling)
+      call pio_seterrorhandling(File, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       ! Make sure the dimension exists in the file
       call this%get_dim_name(dimname)
@@ -667,7 +665,8 @@ contains
       ! Check to make sure we are supposed to write this var
       if (associated(this%vardesc)) then
          ! We will handle errors for this routine
-         call pio_seterrorhandling(File, PIO_BCAST_ERROR,err_handling)
+         call pio_seterrorhandling(File, PIO_BCAST_ERROR,                     &
+              oldmethod=err_handling)
 
          ! Write out the values for this dimension variable
          if (associated(this%map)) then
@@ -2497,7 +2496,8 @@ contains
          header_info%hdims(1) = dimids(1)
 
          ! We will handle errors for this routine
-         call pio_seterrorhandling(File, PIO_BCAST_ERROR,err_handling)
+         call pio_seterrorhandling(File, PIO_BCAST_ERROR,                     &
+              oldmethod=err_handling)
 
          attrPtr => cam_grids(gridind)%attributes
          do while (associated(attrPtr))
@@ -2659,7 +2659,8 @@ contains
          call cam_grids(gridind)%lat_coord%write_var(File)
 
          ! We will handle errors for this routine
-         call pio_seterrorhandling(File, PIO_BCAST_ERROR,err_handling)
+         call pio_seterrorhandling(File, PIO_BCAST_ERROR,                     &
+              oldmethod=err_handling)
 
          ! Write out the variable values for each grid attribute
          attrPtr => cam_grids(gridind)%attributes
@@ -3128,7 +3129,7 @@ contains
       character(len=*), parameter       :: subname = 'CAM_GRID_FIND_DIMIDS'
 
       ! We will handle errors for this routine
-      call pio_seterrorhandling(File, PIO_BCAST_ERROR,err_handling)
+      call pio_seterrorhandling(File, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       call this%dim_names(dimname1, dimname2)
       if (size(dimids) < 1) then

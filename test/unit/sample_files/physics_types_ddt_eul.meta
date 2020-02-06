@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name = physics_state
+  type = ddt
 [ccpp-arg-table]
   name = physics_state
   type = ddt
@@ -8,6 +11,9 @@
   type = integer
   dimensions = ()
   protected = True
+[ccpp-table-properties]
+  name = physics_types_ddt
+  type = module
 [ccpp-arg-table]
   name = physics_types_ddt
   type = module

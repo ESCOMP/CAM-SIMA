@@ -1,6 +1,24 @@
+!
+! This work (Common Community Physics Package Framework), identified by
+! NOAA, NCAR, CU/CIRES, is free of known copyright restrictions and is
+! placed in the public domain.
+!
+! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+! THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+!>
+!! @brief Auto-generated Variables for registry source file, physics_types_complete
+!!
+!
 module physics_types_complete
 
   use ccpp_kinds, only: kind_phys
+
 
   implicit none
   private
@@ -9,45 +27,45 @@ module physics_types_complete
 !! \htmlinclude physics_base.html
   type, bind(C) :: physics_base
     ! ncol: Number of horizontal columns
-    integer           :: ncol = 0
+    integer                    :: ncol = 0
     ! pver: Number of vertical layers
-    integer           :: pver = 0
+    integer                    :: pver = 0
   end type physics_base
 
 !> \section arg_table_model_wind  Argument Table
 !! \htmlinclude model_wind.html
   type, public :: model_wind
     ! u: Eastward wind
-    real(kind_phys),         pointer :: u(:, :) => NULL()
+    real(kind_phys),         pointer          :: u(:, :) => NULL()
     ! v: Northward wind
-    real(kind_phys),         pointer :: v(:, :) => NULL()
+    real(kind_phys),         pointer          :: v(:, :) => NULL()
   end type model_wind
 
 !> \section arg_table_physics_state  Argument Table
 !! \htmlinclude physics_state.html
   type, extends(physics_base) :: physics_state
     ! latitude: Latitude
-    real(kind_phys),          pointer :: latitude(:) => NULL()
+    real(kind_phys),          pointer          :: latitude(:) => NULL()
     ! longitude: Longitude
-    real(kind_phys),          pointer :: longitude(:) => NULL()
+    real(kind_phys),          pointer          :: longitude(:) => NULL()
     ! wind: Model wind
-    type(model_wind)                  :: wind
+    type(model_wind)                           :: wind
     ! q: Constituent mixing ratio
-    real(kind_phys),          pointer :: q(:, :, :) => NULL()
+    real(kind_phys),          pointer          :: q(:, :, :) => NULL()
   end type physics_state
 
 !> \section arg_table_physics_types_complete  Argument Table
 !! \htmlinclude physics_types_complete.html
   ! ix_qv: Index of water vapor specific humidity
-  integer,             public            :: ix_qv = 1
+  integer,             public                     :: ix_qv = 1
   ! ix_cld_liq: Index of cloud liquid water mixing ratio
-  integer,             public            :: ix_cld_liq = 2
+  integer,             public                     :: ix_cld_liq = 2
   ! param_val_var: Made up param variable
-  integer,             public, parameter :: param_val_var = 42
+  integer,             public, parameter          :: param_val_var = 42
   ! standard_var: Standard non ddt variable
-  real,                public            :: standard_var
+  real,                public                     :: standard_var
   ! phys_state: Physics state variables updated by dynamical core
-  type(physics_state), public            :: phys_state
+  type(physics_state), public                     :: phys_state
 
 !! public interfaces
   public :: allocate_physics_types_complete_fields

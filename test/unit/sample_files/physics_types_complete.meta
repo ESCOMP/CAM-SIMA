@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name = physics_base
+  type = ddt
 [ccpp-arg-table]
   name = physics_base
   type = ddt
@@ -15,6 +18,9 @@
   type = integer
   dimensions = ()
   protected = True
+[ccpp-table-properties]
+  name = model_wind
+  type = ddt
 [ccpp-arg-table]
   name = model_wind
   type = ddt
@@ -30,6 +36,9 @@
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
+[ccpp-table-properties]
+  name = physics_state
+  type = ddt
 [ccpp-arg-table]
   name = physics_state
   type = ddt
@@ -65,6 +74,9 @@
   units = kg kg-1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ccpp-table-properties]
+  name = physics_types_complete
+  type = module
 [ccpp-arg-table]
   name = physics_types_complete
   type = module
