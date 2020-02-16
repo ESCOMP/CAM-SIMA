@@ -604,16 +604,19 @@ contains
    end subroutine cam_pio_get_decomp
 
    subroutine cam_pio_newdecomp(iodesc, dims, dof, dtype)
-      use pio, only: pio_initdecomp, PIO_OFFSET_KIND, pio_iotype_pnetcdf
-      use pio, only: io_desc_t, PIO_REARR_SUBSET, PIO_REARR_BOX
+      use pio,         only: pio_initdecomp, PIO_OFFSET_KIND, pio_iotype_pnetcdf
+      use pio,         only: io_desc_t, PIO_REARR_SUBSET, PIO_REARR_BOX
+      use cam_logfile, only: cam_log_multiwrite
 
       ! Dummy arguments
       type(io_desc_t),          pointer              :: iodesc
       integer,                           intent(in)  :: dims(:)
       integer(kind=PIO_OFFSET_KIND),     intent(in)  :: dof(:)
       integer,                           intent(in)  :: dtype
-      ! Local variable
+      ! Local variables
       character(len=*),         parameter :: subname = 'cam_pio_newdecomp'
+      character(len=80)                   :: header
+      integer                             :: strt, ind, jndex
 
       if(pio_iotype == pio_iotype_pnetcdf) then
          pio_rearranger = PIO_REARR_SUBSET
@@ -625,7 +628,16 @@ contains
          write(iulog, *) subname, ': dims = ', dims
          call shr_sys_flush(iulog)
       end if
-      call pio_initdecomp(pio_subsystem, dtype, dims, dof, iodesc,            &
+      if (debug_output > 2) then
+         strt = 1
+         do jndex = 1, debug_output
+            write(header, '(a,8i08)') ':  task', (ind, ind = strt, strt+7)
+            call cam_log_multiwrite(subname, header, '(a,": ",i5,8i08)',      &
+                 int(dof(strt:strt+7)))
+            strt = strt + 8
+         end do
+      end if
+      call pio_initdecomp(pio_subsystem, dtype, dims, dof, iodesc,         &
            rearr=pio_rearranger)
 
    end subroutine cam_pio_newdecomp

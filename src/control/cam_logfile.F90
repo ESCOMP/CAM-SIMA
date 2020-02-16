@@ -37,7 +37,8 @@ module cam_logfile
    logical :: iulog_set = .false.
 
    interface cam_log_multiwrite
-      module procedure cam_log_multiwrite_ni ! Multiple integers
+      module procedure cam_log_multiwrite_ni  ! Multiple integers
+      module procedure cam_log_multiwrite_nr8 ! Multiple 8-byte reals
    end interface cam_log_multiwrite
 
 CONTAINS
@@ -150,5 +151,41 @@ CONTAINS
       end if
       deallocate(global_info)
    end subroutine cam_log_multiwrite_ni
+
+   subroutine cam_log_multiwrite_nr8(subname, headers, fmt_string, values)
+      ! Print out values from every task
+      use iso_fortran_env, only: r8 => REAL64
+      use shr_sys_mod,     only: shr_sys_flush
+      use spmd_utils,      only: mpicom, masterprocid, masterproc, npes
+      use mpi,             only: mpi_real8
+
+      ! Dummy arguments
+      character(len=*), intent(in) :: subname
+      character(len=*), intent(in) :: headers
+      character(len=*), intent(in) :: fmt_string
+      real(r8),         intent(in) :: values(:)
+      ! Local variables
+      real(r8), allocatable        :: global_info(:,:)
+      integer                      :: index, fnum
+      integer                      :: num_fields
+      integer                      :: iret
+
+      num_fields = size(values, 1)
+
+      allocate(global_info(npes, num_fields))
+      do index = 1, num_fields
+         call MPI_Gather(values(index), 1, MPI_REAL8, global_info(:,index), &
+              1, MPI_REAL8, masterprocid, mpicom, iret)
+      end do
+      if (masterproc) then
+         write(iulog, '(2a)') trim(subname), trim(headers)
+         do index = 1, npes
+            write(iulog, fmt_string) subname, index - 1,                      &
+                 (global_info(index, fnum), fnum = 1, num_fields)
+         end do
+         call shr_sys_flush(iulog)
+      end if
+      deallocate(global_info)
+   end subroutine cam_log_multiwrite_nr8
 
 end module cam_logfile
