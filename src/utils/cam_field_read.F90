@@ -423,7 +423,7 @@ CONTAINS
 
       ! ndims: The number of dimensions of the field in the file
       integer                                 :: ndims
-      ! ndims: The number of dimensions of the field in the file to print
+      ! pdims: The number of dimensions of the field in the file to print
       integer                                 :: pdims
       ! target_ndims: The number of expected dimensions for field on file
       integer                                 :: target_ndims
