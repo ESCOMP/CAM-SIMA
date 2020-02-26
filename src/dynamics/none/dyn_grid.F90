@@ -247,11 +247,17 @@ CONTAINS
       end if
       if (grid_is_latlon) then
          ! Read in lat and lon and save local quantities
-         start(1) = (col_start / num_lons) + 1
-         kount(1) = (col_end / num_lons) + 1 - start(1) + 1 ! num local lats
+         ! We only have a subset of latitudes, figure out which ones.
+         start(1) = ((col_start - 1) / num_lons) + 1
+         kount(1) = ((col_end - 1) / num_lons) + 1 - start(1) + 1 ! # local lats
+         if (debug_output > 2) then
+            ! Expensive, print out lat/lon decomp info from every task
+            call cam_log_multiwrite(subname, ':  PE   # lats  start    end',  &
+                 '(a,i4,i9,2i7)', (/ kount(1), start(1), start(1)+kount(1)-1/))
+         end if
          if (is_degrees) then
-            allocate(local_lons_deg(lindex))
-            allocate(local_lats_deg(num_lons))
+            allocate(local_lons_deg(num_lons))
+            allocate(local_lats_deg(kount(1)))
             iret = pio_get_var(fh_ini, lat_vardesc, start, kount,             &
                  local_lats_deg)
             call cam_pio_handle_error(iret,                                   &
@@ -350,6 +356,8 @@ CONTAINS
       ! Local variables
       integer                         :: lindex
       integer                         :: gindex
+      integer                         :: lat_index, lat1
+      integer                         :: lon_index
       real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
       real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
       character(len=*), parameter     :: subname = 'get_dyn_grid_info'
@@ -364,36 +372,44 @@ CONTAINS
       dycore_name = 'NULL'
       index_model_top_layer = 1
       index_surface_layer = num_levels
+      lat1 = global_col_offset / num_lons
       do lindex = 1, num_local_columns
+         if (grid_is_latlon) then
+            lat_index = ((global_col_offset + lindex - 1) / num_lons) + 1 - lat1
+            lon_index = MOD(lindex - 1, num_lons) + 1
+         else
+            lat_index = lindex
+            lon_index = lindex
+         end if
          if (allocated(local_lats_rad)) then
-            dyn_columns(lindex)%lat_rad = local_lats_rad(lindex)
-            dyn_columns(lindex)%lat_deg = local_lats_rad(lindex) * radtodeg
+            dyn_columns(lindex)%lat_rad = local_lats_rad(lat_index)
+            dyn_columns(lindex)%lat_deg = local_lats_rad(lat_index) * radtodeg
          else if (allocated(local_lats_deg)) then
-            dyn_columns(lindex)%lat_deg = local_lats_deg(lindex)
-            dyn_columns(lindex)%lat_rad = local_lats_deg(lindex) * degtorad
+            dyn_columns(lindex)%lat_deg = local_lats_deg(lat_index)
+            dyn_columns(lindex)%lat_rad = local_lats_deg(lat_index) * degtorad
          else
             call endrun(subname//': No column latitude info')
          end if
          if (allocated(local_lons_rad)) then
-            dyn_columns(lindex)%lon_rad = local_lons_rad(lindex)
-            dyn_columns(lindex)%lon_deg = local_lons_rad(lindex) * radtodeg
+            dyn_columns(lindex)%lon_rad = local_lons_rad(lon_index)
+            dyn_columns(lindex)%lon_deg = local_lons_rad(lon_index) * radtodeg
          else if (allocated(local_lons_deg)) then
-            dyn_columns(lindex)%lon_deg = local_lons_deg(lindex)
-            dyn_columns(lindex)%lon_rad = local_lons_deg(lindex) * degtorad
+            dyn_columns(lindex)%lon_deg = local_lons_deg(lon_index)
+            dyn_columns(lindex)%lon_rad = local_lons_deg(lon_index) * degtorad
          else
             call endrun(subname//': No column longitude info')
          end if
          if (allocated(local_areas)) then
-            dyn_columns(lindex)%area = local_areas(lindex)
+            dyn_columns(lindex)%area = local_areas(lat_index)
          else if (allocated(local_weights)) then
-            dyn_columns(lindex)%area = local_weights(lindex)
+            dyn_columns(lindex)%area = local_weights(lat_index)
          else
             call endrun(subname//': No column area info')
          end if
          if (allocated(local_weights)) then
-            dyn_columns(lindex)%weight = local_weights(lindex)
+            dyn_columns(lindex)%weight = local_weights(lat_index)
          else if (allocated(local_areas)) then
-            dyn_columns(lindex)%weight = local_areas(lindex)
+            dyn_columns(lindex)%weight = local_areas(lat_index)
          else
             call endrun(subname//': No column weight info')
          end if
@@ -401,7 +417,7 @@ CONTAINS
          gindex = global_col_offset + lindex
          dyn_columns(lindex)%global_col_num = gindex
          dyn_columns(lindex)%coord_indices(1) = MOD(gindex - 1, num_lons) + 1
-         dyn_columns(lindex)%coord_indices(2) = gindex / num_lons
+         dyn_columns(lindex)%coord_indices(2) = ((gindex - 1) / num_lons) + 1
          ! Dynamics decomposition
          dyn_columns(lindex)%dyn_task = iam
          dyn_columns(lindex)%local_dyn_block = 1

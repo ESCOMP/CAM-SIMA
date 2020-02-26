@@ -227,10 +227,10 @@ CONTAINS
          do col_index = 1, columns_on_task
             area_d(col_index) = phys_columns(col_index)%area
          end do
+         call cam_grid_attribute_register('physgrid', 'area',                 &
+              'physics column areas', 'ncol', area_d, map=grid_map(3,:))
+         nullify(area_d) ! Belongs to attribute now
       end if
-      call cam_grid_attribute_register('physgrid', 'area',                    &
-           'physics column areas', 'ncol', area_d, map=grid_map(3,:))
-      nullify(area_d) ! Belongs to attribute now
       ! Cleanup pointers (they belong to the grid now)
       nullify(grid_map)
       deallocate(latvals)

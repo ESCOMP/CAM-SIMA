@@ -68,11 +68,11 @@ CONTAINS
       call cam_grid_get_array_bounds(grid_id, dim_bounds)
       if (masterproc .and. (debug_output > 0)) then
          if (trim(dim1name) == trim(dim2name)) then
-            write(iulog, *) subname, ': grid ', grid_name, ' dimension = ',  &
-                 dim1name
+            write(iulog, '(5a)') subname, ': grid ', trim(grid_name),         &
+                 ', dimension = ', trim(dim1name)
          else
-            write(iulog, *) subname, ': grid ', grid_name, ' dimensions = ',  &
-                 dim1name,' and ', dim2name
+            write(iulog, '(7a)') subname, ': grid ', trim(grid_name),         &
+                 ', dimensions = ', trim(dim1name), ' and ', trim(dim2name)
          end if
          call shr_sys_flush(iulog)
       end if
@@ -102,7 +102,7 @@ CONTAINS
 
       if (ndims < max(min_ndims, 1)) then
          call endrun(subname//': too few dimensions for '//trim(varname))
-      else if (ndims > min(max_ndims, 3)) then
+      else if (ndims > max_ndims) then
          write(errormsg, '(3a,i0)') ': too many dimensions for, ',      &
               trim(varname), ', ', ndims
          call endrun(subname//trim(errormsg))
@@ -156,6 +156,24 @@ CONTAINS
 
    end subroutine print_input_field_info
 
+   integer function num_target_dims(num_field_dims, unstruct)
+      ! Find the number of expected file dimensions (minus time) given
+      ! field and grid information
+
+      ! Dummy arguments
+      integer, intent(in) :: num_field_dims
+      logical, intent(in) :: unstruct
+
+      num_target_dims = num_field_dims ! Rank of data
+      if (unstruct) then
+         ! File has one horizontal dimension
+         num_target_dims = num_target_dims - 1
+      end if
+      if (num_target_dims < 1) then
+         call endrun('num_target_dims, bad inputs')
+      end if
+   end function num_target_dims
+
    !
    ! ROUTINE: infld_real8_1d
    !
@@ -177,7 +195,7 @@ CONTAINS
       ! Dummy arguments
       character(len=*),           intent(in)    :: varname ! variable name
       type(file_desc_t),          intent(inout) :: ncid    ! input unit
-      ! field: array to be returned (decomposed or global)
+      ! field: array to be returned (decomposed)
       real(r8),                   intent(inout) :: field(:)
       ! readvar: true => variable is on initial dataset
       logical,                    intent(out)   :: readvar
@@ -244,15 +262,20 @@ CONTAINS
       if (block_indexed) then
          call endrun(subname//': Block indexed 1D field is invalid')
       else
-         target_ndims = 1 ! 1D file ==> 1D field (logical 2D field)
+         target_ndims = num_target_dims(2, unstruct)
       end if
       if ((debug_output > 0) .and. masterproc) then
-         if (present(gridname)) then
-            write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
-                 ', grid = ',trim(gridname)
+         if (present(timelevel)) then
+            write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
-            write(iulog, '(4a)') subname, ': field = ', trim(varname),        &
-                 ', grid = physgrid'
+            errormsg = ''
+         end if
+         if (present(gridname)) then
+            write(iulog, '(6a)') subname, ': field = ', trim(varname),        &
+                 ', grid = ',trim(gridname), trim(errormsg)
+         else
+            write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
+                 ', grid = physgrid', trim(errormsg)
          end if
          call shr_sys_flush(iulog)
       end if
@@ -268,7 +291,7 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         call print_input_field_info(dimlens, ndims, 1, 2, dim_bounds, 1,     &
+         call print_input_field_info(dimlens, ndims, 1, 3, dim_bounds, 1,     &
               varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
@@ -367,7 +390,6 @@ CONTAINS
 
       use pio,              only: pio_read_darray
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
-      use cam_logfile,      only: cam_log_multiwrite
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
       use cam_grid_support, only: cam_grid_dimensions,cam_grid_is_block_indexed
       use cam_pio_utils,    only: cam_pio_check_var
@@ -375,7 +397,7 @@ CONTAINS
       ! Dummy arguments
       character(len=*),  intent(in)    :: varname ! variable name
       type(file_desc_t), intent(inout) :: ncid    ! input unit
-      ! field: array to be returned (decomposed or global)
+      ! field: array to be returned (decomposed)
       real(r8),          intent(inout)        :: field(:,:)
       ! readvar: true => variable is on initial dataset
       logical,                    intent(out) :: readvar
@@ -401,6 +423,8 @@ CONTAINS
 
       ! ndims: The number of dimensions of the field in the file
       integer                                 :: ndims
+      ! pdims: The number of dimensions of the field in the file to print
+      integer                                 :: pdims
       ! target_ndims: The number of expected dimensions for field on file
       integer                                 :: target_ndims
       ! dimids: file variable dims
@@ -444,19 +468,25 @@ CONTAINS
       block_indexed = cam_grid_is_block_indexed(grid_id)
       ! Is this an unstructured grid (i.e., one column dimension on file)?
       unstruct = cam_grid_is_unstructured(grid_id)
-      if (block_indexed) then
-         target_ndims = 1 ! 1D file ==> 2D field (logical 2D field)
+      if (present(dim3name)) then
+         target_ndims = num_target_dims(3, unstruct)
       else
-         target_ndims = 2 ! 2D file ==> 2D field (logical 2D or 3D field)
+         target_ndims = num_target_dims(2, unstruct)
       end if
       if ((debug_output > 0) .and. masterproc) then
-         if (present(gridname)) then
-            write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
-                 ', grid = ', trim(gridname)
+         if (present(timelevel)) then
+            write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
-            write(iulog, '(4a)') subname, ': field = ', trim(varname),        &
-                 ', grid = physgrid'
+            errormsg = ''
          end if
+         if (present(gridname)) then
+            write(iulog, '(6a)') subname, ': field = ', trim(varname),        &
+                 ', grid = ', trim(gridname), trim(errormsg)
+         else
+            write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
+                 ', grid = physgrid', trim(errormsg)
+         end if
+         write(iulog, '(2a,i0)') subname, ': target field dims = ', target_ndims
          call shr_sys_flush(iulog)
       end if
       !
@@ -466,8 +496,6 @@ CONTAINS
             call endrun(subname//': dim3name must be present for 3D field')
          else if (.not. present(dim3_bnds)) then
             call endrun(subname//': dim3_bnds must be present for 3D field')
-         else if (.not. unstruct) then
-            call endrun(subname//': 3D field requires unstructured grid')
          end if
          dim_bounds(2,:) = dim3_bnds(:)
          dim2name = trim(dim3name)
@@ -484,8 +512,7 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         call print_input_field_info(dimlens, ndims, 2, 3, dim_bounds, 2,     &
-              varname, subname)
+         pdims = ndims
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
             call endrun(subname//': too many dimensions for '//trim(varname))
@@ -501,9 +528,12 @@ CONTAINS
                   call endrun(subname//errormsg)
                end if
             end if
+            pdims = target_ndims
          else if (ndims < target_ndims) then
             call endrun(subname//': too few dimensions for '//trim(varname))
          end if ! No else, things are okay
+         call print_input_field_info(dimlens, pdims, 2, 3, dim_bounds, 2,     &
+              varname, subname)
          !
          ! Get array dimension id's and sizes
          !
@@ -529,7 +559,7 @@ CONTAINS
                     (grid_dimlens(1) * grid_dimlens(2))
                call endrun(subname//trim(errormsg))
             end if
-         else
+         else if (unstruct) then
             index = 0
             do jndex = 1, target_ndims
                if (present(dim3name)) then
@@ -577,6 +607,7 @@ CONTAINS
             end if
          else
             ! All distributed array processing
+            ndims = target_ndims
             call cam_grid_get_decomp(grid_id, arraydimsize, dimlens(1:ndims), &
                  pio_double, iodesc, file_dnames=file_dnames(1:target_ndims))
             call pio_read_darray(ncid, varid, iodesc, field, ierr)
@@ -616,7 +647,7 @@ CONTAINS
       ! Dummy arguments
       character(len=*),  intent(in)           :: varname ! variable name
       type(file_desc_t), intent(inout)        :: ncid    ! input unit
-      ! field: array to be returned (decomposed or global)
+      ! field: array to be returned (decomposed)
       real(r8),          intent(inout)        :: field(:,:,:)
       ! readvar: true => variable is on initial dataset
       logical,                    intent(out) :: readvar
@@ -686,18 +717,19 @@ CONTAINS
       block_indexed = cam_grid_is_block_indexed(grid_id)
       ! Is this an unstructured grid (i.e., one column dimension on file)?
       unstruct = cam_grid_is_unstructured(grid_id)
-      if (block_indexed) then
-         target_ndims = 2 ! 2D file ==> 3D field (logical 3D field)
-      else
-         target_ndims = 3 ! 3D file ==> 3D field (logical 3D field)
-      end if
+      target_ndims = num_target_dims(3, unstruct)
       if ((debug_output > 0) .and. masterproc) then
-         if (present(gridname)) then
-            write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
-                 ', grid = ', trim(gridname)
+         if (present(timelevel)) then
+            write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
-            write(iulog, '(4a)') subname, ': field = ', trim(varname),        &
-                 ', grid = physgrid'
+            errormsg = ''
+         end if
+         if (present(gridname)) then
+            write(iulog, '(6a)') subname, ': field = ', trim(varname),        &
+                 ', grid = ', trim(gridname), trim(errormsg)
+         else
+            write(iulog, '(5a)') subname, ': field = ', trim(varname),        &
+                 ', grid = physgrid', trim(errormsg)
          end if
          call shr_sys_flush(iulog)
       end if
@@ -738,7 +770,7 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         call print_input_field_info(dimlens, ndims, 2, 3, dim_bounds, 3,     &
+         call print_input_field_info(dimlens, ndims, 2, 4, dim_bounds, 3,     &
               varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
