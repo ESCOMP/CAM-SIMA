@@ -184,27 +184,27 @@ CONTAINS
             temp = latmin
             call MPI_allreduce(temp, latmin, 1, MPI_INTEGER, MPI_MIN,         &
                  mpicom, ierr)
-            ! Create lon coord map which only writes from one of each unique lon
-            where(latvals == latmin)
-               coord_map(:) = grid_map(3, :)
-            elsewhere
-               coord_map(:) = 0_iMap
-            end where
-            lon_coord => horiz_coord_create('lon', 'lon', hdim1_d,            &
-                 'longitude', 'degrees_east', 1, size(lonvals), lonvals,      &
-                 map=coord_map)
-
-            ! Create lat coord map which only writes from one of each unique lat
-            where(lonvals == lonmin)
-               coord_map(:) = grid_map(4, :)
-            elsewhere
-               coord_map(:) = 0_iMap
-            end where
-            lat_coord => horiz_coord_create('lat', 'lat', hdim2_d,            &
-                 'latitude', 'degrees_north', 1, size(latvals), latvals,      &
-                 map=coord_map)
-            deallocate(coord_map)
          end if
+         ! Create lon coord map which only writes from one of each unique lon
+         where(latvals == latmin)
+            coord_map(:) = grid_map(3, :)
+         elsewhere
+            coord_map(:) = 0_iMap
+         end where
+         lon_coord => horiz_coord_create('lon', 'lon', hdim1_d,            &
+              'longitude', 'degrees_east', 1, size(lonvals), lonvals,      &
+              map=coord_map)
+
+         ! Create lat coord map which only writes from one of each unique lat
+         where(lonvals == lonmin)
+            coord_map(:) = grid_map(4, :)
+         elsewhere
+            coord_map(:) = 0_iMap
+         end where
+            lat_coord => horiz_coord_create('lat', 'lat', hdim2_d,            &
+              'latitude', 'degrees_north', 1, size(latvals), latvals,      &
+              map=coord_map)
+         deallocate(coord_map)
       end if
       call cam_grid_register('physgrid', phys_decomp,                         &
            lat_coord, lon_coord, grid_map, src_in=(/ 1, 0 /),                 &
