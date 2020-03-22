@@ -88,6 +88,7 @@ CONTAINS
       integer                        :: start(1), kount(1)
       integer                        :: iret
       integer(iMap),     allocatable :: ldof(:) ! For reading coordinates
+      real(r8),          allocatable :: temp_arr(:)
       character(len=128)             :: var_name
       character(len=256)             :: dimnames(MAX_DIMS)
       character(len=8)               :: lat_dim_name
@@ -258,10 +259,14 @@ CONTAINS
          if (is_degrees) then
             allocate(local_lons_deg(num_lons))
             allocate(local_lats_deg(kount(1)))
-            iret = pio_get_var(fh_ini, lat_vardesc, start, kount,             &
-                 local_lats_deg)
+            allocate(temp_arr(num_lats))
+            iret = pio_get_var(fh_ini, lat_vardesc, (/ 1 /), (/ num_lats /),  &
+                 temp_arr)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read latitude')
+            lindex = start(1) + kount(1) - 1
+            local_lats_deg(1:kount(1)) = temp_arr(start(1):lindex)
+            deallocate(temp_arr)
             ! Longitudes might cycle so just read them all in
             start(1) = 1
             kount(1) = num_lons
