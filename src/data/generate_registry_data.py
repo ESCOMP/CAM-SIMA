@@ -417,6 +417,17 @@ class Variable(VarBase):
                 if def_dims:
                     self.__def_dims_str = '(' + ', '.join(def_dims) + ')'
                 # end if
+            elif attrib.tag == 'ic_file_input_names':
+                #Separate out string into list:
+                input_names = [x.strip() for x in attrib.text.split(' ') if x]
+
+                #Initialize input name list and counter:
+                self.__ic_names = list()
+
+                #Add input names to variable object:
+                for ic_name in input_names:
+                    self.__ic_names == self.__ic_names.append(ic_name)
+
             elif attrib.tag == 'long_name':
                 pass # picked up in parent
             elif attrib.tag == 'initial_value':
@@ -641,6 +652,16 @@ class Variable(VarBase):
         """Return True iff this variable is protected"""
         return self.__protected
 
+    @property
+    def ic_names(self):
+        """Return list of possible Initial Condition (IC) file input names"""
+        try:
+            #Assume ic_names exists:
+            return self.__ic_names
+        except AttributeError:
+            #If ic_names attribute doesn't exist, then return None:
+            return None
+
 ###############################################################################
 class VarDict(OrderedDict):
 ###############################################################################
@@ -772,6 +793,118 @@ class VarDict(OrderedDict):
             var.write_metadata(outfile)
         # end if
 
+    def write_ic_names(self, outfile, indent):
+        """Write out the Initial Conditions (IC) file variable names DDT"""
+
+        #Initalize max IC name string length variable:
+        stdname_max_len = 0
+        ic_name_max_len = 0
+        ic_name_max_num = 0
+
+        #Determine max standard name string length:
+        stdname_max_len = max([len(var.standard_name) for var in self.variable_list()])
+
+        #Determine max number of IC variable names:
+        ic_name_max_num = max([len(var.ic_names) for var in self.variable_list() if var.ic_names is not None])
+
+        #Initalize loop counter:
+        vars_with_ic_names = 0
+
+        #Create DDT variable string lists:
+        stdnmstrs = list()
+        ic_nmstrs = list()
+
+        #Loop over variables in list:
+        for var in self.variable_list():
+
+            #Iinitalize IC name length:
+            ic_name_len = 0
+
+            #Check if variable actually has IC names:
+            if var.ic_names is not None:
+
+                #If so, then add one to variable counter:
+                vars_with_ic_names += 1
+
+                #Create standard name DDT string and add to list:
+                stdnmstrs.append("stdname_to_fieldname( &\n standard_name = '{}', &".format(\
+                                 var.standard_name))
+
+                #Determine number of IC names for variable:
+                ic_name_num = len(var.ic_names)
+
+                #Check if number of IC names is less than the max value:
+                if ic_name_num < ic_name_max_num:
+                    #Create repeating list of "fake" strings that increases array to max size:
+                    noname_list = ["IGNORE_ME"]*(ic_name_max_num - ic_name_num)
+                    #Create Fortran IC list string:
+                    ic_nmstrs.append('field_names = ['+', '.join("'{}'".format(n) \
+                                     for n in var.ic_names) + ', ' + \
+                                     ', '.join("'{}'".format(nn) for \
+                                     nn in noname_list) + ']), &')
+                else:
+                    #Create Fortran IC list string:
+                    ic_nmstrs.append('field_names = ['+', '.join("'{}'".format(n) \
+                                     for n in var.ic_names) + ']), &')
+
+                #Also loop over all IC input names for given variable:
+                for ic_name in var.ic_names:
+                    #Determine IC name string length:
+                    ic_name_len = len(ic_name)
+
+                    #Determine if standard name string length is longer
+                    #then all prvious values:
+                    if ic_name_len > ic_name_max_len:
+                        #If so, then re-set max length variable:
+                        ic_name_max_len = ic_name_len
+
+        #Write CCPP header:
+        write_ccpp_table_header(self.name, outfile)
+
+        #Create new Fortran integer parameter to store number of variables with IC inputs:
+        outfile.write("!Number of physics variables which can be read from"+ \
+                      " Initial Conditions (IC) file:", indent)
+        outfile.write("integer, public, parameter :: ic_var_num = {}".format(\
+                      vars_with_ic_names), indent)
+
+        #Add blank space:
+        outfile.write("", 0)
+
+        #Write CCPP header again:
+        write_ccpp_table_header(self.name, outfile)
+
+        #Write "standard name to IC file input name" Fortran type:
+        outfile.write("type :: stdname_to_input_name", indent)
+        outfile.write("character(len={}) :: standard_name".format(stdname_max_len),
+                      indent+1)
+        outfile.write("character(len={}) :: input_names({})".format(\
+                      ic_name_max_len, ic_name_max_num), indent+1)
+        outfile.write("end type stdname_to_input_name", indent)
+
+        #Write a second blank space:
+        outfile.write("", 0)
+
+        #Write final CCPP header:
+        write_ccpp_table_header(self.name, outfile)
+
+        #Write starting decleration of IC input names DDT variable:
+        fort_declare_string = "type(stdname_to_input_name), public ::"+ \
+                              " ic_lookup_table(ic_var_num) = [ &"
+        outfile.write(fort_declare_string, indent)
+
+        #Loop over DDT string elements:
+        for index, stdnam in enumerate(stdnmstrs):
+            #Create standard name DDT string:
+            outfile.write(stdnam, indent+1)
+            #Create IC input names DDT string:
+            outfile.write(ic_nmstrs[index], indent+1)
+        #Close DDT declaration:
+        outfile.write("]", indent+1)
+
+        #Write a final blank space:
+        outfile.write("", 0)
+
+
     def write_definition(self, outfile, access, indent):
         """Write the definition for the variables in this dictionary to
         <outfile> with indent, <indent>.
@@ -782,6 +915,10 @@ class VarDict(OrderedDict):
         maxall = 0
         has_prot = False
         vlist = self.variable_list()
+
+        #Write Initial condition file variable names data type:
+        self.write_ic_names(outfile, indent)
+
         for var in vlist:
             maxtyp = max(maxtyp, len(var.type_string))
             if var.access != access:
@@ -1077,6 +1214,7 @@ class File:
             self.write_allocate_routine(outfile)
             # end of module
             outfile.write('\nend module {}'.format(self.name), 0)
+
         # end with
 
     def allocate_routine_name(self):
@@ -1156,7 +1294,7 @@ def parse_command_line(args, description):
                         type=str, help="XML file with CAM registry library")
     parser.add_argument("--dycore", type=str, required=True,
                         metavar='DYCORE (required)',
-                        help="Dycore (EUL, FV, FV3, MPAS, SE)")
+                        help="Dycore (EUL, FV, FV3, MPAS, SE, none)")
     parser.add_argument("--config", type=str, required=True,
                         metavar='CONFIG (required)',
                         help=("Comma-separated onfig items "
