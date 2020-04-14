@@ -793,61 +793,17 @@ class VarDict(OrderedDict):
             var.write_metadata(outfile)
         # end if
 
-    def write_ic_names(self, outfile, indent):
-        """Write out the Initial Conditions (IC) file variable names DDT"""
+    def find_ic_name_max_len(self):
+        """Determine max length of input (IC) file variable names"""
 
-        #Initalize max IC name string length variable:
-        stdname_max_len = 0
+        #Initialize max IC name string length variable:
         ic_name_max_len = 0
-        ic_name_max_num = 0
-
-        #Determine max standard name string length:
-        stdname_max_len = max([len(var.standard_name) for var in self.variable_list()])
-
-        #Determine max number of IC variable names:
-        ic_name_max_num = max([len(var.ic_names) for var in self.variable_list() if var.ic_names is not None])
-
-        #Initalize loop counter:
-        vars_with_ic_names = 0
-
-        #Create DDT variable string lists:
-        stdnmstrs = list()
-        ic_nmstrs = list()
 
         #Loop over variables in list:
         for var in self.variable_list():
-
-            #Iinitalize IC name length:
-            ic_name_len = 0
-
             #Check if variable actually has IC names:
             if var.ic_names is not None:
-
-                #If so, then add one to variable counter:
-                vars_with_ic_names += 1
-
-                #Create standard name DDT string and add to list:
-                stdnmstrs.append("stdname_to_fieldname( &\n standard_name = '{}', &".format(\
-                                 var.standard_name))
-
-                #Determine number of IC names for variable:
-                ic_name_num = len(var.ic_names)
-
-                #Check if number of IC names is less than the max value:
-                if ic_name_num < ic_name_max_num:
-                    #Create repeating list of "fake" strings that increases array to max size:
-                    noname_list = ["IGNORE_ME"]*(ic_name_max_num - ic_name_num)
-                    #Create Fortran IC list string:
-                    ic_nmstrs.append('field_names = ['+', '.join("'{}'".format(n) \
-                                     for n in var.ic_names) + ', ' + \
-                                     ', '.join("'{}'".format(nn) for \
-                                     nn in noname_list) + ']), &')
-                else:
-                    #Create Fortran IC list string:
-                    ic_nmstrs.append('field_names = ['+', '.join("'{}'".format(n) \
-                                     for n in var.ic_names) + ']), &')
-
-                #Also loop over all IC input names for given variable:
+                #Loop over all IC input names for given variable:
                 for ic_name in var.ic_names:
                     #Determine IC name string length:
                     ic_name_len = len(ic_name)
@@ -857,6 +813,106 @@ class VarDict(OrderedDict):
                     if ic_name_len > ic_name_max_len:
                         #If so, then re-set max length variable:
                         ic_name_max_len = ic_name_len
+
+        #Return max string length of input variable names:
+        return ic_name_max_len
+
+    def write_ic_names(self, outfile, indent):
+        """Write out the Initial Conditions (IC) file variable names arrays"""
+
+        #Initialize variables:
+        stdname_max_len = 0
+        ic_name_max_num = 0
+
+        #Determine max standard name string length:
+        stdname_max_len = max([len(var.standard_name) for var in self.variable_list()])
+
+        #Determine max number of IC variable names:
+        ic_name_max_num = max([len(var.ic_names) for var in self.variable_list() if var.ic_names is not None])
+
+        #Determine total number of variables with file input (IC) names:
+        vars_with_ic_names = len([var.standard_name for var in self.variable_list() if var.ic_names is not None])
+
+        #Loop over variables in list:
+        ic_name_max_len = self.find_ic_name_max_len()
+
+        #Create variable name array string lists:
+        stdnmstrs = list()
+        ic_nmstrs = list()
+
+        #Initalize loop counter:
+        lpcnt = 0
+
+        #Loop over variables in list:
+        for var in self.variable_list():
+
+            #Check if variable actually has IC names:
+            if var.ic_names is not None:
+
+                #Add one to loop counter:
+                lpcnt += 1
+
+                #Create standard_name string with proper size:
+                extra_spaces = " " * (stdname_max_len - len(var.standard_name))
+                var_stdnm = var.standard_name + extra_spaces
+
+                #Check if this entry is the last for this DDT:
+                if lpcnt == vars_with_ic_names:
+                    #Create standard name array string with array delimiter:
+                    stdnmstrs.append("'{}' ]".format(var_stdnm))
+                else:
+                    #Create standard name array string:
+                    stdnmstrs.append("'{}', &".format(var_stdnm))
+
+                #Determine number of IC names for variable:
+                ic_name_num = len(var.ic_names)
+
+                #Create new empty list:
+                ic_names_with_spaces = list()
+
+                #Loop over possible input file (IC) names:
+                for ic_name in var.ic_names:
+                    #Create ic_name string with proper size:
+                    extra_spaces = " " * (ic_name_max_len - len(ic_name))
+                    #Add properly-sized name to list:
+                    ic_names_with_spaces.append(ic_name + extra_spaces)
+
+
+                #Check if number of IC names is less than the max value:
+                if ic_name_num < ic_name_max_num:
+
+                    #Create fake name with proper length:
+                    fake_ic_name = "IGNORE_ME" + " " * (ic_name_max_len - 9)
+
+                    #Create repeating list of "fake" strings that increases array to max size:
+                    noname_list = [fake_ic_name]*(ic_name_max_num - ic_name_num)
+
+                    #Check if this entry is the last for this DDT:
+                    if lpcnt == vars_with_ic_names:
+                        #Create Fortran IC array string with array end:
+                        ic_nmstrs.append('['+', '.join("'{}'".format(n) \
+                                         for n in ic_names_with_spaces) + \
+                                         ', ' + \
+                                         ', '.join("'{}'".format(nn) for \
+                                         nn in noname_list) + '] ]')
+
+                    else:
+                        #Create Fortran IC array string:
+                        ic_nmstrs.append('['+', '.join("'{}'".format(n) \
+                                         for n in ic_names_with_spaces) + \
+                                         ', ' + \
+                                         ', '.join("'{}'".format(nn) for \
+                                         nn in noname_list) + '], &')
+                else:
+                    #Check if this entry is the last for this DDT:
+                    if lpcnt == vars_with_ic_names:
+                        #Create Fortran IC list string with array end:
+                        ic_nmstrs.append('['+', '.join("'{}'".format(n) \
+                                         for n in ic_names_with_spaces) + '] ]')
+                    else:
+                        #Create Fortran IC list string:
+                        ic_nmstrs.append('['+', '.join("'{}'".format(n) \
+                                         for n in ic_names_with_spaces) + '], &')
 
         #Write CCPP header:
         write_ccpp_table_header(self.name, outfile)
@@ -870,36 +926,56 @@ class VarDict(OrderedDict):
         #Add blank space:
         outfile.write("", 0)
 
-        #Write CCPP header again:
+        #Write CCPP header:
         write_ccpp_table_header(self.name, outfile)
 
-        #Write "standard name to IC file input name" Fortran type:
-        outfile.write("type :: stdname_to_input_name", indent)
-        outfile.write("character(len={}) :: standard_name".format(stdname_max_len),
-                      indent+1)
-        outfile.write("character(len={}) :: input_names({})".format(\
-                      ic_name_max_len, ic_name_max_num), indent+1)
-        outfile.write("end type stdname_to_input_name", indent)
+        #Create another Fortran integer parameter to store max length of
+        #registered variable standard name strings:
+        outfile.write("!Max length of registered variable standard names:", indent)
+        outfile.write("integer, public, parameter :: std_name_len = {}".format(\
+                      ic_name_max_len), indent)
 
         #Write a second blank space:
+        outfile.write("", 0)
+
+        #Write CCPP header:
+        write_ccpp_table_header(self.name, outfile)
+
+        #Create final Fortran integer parameter to store max length of
+        #input variable name string:
+        outfile.write("!Max length of input (IC) file variable names:", indent)
+        outfile.write("integer, public, parameter :: ic_name_len = {}".format(\
+                      ic_name_max_len), indent)
+
+        #Write a third blank space:
+        outfile.write("", 0)
+
+        #Write CCPP header:
+        write_ccpp_table_header(self.name, outfile)
+
+        #Write starting declaration of input standard name array:
+        declare_string = "character(len={}), public :: input_var_stdnames(ic_var_num) = [ &".format(\
+                         stdname_max_len)
+        outfile.write(declare_string, indent)
+
+        #Write standard names to fortran array:
+        for stdnmstr in stdnmstrs:
+            outfile.write(stdnmstr, indent+1)
+
+        #Write a fourth blank space:
         outfile.write("", 0)
 
         #Write final CCPP header:
         write_ccpp_table_header(self.name, outfile)
 
-        #Write starting decleration of IC input names DDT variable:
-        fort_declare_string = "type(stdname_to_input_name), public ::"+ \
-                              " ic_lookup_table(ic_var_num) = [ &"
-        outfile.write(fort_declare_string, indent)
+        #Write starting decleration of IC input name array:
+        dec_string = "character(len={}), public :: input_var_names(ic_var_num, {}) = [ &".format(\
+                     ic_name_max_len, ic_name_max_num)
+        outfile.write(dec_string, indent)
 
-        #Loop over DDT string elements:
-        for index, stdnam in enumerate(stdnmstrs):
-            #Create standard name DDT string:
-            outfile.write(stdnam, indent+1)
-            #Create IC input names DDT string:
-            outfile.write(ic_nmstrs[index], indent+1)
-        #Close DDT declaration:
-        outfile.write("]", indent+1)
+        #Write IC names to fortran array:
+        for ic_nmstr in ic_nmstrs:
+            outfile.write(ic_nmstr, indent+1)
 
         #Write a final blank space:
         outfile.write("", 0)

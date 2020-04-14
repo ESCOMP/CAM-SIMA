@@ -1,7 +1,8 @@
 module physics_data
 
-   use ccpp_kinds,   only: kind_phys
-   use shr_kind_mod, only: SHR_KIND_CS
+   use ccpp_kinds,    only: kind_phys
+   use shr_kind_mod,  only: SHR_KIND_CS
+   use physics_types, only: std_name_len, ic_name_len
 
    implicit none
    private
@@ -10,9 +11,7 @@ module physics_data
 
    !Character array containing all CCPP-required vairable standard names:
    !NOTE: should this character array be set to the exact length needed? -JN
-   character(len=*), allocatable :: ccpp_required_data(:)
-
-   integer, parameter, private :: fieldname_len = 16
+   character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
    interface read_field
       module procedure read_field_2d
@@ -43,8 +42,8 @@ CONTAINS
       if (.not. allocated(ccpp_required_data)) then
          !If not, then search for all needed CCPP input variables,
          !so that they can b e read from input file if need be:
-         ccpp_physics_suite_variables(suite_name, ccpp_required_data, errmsg, errflg, &
-                                      input_vars_in=.true.)
+         call ccpp_physics_suite_variables(suite_name, ccpp_required_data, errmsg, errflg, &
+                                           input_vars_in=.true.)
       end if
 
 
@@ -97,7 +96,7 @@ CONTAINS
       real(kind_phys),   intent(inout) :: buffer(:)
       ! Local variables
       logical                          :: var_found
-      character(len=fieldname_len)     :: found_name
+      character(len=ic_name_len)       :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_2d: '
 
@@ -142,7 +141,7 @@ CONTAINS
       ! Local variables
       logical                          :: var_found
       integer                          :: num_levs
-      character(len=fieldname_len)     :: found_name
+      character(len=ic_name_len)       :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_3d: '
 
@@ -180,7 +179,7 @@ CONTAINS
       use physics_types, only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
       use physics_types, only: pint, pmid, pmiddry, rpdel
       use physics_types, only: ix_qv, ix_cld_liq, ix_rain
-      use physics_types, only: ic_var_num, ic_lookup_table
+      use physics_types, only: ic_var_num, input_var_stdnames, input_var_names
 
       ! Dummy argument
       type(file_desc_t), intent(inout) :: file
@@ -188,63 +187,63 @@ CONTAINS
       integer,           intent(in)    :: timestep
 
       !Local variables:
-      integer :: v !loop control variable
+      integer :: i !loop control variable
 
       !Loop over possible file input variables:
-      do v = 1, ic_var_num
+      do i = 1, ic_var_num
 
          !Check if variable is required by CCPP physics suites:
-         if(read_standard_name(suite_name, ic_lookup_table(v)%standard_name)) then
+         if(read_standard_name(suite_name, input_var_stdnames(i))) then
 
-            if (ic_lookup_table(v)%standard_name == 'pressure_thickness') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, pdel)
+            if (input_var_stdnames(i) == 'pressure_thickness') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, pdel)
             end if
-            if (ic_lookup_table(v)%standard_name == 'pressure_thickness_of_dry_air') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev',           &
+            if (input_var_stdnames(i) == 'pressure_thickness_of_dry_air') then
+               call read_field(file, input_var_names(i,:), 'lev',           &
                                timestep, pdeldry)
             end if
-            if (ic_lookup_table(v)%standard_name == 'water_vapor_specific_humidity') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, &
+            if (input_var_stdnames(i) == 'water_vapor_specific_humidity') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, &
                                phys_state%q(:,:,ix_qv))
             end if
-            if (ic_lookup_table(v)%standard_name == 'cloud_liquid_water_mixing_ratio') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, &
+            if (input_var_stdnames(i) == 'cloud_liquid_water_mixing_ratio') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, &
                                phys_state%q(:,:,ix_cld_liq))
             end if
-            if (ic_lookup_table(v)%standard_name == 'rain_water_mixing_ratio') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, &
+            if (input_var_stdnames(i) == 'rain_water_mixing_ratio') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, &
                                phys_state%q(:,:,ix_rain))
             end if
-            if (ic_lookup_table(v)%standard_name == 'geopotential') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, zm)
+            if (input_var_stdnames(i) == 'geopotential') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, zm)
             end if
-            if (ic_lookup_table(v)%standard_name == 'temperature') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, &
+            if (input_var_stdnames(i) == 'temperature') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, &
                                phys_state%T)
             end if
-            if (ic_lookup_table(v)%standard_name == 'surface_geopotential') then
-               call read_field(file, ic_lookup_table(i)%input_names, timestep, phys_state%phis)
+            if (input_var_stdnames(i) == 'surface_geopotential') then
+               call read_field(file, input_var_names(i,:), timestep, phys_state%phis)
             end if
-            if (ic_lookup_table(v)%standard_name == &
+            if (input_var_stdnames(i) == &
                 'natural_log_of_air_pressure_at_interface') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'ilev', timestep, &
+               call read_field(file, input_var_names(i,:), 'ilev', timestep, &
                                lnpint)
             end if
-            if (ic_lookup_table(v)%standard_name == 'natural_log_of_air_pressure') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, lnpmid)
+            if (input_var_stdnames(i) == 'natural_log_of_air_pressure') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, lnpmid)
             end if
-            if (ic_lookup_table(v)%standard_name == 'air_pressure_at_interface') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'ilev', timestep, pint)
+            if (input_var_stdnames(i) == 'air_pressure_at_interface') then
+               call read_field(file, input_var_names(i,:), 'ilev', timestep, pint)
             end if
-            if (ic_lookup_table(v)%standard_name == 'air_pressure') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, pmid)
+            if (input_var_stdnames(i) == 'air_pressure') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, pmid)
             end if
-            if (ic_lookup_table(v)%standard_name == 'air_pressure_of_dry_air') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, &
+            if (input_var_stdnames(i) == 'air_pressure_of_dry_air') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, &
                                pmiddry)
             end if
-            if (ic_lookup_table(v)%standard_name == 'reciprocal_pressure_thickness') then
-               call read_field(file, ic_lookup_table(i)%input_names, 'lev', timestep, rpdel)
+            if (input_var_stdnames(i) == 'reciprocal_pressure_thickness') then
+               call read_field(file, input_var_names(i,:), 'lev', timestep, rpdel)
             end if
 
          end if !Variable required by CCPP suites?
