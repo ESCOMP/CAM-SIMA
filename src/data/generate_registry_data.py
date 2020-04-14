@@ -969,7 +969,7 @@ class VarDict(OrderedDict):
         write_ccpp_table_header(self.name, outfile)
 
         #Write starting decleration of IC input name array:
-        dec_string = "character(len={}), public :: input_var_names(ic_var_num, {}) = [ &".format(\
+        dec_string = "character(len={}), public :: input_var_names({}, ic_var_num) = [ &".format(\
                      ic_name_max_len, ic_name_max_num)
         outfile.write(dec_string, indent)
 

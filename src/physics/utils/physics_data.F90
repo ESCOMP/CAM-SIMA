@@ -214,7 +214,7 @@ CONTAINS
                call read_field(file, input_var_names(i,:), 'lev', timestep, &
                                phys_state%q(:,:,ix_rain))
             end if
-            if (input_var_stdnames(i) == 'geopotential') then
+            if (input_var_stdnames(i) == 'geopotential_height') then
                call read_field(file, input_var_names(i,:), 'lev', timestep, zm)
             end if
             if (input_var_stdnames(i) == 'temperature') then
