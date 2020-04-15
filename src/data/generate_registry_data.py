@@ -824,11 +824,21 @@ class VarDict(OrderedDict):
         stdname_max_len = 0
         ic_name_max_num = 0
 
+        #Determine max number of IC variable names:
+        try:
+            ic_name_max_num = max([len(var.ic_names) for var in self.variable_list() if var.ic_names is not None])
+        except ValueError:
+            #If there is a ValueError, then likely no IC
+            #input variable names exist, so print warning
+            #and exit function:
+            if self.__logger:
+                lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
+                       ", so no input variable name array will be created."
+                self.__logger.info(lmsg)
+            return
+
         #Determine max standard name string length:
         stdname_max_len = max([len(var.standard_name) for var in self.variable_list()])
-
-        #Determine max number of IC variable names:
-        ic_name_max_num = max([len(var.ic_names) for var in self.variable_list() if var.ic_names is not None])
 
         #Determine total number of variables with file input (IC) names:
         vars_with_ic_names = len([var.standard_name for var in self.variable_list() if var.ic_names is not None])
