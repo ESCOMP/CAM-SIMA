@@ -196,54 +196,54 @@ CONTAINS
          if(read_standard_name(suite_name, input_var_stdnames(i))) then
 
             if (input_var_stdnames(i) == 'pressure_thickness') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, pdel)
+               call read_field(file, input_var_names(:,i), 'lev', timestep, pdel)
             end if
             if (input_var_stdnames(i) == 'pressure_thickness_of_dry_air') then
-               call read_field(file, input_var_names(i,:), 'lev',           &
+               call read_field(file, input_var_names(:,i), 'lev',           &
                                timestep, pdeldry)
             end if
             if (input_var_stdnames(i) == 'water_vapor_specific_humidity') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, &
+               call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%q(:,:,ix_qv))
             end if
             if (input_var_stdnames(i) == 'cloud_liquid_water_mixing_ratio') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, &
+               call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%q(:,:,ix_cld_liq))
             end if
             if (input_var_stdnames(i) == 'rain_water_mixing_ratio') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, &
+               call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%q(:,:,ix_rain))
             end if
             if (input_var_stdnames(i) == 'geopotential_height') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, zm)
+               call read_field(file, input_var_names(:,i), 'lev', timestep, zm)
             end if
             if (input_var_stdnames(i) == 'temperature') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, &
+               call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%T)
             end if
             if (input_var_stdnames(i) == 'surface_geopotential') then
-               call read_field(file, input_var_names(i,:), timestep, phys_state%phis)
+               call read_field(file, input_var_names(:,i), timestep, phys_state%phis)
             end if
             if (input_var_stdnames(i) == &
                 'natural_log_of_air_pressure_at_interface') then
-               call read_field(file, input_var_names(i,:), 'ilev', timestep, &
+               call read_field(file, input_var_names(:,i), 'ilev', timestep, &
                                lnpint)
             end if
             if (input_var_stdnames(i) == 'natural_log_of_air_pressure') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, lnpmid)
+               call read_field(file, input_var_names(:,i), 'lev', timestep, lnpmid)
             end if
             if (input_var_stdnames(i) == 'air_pressure_at_interface') then
-               call read_field(file, input_var_names(i,:), 'ilev', timestep, pint)
+               call read_field(file, input_var_names(:,i), 'ilev', timestep, pint)
             end if
             if (input_var_stdnames(i) == 'air_pressure') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, pmid)
+               call read_field(file, input_var_names(:,i), 'lev', timestep, pmid)
             end if
             if (input_var_stdnames(i) == 'air_pressure_of_dry_air') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, &
+               call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                pmiddry)
             end if
             if (input_var_stdnames(i) == 'reciprocal_pressure_thickness') then
-               call read_field(file, input_var_names(i,:), 'lev', timestep, rpdel)
+               call read_field(file, input_var_names(:,i), 'lev', timestep, rpdel)
             end if
 
          end if !Variable required by CCPP suites?
