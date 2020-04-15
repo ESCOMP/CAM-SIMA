@@ -47,8 +47,8 @@ def write_ccpp_table_header(name, outfile):
 ###############################################################################
     """Write the standard Fortran comment block for a CCPP header
     (module, type, scheme)."""
-    outfile.write("!> \section arg_table_{}  Argument Table".format(name), 0)
-    outfile.write("!! \htmlinclude {}.html".format(name), 0)
+    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name), 0)
+    outfile.write(r"!! \htmlinclude {}.html".format(name), 0)
 
 ###############################################################################
 class TypeEntry:
@@ -287,19 +287,17 @@ class ArrayElement(VarBase):
             emsg = "Unknown array index, '{}', in '{}'"
             raise CCPPError(emsg.format(self.index_name, parent_name))
         # end if
-        long_name = ''
-        initial_value = ''
         # Find the location of this element's index
         found = False
         my_dimensions = list()
         my_index = list()
-        for dim_ind in range(len(dimensions)):
+        for dim_ind, dim in enumerate(dimensions):
             if dimensions[dim_ind] == pos:
                 found = True
                 my_index.append(self.index_name)
             else:
                 my_index.append(':')
-                my_dimensions.append(dimensions[dim_ind])
+                my_dimensions.append(dim)
             # end if
         # end for
         if found:
@@ -315,10 +313,6 @@ class ArrayElement(VarBase):
                                            units_default=parent_units,
                                            kind_default=parent_kind,
                                            alloc_default=parent_alloc)
-
-    def write_metadata(self, outfile):
-        """Write out the CCPP metadata for this array element"""
-        super(ArrayElement, self).write_metadata(outfile)
 
     @property
     def index_name(self):
@@ -385,7 +379,6 @@ class Variable(VarBase):
         # end if
         my_dimensions = list()
         self.__def_dims_str = ""
-        long_name = ''
         for attrib in var_node:
             if attrib.tag == 'dimensions':
                 my_dimensions = [x.strip() for x in attrib.text.split(' ') if x]
@@ -1240,7 +1233,7 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
     _, registry = read_xml_file(registry_file)
     # Validate the XML file
     version = find_schema_version(registry)
-    if (loglevel > 0) and (loglevel <= logging.DEBUG):
+    if 0 < loglevel <= logging.DEBUG:
         verstr = '.'.join([str(x) for x in version])
         logger.debug("Found registry version, v%s", verstr)
     # end if
