@@ -2,6 +2,8 @@
 
 """
 Read CAM registry and produce data and metadata files
+
+To run doctest on this file: python -m doctest generate_registry_data.py
 """
 
 # Python library imports
@@ -184,16 +186,19 @@ class VarBase(object):
             else:
                 init_val = self.initial_value
             # end if
-        elif self.initial_value:
-            init_val = self.initial_value
-        elif self.var_type.lower() == 'real':
-            init_val = 'nan'
-        elif self.var_type.lower() == 'integer':
-            init_val = 'HUGE(1)'
-        elif self.var_type.lower() == 'character':
-            init_val = '""'
         else:
-            init_val = ''
+            init_val = self.initial_value
+        # end if
+        if not init_val:
+            if self.var_type.lower() == 'real':
+                init_val = 'nan'
+            elif self.var_type.lower() == 'integer':
+                init_val = 'HUGE(1)'
+            elif self.var_type.lower() == 'character':
+                init_val = '""'
+            else:
+                init_val = ''
+            # end if
         # end if
         if init_val:
             outfile.write("if ({}) then".format(init_var), indent)
@@ -270,7 +275,8 @@ class ArrayElement(VarBase):
     def __init__(self, elem_node, parent_name, dimensions, known_types,
                  parent_type, parent_kind, parent_units, parent_alloc, vdict):
         """Initialize the Arary Element information by identifying its
-        metadata properties"""
+        metadata properties
+        """
 
         self.__parent_name = parent_name
         self.__index_name = elem_node.get('index_name')
@@ -341,9 +347,12 @@ class Variable(VarBase):
     >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Unknown Variable content, dims
-    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1">></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Bad variable attribute, 'kkind', for 'u'
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CCPPError: Dimension, 'vertical_dimension', not found for 'u'
     """
 
     # Constant dimensions
@@ -376,7 +385,6 @@ class Variable(VarBase):
         # end if
         my_dimensions = list()
         self.__def_dims_str = ""
-        initial_value = None
         long_name = ''
         for attrib in var_node:
             if attrib.tag == 'dimensions':
@@ -441,13 +449,9 @@ class Variable(VarBase):
             # end if (all other processing done above)
         # end for
         # Some checks
-        if (self.allocatable == 'parameter') and (not initial_value):
+        if (self.allocatable == 'parameter') and (not self.initial_value):
             emsg = "parameter, '{}', does not have an initial value"
             raise CCPPError(emsg.format(local_name))
-        # end if
-        if (self.allocatable == 'pointer') and (not initial_value):
-            # Initialize pointer to NULL if no initial value
-            initial_value = "NULL()"
         # end if
         # Maybe fix up type string
         if self.module:
@@ -810,7 +814,7 @@ class DDT:
         <var_dict> is the dictionary where variables referenced in <ddt_node>
         must reside. Each DDT variable is removed from <var_dict>
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state"><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None, None) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: Unknown DDT element type, 'dessert', in 'physics_state'
         """
@@ -883,7 +887,7 @@ class DDT:
     def write_definition(self, outfile, access, indent):
         """Write out the Fortran definition for this DDT
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">>></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state">></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None, None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: DDT, 'physics_state', has no member variables
         """

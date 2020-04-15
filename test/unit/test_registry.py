@@ -104,8 +104,11 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False))
-        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False))
+        amsg = "{} does not match {}".format(in_meta, out_meta)
+        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(in_source, out_source)
+        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False),
+                        msg=amsg)
 
     def test_good_ddt_registry(self):
         """Test code and metadata generation from a good registry with a DDT.
@@ -128,8 +131,8 @@ class RegistryTest(unittest.TestCase):
             remove_files([out_source, out_meta])
             # Run dycore
             retcode = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
-                                   ,
-                               loglevel=logging.ERROR, error_on_no_validate=True)
+                                   loglevel=logging.ERROR,
+                                   error_on_no_validate=True)
             # Check return code
             amsg = "Test failure for dycore = {}".format(dycore)
             self.assertEqual(retcode, 0, msg=amsg)
@@ -145,8 +148,10 @@ class RegistryTest(unittest.TestCase):
             amsg = "{} does not exist".format(out_source)
             self.assertTrue(os.path.exists(out_source), msg=amsg)
             # For each output file, make sure it matches input file
+            amsg = "{} does not match {}".format(in_meta, out_meta)
             self.assertTrue(filecmp.cmp(in_meta, out_meta,
                                         shallow=False), msg=amsg)
+            amsg = "{} does not match {}".format(in_source, out_source)
             self.assertTrue(filecmp.cmp(in_source, out_source,
                                         shallow=False), msg=amsg)
         # End for
@@ -188,10 +193,12 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
+        amsg = "{} does not match {}".format(in_meta, out_meta)
         self.assertTrue(filecmp.cmp(in_meta, out_meta,
-                                    shallow=False))
+                                    shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(in_source, out_source)
         self.assertTrue(filecmp.cmp(in_source, out_source,
-                                    shallow=False))
+                                    shallow=False), msg=amsg)
     # End for
 
     def test_parameter(self):
@@ -237,8 +244,11 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_meta))
         self.assertTrue(os.path.exists(out_source))
         # For each output file, make sure it matches input file
-        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False))
-        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False))
+        amsg = "{} does not match {}".format(in_meta, out_meta)
+        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(in_source, out_source)
+        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False),
+                        msg=amsg)
 
     def test_bad_registry_version(self):
         """Test a registry with a bad version number.
@@ -391,6 +401,7 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("units", "m s-1")
                 new_var.set("type", "real")
                 new_var.set("kind", "kind_phys")
+                new_var.set("allocatable", "target")
                 dims_elem = ET.SubElement(new_var, "dimensions")
                 dims_elem.text = 'horizontal_dimension vertical_dimension'
                 break
