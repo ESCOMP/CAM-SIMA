@@ -1,4 +1,4 @@
-[ccpp_table]
+[ccpp-arg-table]
   name = physics_state
   type = ddt
 [ ncol ]
@@ -8,7 +8,7 @@
   type = integer
   dimensions = ()
   protected = True
-[ccpp_table]
+[ccpp-arg-table]
   name = physics_types_ddt
   type = module
 [ latitude ]
@@ -27,5 +27,5 @@
   standard_name = physics_state_from_dynamics
   long_name = Physics state variables updated by dynamical core
   units = None
-  type = physics_state
+  ddt_type = physics_state
   dimensions = ()
