@@ -179,7 +179,14 @@ class VarBase(object):
     def write_initial_value(self, outfile, indent, init_var, ddt_str):
         """Write the code for the initial value of this variable
         and/or one of its array elements."""
-        var_name = '{}{}'.format(ddt_str, self.local_name)
+        #Check if variable has associated array index
+        #local string:
+        if hasattr(self, 'local_index_name_str'):
+            #Then write variable with local index name:
+            var_name = '{}{}'.format(ddt_str, self.local_index_name_str)
+        else:
+            #Otherwise, use regular local variable name:
+            var_name = '{}{}'.format(ddt_str, self.local_name)
         if self.allocatable == VarBase.__pointer_type_str:
             if self.initial_value == VarBase.__pointer_def_init:
                 init_val = ''
@@ -291,17 +298,25 @@ class ArrayElement(VarBase):
         found = False
         my_dimensions = list()
         my_index = list()
+        my_local_index = list()
         for dim_ind, dim in enumerate(dimensions):
             if dimensions[dim_ind] == pos:
                 found = True
                 my_index.append(self.index_name)
+                my_local_index.append(var.local_name)
             else:
                 my_index.append(':')
+                my_local_index.append(':')
                 my_dimensions.append(dim)
             # end if
         # end for
         if found:
             self.__index_string = ','.join(my_index)
+            #write array string with local variable index name,
+            #instead of the standard variable index name:
+            local_index_string = ','.join(my_local_index)
+            self.__local_index_name_str = \
+                '{}({})'.format(parent_name, local_index_string)
         else:
             emsg = "Cannot find element dimension, '{}' in {}({})"
             raise CCPPError(emsg.format(self.index_name, parent_name,
@@ -313,11 +328,18 @@ class ArrayElement(VarBase):
                                            units_default=parent_units,
                                            kind_default=parent_kind,
                                            alloc_default=parent_alloc)
-
     @property
     def index_name(self):
         """Return the standard name of this array element's index value"""
         return self.__index_name
+
+    @property
+    def local_index_name_str(self):
+        """
+        Return the array element's name, but with the local name for the
+        index instead of the standard name
+        """
+        return self.__local_index_name_str
 
     @property
     def index_string(self):
