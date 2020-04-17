@@ -7,6 +7,33 @@ private
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
+  !Number of physics variables which can be read from Initial Conditions (IC) file:
+  integer, public, parameter :: ic_var_num = 2
+
+!> \section arg_table_physics_types_simple  Argument Table
+!! \htmlinclude physics_types_simple.html
+  !Max length of registered variable standard names:
+  integer, public, parameter :: std_name_len = 3
+
+!> \section arg_table_physics_types_simple  Argument Table
+!! \htmlinclude physics_types_simple.html
+  !Max length of input (IC) file variable names:
+  integer, public, parameter :: ic_name_len = 3
+
+!> \section arg_table_physics_types_simple  Argument Table
+!! \htmlinclude physics_types_simple.html
+  character(len=20), public :: input_var_stdnames(ic_var_num) = [ &
+    'latitude            ', &
+    'longitude           ' ]
+
+!> \section arg_table_physics_types_simple  Argument Table
+!! \htmlinclude physics_types_simple.html
+  character(len=3), public :: input_var_names(1, ic_var_num) = [ &
+    ['lat'], &
+    ['lon'] ]
+
+!> \section arg_table_physics_types_simple  Argument Table
+!! \htmlinclude physics_types_simple.html
   ! ncol: Number of horizontal columns
   integer,         public,          protected :: ncol = 0
   ! latitude: Latitude

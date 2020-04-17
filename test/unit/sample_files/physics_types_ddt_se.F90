@@ -16,6 +16,31 @@ private
   
 !> \section arg_table_physics_types_ddt  Argument Table
 !! \htmlinclude physics_types_ddt.html
+  !Number of physics variables which can be read from Initial Conditions (IC) file:
+  integer, public, parameter :: ic_var_num = 1
+
+!> \section arg_table_physics_types_ddt  Argument Table
+!! \htmlinclude physics_types_ddt.html
+  !Max length of registered variable standard names:
+  integer, public, parameter :: std_name_len = 3
+
+!> \section arg_table_physics_types_ddt  Argument Table
+!! \htmlinclude physics_types_ddt.html
+  !Max length of input (IC) file variable names:
+  integer, public, parameter :: ic_name_len = 3
+
+!> \section arg_table_physics_types_ddt  Argument Table
+!! \htmlinclude physics_types_ddt.html
+  character(len=27), public :: input_var_stdnames(ic_var_num) = [ &
+    'longitude                  ' ]
+
+!> \section arg_table_physics_types_ddt  Argument Table
+!! \htmlinclude physics_types_ddt.html
+  character(len=3), public :: input_var_names(1, ic_var_num) = [ &
+    ['lon'] ]
+
+!> \section arg_table_physics_types_ddt  Argument Table
+!! \htmlinclude physics_types_ddt.html
   ! longitude: Longitude
   real(kind_phys),     public, pointer, protected :: longitude(:) => NULL()
   ! phys_state: Physics state variables updated by dynamical core
