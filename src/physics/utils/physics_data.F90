@@ -10,7 +10,6 @@ module physics_data
    public :: physics_read_data
 
    !Character array containing all CCPP-required vairable standard names:
-   !NOTE: should this character array be set to the exact length needed? -JN
    character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
    interface read_field
@@ -45,7 +44,6 @@ CONTAINS
          call ccpp_physics_suite_variables(suite_name, ccpp_required_data, errmsg, errflg, &
                                            input_vars_in=.true.)
       end if
-
 
       !Loop through required CCPP variable standard names:
       do index = 1, size(ccpp_required_data, 1)
@@ -195,54 +193,54 @@ CONTAINS
          !Check if variable is required by CCPP physics suites:
          if(read_standard_name(suite_name, input_var_stdnames(i))) then
 
-            if (input_var_stdnames(i) == 'pressure_thickness') then
+            if (trim(input_var_stdnames(i)) == 'pressure_thickness') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, pdel)
             end if
-            if (input_var_stdnames(i) == 'pressure_thickness_of_dry_air') then
+            if (trim(input_var_stdnames(i)) == 'pressure_thickness_of_dry_air') then
                call read_field(file, input_var_names(:,i), 'lev',           &
                                timestep, pdeldry)
             end if
-            if (input_var_stdnames(i) == 'water_vapor_specific_humidity') then
+            if (trim(input_var_stdnames(i)) == 'water_vapor_specific_humidity') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%q(:,:,ix_qv))
             end if
-            if (input_var_stdnames(i) == 'cloud_liquid_water_mixing_ratio') then
+            if (trim(input_var_stdnames(i)) == 'cloud_liquid_water_mixing_ratio') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%q(:,:,ix_cld_liq))
             end if
-            if (input_var_stdnames(i) == 'rain_water_mixing_ratio') then
+            if (trim(input_var_stdnames(i)) == 'rain_water_mixing_ratio') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%q(:,:,ix_rain))
             end if
-            if (input_var_stdnames(i) == 'geopotential_height') then
+            if (trim(input_var_stdnames(i)) == 'geopotential_height') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, zm)
             end if
-            if (input_var_stdnames(i) == 'temperature') then
+            if (trim(input_var_stdnames(i)) == 'temperature') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                phys_state%T)
             end if
-            if (input_var_stdnames(i) == 'surface_geopotential') then
+            if (trim(input_var_stdnames(i)) == 'geopotential_at_surface') then
                call read_field(file, input_var_names(:,i), timestep, phys_state%phis)
             end if
-            if (input_var_stdnames(i) == &
+            if (trim(input_var_stdnames(i)) == &
                 'natural_log_of_air_pressure_at_interface') then
                call read_field(file, input_var_names(:,i), 'ilev', timestep, &
                                lnpint)
             end if
-            if (input_var_stdnames(i) == 'natural_log_of_air_pressure') then
+            if (trim(input_var_stdnames(i)) == 'natural_log_of_air_pressure') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, lnpmid)
             end if
-            if (input_var_stdnames(i) == 'air_pressure_at_interface') then
+            if (trim(input_var_stdnames(i)) == 'air_pressure_at_interface') then
                call read_field(file, input_var_names(:,i), 'ilev', timestep, pint)
             end if
-            if (input_var_stdnames(i) == 'air_pressure') then
+            if (trim(input_var_stdnames(i)) == 'air_pressure') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, pmid)
             end if
-            if (input_var_stdnames(i) == 'air_pressure_of_dry_air') then
+            if (trim(input_var_stdnames(i)) == 'air_pressure_of_dry_air') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, &
                                pmiddry)
             end if
-            if (input_var_stdnames(i) == 'reciprocal_pressure_thickness') then
+            if (trim(input_var_stdnames(i)) == 'reciprocal_pressure_thickness') then
                call read_field(file, input_var_names(:,i), 'lev', timestep, rpdel)
             end if
 
