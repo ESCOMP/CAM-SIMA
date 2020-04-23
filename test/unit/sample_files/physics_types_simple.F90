@@ -7,30 +7,30 @@ private
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
-    !Number of physics variables which can be read from Initial Conditions (IC) file:
-    integer, public, parameter :: ic_var_num = 2
+!Number of physics variables which can be read from Initial Conditions (IC) file:
+integer, public, parameter :: ic_var_num = 2
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
-    !Max length of registered variable standard names:
-    integer, public, parameter :: std_name_len = 20
+!Max length of registered variable standard names:
+integer, public, parameter :: std_name_len = 20
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
-    !Max length of input (IC) file variable names:
-    integer, public, parameter :: ic_name_len = 3
+!Max length of input (IC) file variable names:
+integer, public, parameter :: ic_name_len = 3
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
-    character(len=20), public :: input_var_stdnames(ic_var_num) = (/ &
-      'latitude            ', &
-      'longitude           ' /)
+character(len=20), public :: input_var_stdnames(ic_var_num) = (/ &
+  'latitude            ', &
+  'longitude           ' /)
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
-    character(len=3), public :: input_var_names(1, ic_var_num) = (/ &
-      (/'lat'/), &
-      (/'lon'/) /)
+character(len=3), public :: input_var_names(1, ic_var_num) = reshape((/ &
+  'lat', &
+  'lon'/), (/1, ic_var_num/))
 
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html

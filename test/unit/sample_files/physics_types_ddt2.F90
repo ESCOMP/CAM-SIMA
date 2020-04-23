@@ -36,34 +36,34 @@ private
   
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html
-    !Number of physics variables which can be read from Initial Conditions (IC) file:
-    integer, public, parameter :: ic_var_num = 4
+!Number of physics variables which can be read from Initial Conditions (IC) file:
+integer, public, parameter :: ic_var_num = 4
 
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html
-    !Max length of registered variable standard names:
-    integer, public, parameter :: std_name_len = 27
+!Max length of registered variable standard names:
+integer, public, parameter :: std_name_len = 27
 
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html
-    !Max length of input (IC) file variable names:
-    integer, public, parameter :: ic_name_len = 6
+!Max length of input (IC) file variable names:
+integer, public, parameter :: ic_name_len = 6
 
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html
-    character(len=27), public :: input_var_stdnames(ic_var_num) = (/ &
-      'eastward_wind              ', &
-      'northward_wind             ', &
-      'latitude                   ', &
-      'longitude                  ' /)
+character(len=27), public :: input_var_stdnames(ic_var_num) = (/ &
+  'eastward_wind              ', &
+  'northward_wind             ', &
+  'latitude                   ', &
+  'longitude                  ' /)
 
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html
-    character(len=6), public :: input_var_names(1, ic_var_num) = (/ &
-      (/'u_wind'/), &
-      (/'v_wind'/), &
-      (/'lat   '/), &
-      (/'lon   '/) /)
+character(len=6), public :: input_var_names(1, ic_var_num) = reshape((/ &
+  'u_wind', &
+  'v_wind', &
+  'lat   ', &
+  'lon   '/), (/1, ic_var_num/))
 
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html

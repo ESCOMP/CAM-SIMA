@@ -1146,7 +1146,7 @@ class File:
                 ddt.write_definition(outfile, 'private', 1)
             # end if
             # Write variable standard and input name arrays
-            self.write_ic_names(outfile, indent, logger)
+            self.write_ic_names(outfile, indent-2, logger)
             # Write Variables defined in this file
             self.__var_dict.write_definition(outfile, 'private', 1)
             # Write data management subroutine declarations
@@ -1322,29 +1322,33 @@ class File:
                     #Check if this entry is the last for this DDT:
                     if lpcnt == vars_with_ic_names:
                         #Create Fortran IC array string with array end:
-                        ic_nmstrs.append('(/'+', '.join("'{}'".format(n) \
+                        ic_nmstrs.append(', '.join("'{}'".format(n) \
                                          for n in ic_names_with_spaces) + \
                                          ', ' + \
                                          ', '.join("'{}'".format(nn) for \
-                                         nn in noname_list) + '/) /)')
+                                         nn in noname_list) + \
+                                         '/), (/{}, ic_var_num/))'.format(\
+                                         ic_name_max_num))
 
                     else:
                         #Create Fortran IC array string:
-                        ic_nmstrs.append('(/'+', '.join("'{}'".format(n) \
+                        ic_nmstrs.append(', '.join("'{}'".format(n) \
                                          for n in ic_names_with_spaces) + \
                                          ', ' + \
                                          ', '.join("'{}'".format(nn) for \
-                                         nn in noname_list) + '/), &')
+                                         nn in noname_list) + ', &')
                 else:
                     #Check if this entry is the last for this DDT:
                     if lpcnt == vars_with_ic_names:
                         #Create Fortran IC list string with array end:
-                        ic_nmstrs.append('(/'+', '.join("'{}'".format(n) \
-                                         for n in ic_names_with_spaces) + '/) /)')
+                        ic_nmstrs.append(', '.join("'{}'".format(n) \
+                                         for n in ic_names_with_spaces) + \
+                                         '/), (/{}, ic_var_num/))'.format(\
+                                         ic_name_max_num))
                     else:
                         #Create Fortran IC list string:
-                        ic_nmstrs.append('(/'+', '.join("'{}'".format(n) \
-                                         for n in ic_names_with_spaces) + '/), &')
+                        ic_nmstrs.append(', '.join("'{}'".format(n) \
+                                         for n in ic_names_with_spaces) + ', &')
 
 
         #Write CCPP header:
@@ -1402,8 +1406,9 @@ class File:
         write_ccpp_table_header(self.name, outfile)
 
         #Write starting decleration of IC input name array:
-        dec_string = "character(len={}), public :: input_var_names({}, ic_var_num) = (/ &".format(\
-                     ic_name_max_len, ic_name_max_num)
+        dec_string = \
+            "character(len={}), public :: input_var_names({}, ic_var_num) = reshape((/ &".format(\
+            ic_name_max_len, ic_name_max_num)
         outfile.write(dec_string, indent)
 
         #Write IC names to fortran array:
