@@ -5,32 +5,22 @@ module physics_types_parameter
 implicit none
 private
 
-!> \section arg_table_physics_types_parameter  Argument Table
-!! \htmlinclude physics_types_parameter.html
 !Number of physics variables which can be read from Initial Conditions (IC) file:
 integer, public, parameter :: ic_var_num = 2
 
-!> \section arg_table_physics_types_parameter  Argument Table
-!! \htmlinclude physics_types_parameter.html
 !Max length of registered variable standard names:
 integer, public, parameter :: std_name_len = 24
 
-!> \section arg_table_physics_types_parameter  Argument Table
-!! \htmlinclude physics_types_parameter.html
 !Max length of input (IC) file variable names:
 integer, public, parameter :: ic_name_len = 3
 
-!> \section arg_table_physics_types_parameter  Argument Table
-!! \htmlinclude physics_types_parameter.html
 character(len=24), public :: input_var_stdnames(ic_var_num) = (/ &
   'latitude                ', &
   'longitude               ' /)
 
-!> \section arg_table_physics_types_parameter  Argument Table
-!! \htmlinclude physics_types_parameter.html
 character(len=3), public :: input_var_names(1, ic_var_num) = reshape((/ &
   'lat', &
-  'lon'/), (/1, ic_var_num/))
+  'lon' /), (/1, ic_var_num/))
 
 !> \section arg_table_physics_types_parameter  Argument Table
 !! \htmlinclude physics_types_parameter.html

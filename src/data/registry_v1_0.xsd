@@ -89,7 +89,6 @@
   <xs:simpleType name="input_name_type">
     <xs:restriction base="xs:string">
       <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,256}"/>
-      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,256}[:][A-Za-z][A-Za-z0-9_]{0,256}"/>
     </xs:restriction>
   </xs:simpleType>
 

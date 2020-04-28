@@ -75,7 +75,7 @@ CONTAINS
          call endrun('cam_ccpp_suite_part_list: '//trim(errmsg))
       end if
       ! Physics needs to read in all data not read in by the dycore
-      call physics_read_data(ncdata, suite_name, 2) ! Skip first timestep of data
+      call physics_read_data(ncdata, suite_names, 2) ! Skip first timestep of data
 
    end subroutine phys_init
 

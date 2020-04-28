@@ -293,14 +293,13 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
         host_name = case.get_value('COMP_ATM')
 
         # print extra info to bldlog if DEBUG is TRUE
-        if case.get_value("DEBUG"):
-            _LOGGER.info("Calling capgen: ")
-            _LOGGER.info("   host files: '{}'".format(host_files))
-            _LOGGER.info("   scheme files: '{}'".format(scheme_files))
-            _LOGGER.info("   suite definition files: '{}'".format(sdfs))
-            _LOGGER.info("   preproc defs: '{}'".format(preproc_defs))
-            _LOGGER.info("   output directory: '{}'".format(genccpp_dir))
-            _LOGGER.info("   kind_phys: '{}'".format(kind_phys))
+        _LOGGER.debug("Calling capgen: ")
+        _LOGGER.debug("   host files: {}".format(', '.join(host_files)))
+        _LOGGER.debug("   scheme files: {}".format(', '.join(scheme_files)))
+        _LOGGER.debug("   suite definition files: {}".format(', '.join(sdfs)))
+        _LOGGER.debug("   preproc defs: {}".format(', '.join(preproc_defs)))
+        _LOGGER.debug("   output directory: '{}'".format(genccpp_dir))
+        _LOGGER.debug("   kind_phys: '{}'".format(kind_phys))
 
         # generate CCPP caps
         capgen(host_files, scheme_files, sdfs, cap_output_file,
@@ -328,6 +327,17 @@ def _build_cam():
 
         # Case-derived variables
         source_mods_dir = os.path.join(caseroot, "SourceMods", "src.cam")
+
+        # Set logging level
+        if case.get_value("DEBUG"):
+            # CIME blocks this change so create a handler with DEBUG level
+            handler = logging.StreamHandler(stream=sys.stdout)
+            handler.setLevel(logging.DEBUG)
+            _LOGGER.handlers = [handler]
+            _LOGGER.setLevel(logging.DEBUG)
+        else:
+            _LOGGER.setLevel(logging.INFO)
+        # End if
 
         # CAM config object and variables
         config = ConfigCAM(case, _LOGGER)

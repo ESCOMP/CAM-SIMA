@@ -150,6 +150,10 @@ class VarBase(object):
                 self.__long_name = attrib.text
             elif attrib.tag == 'initial_value':
                 self.__initial_value = attrib.text
+            elif attrib.tag == 'ic_file_input_names':
+                #Separate out string into list:
+                self.__ic_names = [x.strip() for x in attrib.text.split(' ') if x]
+
             # end if (just ignore other tags)
         # end for
         if ((not self.initial_value) and
@@ -260,6 +264,16 @@ class VarBase(object):
         return self.__initial_value
 
     @property
+    def ic_names(self):
+        """Return list of possible Initial Condition (IC) file input names"""
+        try:
+            #Assume ic_names exists:
+            return self.__ic_names
+        except AttributeError:
+            #If ic_names attribute doesn't exist, then return None:
+            return None
+
+    @property
     def module(self):
         """Return the module where this variable is defined"""
         return self.__type.module
@@ -287,22 +301,7 @@ class ArrayElement(VarBase):
 
         self.__parent_name = parent_name
         self.__index_name = elem_node.get('index_name')
-        self.__standard_name = elem_node.get('standard_name')
         pos = elem_node.get('index_pos')
-
-        #Loop over array elements:
-        for attrib in elem_node:
-            #Search for IC file input name tag:
-            if attrib.tag == 'ic_file_input_names':
-                #Separate out string into list:
-                input_names = [x.strip() for x in attrib.text.split(' ') if x]
-
-                #Initialize input name list and counter:
-                self.__ic_names = list()
-
-                #Add input names to variable object:
-                for ic_name in input_names:
-                    self.__ic_names.append(ic_name)
 
         # Check to make sure we know about this index
         var = vdict.find_variable_by_standard_name(self.index_name)
@@ -329,7 +328,9 @@ class ArrayElement(VarBase):
         if found:
             self.__index_string = ','.join(my_index)
             #write array string with local variable index name,
-            #instead of the standard variable index name:
+            #instead of the standard variable index name.
+            #This is used to write initialization code in fortran
+            #with the correct index variable name:
             local_index_string = ','.join(my_local_index)
             self.__local_index_name_str = \
                 '{}({})'.format(parent_name, local_index_string)
@@ -350,27 +351,12 @@ class ArrayElement(VarBase):
         return self.__index_name
 
     @property
-    def standard_name(self):
-        """Return the standard name of this array element"""
-        return self.__standard_name
-
-    @property
     def local_index_name_str(self):
         """
         Return the array element's name, but with the local name for the
         index instead of the standard name
         """
         return self.__local_index_name_str
-
-    @property
-    def ic_names(self):
-        """Return list of possible Initial Condition (IC) file input names"""
-        try:
-            #Assume ic_names exists:
-            return self.__ic_names
-        except AttributeError:
-            #If ic_names attribute doesn't exist, then return None:
-            return None
 
     @property
     def index_string(self):
@@ -470,22 +456,14 @@ class Variable(VarBase):
                 if def_dims:
                     self.__def_dims_str = '(' + ', '.join(def_dims) + ')'
                 # end if
-            elif attrib.tag == 'ic_file_input_names':
-                #Separate out string into list:
-                input_names = [x.strip() for x in attrib.text.split(' ') if x]
-
-                #Initialize input name list and counter:
-                self.__ic_names = list()
-
-                #Add input names to variable object:
-                for ic_name in input_names:
-                    self.__ic_names.append(ic_name)
 
             elif attrib.tag == 'long_name':
                 pass # picked up in parent
             elif attrib.tag == 'initial_value':
                 pass # picked up in parent
             elif attrib.tag == 'element':
+                pass # picked up in parent
+            elif attrib.tag == 'ic_file_input_names':
                 pass # picked up in parent
             else:
                 emsg = "Unknown Variable content, '{}'"
@@ -710,16 +688,6 @@ class Variable(VarBase):
     def elements(self):
         """Return elements list for this variable"""
         return self.__elements
-
-    @property
-    def ic_names(self):
-        """Return list of possible Initial Condition (IC) file input names"""
-        try:
-            #Assume ic_names exists:
-            return self.__ic_names
-        except AttributeError:
-            #If ic_names attribute doesn't exist, then return None:
-            return None
 
 ###############################################################################
 class VarDict(OrderedDict):
@@ -1225,22 +1193,20 @@ class File:
         stdname_max_len = 0
         ic_name_max_num = 0
 
-        #Create empty list:
+        #Create new (empty) list to store variables
+        #with (IC) file input names:
         variable_list = list()
 
         #Loop over all DDTs in file:
         for ddt in self.__ddts.values():
             #Concatenate DDT variable list onto master list:
-            variable_list = variable_list + ddt.variable_list()
+            variable_list.extend(ddt.variable_list())
 
         #Add file variable list to master list:
-        variable_list = variable_list + list(self.__var_dict.variable_list())
-
-        #Copy variable list to use in element loop:
-        tmp_var_list = list(variable_list)
+        variable_list.extend(list(self.__var_dict.variable_list()))
 
         #Loop through variable list to look for array elements:
-        for var in tmp_var_list:
+        for var in list(variable_list):
             #Check if array elements are present:
             if var.elements:
                 #If so, then loop over elements:
@@ -1261,17 +1227,32 @@ class File:
             return
 
         #Determine max standard name string length:
-        stdname_max_len = max([len(var.standard_name) for var in variable_list])
+        try:
+            stdname_max_len = max([len(var.standard_name) for var in variable_list])
+        except ValueError:
+            #If there are no proper standard names in the list,
+            #then the registry was likely written incorrectly,
+            #so print warning and exit function:
+            lmsg = "No variable standard names were found that contain " \
+                   "IC file input names.\nThus something is likely wrong " \
+                   "with the registry file, or at least the placement of " \
+                   "'<ic_file_input-names>' tags.\nGiven this, no input " \
+                   "variable name array will be created."
+            logger.info(lmsg)
+            return
 
         #Determine total number of variables with file input (IC) names:
-        vars_with_ic_names = len([var.standard_name for var in variable_list if var.ic_names is not None])
+        num_vars_with_ic_names = len([var for var in variable_list if var.ic_names is not None])
 
         #Loop over variables in list:
         ic_name_max_len = self.find_ic_name_max_len(variable_list)
 
+        #Create fake name with proper length:
+        fake_ic_name = [" "*ic_name_max_len]
+
         #Create variable name array string lists:
-        stdnmstrs = list()
-        ic_nmstrs = list()
+        stdname_strs = list()
+        ic_name_strs = list()
 
         #Initalize loop counter:
         lpcnt = 0
@@ -1285,22 +1266,18 @@ class File:
                 #Add one to loop counter:
                 lpcnt += 1
 
-                #Create standard_name string with proper size:
+                #Create standard_name string with proper size,
+                #and append to list:
                 extra_spaces = " " * (stdname_max_len - len(var.standard_name))
-                var_stdnm = var.standard_name + extra_spaces
-
-                #Check if this entry is the last for this DDT:
-                if lpcnt == vars_with_ic_names:
-                    #Create standard name array string with array delimiter:
-                    stdnmstrs.append("'{}' /)".format(var_stdnm))
-                else:
-                    #Create standard name array string:
-                    stdnmstrs.append("'{}', &".format(var_stdnm))
+                stdname_strs.append("'{}'".format(var.standard_name + extra_spaces))
 
                 #Determine number of IC names for variable:
                 ic_name_num = len(var.ic_names)
 
-                #Create new empty list:
+                #Create new (empty) list to store (IC) file
+                #input names of variables with the correct
+                #number of spaces to match character array
+                #dimensions:
                 ic_names_with_spaces = list()
 
                 #Loop over possible input file (IC) names:
@@ -1310,61 +1287,23 @@ class File:
                     #Add properly-sized name to list:
                     ic_names_with_spaces.append(ic_name + extra_spaces)
 
-                #Check if number of IC names is less than the max value:
-                if ic_name_num < ic_name_max_num:
+                #Create repeating list of empty, "fake" strings that
+                #increases array to max size:
+                if ic_name_max_num - ic_name_num != 0:
+                    ic_names_with_spaces.append(fake_ic_name*(ic_name_max_num - ic_name_num))
 
-                    #Create fake name with proper length:
-                    fake_ic_name = "IGNORE_ME" + " " * (ic_name_max_len - 9)
+                #Append new ic_names to string list:
+                ic_name_strs.append(', '.join("'{}'".format(n) for n in ic_names_with_spaces))
 
-                    #Create repeating list of "fake" strings that increases array to max size:
-                    noname_list = [fake_ic_name]*(ic_name_max_num - ic_name_num)
-
-                    #Check if this entry is the last for this DDT:
-                    if lpcnt == vars_with_ic_names:
-                        #Create Fortran IC array string with array end:
-                        ic_nmstrs.append(', '.join("'{}'".format(n) \
-                                         for n in ic_names_with_spaces) + \
-                                         ', ' + \
-                                         ', '.join("'{}'".format(nn) for \
-                                         nn in noname_list) + \
-                                         '/), (/{}, ic_var_num/))'.format(\
-                                         ic_name_max_num))
-
-                    else:
-                        #Create Fortran IC array string:
-                        ic_nmstrs.append(', '.join("'{}'".format(n) \
-                                         for n in ic_names_with_spaces) + \
-                                         ', ' + \
-                                         ', '.join("'{}'".format(nn) for \
-                                         nn in noname_list) + ', &')
-                else:
-                    #Check if this entry is the last for this DDT:
-                    if lpcnt == vars_with_ic_names:
-                        #Create Fortran IC list string with array end:
-                        ic_nmstrs.append(', '.join("'{}'".format(n) \
-                                         for n in ic_names_with_spaces) + \
-                                         '/), (/{}, ic_var_num/))'.format(\
-                                         ic_name_max_num))
-                    else:
-                        #Create Fortran IC list string:
-                        ic_nmstrs.append(', '.join("'{}'".format(n) \
-                                         for n in ic_names_with_spaces) + ', &')
-
-
-        #Write CCPP header:
-        write_ccpp_table_header(self.name, outfile)
 
         #Create new Fortran integer parameter to store number of variables with IC inputs:
         outfile.write("!Number of physics variables which can be read from"+ \
                       " Initial Conditions (IC) file:", indent)
         outfile.write("integer, public, parameter :: ic_var_num = {}".format(\
-                      vars_with_ic_names), indent)
+                      num_vars_with_ic_names), indent)
 
         #Add blank space:
         outfile.write("", 0)
-
-        #Write CCPP header:
-        write_ccpp_table_header(self.name, outfile)
 
         #Create another Fortran integer parameter to store max length of
         #registered variable standard name strings:
@@ -1375,9 +1314,6 @@ class File:
         #Write a second blank space:
         outfile.write("", 0)
 
-        #Write CCPP header:
-        write_ccpp_table_header(self.name, outfile)
-
         #Create final Fortran integer parameter to store max length of
         #input variable name string:
         outfile.write("!Max length of input (IC) file variable names:", indent)
@@ -1387,23 +1323,23 @@ class File:
         #Write a third blank space:
         outfile.write("", 0)
 
-        #Write CCPP header:
-        write_ccpp_table_header(self.name, outfile)
-
         #Write starting declaration of input standard name array:
         declare_string = "character(len={}), public :: input_var_stdnames(ic_var_num) = (/ &".format(\
                          stdname_max_len)
         outfile.write(declare_string, indent)
 
         #Write standard names to fortran array:
-        for stdnmstr in stdnmstrs:
-            outfile.write(stdnmstr, indent+1)
+        num_strs = len(stdname_strs)
+        for index, stdname_str in enumerate(stdname_strs):
+            if index == num_strs-1:
+                suffix = ' /)'
+            else:
+                suffix = ', &'
+            # end if
+            outfile.write('{}{}'.format(stdname_str, suffix), indent+1)
 
         #Write a fourth blank space:
         outfile.write("", 0)
-
-        #Write final CCPP header:
-        write_ccpp_table_header(self.name, outfile)
 
         #Write starting decleration of IC input name array:
         dec_string = \
@@ -1412,8 +1348,14 @@ class File:
         outfile.write(dec_string, indent)
 
         #Write IC names to fortran array:
-        for ic_nmstr in ic_nmstrs:
-            outfile.write(ic_nmstr, indent+1)
+        num_strs = len(ic_name_strs)
+        for index, ic_name_str in enumerate(ic_name_strs):
+            if index == num_strs-1:
+                suffix = ' /), (/{}, ic_var_num/))'.format(ic_name_max_num)
+            else:
+                suffix = ', &'
+            # end if
+            outfile.write('{}{}'.format(ic_name_str, suffix), indent+1)
 
         #Write a final blank space:
         outfile.write("", 0)

@@ -251,19 +251,16 @@
               units="K s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>dTdt dtdt_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="dudt" standard_name="tendency_of_eastward_wind"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>dudt dudt_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="dvdt" standard_name="tendency_of_northward_wind"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>dvdt dvdt_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="lagrangian_vertical_coordinate"
