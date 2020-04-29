@@ -159,7 +159,6 @@ CONTAINS
 
    subroutine physics_read_data(file, suite_names, timestep)
       use pio,            only: file_desc_t
-      use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
       use shr_kind_mod,   only: SHR_KIND_CS, SHR_KIND_CL
       use physics_types,  only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
