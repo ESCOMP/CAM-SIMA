@@ -131,6 +131,7 @@ class VarBase(object):
         self.__standard_name = elem_node.get('standard_name')
         self.__long_name = ''
         self.__initial_value = ''
+        self.__ic_names = None
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
         if self.__allocatable == "none":
             self.__allocatable = ""
@@ -266,12 +267,8 @@ class VarBase(object):
     @property
     def ic_names(self):
         """Return list of possible Initial Condition (IC) file input names"""
-        try:
-            #Assume ic_names exists:
-            return self.__ic_names
-        except AttributeError:
-            #If ic_names attribute doesn't exist, then return None:
-            return None
+        #Assume ic_names exists:
+        return self.__ic_names
 
     @property
     def module(self):
