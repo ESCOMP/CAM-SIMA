@@ -1,6 +1,6 @@
 module physics_data
 
-   use ccpp_kinds,    only: kind_phys
+   use ccpp_kinds,   only: kind_phys
 
    implicit none
    private
@@ -28,7 +28,7 @@ CONTAINS
       !Initialize function:
       find_input_name_idx = -1
 
-      !Loop through required CCPP variable standard names:
+      !Loop through standard names of possible input variables:
       do idx = 1, size(input_stdnames, 1)
          !Check if provided name is in required names array:
          if (trim(stdname) == trim(input_stdnames(idx))) then
@@ -160,7 +160,8 @@ CONTAINS
    subroutine physics_read_data(file, suite_names, timestep)
       use pio,            only: file_desc_t
       use cam_logfile,    only: iulog
-      use shr_kind_mod,   only: SHR_KIND_CS
+      use cam_abortutils, only: endrun
+      use shr_kind_mod,   only: SHR_KIND_CS, SHR_KIND_CL
       use physics_types,  only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
       use physics_types,  only: pint, pmid, pmiddry, rpdel
       use physics_types,  only: ix_qv, ix_cld_liq, ix_rain
@@ -178,10 +179,16 @@ CONTAINS
       !Character array containing all CCPP-required vairable standard names:
       character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
+      !String which stores names of any missing vars:
+      character(len=SHR_KIND_CL) :: missing_required_vars
+
       character(len=512) :: errmsg  !CCPP framework error message
       integer            :: errflg  !CCPP framework error flag
       integer            :: idx     !Input variable array index
       integer            :: i, s    !loop control variables
+
+      !Initalize missing variables string:
+      missing_required_vars = ' '
 
       !Loop over CCPP physics/chemistry suites:
       do s = 1, size(suite_names, 1)
@@ -189,7 +196,7 @@ CONTAINS
          !Search for all needed CCPP input variables,
          !so that they can b e read from input file if need be:
          call ccpp_physics_suite_variables(suite_names(s), ccpp_required_data, errmsg, errflg, &
-                                              input_vars_in=.true.)
+                                              input_vars_in=.true., output_vars_in=.false.)
 
          !Loop over all required variables as specified by CCPP suite:
          do i = 1, size(ccpp_required_data, 1)
@@ -197,11 +204,17 @@ CONTAINS
             !Find IC file input name array index for required variable:
             idx = find_input_name_idx(ccpp_required_data(i), input_var_stdnames)
 
-            !If an index was never found, then print error and check the rest
+            !If an index was never found, then save variable name and check the rest
             !of the variables, after which the model simulation will end:
             if(idx == -1) then
-               write(iulog,*) 'Required variable missing from registered list of input variables: ',&
-                              trim(ccpp_required_data(i))
+               if(len_trim(missing_required_vars) == 0) then
+                  missing_required_vars(len_trim(missing_required_vars)+1:) = &
+                                        trim(ccpp_required_data(i))
+               else
+                  missing_required_vars(len_trim(missing_required_vars)+1:) = &
+                                        ', '//trim(ccpp_required_data(i))
+               end if
+               !Continue on with variable loop:
                cycle
             end if
 
@@ -257,6 +270,13 @@ CONTAINS
             end if
 
          end do !Suite-required variables
+
+         !End simulation if there are missing input
+         !variables that are required:
+         if (len_trim(missing_required_vars) > 0) then
+            call endrun("Required variables missing from registered list of input variables: "//&
+                        trim(missing_required_vars))
+         end if
 
          !Deallocate required variables array for use in next suite:
          deallocate(ccpp_required_data)

@@ -264,7 +264,8 @@
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="lagrangian_vertical_coordinate"
-              units="flag" type="logical">
+              units="flag" type="logical" access="protected">
+    <initial_value>.false.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data dycore="FV,EUL">surface_air_pressure</data>
