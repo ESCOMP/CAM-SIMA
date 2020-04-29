@@ -160,12 +160,11 @@ CONTAINS
    subroutine physics_read_data(file, suite_names, timestep)
       use pio,            only: file_desc_t
       use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       use shr_kind_mod,   only: SHR_KIND_CS
       use physics_types,  only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
       use physics_types,  only: pint, pmid, pmiddry, rpdel
       use physics_types,  only: ix_qv, ix_cld_liq, ix_rain
-      use physics_types,  only: ic_var_num, input_var_stdnames, input_var_names
+      use physics_types,  only: input_var_stdnames, input_var_names
       use physics_types,  only: std_name_len
       use cam_ccpp_cap,   only: ccpp_physics_suite_variables
 
