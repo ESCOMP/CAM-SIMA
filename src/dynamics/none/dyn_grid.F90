@@ -5,13 +5,15 @@ module dyn_grid
    use cam_logfile,         only: iulog, debug_output
    use spmd_utils,          only: masterproc
    use physics_column_type, only: physics_column_t
+   use hycoef,              only: hycoef_init
+   use hycoef,              only: hypi, hypm, nprlev
 
    implicit none
    private
    save
 
    public dyn_grid_init
-   public get_dyn_grid_info
+   public get_dyn_grid_info, get_dyn_dims_info
    public physgrid_copy_attributes_d
 
    type(physics_column_t), public, protected, allocatable :: local_columns(:)
@@ -101,6 +103,9 @@ CONTAINS
 
       ! Get file handle for initial file to find coordinates
       fh_ini => initial_file_get_id()
+
+      ! Initialize coordinate arrays
+      call hycoef_init(fh_ini)
 
       ! We will handle errors for this routine
       call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, err_handling)
@@ -345,8 +350,8 @@ CONTAINS
 
    !===========================================================================
 
-   subroutine get_dyn_grid_info(hdim1_d, hdim2_d, num_lev,                    &
-        dycore_name, index_model_top_layer, index_surface_layer, dyn_columns)
+   subroutine get_dyn_dims_info(hdim1_d, hdim2_d, num_lev,                    &
+        dycore_name, index_model_top_layer, index_surface_layer)
       use shr_const_mod,  only: SHR_CONST_PI
       use cam_abortutils, only: endrun
       use spmd_utils,     only: iam
@@ -357,7 +362,34 @@ CONTAINS
       character(len=*), intent(out)   :: dycore_name
       integer,          intent(out)   :: index_model_top_layer
       integer,          intent(out)   :: index_surface_layer
+      ! Local variables
+      integer                         :: lindex
+      integer                         :: gindex
+      integer                         :: lat_index, lat1
+      integer                         :: lon_index
+      real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
+      real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
+      character(len=*), parameter     :: subname = 'get_dyn_dims_info'
+
+      hdim1_d = num_lons
+      hdim2_d = num_lats
+      num_lev = num_levels
+      dycore_name = 'NULL'
+      index_model_top_layer = 1
+      index_surface_layer = num_levels
+
+   end subroutine get_dyn_dims_info
+
+   subroutine get_dyn_grid_info(dyn_columns, hypi_out, hypm_out, nprlev_out)
+      use shr_const_mod,  only: SHR_CONST_PI
+      use cam_abortutils, only: endrun
+      use spmd_utils,     only: iam
+      ! Dummy arguments
       type(physics_column_t), pointer :: dyn_columns(:) ! Phys col in Dyn decomp
+      real(r8)                        :: hypi_out(:)    ! reference pressures at interfaces
+      real(r8)                        :: hypm_out(:)    ! reference pressures at midpoints
+      integer                         :: nprlev_out     ! number of pure pressure levels at top
+
       ! Local variables
       integer                         :: lindex
       integer                         :: gindex
@@ -371,12 +403,10 @@ CONTAINS
          call endrun(subname//': dyn_columns must be unassociated pointer')
       end if
       allocate(dyn_columns(num_local_columns))
-      hdim1_d = num_lons
-      hdim2_d = num_lats
-      num_lev = num_levels
-      dycore_name = 'NULL'
-      index_model_top_layer = 1
-      index_surface_layer = num_levels
+
+      hypi_out = hypi
+      hypm_out = hypm
+      nprlev_out = nprlev
       lat1 = global_col_offset / num_lons
       do lindex = 1, num_local_columns
          if (grid_is_latlon) then

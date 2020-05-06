@@ -1,0 +1,17 @@
+[ccpp-arg-table]
+  name = phys_vert_coord
+  type = module
+[ pver ]
+  standard_name = vertical_layer_dimension
+  long_name = number of vertical layers
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ pverp ]
+  standard_name = vertical_interface_dimension
+  long_name = number of vertical layer interfaces
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True

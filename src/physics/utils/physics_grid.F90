@@ -56,11 +56,14 @@ CONTAINS
       use mpi,              only: MPI_INTEGER, MPI_MIN
       use cam_abortutils,   only: endrun
       use spmd_utils,       only: npes, mpicom
-      use dyn_grid,         only: get_dyn_grid_info, physgrid_copy_attributes_d
+      use dyn_grid,         only: get_dyn_grid_info, get_dyn_dims_info, physgrid_copy_attributes_d
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
       use cam_grid_support, only: iMap, hclen => max_hcoordname_len
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
       use cam_grid_support, only: cam_grid_attribute_copy, cam_grid_attr_exists
+      use phys_vert_coord,  only: phys_vert_coord_init
+      
+      use ref_pres,         only: ref_pres_init
 
       ! Local variables
       integer                             :: index
@@ -71,6 +74,9 @@ CONTAINS
       real(r8),               pointer     :: lonvals(:)
       real(r8),               pointer     :: latvals(:)
       real(r8)                            :: lonmin, latmin
+      real(r8), allocatable               :: pref_edge(:)   ! reference pressures at interfaces
+      real(r8), allocatable               :: pref_mid(:)    ! reference pressures at midpoints
+      integer                             :: num_pr_lev     ! number of pure pressure levels at top
       integer(iMap),          pointer     :: grid_map(:,:)
       integer(iMap),          allocatable :: coord_map(:)
       type(horiz_coord_t),    pointer     :: lat_coord
@@ -94,9 +100,14 @@ CONTAINS
       call t_adj_detailf(-2)
       call t_startf("phys_grid_init")
 
+      ! Get dimensions from the dycore
+      call get_dyn_dims_info(hdim1_d, hdim2_d, pver, dycore_name,             &
+           index_top_layer, index_bottom_layer)
+      allocate(pref_edge(pver+1))
+      allocate(pref_mid(pver))
+
       ! Gather info from the dycore
-      call get_dyn_grid_info(hdim1_d, hdim2_d, pver, dycore_name,             &
-           index_top_layer, index_bottom_layer, dyn_columns)
+      call get_dyn_grid_info(dyn_columns, pref_edge, pref_mid, num_pr_lev)
       num_global_phys_cols = hdim1_d * hdim2_d
       pverp = pver + 1
       first_dyn_column = LBOUND(dyn_columns, 1)
@@ -112,6 +123,11 @@ CONTAINS
          index_bottom_interface = index_bottom_layer
          index_top_interface = index_top_layer + 1
       end if
+      ! Set the physics vertical coordinate information
+      call phys_vert_coord_init(pver, pverp)
+
+      ! Initialize the reference pressures
+      call ref_pres_init(pver, pverp, pref_edge, pref_mid, num_pr_lev)
 
       ! Set up the physics decomposition
       columns_on_task = size(dyn_columns)

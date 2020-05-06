@@ -15,20 +15,6 @@
   dimensions = ()
   type = integer
   protected = True
-[ pver ]
-  standard_name = vertical_layer_dimension
-  long_name = number of vertical layers
-  units = count
-  dimensions = ()
-  type = integer
-  protected = True
-[ pverp ]
-  standard_name = vertical_interface_dimension
-  long_name = number of vertical layer interfaces
-  units = count
-  dimensions = ()
-  type = integer
-  protected = True
 [ index_top_layer ]
   standard_name = index_of_top_vertical_layer
   long_name = Vertical coordinate index for uppermost layer
