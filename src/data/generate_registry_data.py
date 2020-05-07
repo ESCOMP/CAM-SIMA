@@ -1220,7 +1220,7 @@ class File:
             #and exit function:
             lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
                    ", so no input variable name array will be created."
-            logger.warn(lmsg)
+            logger.warning(lmsg)
             return
 
         #Determine max standard name string length:
@@ -1235,7 +1235,7 @@ class File:
                    "with the registry file, or at least the placement of " \
                    "'<ic_file_input-names>' tags.\nGiven this, no input " \
                    "variable name array will be created."
-            logger.warn(lmsg)
+            logger.warning(lmsg)
             return
 
         #Determine total number of variables with file input (IC) names:
