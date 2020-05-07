@@ -181,91 +181,93 @@ CONTAINS
       !String which stores names of any missing vars:
       character(len=SHR_KIND_CL) :: missing_required_vars
 
-      character(len=512) :: errmsg  !CCPP framework error message
-      integer            :: errflg  !CCPP framework error flag
-      integer            :: idx     !Input variable array index
-      integer            :: i, s    !loop control variables
+      character(len=512) :: errmsg    !CCPP framework error message
+      integer            :: errflg    !CCPP framework error flag
+      integer            :: name_idx  !Input variable array index
+      integer            :: req_idx   !Required variable array index
+      integer            :: suite_idx !Suite array index
 
       !Initalize missing variables string:
       missing_required_vars = ' '
 
       !Loop over CCPP physics/chemistry suites:
-      do s = 1, size(suite_names, 1)
+      do suite_idx = 1, size(suite_names, 1)
 
          !Search for all needed CCPP input variables,
          !so that they can b e read from input file if need be:
-         call ccpp_physics_suite_variables(suite_names(s), ccpp_required_data, errmsg, errflg, &
-                                              input_vars_in=.true., output_vars_in=.false.)
+         call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &
+                                           errmsg, errflg, input_vars_in=.true., &
+                                           output_vars_in=.false.)
 
          !Loop over all required variables as specified by CCPP suite:
-         do i = 1, size(ccpp_required_data, 1)
+         do req_idx = 1, size(ccpp_required_data, 1)
 
             !Find IC file input name array index for required variable:
-            idx = find_input_name_idx(ccpp_required_data(i), input_var_stdnames)
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), input_var_stdnames)
 
             !If an index was never found, then save variable name and check the rest
             !of the variables, after which the model simulation will end:
-            if(idx == -1) then
+            if(name_idx == -1) then
                if(len_trim(missing_required_vars) == 0) then
                   missing_required_vars(len_trim(missing_required_vars)+1:) = &
-                                        trim(ccpp_required_data(i))
+                                        trim(ccpp_required_data(req_idx))
                else
                   missing_required_vars(len_trim(missing_required_vars)+1:) = &
-                                        ', '//trim(ccpp_required_data(i))
+                                        ', '//trim(ccpp_required_data(req_idx))
                end if
                !Continue on with variable loop:
                cycle
             end if
 
-            if (trim(input_var_stdnames(idx)) == 'pressure_thickness') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, pdel)
+            if (trim(input_var_stdnames(name_idx)) == 'pressure_thickness') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, pdel)
             end if
-            if (trim(input_var_stdnames(idx)) == 'pressure_thickness_of_dry_air') then
-               call read_field(file, input_var_names(:,idx), 'lev',           &
+            if (trim(input_var_stdnames(name_idx)) == 'pressure_thickness_of_dry_air') then
+               call read_field(file, input_var_names(:,name_idx), 'lev',           &
                                timestep, pdeldry)
             end if
-            if (trim(input_var_stdnames(idx)) == 'water_vapor_specific_humidity') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, &
+            if (trim(input_var_stdnames(name_idx)) == 'water_vapor_specific_humidity') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%q(:,:,ix_qv))
             end if
-            if (trim(input_var_stdnames(idx)) == 'cloud_liquid_water_mixing_ratio') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, &
+            if (trim(input_var_stdnames(name_idx)) == 'cloud_liquid_water_mixing_ratio') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%q(:,:,ix_cld_liq))
             end if
-            if (trim(input_var_stdnames(idx)) == 'rain_water_mixing_ratio') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, &
+            if (trim(input_var_stdnames(name_idx)) == 'rain_water_mixing_ratio') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%q(:,:,ix_rain))
             end if
-            if (trim(input_var_stdnames(idx)) == 'geopotential_height') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, zm)
+            if (trim(input_var_stdnames(name_idx)) == 'geopotential_height') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, zm)
             end if
-            if (trim(input_var_stdnames(idx)) == 'temperature') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, &
+            if (trim(input_var_stdnames(name_idx)) == 'temperature') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%T)
             end if
-            if (trim(input_var_stdnames(idx)) == 'geopotential_at_surface') then
-               call read_field(file, input_var_names(:,idx), timestep, phys_state%phis)
+            if (trim(input_var_stdnames(name_idx)) == 'geopotential_at_surface') then
+               call read_field(file, input_var_names(:,name_idx), timestep, phys_state%phis)
             end if
-            if (trim(input_var_stdnames(idx)) == &
+            if (trim(input_var_stdnames(name_idx)) == &
                 'natural_log_of_air_pressure_at_interface') then
-               call read_field(file, input_var_names(:,idx), 'ilev', timestep, &
+               call read_field(file, input_var_names(:,name_idx), 'ilev', timestep, &
                                lnpint)
             end if
-            if (trim(input_var_stdnames(idx)) == 'natural_log_of_air_pressure') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, lnpmid)
+            if (trim(input_var_stdnames(name_idx)) == 'natural_log_of_air_pressure') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, lnpmid)
             end if
-            if (trim(input_var_stdnames(idx)) == 'air_pressure_at_interface') then
-               call read_field(file, input_var_names(:,idx), 'ilev', timestep, pint)
+            if (trim(input_var_stdnames(name_idx)) == 'air_pressure_at_interface') then
+               call read_field(file, input_var_names(:,name_idx), 'ilev', timestep, pint)
             end if
-            if (trim(input_var_stdnames(idx)) == 'air_pressure') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, pmid)
+            if (trim(input_var_stdnames(name_idx)) == 'air_pressure') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, pmid)
             end if
-            if (trim(input_var_stdnames(idx)) == 'air_pressure_of_dry_air') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, &
+            if (trim(input_var_stdnames(name_idx)) == 'air_pressure_of_dry_air') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                pmiddry)
             end if
-            if (trim(input_var_stdnames(idx)) == 'reciprocal_pressure_thickness') then
-               call read_field(file, input_var_names(:,idx), 'lev', timestep, rpdel)
+            if (trim(input_var_stdnames(name_idx)) == 'reciprocal_pressure_thickness') then
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, rpdel)
             end if
 
          end do !Suite-required variables

@@ -1220,7 +1220,7 @@ class File:
             #and exit function:
             lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
                    ", so no input variable name array will be created."
-            logger.info(lmsg)
+            logger.warn(lmsg)
             return
 
         #Determine max standard name string length:
@@ -1235,7 +1235,7 @@ class File:
                    "with the registry file, or at least the placement of " \
                    "'<ic_file_input-names>' tags.\nGiven this, no input " \
                    "variable name array will be created."
-            logger.info(lmsg)
+            logger.warn(lmsg)
             return
 
         #Determine total number of variables with file input (IC) names:
@@ -1245,7 +1245,7 @@ class File:
         ic_name_max_len = self.find_ic_name_max_len(variable_list)
 
         #Create fake name with proper length:
-        fake_ic_name = [" "*ic_name_max_len]
+        fake_ic_name = " "*ic_name_max_len
 
         #Create variable name array string lists:
         stdname_strs = list()
@@ -1286,8 +1286,7 @@ class File:
 
                 #Create repeating list of empty, "fake" strings that
                 #increases array to max size:
-                if ic_name_max_num - ic_name_num != 0:
-                    ic_names_with_spaces.append(fake_ic_name*(ic_name_max_num - ic_name_num))
+                ic_names_with_spaces.extend([fake_ic_name]*(ic_name_max_num - ic_name_num))
 
                 #Append new ic_names to string list:
                 ic_name_strs.append(', '.join("'{}'".format(n) for n in ic_names_with_spaces))
