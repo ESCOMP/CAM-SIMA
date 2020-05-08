@@ -14,6 +14,23 @@ private
     real(kind_phys),         pointer :: longitude(:) => NULL()
   end type physics_state
   
+!Number of physics variables which can be read from Initial Conditions (IC) file:
+integer, public, parameter :: ic_var_num = 2
+
+!Max length of registered variable standard names:
+integer, public, parameter :: std_name_len = 27
+
+!Max length of input (IC) file variable names:
+integer, public, parameter :: ic_name_len = 3
+
+character(len=27), public :: input_var_stdnames(ic_var_num) = (/ &
+  'longitude                  ', &
+  'latitude                   ' /)
+
+character(len=3), public :: input_var_names(1, ic_var_num) = reshape((/ &
+  'lon', &
+  'lat' /), (/1, ic_var_num/))
+
 !> \section arg_table_physics_types_ddt  Argument Table
 !! \htmlinclude physics_types_ddt.html
   ! latitude: Latitude

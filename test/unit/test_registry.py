@@ -273,14 +273,15 @@ class RegistryTest(unittest.TestCase):
             # End if
         # End for
         tree.write(filename)
+
         # Run test
         with self.assertRaises(ValueError) as verr:
             _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # Check exception message
-        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
-                "tmp/reg_bad_version.xml")
+        xml_loc = os.path.join(_TMP_DIR,"reg_bad_version.xml")
+        emsg = ("Invalid registry file, {}".format(xml_loc))
         self.assertEqual(emsg.format(out_source_name),
                          str(verr.exception).split('\n')[0])
         # Make sure no output files were created
@@ -317,14 +318,15 @@ class RegistryTest(unittest.TestCase):
             # End if
         # End for
         tree.write(filename)
+
         # Run test
         with self.assertRaises(ValueError) as verr:
             _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # Check exception message
-        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
-                "tmp/reg_no_std_name.xml")
+        xml_loc = os.path.join(_TMP_DIR,"reg_no_std_name.xml")
+        emsg = ("Invalid registry file, {}".format(xml_loc))
         self.assertEqual(emsg.format(out_source_name),
                          str(verr.exception).split('\n')[0])
         # Make sure no output files were created
@@ -368,8 +370,8 @@ class RegistryTest(unittest.TestCase):
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
         # Check exception message
-        emsg = ("Invalid registry file, /Users/goldy/Coding/CAMDEN/test/unit/"
-                "tmp/reg_bad_dimensions.xml")
+        xml_loc = os.path.join(_TMP_DIR,"reg_bad_dimensions.xml")
+        emsg = ("Invalid registry file, {}".format(xml_loc))
         self.assertEqual(emsg.format(out_source_name),
                          str(verr.exception).split('\n')[0])
         # Make sure no output files were created
@@ -409,6 +411,7 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
+
         with self.assertRaises(ValueError) as verr:
             _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
                              loglevel=logging.ERROR,
@@ -807,6 +810,7 @@ class RegistryTest(unittest.TestCase):
             # End if
         # End for
         tree.write(filename)
+
         # Run test
         with self.assertRaises(ValueError) as verr:
             _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,

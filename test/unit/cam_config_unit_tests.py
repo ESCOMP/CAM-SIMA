@@ -60,7 +60,7 @@ class FakeCase:
             "ATM_NX"   : 180,
             "ATM_NY"   : 90,
             "COMP_OCN" : "socn",
-            "CAM_CONFIG_OPTS" : "-dyn none -physics_suites adiabatic_suite"
+            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic_suite"
             }
 
     def get_value(self, key):
@@ -168,7 +168,10 @@ class CamConfigTestRoutine(unittest.TestCase):
             self.test_config_cam.print_config("nlon", print_log)
 
             #Check that log output matches what is expected:
-            self.assertEqual(cmplog.output, ['DEBUG:print_config:#Number of unique longitude points in rectangular lat/lon grid.',
+            logmsg = "#Number of unique longitude points in rectangular lat/lon" \
+                     " grid.\nTotal number of columns for unstructured grids."
+
+            self.assertEqual(cmplog.output, ['DEBUG:print_config:'+logmsg,
                                              'DEBUG:print_config:nlon = null'])
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++

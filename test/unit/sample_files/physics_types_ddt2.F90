@@ -34,6 +34,27 @@ private
     type(model_wind)                  :: wind
   end type physics_state
   
+!Number of physics variables which can be read from Initial Conditions (IC) file:
+integer, public, parameter :: ic_var_num = 4
+
+!Max length of registered variable standard names:
+integer, public, parameter :: std_name_len = 27
+
+!Max length of input (IC) file variable names:
+integer, public, parameter :: ic_name_len = 6
+
+character(len=27), public :: input_var_stdnames(ic_var_num) = (/ &
+  'eastward_wind              ', &
+  'northward_wind             ', &
+  'latitude                   ', &
+  'longitude                  ' /)
+
+character(len=6), public :: input_var_names(1, ic_var_num) = reshape((/ &
+  'u_wind', &
+  'v_wind', &
+  'lat   ', &
+  'lon   ' /), (/1, ic_var_num/))
+
 !> \section arg_table_physics_types_ddt2  Argument Table
 !! \htmlinclude physics_types_ddt2.html
   ! phys_state: Physics state variables updated by dynamical core
