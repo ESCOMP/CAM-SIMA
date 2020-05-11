@@ -55,53 +55,53 @@ integer, protected :: nbot_molec = 0
 contains
 !====================================================================================
 
-! subroutine ref_pres_readnl(nlfile)
-!
-!   use spmd_utils,      only: masterproc
-!   use cam_abortutils,  only: endrun
-!   use namelist_utils,  only: find_group_name
-!   use units,           only: getunit, freeunit
-!   use mpishorthand
+subroutine ref_pres_readnl(nlfile)
 
-!   character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
-!
-!   ! Local variables
-!   integer :: unitn, ierr
-!   character(len=*), parameter :: subname = 'ref_pres_readnl'
-!
-!   namelist /ref_pres_nl/ trop_cloud_top_press, clim_modal_aero_top_press,&
-!        do_molec_press, molec_diff_bot_press
-!   !-----------------------------------------------------------------------------
-!
-!   if (masterproc) then
-!      unitn = getunit()
-!      open( unitn, file=trim(nlfile), status='old' )
-!      call find_group_name(unitn, 'ref_pres_nl', status=ierr)
-!      if (ierr == 0) then
-!         read(unitn, ref_pres_nl, iostat=ierr)
-!         if (ierr /= 0) then
-!            call endrun(subname // ':: ERROR reading namelist')
-!         end if
-!      end if
-!      close(unitn)
-!      call freeunit(unitn)
-!
-!      ! Check that top for modal aerosols is not lower than
-!      ! top for clouds.
-!      if (clim_modal_aero_top_press > trop_cloud_top_press) &
-!           call endrun("ERROR: clim_modal_aero_top press must be less &
-!           &than or equal to trop_cloud_top_press.")
-!   end if
-!
-!#ifdef SPMD
-!   ! Broadcast namelist variables
-!   call mpibcast(trop_cloud_top_press,            1 , mpikind_phys,   0, mpicom)
-!   call mpibcast(clim_modal_aero_top_press,       1 , mpikind_phys,   0, mpicom)
-!   call mpibcast(do_molec_press,                  1 , mpikind_phys,   0, mpicom)
-!   call mpibcast(molec_diff_bot_press,            1 , mpikind_phys,   0, mpicom)
-!#endif
-!
-!end subroutine ref_pres_readnl
+   use spmd_utils,      only: masterproc
+   use cam_abortutils,  only: endrun
+   use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
+   use mpi,             only: mpi_real8
+
+!! SAME ERROR AS !!XXgoldyXX saw
+!!!!!!   use mpi,             only: mpi_bcast 
+
+   character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
+
+   ! Local variables
+   integer :: unitn, ierr
+   character(len=*), parameter :: subname = 'ref_pres_readnl'
+
+   namelist /ref_pres_nl/ trop_cloud_top_press, clim_modal_aero_top_press,&
+        do_molec_press, molec_diff_bot_press
+   !-----------------------------------------------------------------------------
+
+   if (masterproc) then
+      open( newunit=unitn, file=trim(nlfile), status='old' )
+      call find_group_name(unitn, 'ref_pres_nl', status=ierr)
+      if (ierr == 0) then
+         read(unitn, ref_pres_nl, iostat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname // ':: ERROR reading namelist')
+         end if
+      end if
+      close(unitn)
+
+      ! Check that top for modal aerosols is not lower than
+      ! top for clouds.
+      if (clim_modal_aero_top_press > trop_cloud_top_press) &
+           call endrun("ERROR: clim_modal_aero_top press must be less &
+           &than or equal to trop_cloud_top_press.")
+   end if
+
+#ifdef SPMD
+   ! Broadcast namelist variables
+   call mpibcast(trop_cloud_top_press,            masterprocid,  mpi_real8, 0, mpicom, ierr)
+   call mpibcast(clim_modal_aero_top_press,       masterprocid,  mpi_real8, 0, mpicom, ierr)
+   call mpibcast(do_molec_press,                  masterprocid,  mpi_real8, 0, mpicom, ierr)
+   call mpibcast(molec_diff_bot_press,            masterprocid,  mpi_real8, 0, mpicom, ierr)
+#endif
+
+end subroutine ref_pres_readnl
 
 !====================================================================================
 
