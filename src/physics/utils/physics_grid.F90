@@ -37,14 +37,13 @@ module physics_grid
    !> \section arg_table_physics_grid  Argument Table
    !! \htmlinclude arg_table_physics_grid.html
    !!
-   integer,          protected, public :: pver = 0
-   integer,          protected, public :: pverp = 0
+   integer  :: pver = 0
+   integer  :: pverp = 0
+   integer  :: index_top_layer = 0
+   integer  :: index_bottom_layer = 0
+
    integer,          protected, public :: num_global_phys_cols = 0
    integer,          protected, public :: columns_on_task = 0
-   integer,          protected, public :: index_top_layer = 0
-   integer,          protected, public :: index_bottom_layer = 0
-   integer,          protected, public :: index_top_interface = 1
-   integer,          protected, public :: index_bottom_interface = 0
    logical,          protected, public :: phys_grid_initialized = .false.
 
 !==============================================================================
@@ -113,18 +112,9 @@ CONTAINS
       first_dyn_column = LBOUND(dyn_columns, 1)
       last_dyn_column = UBOUND(dyn_columns, 1)
       unstructured = hdim2_d <= 1
-      !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
-      !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
-      !!XXgoldyXX: This only has a 50% chance of working on a single level model
-      if (index_top_layer < index_bottom_layer) then
-         index_top_interface = index_top_layer
-         index_bottom_interface = index_bottom_layer + 1
-      else
-         index_bottom_interface = index_bottom_layer
-         index_top_interface = index_top_layer + 1
-      end if
+
       ! Set the physics vertical coordinate information
-      call phys_vert_coord_init(pver, pverp)
+      call phys_vert_coord_init(pver, pverp, index_top_layer, index_bottom_layer)
 
       ! Initialize the reference pressures
       call ref_pres_init(pver, pverp, pref_edge, pref_mid, num_pr_lev)

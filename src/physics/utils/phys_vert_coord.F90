@@ -3,6 +3,8 @@ module phys_vert_coord
    use shr_kind_mod,        only: r8 => shr_kind_r8
    use physics_column_type, only: physics_column_t
    use perf_mod,            only: t_adj_detailf, t_startf, t_stopf
+   use cam_abortutils,      only: endrun
+
 
    implicit none
    private
@@ -29,11 +31,13 @@ module phys_vert_coord
    integer,          protected, public :: index_top_interface = 1
    integer,          protected, public :: index_bottom_interface = 0
 
+   logical                             :: coord_initialized = .false.
+
 !==============================================================================
 CONTAINS
 !==============================================================================
 
-   subroutine phys_vert_coord_init(pver_in, pverp_in)
+   subroutine phys_vert_coord_init(pver_in, pverp_in, index_top_layer_in, index_bottom_layer_in)
 !      use mpi,              only: MPI_reduce ! XXgoldyXX: Should this work?
       use mpi,              only: MPI_INTEGER, MPI_MIN
       use cam_abortutils,   only: endrun
@@ -44,9 +48,30 @@ CONTAINS
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
       use cam_grid_support, only: cam_grid_attribute_copy, cam_grid_attr_exists
 
-      ! Local variables
-      integer, intent(in) :: pver_in
-      integer, intent(in) :: pverp_in
+      integer,            intent(in) :: pver_in
+      integer,            intent(in) :: pverp_in
+      integer,            intent(in) :: index_top_layer_in
+      integer,            intent(in) :: index_bottom_layer_in
+
+      if (coord_initialized) then
+        call endrun('phys_vert_coord_init: This routine may only be called once and has already been called')
+      end if
+
+      pver  = pver_in
+      pverp = pverp_in
+
+      !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
+      !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
+      !!XXgoldyXX: This only has a 50% chance of working on a single level model
+      if (index_top_layer < index_bottom_layer) then
+         index_top_interface    = index_top_layer
+         index_bottom_interface = index_bottom_layer + 1
+      else
+         index_bottom_interface = index_bottom_layer
+         index_top_interface    = index_top_layer + 1
+      end if
+
+      coord_initialized = .true.
 
    end subroutine phys_vert_coord_init
 

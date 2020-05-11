@@ -19,7 +19,8 @@ module physconst
    use shr_const_mod,  only: shr_const_spval,   shr_const_omega
    use shr_const_mod,  only: shr_const_cpvir,   shr_const_tktrip
    use shr_const_mod,  only: shr_const_cpice
-   use physics_grid,   only: pcols => columns_on_task, pver, pverp
+   use physics_grid,   only: pcols => columns_on_task
+   use phys_vert_coord,only: pver, pverp
    use cam_abortutils, only: endrun
    use constituents,   only: pcnst
 

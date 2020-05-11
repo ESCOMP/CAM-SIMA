@@ -15,34 +15,6 @@
   dimensions = ()
   type = integer
   protected = True
-[ index_top_layer ]
-  standard_name = index_of_top_vertical_layer
-  long_name = Vertical coordinate index for uppermost layer
-  units = count
-  dimensions = ()
-  type = integer
-  protected = True
-[ index_bottom_layer ]
-  standard_name = index_of_bottom_vertical_layer
-  long_name = Vertical coordinate index for lowest layer
-  units = count
-  dimensions = ()
-  type = integer
-  protected = True
-[ index_top_interface ]
-  standard_name = index_of_top_vertical_interface
-  long_name = Vertical coordinate index for uppermost interface
-  units = count
-  dimensions = ()
-  type = integer
-  protected = True
-[ index_bottom_interface ]
-  standard_name = index_of_bottom_vertical_interface
-  long_name = Vertical coordinate index for lowest interface
-  units = count
-  dimensions = ()
-  type = integer
-  protected = True
 [ phys_grid_initialized ]
   standard_name = test_of_physics_grid_initialization
   units = flag

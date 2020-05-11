@@ -180,7 +180,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use physics_grid,   only: pver, pverp
+      use phys_vert_coord,only: pver, pverp
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
