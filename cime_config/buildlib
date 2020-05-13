@@ -202,8 +202,9 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
         # End try
         #pylint: enable=wrong-import-position
         for reg_file in registry_files:
-            retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config, genreg_dir,
-                                                  gen_fort_indent, logger=_LOGGER,
+            retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config,
+                                                  genreg_dir, gen_fort_indent,
+                                                  logger=_LOGGER,
                                                   schema_paths=data_search)
             emsg = "Unable to generate CAM data structures from {}, err = {}"
             expect(retcode == 0, emsg.format(reg_file, retcode))
@@ -246,7 +247,7 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
     # Find the SDFs
     sdfs = list()
     scheme_files = list()
-    for sdf in config.get_value('physics_suites').split(','):
+    for sdf in config.get_value('physics_suites').split(';'):
         sdf_path, _ = _find_file("suite_{}.xml".format(sdf), source_search)
         if not sdf_path:
             emsg = "ERROR: Unable to find SDF for, suite '{}'"

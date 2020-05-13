@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_ddt" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="ncol" standard_name="horizontal_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of horizontal columns</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="latitude" standard_name="latitude"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lat</ic_file_input_names>
+    </variable>
+    <variable local_name="longitude" standard_name="longitude"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lon</ic_file_input_names>
+    </variable>
+    <ddt type="physics_state">
+      <data dycore="FV,EUL,SE">horizontal_dimension</data>
+      <data dycore="SE">latitude</data>
+      <data dycore="FV">longitude</data>
+    </ddt>
+    <variable local_name="phys_state"
+              standard_name="physics_state_from_dynamics"
+              units="None" type="physics_state">
+      <long_name>Physics state variables updated by dynamical core</long_name>
+    </variable>
+  </file>
+  <metadata_file>../../test/unit/sample_files/ref_pres.meta</metadata_file>
+</registry>
