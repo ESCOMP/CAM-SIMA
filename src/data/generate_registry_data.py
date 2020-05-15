@@ -32,6 +32,9 @@ from parse_tools import validate_xml_file, read_xml_file
 from parse_tools import find_schema_file, find_schema_version
 from parse_tools import init_log, CCPPError, ParseInternalError
 from fortran_tools import FortranWriter
+
+#Additional local fortran generation scripts
+import write_init_file as write_init
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -1110,8 +1113,6 @@ class File:
             for ddt in self.__ddts.values():
                 ddt.write_definition(outfile, 'private', 1)
             # end if
-            # Write variable standard and input name arrays
-            self.write_ic_names(outfile, indent-2, logger)
             # Write Variables defined in this file
             self.__var_dict.write_definition(outfile, 'private', 1)
             # Write data management subroutine declarations
@@ -1182,205 +1183,6 @@ class File:
         # end for
         outfile.write('end subroutine {}'.format(subname), 1)
 
-    def write_ic_names(self, outfile, indent, logger):
-        """Write out the Initial Conditions (IC) file variable names arrays"""
-        # pylint: disable=too-many-locals
-
-        #Initialize variables:
-        stdname_max_len = 0
-        ic_name_max_num = 0
-
-        #Create new (empty) list to store variables
-        #with (IC) file input names:
-        variable_list = list()
-
-        #Loop over all DDTs in file:
-        for ddt in self.__ddts.values():
-            #Concatenate DDT variable list onto master list:
-            variable_list.extend(ddt.variable_list())
-
-        #Add file variable list to master list:
-        variable_list.extend(list(self.__var_dict.variable_list()))
-
-        #Loop through variable list to look for array elements:
-        for var in list(variable_list):
-            #Check if array elements are present:
-            if var.elements:
-                #If so, then loop over elements:
-                for element in var.elements:
-                    #Append element as new "variable" in variable list:
-                    variable_list.append(element)
-
-        #Determine max number of IC variable names:
-        try:
-            ic_name_max_num = max([len(var.ic_names) for var in variable_list if var.ic_names is not None])
-        except ValueError:
-            #If there is a ValueError, then likely no IC
-            #input variable names exist, so print warning
-            #and exit function:
-            lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
-                   ", so no input variable name array will be created."
-            logger.warning(lmsg)
-            return
-
-        #Determine max standard name string length:
-        try:
-            stdname_max_len = max([len(var.standard_name) for var in variable_list])
-        except ValueError:
-            #If there are no proper standard names in the list,
-            #then the registry was likely written incorrectly,
-            #so print warning and exit function:
-            lmsg = "No variable standard names were found that contain " \
-                   "IC file input names.\nThus something is likely wrong " \
-                   "with the registry file, or at least the placement of " \
-                   "'<ic_file_input-names>' tags.\nGiven this, no input " \
-                   "variable name array will be created."
-            logger.warning(lmsg)
-            return
-
-        #Determine total number of variables with file input (IC) names:
-        num_vars_with_ic_names = len([var for var in variable_list if var.ic_names is not None])
-
-        #Loop over variables in list:
-        ic_name_max_len = self.find_ic_name_max_len(variable_list)
-
-        #Create fake name with proper length:
-        fake_ic_name = " "*ic_name_max_len
-
-        #Create variable name array string lists:
-        stdname_strs = list()
-        ic_name_strs = list()
-
-        #Initalize loop counter:
-        lpcnt = 0
-
-        #Loop over variables in list:
-        for var in variable_list:
-
-            #Check if variable actually has IC names:
-            if var.ic_names is not None:
-
-                #Add one to loop counter:
-                lpcnt += 1
-
-                #Create standard_name string with proper size,
-                #and append to list:
-                extra_spaces = " " * (stdname_max_len - len(var.standard_name))
-                stdname_strs.append("'{}'".format(var.standard_name + extra_spaces))
-
-                #Determine number of IC names for variable:
-                ic_name_num = len(var.ic_names)
-
-                #Create new (empty) list to store (IC) file
-                #input names of variables with the correct
-                #number of spaces to match character array
-                #dimensions:
-                ic_names_with_spaces = list()
-
-                #Loop over possible input file (IC) names:
-                for ic_name in var.ic_names:
-                    #Create ic_name string with proper size:
-                    extra_spaces = " " * (ic_name_max_len - len(ic_name))
-                    #Add properly-sized name to list:
-                    ic_names_with_spaces.append(ic_name + extra_spaces)
-
-                #Create repeating list of empty, "fake" strings that
-                #increases array to max size:
-                ic_names_with_spaces.extend([fake_ic_name]*(ic_name_max_num - ic_name_num))
-
-                #Append new ic_names to string list:
-                ic_name_strs.append(', '.join("'{}'".format(n) for n in ic_names_with_spaces))
-
-
-        #Create new Fortran integer parameter to store number of variables with IC inputs:
-        outfile.write("!Number of physics variables which can be read from"+ \
-                      " Initial Conditions (IC) file:", indent)
-        outfile.write("integer, public, parameter :: ic_var_num = {}".format(\
-                      num_vars_with_ic_names), indent)
-
-        #Add blank space:
-        outfile.write("", 0)
-
-        #Create another Fortran integer parameter to store max length of
-        #registered variable standard name strings:
-        outfile.write("!Max length of registered variable standard names:", indent)
-        outfile.write("integer, public, parameter :: std_name_len = {}".format(\
-                      stdname_max_len), indent)
-
-        #Write a second blank space:
-        outfile.write("", 0)
-
-        #Create final Fortran integer parameter to store max length of
-        #input variable name string:
-        outfile.write("!Max length of input (IC) file variable names:", indent)
-        outfile.write("integer, public, parameter :: ic_name_len = {}".format(\
-                      ic_name_max_len), indent)
-
-        #Write a third blank space:
-        outfile.write("", 0)
-
-        #Write starting declaration of input standard name array:
-        declare_string = "character(len={}), public :: input_var_stdnames(ic_var_num) = (/ &".format(\
-                         stdname_max_len)
-        outfile.write(declare_string, indent)
-
-        #Write standard names to fortran array:
-        num_strs = len(stdname_strs)
-        for index, stdname_str in enumerate(stdname_strs):
-            if index == num_strs-1:
-                suffix = ' /)'
-            else:
-                suffix = ', &'
-            # end if
-            outfile.write('{}{}'.format(stdname_str, suffix), indent+1)
-
-        #Write a fourth blank space:
-        outfile.write("", 0)
-
-        #Write starting decleration of IC input name array:
-        dec_string = \
-            "character(len={}), public :: input_var_names({}, ic_var_num) = reshape((/ &".format(\
-            ic_name_max_len, ic_name_max_num)
-        outfile.write(dec_string, indent)
-
-        #Write IC names to fortran array:
-        num_strs = len(ic_name_strs)
-        for index, ic_name_str in enumerate(ic_name_strs):
-            if index == num_strs-1:
-                suffix = ' /), (/{}, ic_var_num/))'.format(ic_name_max_num)
-            else:
-                suffix = ', &'
-            # end if
-            outfile.write('{}{}'.format(ic_name_str, suffix), indent+1)
-
-        #Write a final blank space:
-        outfile.write("", 0)
-
-    @staticmethod
-    def find_ic_name_max_len(variable_list):
-        """Determine max length of input (IC) file variable names"""
-
-        #Initialize max IC name string length variable:
-        ic_name_max_len = 0
-
-        #Loop over variables in list:
-        for var in variable_list:
-            #Check if variable actually has IC names:
-            if var.ic_names is not None:
-                #Loop over all IC input names for given variable:
-                for ic_name in var.ic_names:
-                    #Determine IC name string length:
-                    ic_name_len = len(ic_name)
-
-                    #Determine if standard name string length is longer
-                    #then all prvious values:
-                    if ic_name_len > ic_name_max_len:
-                        #If so, then re-set max length variable:
-                        ic_name_max_len = ic_name_len
-
-        #Return max string length of input variable names:
-        return ic_name_max_len
-
     @property
     def name(self):
         """Return this File's name"""
@@ -1390,6 +1192,16 @@ class File:
     def file_type(self):
         """Return this File's type"""
         return self.__type
+
+    @property
+    def ddts(self):
+        """Return list of DDTs in File"""
+        return self.__ddts
+
+    @property
+    def var_dict(self):
+        """Return variable dictionary in File"""
+        return self.__var_dict
 
 ###############################################################################
 def parse_command_line(args, description):
@@ -1452,6 +1264,11 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
         file_.write_metadata(outdir, logger)
         file_.write_source(outdir, indent, logger)
     # end for
+
+    # Write Initialization file (which must be done after all other meta-data
+    # is colllected):
+    write_init.write_init_file(files, outdir, indent, logger)
+
 
 ###############################################################################
 def gen_registry(registry_file, dycore, config, outdir, indent,

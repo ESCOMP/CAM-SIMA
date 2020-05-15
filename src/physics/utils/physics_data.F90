@@ -69,7 +69,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use physics_types,  only: ic_name_len
+      use initial_conditions,  only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -113,7 +113,7 @@ CONTAINS
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use physics_grid,   only: pver, pverp
-      use physics_types,  only: ic_name_len
+      use initial_conditions,  only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -158,15 +158,15 @@ CONTAINS
    end subroutine read_field_3d
 
    subroutine physics_read_data(file, suite_names, timestep)
-      use pio,            only: file_desc_t
-      use cam_abortutils, only: endrun
-      use shr_kind_mod,   only: SHR_KIND_CS, SHR_KIND_CL
-      use physics_types,  only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
-      use physics_types,  only: pint, pmid, pmiddry, rpdel
-      use physics_types,  only: ix_qv, ix_cld_liq, ix_rain
-      use physics_types,  only: input_var_stdnames, input_var_names
-      use physics_types,  only: std_name_len
-      use cam_ccpp_cap,   only: ccpp_physics_suite_variables
+      use pio,                 only: file_desc_t
+      use cam_abortutils,      only: endrun
+      use shr_kind_mod,        only: SHR_KIND_CS, SHR_KIND_CL
+      use physics_types,       only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
+      use physics_types,       only: pint, pmid, pmiddry, rpdel
+      use physics_types,       only: ix_qv, ix_cld_liq, ix_rain
+      use initial_conditions,  only: phys_var_stdnames, input_var_names
+      use initial_conditions,  only: std_name_len
+      use cam_ccpp_cap,        only: ccpp_physics_suite_variables
 
       ! Dummy argument
       type(file_desc_t), intent(inout) :: file
@@ -203,7 +203,7 @@ CONTAINS
          do req_idx = 1, size(ccpp_required_data, 1)
 
             !Find IC file input name array index for required variable:
-            name_idx = find_input_name_idx(ccpp_required_data(req_idx), input_var_stdnames)
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), phys_var_stdnames)
 
             !If an index was never found, then save variable name and check the rest
             !of the variables, after which the model simulation will end:
@@ -219,54 +219,54 @@ CONTAINS
                cycle
             end if
 
-            if (trim(input_var_stdnames(name_idx)) == 'pressure_thickness') then
+            if (trim(phys_var_stdnames(name_idx)) == 'pressure_thickness') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, pdel)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'pressure_thickness_of_dry_air') then
+            if (trim(phys_var_stdnames(name_idx)) == 'pressure_thickness_of_dry_air') then
                call read_field(file, input_var_names(:,name_idx), 'lev',           &
                                timestep, pdeldry)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'water_vapor_specific_humidity') then
+            if (trim(phys_var_stdnames(name_idx)) == 'water_vapor_specific_humidity') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%q(:,:,ix_qv))
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'cloud_liquid_water_mixing_ratio') then
+            if (trim(phys_var_stdnames(name_idx)) == 'cloud_liquid_water_mixing_ratio') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%q(:,:,ix_cld_liq))
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'rain_water_mixing_ratio') then
+            if (trim(phys_var_stdnames(name_idx)) == 'rain_water_mixing_ratio') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%q(:,:,ix_rain))
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'geopotential_height') then
+            if (trim(phys_var_stdnames(name_idx)) == 'geopotential_height') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, zm)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'temperature') then
+            if (trim(phys_var_stdnames(name_idx)) == 'temperature') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                phys_state%T)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'geopotential_at_surface') then
+            if (trim(phys_var_stdnames(name_idx)) == 'geopotential_at_surface') then
                call read_field(file, input_var_names(:,name_idx), timestep, phys_state%phis)
             end if
-            if (trim(input_var_stdnames(name_idx)) == &
+            if (trim(phys_var_stdnames(name_idx)) == &
                 'natural_log_of_air_pressure_at_interface') then
                call read_field(file, input_var_names(:,name_idx), 'ilev', timestep, &
                                lnpint)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'natural_log_of_air_pressure') then
+            if (trim(phys_var_stdnames(name_idx)) == 'natural_log_of_air_pressure') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, lnpmid)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'air_pressure_at_interface') then
+            if (trim(phys_var_stdnames(name_idx)) == 'air_pressure_at_interface') then
                call read_field(file, input_var_names(:,name_idx), 'ilev', timestep, pint)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'air_pressure') then
+            if (trim(phys_var_stdnames(name_idx)) == 'air_pressure') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, pmid)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'air_pressure_of_dry_air') then
+            if (trim(phys_var_stdnames(name_idx)) == 'air_pressure_of_dry_air') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
                                pmiddry)
             end if
-            if (trim(input_var_stdnames(name_idx)) == 'reciprocal_pressure_thickness') then
+            if (trim(phys_var_stdnames(name_idx)) == 'reciprocal_pressure_thickness') then
                call read_field(file, input_var_names(:,name_idx), 'lev', timestep, rpdel)
             end if
 
