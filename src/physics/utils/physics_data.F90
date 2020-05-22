@@ -5,7 +5,8 @@ module physics_data
    implicit none
    private
 
-   public :: physics_read_data
+   public :: find_input_name_idx
+   public :: read_field
 
    interface read_field
       module procedure read_field_2d
@@ -16,28 +17,43 @@ module physics_data
 CONTAINS
 !==============================================================================
 
-   integer function find_input_name_idx(stdname, input_stdnames)
+   integer function find_input_name_idx(stdname)
 
-      ! Determine whether we should read <stdname> from <data_file>.
+      !Finds the 'input_var_names' array index for a given
+      !variable standard name.
 
-      ! Input (dummy) arguments:
-      character(len=*),  intent(in) :: stdname            !Variable standard name being checked
-      character(len=*),  intent(in) :: input_stdnames(:)  !Array of variable standard names with file inputs
-      integer                       :: idx                !standard names array index
+      use phys_vars_init_check, only: initialized_vars
+      use phys_vars_init_check, only: phys_var_stdnames
+      use phys_vars_init_check, only: phys_var_num
+
+      !Variable standard name being checked:
+      character(len=*),  intent(in) :: stdname
+
+      !standard names array index:
+      integer                       :: idx
 
       !Initialize function:
       find_input_name_idx = -1
 
-      !Loop through standard names of possible input variables:
-      do idx = 1, size(input_stdnames, 1)
+      !Loop through physics variable standard names:
+      do idx = 1, phys_var_num
          !Check if provided name is in required names array:
-         if (trim(stdname) == trim(input_stdnames(idx))) then
-            find_input_name_idx = idx
+         if (trim(phys_var_stdnames(idx)) == trim(stdname)) then
+            !Check if this variable has already been initialized.
+            !If so, then set the index to a quantity that will be skipped:
+            if (initialized_vars(idx)) then
+               find_input_name_idx = -2
+            else
+               !If not already initialized, then pass on the real array index:
+               find_input_name_idx = idx
+            end if
+            !Exit function:
             exit
          end if
       end do
 
    end function find_input_name_idx
+
 
    function arr2str(name_array)
       ! Dummy arguments
@@ -69,7 +85,8 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use initial_conditions,  only: ic_name_len
+
+      use phys_vars_init_check, only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -113,7 +130,8 @@ CONTAINS
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use physics_grid,   only: pver, pverp
-      use initial_conditions,  only: ic_name_len
+
+      use phys_vars_init_check,  only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -156,134 +174,5 @@ CONTAINS
          call endrun(subname//'Mismatch variable found in '//arr2str(var_names))
       end if
    end subroutine read_field_3d
-
-   subroutine physics_read_data(file, suite_names, timestep)
-      use pio,                 only: file_desc_t
-      use cam_abortutils,      only: endrun
-      use shr_kind_mod,        only: SHR_KIND_CS, SHR_KIND_CL
-      use physics_types,       only: phys_state, pdel, pdeldry, zm, lnpint, lnpmid
-      use physics_types,       only: pint, pmid, pmiddry, rpdel
-      use physics_types,       only: ix_qv, ix_cld_liq, ix_rain
-      use initial_conditions,  only: phys_var_stdnames, input_var_names
-      use initial_conditions,  only: std_name_len
-      use cam_ccpp_cap,        only: ccpp_physics_suite_variables
-
-      ! Dummy argument
-      type(file_desc_t), intent(inout) :: file
-      character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites
-      integer,           intent(in)    :: timestep
-
-      !Local variables:
-
-      !Character array containing all CCPP-required vairable standard names:
-      character(len=std_name_len), allocatable :: ccpp_required_data(:)
-
-      !String which stores names of any missing vars:
-      character(len=SHR_KIND_CL) :: missing_required_vars
-
-      character(len=512) :: errmsg    !CCPP framework error message
-      integer            :: errflg    !CCPP framework error flag
-      integer            :: name_idx  !Input variable array index
-      integer            :: req_idx   !Required variable array index
-      integer            :: suite_idx !Suite array index
-
-      !Initalize missing variables string:
-      missing_required_vars = ' '
-
-      !Loop over CCPP physics/chemistry suites:
-      do suite_idx = 1, size(suite_names, 1)
-
-         !Search for all needed CCPP input variables,
-         !so that they can b e read from input file if need be:
-         call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &
-                                           errmsg, errflg, input_vars_in=.true., &
-                                           output_vars_in=.false.)
-
-         !Loop over all required variables as specified by CCPP suite:
-         do req_idx = 1, size(ccpp_required_data, 1)
-
-            !Find IC file input name array index for required variable:
-            name_idx = find_input_name_idx(ccpp_required_data(req_idx), phys_var_stdnames)
-
-            !If an index was never found, then save variable name and check the rest
-            !of the variables, after which the model simulation will end:
-            if(name_idx == -1) then
-               if(len_trim(missing_required_vars) == 0) then
-                  missing_required_vars(len_trim(missing_required_vars)+1:) = &
-                                        trim(ccpp_required_data(req_idx))
-               else
-                  missing_required_vars(len_trim(missing_required_vars)+1:) = &
-                                        ', '//trim(ccpp_required_data(req_idx))
-               end if
-               !Continue on with variable loop:
-               cycle
-            end if
-
-            if (trim(phys_var_stdnames(name_idx)) == 'pressure_thickness') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, pdel)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'pressure_thickness_of_dry_air') then
-               call read_field(file, input_var_names(:,name_idx), 'lev',           &
-                               timestep, pdeldry)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'water_vapor_specific_humidity') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
-                               phys_state%q(:,:,ix_qv))
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'cloud_liquid_water_mixing_ratio') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
-                               phys_state%q(:,:,ix_cld_liq))
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'rain_water_mixing_ratio') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
-                               phys_state%q(:,:,ix_rain))
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'geopotential_height') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, zm)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'temperature') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
-                               phys_state%T)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'geopotential_at_surface') then
-               call read_field(file, input_var_names(:,name_idx), timestep, phys_state%phis)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == &
-                'natural_log_of_air_pressure_at_interface') then
-               call read_field(file, input_var_names(:,name_idx), 'ilev', timestep, &
-                               lnpint)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'natural_log_of_air_pressure') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, lnpmid)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'air_pressure_at_interface') then
-               call read_field(file, input_var_names(:,name_idx), 'ilev', timestep, pint)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'air_pressure') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, pmid)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'air_pressure_of_dry_air') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, &
-                               pmiddry)
-            end if
-            if (trim(phys_var_stdnames(name_idx)) == 'reciprocal_pressure_thickness') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, rpdel)
-            end if
-
-         end do !Suite-required variables
-
-         !End simulation if there are missing input
-         !variables that are required:
-         if (len_trim(missing_required_vars) > 0) then
-            call endrun("Required variables missing from registered list of input variables: "//&
-                        trim(missing_required_vars))
-         end if
-
-         !Deallocate required variables array for use in next suite:
-         deallocate(ccpp_required_data)
-
-      end do !CCPP suites
-
-   end subroutine physics_read_data
 
 end module physics_data

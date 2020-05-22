@@ -31,19 +31,19 @@ CONTAINS
    end subroutine phys_readnl
 
    subroutine phys_init(phys_state, phys_tend, cam_out)
-      use pio,            only: file_desc_t
-      use cam_abortutils, only: endrun
-      use cam_initfiles,  only: initial_file_get_id
-      use physics_types,  only: physics_state, physics_tend
-      use camsrfexch,     only: cam_out_t
-      use physics_grid,   only: columns_on_task, pver, pverp
-      use physics_data,   only: physics_read_data
-      use physconst,      only: physconst_init
-      use physics_types,  only: allocate_physics_types_fields
-      use constituents,   only: pcnst
-      use cam_ccpp_cap,   only: cam_ccpp_physics_initialize
-      use cam_ccpp_cap,   only: ccpp_physics_suite_list
-      use cam_ccpp_cap,   only: ccpp_physics_suite_part_list
+      use pio,               only: file_desc_t
+      use cam_abortutils,    only: endrun
+      use cam_initfiles,     only: initial_file_get_id
+      use physics_types,     only: physics_state, physics_tend
+      use camsrfexch,        only: cam_out_t
+      use physics_grid,      only: columns_on_task, pver, pverp
+      use physics_inputs,    only: physics_read_data
+      use physconst,         only: physconst_init
+      use physics_types,     only: allocate_physics_types_fields
+      use constituents,      only: pcnst
+      use cam_ccpp_cap,      only: cam_ccpp_physics_initialize
+      use cam_ccpp_cap,      only: ccpp_physics_suite_list
+      use cam_ccpp_cap,      only: ccpp_physics_suite_part_list
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state

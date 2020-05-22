@@ -34,7 +34,7 @@ from parse_tools import init_log, CCPPError, ParseInternalError
 from fortran_tools import FortranWriter
 
 #Additional local fortran generation scripts
-import write_init_file as write_init
+import write_init_files as write_init
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -1265,9 +1265,9 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
         file_.write_source(outdir, indent, logger)
     # end for
 
-    # Write Initialization file (which must be done after all other meta-data
+    # Write Initialization files (which must be done after all other meta-data
     # is colllected):
-    write_init.write_init_file(files, outdir, indent, logger)
+    write_init.write_init_files(files, outdir, indent, logger)
 
 
 ###############################################################################
