@@ -136,6 +136,7 @@ class BuildCacheCAM:
         self.__build_cache = build_cache
         # Set empty values sure to trigger processing
         self.__gen_reg_file = None
+        self.__gen_init_file = None
         self.__registry_files = {}
         self.__dycore = None
         self.__config = None
@@ -152,6 +153,9 @@ class BuildCacheCAM:
                         if item.tag == 'generate_registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__gen_reg_file = new_entry
+                        elif item.tag == 'generate_init_file':
+                            new_entry = new_entry_from_xml(item)
+                            self.__gen_init_file = new_entry
                         elif item.tag == 'registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__registry_files[new_entry.key] = new_entry
@@ -214,6 +218,14 @@ class BuildCacheCAM:
             new_entry = FileStatus(sfile, 'scheme')
             self.__sdfs[new_entry.key] = new_entry
         # End for
+
+    def update_init_gen(self, gen_init_file):
+        """
+        Replace the init_files writer
+        (generate_registry_data.py) cache
+        data with input data
+        """
+        self.__gen_init_file = FileStatus(gen_init_file, 'generate_init_file')
 
     def write(self):
         """Write out the current cache state"""
@@ -317,3 +329,18 @@ class BuildCacheCAM:
             # End for
         # End if
         return mismatch
+
+    def init_write_mismatch(self, gen_init_file):
+        """Determine if the init_files writer (write_init_files.py)
+            differs from the data stored in our cache. Return True
+            if the data differs."""
+
+        #Initialize variable:
+        mismatch = False
+
+        #Check file hash to see if mis-match exists:
+        mismatch = self.__gen_init_file.hash_mismatch(gen_init_file)
+
+        #Return mismatch logical:
+        return mismatch
+
