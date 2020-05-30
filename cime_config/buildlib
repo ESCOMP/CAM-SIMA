@@ -314,12 +314,12 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
         # save build details in the build cache
         build_cache.update_ccpp(sdfs, scheme_files, preproc_defs, kind_phys)
     # End if
-    return [physics_blddir, genccpp_dir], do_gen_ccpp
+    return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file
 
 ###############################################################################
 def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
                             reg_dir, reg_files, force_reg, force_ccpp,
-                            gen_fort_indent):
+                            gen_fort_indent, cap_datafile):
 ###############################################################################
     """Generate the host model initialization source code files
        (phys_vars_init_check.F90 and physics_inputs.F90) using
@@ -365,10 +365,12 @@ def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
         # End try
         #pylint: enable=wrong-import-position
         #Run initialization files generator:
-        for file_obj in reg_files:
-            print(file_obj)
-        write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
-                                    _LOGGER)
+        retcode = write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
+                                              cap_datafile, _LOGGER)
+
+        #Check that script ran properly:
+        emsg = "Unable to generate CAM init source code, error code = {}"
+        expect(retcode == 0, emsg.format(retcode))
 
         # save build details in the build cache
         build_cache.update_init_gen(gen_init_file)
@@ -429,9 +431,10 @@ def _build_cam():
         #-------------------------------------------------------
         # Call SPIN (CCPP Framework) to generate glue code
         #-------------------------------------------------------
-        phys_dirs, force_init = _generate_physics_suites(build_cache, case, config,
-                                             atm_root, bldroot, reg_dir,
-                                             source_mods_dir, force_ccpp)
+        phys_dirs, force_init, cap_datafile = \
+                               _generate_physics_suites(build_cache, case, config,
+                                                        atm_root, bldroot, reg_dir,
+                                                        source_mods_dir, force_ccpp)
 
         #-------------------------------------------------------
         # Create host model variable initialization routines
@@ -439,7 +442,8 @@ def _build_cam():
         init_dir = _generate_init_routines(build_cache, atm_root, bldroot,
                                            source_mods_dir, reg_dir,
                                            reg_files, force_ccpp,
-                                           force_init, gen_fort_indent)
+                                           force_init, gen_fort_indent,
+                                           cap_datafile)
 
         #--------------------------------------------------------------
         # write out the cache here as we have completed pre-processing

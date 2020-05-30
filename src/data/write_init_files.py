@@ -15,14 +15,20 @@ will run this script's doctests.
 #Import statements:
 import os.path
 from fortran_tools import FortranWriter
+from ccpp_datafile import DatatableReport
+from ccpp_datafile import datatable_report
+import sys
 
-def write_init_files(files, outdir, indent, logger):
+def write_init_files(files, outdir, indent, cap_datafile, logger):
 
     """
     Create the "phys_vars_init_check.F90" and
     "physics_inputs" files usig meta-data
     collected from registry generation.
     """
+
+    #Initialize return code:
+    retcode = 0
 
     #Create new (empty) "master" list to store all
     #variable objects:
@@ -37,6 +43,10 @@ def write_init_files(files, outdir, indent, logger):
     #variable names as keys, and all DDT types that
     #include that variable as values:
     ddt_varname_dict = dict()
+
+    #Generate CCPP required variables set:
+    ccpp_req_vars_set = find_ccpp_req_vars(cap_datafile)
+    #-----------------------------------
 
     #Generate variable lists:
     #-----------------------
@@ -107,6 +117,68 @@ def write_init_files(files, outdir, indent, logger):
                 ddt_type_var_dict[var.var_type] = [var.local_name]
 
     #-----------------------
+
+    #Add index variables that are "required"
+    #to CCPP required variable set:
+    for var in variable_list:
+        if var.standard_name in ccpp_req_vars_set:
+            if hasattr(var, "index_name"):
+                ccpp_req_vars_set.add(var.index_name)
+
+    #Add parent DDTs that are also "required"
+    #to CCPP required variable set:
+    #-----------------------
+    for var in list(variable_list):
+        #Is variable required by CCPP physics suites?
+        if var.standard_name in ccpp_req_vars_set:
+
+            #Determine proper variable name for searching:
+            if hasattr(var, "local_index_name_str"):
+                var_name = var.local_index_name_str
+            else:
+                var_name = var.local_name
+
+            #Determine if required variable is inside a DDT:
+            if var_name in ddt_varname_dict.keys():
+
+                #If so, then extract top-level parent DDTs:
+                ddt_names = find_parent_ddts(var.local_name,
+                                             ddt_varname_dict,
+                                             ddt_type_var_dict)
+
+                #Loop over DDT parent names:
+                for ddt_name in ddt_names:
+                    #Determine standard name from local name:
+                    ddt_stdname = standard_from_local_name(ddt_name,
+                                                           variable_list)
+
+                    #If name exists, then add to required set
+                    #if not there already:
+                    if ddt_stdname and not ddt_stdname in ccpp_req_vars_set:
+                        ccpp_req_vars_set.add(ddt_stdname)
+    #-----------------------
+
+    #Create variable standard names master set:
+    var_stdnm_set = set()
+    for var in variable_list:
+        var_stdnm_set.add(var.standard_name)
+
+    #Determine if any required variables are missing
+    #from registered (master) variable set:
+    if not ccpp_req_vars_set.issubset(var_stdnm_set):
+        #Determine what required variables are not
+        #in master list:
+        missing_vars = ccpp_req_vars_set.difference(var_stdnm_set)
+
+        #Create error message:
+        emsg = "Required CCPP physics suite variables missing " \
+               "from registered host model variable list: \n{}".format(\
+               missing_vars)
+
+        #Add error-message to logger, and return with non-zero ret-code:
+        logger.error(emsg)
+        retcode = 1
+        return retcode
 
     #Determine total number of variables:
     total_var_num = len(variable_list)
@@ -203,7 +275,7 @@ def write_init_files(files, outdir, indent, logger):
         #Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, variable_list,
                                    ddt_varname_dict, ddt_type_var_dict,
-                                   total_var_num)
+                                   total_var_num, ccpp_req_vars_set)
 
         #Add a blank space:
         outfile.write("", 0)
@@ -212,33 +284,140 @@ def write_init_files(files, outdir, indent, logger):
         outfile.write('\nend module physics_inputs', 0)
     #--------------------------------------
 
+    #Return retcode:
+    return retcode
+
 #################
 #HELPER FUNCTIONS
 #################
 
+def find_ccpp_req_vars(cap_datafile):
+    """
+    Generate a set of standard names for all variables
+    required by the CCPP physics suites potentially being
+    used in this model run.
+    """
+
+    #Create new (empty) CCPP-required variables
+    #master sett:
+    ccpp_req_vars_set = set()
+
+    #Create CCPP datatable suite-listting object:
+    list_suites_action = DatatableReport("suite_list", True)
+
+    #Create string of possible CCPP physics suites:
+    ccpp_suite_str = datatable_report(cap_datafile, list_suites_action, ";")
+
+    #Convert string to list:
+    ccpp_suite_list = ccpp_suite_str.split(";")
+
+    #Loop over CCPP suite names:
+    for ccpp_suite in ccpp_suite_list:
+        #Create CCPP datatable required variables-listing object:
+        list_req_vars_action = DatatableReport("input_variables", ccpp_suite)
+
+        #Generate CCPP required variables list string:
+        ccpp_req_vars_str = datatable_report(cap_datafile,
+                                             list_req_vars_action, ";")
+
+        #Convert string to actual list:
+        ccpp_req_vars = ccpp_req_vars_str.split(";")
+
+        #Add required variables to master list:
+        ccpp_req_vars_set.update(ccpp_req_vars)
+
+    #Return the required variables list:
+    return ccpp_req_vars_set
+
+######
+
+def find_parent_ddts(var_name, ddt_varname_dict, ddt_type_var_dict):
+
+    """
+    Recursive function that determines the final "parent" DDT
+    variable local names that are needed to be called in a
+    fortran use statement in order to access the underlying
+    CCPP-required variable.
+    """
+
+    #Initialize list of parent DDT names:
+    parent_ddt_names = list()
+
+    #Check if variable is contained within a DDT:
+    if var_name in ddt_varname_dict.keys():
+
+        #Extract list of DDT types variable is associated with:
+        ddt_types = ddt_varname_dict[var_name]
+
+        #Loop over DDT types for each variabale:
+        for ddt_type in ddt_types:
+            #Extract all variables that are of this type:
+            ddt_type_vars = ddt_type_var_dict[ddt_type]
+
+            #Loop over all DDT-type variables:
+            for ddt_var in ddt_type_vars:
+                #Repeat this function, to see if this DDT
+                #variable is contained inside additional DDTs:
+                parent_ddts_new = find_parent_ddts(ddt_var,
+                                                  ddt_varname_dict,
+                                                  ddt_type_var_dict)
+
+                #Is list non-empty:
+                if parent_ddts_new:
+                    #Then pass recursively-generated list
+                    parent_ddt_names += parent_ddts_new
+                else:
+                    #Set list to current variable name:
+                    parent_ddt_names.append(ddt_var)
+
+    #Return list of parent variable names:
+    return parent_ddt_names
+
+######
+
+def standard_from_local_name(local_name, variable_list):
+    """Determine variable standard name given the local name"""
+
+    #Initialize found variable:
+    found_var = None
+
+    for var in variable_list:
+        if var.local_name == local_name:
+            found_var = var
+            break
+
+    #Return None if variable not found:
+    if not found_var:
+        return None
+
+    #Return standard name:
+    return found_var.standard_name
+
+######
+
 def find_ic_name_max_len(variable_list):
-        """Determine max length of input (IC) file variable names"""
+    """Determine max length of input (IC) file variable names"""
 
-        #Initialize max IC name string length variable:
-        ic_name_max_len = 0
+    #Initialize max IC name string length variable:
+    ic_name_max_len = 0
 
-        #Loop over variables in list:
-        for var in variable_list:
-            #Check if variable actually has IC names:
-            if var.ic_names is not None:
-                #Loop over all IC input names for given variable:
-                for ic_name in var.ic_names:
-                    #Determine IC name string length:
-                    ic_name_len = len(ic_name)
+    #Loop over variables in list:
+    for var in variable_list:
+        #Check if variable actually has IC names:
+        if var.ic_names is not None:
+            #Loop over all IC input names for given variable:
+            for ic_name in var.ic_names:
+                #Determine IC name string length:
+                ic_name_len = len(ic_name)
 
-                    #Determine if standard name string length is longer
-                    #then all prvious values:
-                    if ic_name_len > ic_name_max_len:
-                        #If so, then re-set max length variable:
-                        ic_name_max_len = ic_name_len
+                #Determine if standard name string length is longer
+                #then all prvious values:
+                if ic_name_len > ic_name_max_len:
+                    #If so, then re-set max length variable:
+                    ic_name_max_len = ic_name_len
 
-        #Return max string length of input variable names:
-        return ic_name_max_len
+    #Return max string length of input variable names:
+    return ic_name_max_len
 
 ######
 
@@ -278,7 +457,8 @@ def write_ic_params(outfile, total_var_num, stdname_max_len, ic_name_max_len):
 ######
 
 def write_ic_arrays(outfile, variable_list, total_var_num,
-                    stdname_max_len, ic_name_max_len, ic_name_max_num):
+                    stdname_max_len, ic_name_max_len,
+                    ic_name_max_num):
 
     """
     Write initial condition arrays to store
@@ -555,7 +735,7 @@ def write_is_init_func(outfile):
 
 def write_phys_read_subroutine(outfile, variable_list,
                                ddt_varname_dict, ddt_type_var_dict,
-                               total_var_num):
+                               total_var_num, ccpp_req_vars_set):
 
     """
     Write the "physics_read_data" subroutine, which
@@ -577,44 +757,54 @@ def write_phys_read_subroutine(outfile, variable_list,
     #Loop over variables in list:
     for var in variable_list:
 
-        #Check if variable is protected:
-        if not hasattr(var, "protected") or not var.protected:
+        #Check if variable is required by CCPP physics suites:
+        if var.standard_name in ccpp_req_vars_set:
 
-            #Check if variable has "local_index_name_str":
-            if hasattr(var, "local_index_name_str"):
-                var_name = var.local_index_name_str
-            else:
-                var_name = var.local_name
+            #Check if variable is protected:
+            if not hasattr(var, "protected") or not var.protected:
 
-            #Is the variable not part of a larger DDT?
-            if not var_name in ddt_varname_dict.keys():
+                #Check if variable has "local_index_name_str":
+                if hasattr(var, "local_index_name_str"):
+                    var_name = var.local_index_name_str
+                else:
+                    var_name = var.local_name
 
-                #If loop counter is zero, then
-                #create new use string:
-                if lpcnt == 0:
-                    use_str = \
+                #Is the variable not part of a larger DDT?
+                if not var_name in ddt_varname_dict.keys():
+                    #If loop counter is zero, then
+                    #create new use string:
+                    if lpcnt == 0:
+                        use_str = \
                         "use physics_types,        only: {}".format(\
                         var_name)
 
-                    #Advance loop counter by one:
-                    lpcnt += 1
+                        #Advance loop counter by one:
+                        lpcnt += 1
 
-                elif lpcnt == 2:
-                    #If loop counter is three, then append variable
-                    #name to use string:
-                    use_str += ", {}".format(var_name)
+                    elif lpcnt == 2:
+                        #Append variable name to use string
+                        use_str += ", {}".format(var_name)
 
-                    #Add use string to list:
-                    use_list.append(use_str)
+                        #Add use string to list:
+                        use_list.append(use_str)
 
-                    #Reset loop counter:
-                    lpcnt = 0
-                else:
-                    #Append variable name to use string
-                    use_str += ", {}".format(var_name)
+                        #Reset use_str variable:
+                        us_str = None
 
-                    #Advance loop counter by one:
-                    lpcnt += 1
+                        #If loop counter is two, then
+                        #reset loop counter:
+                        lpcnt = 0
+                    else:
+                        #Append variable name to use string
+                        use_str += ", {}".format(var_name)
+
+                        #Advance loop counter by one:
+                        lpcnt += 1
+
+    #Is there any remaining "use_str" text?
+    if use_str:
+        #Add to "use statement" list:
+        use_list.append(use_str)
     #-----------------------------
 
     #Create fortran "read_field" calls:
@@ -626,79 +816,82 @@ def write_phys_read_subroutine(outfile, variable_list,
     #Loop over variables in list:
     for var in variable_list:
 
-        #Check if variable is protected:
-        if not hasattr(var, "protected") or not var.protected:
+        #Check if variable is required by CCPP physics suites:
+        if var.standard_name in ccpp_req_vars_set:
 
-            #Check if variable does not have an initial value:
-            if var.initial_value == 'NULL()':
+            #Check if variable is protected:
+            if not hasattr(var, "protected") or not var.protected:
 
-                #Check if variable has "local_index_name_str":
-                if hasattr(var, "local_index_name_str"):
-                    var_name = var.local_index_name_str
-                else:
-                    var_name = var.local_name
+                #Check if variable does not have an initial value:
+                if var.initial_value == 'NULL()':
 
-                #Check if variable only has "horizontal_dimensions":
-                if len(var.dimensions) == 1 and var.dimensions[0] == \
-                   'horizontal_dimension':
-                    #Then set vertical level name to None:
-                    levnm = None
-                else:
-                    #If not,e then check variable standard name for "interface":
-                    if var.standard_name.find("at_interface") != -1:
-                        levnm = "ilev"
+                    #Check if variable has "local_index_name_str":
+                    if hasattr(var, "local_index_name_str"):
+                        var_name = var.local_index_name_str
                     else:
-                        levnm = "lev"
+                        var_name = var.local_name
 
-                #Set "if-statement" call string:
-                call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
-                                  " '{}') then".format(var.standard_name)
-
-                #Generate variable string if part of DDT:
-                ddt_strings = ddt_call_string_create(var_name,
-                                                     ddt_varname_dict, ddt_type_var_dict)
-
-                #Do DDT strings exist?
-                if ddt_strings:
-                    #Use DDT strings in the second call string:
-                    #===================
-                    call_string_val = "" #create initial empty string
-                    if levnm is not None:
-                        for ddt_idx, ddt_string in enumerate(ddt_strings):
-                            if ddt_idx == len(ddt_strings)-1:
-                                call_string_val += \
-                                "call read_field(file, input_var_names(:,name_idx)," + \
-                                " '{}', timestep, {})".format(levnm, ddt_string)
-                            else:
-                                call_string_val += \
-                                "call read_field(file, input_var_names(:,name_idx)," + \
-                                " '{}', timestep, {})\n".format(levnm, ddt_string)
+                    #Check if variable only has "horizontal_dimensions":
+                    if len(var.dimensions) == 1 and var.dimensions[0] == \
+                       'horizontal_dimension':
+                        #Then set vertical level name to None:
+                        levnm = None
                     else:
-                        for ddt_idx, ddt_string in enumerate(ddt_strings):
-                            if ddt_idx == len(ddt_strings)-1:
-                                call_string_val += \
-                                "call read_field(file, input_var_names(:,name_idx)," + \
-                                " timestep, {})".format(ddt_string)
-                            else:
-                                call_string_val += \
-                                "call read_field(file, input_var_names(:,name_idx)," + \
-                                " timestep, {})\n".format(ddt_string)
-                    #===================
-                else:
-                    #Simply use the local name in the second call string:
-                    #===================
-                    if levnm is not None:
-                        call_string_val = \
-                          "call read_field(file, input_var_names(:,name_idx), '{}', timestep, {})".format(\
-                          levnm, var_name)
-                    else:
-                        call_string_val = \
-                          "call read_field(file, input_var_names(:,name_idx), timestep, {})".format(\
-                          var_name)
-                    #===================
+                        #If not,e then check variable standard name for "interface":
+                        if var.standard_name.find("at_interface") != -1:
+                            levnm = "ilev"
+                        else:
+                            levnm = "lev"
 
-                #Add strings to dictionary:
-                call_dict[call_string_key] = call_string_val
+                    #Set "if-statement" call string:
+                    call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
+                                      " '{}') then".format(var.standard_name)
+
+                    #Generate variable string if part of DDT:
+                    ddt_strings = ddt_call_string_create(var_name,
+                                                         ddt_varname_dict, ddt_type_var_dict)
+
+                    #Do DDT strings exist?
+                    if ddt_strings:
+                        #Use DDT strings in the second call string:
+                        #===================
+                        call_string_val = "" #create initial empty string
+                        if levnm is not None:
+                            for ddt_idx, ddt_string in enumerate(ddt_strings):
+                                if ddt_idx == len(ddt_strings)-1:
+                                    call_string_val += \
+                                    "call read_field(file, input_var_names(:,name_idx)," + \
+                                    " '{}', timestep, {})".format(levnm, ddt_string)
+                                else:
+                                    call_string_val += \
+                                    "call read_field(file, input_var_names(:,name_idx)," + \
+                                    " '{}', timestep, {})\n".format(levnm, ddt_string)
+                        else:
+                            for ddt_idx, ddt_string in enumerate(ddt_strings):
+                                if ddt_idx == len(ddt_strings)-1:
+                                    call_string_val += \
+                                    "call read_field(file, input_var_names(:,name_idx)," + \
+                                    " timestep, {})".format(ddt_string)
+                                else:
+                                    call_string_val += \
+                                    "call read_field(file, input_var_names(:,name_idx)," + \
+                                    " timestep, {})\n".format(ddt_string)
+                        #===================
+                    else:
+                        #Simply use the local name in the second call string:
+                        #===================
+                        if levnm is not None:
+                            call_string_val = \
+                            "call read_field(file, input_var_names(:,name_idx), '{}', timestep, {})".format(\
+                            levnm, var_name)
+                        else:
+                            call_string_val = \
+                            "call read_field(file, input_var_names(:,name_idx), timestep, {})".format(\
+                            var_name)
+                        #===================
+
+                    #Add strings to dictionary:
+                    call_dict[call_string_key] = call_string_val
 
     #---------------------------------
 

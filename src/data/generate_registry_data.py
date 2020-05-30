@@ -1361,5 +1361,5 @@ def main():
 
 ###############################################################################
 if __name__ == "__main__":
-    __RETCODE = main()
+    __RETCODE, _FILES = main()
     sys.exit(__RETCODE)
