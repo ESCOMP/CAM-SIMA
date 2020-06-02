@@ -326,6 +326,8 @@ class ArrayElement(VarBase):
             emsg = "Unknown array index, '{}', in '{}'"
             raise CCPPError(emsg.format(self.index_name, parent_name))
         # end if
+        #Save index variable local name:
+        self.__local_index_name = var.local_name
         # Find the location of this element's index
         found = False
         my_dimensions = list()
@@ -366,6 +368,11 @@ class ArrayElement(VarBase):
     def index_name(self):
         """Return the standard name of this array element's index value"""
         return self.__index_name
+
+    @property
+    def local_index_name(self):
+        """Rturn the local name of this array element's index value"""
+        return self.__local_index_name
 
     @property
     def local_index_name_str(self):
