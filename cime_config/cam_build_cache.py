@@ -272,8 +272,8 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_reg_keys = set(self.__registry_files.keys())
-            test_reg_keys = set([FileStatus.gen_key(x)
-                                 for x in registry_source_files])
+            test_reg_keys = {FileStatus.gen_key(x)
+                             for x in registry_source_files}
             mismatch = (my_reg_keys != test_reg_keys)
             for ref_file in registry_source_files:
                 if mismatch:
@@ -299,7 +299,7 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_sdf_keys = set(self.__sdfs.keys())
-            test_sdf_keys = set([FileStatus.gen_key(x) for x in sdfs])
+            test_sdf_keys = {FileStatus.gen_key(x) for x in sdfs}
             mismatch = (my_sdf_keys != test_sdf_keys)
             for ref_file in sdfs:
                 if mismatch:
@@ -315,8 +315,7 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_scheme_keys = set(self.__schemes.keys())
-            test_scheme_keys = set([FileStatus.gen_key(x)
-                                    for x in scheme_files])
+            test_scheme_keys = {FileStatus.gen_key(x) for x in scheme_files}
             mismatch = (my_scheme_keys != test_scheme_keys)
             for ref_file in scheme_files:
                 if mismatch:
@@ -343,4 +342,3 @@ class BuildCacheCAM:
 
         #Return mismatch logical:
         return mismatch
-
