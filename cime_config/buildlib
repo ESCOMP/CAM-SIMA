@@ -442,7 +442,7 @@ def _build_cam():
         #-------------------------------------------------------
         init_dir = _generate_init_routines(build_cache, atm_root, bldroot,
                                            source_mods_dir, reg_files,
-                                           force_ccpp, forc_init,
+                                           force_ccpp, force_init,
                                            gen_fort_indent,
                                            cap_datafile)
 
