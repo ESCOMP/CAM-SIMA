@@ -8,6 +8,8 @@ variable initialization and initial condition inputs.
 
 #Import statements:
 import os.path
+from collections import OrderedDict
+
 from fortran_tools import FortranWriter
 from ccpp_datafile import DatatableReport
 from ccpp_datafile import datatable_report
@@ -31,11 +33,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #Initialize a new (empty) variable dictionary, with
     #variable standard name as keys, and variable and
     #associated DDT object as values:
-    var_type_dict = dict()
+    var_type_dict = OrderedDict()
 
     #Initialize a new (empty) master DDT dictionary, with
     #DDT types as keys, and the associated DDT object as values:
-    ddt_type_dict = dict()
+    ddt_type_dict = OrderedDict()
 
     #Generate DDT dictionary:
     #-----------------------
@@ -196,16 +198,16 @@ class VarFortData:
         self.__standard_names = list()
 
         #initialize variable input (IC) names dictionary:
-        self.__ic_names = dict()
+        self.__ic_names = OrderedDict()
 
         #Initialize Fortran call dictionary:
-        self.__call_dict = dict()
+        self.__call_dict = OrderedDict()
 
         #Initialize Use statement dictionary:
-        self.__use_dict = dict()
+        self.__use_dict = OrderedDict()
 
         #Initialize vertical dimension dictionary:
-        self.__vert_dict = dict()
+        self.__vert_dict = OrderedDict()
 
         #Initialize parameter-type variable name set:
         self.__parameter_set = set()
@@ -999,7 +1001,7 @@ def write_phys_read_subroutine(outfile, fort_data):
     #---------------------------------
 
     #Create new (empty) dictionary to store "read_field" calls:
-    call_string_dict = dict()
+    call_string_dict = OrderedDict()
 
     #Loop over all variable standard names:
     for var_stdname in fort_data.standard_names:

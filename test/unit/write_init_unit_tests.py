@@ -255,24 +255,32 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate physics initialization files:
-
-        with self.assertLogs('write_init_files_missing', level='ERROR') as cmp_log:
+        # Note: "assertLogs" method doesn't exist in python 2:
+        if sys.version_info[0] > 2:
+            with self.assertLogs('write_init_files_missing', level='ERROR') as cmp_log:
+                retcode = write_init.write_init_files(files, _TMP_DIR, 2,
+                                                      cap_datafile, logger,
+                                                      phys_check_filename="phys_vars_init_check_missing.F90",
+                                                      phys_input_filename="physics_inputs_missing.F90")
+        else:
+            #If using Python 2, then set-up log handler to avoid warning message:
+            handler = logging.StreamHandler(stream=sys.stderr)
+            logger.handlers = [handler]
+            logger.setLevel(logging.FATAL)
+            #Now run write_init_files:
             retcode = write_init.write_init_files(files, _TMP_DIR, 2,
-                                                  cap_datafile, logger,
-                                                  phys_check_filename="phys_vars_init_check_missing.F90",
-                                                  phys_input_filename="physics_inputs_missing.F90")
-
-        # Check return code:
-        amsg = "Testt failure: retcode={}, but should have been 1".format(retcode)
-        self.assertEqual(retcode, 1, msg=amsg)
+                                                      cap_datafile, logger,
+                                                      phys_check_filename="phys_vars_init_check_missing.F90",
+                                                      phys_input_filename="physics_inputs_missing.F90")
 
         #Check logger:
-        amsg = "Test failure:  Logger output doesn't match what is expected." \
-               "Logger output is: \n{}".format(cmp_log.output)
-        lmsg = "ERROR:write_init_files_missing:Required CCPP physics suite variables missing " \
-               "from registered host model variable list:\n " \
-               "missing_required_var"
-        self.assertEqual(cmp_log.output, [lmsg], msg=amsg)
+        if sys.version_info[0] > 2:
+            amsg = "Test failure:  Logger output doesn't match what is expected." \
+                   "Logger output is: \n{}".format(cmp_log.output)
+            lmsg = "ERROR:write_init_files_missing:Required CCPP physics suite variables missing " \
+                   "from registered host model variable list:\n " \
+                   "missing_required_var"
+            self.assertEqual(cmp_log.output, [lmsg], msg=amsg)
 
         # Make sure each output file was created:
         amsg = "{} should not exist".format(check_init_out)
