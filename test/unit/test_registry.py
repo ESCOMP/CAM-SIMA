@@ -77,7 +77,7 @@ class RegistryTest(unittest.TestCase):
         if not os.path.exists(_TMP_DIR):
             os.mkdir(_TMP_DIR)
         # End if
-        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*')))
+        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
         super(cls, RegistryTest).setUpClass()
 
     def test_good_simple_registry(self):
@@ -174,6 +174,46 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
         out_name = "physics_types_ddt2"
+        out_source_name = out_name + '.F90'
+        out_meta_name = out_name + '.meta'
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
+        out_source = os.path.join(_TMP_DIR, out_source_name)
+        out_meta = os.path.join(_TMP_DIR, out_meta_name)
+        remove_files([out_source, out_meta])
+        # Run dycore
+        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                      loglevel=logging.ERROR,
+                                      error_on_no_validate=True)
+        # Check return code
+        amsg = "Test failure: retcode={}".format(retcode)
+        self.assertEqual(retcode, 0, msg=amsg)
+        flen = len(files)
+        amsg = "Test failure: Found {} files, expected 1".format(flen)
+        self.assertEqual(flen, 1, msg=amsg)
+        amsg = "{} does not exist".format(out_meta)
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = "{} does not exist".format(out_source)
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
+        # For each output file, make sure it matches input file
+        amsg = "{} does not match {}".format(in_meta, out_meta)
+        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+                                    shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(in_source, out_source)
+        self.assertTrue(filecmp.cmp(in_source, out_source,
+                                    shallow=False), msg=amsg)
+    # End for
+
+    def test_good_array(self):
+        """Test code and metadata generation from a good registry with DDTs
+        containing an "Array" variable with multiple internal Array elements
+        Check that generate_registry_data.py generates good Fortran and
+        metadata files.
+        Check that the DDT contains the proper information and the
+        initialization code has the correct array calls"""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt_array.xml")
+        out_name = "physics_types_ddt_array"
         out_source_name = out_name + '.F90'
         out_meta_name = out_name + '.meta'
         in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)

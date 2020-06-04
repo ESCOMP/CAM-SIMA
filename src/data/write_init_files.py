@@ -19,7 +19,8 @@ from ccpp_datafile import DatatableReport
 from ccpp_datafile import datatable_report
 import sys
 
-def write_init_files(files, outdir, indent, cap_datafile, logger):
+def write_init_files(files, outdir, indent, cap_datafile, logger,
+                     phys_check_filename=None, phys_input_filename=None):
 
     """
     Create the "phys_vars_init_check.F90" and
@@ -71,8 +72,8 @@ def write_init_files(files, outdir, indent, cap_datafile, logger):
         #Are variables missing?  If so then end run here.
         #Create error message:
         emsg = "Required CCPP physics suite variables missing " \
-               "from registered host model variable list: \n{}"
-        emsg.format(missing_vars)
+               "from registered host model variable list:\n {}".format(\
+               " ".join(missing_vars))
 
         #Add error-message to logger, and return with non-zero ret-code:
         logger.error(emsg)
@@ -90,7 +91,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger):
     #--------------------------------------
 
     #Open new file:
-    ofilename = os.path.join(outdir, "phys_vars_init_check.F90")
+    if phys_check_filename:
+        ofilename = os.path.join(outdir, phys_check_filename)
+    else:
+        ofilename = os.path.join(outdir, "phys_vars_init_check.F90")
+
     #Log file creation:
     logger.info("Writing initialization-checking source file, {}".format(ofilename))
 
@@ -135,7 +140,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger):
     #--------------------------------------
 
     #Open new file:
-    ofilename = os.path.join(outdir, "physics_inputs.F90")
+    if phys_input_filename:
+        ofilename = os.path.join(outdir, phys_input_filename)
+    else:
+        ofilename = os.path.join(outdir, "physics_inputs.F90")
+
     #Log file creation:
     logger.info("Writing initial conditions source file, {}".format(ofilename))
 
@@ -201,6 +210,9 @@ class VarFortData:
         #Initialize vertical dimension dictionary:
         self.__vert_dict = dict()
 
+        #Initialize parameter-type variable name set:
+        self.__parameter_set = set()
+
         #Initialize variable name array parameters:
         self.__total_var_num   = 0
         self.__stdname_max_len = 0
@@ -227,6 +239,24 @@ class VarFortData:
         #and DDT "type":
         var = var_info_list[0]
         var_ddt = var_info_list[1]
+
+        #First check if variable is a parameter:
+        if var.allocatable == 'parameter':
+            #If so, then only add to variable
+            #name lists and parameter set, as this
+            #variable will never be read from a file:
+            self.__standard_names.append(var.standard_name)
+            self.__ic_names[var.standard_name] = var.ic_names
+            self.__parameter_set.add(var.standard_name)
+
+            #Also remove variable from call and use dictionaries,
+            #if applicable:
+            if var.standard_name in self.__call_dict.keys():
+                del self.__call_dict[var.standard_name]
+                del self.__use_dict[var.standard_name]
+
+            #Quit function, if variable is a parameter:
+            return
 
         #Check if array elements are present:
         if hasattr(var, "elements") and var.elements:
@@ -280,9 +310,10 @@ class VarFortData:
             #Add variable IC names to dictionary:
             self.__ic_names[var.standard_name] = var.ic_names
 
-            #Check if variable only has "horizontal_dimensions":
-            if len(var.dimensions) == 1 and var.dimensions[0] == \
-                'horizontal_dimension':
+            #Check if variable doesn't have dimensions, or
+            #only has "horizontal_dimensions":
+            if not var.dimensions or (len(var.dimensions) == 1 \
+               and var.dimensions[0]) == 'horizontal_dimension':
 
                 #Then set vertical level name to None:
                 self.__vert_dict[var.standard_name] = None
@@ -332,7 +363,7 @@ class VarFortData:
                     #Is DDT variable itself a DDT?
                     if new_var.is_ddt:
                         #If so, then find associated DDT type:
-                        new_ddt = ddt_type_dict[ddt_var.var_type]
+                        new_ddt = ddt_type_dict[new_var.var_type]
 
                         #Create input list with DDT type:
                         new_var_info = [new_var, new_ddt]
@@ -387,8 +418,8 @@ class VarFortData:
         if missing_vars:
             emsg = "Required variables are missing from registry, "\
                    "but weren't caught at the correct script location!\n" \
-                   "Something has gone wrong.  The missing variables are: \n{}"
-            emsg.format(missing_vars)
+                   "Something has gone wrong.  The missing variables are:\n {}".format(\
+                   " ".join(missing_vars))
             raise RuntimeError(emsg)
 
         #convert standard name list to a set:
@@ -494,6 +525,11 @@ class VarFortData:
     def vert_dict(self):
         """Return dictionary of vertical variable names"""
         return self.__vert_dict
+
+    @property
+    def parameter_set(self):
+        """Return set of parameter variable standard names"""
+        return self.__parameter_set
 
     @property
     def total_var_num(self):
@@ -703,9 +739,17 @@ def write_ic_arrays(outfile, fort_data):
     #Write "False" logicals to logical array:
     for var_num in range(fort_data.total_var_num):
         if var_num == fort_data.total_var_num-1:
-            log_arr_str = '.false. /)'
+            if fort_data.standard_names[var_num] in \
+               fort_data.parameter_set:
+                log_arr_str = '.true. /)'
+            else:
+                log_arr_str = '.false. /)'
         else:
-            log_arr_str = '.false., &'
+            if fort_data.standard_names[var_num] in \
+               fort_data.parameter_set:
+                log_arr_str = '.true., &'
+            else:
+                log_arr_str = '.false., &'
         # end if
         outfile.write(log_arr_str, 2)
 
@@ -936,7 +980,7 @@ def write_phys_read_subroutine(outfile, fort_data):
             use_list.append(use_str)
 
             #Reset use_str variable:
-            us_str = None
+            use_str = None
 
             #If loop counter is two, then
             #reset loop counter:
