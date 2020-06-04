@@ -2,14 +2,8 @@
 
 """
 Use variable meta-data from "generate_registry_data.py"
-to generate CAM fortran files that manages host model
-variable initialization and initial conditions.
-
-Running this file directly on the command line, i.e.:
-
-python write_init_file.py
-
-will run this script's doctests.
+to generate CAM fortran files that manage host model
+variable initialization and initial condition inputs.
 """
 
 #Import statements:
@@ -17,7 +11,10 @@ import os.path
 from fortran_tools import FortranWriter
 from ccpp_datafile import DatatableReport
 from ccpp_datafile import datatable_report
-import sys
+
+##############
+#Main function
+##############
 
 def write_init_files(files, outdir, indent, cap_datafile, logger,
                      phys_check_filename=None, phys_input_filename=None):
@@ -214,7 +211,7 @@ class VarFortData:
         self.__parameter_set = set()
 
         #Initialize variable name array parameters:
-        self.__total_var_num   = 0
+        self.__total_var_num = 0
         self.__stdname_max_len = 0
         self.__ic_name_max_num = 0
         self.__ic_name_max_len = 0
@@ -267,7 +264,7 @@ class VarFortData:
                 #Check if element is actually a DDT:
                 if element.is_ddt:
                     #If so, then find associated DDT type:
-                    elem_ddt = ddt_type_dict[ddt_var.var_type]
+                    elem_ddt = ddt_type_dict[element.var_type]
 
                     #Create input list with DDT type:
                     new_elem_info = [element, elem_ddt]
@@ -386,21 +383,21 @@ class VarFortData:
 
     def check_req_vars(self, ccpp_req_vars_set):
 
-         """
-         Checks if all input variables required by the CCPP physics
-         suites are registered in the host model.   Returns set of
-         standard names for all missing host model variables.
-         """
+        """
+        Checks if all input variables required by the CCPP physics
+        suites are registered in the host model.   Returns set of
+        standard names for all missing host model variables.
+        """
 
-         #Convert standard name list to a set:
-         var_stdnm_set = set(self.__standard_names)
+        #Convert standard name list to a set:
+        var_stdnm_set = set(self.__standard_names)
 
-         #Determine what, if any, required variables are missing
-         #from registered variable set:
-         missing_vars = ccpp_req_vars_set.difference(var_stdnm_set)
+        #Determine what, if any, required variables are missing
+        #from registered variable set:
+        missing_vars = ccpp_req_vars_set.difference(var_stdnm_set)
 
-         #Return missing variables set:
-         return missing_vars
+        #Return missing variables set:
+        return missing_vars
 
     #####
 
@@ -1189,18 +1186,6 @@ def write_phys_read_subroutine(outfile, fort_data):
 
     #----------------------------
 
-######
-
-###############################################################################
-#IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON WRITE_INIT_FILE!
-###############################################################################
-
-#Call testing routine, if script is run directly
-if __name__ == "__main__":
-
-    print("Add tests here!")
-
 #############
 # End of file
 #############
-

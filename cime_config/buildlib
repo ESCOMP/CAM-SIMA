@@ -319,8 +319,8 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
 
 ###############################################################################
 def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
-                            reg_dir, reg_files, force_reg, force_ccpp,
-                            gen_fort_indent, cap_datafile):
+                            reg_files, force_reg, force_ccpp, gen_fort_indent,
+                            cap_datafile):
 ###############################################################################
     """Generate the host model initialization source code files
        (phys_vars_init_check.F90 and physics_inputs.F90) using
@@ -441,9 +441,9 @@ def _build_cam():
         # Create host model variable initialization routines
         #-------------------------------------------------------
         init_dir = _generate_init_routines(build_cache, atm_root, bldroot,
-                                           source_mods_dir, reg_dir,
-                                           reg_files, force_ccpp,
-                                           force_init, gen_fort_indent,
+                                           source_mods_dir, reg_files,
+                                           force_ccpp, forc_init,
+                                           gen_fort_indent,
                                            cap_datafile)
 
         #--------------------------------------------------------------
