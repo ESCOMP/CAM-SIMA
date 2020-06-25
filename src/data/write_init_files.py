@@ -68,6 +68,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #-----------------------
     missing_vars = fort_data.check_req_vars(ccpp_req_vars_set)
     if missing_vars:
+
         #Are variables missing?  If so then end run here.
         #Create error message:
         emsg = "Required CCPP physics suite variables missing " \
@@ -797,7 +798,9 @@ def write_init_mark_subroutine(outfile):
     #Add variable declaration statements:
     outfile.write("character(len=*), intent(in) :: varname !Variable name being marked", 2)
     outfile.write("", 0)
-    outfile.write("integer :: stdnam_idx !standard name array index", 2)
+    outfile.write("integer :: stdnam_idx !Standard name array index", 2)
+    outfile.write("", 0)
+    outfile.write("logical :: found_var = .false. !Logical which inidcates variable exists in array", 2)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -815,8 +818,11 @@ def write_init_mark_subroutine(outfile):
                   "initialized_vars(stdnam_idx) = .true.", 4)
 
     outfile.write("", 0)
+    outfile.write("!Indicate variable has been found:\n" \
+                  "found_var = .true.", 4)
 
-    outfile.write("!Exit function:\n" \
+    outfile.write("", 0)
+    outfile.write("!Exit loop:\n" \
                   "exit", 4)
 
     outfile.write("end if", 3)
@@ -824,11 +830,12 @@ def write_init_mark_subroutine(outfile):
     outfile.write("end do", 2)
 
     outfile.write("", 0)
-
+    outfile.write("if (.not.found_var) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:\n" \
-                  "call endrun(&", 2)
-    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 2)
+                  "call endrun(&", 3)
+    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write("end if", 2)
 
     outfile.write("", 0)
     #---------------------------
@@ -886,8 +893,8 @@ def write_is_init_func(outfile):
     outfile.write("is_initialized = .false.", 2)
     outfile.write("", 0)
 
-    #Add main subroutine section:
-    #---------------------------
+    #Add main function section:
+    #-------------------------
     outfile.write("!Loop over standard name array:\n" \
                   "do stdnam_idx = 1, phys_var_num", 2)
 
@@ -898,19 +905,25 @@ def write_is_init_func(outfile):
                   "!value associated with that index:\n" \
                   "is_initialized = initialized_vars(stdnam_idx)", 4)
 
+    outfile.write("", 0)
+    outfile.write("!Exit loop:\n" \
+                  "exit", 4)
+
     outfile.write("end if", 3)
 
     outfile.write("end do", 2)
 
     outfile.write("", 0)
 
+    outfile.write("if (.not.is_initialized) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:\n" \
-                  "call endrun(&", 2)
-    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 2)
+                  "call endrun(&", 3)
+    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write("end if", 2)
 
     outfile.write("", 0)
-    #---------------------------
+    #-------------------------
 
     #End subroutine:
     outfile.write("end function is_initialized", 1)

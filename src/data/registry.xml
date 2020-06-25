@@ -297,6 +297,4 @@
       <long_name>Total tendency from physics suite</long_name>
     </variable>
   </file>
-  <!-- Remove once "real" metadata file has been added -->
-  <metadata_file>../../test/unit/sample_files/ref_pres.meta</metadata_file>
 </registry>

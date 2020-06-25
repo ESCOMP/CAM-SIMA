@@ -208,10 +208,12 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
                                                   schema_paths=data_search)
             emsg = "Unable to generate CAM data structures from {}, err = {}"
             expect(retcode == 0, emsg.format(reg_file, retcode))
+
+            #Add files to list:
+            reg_files_list += reg_file_list
         # End for
-        #Add files to list:
-        reg_files_list += reg_file_list
-        # save build details in the build cache
+
+        # Save build details in the build cache
         build_cache.update_registry(gen_reg_file, registry_files,
                                     dycore, reg_config)
     # End if
