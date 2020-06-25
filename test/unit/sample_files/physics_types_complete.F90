@@ -44,6 +44,8 @@ module physics_types_complete
   integer,             public            :: ix_cld_liq = 2
   ! param_val_var: Made up param variable
   integer,             public, parameter :: param_val_var = 42
+  ! standard_var: Standard non ddt variable
+  real,                public            :: standard_var
   ! phys_state: Physics state variables updated by dynamical core
   type(physics_state), public            :: phys_state
 
@@ -85,6 +87,9 @@ CONTAINS
     end if
     if (set_init_val) then
       ix_cld_liq = 2
+    end if
+    if (set_init_val) then
+      standard_var = nan
     end if
     if (associated(phys_state%latitude)) then
       if (reallocate) then

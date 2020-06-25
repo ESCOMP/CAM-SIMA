@@ -52,7 +52,9 @@ CONTAINS
 
     character(len=*), intent(in) :: varname !Variable name being marked
 
-    integer :: stdnam_idx !standard name array index
+    integer :: stdnam_idx !Standard name array index
+
+    logical :: found_var = .false. !Logical which inidcates variable exists in array
 
     !Loop over standard name array:
     do stdnam_idx = 1, phys_var_num
@@ -62,15 +64,20 @@ CONTAINS
         !array index to true:
         initialized_vars(stdnam_idx) = .true.
 
-        !Exit function:
+        !Indicate variable has been found:
+        found_var = .true.
+
+        !Exit loop:
         exit
       end if
     end do
 
-    !If loop has completed with no matches, then endrun with warning
-    !that variable didn't exist in standard names array:
-    call endrun(&
-    "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+    if (.not.found_var) then
+      !If loop has completed with no matches, then endrun with warning
+      !that variable didn't exist in standard names array:
+      call endrun(&
+      "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+    end if
 
   end subroutine mark_as_initialized
 
@@ -98,13 +105,18 @@ CONTAINS
         !If so, then return initialized_vars
         !value associated with that index:
         is_initialized = initialized_vars(stdnam_idx)
+
+        !Exit loop:
+        exit
       end if
     end do
 
-    !If loop has completed with no matches, then endrun with warning
-    !that variable didn't exist in standard names array:
-    call endrun(&
-    "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+    if (.not.is_initialized) then
+      !If loop has completed with no matches, then endrun with warning
+      !that variable didn't exist in standard names array:
+      call endrun(&
+      "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+    end if
 
   end function is_initialized
 

@@ -52,6 +52,11 @@
               units="count" type="integer" allocatable="parameter">
               <initial_value>42</initial_value>
     </variable>
+    <variable local_name="standard_var"
+              standard_name="standard_non_ddt_variable"
+              units="K" type="real">
+              <ic_file_input_names>stand_var</ic_file_input_names>
+    </variable>
     <array local_name="q" standard_name="constituent_mixing_ratio"
               units="kg kg-1"
               type="real" kind="kind_phys"

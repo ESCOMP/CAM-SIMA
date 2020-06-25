@@ -202,7 +202,6 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not match {}".format(in_source, out_source)
         self.assertTrue(filecmp.cmp(in_source, out_source,
                                     shallow=False), msg=amsg)
-    # End for
 
     def test_good_array(self):
         """Test code and metadata generation from a good registry with DDTs
@@ -242,7 +241,6 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not match {}".format(in_source, out_source)
         self.assertTrue(filecmp.cmp(in_source, out_source,
                                     shallow=False), msg=amsg)
-    # End for
 
     def test_good_metadata_file_registry(self):
         """Test code and metadata generation from a good registry with a DDT
@@ -280,6 +278,58 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not match {}".format(in_source, out_source)
         self.assertTrue(filecmp.cmp(in_source, out_source,
                                     shallow=False), msg=amsg)
+        # Check that the metadata file has the correct number of variables
+        mfile = files[1]
+        mvars = mfile.variable_list()
+        num_vars = len(mvars)
+        amsg = "Expected 14 metadata variables, found {}".format(num_vars)
+        self.assertEqual(num_vars, 14, msg=amsg)
+
+    def test_good_complete_registry(self):
+        """
+        Test that a good registry with variables, meta-data files,
+        DDTs, Arrays, and parameters validates, i.e. try and test
+        everything at once.
+
+        Check that generate_registry_data.py generates
+        good Fortran and metadata files with all of the
+        proper code features.
+        """
+
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_complete.xml")
+        out_source_name = "physics_types_complete"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+
+        # Run test
+        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                      loglevel=logging.ERROR,
+                                      error_on_no_validate=True)
+
+                # Check return code
+        amsg = "Test failure: retcode={}".format(retcode)
+        self.assertEqual(retcode, 0, msg=amsg)
+        flen = len(files)
+        amsg = "Test failure: Found {} files, expected 1".format(flen)
+        self.assertEqual(flen, 2, msg=amsg)
+
+        # Make sure each output file was created
+        amsg = "{} does not exist".format(out_meta)
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = "{} does not exist".format(out_source)
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
+
+        # For each output file, make sure it matches input file
+        amsg = "{} does not match {}".format(in_meta, out_meta)
+        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(in_source, out_source)
+        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False),
+                        msg=amsg)
+
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
         mvars = mfile.variable_list()
