@@ -2,6 +2,8 @@
 
 """
 Read CAM registry and produce data and metadata files
+
+To run doctest on this file: python -m doctest generate_registry_data.py
 """
 
 # Python library imports
@@ -45,8 +47,8 @@ def write_ccpp_table_header(name, outfile):
 ###############################################################################
     """Write the standard Fortran comment block for a CCPP header
     (module, type, scheme)."""
-    outfile.write("!> \section arg_table_{}  Argument Table".format(name), 0)
-    outfile.write("!! \htmlinclude {}.html".format(name), 0)
+    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name), 0)
+    outfile.write(r"!! \htmlinclude {}.html".format(name), 0)
 
 ###############################################################################
 class TypeEntry:
@@ -129,6 +131,7 @@ class VarBase(object):
         self.__standard_name = elem_node.get('standard_name')
         self.__long_name = ''
         self.__initial_value = ''
+        self.__ic_names = None
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
         if self.__allocatable == "none":
             self.__allocatable = ""
@@ -148,6 +151,10 @@ class VarBase(object):
                 self.__long_name = attrib.text
             elif attrib.tag == 'initial_value':
                 self.__initial_value = attrib.text
+            elif attrib.tag == 'ic_file_input_names':
+                #Separate out string into list:
+                self.__ic_names = [x.strip() for x in attrib.text.split(' ') if x]
+
             # end if (just ignore other tags)
         # end for
         if ((not self.initial_value) and
@@ -177,23 +184,33 @@ class VarBase(object):
     def write_initial_value(self, outfile, indent, init_var, ddt_str):
         """Write the code for the initial value of this variable
         and/or one of its array elements."""
-        var_name = '{}{}'.format(ddt_str, self.local_name)
+        #Check if variable has associated array index
+        #local string:
+        if hasattr(self, 'local_index_name_str'):
+            #Then write variable with local index name:
+            var_name = '{}{}'.format(ddt_str, self.local_index_name_str)
+        else:
+            #Otherwise, use regular local variable name:
+            var_name = '{}{}'.format(ddt_str, self.local_name)
         if self.allocatable == VarBase.__pointer_type_str:
             if self.initial_value == VarBase.__pointer_def_init:
                 init_val = ''
             else:
                 init_val = self.initial_value
             # end if
-        elif self.initial_value:
-            init_val = self.initial_value
-        elif self.var_type.lower() == 'real':
-            init_val = 'nan'
-        elif self.var_type.lower() == 'integer':
-            init_val = 'HUGE(1)'
-        elif self.var_type.lower() == 'character':
-            init_val = '""'
         else:
-            init_val = ''
+            init_val = self.initial_value
+        # end if
+        if not init_val:
+            if self.var_type.lower() == 'real':
+                init_val = 'nan'
+            elif self.var_type.lower() == 'integer':
+                init_val = 'HUGE(1)'
+            elif self.var_type.lower() == 'character':
+                init_val = '""'
+            else:
+                init_val = ''
+            # end if
         # end if
         if init_val:
             outfile.write("if ({}) then".format(init_var), indent)
@@ -248,6 +265,12 @@ class VarBase(object):
         return self.__initial_value
 
     @property
+    def ic_names(self):
+        """Return list of possible Initial Condition (IC) file input names"""
+        #Assume ic_names exists:
+        return self.__ic_names
+
+    @property
     def module(self):
         """Return the module where this variable is defined"""
         return self.__type.module
@@ -270,34 +293,44 @@ class ArrayElement(VarBase):
     def __init__(self, elem_node, parent_name, dimensions, known_types,
                  parent_type, parent_kind, parent_units, parent_alloc, vdict):
         """Initialize the Arary Element information by identifying its
-        metadata properties"""
+        metadata properties
+        """
 
         self.__parent_name = parent_name
         self.__index_name = elem_node.get('index_name')
         pos = elem_node.get('index_pos')
+
         # Check to make sure we know about this index
         var = vdict.find_variable_by_standard_name(self.index_name)
         if not var:
             emsg = "Unknown array index, '{}', in '{}'"
             raise CCPPError(emsg.format(self.index_name, parent_name))
         # end if
-        long_name = ''
-        initial_value = ''
         # Find the location of this element's index
         found = False
         my_dimensions = list()
         my_index = list()
-        for dim_ind in range(len(dimensions)):
+        my_local_index = list()
+        for dim_ind, dim in enumerate(dimensions):
             if dimensions[dim_ind] == pos:
                 found = True
                 my_index.append(self.index_name)
+                my_local_index.append(var.local_name)
             else:
                 my_index.append(':')
-                my_dimensions.append(dimensions[dim_ind])
+                my_local_index.append(':')
+                my_dimensions.append(dim)
             # end if
         # end for
         if found:
             self.__index_string = ','.join(my_index)
+            #write array string with local variable index name,
+            #instead of the standard variable index name.
+            #This is used to write initialization code in fortran
+            #with the correct index variable name:
+            local_index_string = ','.join(my_local_index)
+            self.__local_index_name_str = \
+                '{}({})'.format(parent_name, local_index_string)
         else:
             emsg = "Cannot find element dimension, '{}' in {}({})"
             raise CCPPError(emsg.format(self.index_name, parent_name,
@@ -309,15 +342,18 @@ class ArrayElement(VarBase):
                                            units_default=parent_units,
                                            kind_default=parent_kind,
                                            alloc_default=parent_alloc)
-
-    def write_metadata(self, outfile):
-        """Write out the CCPP metadata for this array element"""
-        super(ArrayElement, self).write_metadata(outfile)
-
     @property
     def index_name(self):
         """Return the standard name of this array element's index value"""
         return self.__index_name
+
+    @property
+    def local_index_name_str(self):
+        """
+        Return the array element's name, but with the local name for the
+        index instead of the standard name
+        """
+        return self.__local_index_name_str
 
     @property
     def index_string(self):
@@ -341,9 +377,12 @@ class Variable(VarBase):
     >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Unknown Variable content, dims
-    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1">></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Bad variable attribute, 'kkind', for 'u'
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CCPPError: Dimension, 'vertical_dimension', not found for 'u'
     """
 
     # Constant dimensions
@@ -376,8 +415,6 @@ class Variable(VarBase):
         # end if
         my_dimensions = list()
         self.__def_dims_str = ""
-        initial_value = None
-        long_name = ''
         for attrib in var_node:
             if attrib.tag == 'dimensions':
                 my_dimensions = [x.strip() for x in attrib.text.split(' ') if x]
@@ -416,11 +453,14 @@ class Variable(VarBase):
                 if def_dims:
                     self.__def_dims_str = '(' + ', '.join(def_dims) + ')'
                 # end if
+
             elif attrib.tag == 'long_name':
                 pass # picked up in parent
             elif attrib.tag == 'initial_value':
                 pass # picked up in parent
             elif attrib.tag == 'element':
+                pass # picked up in parent
+            elif attrib.tag == 'ic_file_input_names':
                 pass # picked up in parent
             else:
                 emsg = "Unknown Variable content, '{}'"
@@ -438,16 +478,13 @@ class Variable(VarBase):
                                                     ttype, self.kind,
                                                     self.units, allocatable,
                                                     vdict))
+
             # end if (all other processing done above)
         # end for
         # Some checks
-        if (self.allocatable == 'parameter') and (not initial_value):
+        if (self.allocatable == 'parameter') and (not self.initial_value):
             emsg = "parameter, '{}', does not have an initial value"
             raise CCPPError(emsg.format(local_name))
-        # end if
-        if (self.allocatable == 'pointer') and (not initial_value):
-            # Initialize pointer to NULL if no initial value
-            initial_value = "NULL()"
         # end if
         # Maybe fix up type string
         if self.module:
@@ -644,6 +681,11 @@ class Variable(VarBase):
         """Return True iff this variable is protected"""
         return self.__protected
 
+    @property
+    def elements(self):
+        """Return elements list for this variable"""
+        return self.__elements
+
 ###############################################################################
 class VarDict(OrderedDict):
 ###############################################################################
@@ -785,6 +827,7 @@ class VarDict(OrderedDict):
         maxall = 0
         has_prot = False
         vlist = self.variable_list()
+
         for var in vlist:
             maxtyp = max(maxtyp, len(var.type_string))
             if var.access != access:
@@ -810,7 +853,7 @@ class DDT:
         <var_dict> is the dictionary where variables referenced in <ddt_node>
         must reside. Each DDT variable is removed from <var_dict>
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state"><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None, None) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: Unknown DDT element type, 'dessert', in 'physics_state'
         """
@@ -883,7 +926,7 @@ class DDT:
     def write_definition(self, outfile, access, indent):
         """Write out the Fortran definition for this DDT
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">>></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state">></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None, None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: DDT, 'physics_state', has no member variables
         """
@@ -1067,6 +1110,8 @@ class File:
             for ddt in self.__ddts.values():
                 ddt.write_definition(outfile, 'private', 1)
             # end if
+            # Write variable standard and input name arrays
+            self.write_ic_names(outfile, indent-2, logger)
             # Write Variables defined in this file
             self.__var_dict.write_definition(outfile, 'private', 1)
             # Write data management subroutine declarations
@@ -1080,6 +1125,7 @@ class File:
             self.write_allocate_routine(outfile)
             # end of module
             outfile.write('\nend module {}'.format(self.name), 0)
+
         # end with
 
     def allocate_routine_name(self):
@@ -1136,6 +1182,205 @@ class File:
         # end for
         outfile.write('end subroutine {}'.format(subname), 1)
 
+    def write_ic_names(self, outfile, indent, logger):
+        """Write out the Initial Conditions (IC) file variable names arrays"""
+        # pylint: disable=too-many-locals
+
+        #Initialize variables:
+        stdname_max_len = 0
+        ic_name_max_num = 0
+
+        #Create new (empty) list to store variables
+        #with (IC) file input names:
+        variable_list = list()
+
+        #Loop over all DDTs in file:
+        for ddt in self.__ddts.values():
+            #Concatenate DDT variable list onto master list:
+            variable_list.extend(ddt.variable_list())
+
+        #Add file variable list to master list:
+        variable_list.extend(list(self.__var_dict.variable_list()))
+
+        #Loop through variable list to look for array elements:
+        for var in list(variable_list):
+            #Check if array elements are present:
+            if var.elements:
+                #If so, then loop over elements:
+                for element in var.elements:
+                    #Append element as new "variable" in variable list:
+                    variable_list.append(element)
+
+        #Determine max number of IC variable names:
+        try:
+            ic_name_max_num = max([len(var.ic_names) for var in variable_list if var.ic_names is not None])
+        except ValueError:
+            #If there is a ValueError, then likely no IC
+            #input variable names exist, so print warning
+            #and exit function:
+            lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
+                   ", so no input variable name array will be created."
+            logger.warning(lmsg)
+            return
+
+        #Determine max standard name string length:
+        try:
+            stdname_max_len = max([len(var.standard_name) for var in variable_list])
+        except ValueError:
+            #If there are no proper standard names in the list,
+            #then the registry was likely written incorrectly,
+            #so print warning and exit function:
+            lmsg = "No variable standard names were found that contain " \
+                   "IC file input names.\nThus something is likely wrong " \
+                   "with the registry file, or at least the placement of " \
+                   "'<ic_file_input-names>' tags.\nGiven this, no input " \
+                   "variable name array will be created."
+            logger.warning(lmsg)
+            return
+
+        #Determine total number of variables with file input (IC) names:
+        num_vars_with_ic_names = len([var for var in variable_list if var.ic_names is not None])
+
+        #Loop over variables in list:
+        ic_name_max_len = self.find_ic_name_max_len(variable_list)
+
+        #Create fake name with proper length:
+        fake_ic_name = " "*ic_name_max_len
+
+        #Create variable name array string lists:
+        stdname_strs = list()
+        ic_name_strs = list()
+
+        #Initalize loop counter:
+        lpcnt = 0
+
+        #Loop over variables in list:
+        for var in variable_list:
+
+            #Check if variable actually has IC names:
+            if var.ic_names is not None:
+
+                #Add one to loop counter:
+                lpcnt += 1
+
+                #Create standard_name string with proper size,
+                #and append to list:
+                extra_spaces = " " * (stdname_max_len - len(var.standard_name))
+                stdname_strs.append("'{}'".format(var.standard_name + extra_spaces))
+
+                #Determine number of IC names for variable:
+                ic_name_num = len(var.ic_names)
+
+                #Create new (empty) list to store (IC) file
+                #input names of variables with the correct
+                #number of spaces to match character array
+                #dimensions:
+                ic_names_with_spaces = list()
+
+                #Loop over possible input file (IC) names:
+                for ic_name in var.ic_names:
+                    #Create ic_name string with proper size:
+                    extra_spaces = " " * (ic_name_max_len - len(ic_name))
+                    #Add properly-sized name to list:
+                    ic_names_with_spaces.append(ic_name + extra_spaces)
+
+                #Create repeating list of empty, "fake" strings that
+                #increases array to max size:
+                ic_names_with_spaces.extend([fake_ic_name]*(ic_name_max_num - ic_name_num))
+
+                #Append new ic_names to string list:
+                ic_name_strs.append(', '.join("'{}'".format(n) for n in ic_names_with_spaces))
+
+
+        #Create new Fortran integer parameter to store number of variables with IC inputs:
+        outfile.write("!Number of physics variables which can be read from"+ \
+                      " Initial Conditions (IC) file:", indent)
+        outfile.write("integer, public, parameter :: ic_var_num = {}".format(\
+                      num_vars_with_ic_names), indent)
+
+        #Add blank space:
+        outfile.write("", 0)
+
+        #Create another Fortran integer parameter to store max length of
+        #registered variable standard name strings:
+        outfile.write("!Max length of registered variable standard names:", indent)
+        outfile.write("integer, public, parameter :: std_name_len = {}".format(\
+                      stdname_max_len), indent)
+
+        #Write a second blank space:
+        outfile.write("", 0)
+
+        #Create final Fortran integer parameter to store max length of
+        #input variable name string:
+        outfile.write("!Max length of input (IC) file variable names:", indent)
+        outfile.write("integer, public, parameter :: ic_name_len = {}".format(\
+                      ic_name_max_len), indent)
+
+        #Write a third blank space:
+        outfile.write("", 0)
+
+        #Write starting declaration of input standard name array:
+        declare_string = "character(len={}), public :: input_var_stdnames(ic_var_num) = (/ &".format(\
+                         stdname_max_len)
+        outfile.write(declare_string, indent)
+
+        #Write standard names to fortran array:
+        num_strs = len(stdname_strs)
+        for index, stdname_str in enumerate(stdname_strs):
+            if index == num_strs-1:
+                suffix = ' /)'
+            else:
+                suffix = ', &'
+            # end if
+            outfile.write('{}{}'.format(stdname_str, suffix), indent+1)
+
+        #Write a fourth blank space:
+        outfile.write("", 0)
+
+        #Write starting decleration of IC input name array:
+        dec_string = \
+            "character(len={}), public :: input_var_names({}, ic_var_num) = reshape((/ &".format(\
+            ic_name_max_len, ic_name_max_num)
+        outfile.write(dec_string, indent)
+
+        #Write IC names to fortran array:
+        num_strs = len(ic_name_strs)
+        for index, ic_name_str in enumerate(ic_name_strs):
+            if index == num_strs-1:
+                suffix = ' /), (/{}, ic_var_num/))'.format(ic_name_max_num)
+            else:
+                suffix = ', &'
+            # end if
+            outfile.write('{}{}'.format(ic_name_str, suffix), indent+1)
+
+        #Write a final blank space:
+        outfile.write("", 0)
+
+    @staticmethod
+    def find_ic_name_max_len(variable_list):
+        """Determine max length of input (IC) file variable names"""
+
+        #Initialize max IC name string length variable:
+        ic_name_max_len = 0
+
+        #Loop over variables in list:
+        for var in variable_list:
+            #Check if variable actually has IC names:
+            if var.ic_names is not None:
+                #Loop over all IC input names for given variable:
+                for ic_name in var.ic_names:
+                    #Determine IC name string length:
+                    ic_name_len = len(ic_name)
+
+                    #Determine if standard name string length is longer
+                    #then all prvious values:
+                    if ic_name_len > ic_name_max_len:
+                        #If so, then re-set max length variable:
+                        ic_name_max_len = ic_name_len
+
+        #Return max string length of input variable names:
+        return ic_name_max_len
+
     @property
     def name(self):
         """Return this File's name"""
@@ -1159,7 +1404,7 @@ def parse_command_line(args, description):
                         type=str, help="XML file with CAM registry library")
     parser.add_argument("--dycore", type=str, required=True,
                         metavar='DYCORE (required)',
-                        help="Dycore (EUL, FV, FV3, MPAS, SE)")
+                        help="Dycore (EUL, FV, FV3, MPAS, SE, none)")
     parser.add_argument("--config", type=str, required=True,
                         metavar='CONFIG (required)',
                         help=("Comma-separated onfig items "
@@ -1236,7 +1481,7 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
     _, registry = read_xml_file(registry_file)
     # Validate the XML file
     version = find_schema_version(registry)
-    if (loglevel > 0) and (loglevel <= logging.DEBUG):
+    if 0 < logger.getEffectiveLevel() <= logging.DEBUG:
         verstr = '.'.join([str(x) for x in version])
         logger.debug("Found registry version, v%s", verstr)
     # end if

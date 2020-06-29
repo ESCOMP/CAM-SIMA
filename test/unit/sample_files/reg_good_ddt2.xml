@@ -17,21 +17,25 @@
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lat</ic_file_input_names>
     </variable>
     <variable local_name="longitude" standard_name="longitude"
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lon</ic_file_input_names>
     </variable>
     <variable local_name="u" standard_name="eastward_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>u_wind</ic_file_input_names>
     </variable>
     <variable local_name="v" standard_name="northward_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>v_wind</ic_file_input_names>
     </variable>
     <ddt type="physics_base" bindC="true">
       <data>horizontal_dimension</data>

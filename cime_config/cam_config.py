@@ -610,13 +610,13 @@ class ConfigCAM:
         self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
 
         # Add number of latitudes in grid to configure object
-        nlat_desc = "Number of unique latitude points in rectangular lat/lon \
-        grid.\nSet to 1 (one) for unstructured grids."
+        nlat_desc = "Number of unique latitude points in rectangular lat/lon" \
+                    " grid.\nSet to 1 (one) for unstructured grids."
         self.create_config("nlat", nlat_desc, case_ny)
 
         # Add number of longitudes in grid to configure object
-        nlon_desc = "Number of unique longitude points in rectangular lat/lon \
-        grid.\nTotal number of columns for unstructured grids."
+        nlon_desc = "Number of unique longitude points in rectangular lat/lon" \
+                    " grid.\nTotal number of columns for unstructured grids."
         self.create_config("nlon", nlon_desc, case_nx)
 
         #------------------------
@@ -638,8 +638,8 @@ class ConfigCAM:
         #-----------------------
 
         # Cam dynamics package (dynamical core) meta-data
-        dyn_desc = "Dynamics package, which is set by the horizontal grid \
-        specified."
+        dyn_desc = "Dynamics package, which is set by the horizontal grid" \
+                   " specified."
 
         # Cam horizontal grid meta-data
         hgrid_desc = "Horizontal grid specifier."

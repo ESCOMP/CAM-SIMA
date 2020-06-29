@@ -12,11 +12,13 @@
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lat</ic_file_input_names>
     </variable>
     <variable local_name="longitude" standard_name="longitude"
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lon</ic_file_input_names>
     </variable>
   </file>
 </registry>
