@@ -136,6 +136,7 @@ class BuildCacheCAM:
         self.__build_cache = build_cache
         # Set empty values sure to trigger processing
         self.__gen_reg_file = None
+        self.__gen_init_file = None
         self.__registry_files = {}
         self.__dycore = None
         self.__config = None
@@ -152,6 +153,9 @@ class BuildCacheCAM:
                         if item.tag == 'generate_registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__gen_reg_file = new_entry
+                        elif item.tag == 'generate_init_file':
+                            new_entry = new_entry_from_xml(item)
+                            self.__gen_init_file = new_entry
                         elif item.tag == 'registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__registry_files[new_entry.key] = new_entry
@@ -215,6 +219,14 @@ class BuildCacheCAM:
             self.__sdfs[new_entry.key] = new_entry
         # End for
 
+    def update_init_gen(self, gen_init_file):
+        """
+        Replace the init_files writer
+        (generate_registry_data.py) cache
+        data with input data
+        """
+        self.__gen_init_file = FileStatus(gen_init_file, 'generate_init_file')
+
     def write(self):
         """Write out the current cache state"""
         new_cache = ET.Element("CAMBuildCache")
@@ -260,8 +272,8 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_reg_keys = set(self.__registry_files.keys())
-            test_reg_keys = set([FileStatus.gen_key(x)
-                                 for x in registry_source_files])
+            test_reg_keys = {FileStatus.gen_key(x)
+                             for x in registry_source_files}
             mismatch = (my_reg_keys != test_reg_keys)
             for ref_file in registry_source_files:
                 if mismatch:
@@ -287,7 +299,7 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_sdf_keys = set(self.__sdfs.keys())
-            test_sdf_keys = set([FileStatus.gen_key(x) for x in sdfs])
+            test_sdf_keys = {FileStatus.gen_key(x) for x in sdfs}
             mismatch = (my_sdf_keys != test_sdf_keys)
             for ref_file in sdfs:
                 if mismatch:
@@ -303,8 +315,7 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_scheme_keys = set(self.__schemes.keys())
-            test_scheme_keys = set([FileStatus.gen_key(x)
-                                    for x in scheme_files])
+            test_scheme_keys = {FileStatus.gen_key(x) for x in scheme_files}
             mismatch = (my_scheme_keys != test_scheme_keys)
             for ref_file in scheme_files:
                 if mismatch:
@@ -316,4 +327,18 @@ class BuildCacheCAM:
                 # End if
             # End for
         # End if
+        return mismatch
+
+    def init_write_mismatch(self, gen_init_file):
+        """Determine if the init_files writer (write_init_files.py)
+            differs from the data stored in our cache. Return True
+            if the data differs."""
+
+        #Initialize variable:
+        mismatch = False
+
+        #Check file hash to see if mis-match exists:
+        mismatch = self.__gen_init_file.hash_mismatch(gen_init_file)
+
+        #Return mismatch logical:
         return mismatch

@@ -38,7 +38,7 @@ CONTAINS
       use camsrfexch,     only: cam_out_t
       use physics_grid,   only: columns_on_task
       use phys_vert_coord,only: pver, pverp
-      use physics_data,   only: physics_read_data
+      use physics_inputs, only: physics_read_data
       use physconst,      only: physconst_init
       use physics_types,  only: allocate_physics_types_fields
       use constituents,   only: pcnst

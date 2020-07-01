@@ -1,63 +1,52 @@
-module physics_types_ddt2
+module physics_types_ddt_array
 
   use ccpp_kinds, only: kind_phys
 
   implicit none
   private
 
-!> \section arg_table_physics_base  Argument Table
-!! \htmlinclude physics_base.html
-  type, bind(C) :: physics_base
-    ! ncol: Number of horizontal columns
-    integer           :: ncol = 0
-    ! pver: Number of vertical layers
-    integer           :: pver = 0
-  end type physics_base
-
-!> \section arg_table_model_wind  Argument Table
-!! \htmlinclude model_wind.html
-  type, public :: model_wind
-    ! u: Eastward wind
-    real(kind_phys),         pointer :: u(:, :) => NULL()
-    ! v: Northward wind
-    real(kind_phys),         pointer :: v(:, :) => NULL()
-  end type model_wind
-
 !> \section arg_table_physics_state  Argument Table
 !! \htmlinclude physics_state.html
-  type, extends(physics_base) :: physics_state
+  type, public :: physics_state
+    ! ncol: Number of horizontal columns
+    integer                          :: ncol = 0
     ! latitude: Latitude
-    real(kind_phys),          pointer :: latitude(:) => NULL()
+    real(kind_phys),         pointer :: latitude(:) => NULL()
     ! longitude: Longitude
-    real(kind_phys),          pointer :: longitude(:) => NULL()
-    ! wind: Model wind
-    type(model_wind)                  :: wind
+    real(kind_phys),         pointer :: longitude(:) => NULL()
+    ! q: Constituent mixing ratio
+    real(kind_phys),         pointer :: q(:, :, :) => NULL()
   end type physics_state
 
-!> \section arg_table_physics_types_ddt2  Argument Table
-!! \htmlinclude physics_types_ddt2.html
+!> \section arg_table_physics_types_ddt_array  Argument Table
+!! \htmlinclude physics_types_ddt_array.html
+  ! ix_qv: Index of water vapor specific humidity
+  integer,             public   :: ix_qv = 1
+  ! ix_cld_liq: Index of cloud liquid water mixing ratio
+  integer,             public   :: ix_cld_liq = 2
   ! phys_state: Physics state variables updated by dynamical core
   type(physics_state), public   :: phys_state
 
 !! public interfaces
-  public :: allocate_physics_types_ddt2_fields
+  public :: allocate_physics_types_ddt_array_fields
 
 CONTAINS
 
-  subroutine allocate_physics_types_ddt2_fields(horizontal_dimension, vertical_layer_dimension,   &
-       set_init_val_in, reallocate_in)
+  subroutine allocate_physics_types_ddt_array_fields(horizontal_dimension,                        &
+       vertical_layer_dimension, number_of_constituents, set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
     !! Dummy arguments
     integer,           intent(in) :: horizontal_dimension
     integer,           intent(in) :: vertical_layer_dimension
+    integer,           intent(in) :: number_of_constituents
     logical, optional, intent(in) :: set_init_val_in
     logical, optional, intent(in) :: reallocate_in
 
     !! Local variables
     logical                     :: set_init_val
     logical                     :: reallocate
-    character(len=*), parameter :: subname = "allocate_physics_types_ddt2_fields"
+    character(len=*), parameter :: subname = "allocate_physics_types_ddt_array_fields"
 
     ! Set optional argument values
     if (present(set_init_val_in)) then
@@ -71,6 +60,15 @@ CONTAINS
       reallocate = .false.
     end if
 
+    if (set_init_val) then
+      ix_qv = 1
+    end if
+    if (set_init_val) then
+      ix_cld_liq = 2
+    end if
+    if (set_init_val) then
+      phys_state%ncol = 0
+    end if
     if (associated(phys_state%latitude)) then
       if (reallocate) then
         deallocate(phys_state%latitude)
@@ -95,36 +93,25 @@ CONTAINS
     if (set_init_val) then
       phys_state%longitude = nan
     end if
-    if (associated(phys_state%wind%u)) then
+    if (associated(phys_state%q)) then
       if (reallocate) then
-        deallocate(phys_state%wind%u)
-        nullify(phys_state%wind%u)
+        deallocate(phys_state%q)
+        nullify(phys_state%q)
       else
-        call endrun(subname//": phys_state%wind%u is already associated, cannot allocate")
+        call endrun(subname//": phys_state%q is already associated, cannot allocate")
       end if
     end if
-    allocate(phys_state%wind%u(horizontal_dimension, vertical_layer_dimension))
+    allocate(phys_state%q(horizontal_dimension, vertical_layer_dimension,                         &
+         number_of_constituents))
     if (set_init_val) then
-      phys_state%wind%u = nan
-    end if
-    if (associated(phys_state%wind%v)) then
-      if (reallocate) then
-        deallocate(phys_state%wind%v)
-        nullify(phys_state%wind%v)
-      else
-        call endrun(subname//": phys_state%wind%v is already associated, cannot allocate")
-      end if
-    end if
-    allocate(phys_state%wind%v(horizontal_dimension, vertical_layer_dimension))
-    if (set_init_val) then
-      phys_state%wind%v = nan
+      phys_state%q = nan
     end if
     if (set_init_val) then
-      phys_state%ncol = 0
+      phys_state%q(:,:,ix_qv) = nan
     end if
     if (set_init_val) then
-      phys_state%pver = 0
+      phys_state%q(:,:,ix_cld_liq) = nan
     end if
-  end subroutine allocate_physics_types_ddt2_fields
+  end subroutine allocate_physics_types_ddt_array_fields
 
-end module physics_types_ddt2
+end module physics_types_ddt_array

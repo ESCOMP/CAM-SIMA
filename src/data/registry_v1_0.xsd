@@ -218,6 +218,7 @@
       <xs:sequence>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="file"/>
+          <xs:element name="metadata_file" type="xs:string"/>
         </xs:choice>
       </xs:sequence>
       <xs:attribute name="name"    type="xs:string"    use="required"/>

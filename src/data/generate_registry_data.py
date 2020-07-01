@@ -31,6 +31,7 @@ if __SPINSCRIPTS not in sys.path:
 from parse_tools import validate_xml_file, read_xml_file
 from parse_tools import find_schema_file, find_schema_version
 from parse_tools import init_log, CCPPError, ParseInternalError
+from metadata_table import MetadataTable
 from fortran_tools import FortranWriter
 # pylint: enable=wrong-import-position
 
@@ -110,6 +111,23 @@ class TypeRegistry(dict):
         # end if
         self[ttype] = TypeEntry(new_type, type_module, type_ddt)
 
+    def is_ddt_type(self, ttype):
+        """Return <ttype>'s DDT type if it is a DDT, otherwise, return None"""
+        if ttype in self:
+            return self[ttype].ddt
+        return None
+
+    def known_ddt_names(self):
+        """Return a list of the known DDT types in this registry"""
+        ddt_names = list()
+        for key in self:
+            ddt = self[key].ddt
+            if ddt:
+                ddt_names.append(ddt.ddt_type)
+            # end if
+        # end for
+        return ddt_names
+
 ###############################################################################
 class VarBase(object):
 ###############################################################################
@@ -188,7 +206,9 @@ class VarBase(object):
         #local string:
         if hasattr(self, 'local_index_name_str'):
             #Then write variable with local index name:
+            # pylint: disable=no-member
             var_name = '{}{}'.format(ddt_str, self.local_index_name_str)
+            # pylint: enable=no-member
         else:
             #Otherwise, use regular local variable name:
             var_name = '{}{}'.format(ddt_str, self.local_name)
@@ -306,6 +326,8 @@ class ArrayElement(VarBase):
             emsg = "Unknown array index, '{}', in '{}'"
             raise CCPPError(emsg.format(self.index_name, parent_name))
         # end if
+        #Save index variable local name:
+        self.__local_index_name = var.local_name
         # Find the location of this element's index
         found = False
         my_dimensions = list()
@@ -346,6 +368,11 @@ class ArrayElement(VarBase):
     def index_name(self):
         """Return the standard name of this array element's index value"""
         return self.__index_name
+
+    @property
+    def local_index_name(self):
+        """Rturn the local name of this array element's index value"""
+        return self.__local_index_name
 
     @property
     def local_index_name_str(self):
@@ -958,7 +985,8 @@ class DDT:
                                  maxtyp=maxtyp, maxacc=maxacc,
                                  maxall=maxall, has_protect=False)
         # end if
-        outfile.write("end type {}\n".format(self.ddt_type), indent)
+        outfile.write("end type {}".format(self.ddt_type), indent)
+        outfile.write("", 0)
 
     @property
     def ddt_type(self):
@@ -1003,7 +1031,8 @@ class File:
                    'number_of_constituents' : 4}
     __min_dim_key = 5 # For sorting unknown dimensions
 
-    def __init__(self, file_node, known_types, dycore, config, logger):
+    def __init__(self, file_node, known_types, dycore, config,
+                 logger, gen_code=True):
         """Initialize a File object from a registry node (XML)"""
         self.__var_dict = VarDict(file_node.get('name'), file_node.get('type'),
                                   logger)
@@ -1012,20 +1041,14 @@ class File:
         self.__known_types = known_types
         self.__ddts = OrderedDict()
         self.__use_statements = list()
+        self.__generate_code = gen_code
         for obj in file_node:
             if obj.tag in ['variable', 'array']:
-                newvar = Variable(obj, self.__known_types, self.__var_dict,
-                                  logger)
-                self.__var_dict.add_variable(newvar)
+                self.add_variable(obj, logger)
             elif obj.tag == 'ddt':
                 newddt = DDT(obj, self.__known_types, self.__var_dict,
                              dycore, config, logger)
-                dmsg = "Adding DDT {} from {} as a known type"
-                dmsg = dmsg.format(newddt.ddt_type, self.__name)
-                logging.debug(dmsg)
-                self.__ddts[newddt.ddt_type] = newddt
-                self.__known_types.add_type(newddt.ddt_type,
-                                            self.__name, newddt)
+                self.add_ddt(newddt, logger=logger)
             elif obj.tag == 'use':
                 module = obj.get('module', default=None)
                 if not module:
@@ -1041,6 +1064,28 @@ class File:
                 raise CCPPError(emsg.format(obj.tag))
             # end if
         # end for
+
+    def add_variable(self, var_node, logger):
+        """Create a Variable from <var_node> and add to this File's
+        variable dictionary"""
+        newvar = Variable(var_node, self.__known_types, self.__var_dict,
+                          logger)
+        self.__var_dict.add_variable(newvar)
+
+    def add_ddt(self, newddt, logger=None):
+        """Add <newddt> to this File's DDT dictionary and known types"""
+        if logger:
+            dmsg = "Adding DDT {} from {} as a known type"
+            dmsg = dmsg.format(newddt.ddt_type, self.__name)
+            logger.debug(dmsg)
+        # end if
+        self.__ddts[newddt.ddt_type] = newddt
+        self.__known_types.add_type(newddt.ddt_type,
+                                    self.__name, type_ddt=newddt)
+
+    def variable_list(self):
+        """Return a list of this File object's variables"""
+        return self.var_dict.variable_list()
 
     def write_metadata(self, outdir, logger):
         """Write out the variables in this file as CCPP metadata"""
@@ -1105,13 +1150,13 @@ class File:
                 outfile.write('use {},{} only: {}'.format(mod, pad, mtype), 1)
             # end for
             # More boilerplate
-            outfile.write("\nimplicit none\nprivate\n", 0)
+            outfile.write("", 0)
+            outfile.write("implicit none\nprivate", 1)
+            outfile.write("", 0)
             # Write DDTs defined in this file
             for ddt in self.__ddts.values():
                 ddt.write_definition(outfile, 'private', 1)
             # end if
-            # Write variable standard and input name arrays
-            self.write_ic_names(outfile, indent-2, logger)
             # Write Variables defined in this file
             self.__var_dict.write_definition(outfile, 'private', 1)
             # Write data management subroutine declarations
@@ -1182,205 +1227,6 @@ class File:
         # end for
         outfile.write('end subroutine {}'.format(subname), 1)
 
-    def write_ic_names(self, outfile, indent, logger):
-        """Write out the Initial Conditions (IC) file variable names arrays"""
-        # pylint: disable=too-many-locals
-
-        #Initialize variables:
-        stdname_max_len = 0
-        ic_name_max_num = 0
-
-        #Create new (empty) list to store variables
-        #with (IC) file input names:
-        variable_list = list()
-
-        #Loop over all DDTs in file:
-        for ddt in self.__ddts.values():
-            #Concatenate DDT variable list onto master list:
-            variable_list.extend(ddt.variable_list())
-
-        #Add file variable list to master list:
-        variable_list.extend(list(self.__var_dict.variable_list()))
-
-        #Loop through variable list to look for array elements:
-        for var in list(variable_list):
-            #Check if array elements are present:
-            if var.elements:
-                #If so, then loop over elements:
-                for element in var.elements:
-                    #Append element as new "variable" in variable list:
-                    variable_list.append(element)
-
-        #Determine max number of IC variable names:
-        try:
-            ic_name_max_num = max([len(var.ic_names) for var in variable_list if var.ic_names is not None])
-        except ValueError:
-            #If there is a ValueError, then likely no IC
-            #input variable names exist, so print warning
-            #and exit function:
-            lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
-                   ", so no input variable name array will be created."
-            logger.warning(lmsg)
-            return
-
-        #Determine max standard name string length:
-        try:
-            stdname_max_len = max([len(var.standard_name) for var in variable_list])
-        except ValueError:
-            #If there are no proper standard names in the list,
-            #then the registry was likely written incorrectly,
-            #so print warning and exit function:
-            lmsg = "No variable standard names were found that contain " \
-                   "IC file input names.\nThus something is likely wrong " \
-                   "with the registry file, or at least the placement of " \
-                   "'<ic_file_input-names>' tags.\nGiven this, no input " \
-                   "variable name array will be created."
-            logger.warning(lmsg)
-            return
-
-        #Determine total number of variables with file input (IC) names:
-        num_vars_with_ic_names = len([var for var in variable_list if var.ic_names is not None])
-
-        #Loop over variables in list:
-        ic_name_max_len = self.find_ic_name_max_len(variable_list)
-
-        #Create fake name with proper length:
-        fake_ic_name = " "*ic_name_max_len
-
-        #Create variable name array string lists:
-        stdname_strs = list()
-        ic_name_strs = list()
-
-        #Initalize loop counter:
-        lpcnt = 0
-
-        #Loop over variables in list:
-        for var in variable_list:
-
-            #Check if variable actually has IC names:
-            if var.ic_names is not None:
-
-                #Add one to loop counter:
-                lpcnt += 1
-
-                #Create standard_name string with proper size,
-                #and append to list:
-                extra_spaces = " " * (stdname_max_len - len(var.standard_name))
-                stdname_strs.append("'{}'".format(var.standard_name + extra_spaces))
-
-                #Determine number of IC names for variable:
-                ic_name_num = len(var.ic_names)
-
-                #Create new (empty) list to store (IC) file
-                #input names of variables with the correct
-                #number of spaces to match character array
-                #dimensions:
-                ic_names_with_spaces = list()
-
-                #Loop over possible input file (IC) names:
-                for ic_name in var.ic_names:
-                    #Create ic_name string with proper size:
-                    extra_spaces = " " * (ic_name_max_len - len(ic_name))
-                    #Add properly-sized name to list:
-                    ic_names_with_spaces.append(ic_name + extra_spaces)
-
-                #Create repeating list of empty, "fake" strings that
-                #increases array to max size:
-                ic_names_with_spaces.extend([fake_ic_name]*(ic_name_max_num - ic_name_num))
-
-                #Append new ic_names to string list:
-                ic_name_strs.append(', '.join("'{}'".format(n) for n in ic_names_with_spaces))
-
-
-        #Create new Fortran integer parameter to store number of variables with IC inputs:
-        outfile.write("!Number of physics variables which can be read from"+ \
-                      " Initial Conditions (IC) file:", indent)
-        outfile.write("integer, public, parameter :: ic_var_num = {}".format(\
-                      num_vars_with_ic_names), indent)
-
-        #Add blank space:
-        outfile.write("", 0)
-
-        #Create another Fortran integer parameter to store max length of
-        #registered variable standard name strings:
-        outfile.write("!Max length of registered variable standard names:", indent)
-        outfile.write("integer, public, parameter :: std_name_len = {}".format(\
-                      stdname_max_len), indent)
-
-        #Write a second blank space:
-        outfile.write("", 0)
-
-        #Create final Fortran integer parameter to store max length of
-        #input variable name string:
-        outfile.write("!Max length of input (IC) file variable names:", indent)
-        outfile.write("integer, public, parameter :: ic_name_len = {}".format(\
-                      ic_name_max_len), indent)
-
-        #Write a third blank space:
-        outfile.write("", 0)
-
-        #Write starting declaration of input standard name array:
-        declare_string = "character(len={}), public :: input_var_stdnames(ic_var_num) = (/ &".format(\
-                         stdname_max_len)
-        outfile.write(declare_string, indent)
-
-        #Write standard names to fortran array:
-        num_strs = len(stdname_strs)
-        for index, stdname_str in enumerate(stdname_strs):
-            if index == num_strs-1:
-                suffix = ' /)'
-            else:
-                suffix = ', &'
-            # end if
-            outfile.write('{}{}'.format(stdname_str, suffix), indent+1)
-
-        #Write a fourth blank space:
-        outfile.write("", 0)
-
-        #Write starting decleration of IC input name array:
-        dec_string = \
-            "character(len={}), public :: input_var_names({}, ic_var_num) = reshape((/ &".format(\
-            ic_name_max_len, ic_name_max_num)
-        outfile.write(dec_string, indent)
-
-        #Write IC names to fortran array:
-        num_strs = len(ic_name_strs)
-        for index, ic_name_str in enumerate(ic_name_strs):
-            if index == num_strs-1:
-                suffix = ' /), (/{}, ic_var_num/))'.format(ic_name_max_num)
-            else:
-                suffix = ', &'
-            # end if
-            outfile.write('{}{}'.format(ic_name_str, suffix), indent+1)
-
-        #Write a final blank space:
-        outfile.write("", 0)
-
-    @staticmethod
-    def find_ic_name_max_len(variable_list):
-        """Determine max length of input (IC) file variable names"""
-
-        #Initialize max IC name string length variable:
-        ic_name_max_len = 0
-
-        #Loop over variables in list:
-        for var in variable_list:
-            #Check if variable actually has IC names:
-            if var.ic_names is not None:
-                #Loop over all IC input names for given variable:
-                for ic_name in var.ic_names:
-                    #Determine IC name string length:
-                    ic_name_len = len(ic_name)
-
-                    #Determine if standard name string length is longer
-                    #then all prvious values:
-                    if ic_name_len > ic_name_max_len:
-                        #If so, then re-set max length variable:
-                        ic_name_max_len = ic_name_len
-
-        #Return max string length of input variable names:
-        return ic_name_max_len
-
     @property
     def name(self):
         """Return this File's name"""
@@ -1390,6 +1236,21 @@ class File:
     def file_type(self):
         """Return this File's type"""
         return self.__type
+
+    @property
+    def ddts(self):
+        """Return list of DDTs in File"""
+        return self.__ddts
+
+    @property
+    def var_dict(self):
+        """Return variable dictionary in File"""
+        return self.__var_dict
+
+    @property
+    def generate_code(self):
+        """Return True if code and metadata should be generated for this File"""
+        return self.__generate_code
 
 ###############################################################################
 def parse_command_line(args, description):
@@ -1422,6 +1283,73 @@ def parse_command_line(args, description):
     return pargs
 
 ###############################################################################
+def metadata_file_to_files(relative_file_path, known_types,
+                           dycore, config, logger):
+###############################################################################
+    """Read the metadata file at <relative_file_path> and convert it to a
+    registry File object.
+    """
+    file_path = os.path.abspath(os.path.join(__CURRDIR, relative_file_path))
+    known_ddts = known_types.known_ddt_names()
+    mfiles = list()
+    if os.path.exists(file_path):
+        meta_headers = MetadataTable.parse_metadata_file(file_path,
+                                                         known_ddts, logger)
+    else:
+        emsg = "Metadata file, '{}', does not exist"
+        raise CCPPError(emsg.format(file_path))
+    # end if
+    # Create a File object with no Variables
+    for mheader in meta_headers:
+        hname = mheader.title
+        htype = mheader.header_type
+        if htype not in ('host', 'module'):
+            emsg = "Metadata type, '{}' not supported."
+            if htype == 'ddt':
+                emsg += '\nOpen an issue to add support for ddt metadata,'
+            # end if
+            raise CCPPError(emsg.format(htype))
+        # end if
+        section = '<file name="{}" type="{}"></file>'.format(hname, htype)
+        sect_xml = ET.fromstring(section)
+        mfile = File(sect_xml, known_types, dycore, config,
+                     logger, gen_code=False)
+        # Add variables
+        for var in mheader.variable_list(loop_vars=False, consts=False):
+            prop = var.get_prop_value('local_name')
+            vnode_str = '<variable local_name="{}"'.format(prop)
+            prop = var.get_prop_value('standard_name')
+            vnode_str += '\n          standard_name="{}"'.format(prop)
+            prop = var.get_prop_value('units')
+            typ = var.get_prop_value('type')
+            vnode_str += '\n          units="{}" type="{}"'.format(prop, typ)
+            prop = var.get_prop_value('kind')
+            if prop:
+                vnode_str += '\n          kind="{}"'.format(prop)
+            # end if
+            vnode_str += '>'
+            dims = var.get_dimensions()
+            if dims:
+                vdims = list()
+                for dim in dims:
+                    if dim[0:18] == 'ccpp_constant_one:':
+                        vdims.append(dim[18:])
+                    else:
+                        vdims.append(dim)
+                    # end if
+                # end for
+                vnode_str += '\n  <dimensions>{}'.format(' '.join(vdims))
+                vnode_str += '</dimensions>'
+            # end if
+            vnode_str += '\n</variable>'
+            var_node = ET.fromstring(vnode_str)
+            mfile.add_variable(var_node, logger)
+        # end if
+        mfiles.append(mfile)
+    # end for
+    return mfiles
+
+###############################################################################
 def write_registry_files(registry, dycore, config, outdir, indent, logger):
 ###############################################################################
     """Write metadata and source files for <registry>
@@ -1438,6 +1366,10 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
                                                            sec_name))
         if section.tag == 'file':
             files.append(File(section, known_types, dycore, config, logger))
+        elif section.tag == 'metadata_file':
+            meta_files = metadata_file_to_files(section.text, known_types,
+                                                dycore, config, logger)
+            files.extend(meta_files)
         else:
             emsg = "Unknown registry object type, '{}'"
             raise CCPPError(emsg.format(section.tag))
@@ -1449,9 +1381,14 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
     # end if
     # Write metadata
     for file_ in files:
-        file_.write_metadata(outdir, logger)
-        file_.write_source(outdir, indent, logger)
+        if file_.generate_code:
+            file_.write_metadata(outdir, logger)
+            file_.write_source(outdir, indent, logger)
+        # end if
     # end for
+
+    # Return list of File objects, for use in initialization code generation
+    return files
 
 ###############################################################################
 def gen_registry(registry_file, dycore, config, outdir, indent,
@@ -1522,10 +1459,10 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         library_name = registry.get('name')
         emsg = "Parsing registry, {}".format(library_name)
         logger.debug(emsg)
-        write_registry_files(registry, dycore, config, outdir, indent, logger)
+        files = write_registry_files(registry, dycore, config, outdir, indent, logger)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode
+    return retcode, files
 
 def main():
     """Function to execute when module called as a script"""
@@ -1542,12 +1479,12 @@ def main():
     else:
         loglevel = logging.INFO
     # end if
-    retcode = gen_registry(args.registry_file, args.dycore.lower(),
-                           args.config, outdir, args.indent,
-                           loglevel=loglevel)
-    return retcode
+    retcode, files = gen_registry(args.registry_file, args.dycore.lower(),
+                                  args.config, outdir, args.indent,
+                                  loglevel=loglevel)
+    return retcode, files
 
 ###############################################################################
 if __name__ == "__main__":
-    __RETCODE = main()
+    __RETCODE, _FILES = main()
     sys.exit(__RETCODE)

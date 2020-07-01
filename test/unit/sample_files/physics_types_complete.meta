@@ -1,0 +1,97 @@
+[ccpp-arg-table]
+  name = physics_base
+  type = ddt
+[ ncol ]
+  standard_name = horizontal_dimension
+  long_name = Number of horizontal columns
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ pver ]
+  standard_name = vertical_layer_dimension
+  long_name = Number of vertical layers
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ccpp-arg-table]
+  name = model_wind
+  type = ddt
+[ u ]
+  standard_name = eastward_wind
+  units = m s-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ v ]
+  standard_name = northward_wind
+  units = m s-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ccpp-arg-table]
+  name = physics_state
+  type = ddt
+[ latitude ]
+  standard_name = latitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ longitude ]
+  standard_name = longitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ wind ]
+  standard_name = model_wind
+  units = None
+  ddt_type = model_wind
+  dimensions = ()
+[ q ]
+  standard_name = constituent_mixing_ratio
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension, number_of_constituents)
+[ q(:,:,index_of_water_vapor_specific_humidity) ]
+  standard_name = water_vapor_specific_humidity
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ q(:,:,index_of_cloud_liquid_water_mixing_ratio) ]
+  standard_name = cloud_liquid_water_mixing_ratio
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ccpp-arg-table]
+  name = physics_types_complete
+  type = module
+[ ix_qv ]
+  standard_name = index_of_water_vapor_specific_humidity
+  units = count
+  type = integer
+  dimensions = ()
+[ ix_cld_liq ]
+  standard_name = index_of_cloud_liquid_water_mixing_ratio
+  units = count
+  type = integer
+  dimensions = ()
+[ param_val_var ]
+  standard_name = made_up_param_variable
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ standard_var ]
+  standard_name = standard_non_ddt_variable
+  units = K
+  type = real
+  dimensions = ()
+[ phys_state ]
+  standard_name = physics_state_from_dynamics
+  long_name = Physics state variables updated by dynamical core
+  units = None
+  ddt_type = physics_state
+  dimensions = ()

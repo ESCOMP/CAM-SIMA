@@ -1,0 +1,56 @@
+[ccpp-arg-table]
+  name = physics_state
+  type = ddt
+[ ncol ]
+  standard_name = horizontal_dimension
+  long_name = Number of horizontal columns
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ latitude ]
+  standard_name = latitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ longitude ]
+  standard_name = longitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ q ]
+  standard_name = constituent_mixing_ratio
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension, number_of_constituents)
+[ q(:,:,index_of_water_vapor_specific_humidity) ]
+  standard_name = water_vapor_specific_humidity
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ q(:,:,index_of_cloud_liquid_water_mixing_ratio) ]
+  standard_name = cloud_liquid_water_mixing_ratio
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ccpp-arg-table]
+  name = physics_types_ddt_array
+  type = module
+[ ix_qv ]
+  standard_name = index_of_water_vapor_specific_humidity
+  units = count
+  type = integer
+  dimensions = ()
+[ ix_cld_liq ]
+  standard_name = index_of_cloud_liquid_water_mixing_ratio
+  units = count
+  type = integer
+  dimensions = ()
+[ phys_state ]
+  standard_name = physics_state_from_dynamics
+  long_name = Physics state variables updated by dynamical core
+  units = None
+  ddt_type = physics_state
+  dimensions = ()

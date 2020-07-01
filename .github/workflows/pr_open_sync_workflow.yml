@@ -41,3 +41,5 @@ jobs:
         python -m doctest src/data/generate_registry_data.py
         # Registry generator unit tests:
         python test/unit/test_registry.py
+        # Physics variable init (phys_init) generator unit tests:
+        python test/unit/write_init_unit_tests.py
