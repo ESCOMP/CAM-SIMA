@@ -31,9 +31,9 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     retcode = 0
 
     #Initialize a new (empty) variable dictionary, with
-    #variable standard name as keys, and variable and
-    #associated DDT object as values:
-    var_type_dict = OrderedDict()
+    #variable standard names as keys, and a list of variable
+    #objects, associated DDT objects, and file names as values:
+    var_info_dict = OrderedDict()
 
     #Initialize a new (empty) master DDT dictionary, with
     #DDT types as keys, and the associated DDT object as values:
@@ -51,15 +51,15 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
             if var.is_ddt:
                 #Extract associated DDT object:
                 ddt = ddt_type_dict[var.var_type]
-                #Add variable to dictionary:
-                var_type_dict[var.standard_name] = [var, ddt]
+                #Add variable to info dictionary:
+                var_info_dict[var.standard_name] = [var, ddt, file_obj.name]
             else:
-                #If not a DDT, then set value to None:
-                var_type_dict[var.standard_name] = [var, None]
+                #If not a DDT, then set DDT value to None:
+                var_info_dict[var.standard_name] = [var, None, file_obj.name]
     #-----------------------
 
     #Create Fortran data object:
-    fort_data = VarFortData(var_type_dict, ddt_type_dict)
+    fort_data = VarFortData(var_info_dict, ddt_type_dict)
 
     #Generate CCPP required variables set:
     ccpp_req_vars_set = find_ccpp_req_vars(cap_datafile)
@@ -193,7 +193,7 @@ class VarFortData:
     using the 'create_data' method.
     """
 
-    def __init__(self, var_type_dict, ddt_type_dict):
+    def __init__(self, var_info_dict, ddt_type_dict):
 
         #Initialize variable standard names list:
         self.__standard_names = list()
@@ -220,7 +220,7 @@ class VarFortData:
         self.__ic_name_max_len = 0
 
         #Loop over Variable type dictionary:
-        for var_info_list in var_type_dict.values():
+        for var_info_list in var_info_dict.values():
             #create relevant Fortran data
             self.create_data(var_info_list, ddt_type_dict)
 
@@ -235,10 +235,11 @@ class VarFortData:
         and dictionaries.
         """
 
-        #Separate "ddt_list" into variable object
-        #and DDT "type":
+        #Separate "info_list" into variable object
+        #, DDT "type", and associated file name:
         var = var_info_list[0]
         var_ddt = var_info_list[1]
+        var_file = var_info_list[2]
 
         #First check if variable is a parameter:
         if var.allocatable == 'parameter':
@@ -270,10 +271,10 @@ class VarFortData:
                     elem_ddt = ddt_type_dict[element.var_type]
 
                     #Create input list with DDT type:
-                    new_elem_info = [element, elem_ddt]
+                    new_elem_info = [element, elem_ddt, var_file]
 
                 else:
-                    new_elem_info = [element, None]
+                    new_elem_info = [element, None, var_file]
 
 
                 #Does variable already have a fortran call?
@@ -281,7 +282,7 @@ class VarFortData:
                 #so include the DDT text here:
                 if var.standard_name in self.__call_dict.keys():
                     self.__call_dict[element.standard_name] = \
-                        self.__call_dict[var.standard_name]
+                        str(self.__call_dict[var.standard_name])
 
                     #Also include the use statement:
                     self.__use_dict[element.standard_name] = \
@@ -291,7 +292,7 @@ class VarFortData:
                     #which will use the parent variable name
                     #directly:
                     self.__use_dict[element.standard_name] = \
-                        var.local_name
+                        [var_file, var.local_name]
 
                 #Apply this function again:
                 self.create_data(new_elem_info, ddt_type_dict, no_use=True)
@@ -304,11 +305,13 @@ class VarFortData:
 
 
         else:
-            #Add variable standard names to list:
-            self.__standard_names.append(var.standard_name)
+            #Add variable info to relevant lists if NOT a DDT:
+            if var_ddt is None:
+                #Add variable standard name to list:
+                self.__standard_names.append(var.standard_name)
 
-            #Add variable IC names to dictionary:
-            self.__ic_names[var.standard_name] = var.ic_names
+                #Add variable IC names to dictionary:
+                self.__ic_names[var.standard_name] = var.ic_names
 
             #Check if variable doesn't have dimensions, or
             #only has "horizontal_dimensions":
@@ -325,35 +328,39 @@ class VarFortData:
                     self.__vert_dict[var.standard_name] = "lev"
 
 
-            #Check if variable doesn't exist in call dictionary:
-            if var.standard_name not in self.__call_dict.keys():
-                #Add to dictionary, with a blank string:
-                self.__call_dict[var.standard_name] = ''
+            #Add variable to call and use dictionaries if NOT protected:
+            if not hasattr(var, "protected") or not var.protected:
 
-            #check if variable doesn't exist in use dictionary:
-            if var.standard_name not in self.__use_dict.keys():
-                #Add to dicttionary, with empty list:
-                self.__use_dict[var.standard_name] = list()
+                #Check if variable doesn't exist in call dictionary:
+                if var.standard_name not in self.__call_dict.keys():
+                    #Add to dictionary, with a blank string:
+                    self.__call_dict[var.standard_name] = ''
 
-            #Check if variable is actually an array:
-            if hasattr(var, "index_name"):
-                #If so, then all call string with
-                #array indexing:
-                self.__call_dict[var.standard_name] += \
-                    var.local_index_name_str
+                #Check if variable doesn't exist in use dictionary:
+                if var.standard_name not in self.__use_dict.keys():
+                    #Add to dicttionary, with only file name present:
+                    self.__use_dict[var.standard_name] = [var_file]
 
-                #Also add index variable to use
-                #statement dictionary:
-                self.__use_dict[var.standard_name].append(var.local_index_name)
-            else:
-                #If not, then simply use local name for both
-                #dictionaries:
-                self.__call_dict[var.standard_name] += \
-                    var.local_name
+                #Check if variable is actually an array:
+                if hasattr(var, "index_name"):
+                    #If so, then all call string with
+                    #array indexing:
+                    self.__call_dict[var.standard_name] += \
+                        var.local_index_name_str
 
-                #Only add the use statement here if "no_use" is False:
-                if not no_use:
-                    self.__use_dict[var.standard_name].append(var.local_name)
+                    #Also add index variable to use
+                    #statement dictionary:
+                    self.__use_dict[var.standard_name].append(var.local_index_name)
+
+                else:
+                    #If not, then simply use local name for both
+                    #dictionaries:
+                    self.__call_dict[var.standard_name] += \
+                        var.local_name
+
+                    #Only add the use statement here if "no_use" is False:
+                    if not no_use:
+                        self.__use_dict[var.standard_name].append(var.local_name)
 
             #Check if variable is actually a DDT:
             if var_ddt is not None:
@@ -366,18 +373,20 @@ class VarFortData:
                         new_ddt = ddt_type_dict[new_var.var_type]
 
                         #Create input list with DDT type:
-                        new_var_info = [new_var, new_ddt]
+                        new_var_info = [new_var, new_ddt, var_file]
 
                     else:
-                        new_var_info = [new_var, None]
+                        new_var_info = [new_var, None, var_file]
 
                     #Add variables to call and use dictionaries,
-                    #with parent DDT included:
-                    self.__call_dict[new_var.standard_name] = \
-                        self.__call_dict[var.standard_name]+"%"
+                    #with parent DDT included, assuming variable is
+                    #not protected:
+                    if not hasattr(var, "protected") or not var.protected:
+                        self.__call_dict[new_var.standard_name] = \
+                            self.__call_dict[var.standard_name]+"%"
 
-                    self.__use_dict[new_var.standard_name] = \
-                        list(self.__use_dict[var.standard_name])
+                        self.__use_dict[new_var.standard_name] = \
+                            list(self.__use_dict[var.standard_name])
 
                     #Apply this function again:
                     self.create_data(new_var_info, ddt_type_dict, no_use=True)
@@ -940,10 +949,11 @@ def write_phys_read_subroutine(outfile, fort_data):
     variables which contain
     """
 
-    #Construct list of variables in use statements:
+    #Construct dictionary of modules 
+    #and variables in use statements:
     #--------------------------------
-    #Create new (empty) list to store use statements:
-    use_vars = list()
+    #Create new (empty) dictionary to store use statements:
+    use_vars_write_dict = OrderedDict()
 
     #Loop over all variable standard names:
     for var_stdname in fort_data.standard_names:
@@ -951,15 +961,22 @@ def write_phys_read_subroutine(outfile, fort_data):
         #Check if variable is in use dictionary:
         if var_stdname in fort_data.use_dict.keys():
 
-            #If so, then extract used variables list:
-            use_var_names = fort_data.use_dict[var_stdname]
+            #If so, then extract variable use statement list:
+            var_use_info = fort_data.use_dict[var_stdname]
 
-            #Loop over used variable list:
-            for use_var_name in use_var_names:
-                #Is variable not already in the list?
-                if use_var_name not in use_vars:
-                    #If not, then add it to list:
-                    use_vars.append(use_var_name)
+            #Extract module name (always first item in list):
+            use_mod_name = var_use_info[0]
+
+            #Check if module name is already in dictionary:
+            if use_mod_name in use_vars_write_dict:
+                #If so, then loop over variable use list:
+                for use_var in var_use_info[1:]:
+                    #If variable doesn't already exist in list, then add it:
+                    if use_var not in use_vars_write_dict[use_mod_name]:
+                        use_vars_write_dict[use_mod_name].append(use_var)
+            else:
+                #Add module name as new key to dictionary:
+                use_vars_write_dict[use_mod_name] = var_use_info[1:]
     #--------------------------------
 
     #Create actual fortran use statements:
@@ -968,41 +985,43 @@ def write_phys_read_subroutine(outfile, fort_data):
     #Create new (empty) list to store use statements:
     use_list = list()
 
-    #Initialize loop counter:
-    lpcnt = 0
+    #Loop over use statement modules:
+    for use_mod in use_vars_write_dict.keys():
 
-    #Loop over use statement variables:
-    for use_var in use_vars:
+        #Initialize loop counter:
+        lpcnt = 0
 
-        #If loop counter is zero, then
-        #create new use string:
-        if lpcnt == 0:
-            use_str = \
-                    "use physics_types,        only: {}".format(\
-                    use_var)
+        #Loop over use statement variables:
+        for use_var in use_vars_write_dict[use_mod]:
 
-            #Advance loop counter by one:
-            lpcnt += 1
+            #If loop counter is zero, then
+            #create new use string:
+            if lpcnt == 0:
+                use_str = \
+                         "use {},        only: {}".format(use_mod, use_var)
 
-        elif lpcnt == 2:
-            #Append variable name to use string
-            use_str += ", {}".format(use_var)
+                #Advance loop counter by one:
+                lpcnt += 1
 
-            #Add use string to list:
-            use_list.append(use_str)
+            elif lpcnt == 2:
+                #Append variable name to use string
+                use_str += ", {}".format(use_var)
 
-            #Reset use_str variable:
-            use_str = None
+                #Add use string to list:
+                use_list.append(use_str)
 
-            #If loop counter is two, then
-            #reset loop counter:
-            lpcnt = 0
-        else:
-            #Append variable name to use string
-            use_str += ", {}".format(use_var)
+                #Reset use_str variable:
+                use_str = None
 
-            #Advance loop counter by one:
-            lpcnt += 1
+                #If loop counter is two, then
+                #reset loop counter:
+                lpcnt = 0
+            else:
+                #Append variable name to use string
+                use_str += ", {}".format(use_var)
+
+                #Advance loop counter by one:
+                lpcnt += 1
 
     #Is there any remaining "use_str" text?
     if use_str:
