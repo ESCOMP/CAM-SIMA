@@ -314,12 +314,11 @@ class VarFortData:
                 self.__ic_names[var.standard_name] = var.ic_names
 
             #Check if variable doesn't have dimensions, or
-            #only has "horizontal_dimensions":
-            if not var.dimensions or (len(var.dimensions) == 1 \
-               and var.dimensions[0]) == 'horizontal_dimension':
-
+            #only has a single dimension:
+            if not var.dimensions or len(var.dimensions) == 1:
                 #Then set vertical level name to None:
                 self.__vert_dict[var.standard_name] = None
+
             else:
                 #If not, then check variable standard name for "at_interface":
                 if var.standard_name.find("at_interface") != -1:
@@ -1023,10 +1022,10 @@ def write_phys_read_subroutine(outfile, fort_data):
                 #Advance loop counter by one:
                 lpcnt += 1
 
-    #Is there any remaining "use_str" text?
-    if use_str:
-        #Add to "use statement" list:
-        use_list.append(use_str)
+        #Is there any remaining "use_str" text?
+        if use_str:
+            #Add to "use statement" list:
+            use_list.append(use_str)
     #-----------------------------
 
     #Create fortran "read_field" calls:
