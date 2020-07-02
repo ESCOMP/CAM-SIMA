@@ -314,9 +314,8 @@ class VarFortData:
                 self.__ic_names[var.standard_name] = var.ic_names
 
             #Check if variable doesn't have dimensions, or
-            #only has "horizontal_dimensions":
-            if not var.dimensions or (len(var.dimensions) == 1 \
-               and var.dimensions[0]) == 'horizontal_dimension':
+            #only has one dimension:
+            if not var.dimensions or len(var.dimensions) == 1:
 
                 #Then set vertical level name to None:
                 self.__vert_dict[var.standard_name] = None
@@ -327,40 +326,36 @@ class VarFortData:
                 else:
                     self.__vert_dict[var.standard_name] = "lev"
 
+            #Check if variable doesn't exist in call dictionary:
+            if var.standard_name not in self.__call_dict.keys():
+                #Add to dictionary, with a blank string:
+                self.__call_dict[var.standard_name] = ''
 
-            #Add variable to call and use dictionaries if NOT protected:
-            if not hasattr(var, "protected") or not var.protected:
+            #Check if variable doesn't exist in use dictionary:
+            if var.standard_name not in self.__use_dict.keys():
+                #Add to dicttionary, with only file name present:
+                self.__use_dict[var.standard_name] = [var_file]
 
-                #Check if variable doesn't exist in call dictionary:
-                if var.standard_name not in self.__call_dict.keys():
-                    #Add to dictionary, with a blank string:
-                    self.__call_dict[var.standard_name] = ''
+            #Check if variable is actually an array:
+            if hasattr(var, "index_name"):
+                #If so, then all call string with
+                #array indexing:
+                self.__call_dict[var.standard_name] += \
+                    var.local_index_name_str
 
-                #Check if variable doesn't exist in use dictionary:
-                if var.standard_name not in self.__use_dict.keys():
-                    #Add to dicttionary, with only file name present:
-                    self.__use_dict[var.standard_name] = [var_file]
+                #Also add index variable to use
+                #statement dictionary:
+                self.__use_dict[var.standard_name].append(var.local_index_name)
 
-                #Check if variable is actually an array:
-                if hasattr(var, "index_name"):
-                    #If so, then all call string with
-                    #array indexing:
-                    self.__call_dict[var.standard_name] += \
-                        var.local_index_name_str
+            else:
+                #If not, then simply use local name for both
+                #dictionaries:
+                self.__call_dict[var.standard_name] += \
+                    var.local_name
 
-                    #Also add index variable to use
-                    #statement dictionary:
-                    self.__use_dict[var.standard_name].append(var.local_index_name)
-
-                else:
-                    #If not, then simply use local name for both
-                    #dictionaries:
-                    self.__call_dict[var.standard_name] += \
-                        var.local_name
-
-                    #Only add the use statement here if "no_use" is False:
-                    if not no_use:
-                        self.__use_dict[var.standard_name].append(var.local_name)
+                #Only add the use statement here if "no_use" is False:
+                if not no_use:
+                    self.__use_dict[var.standard_name].append(var.local_name)
 
             #Check if variable is actually a DDT:
             if var_ddt is not None:
@@ -379,14 +374,12 @@ class VarFortData:
                         new_var_info = [new_var, None, var_file]
 
                     #Add variables to call and use dictionaries,
-                    #with parent DDT included, assuming variable is
-                    #not protected:
-                    if not hasattr(var, "protected") or not var.protected:
-                        self.__call_dict[new_var.standard_name] = \
-                            self.__call_dict[var.standard_name]+"%"
+                    #with parent DDT included:
+                    self.__call_dict[new_var.standard_name] = \
+                        self.__call_dict[var.standard_name]+"%"
 
-                        self.__use_dict[new_var.standard_name] = \
-                            list(self.__use_dict[var.standard_name])
+                    self.__use_dict[new_var.standard_name] = \
+                        list(self.__use_dict[var.standard_name])
 
                     #Apply this function again:
                     self.create_data(new_var_info, ddt_type_dict, no_use=True)
@@ -991,8 +984,14 @@ def write_phys_read_subroutine(outfile, fort_data):
         #Initialize loop counter:
         lpcnt = 0
 
+        print("WTF?????")
+        print(use_mod)
+
         #Loop over use statement variables:
         for use_var in use_vars_write_dict[use_mod]:
+
+            print("What is wrong?")
+            print(use_var)
 
             #If loop counter is zero, then
             #create new use string:
@@ -1023,10 +1022,10 @@ def write_phys_read_subroutine(outfile, fort_data):
                 #Advance loop counter by one:
                 lpcnt += 1
 
-    #Is there any remaining "use_str" text?
-    if use_str:
-        #Add to "use statement" list:
-        use_list.append(use_str)
+        #Is there any remaining "use_str" text?
+        if use_str:
+            #Add to "use statement" list:
+            use_list.append(use_str)
     #-----------------------------
 
     #Create fortran "read_field" calls:
