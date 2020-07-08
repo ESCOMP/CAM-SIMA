@@ -16,8 +16,8 @@ CONTAINS
       use phys_vars_init_check, only: phys_var_stdnames, input_var_names
       use phys_vars_init_check, only: std_name_len
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
-      use physics_types_simple,        only: col_start, col_end, pver
-      use physics_types_simple,        only: dtime, theta
+      use physics_types_ddt,        only: col_start, col_end, pver
+      use physics_types_ddt,        only: dtime, phys_state
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -106,7 +106,8 @@ CONTAINS
             end if
 
             if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, theta)
+               call read_field(file, input_var_names(:,name_idx), 'lev', timestep,                &
+                    phys_state%theta)
             end if
 
          end do !Suite-required variables

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_simple" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="col_start" standard_name="horizontal_loop_begin"
+              units="count" type="integer" allocatable="pointer">
+    </variable>
+    <variable local_name="col_end" standard_name="horizontal_loop_end"
+              units="count" type="integer" allocatable="pointer">
+    </variable>
+    <variable local_name="ncol" standard_name="horizontal_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of horizontal columns</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="pver" standard_name="vertical_layer_dimension"
+              units="count" type="integer" allocatable="pointer">
+    </variable>
+    <variable local_name="dtime" standard_name="time_step_for_physics"
+              units="s" type="real" kind="kind_phys">
+      <long_name>time step</long_name>
+    </variable>
+    <variable local_name="theta" standard_name="potential_temperature"
+              units="K" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>theta pot_temp</ic_file_input_names>
+    </variable>
+  </file>
+</registry>
