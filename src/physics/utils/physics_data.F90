@@ -86,6 +86,7 @@ CONTAINS
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
 
+      !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check, only: ic_name_len
 
       ! Dummy arguments
@@ -129,8 +130,10 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use phys_vert_coord,only: pver, pverp
-      use phys_vars_init_check, only: ic_name_len
+      use phys_vert_coord,   only: pver, pverp
+
+      !Max possible length of variable name in input (IC) file:
+      use phys_vars_init_check,  only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file

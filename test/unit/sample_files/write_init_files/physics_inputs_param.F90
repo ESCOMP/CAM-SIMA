@@ -16,8 +16,8 @@ CONTAINS
       use phys_vars_init_check, only: phys_var_stdnames, input_var_names
       use phys_vars_init_check, only: std_name_len
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
-      use physics_types_simple,        only: col_start, col_end, pver
-      use physics_types_simple,        only: dtime, theta
+      use physics_types_param,        only: col_start, col_end, pver
+      use physics_types_param,        only: theta
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -99,10 +99,6 @@ CONTAINS
 
             if (trim(phys_var_stdnames(name_idx)) == 'vertical_layer_dimension') then
                call read_field(file, input_var_names(:,name_idx), timestep, pver)
-            end if
-
-            if (trim(phys_var_stdnames(name_idx)) == 'time_step_for_physics') then
-               call read_field(file, input_var_names(:,name_idx), timestep, dtime)
             end if
 
             if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then

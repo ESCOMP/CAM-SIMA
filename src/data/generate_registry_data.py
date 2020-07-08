@@ -1328,6 +1328,9 @@ def metadata_file_to_files(relative_file_path, known_types,
                 vnode_str += '\n          kind="{}"'.format(prop)
             # end if
             vnode_str += '>'
+            if var.get_prop_value('protected'):
+                vnode_str += '\n          access="protected"'
+            # end if
             dims = var.get_dimensions()
             if dims:
                 vdims = list()

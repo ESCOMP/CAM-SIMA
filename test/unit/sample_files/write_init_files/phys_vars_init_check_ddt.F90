@@ -10,25 +10,25 @@ module phys_vars_init_check
    integer, public, parameter :: std_name_len = 24
 
    !Max length of input (IC) file variable names:
-   integer, public, parameter :: ic_name_len = 9
+   integer, public, parameter :: ic_name_len = 8
 
    !Array storing all physics-related variable standard names:
    character(len=24), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
       'horizontal_loop_begin   ', &
       'horizontal_loop_end     ', &
-      'horizontal_dimension    ', &
       'vertical_layer_dimension', &
       'time_step_for_physics   ', &
+      'horizontal_dimension    ', &
       'potential_temperature   ' /)
 
    !Array storing all registered IC file input names for each variable:
-   character(len=9), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
-      '         ', '         ', &
-      '         ', '         ', &
-      '         ', '         ', &
-      '         ', '         ', &
-      'dtime    ', 'time_step', &
-      '         ', '         ' /), (/2, phys_var_num/))
+   character(len=8), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
+      '        ', '        ', &
+      '        ', '        ', &
+      '        ', '        ', &
+      '        ', '        ', &
+      '        ', '        ', &
+      'theta   ', 'pot_temp' /), (/2, phys_var_num/))
 
    !Logical array to indicate whether or not variable is initialized:
    logical, public, protected :: initialized_vars(phys_var_num) = (/ &
