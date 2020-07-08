@@ -75,7 +75,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
                "from registered host model variable list:\n {}".format(\
                " ".join(missing_vars))
 
-        #Add error-message to logger, and return with non-zero ret-code:
+        #Add error-message to logger, and return with non-zero retcode:
         logger.error(emsg)
         retcode = 1
         return retcode
@@ -85,7 +85,12 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     fort_data.rm_nonreq_vars(ccpp_req_vars_set)
 
     #Calculate fortran variable and IC name array parameters:
-    fort_data.calc_init_params(logger)
+    retcode = fort_data.calc_init_params(logger)
+
+    #If return code is 2, then no IC variable names were found,
+    #so exit routine here:
+    if retcode == 2:
+        return retcode
 
     #Generate "phys_vars_init_check.F90" file:
     #--------------------------------------
@@ -106,7 +111,8 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write("module phys_vars_init_check\n", 0)
 
         #Add boilerplate code:
-        outfile.write("implicit none\nprivate\n", 0)
+        outfile.write("implicit none\nprivate", 1)
+        outfile.write("", 0)
 
         #Write public parameters:
         write_ic_params(outfile, fort_data)
@@ -155,7 +161,8 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write('module physics_inputs\n', 0)
 
         #Add boilerplate code:
-        outfile.write("implicit none\nprivate\n", 0)
+        outfile.write("implicit none\nprivate", 1)
+        outfile.write("", 0)
 
         #Add public function declarations:
         outfile.write("!! public interfaces", 0)
@@ -457,6 +464,9 @@ class VarFortData:
         to use in generated Fortran code.
         """
 
+        #Initialize reture code:
+        retcode = 0
+
         #Determine total number of variables:
         self.__total_var_num = len(self.__standard_names)
 
@@ -471,15 +481,19 @@ class VarFortData:
                     if ic_names is not None])
         except ValueError:
             #If there is a ValueError, then likely no IC
-            #input variable names exist, so print warning
-            #and exit function:
+            #input variable names exist, so print error
+            #and exit function with proper return code:
+            retcode = 2
             lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
                    ", so no input variable name array will be created."
-            logger.warning(lmsg)
-            return
+            logger.error(lmsg)
+            return retcode
 
         #Deterime max length of input (IC) names:
         self.__find_ic_name_max_len()
+
+        #Exit function normally:
+        return retcode
 
     #####
 
@@ -797,12 +811,6 @@ def write_init_mark_subroutine(outfile):
     #Write a blank space:
     outfile.write("", 0)
 
-    #Add implicit none statement:
-    outfile.write("implicit none", 2)
-
-    #Write a blank space:
-    outfile.write("", 0)
-
     #Add variable declaration statements:
     outfile.write("character(len=*), intent(in) :: varname !Variable name being marked", 2)
     outfile.write("", 0)
@@ -883,9 +891,6 @@ def write_is_init_func(outfile):
     #Write a blank space:
     outfile.write("", 0)
 
-    #Add implicit none statement:
-    outfile.write("implicit none", 2)
-
     #Write a blank space:
     outfile.write("", 0)
 
@@ -940,6 +945,7 @@ def write_is_init_func(outfile):
 
 def write_phys_read_subroutine(outfile, fort_data):
 
+    # pylint: disable=too-many-statements
     """
     Write the "physics_read_data" subroutine, which
     is used to initialize required physics variables
@@ -948,7 +954,7 @@ def write_phys_read_subroutine(outfile, fort_data):
     variables which contain
     """
 
-    #Construct dictionary of modules 
+    #Construct dictionary of modules
     #and variables in use statements:
     #--------------------------------
     #Create new (empty) dictionary to store use statements:
@@ -1095,7 +1101,7 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("!Character array containing all CCPP-required vairable standard names:\n" \
                   "character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
-    outfile.write("!String which stores names of any missing vars:\n" \
+    outfile.write("!Strings which store names of any missing vars:\n" \
                   "character(len=SHR_KIND_CL) :: missing_required_vars\n" \
                   "character(len=SHR_KIND_CL) :: missing_input_names", 2)
     outfile.write("", 0)
@@ -1103,7 +1109,9 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "integer            :: errflg    !CCPP framework error flag\n" \
                   "integer            :: name_idx  !Input variable array index\n" \
                   "integer            :: req_idx   !Required variable array index\n" \
-                  "integer            :: suite_idx !Suite array index", 2)
+                  "integer            :: suite_idx !Suite array index\n" \
+                  "character(len=2)   :: sep  = '' !String separator used to print error messages\n" \
+                  "character(len=2)   :: sep2 = '' !String separator used to print error messages", 2)
     outfile.write("", 0)
 
     #Initialize variables:
@@ -1121,8 +1129,7 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("!Search for all needed CCPP input variables,\n" \
                   "!so that they can bx e read from input file if need be:\n" \
                   "call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
-    outfile.write("errmsg, errflg, input_vars_in=.true., &\n" \
-                  "output_vars_in=.false.)", 4)
+    outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
     outfile.write("", 0)
 
     #Loop over required variables:
@@ -1144,14 +1151,13 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("!If an index was never found, then save variable name and check the rest\n" \
                   "!of the variables, after which the model simulation will end:\n" \
                   "if (name_idx == -1) then", 4)
-    outfile.write("if (len_trim(missing_required_vars) == 0) then", 5)
-    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
-    outfile.write("trim(ccpp_required_data(req_idx))", 7)
-    outfile.write("else", 5)
-    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
-    outfile.write(" ', '//trim(ccpp_required_data(req_idx))", 7)
-    outfile.write("end if\n" \
-                  "!Continue on with variable loop:\n" \
+    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 5)
+    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 6)
+    outfile.write("", 0)
+    outfile.write("!Update character separator to now include comma:\n" \
+                  "sep = ', '", 5)
+    outfile.write("", 0)
+    outfile.write("!Continue on with variable loop:\n" \
                   "cycle", 5)
     outfile.write("end if", 4)
     outfile.write("", 0)
@@ -1162,14 +1168,13 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "!If so, then save variable name and check the rest of the\n" \
                   "!variables, after which the model simulation will end:\n" \
                   "if (len_trim(input_var_names(1,name_idx)) == 0) then", 4)
-    outfile.write("if (len_trim(missing_input_names) == 0) then", 5)
-    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 6)
-    outfile.write("trim(ccpp_required_data(req_idx))", 7)
-    outfile.write("else", 5)
-    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 6)
-    outfile.write(" ', '//trim(ccpp_required_data(req_idx))", 7)
-    outfile.write("end if\n" \
-                  "!Continue on with variable loop:\n" \
+    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 5)
+    outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 6)
+    outfile.write("", 0)
+    outfile.write("!Update character separator to now include comma\n" \
+                  "sep2 = ', '", 5)
+    outfile.write("", 0)
+    outfile.write("!Continue on with variable loop:\n" \
                   "cycle", 5)
     outfile.write("end if", 4)
     outfile.write("", 0)

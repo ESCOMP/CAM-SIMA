@@ -6,7 +6,6 @@ CAM namelist creator
 import sys
 import os
 import shutil
-import filecmp
 import logging
 
 _CIMEROOT = os.environ.get("CIMEROOT")
