@@ -13,6 +13,8 @@ module physics_grid
    public :: get_dlon_p     ! longitude of a physics column in degrees
    public :: get_rlat_p     ! latitude of a physics column in radians
    public :: get_rlon_p     ! longitude of a physics column in radians
+   public :: get_rlats_p    ! latitudes of physics cols in chunk (radians)
+   public :: get_rlons_p    ! longitudes of physics cols in chunk (radians)
    public :: get_area_p     ! area of a physics column in radians squared
    public :: global_index_p ! global column index of a physics column
    public :: local_index_p  ! local column index of a physics column
@@ -29,9 +31,6 @@ module physics_grid
    ! Dycore name and properties
    character(len=8), protected, public :: dycore_name = ''
 
-   ! Physics decomposition information
-   type(physics_column_t), pointer     :: phys_columns(:) => NULL()
-
    ! These variables are last to provide a limited table to search
 
    !> \section arg_table_physics_grid  Argument Table
@@ -41,6 +40,11 @@ module physics_grid
    integer  :: pverp = 0
    integer  :: index_top_layer = 0
    integer  :: index_bottom_layer = 0
+   ! Physics decomposition information
+   type(physics_column_t), pointer     :: phys_columns(:) => NULL()
+
+!   ! temporary rlat
+!   real(kind_phys),allocatable             :: rlat(:)
 
    integer,          protected, public :: num_global_phys_cols = 0
    integer,          protected, public :: columns_on_task = 0
@@ -61,7 +65,7 @@ CONTAINS
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
       use cam_grid_support, only: cam_grid_attribute_copy, cam_grid_attr_exists
       use phys_vert_coord,  only: phys_vert_coord_init
-      
+
       use ref_pres,         only: ref_pres_init
 
       ! Local variables
@@ -104,6 +108,10 @@ CONTAINS
            index_top_layer, index_bottom_layer)
       allocate(pref_edge(pver+1))
       allocate(pref_mid(pver))
+
+!      ! Temporary rlat addition and acquire from dycore
+!      allocate(rlat(columns_on_task))
+!      call get_rlats_p(rlat)
 
       ! Gather info from the dycore
       call get_dyn_grid_info(dyn_columns, pref_edge, pref_mid, num_pr_lev)
@@ -352,6 +360,80 @@ CONTAINS
       end if
 
    end function get_rlon_p
+
+   !========================================================================
+
+   subroutine get_rlats_p(rlats, first_col, last_col)
+      use cam_abortutils, only: endrun
+      !-----------------------------------------------------------------------
+      !
+      ! get_rlats_p: Return all latitudes (in radians)
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      real(r8),          intent(out) :: rlats(:)  ! array of latitudes
+      integer, optional, intent(in)  :: first_col ! Starting column
+      integer, optional, intent(in)  :: last_col  ! Ending column
+
+      ! Local variables
+      integer                     :: bcol, ecol ! starting and ending cols
+      character(len=*), parameter :: subname = 'get_rlats_p: '
+
+      !-----------------------------------------------------------------------
+      if (present(first_col)) then
+         bcol = first_col
+      else
+         bcol = 1
+      end if
+      if (present(last_col)) then
+         ecol = last_col
+      else
+         ecol = columns_on_task
+      end if
+      if (size(rlats) /= (ecol - bcol + 1)) then
+         call endrun(subname//"rlats array is incorrect size")
+      end if
+      rlats = phys_columns(bcol:ecol)%lat_rad
+
+   end subroutine get_rlats_p
+
+   !========================================================================
+
+   subroutine get_rlons_p(rlons, first_col, last_col)
+      use cam_abortutils, only: endrun
+      !-----------------------------------------------------------------------
+      !
+      ! get_rlons_p: Return all longitudes (in radians)
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      real(r8),          intent(out) :: rlons(:)  ! array of longitudes
+      integer, optional, intent(in)  :: first_col ! Starting column
+      integer, optional, intent(in)  :: last_col  ! Ending column
+
+      ! Local variables
+      integer                     :: bcol, ecol ! starting and ending cols
+      character(len=*), parameter :: subname = 'get_rlons_p: '
+
+      !-----------------------------------------------------------------------
+      if (present(first_col)) then
+         bcol = first_col
+      else
+         bcol = 1
+      end if
+      if (present(last_col)) then
+         ecol = last_col
+      else
+         ecol = columns_on_task
+      end if
+      if (size(rlons) /= (ecol - bcol + 1)) then
+         call endrun(subname//"rlons array is incorrect size")
+      end if
+      rlons = phys_columns(bcol:ecol)%lon_rad
+
+   end subroutine get_rlons_p
+
+   !========================================================================
 
    real(r8) function get_area_p(index)
       use cam_logfile,    only: iulog

@@ -11,6 +11,7 @@
   units = Pa
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
+  protected = True
 [ pref_mid_norm ]
   standard_name = reference_pressure_normalized_by_surface_pressure
   units = Pa

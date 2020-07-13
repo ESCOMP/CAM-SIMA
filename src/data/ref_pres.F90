@@ -107,6 +107,8 @@ end subroutine ref_pres_readnl
 
 subroutine ref_pres_init(pver, pverp, pref_edge_in, pref_mid_in, num_pr_lev_in)
 
+use phys_vars_init_check, only: mark_as_initialized
+
    ! Initialize reference pressures
 
    ! arguments
@@ -116,6 +118,8 @@ subroutine ref_pres_init(pver, pverp, pref_edge_in, pref_mid_in, num_pr_lev_in)
    real(kind_phys), intent(in) :: pref_mid_in(:)  ! reference pressure at layer midpoints (Pa)
    integer,  intent(in) :: num_pr_lev_in   ! number of top levels using pure pressure representation
    !---------------------------------------------------------------------------
+
+   call mark_as_initialized("reference_pressure")   ! pref_mid_in
 
    allocate (pref_edge(pverp))
    allocate (pref_mid(pver))

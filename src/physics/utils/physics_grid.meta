@@ -21,3 +21,8 @@
   dimensions = ()
   type = logical
   protected = True
+[ phys_columns ]
+  standard_name = physics_columns
+  units = None
+  dimensions = (horizontal_loop_extent)
+  ddt_type = physics_column_t
