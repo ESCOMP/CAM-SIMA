@@ -23,6 +23,7 @@ CONTAINS
       !variable standard name.
 
       use phys_vars_init_check, only: initialized_vars
+      use phys_vars_init_check, only: protected_vars
       use phys_vars_init_check, only: phys_var_stdnames
       use phys_vars_init_check, only: phys_var_num
 
@@ -43,6 +44,8 @@ CONTAINS
             !If so, then set the index to a quantity that will be skipped:
             if (initialized_vars(idx)) then
                find_input_name_idx = -2
+            else if (protected_vars(idx)) then
+               find_input_name_idx = -3
             else
                !If not already initialized, then pass on the real array index:
                find_input_name_idx = idx

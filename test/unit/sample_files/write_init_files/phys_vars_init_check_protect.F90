@@ -30,6 +30,15 @@ module phys_vars_init_check
       '        ', '        ', &
       'theta   ', 'pot_temp' /), (/2, phys_var_num/))
 
+   !Logical array to indicate whether or not variable is protected:
+   logical, public, protected :: protected_vars(phys_var_num) = (/ &
+      .false., &
+      .false., &
+      .true., &
+      .false., &
+      .false., &
+      .true. /)
+
    !Logical array to indicate whether or not variable is initialized:
    logical, public, protected :: initialized_vars(phys_var_num) = (/ &
       .false., &

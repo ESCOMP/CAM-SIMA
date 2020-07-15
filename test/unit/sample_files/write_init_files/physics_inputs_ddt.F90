@@ -29,8 +29,9 @@ CONTAINS
       !Character array containing all CCPP-required vairable standard names:
       character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
-      !Strings which store names of any missing vars:
+      !Strings which store names of any missing or non-initialized vars:
       character(len=SHR_KIND_CL) :: missing_required_vars
+      character(len=SHR_KIND_CL) :: protected_non_init_vars
       character(len=SHR_KIND_CL) :: missing_input_names
 
       character(len=512) :: errmsg    !CCPP framework error message
@@ -40,9 +41,12 @@ CONTAINS
       integer            :: suite_idx !Suite array index
       character(len=2)   :: sep  = '' !String separator used to print error messages
       character(len=2)   :: sep2 = '' !String separator used to print error messages
+      character(len=2)   :: sep3 = '' !String separator used to print error messages
+      
 
-      !Initalize missing variables string:
+      !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
+      protected_non_init_vars = ' '
       missing_input_names   = ' '
 
       !Loop over CCPP physics/chemistry suites:
@@ -75,15 +79,29 @@ CONTAINS
                cycle
             end if
 
-            !Next, check that the input variable names aren't blank.
+            !If an index was found for a protected variable, but that variable
+            !was never marked as initialized, then save the variable name and check
+            !the rest of the variables, after which the model simulation will end:
+            if (name_idx == -3) then
+               protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &
+                  trim(sep2)//trim(ccpp_required_data(req_idx))
+
+               !Update character separator to now include comma:
+               sep2 = ', '
+
+               !Continue on with variable loop:
+               cycle
+            end if
+
+            !Finally, check that the input variable names aren't blank.
             !If so, then save variable name and check the rest of the
             !variables, after which the model simulation will end:
             if (len_trim(input_var_names(1,name_idx)) == 0) then
                missing_input_names(len_trim(missing_input_names)+1:) = &
-                  trim(sep2)//trim(ccpp_required_data(req_idx))
+                  trim(sep3)//trim(ccpp_required_data(req_idx))
 
                !Update character separator to now include comma
-               sep2 = ', '
+               sep3 = ', '
 
                !Continue on with variable loop:
                cycle
@@ -117,6 +135,13 @@ CONTAINS
          if (len_trim(missing_required_vars) > 0) then
             call endrun("Required variables missing from registered list of input variables: "//&
                trim(missing_required_vars))
+         end if
+
+         !End simulation if there are protected input
+         !variables that are not initialized:
+         if (len_trim(protected_non_init_vars) > 0) then
+            call endrun("Required, protected input variables are not initialized: "//&
+               trim(protected_non_init_vars))
          end if
 
          !End simulation if there are variables that

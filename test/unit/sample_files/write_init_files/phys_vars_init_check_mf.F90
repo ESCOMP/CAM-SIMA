@@ -30,6 +30,15 @@ module phys_vars_init_check
       'dtime    ', 'time_step', &
       '         ', '         ' /), (/2, phys_var_num/))
 
+   !Logical array to indicate whether or not variable is protected:
+   logical, public, protected :: protected_vars(phys_var_num) = (/ &
+      .false., &
+      .false., &
+      .true., &
+      .false., &
+      .false., &
+      .false. /)
+
    !Logical array to indicate whether or not variable is initialized:
    logical, public, protected :: initialized_vars(phys_var_num) = (/ &
       .false., &
