@@ -8,6 +8,11 @@ module physics_data
    public :: find_input_name_idx
    public :: read_field
 
+   !Non-standard variable indices:
+   integer, public, parameter :: no_exist_idx     = -1
+   integer, public, parameter :: init_mark_idx    = -2
+   integer, public, parameter :: prot_no_init_idx = -3
+
    interface read_field
       module procedure read_field_2d
       module procedure read_field_3d
@@ -34,7 +39,7 @@ CONTAINS
       integer                       :: idx
 
       !Initialize function:
-      find_input_name_idx = -1
+      find_input_name_idx = no_exist_idx
 
       !Loop through physics variable standard names:
       do idx = 1, phys_var_num
@@ -43,9 +48,9 @@ CONTAINS
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (initialized_vars(idx)) then
-               find_input_name_idx = -2
+               find_input_name_idx = init_mark_idx
             else if (protected_vars(idx)) then
-               find_input_name_idx = -3
+               find_input_name_idx = prot_no_init_idx
             else
                !If not already initialized, then pass on the real array index:
                find_input_name_idx = idx

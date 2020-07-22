@@ -1032,7 +1032,7 @@ class File:
     __min_dim_key = 5 # For sorting unknown dimensions
 
     def __init__(self, file_node, known_types, dycore, config,
-                 logger, gen_code=True):
+                 logger, gen_code=True, file_path=None):
         """Initialize a File object from a registry node (XML)"""
         self.__var_dict = VarDict(file_node.get('name'), file_node.get('type'),
                                   logger)
@@ -1042,6 +1042,7 @@ class File:
         self.__ddts = OrderedDict()
         self.__use_statements = list()
         self.__generate_code = gen_code
+        self.__file_path = file_path
         for obj in file_node:
             if obj.tag in ['variable', 'array']:
                 self.add_variable(obj, logger)
@@ -1252,6 +1253,11 @@ class File:
         """Return True if code and metadata should be generated for this File"""
         return self.__generate_code
 
+    @property
+    def file_path(self):
+        """Return file path if provided, otherwise return None"""
+        return self.__file_path
+
 ###############################################################################
 def parse_command_line(args, description):
 ###############################################################################
@@ -1313,7 +1319,7 @@ def metadata_file_to_files(relative_file_path, known_types,
         section = '<file name="{}" type="{}"></file>'.format(hname, htype)
         sect_xml = ET.fromstring(section)
         mfile = File(sect_xml, known_types, dycore, config,
-                     logger, gen_code=False)
+                     logger, gen_code=False, file_path=file_path)
         # Add variables
         for var in mheader.variable_list(loop_vars=False, consts=False):
             prop = var.get_prop_value('local_name')

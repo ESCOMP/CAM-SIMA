@@ -13,6 +13,7 @@ CONTAINS
       use cam_abortutils,       only: endrun
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL
       use physics_data,         only: read_field, find_input_name_idx
+      use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
       use phys_vars_init_check, only: phys_var_stdnames, input_var_names
       use phys_vars_init_check, only: std_name_len
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
@@ -42,7 +43,6 @@ CONTAINS
       character(len=2)   :: sep  = '' !String separator used to print error messages
       character(len=2)   :: sep2 = '' !String separator used to print error messages
       character(len=2)   :: sep3 = '' !String separator used to print error messages
-      
 
       !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
@@ -63,70 +63,74 @@ CONTAINS
             !Find IC file input name array index for required variable:
             name_idx = find_input_name_idx(ccpp_required_data(req_idx))
 
-            !If variable is already initialized, then skip it:
-            if (name_idx == -2) cycle
+            !Check for special index values:
+            select case (name_idx)
 
-            !If an index was never found, then save variable name and check the rest
-            !of the variables, after which the model simulation will end:
-            if (name_idx == -1) then
-               missing_required_vars(len_trim(missing_required_vars)+1:) = &
-                  trim(sep)//trim(ccpp_required_data(req_idx))
+               case (init_mark_idx)
 
-               !Update character separator to now include comma:
-               sep = ', '
+                  !If variable is already initialized, then do nothing.
 
-               !Continue on with variable loop:
-               cycle
-            end if
+               case (no_exist_idx)
 
-            !If an index was found for a protected variable, but that variable
-            !was never marked as initialized, then save the variable name and check
-            !the rest of the variables, after which the model simulation will end:
-            if (name_idx == -3) then
-               protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &
-                  trim(sep2)//trim(ccpp_required_data(req_idx))
+                  !If an index was never found, then save variable name and check the rest
+                  !of the variables, after which the model simulation will end:
+                  missing_required_vars(len_trim(missing_required_vars)+1:) = &
+                     trim(sep)//trim(ccpp_required_data(req_idx))
 
-               !Update character separator to now include comma:
-               sep2 = ', '
+                  !Update character separator to now include comma:
+                  sep = ', '
 
-               !Continue on with variable loop:
-               cycle
-            end if
+               case (prot_no_init_idx)
 
-            !Finally, check that the input variable names aren't blank.
-            !If so, then save variable name and check the rest of the
-            !variables, after which the model simulation will end:
-            if (len_trim(input_var_names(1,name_idx)) == 0) then
-               missing_input_names(len_trim(missing_input_names)+1:) = &
-                  trim(sep3)//trim(ccpp_required_data(req_idx))
+                  !If an index was found for a protected variable, but that variable
+                  !was never marked as initialized, then save the variable name and check
+                  !the rest of the variables, after which the model simulation will end:
+                  protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &
+                     trim(sep2)//trim(ccpp_required_data(req_idx))
 
-               !Update character separator to now include comma
-               sep3 = ', '
+                  !Update character separator to now include comma:
+                  sep2 = ', '
 
-               !Continue on with variable loop:
-               cycle
-            end if
+               case default
 
-            if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_begin') then
-               call read_field(file, input_var_names(:,name_idx), timestep, col_start)
-            end if
+                  !Check that the input variable names aren't blank.
+                  !If so, then save variable name and check the rest of the
+                  !variables, after which the model simulation will end:
+                  if (len_trim(input_var_names(1,name_idx)) == 0) then
+                     missing_input_names(len_trim(missing_input_names)+1:) = &
+                        trim(sep3)//trim(ccpp_required_data(req_idx))
 
-            if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_end') then
-               call read_field(file, input_var_names(:,name_idx), timestep, col_end)
-            end if
+                     !Update character separator to now include comma
+                     sep3 = ', '
 
-            if (trim(phys_var_stdnames(name_idx)) == 'vertical_layer_dimension') then
-               call read_field(file, input_var_names(:,name_idx), timestep, pver)
-            end if
+                     !Continue on with variable loop:
+                     cycle
+                  end if
 
-            if (trim(phys_var_stdnames(name_idx)) == 'time_step_for_physics') then
-               call read_field(file, input_var_names(:,name_idx), timestep, dtime)
-            end if
+                  !Read variable from IC file:
 
-            if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep,                &
-                    phys_state%theta)
-            end if
+                  if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_begin') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, col_start)
+                  end if
+
+                  if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_end') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, col_end)
+                  end if
+
+                  if (trim(phys_var_stdnames(name_idx)) == 'vertical_layer_dimension') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, pver)
+                  end if
+
+                  if (trim(phys_var_stdnames(name_idx)) == 'time_step_for_physics') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, dtime)
+                  end if
+
+                  if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
+                     call read_field(file, input_var_names(:,name_idx), 'lev', timestep,          &
+                          phys_state%theta)
+                  end if
+
+            end select !special indices
 
          end do !Suite-required variables
 
@@ -158,6 +162,5 @@ CONTAINS
       end do !CCPP suites
 
    end subroutine physics_read_data
-
 
 end module physics_inputs

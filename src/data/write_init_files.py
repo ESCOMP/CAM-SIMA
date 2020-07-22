@@ -174,9 +174,6 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, fort_data)
 
-        #Add a blank space:
-        outfile.write("", 0)
-
         #End module:
         outfile.write('\nend module physics_inputs', 0)
     #--------------------------------------
@@ -1118,6 +1115,7 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "use cam_abortutils,       only: endrun\n" \
                   "use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL\n" \
                   "use physics_data,         only: read_field, find_input_name_idx\n" \
+                  "use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx\n" \
                   "use phys_vars_init_check, only: phys_var_stdnames, input_var_names\n" \
                   "use phys_vars_init_check, only: std_name_len\n" \
                   "use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
@@ -1153,7 +1151,7 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "integer            :: suite_idx !Suite array index\n" \
                   "character(len=2)   :: sep  = '' !String separator used to print error messages\n" \
                   "character(len=2)   :: sep2 = '' !String separator used to print error messages\n" \
-                  "character(len=2)   :: sep3 = '' !String separator used to print error messages\n", 2)
+                  "character(len=2)   :: sep3 = '' !String separator used to print error messages", 2)
     outfile.write("", 0)
 
     #Initialize variables:
@@ -1183,70 +1181,78 @@ def write_phys_read_subroutine(outfile, fort_data):
     #Call input name search function:
     outfile.write("!Find IC file input name array index for required variable:\n" \
                   "name_idx = find_input_name_idx(ccpp_required_data(req_idx))", 4)
+
+    #Start select-case statement:
+    outfile.write("", 0)
+    outfile.write("!Check for special index values:\n" \
+                  "select case (name_idx)", 4)
     outfile.write("", 0)
 
     #Skip already initialized variables:
-    outfile.write("!If variable is already initialized, then skip it:\n" \
-                  "if (name_idx == -2) cycle", 4)
+    outfile.write("case (init_mark_idx)", 5)
+    outfile.write("", 0)
+    outfile.write("!If variable is already initialized, then do nothing.", 6)
     outfile.write("", 0)
 
     #Generate error message if required variable isn't found:
+    outfile.write("case (no_exist_idx)", 5)
+    outfile.write("", 0)
     outfile.write("!If an index was never found, then save variable name and check the rest\n" \
                   "!of the variables, after which the model simulation will end:\n" \
-                  "if (name_idx == -1) then", 4)
-    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 5)
-    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 6)
+                  "missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
+    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
     outfile.write("!Update character separator to now include comma:\n" \
-                  "sep = ', '", 5)
-    outfile.write("", 0)
-    outfile.write("!Continue on with variable loop:\n" \
-                  "cycle", 5)
-    outfile.write("end if", 4)
+                  "sep = ', '", 6)
     outfile.write("", 0)
 
     #Generate error message if required variable is protected but not initialized:
+    outfile.write("case (prot_no_init_idx)", 5)
+    outfile.write("", 0)
     outfile.write("!If an index was found for a protected variable, but that variable\n" \
                   "!was never marked as initialized, then save the variable name and check\n" \
                   "!the rest of the variables, after which the model simulation will end:\n" \
-                  "if (name_idx == -3) then", 4)
-    outfile.write("protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &", 5)
-    outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 6)
+                  "protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &", 6)
+    outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
     outfile.write("!Update character separator to now include comma:\n" \
-                  "sep2 = ', '", 5)
+                  "sep2 = ', '", 6)
     outfile.write("", 0)
-    outfile.write("!Continue on with variable loop:\n" \
-                  "cycle", 5)
-    outfile.write("end if", 4)
+
+    #start default case steps:
+    outfile.write("case default", 5)
     outfile.write("", 0)
 
     #Generate error message if required variable contains no input names
     #(i.e. the <ic_file_input_names> registry tag is missing):
-    outfile.write("!Finally, check that the input variable names aren't blank.\n" \
+    outfile.write("!Check that the input variable names aren't blank.\n" \
                   "!If so, then save variable name and check the rest of the\n" \
                   "!variables, after which the model simulation will end:\n" \
-                  "if (len_trim(input_var_names(1,name_idx)) == 0) then", 4)
-    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 5)
-    outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 6)
+                  "if (len_trim(input_var_names(1,name_idx)) == 0) then", 6)
+    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 7)
+    outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 8)
     outfile.write("", 0)
     outfile.write("!Update character separator to now include comma\n" \
-                  "sep3 = ', '", 5)
+                  "sep3 = ', '", 7)
     outfile.write("", 0)
     outfile.write("!Continue on with variable loop:\n" \
-                  "cycle", 5)
-    outfile.write("end if", 4)
+                  "cycle", 7)
+    outfile.write("end if", 6)
     outfile.write("", 0)
 
 
     #Generate "read_field" calls:
+    outfile.write("!Read variable from IC file:", 6)
+    outfile.write("", 0)
     for if_call, read_call in call_string_dict.items():
-        outfile.write(if_call, 4)
-        outfile.write(read_call, 5)
-        outfile.write("end if", 4)
+        outfile.write(if_call, 6)
+        outfile.write(read_call, 7)
+        outfile.write("end if", 6)
         outfile.write("", 0)
 
-    #End required variables loop:
+    #End select catse and required variables loop:
+    outfile.write("end select !special indices", 4)
+    outfile.write("", 0)
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
 
