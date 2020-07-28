@@ -206,6 +206,7 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
         for reg_file in registry_files:
             retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config,
                                                   genreg_dir, gen_fort_indent,
+                                                  source_mods_dir, atm_root,
                                                   logger=_LOGGER,
                                                   schema_paths=data_search,
                                                   error_on_no_validate=True)
