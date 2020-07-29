@@ -41,10 +41,7 @@ module physics_grid
    integer  :: index_top_layer = 0
    integer  :: index_bottom_layer = 0
    ! Physics decomposition information
-   type(physics_column_t), pointer     :: phys_columns(:) => NULL()
-
-!   ! temporary rlat
-!   real(kind_phys),allocatable             :: rlat(:)
+   type(physics_column_t), pointer, public     :: phys_columns(:) => NULL()
 
    integer,          protected, public :: num_global_phys_cols = 0
    integer,          protected, public :: columns_on_task = 0
@@ -108,10 +105,6 @@ CONTAINS
            index_top_layer, index_bottom_layer)
       allocate(pref_edge(pver+1))
       allocate(pref_mid(pver))
-
-!      ! Temporary rlat addition and acquire from dycore
-!      allocate(rlat(columns_on_task))
-!      call get_rlats_p(rlat)
 
       ! Gather info from the dycore
       call get_dyn_grid_info(dyn_columns, pref_edge, pref_mid, num_pr_lev)

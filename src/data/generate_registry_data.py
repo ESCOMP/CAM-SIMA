@@ -1032,7 +1032,7 @@ class File:
     __min_dim_key = 5 # For sorting unknown dimensions
 
     def __init__(self, file_node, known_types, dycore, config,
-                 logger, gen_code=True):
+                 logger, gen_code=True, file_path=None):
         """Initialize a File object from a registry node (XML)"""
         self.__var_dict = VarDict(file_node.get('name'), file_node.get('type'),
                                   logger)
@@ -1042,6 +1042,7 @@ class File:
         self.__ddts = OrderedDict()
         self.__use_statements = list()
         self.__generate_code = gen_code
+        self.__file_path = file_path
         for obj in file_node:
             if obj.tag in ['variable', 'array']:
                 self.add_variable(obj, logger)
@@ -1252,6 +1253,11 @@ class File:
         """Return True if code and metadata should be generated for this File"""
         return self.__generate_code
 
+    @property
+    def file_path(self):
+        """Return file path if provided, otherwise return None"""
+        return self.__file_path
+
 ###############################################################################
 def parse_command_line(args, description):
 ###############################################################################
@@ -1272,6 +1278,10 @@ def parse_command_line(args, description):
                               "(e.g., gravity_waves=True)"))
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Directory where output files will be written")
+    parser.add_argument("--source-mods", type=str, default=None,
+                        help="A SourceMods directory location")
+    parser.add_argument("--source-root", type=str, default=None,
+                        help="Pathname of top of model code tree")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--debug", action='store_true',
                        help='Increase logging', default=False)
@@ -1283,18 +1293,17 @@ def parse_command_line(args, description):
     return pargs
 
 ###############################################################################
-def metadata_file_to_files(relative_file_path, known_types,
-                           dycore, config, logger):
+def metadata_file_to_files(file_path, known_types, dycore, config, logger):
 ###############################################################################
     """Read the metadata file at <relative_file_path> and convert it to a
     registry File object.
     """
-    file_path = os.path.abspath(os.path.join(__CURRDIR, relative_file_path))
     known_ddts = known_types.known_ddt_names()
     mfiles = list()
     if os.path.exists(file_path):
         meta_headers = MetadataTable.parse_metadata_file(file_path,
                                                          known_ddts, logger)
+        logger.info("Parsing metadata_file, '{}'".format(file_path))
     else:
         emsg = "Metadata file, '{}', does not exist"
         raise CCPPError(emsg.format(file_path))
@@ -1303,17 +1312,19 @@ def metadata_file_to_files(relative_file_path, known_types,
     for mheader in meta_headers:
         hname = mheader.title
         htype = mheader.header_type
-        if htype not in ('host', 'module'):
+        fname = mheader.name
+        if htype not in ('host', 'module', 'ddt'):
             emsg = "Metadata type, '{}' not supported."
-            if htype == 'ddt':
-                emsg += '\nOpen an issue to add support for ddt metadata,'
-            # end if
             raise CCPPError(emsg.format(htype))
         # end if
-        section = '<file name="{}" type="{}"></file>'.format(hname, htype)
+        if htype == 'ddt':
+            section = '<file name="{}" type="{}"></file>'.format(fname, htype)
+        else:
+            section = '<file name="{}" type="{}"></file>'.format(hname, htype)
+        # end if
         sect_xml = ET.fromstring(section)
         mfile = File(sect_xml, known_types, dycore, config,
-                     logger, gen_code=False)
+                     logger, gen_code=False, file_path=file_path)
         # Add variables
         for var in mheader.variable_list(loop_vars=False, consts=False):
             prop = var.get_prop_value('local_name')
@@ -1322,10 +1333,10 @@ def metadata_file_to_files(relative_file_path, known_types,
             vnode_str += '\n          standard_name="{}"'.format(prop)
             prop = var.get_prop_value('units')
             typ = var.get_prop_value('type')
+            kind = var.get_prop_value('kind')
             vnode_str += '\n          units="{}" type="{}"'.format(prop, typ)
-            prop = var.get_prop_value('kind')
-            if prop:
-                vnode_str += '\n          kind="{}"'.format(prop)
+            if kind and (typ != kind):
+                vnode_str += '\n          kind="{}"'.format(kind)
             # end if
             vnode_str += '>'
             if var.get_prop_value('protected'):
@@ -1347,15 +1358,33 @@ def metadata_file_to_files(relative_file_path, known_types,
             vnode_str += '\n</variable>'
             var_node = ET.fromstring(vnode_str)
             mfile.add_variable(var_node, logger)
+        # end for
+        if htype == 'ddt':
+            # We defined the variables, now create the DDT for them.
+            vnode_str = '<ddt type="{}">'.format(hname)
+            for var in mheader.variable_list(loop_vars=False, consts=False):
+                prop = var.get_prop_value('standard_name')
+                vnode_str += '\n  <data>{}</data>'.format(prop)
+            # end for
+            vnode_str += '\n</ddt>'
+            var_node = ET.fromstring(vnode_str)
+            new_ddt = DDT(var_node, known_types, mfile.var_dict,
+                          dycore, config, logger)
+            mfile.add_ddt(new_ddt, logger=logger)
         # end if
         mfiles.append(mfile)
     # end for
     return mfiles
 
 ###############################################################################
-def write_registry_files(registry, dycore, config, outdir, indent, logger):
+def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
+                         reg_dir, indent, logger):
 ###############################################################################
-    """Write metadata and source files for <registry>
+    """Write metadata and source files for <registry> to <outdir>
+    <src_mod> is the location of the CAM SourceMods. Try this location first
+        to locate a metadata file.
+    <src_root> is useful if a metadata file path has "$SRCROOT"
+    <reg_dir> is used as a parent path if a metadata file is a relative path.
 
     >>> File(ET.fromstring('<variable name="physics_types" type="module"><user reference="kind_phys"/></variable>'), TypeRegistry(), 'eul', "", None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
@@ -1365,12 +1394,36 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
     known_types = TypeRegistry()
     for section in registry:
         sec_name = section.get('name')
-        logger.info("Parsing {}, {}, from registry".format(section.tag,
-                                                           sec_name))
+        if sec_name:
+            logger.info("Parsing {}, {}, from registry".format(section.tag,
+                                                               sec_name))
+        # end if
         if section.tag == 'file':
             files.append(File(section, known_types, dycore, config, logger))
         elif section.tag == 'metadata_file':
-            meta_files = metadata_file_to_files(section.text, known_types,
+            # Find the correct file path and parse that metadata file
+            relative_file_path = section.text
+            # First look in SourceMods
+            if src_mod:
+                file_path = os.path.join(src_mod,
+                                         os.path.basename(relative_file_path))
+            else:
+                file_path = os.path.basename(relative_file_path)
+            # end if
+            if not os.path.exists(file_path):
+                # Next, see if a substitution can be made
+                if src_root:
+                    file_path = relative_file_path.replace("$SRCROOT", src_root)
+                else:
+                    file_path = relative_file_path.replace("$SRCROOT", os.cudir)
+                # end if
+                # Make sure we have an absolute path
+                if not os.path.isabs(file_path):
+                    file_path = os.path.abspath(os.path.join(reg_dir,
+                                                             file_path))
+                # end if
+            # end if
+            meta_files = metadata_file_to_files(file_path, known_types,
                                                 dycore, config, logger)
             files.extend(meta_files)
         else:
@@ -1395,14 +1448,16 @@ def write_registry_files(registry, dycore, config, outdir, indent, logger):
 
 ###############################################################################
 def gen_registry(registry_file, dycore, config, outdir, indent,
-                 loglevel=None, logger=None, schema_paths=None,
-                 error_on_no_validate=False):
+                 src_mod, src_root, loglevel=None, logger=None,
+                 schema_paths=None, error_on_no_validate=False):
 ###############################################################################
     """Parse a registry XML file and generate source code and metadata.
     <dycore> is the name of the dycore for DP coupling specialization.
     <config> is a dictionary containing other configuration items for
        souce code customization.
     Source code and metadata is output to <outdir>.
+    <src_mod> is the location of the builds SourceMods/src.cam directory
+    <src_root> is the top of the component tree
     <indent> is the number of spaces between indent levels.
     Set <debug> to True for more logging output."""
     if not logger:
@@ -1462,7 +1517,9 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         library_name = registry.get('name')
         emsg = "Parsing registry, {}".format(library_name)
         logger.debug(emsg)
-        files = write_registry_files(registry, dycore, config, outdir, indent, logger)
+        reg_dir = os.path.dirname(registry_file)
+        files = write_registry_files(registry, dycore, config, outdir, src_mod,
+                                     src_root, reg_dir, indent, logger)
         retcode = 0 # Throw exception on error
     # end if
     return retcode, files
@@ -1483,7 +1540,8 @@ def main():
         loglevel = logging.INFO
     # end if
     retcode, files = gen_registry(args.registry_file, args.dycore.lower(),
-                                  args.config, outdir, args.indent,
+                                  args.config, outdir, args.source_mods,
+                                  args.source_root, args.indent,
                                   loglevel=loglevel)
     return retcode, files
 

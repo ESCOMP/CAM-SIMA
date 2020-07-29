@@ -194,6 +194,7 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
         # Load and run the registry generator
         sys.path.append(gen_reg_path)
         #pylint: disable=wrong-import-position
+        #pylint: disable=import-outside-toplevel
         try:
             from generate_registry_data import gen_registry
         except ImportError as ierr:
@@ -201,11 +202,14 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
             raise CamConfigError(emsg.format(gen_reg_path, ierr))
         # End try
         #pylint: enable=wrong-import-position
+        #pylint: enable=import-outside-toplevel
         for reg_file in registry_files:
             retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config,
                                                   genreg_dir, gen_fort_indent,
+                                                  source_mods_dir, atm_root,
                                                   logger=_LOGGER,
-                                                  schema_paths=data_search)
+                                                  schema_paths=data_search,
+                                                  error_on_no_validate=True)
             emsg = "Unable to generate CAM data structures from {}, err = {}"
             expect(retcode == 0, emsg.format(reg_file, retcode))
 
@@ -222,7 +226,7 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
 
 ###############################################################################
 def _generate_physics_suites(build_cache, case, config, atm_root,
-                             bldroot, reg_dir, source_mods_dir, force):
+                             bldroot, reg_dir, reg_files, source_mods_dir, force):
 ###############################################################################
     """Generate the source for the configured physics suites,
     if required (new case or changes to suite source(s) or metadata)."""
@@ -236,10 +240,12 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
     spin_root = os.path.join(atm_root, "ccpp_framework")
     sys.path.append(os.path.join(spin_root, 'scripts'))
     #pylint: disable=wrong-import-position
+    #pylint: disable=import-outside-toplevel
     from ccpp_capgen import capgen
     from metadata_table import MetadataTable
     from parse_tools import read_xml_file
     #pylint: enable=wrong-import-position
+    #pylint: enable=import-outside-toplevel
     # Collect all source directories
     source_search = [source_mods_dir,
                      os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
@@ -279,13 +285,17 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
     genccpp_dir = os.path.join(bldroot, "ccpp")
     preproc_defs = case.get_value('CAM_CPPDEFS')
     kind_phys = 'REAL64'
+
     # reg_dir needs to be first as the DDTs are defined there.
     host_files = glob.glob(os.path.join(reg_dir, "*.meta"))
-    ##XXgoldyXX: Add cam_in_t and cam_out_t
-    host_files.extend(glob.glob(os.path.join(atm_root, "src", "physics",
-                                             "utils", "*.meta")))
-    host_files.extend(glob.glob(os.path.join(atm_root, "src",
-                                             "data", "*.meta")))
+
+    # Loop over all registered files:
+    for reg_file in reg_files:
+        if reg_file.file_path:
+            #If the file path is provided, then add it to
+            #the host model files list for use by CCPP's capgen:
+            host_files.append(reg_file.file_path)
+
     if os.path.exists(genccpp_dir):
         do_gen_ccpp = force or build_cache.ccpp_mismatch(sdfs, scheme_files,
                                                          preproc_defs,
@@ -330,6 +340,8 @@ def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
        (new case or changes to registry or CCPP source(s), meta-data,
        and/or script)."""
 
+    # pylint: disable=too-many-locals
+
     # Find the "write_init_files.py" generation routine
     # Try SourceMods first.
     data_path = os.path.join(atm_root, "src", "data")
@@ -360,6 +372,7 @@ def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
         # Load and run the init source files generator
         sys.path.append(gen_init_path)
         #pylint: disable=wrong-import-position
+        #pylint: disable=import-outside-toplevel
         try:
             import write_init_files as write_init
         except ImportError as ierr:
@@ -367,6 +380,7 @@ def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
             raise CamConfigError(emsg.format(gen_init_path, ierr))
         # End try
         #pylint: enable=wrong-import-position
+        #pylint: enable=import-outside-toplevel
         #Run initialization files generator:
         retcode = write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
                                               cap_datafile, _LOGGER)
@@ -437,7 +451,8 @@ def _build_cam():
         phys_dirs, force_init, cap_datafile = \
                                _generate_physics_suites(build_cache, case, config,
                                                         atm_root, bldroot, reg_dir,
-                                                        source_mods_dir, force_ccpp)
+                                                        reg_files, source_mods_dir,
+                                                        force_ccpp)
 
         #-------------------------------------------------------
         # Create host model variable initialization routines
@@ -498,9 +513,9 @@ def _build_cam():
             .format(gmake, gmake_j, complib, makefile,
                     get_standard_makefile_args(case))
 
-        rc, out, err = run_cmd(cmd)
+        retcode, out, err = run_cmd(cmd)
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
-        expect(rc == 0, "Command {} failed with rc={}".format(cmd, rc))
+        expect(retcode == 0, "Command {} failed with rc={}".format(cmd, retcode))
 
 ###############################################################################
 

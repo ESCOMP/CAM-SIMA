@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
-  <metadata_file>ref_pres.meta</metadata_file>
+  <!-- CAMDEN Host model meta files -->
+  <metadata_file>$SRCROOT/src/physics/utils/physics_column_type.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/phys_vert_coord.meta</metadata_file>
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <!-- Constituent indices -->
@@ -21,9 +27,11 @@
       <initial_value>3</initial_value>
     </variable>
     <!-- Coordinates -->
+              <!-- TEMPORARY REMOVAL OF PROTECTED -->
+              <!-- allocatable="pointer" access="protected"> -->
     <variable local_name="latitude" standard_name="latitude"
               units="radian" type="real" kind="kind_phys"
-              allocatable="pointer" access="protected">
+              allocatable="pointer" >
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>latitude lat</ic_file_input_names>
     </variable>

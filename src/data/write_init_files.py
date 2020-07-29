@@ -174,9 +174,6 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, fort_data)
 
-        #Add a blank space:
-        outfile.write("", 0)
-
         #End module:
         outfile.write('\nend module physics_inputs', 0)
     #--------------------------------------
@@ -190,6 +187,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
 
 class VarFortData:
 
+    # pylint: disable=too-many-instance-attributes
     """
     Object which stores information needed
     to generate fortran variable initialization
@@ -219,6 +217,9 @@ class VarFortData:
 
         #Initialize parameter-type variable name set:
         self.__parameter_set = set()
+
+        #Initialize protected variable name set:
+        self.__protected_set = set()
 
         #Initialize variable name array parameters:
         self.__total_var_num = 0
@@ -265,6 +266,11 @@ class VarFortData:
 
             #Quit function, if variable is a parameter:
             return
+
+        #Check if variable is protected, and if so then
+        #add it to the protected set:
+        if hasattr(var, "protected") and var.protected:
+            self.__protected_set.add(var.standard_name)
 
         #Check if array elements are present:
         if hasattr(var, "elements") and var.elements:
@@ -554,6 +560,11 @@ class VarFortData:
         return self.__parameter_set
 
     @property
+    def protected_set(self):
+        """Return set of protected variable standard names"""
+        return self.__protected_set
+
+    @property
     def total_var_num(self):
         """Return total number of variable standard names"""
         return self.__total_var_num
@@ -749,6 +760,32 @@ def write_ic_arrays(outfile, fort_data):
             suffix = ', &'
         # end if
         outfile.write('{}{}'.format(ic_name_str, suffix), 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Write starting declaration of protected logical array:
+    outfile.write("!Logical array to indicate whether or not variable is protected:", 1)
+    declare_str = "logical, public, protected :: protected_vars(phys_var_num) = (/ &"
+    outfile.write(declare_str, 1)
+
+    #Write "False" logicals to logical array, unless variable
+    #is protected:
+    for var_num in range(fort_data.total_var_num):
+        if var_num == fort_data.total_var_num-1:
+            if fort_data.standard_names[var_num] in \
+               fort_data.protected_set:
+                log_arr_str = '.true. /)'
+            else:
+                log_arr_str = '.false. /)'
+        else:
+            if fort_data.standard_names[var_num] in \
+               fort_data.protected_set:
+                log_arr_str = '.true., &'
+            else:
+                log_arr_str = '.false., &'
+        # end if
+        outfile.write(log_arr_str, 2)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1078,6 +1115,7 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "use cam_abortutils,       only: endrun\n" \
                   "use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL\n" \
                   "use physics_data,         only: read_field, find_input_name_idx\n" \
+                  "use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx\n" \
                   "use phys_vars_init_check, only: phys_var_stdnames, input_var_names\n" \
                   "use phys_vars_init_check, only: std_name_len\n" \
                   "use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
@@ -1101,8 +1139,9 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("!Character array containing all CCPP-required vairable standard names:\n" \
                   "character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
-    outfile.write("!Strings which store names of any missing vars:\n" \
+    outfile.write("!Strings which store names of any missing or non-initialized vars:\n" \
                   "character(len=SHR_KIND_CL) :: missing_required_vars\n" \
+                  "character(len=SHR_KIND_CL) :: protected_non_init_vars\n" \
                   "character(len=SHR_KIND_CL) :: missing_input_names", 2)
     outfile.write("", 0)
     outfile.write("character(len=512) :: errmsg    !CCPP framework error message\n" \
@@ -1111,12 +1150,14 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "integer            :: req_idx   !Required variable array index\n" \
                   "integer            :: suite_idx !Suite array index\n" \
                   "character(len=2)   :: sep  = '' !String separator used to print error messages\n" \
-                  "character(len=2)   :: sep2 = '' !String separator used to print error messages", 2)
+                  "character(len=2)   :: sep2 = '' !String separator used to print error messages\n" \
+                  "character(len=2)   :: sep3 = '' !String separator used to print error messages", 2)
     outfile.write("", 0)
 
     #Initialize variables:
-    outfile.write("!Initalize missing variables string:\n" \
+    outfile.write("!Initalize missing and non-initialized variables strings:\n" \
                   "missing_required_vars = ' '\n" \
+                  "protected_non_init_vars = ' '\n" \
                   "missing_input_names   = ' '", 2)
     outfile.write("", 0)
 
@@ -1140,54 +1181,78 @@ def write_phys_read_subroutine(outfile, fort_data):
     #Call input name search function:
     outfile.write("!Find IC file input name array index for required variable:\n" \
                   "name_idx = find_input_name_idx(ccpp_required_data(req_idx))", 4)
+
+    #Start select-case statement:
+    outfile.write("", 0)
+    outfile.write("!Check for special index values:\n" \
+                  "select case (name_idx)", 4)
     outfile.write("", 0)
 
     #Skip already initialized variables:
-    outfile.write("!If variable is already initialized, then skip it:\n" \
-                  "if (name_idx == -2) cycle", 4)
+    outfile.write("case (init_mark_idx)", 5)
+    outfile.write("", 0)
+    outfile.write("!If variable is already initialized, then do nothing.", 6)
     outfile.write("", 0)
 
     #Generate error message if required variable isn't found:
+    outfile.write("case (no_exist_idx)", 5)
+    outfile.write("", 0)
     outfile.write("!If an index was never found, then save variable name and check the rest\n" \
                   "!of the variables, after which the model simulation will end:\n" \
-                  "if (name_idx == -1) then", 4)
-    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 5)
-    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 6)
+                  "missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
+    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
     outfile.write("!Update character separator to now include comma:\n" \
-                  "sep = ', '", 5)
+                  "sep = ', '", 6)
     outfile.write("", 0)
-    outfile.write("!Continue on with variable loop:\n" \
-                  "cycle", 5)
-    outfile.write("end if", 4)
+
+    #Generate error message if required variable is protected but not initialized:
+    outfile.write("case (prot_no_init_idx)", 5)
+    outfile.write("", 0)
+    outfile.write("!If an index was found for a protected variable, but that variable\n" \
+                  "!was never marked as initialized, then save the variable name and check\n" \
+                  "!the rest of the variables, after which the model simulation will end:\n" \
+                  "protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &", 6)
+    outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 7)
+    outfile.write("", 0)
+    outfile.write("!Update character separator to now include comma:\n" \
+                  "sep2 = ', '", 6)
+    outfile.write("", 0)
+
+    #start default case steps:
+    outfile.write("case default", 5)
     outfile.write("", 0)
 
     #Generate error message if required variable contains no input names
     #(i.e. the <ic_file_input_names> registry tag is missing):
-    outfile.write("!Next, check that the input variable names aren't blank.\n" \
+    outfile.write("!Check that the input variable names aren't blank.\n" \
                   "!If so, then save variable name and check the rest of the\n" \
                   "!variables, after which the model simulation will end:\n" \
-                  "if (len_trim(input_var_names(1,name_idx)) == 0) then", 4)
-    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 5)
-    outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 6)
+                  "if (len_trim(input_var_names(1,name_idx)) == 0) then", 6)
+    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 7)
+    outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 8)
     outfile.write("", 0)
     outfile.write("!Update character separator to now include comma\n" \
-                  "sep2 = ', '", 5)
+                  "sep3 = ', '", 7)
     outfile.write("", 0)
     outfile.write("!Continue on with variable loop:\n" \
-                  "cycle", 5)
-    outfile.write("end if", 4)
+                  "cycle", 7)
+    outfile.write("end if", 6)
     outfile.write("", 0)
 
 
     #Generate "read_field" calls:
+    outfile.write("!Read variable from IC file:", 6)
+    outfile.write("", 0)
     for if_call, read_call in call_string_dict.items():
-        outfile.write(if_call, 4)
-        outfile.write(read_call, 5)
-        outfile.write("end if", 4)
+        outfile.write(if_call, 6)
+        outfile.write(read_call, 7)
+        outfile.write("end if", 6)
         outfile.write("", 0)
 
-    #End required variables loop:
+    #End select catse and required variables loop:
+    outfile.write("end select !special indices", 4)
+    outfile.write("", 0)
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
 
@@ -1197,6 +1262,15 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "if (len_trim(missing_required_vars) > 0) then", 3)
     outfile.write('call endrun("Required variables missing from registered list of input variables: "//&', 4)
     outfile.write("trim(missing_required_vars))", 5)
+    outfile.write("end if", 3)
+    outfile.write("", 0)
+
+    #Generate endrun statement for non-initialized protected variables:
+    outfile.write("!End simulation if there are protected input\n" \
+                  "!variables that are not initialized:\n" \
+                  "if (len_trim(protected_non_init_vars) > 0) then", 3)
+    outfile.write('call endrun("Required, protected input variables are not initialized: "//&', 4)
+    outfile.write("trim(protected_non_init_vars))", 5)
     outfile.write("end if", 3)
     outfile.write("", 0)
 

@@ -8,6 +8,11 @@ module physics_data
    public :: find_input_name_idx
    public :: read_field
 
+   !Non-standard variable indices:
+   integer, public, parameter :: no_exist_idx     = -1
+   integer, public, parameter :: init_mark_idx    = -2
+   integer, public, parameter :: prot_no_init_idx = -3
+
    interface read_field
       module procedure read_field_2d
       module procedure read_field_3d
@@ -23,6 +28,7 @@ CONTAINS
       !variable standard name.
 
       use phys_vars_init_check, only: initialized_vars
+      use phys_vars_init_check, only: protected_vars
       use phys_vars_init_check, only: phys_var_stdnames
       use phys_vars_init_check, only: phys_var_num
 
@@ -33,7 +39,7 @@ CONTAINS
       integer                       :: idx
 
       !Initialize function:
-      find_input_name_idx = -1
+      find_input_name_idx = no_exist_idx
 
       !Loop through physics variable standard names:
       do idx = 1, phys_var_num
@@ -42,7 +48,9 @@ CONTAINS
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (initialized_vars(idx)) then
-               find_input_name_idx = -2
+               find_input_name_idx = init_mark_idx
+            else if (protected_vars(idx)) then
+               find_input_name_idx = prot_no_init_idx
             else
                !If not already initialized, then pass on the real array index:
                find_input_name_idx = idx
@@ -130,7 +138,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use phys_vert_coord,   only: pver, pverp
+      use phys_vert_coord,only: pver, pverp
 
       !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check,  only: ic_name_len
