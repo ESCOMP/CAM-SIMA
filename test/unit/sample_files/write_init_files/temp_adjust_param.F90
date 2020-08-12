@@ -18,7 +18,7 @@ CONTAINS
 !! \htmlinclude arg_table_temp_adjust_run.html
 !!
   SUBROUTINE temp_adjust_run(nbox, lev, temp_layer,    &
-    slp, timestep, errmsg, errflg)
+    slp, grav, timestep, errmsg, errflg)
 !----------------------------------------------------------------
    IMPLICIT NONE
 !----------------------------------------------------------------
@@ -26,6 +26,7 @@ CONTAINS
    integer,            intent(in)    :: nbox, lev
    REAL(kind_phys),    intent(inout) :: temp_layer(:, :)
    real(kind_phys),    intent(in)    :: slp(:)
+   real(kind_phys),    intent(in)    :: grav
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg
@@ -42,9 +43,9 @@ CONTAINS
           temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
                + 1.0_kind_phys
 
-          !Add a made-up term which uses slp:
+          !Add a made-up term which uses slp and g:
           temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
-               + 0._kind_phys*slp(box_index)
+               + 0._kind_phys*slp(box_index)*grav
        end do
     end do
 

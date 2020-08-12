@@ -25,7 +25,7 @@ CONTAINS
 
    integer,            intent(in)    :: nbox, lev
    REAL(kind_phys),    intent(inout) :: temp_layer(:, :)
-   real(kind_phys),    intent(in)    :: slp(:)
+   real(kind_phys),    intent(in)    :: slp
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg
@@ -44,7 +44,7 @@ CONTAINS
 
           !Add a made-up term which uses slp:
           temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
-               + 0._kind_phys*slp(box_index)
+               + 0._kind_phys*slp
        end do
     end do
 

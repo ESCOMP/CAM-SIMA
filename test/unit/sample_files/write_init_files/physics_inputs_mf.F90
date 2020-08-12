@@ -1,4 +1,4 @@
-module physics_inputs
+module physics_inputs_mf
 
    implicit none
    private
@@ -14,11 +14,10 @@ CONTAINS
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL
       use physics_data,         only: read_field, find_input_name_idx
       use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
-      use phys_vars_init_check, only: phys_var_stdnames, input_var_names
-      use phys_vars_init_check, only: std_name_len
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
-      use physics_types_mf,        only: col_start, col_end, pver
-      use physics_types_mf,        only: dtime
+      use phys_vars_init_check_mf, only: phys_var_stdnames, input_var_names
+      use phys_vars_init_check_mf, only: std_name_len
+      use physics_types_mf,        only: slp
       use ref_theta,        only: theta
 
       ! Dummy arguments
@@ -101,7 +100,7 @@ CONTAINS
                      missing_input_names(len_trim(missing_input_names)+1:) = &
                         trim(sep3)//trim(ccpp_required_data(req_idx))
 
-                     !Update character separator to now include comma
+                     !Update character separator to now include comma:
                      sep3 = ', '
 
                      !Continue on with variable loop:
@@ -110,20 +109,8 @@ CONTAINS
 
                   !Read variable from IC file:
 
-                  if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_begin') then
-                     call read_field(file, input_var_names(:,name_idx), timestep, col_start)
-                  end if
-
-                  if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_end') then
-                     call read_field(file, input_var_names(:,name_idx), timestep, col_end)
-                  end if
-
-                  if (trim(phys_var_stdnames(name_idx)) == 'vertical_layer_dimension') then
-                     call read_field(file, input_var_names(:,name_idx), timestep, pver)
-                  end if
-
-                  if (trim(phys_var_stdnames(name_idx)) == 'time_step_for_physics') then
-                     call read_field(file, input_var_names(:,name_idx), timestep, dtime)
+                  if (trim(phys_var_stdnames(name_idx)) == 'sea_level_pressure') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, slp)
                   end if
 
                   if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
@@ -163,4 +150,4 @@ CONTAINS
 
    end subroutine physics_read_data
 
-end module physics_inputs
+end module physics_inputs_mf

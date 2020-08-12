@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
+  <!-- CAMDEN Host model meta files -->
+  <!-- Meta-files with DDTs must be listed first -->
+  <metadata_file>$SRCROOT/src/physics/utils/physics_column_type.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
+  <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <!-- Constituent indices -->
@@ -297,9 +304,4 @@
       <long_name>Total tendency from physics suite</long_name>
     </variable>
   </file>
-  <!-- CAMDEN Host model meta files -->
-  <metadata_file>$SRCROOT/src/physics/utils/physics_column_type.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
 </registry>

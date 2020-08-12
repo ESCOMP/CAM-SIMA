@@ -14,7 +14,6 @@ CONTAINS
   !!
   subroutine simple_sub()
 
-    use physics_types_simple, only: ncols, col_start, col_end
     use simple_ccpp_cap, only: HelloWorld_ccpp_physics_initialize
     use simple_ccpp_cap, only: HelloWorld_ccpp_physics_timestep_initial
     use simple_ccpp_cap, only: HelloWorld_ccpp_physics_run
@@ -30,6 +29,11 @@ CONTAINS
     character(len=128), allocatable :: part_names(:)
     character(len=512)              :: errmsg
     integer                         :: errflg
+    integer                         :: col_start
+    integer                         :: col_end
+    integer                         :: ncols
+    integer, protected              :: pver
+    real(kind_phys)                 :: dtime_phys
 
     ! Initialize our 'data'
     call init_temp()

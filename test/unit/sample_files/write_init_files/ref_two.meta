@@ -1,0 +1,8 @@
+[ccpp-arg-table]
+  name = ref_two
+  type = module
+[ thermo_obj ]
+  standard_name = host_thermo_vars_obj
+  units = None
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  ddt_type = theta_ddt_type

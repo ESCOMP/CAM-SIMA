@@ -22,13 +22,65 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
                      phys_check_filename=None, phys_input_filename=None):
 
     """
-    Create the "phys_vars_init_check.F90" and
-    "physics_inputs.F90" files usig meta-data
+    Create the "phys_init" fortran
+    files usig meta-data collected
     collected from registry generation.
+    The two specific fortran files are:
+
+    1.  phys_vars_init_check.F90
+
+        This file contains four
+        variable arrays:
+
+        phys_var_stdnames -
+            All registered variable
+            standard names
+
+        input_var_names -
+            All registered names for
+            each variable that could
+            be present in an Initial
+            Conditions (IC) input file
+
+        protected_vars -
+            Logicals that indicate
+            whether or not each
+            variable is protected
+
+        initialized_vars -
+            Logicals that indicate
+            whether or not each
+            variable is initialized
+
+        It also contains the
+        "mark_as_initialized"
+        subroutine, which can set
+        the logical value
+        in "initialized_vars" to true
+        give the variable's standard
+        name, and the "is_initialized"
+        function, which returns the
+        value of the "initialized_vars"
+        logical for a particualar
+        variable given its standard name.
+
+    2.  physics_inputs.F90
+
+        This file contains the
+        "physics_read_data" subroutine,
+        which determines whether a
+        variable is required by the CCPP
+        physics suites, if it is already
+        initiailized, and if not, then
+        either attempts to read the
+        variable data from the user-specified
+        "ncdata" IC file, or throws a relevant
+        error to the user with a list of
+        the offending variables.
     """
 
-    #Initialize return code:
-    retcode = 0
+    #Initialize return message:
+    retmsg = ""
 
     #Initialize a new (empty) variable dictionary, with
     #variable standard names as keys, and a list of variable
@@ -39,7 +91,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #DDT types as keys, and the associated DDT object as values:
     ddt_type_dict = OrderedDict()
 
-    #Generate DDT dictionary:
+    #Generate DDT dictionaries and index name set:
     #-----------------------
     #Loop over all registry files:
     for file_obj in files:
@@ -47,7 +99,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         ddt_type_dict.update(file_obj.ddts)
 
         #Loop over all variables in registry file:
-        for var in list(file_obj.var_dict.variable_list()):
+        for var in file_obj.var_dict.variable_list():
             if var.is_ddt:
                 #Extract associated DDT object:
                 ddt = ddt_type_dict[var.var_type]
@@ -58,39 +110,37 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
                 var_info_dict[var.standard_name] = [var, None, file_obj.name]
     #-----------------------
 
-    #Create Fortran data object:
-    fort_data = VarFortData(var_info_dict, ddt_type_dict)
-
     #Generate CCPP required variables set:
     ccpp_req_vars_set = find_ccpp_req_vars(cap_datafile)
 
+    #Create Fortran data object:
+    fort_data = VarFortData(var_info_dict, ddt_type_dict, ccpp_req_vars_set)
+
     #Check if all required variable are present:
     #-----------------------
-    missing_vars = fort_data.check_req_vars(ccpp_req_vars_set)
-    if missing_vars:
+    if ccpp_req_vars_set:
+        missing_vars = fort_data.check_req_vars()
 
-        #Are variables missing?  If so then end run here.
-        #Create error message:
-        emsg = "Required CCPP physics suite variables missing " \
-               "from registered host model variable list:\n {}".format(\
-               " ".join(missing_vars))
+        if missing_vars:
+            #Are variables missing?  If so then end run here.
+            #Create error message:
+            emsg = "Required CCPP physics suite variables missing " \
+                   "from registered host model variable list:\n {}".format(\
+                   " ".join(missing_vars))
 
-        #Add error-message to logger, and return with non-zero retcode:
-        logger.error(emsg)
-        retcode = 1
-        return retcode
+            #Add error-message to logger, and return with non-zero retmsg:
+            logger.error(emsg)
+            retmsg = "Required CCPPP physics variables missing from host model."
+            return retmsg
     #-----------------------
 
-    #Remove all non-required variables from call/use dictionaries:
-    fort_data.rm_nonreq_vars(ccpp_req_vars_set)
-
     #Calculate fortran variable and IC name array parameters:
-    retcode = fort_data.calc_init_params(logger)
+    retmsg = fort_data.calc_init_params(logger)
 
-    #If return code is 2, then no IC variable names were found,
+    #If a return message exists, then no IC variable names were found,
     #so exit routine here:
-    if retcode == 2:
-        return retcode
+    if retmsg:
+        return retmsg
 
     #Generate "phys_vars_init_check.F90" file:
     #--------------------------------------
@@ -98,8 +148,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #Open new file:
     if phys_check_filename:
         ofilename = os.path.join(outdir, phys_check_filename)
+        #Get file name, assuming file ends in ".F90":
+        phys_check_fname_str = phys_check_filename[:-4]
     else:
         ofilename = os.path.join(outdir, "phys_vars_init_check.F90")
+        phys_check_fname_str = "phys_vars_init_check"
 
     #Log file creation:
     logger.info("Writing initialization-checking source file, {}".format(ofilename))
@@ -108,7 +161,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     with FortranWriter(ofilename, "w", indent=indent) as outfile:
 
         #Add module name:
-        outfile.write("module phys_vars_init_check\n", 0)
+        outfile.write("module {}\n".format(phys_check_fname_str), 0)
 
         #Add boilerplate code:
         outfile.write("implicit none\nprivate", 1)
@@ -139,7 +192,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         write_is_init_func(outfile)
 
         #End module:
-        outfile.write("\nend module phys_vars_init_check", 0)
+        outfile.write("\nend module {}".format(phys_check_fname_str), 0)
     #--------------------------------------
 
     #Generate "physics_inputs.F90" file:
@@ -148,8 +201,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #Open new file:
     if phys_input_filename:
         ofilename = os.path.join(outdir, phys_input_filename)
+        #Get file name, assuming file ends in ".F90":
+        phys_input_fname_str = phys_input_filename[:-4]
     else:
         ofilename = os.path.join(outdir, "physics_inputs.F90")
+        phys_input_fname_str = "physics_inputs"
 
     #Log file creation:
     logger.info("Writing initial conditions source file, {}".format(ofilename))
@@ -158,7 +214,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     with FortranWriter(ofilename, "w", indent=indent) as outfile:
 
         #Add module name:
-        outfile.write('module physics_inputs\n', 0)
+        outfile.write("module {}\n".format(phys_input_fname_str), 0)
 
         #Add boilerplate code:
         outfile.write("implicit none\nprivate", 1)
@@ -172,14 +228,26 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write("\nCONTAINS\n", 0)
 
         #Write physics_read_data subroutine:
-        write_phys_read_subroutine(outfile, fort_data)
+        write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str)
 
         #End module:
-        outfile.write('\nend module physics_inputs', 0)
+        outfile.write("\nend module {}".format(phys_input_fname_str), 0)
     #--------------------------------------
 
-    #Return retcode:
-    return retcode
+    #Return retmsg:
+    return retmsg
+
+###############################
+#Fortran generation error class
+###############################
+
+class CamInitWriteError(ValueError):
+    """Class used to handle CAM write_init errors
+    (e.g., log user errors without backtrace)"""
+    # pylint: disable=useless-super-delegation
+    def __init__(self, message):
+        super(CamInitWriteError, self).__init__(message)
+    # pylint: enable=useless-super-delegation
 
 ############################
 #Main fortran code-gen class
@@ -187,7 +255,6 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
 
 class VarFortData:
 
-    # pylint: disable=too-many-instance-attributes
     """
     Object which stores information needed
     to generate fortran variable initialization
@@ -198,7 +265,7 @@ class VarFortData:
     using the 'create_data' method.
     """
 
-    def __init__(self, var_info_dict, ddt_type_dict):
+    def __init__(self, var_info_dict, ddt_type_dict, ccpp_req_vars_set):
 
         #Initialize variable standard names list:
         self.__standard_names = list()
@@ -220,6 +287,9 @@ class VarFortData:
 
         #Initialize protected variable name set:
         self.__protected_set = set()
+
+        #Initialize internal required variables set:
+        self.__ccpp_req_vars = ccpp_req_vars_set
 
         #Initialize variable name array parameters:
         self.__total_var_num = 0
@@ -243,25 +313,43 @@ class VarFortData:
         and dictionaries.
         """
 
-        #Separate "info_list" into variable object
-        #, DDT "type", and associated file name:
-        var = var_info_list[0]
-        var_ddt = var_info_list[1]
-        var_file = var_info_list[2]
+        #Separate "info_list" into variable object,
+        #DDT "type", and associated file name:
+        var, var_ddt, var_file = var_info_list
 
-        #First check if variable is a parameter:
+        #First check if the variable standard name already
+        #exists in the standard_names list.  If so then
+        #raise an error:
+        if var.standard_name in self.__standard_names:
+            emsg = "Multiple registered variable have the" \
+                   "the standard name '{}'.\nThere can only be" \
+                   "one registered variable per standard name."
+            raise CamInitWriteError(emsg.format(var.standard_name))
+
+        #Currently there is no way to set input names for
+        #variables coming from registered meta-files.  To
+        #alleviate this concern, all variables that lack
+        #any registered input names will instead have their
+        #local name assigned as an input name:
+        if var.ic_names is None:
+            ic_names = [var.local_name]
+        else:
+            ic_names = var.ic_names
+
+        #Check if variable is a parameter:
         if var.allocatable == 'parameter':
             #If so, then only add to variable
             #name lists and parameter set, as this
             #variable will never be read from a file:
             self.__standard_names.append(var.standard_name)
-            self.__ic_names[var.standard_name] = var.ic_names
+            self.__ic_names[var.standard_name] = ic_names
             self.__parameter_set.add(var.standard_name)
 
             #Also remove variable from call and use dictionaries,
             #if applicable:
             if var.standard_name in self.__call_dict.keys():
                 del self.__call_dict[var.standard_name]
+            if var.standard_name in self.__use_dict.keys():
                 del self.__use_dict[var.standard_name]
 
             #Quit function, if variable is a parameter:
@@ -269,11 +357,11 @@ class VarFortData:
 
         #Check if variable is protected, and if so then
         #add it to the protected set:
-        if hasattr(var, "protected") and var.protected:
+        if var.protected:
             self.__protected_set.add(var.standard_name)
 
         #Check if array elements are present:
-        if hasattr(var, "elements") and var.elements:
+        if var.elements:
 
             #If so, then loop over array elements:
             for element in var.elements:
@@ -314,6 +402,7 @@ class VarFortData:
             #array variable:
             if var.standard_name in self.__call_dict.keys():
                 del self.__call_dict[var.standard_name]
+            if var.standard_name in self.__use_dict.keys():
                 del self.__use_dict[var.standard_name]
 
 
@@ -324,55 +413,77 @@ class VarFortData:
                 self.__standard_names.append(var.standard_name)
 
                 #Add variable IC names to dictionary:
-                self.__ic_names[var.standard_name] = var.ic_names
+                self.__ic_names[var.standard_name] = ic_names
 
-            #Check if variable doesn't have dimensions, or
-            #only has a single dimension:
-            if not var.dimensions or len(var.dimensions) == 1:
-                #Then set vertical level name to None:
-                self.__vert_dict[var.standard_name] = None
+                #Check if variable is required:
+                if var.standard_name in self.__ccpp_req_vars:
 
-            else:
-                #If not, then check variable standard name for "at_interface":
-                if var.standard_name.find("at_interface") != -1:
-                    self.__vert_dict[var.standard_name] = "ilev"
+                    #If so, then check if non-DDT variable has dimensions:
+                    if not var.dimensions:
+                        #Variable must have at least one dimension for "read_field"
+                        #call.  End the build here:
+                        emsg = "Variable '{}' needs at least one dimension in order" \
+                               " to be read from a file using 'read_field'."
+                        raise CamInitWriteError(emsg.format(var.standard_name))
+
+                    #Check the size of non-DDT variable dimensions:
+                    if len(var.dimensions) == 1:
+                        #Then set vertical level name to None:
+                        self.__vert_dict[var.standard_name] = None
+                    elif len(var.dimensions) == 2:
+                        #Then check vertical dimension name:
+                        if "vertical_interface_dimension" in var.dimensions:
+                            self.__vert_dict[var.standard_name] = "ilev"
+                        elif "vertical_layer_dimension" in var.dimensions:
+                            self.__vert_dict[var.standard_name] = "lev"
+                    else:
+                        #Variable can only have two dimnsions max for "read_field"
+                        #call.  End the build here:
+                        emsg = "variable '{}' has more than two dimensions, but" \
+                               "'read_field' can only manage up to two dimensions" \
+                               "when reading a variable from a file."
+                        raise CamInitWriteError(emsg.format(var.standard_name))
+
+                    #Add variable to call and use dictionaries if NOT protected:
+                    if not var.protected:
+
+                        #Check if variable doesn't exist in call dictionary:
+                        if var.standard_name not in self.__call_dict.keys():
+                            #Add to dictionary, with a blank string:
+                            self.__call_dict[var.standard_name] = ''
+
+                        #Check if variable doesn't exist in use dictionary:
+                        if var.standard_name not in self.__use_dict.keys():
+                            #Add to dicttionary, with only file name present:
+                            self.__use_dict[var.standard_name] = [var_file]
+
+                        #Check if variable is actually an array:
+                        if var.index_name:
+                            #If so, then add call string with
+                            #array indexing:
+                            self.__call_dict[var.standard_name] += \
+                            var.local_index_name_str
+
+                            #Also add index variable to use
+                            #statement dictionary:
+                            self.__use_dict[var.standard_name].append(var.local_index_name)
+
+                        else:
+                            #If not, then simply use local name for both
+                            #dictionaries:
+                            self.__call_dict[var.standard_name] += \
+                                var.local_name
+
+                            #Only add the use statement here if "no_use" is False:
+                            if not no_use:
+                                self.__use_dict[var.standard_name].append(var.local_name)
                 else:
-                    self.__vert_dict[var.standard_name] = "lev"
-
-
-            #Add variable to call and use dictionaries if NOT protected:
-            if not hasattr(var, "protected") or not var.protected:
-
-                #Check if variable doesn't exist in call dictionary:
-                if var.standard_name not in self.__call_dict.keys():
-                    #Add to dictionary, with a blank string:
-                    self.__call_dict[var.standard_name] = ''
-
-                #Check if variable doesn't exist in use dictionary:
-                if var.standard_name not in self.__use_dict.keys():
-                    #Add to dicttionary, with only file name present:
-                    self.__use_dict[var.standard_name] = [var_file]
-
-                #Check if variable is actually an array:
-                if hasattr(var, "index_name"):
-                    #If so, then all call string with
-                    #array indexing:
-                    self.__call_dict[var.standard_name] += \
-                        var.local_index_name_str
-
-                    #Also add index variable to use
-                    #statement dictionary:
-                    self.__use_dict[var.standard_name].append(var.local_index_name)
-
-                else:
-                    #If not, then simply use local name for both
-                    #dictionaries:
-                    self.__call_dict[var.standard_name] += \
-                        var.local_name
-
-                    #Only add the use statement here if "no_use" is False:
-                    if not no_use:
-                        self.__use_dict[var.standard_name].append(var.local_name)
+                    #If variable is not required, then attempt to delete
+                    #entries from the call and use dictionaries, if present:
+                    if var.standard_name in self.__call_dict.keys():
+                        del self.__call_dict[var.standard_name]
+                    if var.standard_name in self.__use_dict.keys():
+                        del self.__use_dict[var.standard_name]
 
             #Check if variable is actually a DDT:
             if var_ddt is not None:
@@ -393,19 +504,34 @@ class VarFortData:
                     #Add variables to call and use dictionaries,
                     #with parent DDT included, assuming variable is
                     #not protected:
-                    if not hasattr(var, "protected") or not var.protected:
-                        self.__call_dict[new_var.standard_name] = \
-                            self.__call_dict[var.standard_name]+"%"
+                    if not var.protected:
+                        #Does variable already exist in call dictionary?
+                        if var.standard_name in self.__call_dict.keys():
+                            #Then use parent variable entry in call:
+                            self.__call_dict[new_var.standard_name] = \
+                                self.__call_dict[var.standard_name] + \
+                                var.local_name+"%"
+                        else:
+                            #If not, then create a new entry:
+                            self.__call_dict[new_var.standard_name] = \
+                                var.local_name+"%"
 
-                        self.__use_dict[new_var.standard_name] = \
-                            list(self.__use_dict[var.standard_name])
+                        #Does variable already exist in use dictionary?
+                        if var.standard_name in self.__use_dict.keys():
+                            #Then use parent variable for dictionary call:
+                            self.__use_dict[new_var.standard_name] = \
+                                list(self.__use_dict[var.standard_name])
+                        else:
+                            #If not, then create a new entry:
+                            self.__use_dict[new_var.standard_name] = \
+                                [var_file, var.local_name]
 
                     #Apply this function again:
                     self.create_data(new_var_info, ddt_type_dict, no_use=True)
 
     #####
 
-    def check_req_vars(self, ccpp_req_vars_set):
+    def check_req_vars(self, ccpp_req_vars_set=None):
 
         """
         Checks if all input variables required by the CCPP physics
@@ -418,48 +544,13 @@ class VarFortData:
 
         #Determine what, if any, required variables are missing
         #from registered variable set:
-        missing_vars = ccpp_req_vars_set.difference(var_stdnm_set)
+        if ccpp_req_vars_set:
+            missing_vars = ccpp_req_vars_set.difference(var_stdnm_set)
+        else:
+            missing_vars = self.__ccpp_req_vars.difference(var_stdnm_set)
 
         #Return missing variables set:
         return missing_vars
-
-    #####
-
-    def rm_nonreq_vars(self, ccpp_req_vars_set):
-
-        """
-        Remove all non-required variables from
-        the fortran call and use statement
-        dictionaries, as they won't be necessary.
-        """
-
-        #First, check that all required variables
-        #are present, if not then raise an error:
-        missing_vars = self.check_req_vars(ccpp_req_vars_set)
-        if missing_vars:
-            emsg = "Required variables are missing from registry, "\
-                   "but weren't caught at the correct script location!\n" \
-                   "Something has gone wrong.  The missing variables are:\n {}".format(\
-                   " ".join(missing_vars))
-            raise RuntimeError(emsg)
-
-        #convert standard name list to a set:
-        var_stdnm_set = set(self.__standard_names)
-
-        #Determine what variables are not included
-        #in the CCPP physics-suite required variable set.
-        nonreq_vars = var_stdnm_set.difference(ccpp_req_vars_set)
-
-        #Remove the non-required variables from the call and use
-        #dictionaries:
-        for var_name in nonreq_vars:
-            #Remove from call dictionary, if present:
-            if var_name in self.__call_dict.keys():
-                del self.__call_dict[var_name]
-
-            #Remove from use dictionary, if present:
-            if var_name in self.__use_dict.keys():
-                del self.__use_dict[var_name]
 
     #####
 
@@ -470,8 +561,8 @@ class VarFortData:
         to use in generated Fortran code.
         """
 
-        #Initialize reture code:
-        retcode = 0
+        #Initialize return message:
+        retmsg = ""
 
         #Determine total number of variables:
         self.__total_var_num = len(self.__standard_names)
@@ -488,18 +579,19 @@ class VarFortData:
         except ValueError:
             #If there is a ValueError, then likely no IC
             #input variable names exist, so print error
-            #and exit function with proper return code:
-            retcode = 2
+            #and exit function with proper return message:
             lmsg = "No '<ic_file_input_names>' tags exist in registry.xml" \
                    ", so no input variable name array will be created."
             logger.error(lmsg)
-            return retcode
+
+            retmsg = "No input names (<ic_file_input_names>) present in registry."
+            return retmsg
 
         #Deterime max length of input (IC) names:
         self.__find_ic_name_max_len()
 
         #Exit function normally:
-        return retcode
+        return retmsg
 
     #####
 
@@ -599,7 +691,7 @@ def find_ccpp_req_vars(cap_datafile):
     #master sett:
     ccpp_req_vars_set = set()
 
-    #Create CCPP datatable suite-listting object:
+    #Create CCPP datatable suite-listing object:
     list_suites_action = DatatableReport("suite_list", True)
 
     #Create string of possible CCPP physics suites:
@@ -617,11 +709,12 @@ def find_ccpp_req_vars(cap_datafile):
         ccpp_req_vars_str = datatable_report(cap_datafile,
                                              list_req_vars_action, ";")
 
-        #Convert string to actual list:
-        ccpp_req_vars = ccpp_req_vars_str.split(";")
+        if ccpp_req_vars_str:
+            #Convert string to actual list, if it exists:
+            ccpp_req_vars = ccpp_req_vars_str.split(";")
 
-        #Add required variables to master list:
-        ccpp_req_vars_set.update(ccpp_req_vars)
+            #Add required variables to master list:
+            ccpp_req_vars_set.update(ccpp_req_vars)
 
     #Return the required variables list:
     return ccpp_req_vars_set
@@ -771,20 +864,19 @@ def write_ic_arrays(outfile, fort_data):
 
     #Write "False" logicals to logical array, unless variable
     #is protected:
-    for var_num in range(fort_data.total_var_num):
+    arr_suffix = ', &'
+    for var_num, var_name in enumerate(fort_data.standard_names):
+        #If at the end of the list, then update suffix:
         if var_num == fort_data.total_var_num-1:
-            if fort_data.standard_names[var_num] in \
-               fort_data.protected_set:
-                log_arr_str = '.true. /)'
-            else:
-                log_arr_str = '.false. /)'
+            arr_suffix = ' /)'
+
+        #Set array values:
+        if var_name in fort_data.protected_set:
+            log_arr_str = '.true.' + arr_suffix
         else:
-            if fort_data.standard_names[var_num] in \
-               fort_data.protected_set:
-                log_arr_str = '.true., &'
-            else:
-                log_arr_str = '.false., &'
-        # end if
+            log_arr_str = '.false.' + arr_suffix
+
+        #Write line to file:
         outfile.write(log_arr_str, 2)
 
     #Write a blank space:
@@ -795,21 +887,21 @@ def write_ic_arrays(outfile, fort_data):
     declare_str = "logical, public, protected :: initialized_vars(phys_var_num) = (/ &"
     outfile.write(declare_str, 1)
 
-    #Write "False" logicals to logical array:
-    for var_num in range(fort_data.total_var_num):
+    #Write "False" logicals to logical array, unless
+    #variable is a parameter:
+    arr_suffix = ', &'
+    for var_num, var_name in enumerate(fort_data.standard_names):
+        #If at the end of the list, then update suffix:
         if var_num == fort_data.total_var_num-1:
-            if fort_data.standard_names[var_num] in \
-               fort_data.parameter_set:
-                log_arr_str = '.true. /)'
-            else:
-                log_arr_str = '.false. /)'
+            arr_suffix = ' /)'
+
+        #Set array values:
+        if var_name in fort_data.parameter_set:
+            log_arr_str = '.true.' + arr_suffix
         else:
-            if fort_data.standard_names[var_num] in \
-               fort_data.parameter_set:
-                log_arr_str = '.true., &'
-            else:
-                log_arr_str = '.false., &'
-        # end if
+            log_arr_str = '.false.' + arr_suffix
+
+        #Write line to file:
         outfile.write(log_arr_str, 2)
 
     #Write a blank space:
@@ -860,23 +952,23 @@ def write_init_mark_subroutine(outfile):
 
     #Add main subroutine section:
     #---------------------------
-    outfile.write("!Loop over standard name array:\n" \
-                  "do stdnam_idx = 1, phys_var_num", 2)
+    outfile.write("!Loop over standard name array:", 2)
+    outfile.write("do stdnam_idx = 1, phys_var_num", 2)
 
-    outfile.write("!Check if standard name matches provided variable name:\n" \
-                  "if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
+    outfile.write("!Check if standard name matches provided variable name:", 3)
+    outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
 
     outfile.write("!If so, then set associated initialized_vars\n" \
-                  "!array index to true:\n" \
-                  "initialized_vars(stdnam_idx) = .true.", 4)
+                  "!array index to true:", 4)
+    outfile.write("initialized_vars(stdnam_idx) = .true.", 4)
 
     outfile.write("", 0)
-    outfile.write("!Indicate variable has been found:\n" \
-                  "found_var = .true.", 4)
+    outfile.write("!Indicate variable has been found:", 4)
+    outfile.write("found_var = .true.", 4)
 
     outfile.write("", 0)
-    outfile.write("!Exit loop:\n" \
-                  "exit", 4)
+    outfile.write("!Exit loop:", 4)
+    outfile.write("exit", 4)
 
     outfile.write("end if", 3)
 
@@ -885,8 +977,8 @@ def write_init_mark_subroutine(outfile):
     outfile.write("", 0)
     outfile.write("if (.not.found_var) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
-                  "!that variable didn't exist in standard names array:\n" \
-                  "call endrun(&", 3)
+                  "!that variable didn't exist in standard names array:", 3)
+    outfile.write("call endrun(&", 3)
     outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
@@ -945,19 +1037,19 @@ def write_is_init_func(outfile):
 
     #Add main function section:
     #-------------------------
-    outfile.write("!Loop over standard name array:\n" \
-                  "do stdnam_idx = 1, phys_var_num", 2)
+    outfile.write("!Loop over standard name array:", 2)
+    outfile.write("do stdnam_idx = 1, phys_var_num", 2)
 
-    outfile.write("!Check if standard name matches provided variable name:\n" \
-                  "if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
+    outfile.write("!Check if standard name matches provided variable name:", 3)
+    outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
 
     outfile.write("!If so, then return initialized_vars\n" \
-                  "!value associated with that index:\n" \
-                  "is_initialized = initialized_vars(stdnam_idx)", 4)
+                  "!value associated with that index:", 4)
+    outfile.write("is_initialized = initialized_vars(stdnam_idx)", 4)
 
     outfile.write("", 0)
-    outfile.write("!Exit loop:\n" \
-                  "exit", 4)
+    outfile.write("!Exit loop:", 4)
+    outfile.write("exit", 4)
 
     outfile.write("end if", 3)
 
@@ -967,8 +1059,8 @@ def write_is_init_func(outfile):
 
     outfile.write("if (.not.is_initialized) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
-                  "!that variable didn't exist in standard names array:\n" \
-                  "call endrun(&", 3)
+                  "!that variable didn't exist in standard names array:", 3)
+    outfile.write("call endrun(&", 3)
     outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
@@ -980,7 +1072,7 @@ def write_is_init_func(outfile):
 
 ######
 
-def write_phys_read_subroutine(outfile, fort_data):
+def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     # pylint: disable=too-many-statements
     """
@@ -1116,19 +1208,21 @@ def write_phys_read_subroutine(outfile, fort_data):
                   "use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL\n" \
                   "use physics_data,         only: read_field, find_input_name_idx\n" \
                   "use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx\n" \
-                  "use phys_vars_init_check, only: phys_var_stdnames, input_var_names\n" \
-                  "use phys_vars_init_check, only: std_name_len\n" \
                   "use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
+
+    outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
+    outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
+
 
     #Loop over use string list:
     for use_str in use_list:
-        #Add physics_types use statements:
+        #Add required, registered fortran module use statements:
         outfile.write(use_str, 2)
 
     #Write dummy variable declarations:
     outfile.write("", 0)
-    outfile.write("! Dummy arguments\n" \
-                  "type(file_desc_t), intent(inout) :: file\n" \
+    outfile.write("! Dummy arguments", 2)
+    outfile.write("type(file_desc_t), intent(inout) :: file\n" \
                   "character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites\n" \
                   "integer,           intent(in)    :: timestep", 2)
     outfile.write("", 0)
@@ -1136,11 +1230,11 @@ def write_phys_read_subroutine(outfile, fort_data):
     #Write local variable declarations:
     outfile.write("!Local variables:", 2)
     outfile.write("", 0)
-    outfile.write("!Character array containing all CCPP-required vairable standard names:\n" \
-                  "character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
+    outfile.write("!Character array containing all CCPP-required vairable standard names:", 2)
+    outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
-    outfile.write("!Strings which store names of any missing or non-initialized vars:\n" \
-                  "character(len=SHR_KIND_CL) :: missing_required_vars\n" \
+    outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_required_vars\n" \
                   "character(len=SHR_KIND_CL) :: protected_non_init_vars\n" \
                   "character(len=SHR_KIND_CL) :: missing_input_names", 2)
     outfile.write("", 0)
@@ -1155,37 +1249,37 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("", 0)
 
     #Initialize variables:
-    outfile.write("!Initalize missing and non-initialized variables strings:\n" \
-                  "missing_required_vars = ' '\n" \
+    outfile.write("!Initalize missing and non-initialized variables strings:", 2)
+    outfile.write("missing_required_vars = ' '\n" \
                   "protected_non_init_vars = ' '\n" \
                   "missing_input_names   = ' '", 2)
     outfile.write("", 0)
 
     #Loop over physics suites:
-    outfile.write("!Loop over CCPP physics/chemistry suites:\n" \
-                  "do suite_idx = 1, size(suite_names, 1)", 2)
+    outfile.write("!Loop over CCPP physics/chemistry suites:", 2)
+    outfile.write("do suite_idx = 1, size(suite_names, 1)", 2)
     outfile.write("", 0)
 
     #Determine physics suite required variables:
     outfile.write("!Search for all needed CCPP input variables,\n" \
-                  "!so that they can bx e read from input file if need be:\n" \
-                  "call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
+                  "!so that they can bx e read from input file if need be:", 3)
+    outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
     outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
     outfile.write("", 0)
 
     #Loop over required variables:
-    outfile.write("!Loop over all required variables as specified by CCPP suite:\n" \
-                  "do req_idx = 1, size(ccpp_required_data, 1)", 3)
+    outfile.write("!Loop over all required variables as specified by CCPP suite:", 3)
+    outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.write("", 0)
 
     #Call input name search function:
-    outfile.write("!Find IC file input name array index for required variable:\n" \
-                  "name_idx = find_input_name_idx(ccpp_required_data(req_idx))", 4)
+    outfile.write("!Find IC file input name array index for required variable:", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx))", 4)
 
     #Start select-case statement:
     outfile.write("", 0)
-    outfile.write("!Check for special index values:\n" \
-                  "select case (name_idx)", 4)
+    outfile.write("!Check for special index values:", 4)
+    outfile.write("select case (name_idx)", 4)
     outfile.write("", 0)
 
     #Skip already initialized variables:
@@ -1198,12 +1292,12 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("case (no_exist_idx)", 5)
     outfile.write("", 0)
     outfile.write("!If an index was never found, then save variable name and check the rest\n" \
-                  "!of the variables, after which the model simulation will end:\n" \
-                  "missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
+                  "!of the variables, after which the model simulation will end:", 6)
+    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
     outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
-    outfile.write("!Update character separator to now include comma:\n" \
-                  "sep = ', '", 6)
+    outfile.write("!Update character separator to now include comma:", 6)
+    outfile.write("sep = ', '", 6)
     outfile.write("", 0)
 
     #Generate error message if required variable is protected but not initialized:
@@ -1211,12 +1305,12 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("", 0)
     outfile.write("!If an index was found for a protected variable, but that variable\n" \
                   "!was never marked as initialized, then save the variable name and check\n" \
-                  "!the rest of the variables, after which the model simulation will end:\n" \
-                  "protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &", 6)
+                  "!the rest of the variables, after which the model simulation will end:", 6)
+    outfile.write("protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &", 6)
     outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
-    outfile.write("!Update character separator to now include comma:\n" \
-                  "sep2 = ', '", 6)
+    outfile.write("!Update character separator to now include comma:", 6)
+    outfile.write("sep2 = ', '", 6)
     outfile.write("", 0)
 
     #start default case steps:
@@ -1227,16 +1321,16 @@ def write_phys_read_subroutine(outfile, fort_data):
     #(i.e. the <ic_file_input_names> registry tag is missing):
     outfile.write("!Check that the input variable names aren't blank.\n" \
                   "!If so, then save variable name and check the rest of the\n" \
-                  "!variables, after which the model simulation will end:\n" \
-                  "if (len_trim(input_var_names(1,name_idx)) == 0) then", 6)
+                  "!variables, after which the model simulation will end:", 6)
+    outfile.write("if (len_trim(input_var_names(1,name_idx)) == 0) then", 6)
     outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 7)
     outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 8)
     outfile.write("", 0)
-    outfile.write("!Update character separator to now include comma\n" \
-                  "sep3 = ', '", 7)
+    outfile.write("!Update character separator to now include comma:", 7)
+    outfile.write("sep3 = ', '", 7)
     outfile.write("", 0)
-    outfile.write("!Continue on with variable loop:\n" \
-                  "cycle", 7)
+    outfile.write("!Continue on with variable loop:", 7)
+    outfile.write("cycle", 7)
     outfile.write("end if", 6)
     outfile.write("", 0)
 
@@ -1258,8 +1352,8 @@ def write_phys_read_subroutine(outfile, fort_data):
 
     #Generate endrun statement for missing variables:
     outfile.write("!End simulation if there are missing input\n" \
-                  "!variables that are required:\n" \
-                  "if (len_trim(missing_required_vars) > 0) then", 3)
+                  "!variables that are required:", 3)
+    outfile.write("if (len_trim(missing_required_vars) > 0) then", 3)
     outfile.write('call endrun("Required variables missing from registered list of input variables: "//&', 4)
     outfile.write("trim(missing_required_vars))", 5)
     outfile.write("end if", 3)
@@ -1267,8 +1361,8 @@ def write_phys_read_subroutine(outfile, fort_data):
 
     #Generate endrun statement for non-initialized protected variables:
     outfile.write("!End simulation if there are protected input\n" \
-                  "!variables that are not initialized:\n" \
-                  "if (len_trim(protected_non_init_vars) > 0) then", 3)
+                  "!variables that are not initialized:", 3)
+    outfile.write("if (len_trim(protected_non_init_vars) > 0) then", 3)
     outfile.write('call endrun("Required, protected input variables are not initialized: "//&', 4)
     outfile.write("trim(protected_non_init_vars))", 5)
     outfile.write("end if", 3)
@@ -1276,8 +1370,8 @@ def write_phys_read_subroutine(outfile, fort_data):
 
     #Generate endrun statement for missing input names:
     outfile.write("!End simulation if there are variables that\n" \
-                  "!have no input names:\n" \
-                  "if (len_trim(missing_input_names) > 0) then", 3)
+                  "!have no input names:", 3)
+    outfile.write("if (len_trim(missing_input_names) > 0) then", 3)
     outfile.write("call endrun(&", 4)
     outfile.write(' "Required variables missing a list of input names (<ic_file_input_names>): "//&', 5)
     outfile.write("trim(missing_input_names))", 5)
@@ -1285,8 +1379,8 @@ def write_phys_read_subroutine(outfile, fort_data):
     outfile.write("", 0)
 
     #Deallocate ccpp_required_data array:
-    outfile.write("!Deallocate required variables array for use in next suite:\n" \
-                  "deallocate(ccpp_required_data)", 3)
+    outfile.write("!Deallocate required variables array for use in next suite:", 3)
+    outfile.write("deallocate(ccpp_required_data)", 3)
     outfile.write("", 0)
 
     #End suite loop:

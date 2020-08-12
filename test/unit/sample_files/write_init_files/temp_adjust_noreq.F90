@@ -17,15 +17,12 @@ CONTAINS
 !> \section arg_table_temp_adjust_run  Argument Table
 !! \htmlinclude arg_table_temp_adjust_run.html
 !!
-  SUBROUTINE temp_adjust_run(nbox, lev, temp_layer,    &
-    slp, timestep, errmsg, errflg)
+  SUBROUTINE temp_adjust_run(nbox, lev, timestep, errmsg, errflg)
 !----------------------------------------------------------------
    IMPLICIT NONE
 !----------------------------------------------------------------
 
    integer,            intent(in)    :: nbox, lev
-   REAL(kind_phys),    intent(inout) :: temp_layer(:, :)
-   real(kind_phys),    intent(in)    :: slp(:)
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg
@@ -37,16 +34,18 @@ CONTAINS
     errmsg = ''
     errflg = 0
 
-    do box_index = 1, nbox
-       do lev_index = 1, lev
-          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
-               + 1.0_kind_phys
+    box_index = 2._kind_phys*timestep*lev
+
+!    do box_index = 1, nbox
+!       do lev_index = 1, lev
+!          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
+!               + 1.0_kind_phys
 
           !Add a made-up term which uses slp:
-          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
-               + 0._kind_phys*slp(box_index)
-       end do
-    end do
+!          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
+!               + 0._kind_phys*slp(box_index)
+!       end do
+!    end do
 
   END SUBROUTINE temp_adjust_run
 
