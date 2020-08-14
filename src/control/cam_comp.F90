@@ -216,12 +216,12 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp,            only: phys_run1
-      use stepon,           only: stepon_run1
+      use phys_comp, only: phys_run1
+      use stepon,    only: stepon_run1
 !      use ionosphere_interface, only: ionosphere_run1
 
-      type(cam_in_t),  pointer, intent(inout) :: cam_in
-      type(cam_out_t), pointer, intent(inout) :: cam_out
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM 
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !----------------------------------------------------------
       ! First phase of dynamics (at least couple from dynamics to physics)
@@ -264,12 +264,12 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp,        only: phys_run2
-      use stepon,           only: stepon_run2
+      use phys_comp, only: phys_run2
+      use stepon,    only: stepon_run2
 !      use ionosphere_interface, only: ionosphere_run2
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out
-      type(cam_in_t),  pointer, intent(inout) :: cam_in
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
 
       !
       ! Second phase of physics (after surface model update)
@@ -315,7 +315,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       use stepon, only: stepon_run3
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
       !-----------------------------------------------------------------------
 
       !
@@ -351,8 +351,8 @@ CONTAINS
 !      use qneg_module,  only: qneg_print_summary
       use time_manager, only: is_last_step
 
-      type(cam_out_t), intent(inout)        :: cam_out
-      type(cam_in_t),  intent(inout)        :: cam_in
+      type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
+      type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
       logical,         intent(in)           :: rstwr    ! write restart file
       logical,         intent(in)           :: nlend    ! this is final timestep
       integer,         intent(in), optional :: yr_spec  ! Simulation year
