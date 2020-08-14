@@ -55,8 +55,8 @@ CONTAINS
       ! Null dycore, no action
 
       ! Dummy arguments:
-      type (dyn_import_t),     intent(out) :: dyn_in
-      type (dyn_export_t),     intent(out) :: dyn_out
+      type(dyn_import_t), intent(out) :: dyn_in
+      type(dyn_export_t), intent(out) :: dyn_out
 
    end subroutine dyn_init
 
@@ -65,7 +65,7 @@ CONTAINS
    subroutine dyn_run(dyn_out)
 
       ! Dummy arguments
-      type(dyn_export_t),  intent(inout) :: dyn_out
+      type(dyn_export_t), intent(inout) :: dyn_out
 
    end subroutine dyn_run
 
@@ -74,8 +74,8 @@ CONTAINS
    subroutine dyn_final(dyn_in, dyn_out)
 
       ! Dummy arguments
-      type (dyn_import_t), intent(inout) :: dyn_in
-      type (dyn_export_t), intent(inout) :: dyn_out
+      type(dyn_import_t), intent(inout) :: dyn_in
+      type(dyn_export_t), intent(inout) :: dyn_out
 
    end subroutine dyn_final
 

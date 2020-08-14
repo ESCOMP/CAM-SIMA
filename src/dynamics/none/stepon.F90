@@ -22,8 +22,8 @@ contains
 subroutine stepon_init(dyn_in, dyn_out )
 
    ! arguments
-   type (dyn_import_t), intent(in) :: dyn_in  ! Dynamics import container
-   type (dyn_export_t), intent(in) :: dyn_out ! Dynamics export container
+   type(dyn_import_t), intent(in) :: dyn_in  ! Dynamics import container
+   type(dyn_export_t), intent(in) :: dyn_out ! Dynamics export container
 
 end subroutine stepon_init
 
@@ -74,8 +74,8 @@ subroutine stepon_run3(dtime, cam_out, phys_state, dyn_in, dyn_out)
    real(r8),            intent(in)    :: dtime   ! Time-step
    type(cam_out_t),     intent(inout) :: cam_out ! Output from CAM to surface
    type(physics_state), intent(inout) :: phys_state
-   type (dyn_import_t), intent(inout) :: dyn_in  ! Dynamics import container
-   type (dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
+   type(dyn_import_t),  intent(inout) :: dyn_in  ! Dynamics import container
+   type(dyn_export_t),  intent(inout) :: dyn_out ! Dynamics export container
 
    !--------------------------------------------------------------------------------------
 
@@ -91,8 +91,8 @@ end subroutine stepon_run3
 subroutine stepon_final(dyn_in, dyn_out)
 
    ! Dummy arguments
-   type (dyn_import_t), intent(inout) :: dyn_in  ! Dynamics import container
-   type (dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
+   type(dyn_import_t), intent(inout) :: dyn_in  ! Dynamics import container
+   type(dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
 
 end subroutine stepon_final
 

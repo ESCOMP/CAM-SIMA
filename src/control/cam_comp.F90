@@ -227,10 +227,10 @@ CONTAINS
       ! First phase of dynamics (at least couple from dynamics to physics)
       ! Return time-step for physics from dynamics.
       !----------------------------------------------------------
-      call t_barrierf ('sync_stepon_run1', mpicom)
-      call t_startf ('stepon_run1')
+      call t_barrierf('sync_stepon_run1', mpicom)
+      call t_startf('stepon_run1')
       call stepon_run1(dtime_phys, phys_state, phys_tend, dyn_in, dyn_out)
-      call t_stopf  ('stepon_run1')
+      call t_stopf('stepon_run1')
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed
@@ -242,10 +242,10 @@ CONTAINS
       ! PHYS_RUN Call the Physics package
       !----------------------------------------------------------
       !
-      call t_barrierf ('sync_phys_run1', mpicom)
-      call t_startf ('phys_run1')
+      call t_barrierf('sync_phys_run1', mpicom)
+      call t_startf('phys_run1')
       call phys_run1(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
-      call t_stopf  ('phys_run1')
+      call t_stopf('phys_run1')
 
    end subroutine cam_run1
 
@@ -274,18 +274,18 @@ CONTAINS
       !
       ! Second phase of physics (after surface model update)
       !
-      call t_barrierf ('sync_phys_run2', mpicom)
-      call t_startf ('phys_run2')
+      call t_barrierf('sync_phys_run2', mpicom)
+      call t_startf('phys_run2')
       call phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
-      call t_stopf  ('phys_run2')
+      call t_stopf('phys_run2')
 
       !
       ! Second phase of dynamics (at least couple from physics to dynamics)
       !
-      call t_barrierf ('sync_stepon_run2', mpicom)
-      call t_startf ('stepon_run2')
-      call stepon_run2( phys_state, phys_tend, dyn_in, dyn_out )
-      call t_stopf  ('stepon_run2')
+      call t_barrierf('sync_stepon_run2', mpicom)
+      call t_startf('stepon_run2')
+      call stepon_run2(phys_state, phys_tend, dyn_in, dyn_out)
+      call t_stopf('stepon_run2')
 
       !
       ! Ion transport
@@ -295,8 +295,8 @@ CONTAINS
 !      call t_stopf ('ionosphere_run2')
 
       if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf ('cam_run2_memusage')
-         call t_stopf  ('cam_run2_memusage')
+         call t_startf('cam_run2_memusage')
+         call t_stopf('cam_run2_memusage')
       end if
    end subroutine cam_run2
 
@@ -327,8 +327,8 @@ CONTAINS
       call t_stopf ('stepon_run3')
 
       if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf ('cam_run3_memusage')
-         call t_stopf  ('cam_run3_memusage')
+         call t_startf('cam_run3_memusage')
+         call t_stopf('cam_run3_memusage')
       end if
    end subroutine cam_run3
 
@@ -376,7 +376,7 @@ CONTAINS
       ! Write restart files
       !
       if (rstwr) then
-         call t_startf ('cam_write_restart')
+         call t_startf('cam_write_restart')
          if (present(yr_spec) .and. present(mon_spec) .and.                   &
               present(day_spec).and.present(sec_spec)) then
 !!XXgoldyXX: v need to import this
@@ -388,7 +388,7 @@ CONTAINS
 !            call cam_write_restart(cam_in, cam_out, dyn_out)
 !!XXgoldyXX: ^ need to import this
          end if
-         call t_stopf  ('cam_write_restart')
+         call t_stopf('cam_write_restart')
       end if
 
 !!XXgoldyXX: v need to import this
