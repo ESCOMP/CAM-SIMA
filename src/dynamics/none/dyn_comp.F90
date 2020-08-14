@@ -5,8 +5,6 @@ module dyn_comp
    !   dynamical core
    !----------------------------------------------------------------------
 
-   use shr_kind_mod, only: r8 => SHR_KIND_R8
-
    implicit none
    private
    save
@@ -14,9 +12,7 @@ module dyn_comp
    public :: dyn_readnl
    public :: dyn_register
    public :: dyn_init
-   public :: dyn_run1
-   public :: dyn_run2
-   public :: dyn_run3
+   public :: dyn_run
    public :: dyn_final
    public :: dyn_import_t
    public :: dyn_export_t
@@ -66,57 +62,20 @@ CONTAINS
 
 !==============================================================================
 
-   subroutine dyn_run1(phys_state, phys_tend, dyn_in, dyn_out, dtime_out)
-      use physics_types,  only: physics_state, physics_tend
+   subroutine dyn_run(dyn_out)
 
       ! Dummy arguments
-      type(physics_state), intent(inout) :: phys_state
-      type(physics_tend),  intent(inout) :: phys_tend
-      type(dyn_import_t),  intent(inout) :: dyn_in
-      type(dyn_export_t),  intent(inout) :: dyn_out
-      real(r8),            intent(out)   :: dtime_out
-
-      dtime_out = 1800.0_r8
-
-   end subroutine dyn_run1
-
-!==============================================================================
-
-   subroutine dyn_run2(phys_state, phys_tend, dyn_in, dyn_out)
-      use physics_types, only: physics_state, physics_tend
-
-      ! Dummy arguments
-      type(physics_state), intent(inout) :: phys_state
-      type(physics_tend),  intent(inout) :: phys_tend
-      type(dyn_import_t),  intent(inout) :: dyn_in
       type(dyn_export_t),  intent(inout) :: dyn_out
 
-   end subroutine dyn_run2
-
-!==============================================================================
-
-   subroutine dyn_run3(dtime, phys_state, phys_tend, cam_out, dyn_in, dyn_out)
-      use physics_types, only: physics_state, physics_tend
-      use camsrfexch,    only: cam_out_t
-
-      ! Dummy arguments
-      real(r8),            intent(in)    :: dtime
-      type(cam_out_t),     intent(in)    :: cam_out
-      type(physics_state), intent(inout) :: phys_state
-      type(physics_tend),  intent(inout) :: phys_tend
-      type(dyn_import_t),  intent(inout) :: dyn_in
-      type(dyn_export_t),  intent(inout) :: dyn_out
-
-   end subroutine dyn_run3
+   end subroutine dyn_run
 
 !==============================================================================
 
    subroutine dyn_final(dyn_in, dyn_out)
 
       ! Dummy arguments
-      type (dyn_import_t), intent(inout)           :: dyn_in
-      type (dyn_export_t), intent(inout)           :: dyn_out
-
+      type (dyn_import_t), intent(inout) :: dyn_in
+      type (dyn_export_t), intent(inout) :: dyn_out
 
    end subroutine dyn_final
 
