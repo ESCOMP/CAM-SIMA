@@ -73,7 +73,7 @@ subroutine stepon_run3(dtime, cam_out, phys_state, dyn_in, dyn_out)
    use perf_mod,       only: t_startf, t_stopf, t_barrierf
 
    ! Dummy arguments
-   real(r8),            intent(in)    :: dtimea     ! Time-step
+   real(r8),            intent(in)    :: dtime      ! Time-step
    type(cam_out_t),     intent(inout) :: cam_out    ! Output from CAM to surface
    type(physics_state), intent(inout) :: phys_state ! Physics state object 
    type(dyn_import_t),  intent(inout) :: dyn_in     ! Dynamics import container
