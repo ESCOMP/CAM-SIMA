@@ -17,7 +17,8 @@ CONTAINS
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
       use phys_vars_init_check_ddt_array, only: phys_var_stdnames, input_var_names
       use phys_vars_init_check_ddt_array, only: std_name_len
-      use physics_types_ddt_array,        only: phys_state, ix_theta
+      use physics_types_ddt_array,        only: phys_state
+      use physics_types_ddt_array,        only: ix_theta
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file

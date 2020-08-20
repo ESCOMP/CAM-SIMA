@@ -1115,50 +1115,18 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Create actual fortran use statements:
     #--------------------------------
-
     #Create new (empty) list to store use statements:
     use_list = list()
 
     #Loop over use statement modules:
     for use_mod in use_vars_write_dict.keys():
 
-        #Initialize loop counter:
-        lpcnt = 0
-
         #Loop over use statement variables:
         for use_var in use_vars_write_dict[use_mod]:
 
-            #If loop counter is zero, then
             #create new use string:
-            if lpcnt == 0:
-                use_str = \
-                         "use {},        only: {}".format(use_mod, use_var)
+            use_str = "use {},        only: {}".format(use_mod, use_var)
 
-                #Advance loop counter by one:
-                lpcnt += 1
-
-            elif lpcnt == 2:
-                #Append variable name to use string
-                use_str += ", {}".format(use_var)
-
-                #Add use string to list:
-                use_list.append(use_str)
-
-                #Reset use_str variable:
-                use_str = None
-
-                #If loop counter is two, then
-                #reset loop counter:
-                lpcnt = 0
-            else:
-                #Append variable name to use string
-                use_str += ", {}".format(use_var)
-
-                #Advance loop counter by one:
-                lpcnt += 1
-
-        #Is there any remaining "use_str" text?
-        if use_str:
             #Add to "use statement" list:
             use_list.append(use_str)
     #-----------------------------

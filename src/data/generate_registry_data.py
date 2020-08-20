@@ -245,18 +245,6 @@ class VarBase(object):
             # end if
         # end if
 
-   # def set_index_name(self, index_name):
-   #     """Sets the 'index_name' attribute to the string provided"""
-   #     self.__index_name = index_name
-
-   # def set_local_index_name(self, local_index_name):
-   #     """Sets the 'local_index_name' attribute to the string provided"""
-   #     self.__local_index_name = local_index_name
-
-   # def set_local_index_name_str(self, local_index_name_str):
-   #     """Sets the 'local_index_name_str' attribute to the string provided"""
-   #     self.__local_index_name_str = local_index_name_str
-
     @property
     def local_name(self):
         """Return the local (variable) name for this variable"""
