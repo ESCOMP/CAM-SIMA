@@ -76,12 +76,9 @@ class RegistryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Clean output directory (tmp) before running tests"""
-        if not os.path.exists(_TMP_DIR):
-            os.mkdir(_TMP_DIR)
-        if not os.path.exists(_SRC_MOD_DIR):
-            os.mkdir(_SRC_MOD_DIR)
-        # End if
+        os.makedirs(_SRC_MOD_DIR, exist_ok=True)
         remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
+        remove_files(glob.iglob(os.path.join(_SRC_MOD_DIR, '*.*')))
         super(cls, RegistryTest).setUpClass()
 
     def test_good_simple_registry(self):

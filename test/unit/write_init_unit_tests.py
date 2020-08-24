@@ -18,7 +18,6 @@ import glob
 import unittest
 import filecmp
 import logging
-import xml.etree.ElementTree as ET
 
 __TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 _CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir))
@@ -78,15 +77,6 @@ def remove_files(file_list):
     # End for
 
 ###############################################################################
-def read_xml_file(filename):
-###############################################################################
-    """Read XML file, <filename>, and return the XML tree and root
-    As this is a test script, errors will throw exceptions."""
-    with __FILE_OPEN(filename) as file_:
-        tree = ET.parse(file_)
-        root = tree.getroot()
-    # End with
-    return tree, root
 
 class WriteInitTest(unittest.TestCase):
 
@@ -455,6 +445,71 @@ class WriteInitTest(unittest.TestCase):
         emsg = "Multiple registered variable have the" \
                "the standard name 'potential_temperature'.\nThere can only be" \
                "one registered variable per standard name."
+        self.assertEqual(emsg, str(verr.exception))
+
+        # Make sure no output file was created:
+        amsg = "{} should not exist".format(check_init_out)
+        self.assertFalse(os.path.exists(check_init_out), msg=amsg)
+        amsg = "{} should not exist".format(phys_input_out)
+        self.assertFalse(os.path.exists(phys_input_out), msg=amsg)
+
+    def test_no_horiz_var_write_init(self):
+        """
+        Test that the 'write_init_files' function
+        correctly determines that a variable that
+        could be called from "read_field" has no
+        dimension labeled "horizontal_dimension"
+        and exits with both the correct return
+        message, and with no fortran files generated.
+        """
+
+        # Setup registry inputs:
+        filename = os.path.join(_INIT_SAMPLES_DIR, "no_horiz_dim_reg.xml")
+        out_source_name = "physics_types_no_horiz"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+
+        # Setup capgen inputs:
+        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_no_horiz.meta")
+        cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
+
+        host_files = [model_host, out_meta]
+
+        # Setup write_init_files inputs:
+        check_init_in = os.path.join(_INIT_SAMPLES_DIR, "phys_vars_init_check_simple.F90")
+        phys_input_in = os.path.join(_INIT_SAMPLES_DIR, "physics_inputs_simple.F90")
+        check_init_out = os.path.join(_TMP_DIR, "phys_vars_init_check_no_horiz.F90")
+        phys_input_out = os.path.join(_TMP_DIR, "physics_inputs_no_horiz.F90")
+
+        #Create local logger:
+        logger = logging.getLogger("write_init_files_no_horiz")
+
+        # Clear all temporary output files:
+        remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
+
+        # Generate registry files:
+        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                                      _SRC_MOD_DIR, _CAM_ROOT,
+                                      loglevel=logging.ERROR,
+                                      error_on_no_validate=True)
+
+        # Generate CCPP capgen files:
+        capgen(host_files, scheme_files, sdf, cap_datafile,'',
+               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
+                                                     cap_datafile, logger,
+                                                     phys_check_filename="phys_vars_init_check_no_horiz.F90",
+                                                     phys_input_filename="physics_inputs_no_horiz.F90")
+
+        # Check exception message
+        emsg = "Variable 'sea_level_pressure' needs at least one registered dimension" \
+               " to be 'horizontal_dimension' in order to be read from a file using 'read_fied'.\n" \
+               "Instead variable has dimensions of: ['vertical_layer_dimension']"
         self.assertEqual(emsg, str(verr.exception))
 
         # Make sure no output file was created:

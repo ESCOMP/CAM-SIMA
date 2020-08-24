@@ -1420,6 +1420,9 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
                 file_path = os.path.join(src_mod,
                                          os.path.basename(relative_file_path))
             else:
+                #If generate_registry_data.py is called from the command line,
+                #but no '--source-mods' argument is given, then check if the
+                #metadata file is present in the local directory instead.
                 file_path = os.path.basename(relative_file_path)
             # end if
             if not os.path.exists(file_path):

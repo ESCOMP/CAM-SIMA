@@ -148,8 +148,8 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #Open new file:
     if phys_check_filename:
         ofilename = os.path.join(outdir, phys_check_filename)
-        #Get file name, assuming file ends in ".F90":
-        phys_check_fname_str = phys_check_filename[:-4]
+        #Get file name, ignoring file type:
+        phys_check_fname_str = os.path.splitext(phys_check_filename)[0]
     else:
         ofilename = os.path.join(outdir, "phys_vars_init_check.F90")
         phys_check_fname_str = "phys_vars_init_check"
@@ -201,8 +201,8 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
     #Open new file:
     if phys_input_filename:
         ofilename = os.path.join(outdir, phys_input_filename)
-        #Get file name, assuming file ends in ".F90":
-        phys_input_fname_str = phys_input_filename[:-4]
+        #Get file name, ignoring file type:
+        phys_input_fname_str = os.path.splitext(phys_input_filename)[0]
     else:
         ofilename = os.path.join(outdir, "physics_inputs.F90")
         phys_input_fname_str = "physics_inputs"
@@ -347,9 +347,9 @@ class VarFortData:
 
             #Also remove variable from call and use dictionaries,
             #if applicable:
-            if var.standard_name in self.__call_dict.keys():
+            if var.standard_name in self.__call_dict:
                 del self.__call_dict[var.standard_name]
-            if var.standard_name in self.__use_dict.keys():
+            if var.standard_name in self.__use_dict:
                 del self.__use_dict[var.standard_name]
 
             #Quit function, if variable is a parameter:
@@ -381,7 +381,7 @@ class VarFortData:
                 #Does variable already have a fortran call?
                 #If so, then it must have been part of a DDT,
                 #so include the DDT text here:
-                if var.standard_name in self.__call_dict.keys():
+                if var.standard_name in self.__call_dict:
                     self.__call_dict[element.standard_name] = \
                         str(self.__call_dict[var.standard_name])
 
@@ -400,9 +400,9 @@ class VarFortData:
 
             #Once all elemnts have been added, remove the original
             #array variable:
-            if var.standard_name in self.__call_dict.keys():
+            if var.standard_name in self.__call_dict:
                 del self.__call_dict[var.standard_name]
-            if var.standard_name in self.__use_dict.keys():
+            if var.standard_name in self.__use_dict:
                 del self.__use_dict[var.standard_name]
 
 
@@ -426,6 +426,21 @@ class VarFortData:
                                " to be read from a file using 'read_field'."
                         raise CamInitWriteError(emsg.format(var.standard_name))
 
+                    #Currently the file-reading fortran code assumes
+                    #that at least one of the dimensions matches
+                    #the horizontal dimension (e.g. number of host
+                    #model gird columns). Thus for now the dimension
+                    #"horizontal_dimension" must be present in the
+                    #dimensions list:
+                    if "horizontal_dimension" not in var.dimensions:
+                        emsg = "Variable '{}' needs at least one" \
+                               " registered dimension to be" \
+                               " 'horizontal_dimension' in order" \
+                               " to be read from a file using 'read_fied'.\n" \
+                               "Instead variable has dimensions of: {}"
+                        raise CamInitWriteError(emsg.format(var.standard_name,
+                                                            var.dimensions))
+
                     #Check the size of non-DDT variable dimensions:
                     if len(var.dimensions) == 1:
                         #Then set vertical level name to None:
@@ -448,12 +463,12 @@ class VarFortData:
                     if not var.protected:
 
                         #Check if variable doesn't exist in call dictionary:
-                        if var.standard_name not in self.__call_dict.keys():
+                        if var.standard_name not in self.__call_dict:
                             #Add to dictionary, with a blank string:
                             self.__call_dict[var.standard_name] = ''
 
                         #Check if variable doesn't exist in use dictionary:
-                        if var.standard_name not in self.__use_dict.keys():
+                        if var.standard_name not in self.__use_dict:
                             #Add to dicttionary, with only file name present:
                             self.__use_dict[var.standard_name] = [var_file]
 
@@ -480,9 +495,9 @@ class VarFortData:
                 else:
                     #If variable is not required, then attempt to delete
                     #entries from the call and use dictionaries, if present:
-                    if var.standard_name in self.__call_dict.keys():
+                    if var.standard_name in self.__call_dict:
                         del self.__call_dict[var.standard_name]
-                    if var.standard_name in self.__use_dict.keys():
+                    if var.standard_name in self.__use_dict:
                         del self.__use_dict[var.standard_name]
 
             #Check if variable is actually a DDT:
@@ -506,7 +521,7 @@ class VarFortData:
                     #not protected:
                     if not var.protected:
                         #Does variable already exist in call dictionary?
-                        if var.standard_name in self.__call_dict.keys():
+                        if var.standard_name in self.__call_dict:
                             #Then use parent variable entry in call:
                             self.__call_dict[new_var.standard_name] = \
                                 self.__call_dict[var.standard_name] + \
@@ -517,7 +532,7 @@ class VarFortData:
                                 var.local_name+"%"
 
                         #Does variable already exist in use dictionary?
-                        if var.standard_name in self.__use_dict.keys():
+                        if var.standard_name in self.__use_dict:
                             #Then use parent variable for dictionary call:
                             self.__use_dict[new_var.standard_name] = \
                                 list(self.__use_dict[var.standard_name])
@@ -1093,7 +1108,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     for var_stdname in fort_data.standard_names:
 
         #Check if variable is in use dictionary:
-        if var_stdname in fort_data.use_dict.keys():
+        if var_stdname in fort_data.use_dict:
 
             #If so, then extract variable use statement list:
             var_use_info = fort_data.use_dict[var_stdname]
@@ -1119,7 +1134,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     use_list = list()
 
     #Loop over use statement modules:
-    for use_mod in use_vars_write_dict.keys():
+    for use_mod in use_vars_write_dict:
 
         #Loop over use statement variables:
         for use_var in use_vars_write_dict[use_mod]:
@@ -1141,7 +1156,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     for var_stdname in fort_data.standard_names:
 
         #Check if variable is in fortran call dictionary:
-        if var_stdname in fort_data.call_dict.keys():
+        if var_stdname in fort_data.call_dict:
 
             #Set "if-statement" call string:
             call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
