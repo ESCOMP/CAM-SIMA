@@ -1,20 +1,25 @@
 module physics_column_type
 
    use shr_kind_mod, only: r8 => shr_kind_r8
+!   use ISO_FORTRAN_ENV, only: kind_phys
+   use ccpp_kinds,   only: kind_phys
+ 
 
    implicit none
    private
    save
 
+!> \section arg_table_physics_column_t  Argument Table
+!! \htmlinclude physics_column_t.html
 type, public :: physics_column_t
    ! A type to hold all grid and task information for a single physics column
    ! Column information
-   real(r8)             :: lat_rad = -HUGE(1.0_r8) ! Latitude in radians
-   real(r8)             :: lon_rad = -HUGE(1.0_r8) ! Longitude in radians
-   real(r8)             :: lat_deg = -HUGE(1.0_r8) ! Latitude in degrees
-   real(r8)             :: lon_deg = -HUGE(1.0_r8) ! Longitude in degrees
-   real(r8)             :: area = -1.0_r8          ! Column area
-   real(r8)             :: weight = -1.0_r8        ! Column integration weight
+   real(kind_phys)             :: lat_rad = -HUGE(1.0_r8) ! Latitude in radians
+   real(kind_phys)             :: lon_rad = -HUGE(1.0_r8) ! Longitude in radians
+   real(kind_phys)             :: lat_deg = -HUGE(1.0_r8) ! Latitude in degrees
+   real(kind_phys)             :: lon_deg = -HUGE(1.0_r8) ! Longitude in degrees
+   real(kind_phys)             :: area = -1.0_r8          ! Column area
+   real(kind_phys)             :: weight = -1.0_r8        ! Column integration weight
    ! File decomposition
    integer              :: global_col_num = -1     ! Location on data file
    integer              :: coord_indices(2) = -1   ! Global lon/lat (if used)

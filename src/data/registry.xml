@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
+  <!-- CAMDEN Host model meta files -->
+  <!-- Meta-files with DDTs must be listed first -->
+  <metadata_file>$SRCROOT/src/physics/utils/physics_column_type.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
+  <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <!-- Constituent indices -->
@@ -21,13 +28,13 @@
     </variable>
     <!-- Coordinates -->
     <variable local_name="latitude" standard_name="latitude"
-              units="radians" type="real" kind="kind_phys"
+              units="radian" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>latitude lat</ic_file_input_names>
     </variable>
     <variable local_name="longitude" standard_name="longitude"
-              units="radians" type="real" kind="kind_phys"
+              units="radian" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>longitude lon</ic_file_input_names>

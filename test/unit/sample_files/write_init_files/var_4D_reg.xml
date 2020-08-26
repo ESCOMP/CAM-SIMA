@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_simple" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="theta" standard_name="potential_temperature"
+              units="K" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>theta pot_temp</ic_file_input_names>
+    </variable>
+    <variable local_name="slp" standard_name="sea_level_pressure"
+              units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension time_step_for_physics</dimensions>
+      <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
+    </variable>
+    <variable local_name="eddy_len" standard_name="eddy_length_scale"
+              units="m" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>eddy_len</ic_file_input_names>
+    </variable>
+  </file>
+</registry>

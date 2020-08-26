@@ -393,19 +393,19 @@ valid-metaclass-classmethod-first-arg=mcs
 [DESIGN]
 
 # Maximum number of arguments for function / method
-max-args=10
+max-args=15
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=10
+max-attributes=20
 
 # Maximum number of boolean expressions in a if statement
 max-bool-expr=5
 
 # Maximum number of branch for function / method body
-max-branches=30
+max-branches=45
 
 # Maximum number of locals for function / method body
-max-locals=25
+max-locals=40
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7
