@@ -43,7 +43,7 @@ module cam_pio_utils
    integer            :: pio_rearranger
 
    ! This variable should be private ?
-   type(iosystem_desc_t), pointer, public, protected :: pio_subsystem => null()
+   type(iosystem_desc_t), pointer, public :: pio_subsystem => null()
 
    ! Some private string length parameters
    integer, parameter :: errormsg_str_len = 128

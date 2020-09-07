@@ -8,12 +8,17 @@ module physics_grid
    private
    save
 
+   ! Physics grid management
    public :: phys_grid_init ! initialize the physics grid
+
+   ! Local task interfaces
    public :: get_dlat_p     ! latitude of a physics column in degrees
    public :: get_dlon_p     ! longitude of a physics column in degrees
    public :: get_rlat_p     ! latitude of a physics column in radians
    public :: get_rlon_p     ! longitude of a physics column in radians
    public :: get_area_p     ! area of a physics column in radians squared
+   public :: get_rlat_all_p ! latitudes of physics cols in chunk (radians)
+   public :: get_rlon_all_p ! longitudes of physics cols in chunk (radians)
    public :: global_index_p ! global column index of a physics column
    public :: local_index_p  ! local column index of a physics column
    public :: get_grid_dims  ! return grid dimensions
@@ -251,6 +256,8 @@ CONTAINS
 
    end subroutine phys_grid_init
 
+   !========================================================================
+
    real(r8) function get_dlat_p(index)
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
@@ -274,6 +281,8 @@ CONTAINS
       end if
 
    end function get_dlat_p
+
+   !========================================================================
 
    real(r8) function get_dlon_p(index)
       use cam_logfile,    only: iulog
@@ -299,6 +308,8 @@ CONTAINS
 
    end function get_dlon_p
 
+   !========================================================================
+
    real(r8) function get_rlat_p(index)
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
@@ -314,7 +325,7 @@ CONTAINS
          call endrun(subname//': physics grid not initialized')
       else if ((index < 1) .or. (index > columns_on_task)) then
          write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) errmsg
          call endrun(errmsg)
       else
@@ -322,6 +333,8 @@ CONTAINS
       end if
 
    end function get_rlat_p
+
+   !========================================================================
 
    real(r8) function get_rlon_p(index)
       use cam_logfile,    only: iulog
@@ -338,7 +351,7 @@ CONTAINS
          call endrun(subname//': physics grid not initialized')
       else if ((index < 1) .or. (index > columns_on_task)) then
          write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) errmsg
          call endrun(errmsg)
       else
@@ -346,6 +359,8 @@ CONTAINS
       end if
 
    end function get_rlon_p
+
+   !========================================================================
 
    real(r8) function get_area_p(index)
       use cam_logfile,    only: iulog
@@ -362,7 +377,7 @@ CONTAINS
          call endrun(subname//': physics grid not initialized')
       else if ((index < 1) .or. (index > columns_on_task)) then
          write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) errmsg
          call endrun(errmsg)
       else
@@ -370,6 +385,72 @@ CONTAINS
       end if
 
    end function get_area_p
+
+   !========================================================================
+
+   subroutine get_rlat_all_p(rlatdim, rlats)
+      use cam_logfile,    only: iulog
+      use cam_abortutils, only: endrun
+      !-----------------------------------------------------------------------
+      !
+      ! getrlat_all_p: Return all latitudes (in radians) for task.
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      integer,  intent(in)  :: rlatdim        ! declared size of output array
+      real(r8), intent(out) :: rlats(rlatdim) ! array of latitudes
+
+      ! Local variables
+      integer                     :: index ! loop index
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_rlat_all_p: '
+
+      !-----------------------------------------------------------------------
+      if (rlatdim > columns_on_task) then
+         write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlatdim, &
+              ') greater than columns_on_task (', columns_on_task, ')'
+         write(iulog, *) trim(errmsg)
+         call endrun(trim(errmsg))
+      end if
+      do index = 1, min(columns_on_task, rlatdim)
+         rlats(index) = phys_columns(index)%lat_rad
+      end do
+
+   end subroutine get_rlat_all_p
+
+   !========================================================================
+
+   subroutine get_rlon_all_p(rlondim, rlons)
+      use cam_logfile,    only: iulog
+      use cam_abortutils, only: endrun
+      !-----------------------------------------------------------------------
+      !
+      ! getrlat_all_p: Return all longitudes (in radians) for task.
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      integer,  intent(in)  :: rlondim        ! declared size of output array
+      real(r8), intent(out) :: rlons(rlondim) ! array of longitudes
+
+      ! Local variables
+      integer                     :: index ! loop index
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_rlon_all_p: '
+
+      !-----------------------------------------------------------------------
+      if (rlondim > columns_on_task) then
+         write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlondim, &
+              ') greater than columns_on_task (', columns_on_task, ')'
+         write(iulog, *) trim(errmsg)
+         call endrun(trim(errmsg))
+      end if
+      do index = 1, min(columns_on_task, rlondim)
+         rlons(index) = phys_columns(index)%lon_rad
+      end do
+
+   end subroutine get_rlon_all_p
+
+   !========================================================================
 
    integer function global_index_p(index)
       use cam_logfile,    only: iulog
