@@ -526,7 +526,7 @@ def _build_cam():
                 paths.append(path)
             # End if
         # End for
-        #If using CMEPS/NUOPC coupler, than add additional path:
+        #If using the CMEPS/NUOPC coupler, then add additional path:
         if case.get_value("COMP_INTERFACE") == "nuopc":
             cime_root = case.get_value("CIMEROOT")
             paths.append(os.path.join(cime_root, "src", "drivers",
