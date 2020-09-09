@@ -406,15 +406,18 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_rlat_all_p: '
 
       !-----------------------------------------------------------------------
-      if (rlatdim > columns_on_task) then
+      if (.not. phys_grid_initialized) then
+         call endrun(subname//': physics grid not initialized')
+      else if ((rlatdim < 1) .or. (rlatdim > columns_on_task)) then
          write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlatdim, &
-              ') greater than columns_on_task (', columns_on_task, ')'
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) trim(errmsg)
          call endrun(trim(errmsg))
+      else
+         do index = 1, rlatdim
+            rlats(index) = phys_columns(index)%lat_rad
+         end do
       end if
-      do index = 1, min(columns_on_task, rlatdim)
-         rlats(index) = phys_columns(index)%lat_rad
-      end do
 
    end subroutine get_rlat_all_p
 
@@ -438,15 +441,18 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_rlon_all_p: '
 
       !-----------------------------------------------------------------------
-      if (rlondim > columns_on_task) then
+      if (.not. phys_grid_initialized) then
+         call endrun(subname//': physics grid not initialized')
+      else if ((rlondim < 1) .or. (rlondim > columns_on_task)) then
          write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlondim, &
-              ') greater than columns_on_task (', columns_on_task, ')'
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) trim(errmsg)
          call endrun(trim(errmsg))
+      else
+         do index = 1, rlondim
+            rlons(index) = phys_columns(index)%lon_rad
+         end do
       end if
-      do index = 1, min(columns_on_task, rlondim)
-         rlons(index) = phys_columns(index)%lon_rad
-      end do
 
    end subroutine get_rlon_all_p
 
