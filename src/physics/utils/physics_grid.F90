@@ -17,8 +17,8 @@ module physics_grid
    public :: get_rlat_p     ! latitude of a physics column in radians
    public :: get_rlon_p     ! longitude of a physics column in radians
    public :: get_area_p     ! area of a physics column in radians squared
-   public :: get_rlat_all_p ! latitudes of physics cols in chunk (radians)
-   public :: get_rlon_all_p ! longitudes of physics cols in chunk (radians)
+   public :: get_rlat_all_p ! latitudes of physics cols on task (radians)
+   public :: get_rlon_all_p ! longitudes of physics cols on task (radians)
    public :: global_index_p ! global column index of a physics column
    public :: local_index_p  ! local column index of a physics column
    public :: get_grid_dims  ! return grid dimensions
@@ -393,7 +393,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       !-----------------------------------------------------------------------
       !
-      ! getrlat_all_p: Return all latitudes (in radians) for task.
+      ! get_rlat_all_p: Return all latitudes (in radians) on task.
       !
       !-----------------------------------------------------------------------
       ! Dummy Arguments
@@ -428,7 +428,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       !-----------------------------------------------------------------------
       !
-      ! getrlat_all_p: Return all longitudes (in radians) for task.
+      ! get_rlon_all_p: Return all longitudes (in radians) on task.
       !
       !-----------------------------------------------------------------------
       ! Dummy Arguments
