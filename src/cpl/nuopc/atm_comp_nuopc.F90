@@ -38,16 +38,16 @@ module atm_comp_nuopc
   use physics_grid        , only : columns_on_task, global_index_p, get_rlon_all_p, get_rlat_all_p
   use physics_grid        , only : num_global_phys_cols, get_grid_dims
   use cam_control_mod     , only : cam_ctrl_set_orbit
-  use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
+  use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, cam_pio_newdecomp
   use cam_initfiles       , only : cam_initfiles_get_caseid, cam_initfiles_get_restdir
   !use cam_history_support , only : fillvalue
   use filenames           , only : interpret_filename_spec
   use pio                 , only : file_desc_t, io_desc_t, var_desc_t, pio_double, pio_def_dim, PIO_MAX_NAME
-  use pio                 , only : pio_initdecomp, pio_freedecomp
+  use pio                 , only : pio_freedecomp
   use pio                 , only : pio_closefile, pio_inq_varid, pio_put_att, pio_enddef
   use pio                 , only : pio_read_darray, pio_write_darray, pio_def_var, pio_inq_varid
   use pio                 , only : pio_noerr, pio_bcast_error, pio_internal_error, pio_seterrorhandling
-  use pio                 , only : pio_def_var, pio_put_var, PIO_INT
+  use pio                 , only : pio_def_var, pio_put_var, PIO_INT, PIO_OFFSET_KIND
 !$use omp_lib             , only : omp_set_num_threads
 
   implicit none
@@ -1548,7 +1548,7 @@ contains
     integer                            :: rcode        ! return error code
     integer                            :: nf,n
     type(file_desc_t)                  :: file
-    type(io_desc_t)                    :: iodesc
+    type(io_desc_t), pointer           :: iodesc
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     type(var_desc_t)                   :: varid
@@ -1569,6 +1569,8 @@ contains
     character(len=8)                   :: cvalue
     integer                            :: nloop
     character(len=4)                   :: prefix
+
+    integer(kind=PIO_OFFSET_KIND), allocatable :: dof_srfrest(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1593,12 +1595,26 @@ contains
     !call getfil(pname_srf_cam, fname_srf_cam)
 
     ! ------------------------------
+    ! Generate dof values
+    ! ------------------------------
+
+    ! generate the dof
+    lsize = columns_on_task
+    allocate(dof_srfrest(lsize))
+    do n = 1, lsize
+      dof_srfrest(n) = global_index_p(n)
+    end do
+
+    ! ------------------------------
     ! Open restart file
     ! ------------------------------
 
     call cam_pio_openfile(File, fname_srf_cam, 0)
-    call pio_initdecomp(pio_subsystem, pio_double, (/num_global_phys_cols/), dof, iodesc)
+    call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof_srfrest, pio_double)
     call pio_seterrorhandling(File, pio_bcast_error)
+
+    ! Free-up memory taken by dof:
+    deallocate(dof_srfrest)
 
     ! ------------------------------
     ! Read in import and export fields
@@ -1723,7 +1739,7 @@ contains
     integer                            :: rcode        ! return error code
     integer                            :: dimid(1), nf, n
     type(file_desc_t)                  :: file
-    type(io_desc_t)                    :: iodesc
+    type(io_desc_t), pointer           :: iodesc
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldnameList(:)
     type(var_desc_t)                   :: varid
@@ -1731,11 +1747,14 @@ contains
     real(r8), pointer                  :: fldptr2d(:,:)
     character(len=PIO_MAX_NAME)        :: varname
     character(len=256)                 :: fname_srf_cam      ! surface restart filename
+    integer                            :: lsize
     character(len=8)                   :: cvalue
     integer                            :: nloop
     character(len=4)                   :: prefix
     integer                            :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
     integer                            :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
+
+    integer(kind=PIO_OFFSET_KIND), allocatable :: dof_srfrest(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1747,6 +1766,17 @@ contains
     call ESMF_GridCompGet(gcomp, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! ------------------------------
+    ! Generate dof values
+    ! ------------------------------
+
+    ! generate the dof
+    lsize = columns_on_task
+    allocate(dof_srfrest(lsize))
+    do n = 1, lsize
+      dof_srfrest(n) = global_index_p(n)
+    end do
+
     ! ----------------------
     ! Open surface restart dataset
     ! ----------------------
@@ -1755,7 +1785,10 @@ contains
          yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
 
     call cam_pio_createfile(File, fname_srf_cam, 0)
-    call pio_initdecomp(pio_subsystem, pio_double, (/num_global_phys_cols/), dof, iodesc)
+    call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof_srfrest, pio_double)
+
+    ! Free-up memory taken by dof:
+    deallocate(dof_srfrest)
 
     ! ----------------------
     ! Define dimensions
