@@ -86,8 +86,8 @@ module atm_comp_nuopc
   type(cam_in_t),   pointer    :: cam_in  => NULL()
   type(cam_out_t),  pointer    :: cam_out => NULL()
 
-  integer         , pointer    :: dof(:)              ! global index space decomposition
-  character(len=256)           :: rsfilename_spec_cam ! Filename specifier for restart surface file
+  integer(kind=PIO_OFFSET_KIND), allocatable :: dof(:) ! global index space decomposition
+  character(len=256)           :: rsfilename_spec_cam  ! Filename specifier for restart surface file
   character(*)    ,parameter   :: modName =  "(atm_comp_nuopc)"
   character(*)    ,parameter   :: u_FILE_u = &
        __FILE__
@@ -1569,8 +1569,6 @@ contains
     character(len=8)                   :: cvalue
     integer                            :: nloop
     character(len=4)                   :: prefix
-
-    integer(kind=PIO_OFFSET_KIND), allocatable :: dof_srfrest(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1595,26 +1593,12 @@ contains
     !call getfil(pname_srf_cam, fname_srf_cam)
 
     ! ------------------------------
-    ! Generate dof values
-    ! ------------------------------
-
-    ! generate the dof
-    lsize = columns_on_task
-    allocate(dof_srfrest(lsize))
-    do n = 1, lsize
-      dof_srfrest(n) = global_index_p(n)
-    end do
-
-    ! ------------------------------
     ! Open restart file
     ! ------------------------------
 
     call cam_pio_openfile(File, fname_srf_cam, 0)
-    call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof_srfrest, pio_double)
+    call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof, pio_double)
     call pio_seterrorhandling(File, pio_bcast_error)
-
-    ! Free-up memory taken by dof:
-    deallocate(dof_srfrest)
 
     ! ------------------------------
     ! Read in import and export fields
@@ -1753,8 +1737,6 @@ contains
     character(len=4)                   :: prefix
     integer                            :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
     integer                            :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
-
-    integer(kind=PIO_OFFSET_KIND), allocatable :: dof_srfrest(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1766,17 +1748,6 @@ contains
     call ESMF_GridCompGet(gcomp, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! ------------------------------
-    ! Generate dof values
-    ! ------------------------------
-
-    ! generate the dof
-    lsize = columns_on_task
-    allocate(dof_srfrest(lsize))
-    do n = 1, lsize
-      dof_srfrest(n) = global_index_p(n)
-    end do
-
     ! ----------------------
     ! Open surface restart dataset
     ! ----------------------
@@ -1785,10 +1756,7 @@ contains
          yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
 
     call cam_pio_createfile(File, fname_srf_cam, 0)
-    call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof_srfrest, pio_double)
-
-    ! Free-up memory taken by dof:
-    deallocate(dof_srfrest)
+    call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof, pio_double)
 
     ! ----------------------
     ! Define dimensions
