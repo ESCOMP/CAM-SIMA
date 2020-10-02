@@ -118,6 +118,16 @@ def buildnml(case, caseroot, compname):
     # Create CAM  configure object:
     config = ConfigCAM(case, _LOGGER)
 
+    #----------------------------------------------------------
+    #Auto-generate model code and meta-data needed for namelist:
+    #----------------------------------------------------------
+
+    #Set number of spaces used to indicate scope in generated code:
+    gen_indent = 3
+
+    #Generate model code and meta-data:
+    config.generate_cam_src(gen_indent)
+
     #-----------------------------------------------------------------
     # Create namelist attribute dictionary (to set namelist defaults):
     #-----------------------------------------------------------------

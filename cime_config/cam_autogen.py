@@ -13,6 +13,7 @@ import sys
 import os
 import logging
 import shutil
+import filecmp
 import glob
 
 # Check for the CIME library, and add it
@@ -173,7 +174,7 @@ def _find_metadata_files(source_dirs, scheme_finder):
 ###############################################################################
 def generate_registry(data_search, build_cache, atm_root, bldroot,
                        source_mods_dir, dycore, gen_fort_indent,
-                       reg_config):
+                       no_gen=False, reg_config=dict()):
 ###############################################################################
     """Generate the CAM data source and metadata from the registry,
     if required (new case or changes to registry source(s) or script)."""
@@ -201,7 +202,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     registry_file, _ = _find_file("registry.xml", data_search)
     registry_files = [registry_file]
     genreg_dir = os.path.join(bldroot, "cam_registry")
-    #Create empty registry file objects list:
+    # Create empty registry file objects list:
     reg_files_list = list()
     # Figure out if we need to generate new data source and metadata files
     if os.path.exists(genreg_dir):
@@ -212,7 +213,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         os.makedirs(genreg_dir)
         do_gen_registry = True
     # End if
-    if do_gen_registry:
+    if do_gen_registry and not no_gen:
         for reg_file in registry_files:
             retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config,
                                                   genreg_dir, gen_fort_indent,
@@ -235,8 +236,9 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     return genreg_dir, do_gen_registry, reg_files_list
 
 ###############################################################################
-def generate_physics_suites(ccpp_scripts_path, build_cache, case, config, atm_root,
-                             bldroot, reg_dir, reg_files, source_mods_dir, force):
+def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_name,
+                             phys_suites_str, atm_root, bldroot, reg_dir, reg_files,
+                             source_mods_dir, force, no_gen=False):
 ###############################################################################
     """Generate the source for the configured physics suites,
     if required (new case or changes to suite source(s) or metadata)."""
@@ -271,7 +273,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, case, config, atm_ro
     # Find the SDFs
     sdfs = list()
     scheme_files = list()
-    for sdf in config.get_value('physics_suites').split(';'):
+    for sdf in phys_suites_str.split(';'):
         sdf_path, _ = _find_file("suite_{}.xml".format(sdf), source_search)
         if not sdf_path:
             emsg = "ERROR: Unable to find SDF for, suite '{}'"
@@ -299,8 +301,10 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, case, config, atm_ro
     # End for
     # Figure out if we need to generate new physics code
     genccpp_dir = os.path.join(bldroot, "ccpp")
-    preproc_defs = case.get_value('CAM_CPPDEFS')
     kind_phys = 'REAL64'
+
+    # Set location of CCPP "capfiles.txt" file:
+    cap_output_file = os.path.join(genccpp_dir, "capfiles.txt")
 
     # reg_dir needs to be first as the DDTs are defined there.
     host_files = glob.glob(os.path.join(reg_dir, "*.meta"))
@@ -320,11 +324,9 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, case, config, atm_ro
         os.makedirs(genccpp_dir)
         do_gen_ccpp = True
     # End if
-    if do_gen_ccpp:
-        cap_output_file = os.path.join(genccpp_dir, "capfiles.txt")
+    if do_gen_ccpp and not no_gen:
         gen_hostcap = True
         gen_docfiles = False
-        host_name = case.get_value('COMP_ATM')
 
         # print extra info to bldlog if DEBUG is TRUE
         _LOGGER.debug("Calling capgen: ")
@@ -348,7 +350,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, case, config, atm_ro
 ###############################################################################
 def generate_init_routines(data_search, build_cache, bldroot,
                            reg_files, force_reg, force_ccpp,
-                           gen_fort_indent, cap_datafile):
+                           gen_fort_indent, cap_datafile, no_gen=False):
 ###############################################################################
     """Generate the host model initialization source code files
        (phys_vars_init_check.F90 and physics_inputs.F90) using
@@ -394,7 +396,7 @@ def generate_init_routines(data_search, build_cache, bldroot,
         do_gen_init = True
     # End if
 
-    if do_gen_init:
+    if do_gen_init and not no_gen:
         #Run initialization files generator:
         retmsg = write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
                                              cap_datafile, _LOGGER)

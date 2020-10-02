@@ -7,16 +7,10 @@ create the cam library
 import sys
 import os
 import filecmp
-import glob
 import shutil
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
-from cam_build_cache import BuildCacheCAM # Re-build consistency cache
-
-#CAM's fortran auto-generation routines:
-from cam_autogen import generate_registry, generate_physics_suites
-from cam_autogen import generate_init_routines
 
 # Check for the CIME library, and add it
 # to the python path:
@@ -52,9 +46,11 @@ def _build_cam():
         atm_root = case.get_value("COMP_ROOT_DIR_ATM")
         gmake_j = case.get_value("GMAKE_J")
         gmake = case.get_value("GMAKE")
+        exeroot = case.get_value("EXEROOT")
 
         # Case-derived variables
         source_mods_dir = os.path.join(caseroot, "SourceMods", "src.cam")
+        bldroot = os.path.join(exeroot, "atm", "obj")
 
         # Set logging level
         if case.get_value("DEBUG"):
@@ -67,61 +63,17 @@ def _build_cam():
             _LOGGER.setLevel(logging.INFO)
         # End if
 
-        # CAM config object and variables
+        # Create CAM config object and extract variables:
         config = ConfigCAM(case, _LOGGER)
+        config.generate_cam_src(0, set_paths_only=True)
+
         dycore = config.get_value('dyn')
-        reg_config = {}
+        reg_dir = config.get_value('reg_dir')
+        init_dir = config.get_value('init_dir')
+        phys_dirs_str = config.get_value('phys_dirs')
 
-        # Set fortran indendation level (number of spaces
-        # generated fortran code is indented depending on the scope):
-        gen_fort_indent = 3
-
-        # Set possible locations to search for generation routines
-        # with the SourceMods directory searched first:
-        data_path = os.path.join(atm_root, "src", "data")
-        data_search = [source_mods_dir, data_path]
-
-        # Append CCPP-framework to python path:
-        spin_scripts_path = os.path.join(atm_root, "ccpp_framework", "scripts")
-
-        #-------------------------------------------------------
-        # Load a build cache, if available
-        #-------------------------------------------------------
-        build_cache = BuildCacheCAM(os.path.join(bldroot,
-                                                 "cam_build_cache.xml"))
-        #-------------------------------------------------------
-        # Create the physics derived data types
-        #-------------------------------------------------------
-        reg_dir, force_ccpp, reg_files = generate_registry(data_search,
-                                                           build_cache, atm_root,
-                                                           bldroot, source_mods_dir,
-                                                           dycore, gen_fort_indent,
-                                                           reg_config)
-
-        #-------------------------------------------------------
-        # Call SPIN (CCPP Framework) to generate glue code
-        #-------------------------------------------------------
-
-        phys_dirs, force_init, cap_datafile = \
-                               generate_physics_suites(spin_scripts_path,
-                                                       build_cache, case, config,
-                                                       atm_root, bldroot, reg_dir,
-                                                       reg_files, source_mods_dir,
-                                                       force_ccpp)
-
-        #-------------------------------------------------------
-        # Create host model variable initialization routines
-        #-------------------------------------------------------
-        init_dir = generate_init_routines(data_search,
-                                          build_cache, bldroot,
-                                          reg_files, force_ccpp,
-                                          force_init, gen_fort_indent,
-                                          cap_datafile)
-
-        #--------------------------------------------------------------
-        # write out the cache here as we have completed pre-processing
-        #--------------------------------------------------------------
-        build_cache.write()
+        #Convert the phys_dirs_str into a proper list:
+        phys_dirs = phys_dirs_str.split(';')
 
         #-------------------------------------------------------
         # Create the Filepath file with all the paths needed
