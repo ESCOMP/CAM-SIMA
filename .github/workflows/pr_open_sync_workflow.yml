@@ -37,6 +37,8 @@ jobs:
         python cime_config/cam_config.py
         # CAM config unit tests:
         python test/unit/cam_config_unit_tests.py
+        # CAM autogen doctests:
+        python cime_config/cam_autogen.py
         # Registry generator doctests:
         python -m doctest src/data/generate_registry_data.py
         # Registry generator unit tests:

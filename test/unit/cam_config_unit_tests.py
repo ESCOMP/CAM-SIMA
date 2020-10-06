@@ -60,7 +60,12 @@ class FakeCase:
             "ATM_NX"   : 180,
             "ATM_NY"   : 90,
             "COMP_OCN" : "socn",
-            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic_suite"
+            "COMP_ATM" : "cam",
+            "EXEROOT"  : "/some/made-up/path",
+            "CASEROOT" : "/another/made-up/path",
+            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
+            "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
+            "CAM_CPPDEFS" : "UNSET"
             }
 
     def get_value(self, key):

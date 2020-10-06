@@ -9,10 +9,23 @@ CIME case.
 #----------------------------------------
 # Import generic python libraries/modules
 #----------------------------------------
+
 import re
 import sys
 import argparse
 import os.path
+
+#-----------------------------------
+# Import CAM-specific python modules
+#-----------------------------------
+
+# Import build cache object:
+from cam_build_cache import BuildCacheCAM # Re-build consistency cache
+
+# Import fortran auto-generation routines:
+from cam_autogen import generate_registry, generate_physics_suites
+from cam_autogen import generate_init_routines
+
 
 # Determine regular rexpression type  (for later usage in Config_string)
 REGEX_TYPE = type(re.compile(r" "))
@@ -945,7 +958,7 @@ class ConfigCAM:
 
     #++++++++++++++++++++++++
 
-    def generate_cam_src(self, gen_fort_indent,  set_paths_only=False):
+    def generate_cam_src(self, gen_fort_indent, set_paths_only=False):
 
         """
         Run CAM auto-generation functions, which
@@ -955,13 +968,6 @@ class ConfigCAM:
         off of CAM configure settings and the model
         registry file.
         """
-
-        #Import build cache object:
-        from cam_build_cache import BuildCacheCAM # Re-build consistency cache
-
-        #Import fortran auto-generation routines:
-        from cam_autogen import generate_registry, generate_physics_suites
-        from cam_autogen import generate_init_routines
 
         # Set SourceMods path:
         source_mods_dir = os.path.join(self.__caseroot, "SourceMods", "src.cam")
@@ -987,18 +993,11 @@ class ConfigCAM:
         #---------------------------------------------------------
         # Create the physics derived data types using the registry
         #---------------------------------------------------------
-        if set_paths_only:
-            #Don't generate code, just determine code paths:
-            reg_dir, force_ccpp, reg_files = generate_registry(data_search,
-                                                               build_cache, self.__atm_root,
-                                                               self.__bldroot, source_mods_dir,
-                                                               dyn, gen_fort_indent, no_gen=True)
-        else:
-            #Do full code generation:
-            reg_dir, force_ccpp, reg_files = generate_registry(data_search,
-                                                               build_cache, self.__atm_root,
-                                                               self.__bldroot, source_mods_dir,
-                                                               dyn, gen_fort_indent)
+        reg_dir, force_ccpp, reg_files = generate_registry(data_search,
+                                                           build_cache, self.__atm_root,
+                                                           self.__bldroot, source_mods_dir,
+                                                           dyn, gen_fort_indent,
+                                                           no_gen=set_paths_only)
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -1007,25 +1006,14 @@ class ConfigCAM:
         #---------------------------------------------------------
         # Call SPIN (CCPP Framework) to generate glue code
         #---------------------------------------------------------
-        if set_paths_only:
-            #Don't generate code, just determine code paths:
-            phys_dirs, force_init, cap_datafile = \
-                                   generate_physics_suites(spin_scripts_path,
-                                                           build_cache, self.__cppdefs,
-                                                           self.__atm_name, phys_suites,
-                                                           self.__atm_root, self.__bldroot,
-                                                           reg_dir, reg_files,
-                                                           source_mods_dir, force_ccpp,
-                                                           no_gen=True)
-        else:
-            #Do full code generation:
-            phys_dirs, force_init, cap_datafile = \
-                                   generate_physics_suites(spin_scripts_path,
-                                                           build_cache, self.__cppdefs,
-                                                           self.__atm_name, phys_suites,
-                                                           self.__atm_root, self.__bldroot,
-                                                           reg_dir, reg_files,
-                                                           source_mods_dir, force_ccpp)
+        phys_dirs, force_init, cap_datafile = \
+                               generate_physics_suites(spin_scripts_path,
+                                                       build_cache, self.__cppdefs,
+                                                       self.__atm_name, phys_suites,
+                                                       self.__atm_root, self.__bldroot,
+                                                       reg_dir, reg_files,
+                                                       source_mods_dir, force_ccpp,
+                                                       no_gen=set_paths_only)
 
         #Convert physics directory list into a string:
         phys_dirs_str = ';'.join(phys_dirs)
@@ -1037,20 +1025,12 @@ class ConfigCAM:
         #---------------------------------------------------------
         # Create host model variable initialization routines
         #---------------------------------------------------------
-        if set_paths_only:
-            #Don't generate code, just determine code paths:
-            init_dir = generate_init_routines(data_search,
-                                              build_cache, self.__bldroot,
-                                              reg_files, force_ccpp,
-                                              force_init, gen_fort_indent,
-                                              cap_datafile, no_gen=True)
-        else:
-            #Do full code generation:
-            init_dir = generate_init_routines(data_search,
-                                              build_cache, self.__bldroot,
-                                              reg_files, force_ccpp,
-                                              force_init, gen_fort_indent,
-                                             cap_datafile)
+        init_dir = generate_init_routines(spin_scripts_path, data_search,
+                                          build_cache, self.__bldroot,
+                                          reg_files, force_ccpp,
+                                          force_init, gen_fort_indent,
+                                          cap_datafile,
+                                          no_gen=set_paths_only)
 
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initilazation code."
@@ -1093,7 +1073,12 @@ if __name__ == "__main__":
                 "ATM_NX"   : 180,
                 "ATM_NY"   : 90,
                 "COMP_OCN" : "socn",
-                "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic"
+                "COMP_ATM" : "cam",
+                "EXEROOT"  : "/some/made-up/path",
+                "CASEROOT" : "/another/made-up/path",
+                "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
+                "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
+                "CAM_CPPDEFS" : "UNSET"
                 }
 
         def get_value(self, key):
@@ -1124,6 +1109,6 @@ if __name__ == "__main__":
     # Run doctests on this file's python objects
     doctest.testmod()
 
-##############
-# End of file##
-############
+#############
+# End of file
+#############
