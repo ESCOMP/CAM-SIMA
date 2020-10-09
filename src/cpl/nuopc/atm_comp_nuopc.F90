@@ -40,7 +40,6 @@ module atm_comp_nuopc
   use cam_control_mod     , only : cam_ctrl_set_orbit
   use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, cam_pio_newdecomp
   use cam_initfiles       , only : cam_initfiles_get_caseid, cam_initfiles_get_restdir
-  !use cam_history_support , only : fillvalue
   use filenames           , only : interpret_filename_spec
   use pio                 , only : file_desc_t, io_desc_t, var_desc_t, pio_double, pio_def_dim, PIO_MAX_NAME
   use pio                 , only : pio_freedecomp
@@ -679,11 +678,11 @@ contains
        ! error check differences between internally generated lons and those read in
        do n = 1,lsize
           if (abs(lonMesh(n) - lon(n)) > 1.e-12_r8) then
-             write(6,100)n,lon(n),lonMesh(n), abs(lonMesh(n)-lon(n))
+             write(local_iulog, 100)n,lon(n),lonMesh(n), abs(lonMesh(n)-lon(n))
 100          format('ERROR: CAM n, lonmesh(n), lon(n), diff_lon = ',i6,2(f21.13,3x),d21.5)
           end if
           if (abs(latMesh(n) - lat(n)) > 1.e-12_r8) then
-             write(6,100)n,lat(n),latMesh(n), abs(latMesh(n)-lat(n))
+             write(local_iulog, 100)n,lat(n),latMesh(n), abs(latMesh(n)-lat(n))
 101          format('ERROR: CAM n, latmesh(n), lat(n), diff_lat = ',i6,2(f21.13,3x),d21.5)
           end if
        end do
@@ -868,7 +867,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-!Remove once radiation has been fully implemented. -JN
+!CAMDEN TODO Remove once radiation has been fully implemented. -JN
 #if 0
        ! Compute time of next radiation computation, like in run method for exact restart
        dtime = get_step_size()
@@ -1152,7 +1151,7 @@ contains
        call ESMF_TimeIntervalGet( timeStep, s=atm_cpl_dt, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-!Remove once radiation has been fully implemented. -JN
+!CAMDEN TODO Remove once radiation has been fully implemented. -JN
 #if 0
        dtime = get_step_size()
        if (dtime < atm_cpl_dt) then

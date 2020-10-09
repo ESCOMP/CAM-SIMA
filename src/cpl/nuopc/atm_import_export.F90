@@ -341,6 +341,7 @@ contains
     use camsrfexch        , only : cam_in_t
     use physics_grid      , only : columns_on_task
     use shr_const_mod     , only : shr_const_stebol
+!CAMDEN TODO Need to uncomment these once carbon cycling is enabled in CAMDEN:
 !    use co2_cycle         , only : c_i, co2_readFlux_ocn, co2_readFlux_fuel
 !    use co2_cycle         , only : co2_transport, co2_time_interp_ocn, co2_time_interp_fuel
 !    use co2_cycle         , only : data_flux_ocn, data_flux_fuel
