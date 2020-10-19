@@ -702,6 +702,8 @@ class ConfigCAM:
             # Horizontal grid
             self.create_config("hgrid", hgrid_desc, atm_grid,
                                se_grid_re, is_nml_attr=True)
+            # Add SE namelist group to nmlgen list:
+            self.__nml_groups.append("dyn_se_inparm")
 
         elif fv3_grid_re.match(atm_grid) is not None:
             # Dynamical core
@@ -764,6 +766,72 @@ class ConfigCAM:
             raise CamConfigValError(emsg.format(user_dyn_opt, dyn))
         # End if
 
+        #--------------------------------------------------------
+        # Set CAM grid variables (nlev and horizontal dimensions)
+        #--------------------------------------------------------
+
+        # Set number of vertical levels
+        if case_nlev:
+            # Save variable for CPPDEFs
+            nlev = case_nlev
+        else:
+            # Save variable for CPPDEFs
+            nlev = 30
+
+        # Add vertical levels to configure object
+        nlev_desc = "Number of vertical levels."
+        self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
+
+        #Set horizontal dimension variables:
+        if dyn == "se":
+            # Extract cubed-sphere grid values from hgrid string:
+            csne_re = re.search(r"ne[0-9]+", atm_grid)
+            csne_val = int(csne_re.group()[2:])
+
+            csnp_re = re.search(r"np[0-9]+", atm_grid)
+            csnp_val = int(csnp_re.group()[2:])
+
+            # Add number of elements along edge of cubed-sphere grid
+            csne_desc = "Number of elements along one edge of a cubed sphere grid."
+            self.create_config("csne", csne_desc, csne_val)
+
+            # Add number of points on each cubed-sphere element edge
+            csnp_desc = "Number of points on each edge of the elements in a cubed sphere grid."
+            self.create_config("csnp", csnp_desc, csnp_val)
+
+        else:
+            # Add number of latitudes in grid to configure object
+            nlat_desc = "Number of unique latitude points in rectangular lat/lon" \
+                        " grid.\nSet to 1 (one) for unstructured grids."
+            self.create_config("nlat", nlat_desc, case_ny)
+
+            # Add number of longitudes in grid to configure object
+            nlon_desc = "Number of unique longitude points in rectangular lat/lon" \
+                        " grid.\nTotal number of columns for unstructured grids."
+            self.create_config("nlon", nlon_desc, case_nx)
+
+        #---------------------------------------
+        # Set initial and/or boundary conditions
+        #---------------------------------------
+
+        #Check if user specified Analytic Initial Conditions (ICs):
+        if user_config_opts.analytic_ic:
+            #Set "analytic_ic" to True (1):
+            analy_ic_val = 1 #Use Analytic ICs
+
+            #Add analytic_ic to namelist group list:
+            self.__nml_groups.append("analytic_ic_nl")
+        else:
+            analy_ic_val = 0 #Don't use Analytic ICs
+
+        analy_ic_desc = "\n\
+        Switch to turn on analytic initial conditions for the dynamics state:\n\
+        0 => no,\n\
+        1 => yes."
+
+        self.create_config("analytic_ic", analy_ic_desc,
+                           analy_ic_val, [0, 1], is_nml_attr=True)
+
         #--------------------
         # Set ocean component
         #--------------------
@@ -781,12 +849,13 @@ class ConfigCAM:
         self.create_config("ocn", ocn_desc, comp_ocn,
                            ocn_valid_vals, is_nml_attr=True)
 
-        phys_desc = """\nA comma-separate list of physics suite definition
-        file (SDF) names.\nTo specify the Kessler and Held-Suarez suites as \
-        run time options, use '--physics-suites kessler,hs94'.
-        """
+        phys_desc = """\n\
+        A semi-colon separated list of physics Suite Definition\n\
+        File (SDF) names. To specify the Kessler and Held-Suarez\n\
+        suites as run time options, use '--physics-suites kessler;hs94'."""
+
         self.create_config("physics_suites", phys_desc,
-                           user_config_opts.physics_suites, is_nml_attr=True)
+                           user_config_opts.physics_suites)
 
         #--------------------------------------------------------
         # Print CAM configure settings and values to debug logger
@@ -824,27 +893,35 @@ class ConfigCAM:
         >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         SystemExit: 2
-        >>> ConfigCAM.parse_config_opts("--phys kessler")
-        Namespace(dyn='', physics_suites='kessler')
-        >>> ConfigCAM.parse_config_opts("--phys kessler  --dyn se")
-        Namespace(dyn='se', physics_suites='kessler')
-        >>> ConfigCAM.parse_config_opts("--phys kessler;musica")
-        Namespace(dyn='', physics_suites='kessler;musica')
-        >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> ConfigCAM.parse_config_opts("--physics-suites kessler")
+        Namespace(analytic_ic=False, dyn='', physics_suites='kessler')
+        >>> ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
+        Namespace(analytic_ic=False, dyn='se', physics_suites='kessler')
+        >>> ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
+        Namespace(analytic_ic=True, dyn='se', physics_suites='kessler')
+        >>> ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
+        Namespace(analytic_ic=False, dyn='', physics_suites='kessler;musica')
+        >>> ConfigCAM.parse_config_opts("--physics-suites kessler musica", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         SystemExit: 2
         """
         cco_str = "CAM_CONFIG_OPTS"
         parser = argparse.ArgumentParser(description=cco_str,
-                                         prog="ConfigCAM",
+                                         prog="ConfigCAM", allow_abbrev=False,
                                          epilog="Allowed values of "+cco_str)
 
-        parser.add_argument("--physics-suites", type=str, required=True,
+        parser.add_argument("--physics-suites", "-physics-suites", type=str,
+                            required=True, metavar='<CCPP_SDFs>',
                             help="""Semicolon-separated list of Physics Suite
-                            Definition Files (SDFs)""")
+                                 Definition Files (SDFs)""")
         parser.add_argument("--dyn", "-dyn", metavar='<dycore>',
                             type=str, required=False, default="",
-                            help="Name of dycore")
+                            help="""Name of dycore""")
+        parser.add_argument("--analytic_ic", "-analytic_ic",
+                            action='store_true', required=False,
+                            help="""Flag to turn on Analytic Initial
+                                 Conditions (ICs).""")
+
         popts = [opt for opt in config_opts.split(" ") if opt]
         if test_mode:
             stderr_save = sys.stderr

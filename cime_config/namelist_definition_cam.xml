@@ -10856,6 +10856,7 @@
       Default: 0 (i.e., not used)
     </desc>
     <values>
+      <value>0</value>
       <value hypervis_type="tensor" se_refined_mesh="1">3.0D0</value>
     </values>
   </entry>
@@ -10935,6 +10936,9 @@
       Must match value of grid. Set this to zero to use a refined mesh.
       Default: UNKNOWN.
     </desc>
+    <values>
+      <value hgrid="ne30np4">30</value>
+    </values>
   </entry>
   <entry id="se_npes">
     <type>integer</type>
@@ -10942,8 +10946,11 @@
     <group>dyn_se_inparm</group>
     <desc>
       Number of PEs to be used by SE dycore.
-      Default: Number of PEs used by CAM.
+      Default: 0 = Number of PEs used by CAM.
     </desc>
+    <values>
+      <value>0</value>
+    </values>
   </entry>
   <entry id="se_nsplit">
     <type>integer</type>
@@ -11317,6 +11324,9 @@
       result in 9 equally-spaced physics points per element).
       Default: 0 = feature disabled, use dynamics GLL points.
     </desc>
+    <values>
+      <value>0</value>
+    </values>
   </entry>
 
 <!-- Option to write SCRIP grid file -->
@@ -11418,10 +11428,10 @@
     </desc>
     <values>
       <value>none</value>
-      <value phys="adiabatic">held_suarez_1994</value>
-      <value phys="held_suarez">held_suarez_1994</value>
-      <value phys="kessler">moist_baroclinic_wave_dcmip2016</value>
-      <value phys="tj2016">moist_baroclinic_wave_dcmip2016</value>
+      <value phys_suite="adiabatic">held_suarez_1994</value>
+      <value phys_suite="held_suarez">held_suarez_1994</value>
+      <value phys_suite="kessler">moist_baroclinic_wave_dcmip2016</value>
+      <value phys_suite="tj2016">moist_baroclinic_wave_dcmip2016</value>
     </values>
   </entry>
   <entry id="aqua_planet_sst">
