@@ -8,14 +8,17 @@ module physics_grid
    private
    save
 
+   ! Physics grid management
    public :: phys_grid_init ! initialize the physics grid
+
+   ! Local task interfaces
    public :: get_dlat_p     ! latitude of a physics column in degrees
    public :: get_dlon_p     ! longitude of a physics column in degrees
    public :: get_rlat_p     ! latitude of a physics column in radians
    public :: get_rlon_p     ! longitude of a physics column in radians
-   public :: get_rlats_p    ! latitudes of physics cols in chunk (radians)
-   public :: get_rlons_p    ! longitudes of physics cols in chunk (radians)
    public :: get_area_p     ! area of a physics column in radians squared
+   public :: get_rlat_all_p ! latitudes of physics cols on task (radians)
+   public :: get_rlon_all_p ! longitudes of physics cols on task (radians)
    public :: global_index_p ! global column index of a physics column
    public :: local_index_p  ! local column index of a physics column
    public :: get_grid_dims  ! return grid dimensions
@@ -258,6 +261,8 @@ CONTAINS
 
    end subroutine phys_grid_init
 
+   !========================================================================
+
    real(r8) function get_dlat_p(index)
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
@@ -281,6 +286,8 @@ CONTAINS
       end if
 
    end function get_dlat_p
+
+   !========================================================================
 
    real(r8) function get_dlon_p(index)
       use cam_logfile,    only: iulog
@@ -306,6 +313,8 @@ CONTAINS
 
    end function get_dlon_p
 
+   !========================================================================
+
    real(r8) function get_rlat_p(index)
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
@@ -321,7 +330,7 @@ CONTAINS
          call endrun(subname//': physics grid not initialized')
       else if ((index < 1) .or. (index > columns_on_task)) then
          write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) errmsg
          call endrun(errmsg)
       else
@@ -329,6 +338,8 @@ CONTAINS
       end if
 
    end function get_rlat_p
+
+   !========================================================================
 
    real(r8) function get_rlon_p(index)
       use cam_logfile,    only: iulog
@@ -345,7 +356,7 @@ CONTAINS
          call endrun(subname//': physics grid not initialized')
       else if ((index < 1) .or. (index > columns_on_task)) then
          write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) errmsg
          call endrun(errmsg)
       else
@@ -353,78 +364,6 @@ CONTAINS
       end if
 
    end function get_rlon_p
-
-   !========================================================================
-
-   subroutine get_rlats_p(rlats, first_col, last_col)
-      use cam_abortutils, only: endrun
-      !-----------------------------------------------------------------------
-      !
-      ! get_rlats_p: Return all latitudes (in radians)
-      !
-      !-----------------------------------------------------------------------
-      ! Dummy Arguments
-      real(r8),          intent(out) :: rlats(:)  ! array of latitudes
-      integer, optional, intent(in)  :: first_col ! Starting column
-      integer, optional, intent(in)  :: last_col  ! Ending column
-
-      ! Local variables
-      integer                     :: bcol, ecol ! starting and ending cols
-      character(len=*), parameter :: subname = 'get_rlats_p: '
-
-      !-----------------------------------------------------------------------
-      if (present(first_col)) then
-         bcol = first_col
-      else
-         bcol = 1
-      end if
-      if (present(last_col)) then
-         ecol = last_col
-      else
-         ecol = columns_on_task
-      end if
-      if (size(rlats) /= (ecol - bcol + 1)) then
-         call endrun(subname//"rlats array is incorrect size")
-      end if
-      rlats = phys_columns(bcol:ecol)%lat_rad
-
-   end subroutine get_rlats_p
-
-   !========================================================================
-
-   subroutine get_rlons_p(rlons, first_col, last_col)
-      use cam_abortutils, only: endrun
-      !-----------------------------------------------------------------------
-      !
-      ! get_rlons_p: Return all longitudes (in radians)
-      !
-      !-----------------------------------------------------------------------
-      ! Dummy Arguments
-      real(r8),          intent(out) :: rlons(:)  ! array of longitudes
-      integer, optional, intent(in)  :: first_col ! Starting column
-      integer, optional, intent(in)  :: last_col  ! Ending column
-
-      ! Local variables
-      integer                     :: bcol, ecol ! starting and ending cols
-      character(len=*), parameter :: subname = 'get_rlons_p: '
-
-      !-----------------------------------------------------------------------
-      if (present(first_col)) then
-         bcol = first_col
-      else
-         bcol = 1
-      end if
-      if (present(last_col)) then
-         ecol = last_col
-      else
-         ecol = columns_on_task
-      end if
-      if (size(rlons) /= (ecol - bcol + 1)) then
-         call endrun(subname//"rlons array is incorrect size")
-      end if
-      rlons = phys_columns(bcol:ecol)%lon_rad
-
-   end subroutine get_rlons_p
 
    !========================================================================
 
@@ -443,7 +382,7 @@ CONTAINS
          call endrun(subname//': physics grid not initialized')
       else if ((index < 1) .or. (index > columns_on_task)) then
          write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
+              ') out of range (1 to ', columns_on_task, ')'
          write(iulog, *) errmsg
          call endrun(errmsg)
       else
@@ -451,6 +390,78 @@ CONTAINS
       end if
 
    end function get_area_p
+
+   !========================================================================
+
+   subroutine get_rlat_all_p(rlatdim, rlats)
+      use cam_logfile,    only: iulog
+      use cam_abortutils, only: endrun
+      !-----------------------------------------------------------------------
+      !
+      ! get_rlat_all_p: Return all latitudes (in radians) on task.
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      integer,  intent(in)  :: rlatdim        ! declared size of output array
+      real(r8), intent(out) :: rlats(rlatdim) ! array of latitudes
+
+      ! Local variables
+      integer                     :: index ! loop index
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_rlat_all_p: '
+
+      !-----------------------------------------------------------------------
+      if (.not. phys_grid_initialized) then
+         call endrun(subname//': physics grid not initialized')
+      else if ((rlatdim < 1) .or. (rlatdim > columns_on_task)) then
+         write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlatdim, &
+              ') out of range (1 to ', columns_on_task, ')'
+         write(iulog, *) trim(errmsg)
+         call endrun(trim(errmsg))
+      else
+         do index = 1, rlatdim
+            rlats(index) = phys_columns(index)%lat_rad
+         end do
+      end if
+
+   end subroutine get_rlat_all_p
+
+   !========================================================================
+
+   subroutine get_rlon_all_p(rlondim, rlons)
+      use cam_logfile,    only: iulog
+      use cam_abortutils, only: endrun
+      !-----------------------------------------------------------------------
+      !
+      ! get_rlon_all_p: Return all longitudes (in radians) on task.
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      integer,  intent(in)  :: rlondim        ! declared size of output array
+      real(r8), intent(out) :: rlons(rlondim) ! array of longitudes
+
+      ! Local variables
+      integer                     :: index ! loop index
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_rlon_all_p: '
+
+      !-----------------------------------------------------------------------
+      if (.not. phys_grid_initialized) then
+         call endrun(subname//': physics grid not initialized')
+      else if ((rlondim < 1) .or. (rlondim > columns_on_task)) then
+         write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlondim, &
+              ') out of range (1 to ', columns_on_task, ')'
+         write(iulog, *) trim(errmsg)
+         call endrun(trim(errmsg))
+      else
+         do index = 1, rlondim
+            rlons(index) = phys_columns(index)%lon_rad
+         end do
+      end if
+
+   end subroutine get_rlon_all_p
+
+   !========================================================================
 
    integer function global_index_p(index)
       use cam_logfile,    only: iulog

@@ -23,7 +23,7 @@
 [ slp ]
   standard_name = sea_level_pressure
   units = Pa
-  dimensions = (horizontal_loop_extent)
+  dimensions = (vertical_layer_dimension)
   type = real
   kind = kind_phys
   intent = in

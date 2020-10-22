@@ -138,8 +138,9 @@ class VarBase(object):
     __pointer_type_str = "pointer"
 
     def __init__(self, elem_node, local_name, dimensions, known_types,
-                 type_default, units_default="",
-                 kind_default='', alloc_default='none'):
+                 type_default, units_default="", kind_default='',
+                 protected=False, index_name='', local_index_name='',
+                 local_index_name_str='', alloc_default='none'):
         self.__local_name = local_name
         self.__dimensions = dimensions
         self.__units = elem_node.get('units', default=units_default)
@@ -150,6 +151,11 @@ class VarBase(object):
         self.__long_name = ''
         self.__initial_value = ''
         self.__ic_names = None
+        self.__elements = list()
+        self.__protected = protected
+        self.__index_name = index_name
+        self.__local_index_name = local_index_name
+        self.__local_index_name_str = local_index_name_str
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
         if self.__allocatable == "none":
             self.__allocatable = ""
@@ -204,7 +210,7 @@ class VarBase(object):
         and/or one of its array elements."""
         #Check if variable has associated array index
         #local string:
-        if hasattr(self, 'local_index_name_str'):
+        if self.local_index_name_str:
             #Then write variable with local index name:
             # pylint: disable=no-member
             var_name = '{}{}'.format(ddt_str, self.local_index_name_str)
@@ -287,8 +293,35 @@ class VarBase(object):
     @property
     def ic_names(self):
         """Return list of possible Initial Condition (IC) file input names"""
-        #Assume ic_names exists:
         return self.__ic_names
+
+    @property
+    def protected(self):
+        """Return True iff this variable is protected"""
+        return self.__protected
+
+    @property
+    def elements(self):
+        """Return elements list for this variable"""
+        return self.__elements
+
+    @property
+    def index_name(self):
+        """Return the standard name of this array element's index value"""
+        return self.__index_name
+
+    @property
+    def local_index_name(self):
+        """Rturn the local name of this array element's index value"""
+        return self.__local_index_name
+
+    @property
+    def local_index_name_str(self):
+        """
+        Return the array element's name, but with the local name for the
+        index instead of the standard name
+        """
+        return self.__local_index_name_str
 
     @property
     def module(self):
@@ -317,17 +350,17 @@ class ArrayElement(VarBase):
         """
 
         self.__parent_name = parent_name
-        self.__index_name = elem_node.get('index_name')
+        index_name = elem_node.get('index_name')
         pos = elem_node.get('index_pos')
 
         # Check to make sure we know about this index
-        var = vdict.find_variable_by_standard_name(self.index_name)
+        var = vdict.find_variable_by_standard_name(index_name)
         if not var:
             emsg = "Unknown array index, '{}', in '{}'"
             raise CCPPError(emsg.format(self.index_name, parent_name))
         # end if
         #Save index variable local name:
-        self.__local_index_name = var.local_name
+        local_index_name = var.local_name
         # Find the location of this element's index
         found = False
         my_dimensions = list()
@@ -336,7 +369,7 @@ class ArrayElement(VarBase):
         for dim_ind, dim in enumerate(dimensions):
             if dimensions[dim_ind] == pos:
                 found = True
-                my_index.append(self.index_name)
+                my_index.append(index_name)
                 my_local_index.append(var.local_name)
             else:
                 my_index.append(':')
@@ -351,11 +384,11 @@ class ArrayElement(VarBase):
             #This is used to write initialization code in fortran
             #with the correct index variable name:
             local_index_string = ','.join(my_local_index)
-            self.__local_index_name_str = \
+            local_index_name_str = \
                 '{}({})'.format(parent_name, local_index_string)
         else:
             emsg = "Cannot find element dimension, '{}' in {}({})"
-            raise CCPPError(emsg.format(self.index_name, parent_name,
+            raise CCPPError(emsg.format(index_name, parent_name,
                                         ', '.join(dimensions)))
         # end if
         local_name = '{}({})'.format(parent_name, self.index_string)
@@ -363,24 +396,10 @@ class ArrayElement(VarBase):
                                            known_types, parent_type,
                                            units_default=parent_units,
                                            kind_default=parent_kind,
+                                           index_name=index_name,
+                                           local_index_name=local_index_name,
+                                           local_index_name_str=local_index_name_str,
                                            alloc_default=parent_alloc)
-    @property
-    def index_name(self):
-        """Return the standard name of this array element's index value"""
-        return self.__index_name
-
-    @property
-    def local_index_name(self):
-        """Rturn the local name of this array element's index value"""
-        return self.__local_index_name
-
-    @property
-    def local_index_name_str(self):
-        """
-        Return the array element's name, but with the local name for the
-        index instead of the standard name
-        """
-        return self.__local_index_name_str
 
     @property
     def index_string(self):
@@ -422,7 +441,6 @@ class Variable(VarBase):
     def __init__(self, var_node, known_types, vdict, logger):
         # pylint: disable=too-many-locals
         """Initialize a Variable from registry XML"""
-        self.__elements = list()
         local_name = var_node.get('local_name')
         allocatable = var_node.get('allocatable', default="none")
         # Check attributes
@@ -436,9 +454,9 @@ class Variable(VarBase):
         self.__access = var_node.get('access', default='public')
         if self.__access == "protected":
             self.__access = "public"
-            self.__protected = True
+            protected = True
         else:
-            self.__protected = False
+            protected = False
         # end if
         my_dimensions = list()
         self.__def_dims_str = ""
@@ -496,15 +514,17 @@ class Variable(VarBase):
         # end for
         # Initialize the base class
         super(Variable, self).__init__(var_node, local_name,
-                                       my_dimensions, known_types, ttype)
+                                       my_dimensions, known_types, ttype,
+                                       protected=protected)
+
         for attrib in var_node:
             # Second pass, only process array elements
             if attrib.tag == 'element':
-                self.__elements.append(ArrayElement(attrib, local_name,
-                                                    my_dimensions, known_types,
-                                                    ttype, self.kind,
-                                                    self.units, allocatable,
-                                                    vdict))
+                self.elements.append(ArrayElement(attrib, local_name,
+                                                  my_dimensions, known_types,
+                                                  ttype, self.kind,
+                                                  self.units, allocatable,
+                                                  vdict))
 
             # end if (all other processing done above)
         # end for
@@ -533,7 +553,7 @@ class Variable(VarBase):
             if (self.allocatable == "parameter") or self.protected:
                 outfile.write('  protected = True\n')
             # end if
-            for element in self.__elements:
+            for element in self.elements:
                 element.write_metadata(outfile)
             # end for
         # end if
@@ -675,7 +695,7 @@ class Variable(VarBase):
             if self.allocatable != "parameter":
                 # Initialize the variable
                 self.write_initial_value(outfile, indent, init_var, ddt_str)
-                for elem in self.__elements:
+                for elem in self.elements:
                     if elem.initial_value:
                         elem.write_initial_value(outfile, indent,
                                                  init_var, ddt_str)
@@ -702,16 +722,6 @@ class Variable(VarBase):
     def access(self):
         """Return the access attribute for this variable"""
         return self.__access
-
-    @property
-    def protected(self):
-        """Return True iff this variable is protected"""
-        return self.__protected
-
-    @property
-    def elements(self):
-        """Return elements list for this variable"""
-        return self.__elements
 
 ###############################################################################
 class VarDict(OrderedDict):
@@ -1080,6 +1090,8 @@ class File:
             dmsg = dmsg.format(newddt.ddt_type, self.__name)
             logger.debug(dmsg)
         # end if
+        if self.__known_types.known_type(newddt.ddt_type):
+            raise CCPPError('Duplicate DDT entry, {}'.format(newddt.ddt_type))
         self.__ddts[newddt.ddt_type] = newddt
         self.__known_types.add_type(newddt.ddt_type,
                                     self.__name, type_ddt=newddt)
@@ -1408,6 +1420,9 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
                 file_path = os.path.join(src_mod,
                                          os.path.basename(relative_file_path))
             else:
+                #If generate_registry_data.py is called from the command line,
+                #but no '--source-mods' argument is given, then check if the
+                #metadata file is present in the local directory instead.
                 file_path = os.path.basename(relative_file_path)
             # end if
             if not os.path.exists(file_path):
@@ -1415,7 +1430,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
                 if src_root:
                     file_path = relative_file_path.replace("$SRCROOT", src_root)
                 else:
-                    file_path = relative_file_path.replace("$SRCROOT", os.cudir)
+                    file_path = relative_file_path.replace("$SRCROOT", os.curdir)
                 # end if
                 # Make sure we have an absolute path
                 if not os.path.isabs(file_path):
@@ -1482,7 +1497,7 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
     # end if
     schema_dir = None
     for spath in schema_paths:
-        logger.debug("Looking for registry schema in '{}'".format(spath))
+        logger.debug("Looking for registry schema in '%s'", spath)
         schema_dir = find_schema_file("registry", version, schema_path=spath)
         if schema_dir:
             schema_dir = os.path.dirname(schema_dir)

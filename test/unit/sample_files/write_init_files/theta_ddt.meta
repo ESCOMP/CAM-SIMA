@@ -1,0 +1,13 @@
+[ccpp-arg-table]
+  name = theta_ddt_type
+  type = ddt
+[ theta_two ]
+  standard_name = potential_temperature
+  units = K
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ theta_e ]
+  standard_name = equivalent_potential_temperature
+  units = K
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)

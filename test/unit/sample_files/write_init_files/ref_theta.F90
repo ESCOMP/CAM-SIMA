@@ -1,8 +1,6 @@
 module ref_theta
 
   use ccpp_kinds, only: kind_phys
-!  use physics_types_mf, only: ncol
-!  use physics_types_mf, only: pver
 
   implicit none
   private

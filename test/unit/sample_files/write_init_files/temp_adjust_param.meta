@@ -27,6 +27,13 @@
   type = real
   kind = kind_phys
   intent = in
+[ grav ]
+  standard_name = acceleration_due_to_gravity
+  units = m s-2
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
 [ timestep ]
   standard_name = time_step_for_physics
   long_name = time step

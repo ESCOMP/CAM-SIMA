@@ -1,4 +1,4 @@
-module physics_inputs
+module physics_inputs_mf
 
    implicit none
    private
@@ -13,11 +13,11 @@ CONTAINS
       use cam_abortutils,       only: endrun
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL
       use physics_data,         only: read_field, find_input_name_idx
-      use phys_vars_init_check, only: phys_var_stdnames, input_var_names
-      use phys_vars_init_check, only: std_name_len
+      use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
-      use physics_types_mf,        only: col_start, col_end, pver
-      use physics_types_mf,        only: dtime
+      use phys_vars_init_check_mf, only: phys_var_stdnames, input_var_names
+      use phys_vars_init_check_mf, only: std_name_len
+      use physics_types_mf,        only: slp
       use ref_theta,        only: theta
 
       ! Dummy arguments
@@ -30,8 +30,9 @@ CONTAINS
       !Character array containing all CCPP-required vairable standard names:
       character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
-      !Strings which store names of any missing vars:
+      !Strings which store names of any missing or non-initialized vars:
       character(len=SHR_KIND_CL) :: missing_required_vars
+      character(len=SHR_KIND_CL) :: protected_non_init_vars
       character(len=SHR_KIND_CL) :: missing_input_names
 
       character(len=512) :: errmsg    !CCPP framework error message
@@ -41,9 +42,11 @@ CONTAINS
       integer            :: suite_idx !Suite array index
       character(len=2)   :: sep  = '' !String separator used to print error messages
       character(len=2)   :: sep2 = '' !String separator used to print error messages
+      character(len=2)   :: sep3 = '' !String separator used to print error messages
 
-      !Initalize missing variables string:
+      !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
+      protected_non_init_vars = ' '
       missing_input_names   = ' '
 
       !Loop over CCPP physics/chemistry suites:
@@ -60,55 +63,61 @@ CONTAINS
             !Find IC file input name array index for required variable:
             name_idx = find_input_name_idx(ccpp_required_data(req_idx))
 
-            !If variable is already initialized, then skip it:
-            if (name_idx == -2) cycle
+            !Check for special index values:
+            select case (name_idx)
 
-            !If an index was never found, then save variable name and check the rest
-            !of the variables, after which the model simulation will end:
-            if (name_idx == -1) then
-               missing_required_vars(len_trim(missing_required_vars)+1:) = &
-                  trim(sep)//trim(ccpp_required_data(req_idx))
+               case (init_mark_idx)
 
-               !Update character separator to now include comma:
-               sep = ', '
+                  !If variable is already initialized, then do nothing.
 
-               !Continue on with variable loop:
-               cycle
-            end if
+               case (no_exist_idx)
 
-            !Next, check that the input variable names aren't blank.
-            !If so, then save variable name and check the rest of the
-            !variables, after which the model simulation will end:
-            if (len_trim(input_var_names(1,name_idx)) == 0) then
-               missing_input_names(len_trim(missing_input_names)+1:) = &
-                  trim(sep2)//trim(ccpp_required_data(req_idx))
+                  !If an index was never found, then save variable name and check the rest
+                  !of the variables, after which the model simulation will end:
+                  missing_required_vars(len_trim(missing_required_vars)+1:) = &
+                     trim(sep)//trim(ccpp_required_data(req_idx))
 
-               !Update character separator to now include comma
-               sep2 = ', '
+                  !Update character separator to now include comma:
+                  sep = ', '
 
-               !Continue on with variable loop:
-               cycle
-            end if
+               case (prot_no_init_idx)
 
-            if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_begin') then
-               call read_field(file, input_var_names(:,name_idx), timestep, col_start)
-            end if
+                  !If an index was found for a protected variable, but that variable
+                  !was never marked as initialized, then save the variable name and check
+                  !the rest of the variables, after which the model simulation will end:
+                  protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &
+                     trim(sep2)//trim(ccpp_required_data(req_idx))
 
-            if (trim(phys_var_stdnames(name_idx)) == 'horizontal_loop_end') then
-               call read_field(file, input_var_names(:,name_idx), timestep, col_end)
-            end if
+                  !Update character separator to now include comma:
+                  sep2 = ', '
 
-            if (trim(phys_var_stdnames(name_idx)) == 'vertical_layer_dimension') then
-               call read_field(file, input_var_names(:,name_idx), timestep, pver)
-            end if
+               case default
 
-            if (trim(phys_var_stdnames(name_idx)) == 'time_step_for_physics') then
-               call read_field(file, input_var_names(:,name_idx), timestep, dtime)
-            end if
+                  !Check that the input variable names aren't blank.
+                  !If so, then save variable name and check the rest of the
+                  !variables, after which the model simulation will end:
+                  if (len_trim(input_var_names(1,name_idx)) == 0) then
+                     missing_input_names(len_trim(missing_input_names)+1:) = &
+                        trim(sep3)//trim(ccpp_required_data(req_idx))
 
-            if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
-               call read_field(file, input_var_names(:,name_idx), 'lev', timestep, theta)
-            end if
+                     !Update character separator to now include comma:
+                     sep3 = ', '
+
+                     !Continue on with variable loop:
+                     cycle
+                  end if
+
+                  !Read variable from IC file:
+
+                  if (trim(phys_var_stdnames(name_idx)) == 'sea_level_pressure') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, slp)
+                  end if
+
+                  if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
+                     call read_field(file, input_var_names(:,name_idx), 'lev', timestep, theta)
+                  end if
+
+            end select !special indices
 
          end do !Suite-required variables
 
@@ -117,6 +126,13 @@ CONTAINS
          if (len_trim(missing_required_vars) > 0) then
             call endrun("Required variables missing from registered list of input variables: "//&
                trim(missing_required_vars))
+         end if
+
+         !End simulation if there are protected input
+         !variables that are not initialized:
+         if (len_trim(protected_non_init_vars) > 0) then
+            call endrun("Required, protected input variables are not initialized: "//&
+               trim(protected_non_init_vars))
          end if
 
          !End simulation if there are variables that
@@ -134,5 +150,4 @@ CONTAINS
 
    end subroutine physics_read_data
 
-
-end module physics_inputs
+end module physics_inputs_mf

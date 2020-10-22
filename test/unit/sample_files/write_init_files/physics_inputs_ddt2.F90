@@ -1,4 +1,4 @@
-module physics_inputs_simple
+module physics_inputs_ddt2
 
    implicit none
    private
@@ -15,10 +15,9 @@ CONTAINS
       use physics_data,         only: read_field, find_input_name_idx
       use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
-      use phys_vars_init_check_simple, only: phys_var_stdnames, input_var_names
-      use phys_vars_init_check_simple, only: std_name_len
-      use physics_types_simple,        only: theta
-      use physics_types_simple,        only: slp
+      use phys_vars_init_check_ddt2, only: phys_var_stdnames, input_var_names
+      use phys_vars_init_check_ddt2, only: std_name_len
+      use physics_types_ddt2,        only: phys_state
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -109,12 +108,13 @@ CONTAINS
 
                   !Read variable from IC file:
 
-                  if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
-                     call read_field(file, input_var_names(:,name_idx), 'lev', timestep, theta)
+                  if (trim(phys_var_stdnames(name_idx)) == 'sea_level_pressure') then
+                     call read_field(file, input_var_names(:,name_idx), timestep, phys_state%slp)
                   end if
 
-                  if (trim(phys_var_stdnames(name_idx)) == 'sea_level_pressure') then
-                     call read_field(file, input_var_names(:,name_idx), timestep, slp)
+                  if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
+                     call read_field(file, input_var_names(:,name_idx), 'lev', timestep,          &
+                          phys_state%thermo%theta)
                   end if
 
             end select !special indices
@@ -150,4 +150,4 @@ CONTAINS
 
    end subroutine physics_read_data
 
-end module physics_inputs_simple
+end module physics_inputs_ddt2

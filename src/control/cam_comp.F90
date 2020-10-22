@@ -72,13 +72,13 @@ CONTAINS
       use phys_comp,            only: phys_init
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
-      use dyn_comp,             only: dyn_init
       use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
 !      use cam_history,          only: intht
 !      use history_scam,         only: scm_intht
       use cam_pio_utils,        only: init_pio_subsystem
       use cam_instance,         only: inst_suffix
 !      use history_defaults,     only: initialize_iop_history
+      use stepon,               only: stepon_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -193,9 +193,7 @@ CONTAINS
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
 !!XXgoldyXX: ^ need to import this
 
-      !!XXgoldyXX: This used to be stepon_init. Need to untangle this.
-      !!XXgoldyXX: First try putting the stepon_init code at end of dyn_init
-      !call dyn_init(dyn_in, dyn_out)
+      call stepon_init(dyn_in, dyn_out)
 
       ! if (single_column) then
       !    call scm_intht()
@@ -218,21 +216,21 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp,            only: phys_run1
-      use dyn_comp,             only: dyn_run1
+      use phys_comp, only: phys_run1
+      use stepon,    only: stepon_run1
 !      use ionosphere_interface, only: ionosphere_run1
 
-      type(cam_in_t),  pointer, intent(inout) :: cam_in
-      type(cam_out_t), pointer, intent(inout) :: cam_out
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM 
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !----------------------------------------------------------
       ! First phase of dynamics (at least couple from dynamics to physics)
       ! Return time-step for physics from dynamics.
       !----------------------------------------------------------
-      call t_barrierf ('sync_dyn_run1', mpicom)
-      call t_startf ('dyn_run1')
-      call dyn_run1(phys_state, phys_tend, dyn_in, dyn_out, dtime_phys)
-      call t_stopf  ('dyn_run1')
+      call t_barrierf('sync_stepon_run1', mpicom)
+      call t_startf('stepon_run1')
+      call stepon_run1(dtime_phys, phys_state, phys_tend, dyn_in, dyn_out)
+      call t_stopf('stepon_run1')
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed
@@ -244,10 +242,10 @@ CONTAINS
       ! PHYS_RUN Call the Physics package
       !----------------------------------------------------------
       !
-      call t_barrierf ('sync_phys_run1', mpicom)
-      call t_startf ('phys_run1')
+      call t_barrierf('sync_phys_run1', mpicom)
+      call t_startf('phys_run1')
       call phys_run1(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
-      call t_stopf  ('phys_run1')
+      call t_stopf('phys_run1')
 
    end subroutine cam_run1
 
@@ -266,28 +264,28 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp,            only: phys_run2
-      use dyn_comp,             only: dyn_run2
+      use phys_comp, only: phys_run2
+      use stepon,    only: stepon_run2
 !      use ionosphere_interface, only: ionosphere_run2
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out
-      type(cam_in_t),  pointer, intent(inout) :: cam_in
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
 
       !
       ! Second phase of physics (after surface model update)
       !
-      call t_barrierf ('sync_phys_run2', mpicom)
-      call t_startf ('phys_run2')
+      call t_barrierf('sync_phys_run2', mpicom)
+      call t_startf('phys_run2')
       call phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
-      call t_stopf  ('phys_run2')
+      call t_stopf('phys_run2')
 
       !
       ! Second phase of dynamics (at least couple from physics to dynamics)
       !
-      call t_barrierf ('sync_dyn_run2', mpicom)
-      call t_startf ('dyn_run2')
-      call dyn_run2( phys_state, phys_tend, dyn_in, dyn_out )
-      call t_stopf  ('dyn_run2')
+      call t_barrierf('sync_stepon_run2', mpicom)
+      call t_startf('stepon_run2')
+      call stepon_run2(phys_state, phys_tend, dyn_in, dyn_out)
+      call t_stopf('stepon_run2')
 
       !
       ! Ion transport
@@ -297,8 +295,8 @@ CONTAINS
 !      call t_stopf ('ionosphere_run2')
 
       if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf ('cam_run2_memusage')
-         call t_stopf  ('cam_run2_memusage')
+         call t_startf('cam_run2_memusage')
+         call t_stopf('cam_run2_memusage')
       end if
    end subroutine cam_run2
 
@@ -315,22 +313,22 @@ CONTAINS
       !           dynamics happens before physics in phase 1.
       !
       !-----------------------------------------------------------------------
-      use dyn_comp, only: dyn_run3
+      use stepon, only: stepon_run3
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
       !-----------------------------------------------------------------------
 
       !
       ! Third phase of dynamics
       !
-      call t_barrierf('sync_dyn_run3', mpicom)
-      call t_startf('dyn_run3')
-      call dyn_run3(dtime_phys, phys_state, phys_tend, cam_out, dyn_in, dyn_out)
-      call t_stopf ('dyn_run3')
+      call t_barrierf('sync_stepon_run3', mpicom)
+      call t_startf('stepon_run3')
+      call stepon_run3(dtime_phys, cam_out, phys_state, dyn_in, dyn_out)
+      call t_stopf ('stepon_run3')
 
       if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf ('cam_run3_memusage')
-         call t_stopf  ('cam_run3_memusage')
+         call t_startf('cam_run3_memusage')
+         call t_stopf('cam_run3_memusage')
       end if
    end subroutine cam_run3
 
@@ -353,8 +351,8 @@ CONTAINS
 !      use qneg_module,  only: qneg_print_summary
       use time_manager, only: is_last_step
 
-      type(cam_out_t), intent(inout)        :: cam_out
-      type(cam_in_t),  intent(inout)        :: cam_in
+      type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
+      type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
       logical,         intent(in)           :: rstwr    ! write restart file
       logical,         intent(in)           :: nlend    ! this is final timestep
       integer,         intent(in), optional :: yr_spec  ! Simulation year
@@ -378,7 +376,7 @@ CONTAINS
       ! Write restart files
       !
       if (rstwr) then
-         call t_startf ('cam_write_restart')
+         call t_startf('cam_write_restart')
          if (present(yr_spec) .and. present(mon_spec) .and.                   &
               present(day_spec).and.present(sec_spec)) then
 !!XXgoldyXX: v need to import this
@@ -390,7 +388,7 @@ CONTAINS
 !            call cam_write_restart(cam_in, cam_out, dyn_out)
 !!XXgoldyXX: ^ need to import this
          end if
-         call t_stopf  ('cam_write_restart')
+         call t_stopf('cam_write_restart')
       end if
 
 !!XXgoldyXX: v need to import this
@@ -417,7 +415,7 @@ CONTAINS
       ! Purpose:  CAM finalization.
       !
       !-----------------------------------------------------------------------
-      use dyn_comp,             only: dyn_final
+      use stepon,               only: stepon_final
       use phys_comp,            only: phys_final
       use cam_initfiles,        only: cam_initfiles_close
       use camsrfexch,           only: atm2hub_deallocate, hub2atm_deallocate
@@ -437,7 +435,7 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       call phys_final(phys_state, phys_tend)
-      call dyn_final(dyn_in, dyn_out)
+      call stepon_final(dyn_in, dyn_out)
 !      call ionosphere_final()
 
       if (initial_run) then

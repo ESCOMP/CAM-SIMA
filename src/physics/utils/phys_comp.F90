@@ -36,7 +36,7 @@ CONTAINS
       use cam_initfiles,     only: initial_file_get_id
       use physics_types,     only: physics_state, physics_tend
       use camsrfexch,        only: cam_out_t
-      use physics_grid,      only: columns_on_task
+      use physics_grid,      only: columns_on_task, get_rlat_p, phys_columns
       use phys_vert_coord,   only: pver, pverp
       use physics_inputs,    only: physics_read_data
       use physconst,         only: physconst_init
@@ -45,6 +45,8 @@ CONTAINS
       use cam_ccpp_cap,      only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,      only: ccpp_physics_suite_list
       use cam_ccpp_cap,      only: ccpp_physics_suite_part_list
+
+      use phys_vars_init_check, only: mark_as_initialized
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -56,12 +58,17 @@ CONTAINS
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       character(len=512)         :: errmsg
       integer                    :: errflg = 0
+      integer                    :: i
 
       ncdata => initial_file_get_id()
       call physconst_init(columns_on_task, pver, pverp)
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
-      call get_rlats_p(latitude)
+
+      call mark_as_initialized('latitude')
+      do i=1, size(phys_columns)
+         latitude(i) = get_rlat_p(i)
+      end do
 
       call ccpp_physics_suite_list(suite_names)
       suite_name = suite_names(1)

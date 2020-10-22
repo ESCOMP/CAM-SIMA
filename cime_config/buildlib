@@ -98,12 +98,19 @@ def _find_schemes_in_sdf(suite_part):
             # End if
         else:
             for sub_section in section:
-                sub_schemes = _find_schemes_in_sdf(section)
-                for sscheme in sub_schemes:
-                    if sscheme not in scheme_list:
-                        scheme_list.append(sscheme)
+                if sub_section.tag.lower() == 'scheme':
+                    scheme_name = sub_section.text
+                    if scheme_name and (scheme_name not in scheme_list):
+                        scheme_list.append(scheme_name)
                     # End if
-                # End for
+                else:
+                    sub_schemes = _find_schemes_in_sdf(sub_section)
+                    for sscheme in sub_schemes:
+                        if sscheme not in scheme_list:
+                            scheme_list.append(sscheme)
+                        # End if
+                    # End for
+                # End if
             # End for
         # End if
     # End for
@@ -126,8 +133,8 @@ def _find_scheme_source(metadata_path):
         # End if
     # End for
     if not source_file:
-        emsg = "WARNING: No Fortran for metadata file, '{}'"
-        _LOGGER.warning(emsg.format(metadata_path))
+        emsg = "WARNING: No Fortran for metadata file, '%s'"
+        _LOGGER.warning(emsg, metadata_path)
     # End if
     return source_file
 
@@ -165,19 +172,26 @@ def _find_metadata_files(source_dirs, scheme_finder):
     return meta_files
 
 ###############################################################################
-def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
-                       dycore, gen_fort_indent, reg_config):
+def _generate_registry(data_search, gen_reg_path, gen_reg_file, build_cache,
+                       atm_root, bldroot, source_mods_dir, dycore, gen_fort_indent,
+                       reg_config):
 ###############################################################################
     """Generate the CAM data source and metadata from the registry,
     if required (new case or changes to registry source(s) or script)."""
+    #pylint: disable=wrong-import-position
+    #pylint: disable=import-outside-toplevel
+    try:
+        from generate_registry_data import gen_registry
+    except ImportError as ierr:
+        emsg = "ERROR: Cannot find generate_registry_data in '{}'\n{}"
+        raise CamConfigError(emsg.format(gen_reg_path, ierr))
+    #pylint: enable=wrong-import-position
+    #pylint: enable=import-outside-toplevel
+
     # Find the registry file, registry schema, and generation routine
     # Try SourceMods first for each one.
-    data_path = os.path.join(atm_root, "src", "data")
-    data_search = [source_mods_dir, data_path]
     registry_file, _ = _find_file("registry.xml", data_search)
     registry_files = [registry_file]
-    gen_reg_file, gen_reg_path = _find_file("generate_registry_data.py",
-                                            data_search)
     genreg_dir = os.path.join(bldroot, "cam_registry")
     #Create empty registry file objects list:
     reg_files_list = list()
@@ -191,18 +205,6 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
         do_gen_registry = True
     # End if
     if do_gen_registry:
-        # Load and run the registry generator
-        sys.path.append(gen_reg_path)
-        #pylint: disable=wrong-import-position
-        #pylint: disable=import-outside-toplevel
-        try:
-            from generate_registry_data import gen_registry
-        except ImportError as ierr:
-            emsg = "ERROR: Cannot find generate_registry_data in '{}'\n{}"
-            raise CamConfigError(emsg.format(gen_reg_path, ierr))
-        # End try
-        #pylint: enable=wrong-import-position
-        #pylint: enable=import-outside-toplevel
         for reg_file in registry_files:
             retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config,
                                                   genreg_dir, gen_fort_indent,
@@ -225,27 +227,28 @@ def _generate_registry(build_cache, atm_root, bldroot, source_mods_dir,
     return genreg_dir, do_gen_registry, reg_files_list
 
 ###############################################################################
-def _generate_physics_suites(build_cache, case, config, atm_root,
+def _generate_physics_suites(spin_scripts_path, build_cache, case, config, atm_root,
                              bldroot, reg_dir, reg_files, source_mods_dir, force):
 ###############################################################################
     """Generate the source for the configured physics suites,
     if required (new case or changes to suite source(s) or metadata)."""
+    #pylint: disable=wrong-import-position
+    #pylint: disable=import-outside-toplevel
+    try:
+        from ccpp_capgen import capgen
+        from metadata_table import MetadataTable
+        from parse_tools import read_xml_file
+    except ImportError as ierr:
+        emsg = "ERROR: Cannot find CCPP-framework routines in '{}'\n{}"
+        raise CamConfigError(emsg.format(spin_scripts_path, ierr))
+    #pylint: enable=wrong-import-position
+    #pylint: enable=import-outside-toplevel
 
     # Physics source gets copied into blddir
     physics_blddir = os.path.join(bldroot, "ccpp_physics")
     if not os.path.exists(physics_blddir):
         os.makedirs(physics_blddir)
     # End if
-    # Add path to the CCPP Framework (SPIN)
-    spin_root = os.path.join(atm_root, "ccpp_framework")
-    sys.path.append(os.path.join(spin_root, 'scripts'))
-    #pylint: disable=wrong-import-position
-    #pylint: disable=import-outside-toplevel
-    from ccpp_capgen import capgen
-    from metadata_table import MetadataTable
-    from parse_tools import read_xml_file
-    #pylint: enable=wrong-import-position
-    #pylint: enable=import-outside-toplevel
     # Collect all source directories
     source_search = [source_mods_dir,
                      os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
@@ -312,12 +315,12 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
 
         # print extra info to bldlog if DEBUG is TRUE
         _LOGGER.debug("Calling capgen: ")
-        _LOGGER.debug("   host files: {}".format(', '.join(host_files)))
-        _LOGGER.debug("   scheme files: {}".format(', '.join(scheme_files)))
-        _LOGGER.debug("   suite definition files: {}".format(', '.join(sdfs)))
-        _LOGGER.debug("   preproc defs: {}".format(', '.join(preproc_defs)))
-        _LOGGER.debug("   output directory: '{}'".format(genccpp_dir))
-        _LOGGER.debug("   kind_phys: '{}'".format(kind_phys))
+        _LOGGER.debug("   host files: %s", ", ".join(host_files))
+        _LOGGER.debug("   scheme files: %s", ', '.join(scheme_files))
+        _LOGGER.debug("   suite definition files: %s", ', '.join(sdfs))
+        _LOGGER.debug("   preproc defs: %s", ', '.join(preproc_defs))
+        _LOGGER.debug("   output directory: '%s'", genccpp_dir)
+        _LOGGER.debug("   kind_phys: '%s'", kind_phys)
 
         # generate CCPP caps
         capgen(host_files, scheme_files, sdfs, cap_output_file,
@@ -330,24 +333,25 @@ def _generate_physics_suites(build_cache, case, config, atm_root,
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file
 
 ###############################################################################
-def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
-                            reg_files, force_reg, force_ccpp, gen_fort_indent,
-                            cap_datafile):
+def _generate_init_routines(gen_init_path, gen_init_file, build_cache,
+                            bldroot, reg_files, force_reg, force_ccpp,
+                            gen_fort_indent, cap_datafile):
 ###############################################################################
     """Generate the host model initialization source code files
        (phys_vars_init_check.F90 and physics_inputs.F90) using
        both the registry and the CCPP physics suites if required
        (new case or changes to registry or CCPP source(s), meta-data,
        and/or script)."""
-
-    # pylint: disable=too-many-locals
-
-    # Find the "write_init_files.py" generation routine
-    # Try SourceMods first.
-    data_path = os.path.join(atm_root, "src", "data")
-    data_search = [source_mods_dir, data_path]
-    gen_init_file, gen_init_path = _find_file("write_init_files.py",
-                                              data_search)
+    #pylint: disable=wrong-import-position
+    #pylint: disable=import-outside-toplevel
+    try:
+        import write_init_files as write_init
+    except ImportError as ierr:
+        emsg = "ERROR: Cannot find write_init_files in '{}'\n{}"
+        raise CamConfigError(emsg.format(gen_init_path, ierr))
+    # End try
+    #pylint: enable=wrong-import-position
+    #pylint: enable=import-outside-toplevel
 
     #Add new directory to build path:
     init_dir = os.path.join(bldroot, "phys_init")
@@ -369,25 +373,13 @@ def _generate_init_routines(build_cache, atm_root, bldroot, source_mods_dir,
     # End if
 
     if do_gen_init:
-        # Load and run the init source files generator
-        sys.path.append(gen_init_path)
-        #pylint: disable=wrong-import-position
-        #pylint: disable=import-outside-toplevel
-        try:
-            import write_init_files as write_init
-        except ImportError as ierr:
-            emsg = "ERROR: Cannot find write_init_files in '{}'\n{}"
-            raise CamConfigError(emsg.format(gen_init_path, ierr))
-        # End try
-        #pylint: enable=wrong-import-position
-        #pylint: enable=import-outside-toplevel
         #Run initialization files generator:
-        retcode = write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
-                                              cap_datafile, _LOGGER)
+        retmsg = write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
+                                             cap_datafile, _LOGGER)
 
         #Check that script ran properly:
-        emsg = "Unable to generate CAM init source code, error code = {}"
-        expect(retcode == 0, emsg.format(retcode))
+        emsg = "Unable to generate CAM init source code, error message is:\n{}"
+        expect(retmsg == "", emsg.format(retmsg))
 
         # save build details in the build cache
         build_cache.update_init_gen(gen_init_file)
@@ -434,6 +426,39 @@ def _build_cam():
         gen_fort_indent = 3
 
         #-------------------------------------------------------
+        # Set python path to import required host model routines
+        #-------------------------------------------------------
+
+        ##### gen_registry ######
+
+        # Set possible locations to search for generation routines
+        # with the SourceMods directory searched first:
+        data_path = os.path.join(atm_root, "src", "data")
+        data_search = [source_mods_dir, data_path]
+
+        # Search for the "generate_registry_data.py" file:
+        gen_reg_file, gen_reg_path = _find_file("generate_registry_data.py",
+                                                data_search)
+
+        # Append registry source writer to python path:
+        sys.path.append(gen_reg_path)
+
+        ##### write_init_files #####
+
+        # Search for the "write_init_files.py" file:
+        gen_init_file, gen_init_path = _find_file("write_init_files.py",
+                                                  data_search)
+
+        # Append init source writer to python path:
+        sys.path.append(gen_init_path)
+
+        ###### CCPP-framework #####
+
+        # Append CCPP-framework to python path:
+        spin_scripts_path = os.path.join(atm_root, "ccpp_framework", "scripts")
+        sys.path.append(os.path.join(spin_scripts_path))
+
+        #-------------------------------------------------------
         # Load a build cache, if available
         #-------------------------------------------------------
         build_cache = BuildCacheCAM(os.path.join(bldroot,
@@ -441,27 +466,40 @@ def _build_cam():
         #-------------------------------------------------------
         # Create the physics derived data types
         #-------------------------------------------------------
-        reg_dir, force_ccpp, reg_files = _generate_registry(build_cache, atm_root,
+        reg_dir, force_ccpp, reg_files = _generate_registry(data_search, gen_reg_path,
+                                                            gen_reg_file,
+                                                            build_cache, atm_root,
                                                             bldroot, source_mods_dir,
                                                             dycore, gen_fort_indent,
                                                             reg_config)
+
+        # Remove generate_registry_data from python path once routine is imported:
+        sys.path.remove(gen_reg_path)
+
         #-------------------------------------------------------
         # Call SPIN (CCPP Framework) to generate glue code
         #-------------------------------------------------------
         phys_dirs, force_init, cap_datafile = \
-                               _generate_physics_suites(build_cache, case, config,
+                               _generate_physics_suites(spin_scripts_path,
+                                                        build_cache, case, config,
                                                         atm_root, bldroot, reg_dir,
                                                         reg_files, source_mods_dir,
                                                         force_ccpp)
 
+        # Remove CCPP framework from python path:
+        sys.path.remove(spin_scripts_path)
+
         #-------------------------------------------------------
         # Create host model variable initialization routines
         #-------------------------------------------------------
-        init_dir = _generate_init_routines(build_cache, atm_root, bldroot,
-                                           source_mods_dir, reg_files,
-                                           force_ccpp, force_init,
-                                           gen_fort_indent,
+        init_dir = _generate_init_routines(gen_init_path, gen_init_file,
+                                           build_cache, bldroot,
+                                           reg_files, force_ccpp,
+                                           force_init, gen_fort_indent,
                                            cap_datafile)
+
+        # Remove write_init_files from python path:
+        sys.path.remove(gen_init_path)
 
         #--------------------------------------------------------------
         # write out the cache here as we have completed pre-processing
@@ -481,7 +519,7 @@ def _build_cam():
                  os.path.join(atm_root, "src", "cpl",
                               case.get_value("COMP_INTERFACE")),
                  os.path.join(atm_root, "src", "dynamics", dycore),
-                 os.path.join(atm_root, "src", "dynamics", "utils"),
+                 os.path.join(atm_root, "src", "dynamics","utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
                  os.path.join(atm_root, "src", "utils")]
         for path in phys_dirs:
@@ -489,6 +527,11 @@ def _build_cam():
                 paths.append(path)
             # End if
         # End for
+        #If using the CMEPS/NUOPC coupler, then add additional path:
+        if case.get_value("COMP_INTERFACE") == "nuopc":
+            paths.append(os.path.join(__CIMEROOT, "src", "drivers",
+                                      "nuopc", "nuopc_cap_share"))
+        # End if
         with open(filepath_src, "w") as filepath:
             filepath.write("\n".join(paths))
             filepath.write("\n")

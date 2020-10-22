@@ -1,42 +1,43 @@
-module phys_vars_init_check
+module phys_vars_init_check_param
 
    implicit none
    private
 
    !Total number of physics-related variables:
-   integer, public, parameter :: phys_var_num = 6
+   integer, public, parameter :: phys_var_num = 4
 
    !Max length of physics-related variable standard names:
-   integer, public, parameter :: std_name_len = 24
+   integer, public, parameter :: std_name_len = 27
 
    !Max length of input (IC) file variable names:
-   integer, public, parameter :: ic_name_len = 8
+   integer, public, parameter :: ic_name_len = 12
 
    !Array storing all physics-related variable standard names:
-   character(len=24), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
-      'horizontal_loop_begin   ', &
-      'horizontal_loop_end     ', &
-      'horizontal_dimension    ', &
-      'vertical_layer_dimension', &
-      'time_step_for_physics   ', &
-      'potential_temperature   ' /)
+   character(len=27), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
+      'acceleration_due_to_gravity', &
+      'potential_temperature      ', &
+      'sea_level_pressure         ', &
+      'eddy_length_scale          ' /)
 
    !Array storing all registered IC file input names for each variable:
-   character(len=8), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
-      '        ', '        ', &
-      '        ', '        ', &
-      '        ', '        ', &
-      '        ', '        ', &
-      '        ', '        ', &
-      'theta   ', 'pot_temp' /), (/2, phys_var_num/))
+   character(len=12), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
+      'g           ', '            ', &
+      'theta       ', 'pot_temp    ', &
+      'slp         ', 'sea_lev_pres', &
+      'eddy_len    ', '            ' /), (/2, phys_var_num/))
+
+   !Logical array to indicate whether or not variable is protected:
+   logical, public, protected :: protected_vars(phys_var_num) = (/ &
+      .false., &
+      .false., &
+      .false., &
+      .false. /)
 
    !Logical array to indicate whether or not variable is initialized:
    logical, public, protected :: initialized_vars(phys_var_num) = (/ &
-      .false., &
-      .false., &
-      .false., &
-      .false., &
       .true., &
+      .false., &
+      .false., &
       .false. /)
 
 !! public interfaces
@@ -123,4 +124,4 @@ CONTAINS
 
    end function is_initialized
 
-end module phys_vars_init_check
+end module phys_vars_init_check_param

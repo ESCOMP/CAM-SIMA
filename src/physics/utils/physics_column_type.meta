@@ -1,16 +1,6 @@
 [ccpp-arg-table]
   name = physics_column_t
   type = ddt
-[ lat_rad ]
-  standard_name = latitude
-  units = radian
-  type = real | kind = kind_phys
-  dimensions = ()
-[ lon_rad ]
-  standard_name = longitude
-  units = radian
-  type = real | kind = kind_phys
-  dimensions = ()
 [ lat_deg ]
   standard_name = latitude_degrees_north
   units = degrees
