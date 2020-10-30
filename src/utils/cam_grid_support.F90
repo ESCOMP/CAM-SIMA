@@ -3,7 +3,8 @@ module cam_grid_support
    use shr_kind_mod,        only: i8=>shr_kind_i8, i4=>shr_kind_i4
    use shr_kind_mod,        only: max_chars=>shr_kind_cl
    use shr_sys_mod,         only: shr_sys_flush
-   use pio,                 only: iMap=>PIO_OFFSET_KIND, var_desc_t
+   use cam_map_utils,       only: iMap
+   use pio,                 only: var_desc_t
    use cam_abortutils,      only: endrun
    use cam_logfile,         only: iulog
    use spmd_utils,          only: masterproc
@@ -12,8 +13,6 @@ module cam_grid_support
 
    implicit none
    private
-
-   public iMap
 
    integer, parameter, public :: max_hcoordname_len   = 16
    real(r8), parameter :: grid_fill_value = -900.0_r8
