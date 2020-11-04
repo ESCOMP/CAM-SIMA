@@ -8194,6 +8194,23 @@
       <value hgrid="ne0np4CONUS.ne30x8">atm/cam/topo/se/ne30x8_conus_nc3000_Co060_Fi001_MulG_PF_nullRR_Nsw042_20190710.nc</value>
     </values>
   </entry>
+  <entry id="use_topo_file">
+    <type>logical</type>
+    <category>topo</category>
+    <group>cam_initfiles_nl</group>
+    <desc>
+      Setting use_topo_file=.false. allows the user to specify that PHIS, SGH,
+      SGH30, and LANDM_COSLAT are all zero without having to supply a topo file
+      full of zeros.
+      Default: TRUE
+    </desc>
+    <values>
+      <value>.true.</value>
+      <value aquaplanet="1">.false.</value>
+      <value phys="held_suarez">.false.</value>
+      <value analytic_ic="1">.false.</value>
+    </values>
+  </entry>
 
 <!-- Tropopause -->
 
@@ -10771,6 +10788,48 @@
     </desc>
   </entry>
 
+<!-- Dycore air composition -->
+
+  <entry id="dry_air_species">
+    <type>char*6(20)</type>
+    <category>physconst</category>
+    <group>air_composition_nl</group>
+    <desc>
+      List of major species of dry air.  If not set then the composition of dry
+      air is considered fixed at tropospheric conditions and the properties of
+      dry air are constant.  If set then the list of major species is assumed to
+      have 'N2' listed last.  This information is currently used only for
+      computing the variable properties of air in WACCM-X configurations.
+      Default: ['O', 'O2', 'H', 'N2'] if WACCM-X, otherwise None.
+    </desc>
+    <values>
+      <value>""</value>
+      <value waccmx="1">O, O2, H, N2</value>
+    </values>
+  </entry>
+
+  <entry id="water_species_in_air">
+    <type>char*6(20)</type>
+    <category>physconst</category>
+    <group>air_composition_nl</group>
+    <desc>
+      List of water species that are included in "moist" air.  This is currently
+      used only by the SE dycore to generalize the computation of the moist air
+      mass and thermodynamic properties.
+      Default:
+      ['Q','CLDLIQ','RAINQM'] if CAM4, CAM5, or Kessler physics is used.
+      ['Q','CLDLIQ','CLDICE','RAINQM','SNOWQM'] if CAM6 physics is used.
+      ['Q'] for all other physics choices.
+    </desc>
+    <values>
+      <value>Q</value>
+      <value phys_suite="kessler">Q, CLDLIQ, RAINQM</value>
+      <value phys_suite="cam4">Q, CLDLIQ, RAINQM</value>
+      <value phys_suite="cam5">Q, CLDLIQ, RAINQM</value>
+      <value phys_suite="cam6">Q, CLDLIQ, CLDICE, RAINQM, SNOWQM</value>
+    </values>
+  </entry>
+
 <!-- SE dycore -->
 
   <entry id="se_qsize_condensate_loading">
@@ -10790,13 +10849,13 @@
     </desc>
     <values>
       <value>3</value>
-      <value phys="cam4">3</value>
-      <value phys="cam5">3</value>
-      <value phys="cam6">5</value>
-      <value phys="held_suarez">1</value>
-      <value phys="adiabatic">1</value>
-      <value phys="kessler">1</value>
-      <value phys="tj2016">1</value>
+      <value phys_suite="cam4">3</value>
+      <value phys_suite="cam5">3</value>
+      <value phys_suite="cam6">5</value>
+      <value phys_suite="held_suarez">1</value>
+      <value phys_suite="adiabatic">1</value>
+      <value phys_suite="kessler">1</value>
+      <value phys_suite="tj2016">1</value>
     </values>
   </entry>
   <entry id="se_fine_ne">

@@ -702,7 +702,8 @@ class ConfigCAM:
             # Horizontal grid
             self.create_config("hgrid", hgrid_desc, atm_grid,
                                se_grid_re, is_nml_attr=True)
-            # Add SE namelist group to nmlgen list:
+            # Add SE namelist groups to nmlgen list:
+            self.__nml_groups.append("air_composition_nl")
             self.__nml_groups.append("dyn_se_inparm")
 
         elif fv3_grid_re.match(atm_grid) is not None:
