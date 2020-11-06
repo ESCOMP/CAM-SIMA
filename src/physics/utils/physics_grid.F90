@@ -20,6 +20,7 @@ module physics_grid
    public :: get_area_p     ! area of a physics column in radians squared
    public :: get_rlat_all_p ! latitudes of physics cols on task (radians)
    public :: get_rlon_all_p ! longitudes of physics cols on task (radians)
+   public :: get_dyn_col_p  ! dynamics local blk number and blk offset(s)
    public :: global_index_p ! global column index of a physics column
    public :: local_index_p  ! local column index of a physics column
    public :: get_grid_dims  ! return grid dimensions
@@ -513,6 +514,44 @@ CONTAINS
       end if
 
    end subroutine get_rlon_all_p
+
+   !========================================================================
+
+   subroutine get_dyn_col_p(index, blk_num, blk_ind)
+      use cam_logfile,    only: iulog
+      use cam_abortutils, only: endrun
+      ! Return the dynamics local block number and block offset(s) for
+      ! the physics column indicated by <index>.
+
+      ! Dummy arguments
+      integer, intent(in)  :: index         ! index of local physics column
+      integer, intent(out) :: blk_num       ! Local dynamics block index
+      integer, intent(out) :: blk_ind(:)    ! Local dynamics block offset(s)
+      ! Local variables
+      integer                     :: off_size
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_dyn_col_p_index: '
+
+      if (.not. phys_grid_initialized()) then
+         call endrun(subname//'physics grid not initialized')
+      else if ((index < 1) .or. (index > columns_on_task)) then
+         write(errmsg, '(a,2(a,i0))') subname, 'index (', index,              &
+              ') out of range (1 to ', columns_on_task
+         write(iulog, *) trim(errmsg)
+         call endrun(trim(errmsg))
+      else
+         off_size = SIZE(phys_columns(index)%dyn_block_index, 1)
+         if (SIZE(blk_ind, 1) < off_size) then
+            call endrun(subname//'blk_ind too small')
+         end if
+         blk_num = phys_columns(index)%local_dyn_block
+         blk_ind(1:off_size) = phys_columns(index)%dyn_block_index(1:off_size)
+         if (SIZE(blk_ind, 1) > off_size) then
+            blk_ind(off_size+1:) = -1
+         end if
+      end if
+
+   end subroutine get_dyn_col_p
 
    !========================================================================
 

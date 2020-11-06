@@ -81,7 +81,7 @@ subroutine stepon_run3(dtime, cam_out, phys_state, dyn_in, dyn_out)
 
    !--------------------------------------------------------------------------------------
 
-   ! Syncrhronize all PEs and then run dynamics (dyn_run):
+   ! Synchronize all PEs and then run dynamics (dyn_run):
    call t_barrierf('sync_dyn_run', mpicom)
    call t_startf('dyn_run')
    call dyn_run(dyn_out)

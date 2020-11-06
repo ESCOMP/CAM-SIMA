@@ -271,17 +271,20 @@
       <initial_value>.false.</initial_value>
     </variable>
     <ddt type="physics_state">
+<!-- Uncomment once "physics_state" plan for SE is implemented!
       <data dycore="FV,EUL">surface_air_pressure</data>
-      <data dycore="SE">surface_pressure_of_dry_air</data>
+      <data dycore="SE">surface_pressure_of_dry_air</data> -->
       <data>geopotential_at_surface</data>
       <data>air_temperature</data>
       <data>x_wind</data>
       <data>y_wind</data>
       <data>lagrangian_tendency_of_air_pressure</data>
+      <data>dry_static_energy_content_of_atmosphere_layer</data>
+<!-- Uncomment once "physics_state" plan for SE is implemented!
       <data dycore="EUL,FV">air_pressure</data>
       <data dycore="SE">air_pressure_of_dry_air</data>
       <data dycore="EUL,FV">pressure_thickness</data>
-      <data dycore="SE">pressure_thickness_of_dry_air</data>
+      <data dycore="SE">pressure_thickness_of_dry_air</data> -->
       <data>constituent_mixing_ratio</data>
     </ddt>
     <ddt type="physics_tend">
