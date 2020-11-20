@@ -282,6 +282,11 @@ class VarFortData:
         #Initialize vertical dimension dictionary:
         self.__vert_dict = OrderedDict()
 
+        #Initialize standard_name/meta file dictionary,
+        #please note that this dictionary is only used
+        #for error reporting:
+        self.__stdname_file_dict = OrderedDict()
+
         #Initialize parameter-type variable name set:
         self.__parameter_set = set()
 
@@ -317,13 +322,21 @@ class VarFortData:
         #DDT "type", and associated file name:
         var, var_ddt, var_file = var_info_list
 
+        #Add variable standard name and file to error-reporting dict:
+        if var.standard_name in self.__stdname_file_dict:
+            self.__stdname_file_dict[var.standard_name].append(var_file)
+        else:
+            self.__stdname_file_dict[var.standard_name] = [var_file]
+
         #First check if the variable standard name already
         #exists in the standard_names list.  If so then
         #raise an error:
         if var.standard_name in self.__standard_names:
-            emsg = "Multiple registered variable have the" \
-                   "the standard name '{}'.\nThere can only be" \
-                   "one registered variable per standard name."
+            emsg = "Multiple registered variables have the" \
+                   " standard name '{}'.\nThere can only be" \
+                   " one registered variable per standard name.\n" \
+                   "The meta files containing the conflicting variables" \
+                   " are:\n"+"\n".join(self.__stdname_file_dict[var.standard_name])
             raise CamInitWriteError(emsg.format(var.standard_name))
 
         #Currently there is no way to set input names for

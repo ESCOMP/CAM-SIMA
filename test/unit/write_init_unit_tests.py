@@ -442,10 +442,11 @@ class WriteInitTest(unittest.TestCase):
                                                      phys_input_filename="physics_inputs_two.F90")
 
         # Check exception message
-        emsg = "Multiple registered variable have the" \
-               "the standard name 'potential_temperature'.\nThere can only be" \
-               "one registered variable per standard name."
-        self.assertEqual(emsg, str(verr.exception))
+        emsg = "Multiple registered variables have the" \
+               " standard name 'potential_temperature'.\n" \
+               "There can only be one registered variable per" \
+               " standard name.\nThe meta files containing the" \
+               " conflicting variables are:\nref_two\nphysics_types_mf"
 
         # Make sure no output file was created:
         amsg = "{} should not exist".format(check_init_out)
