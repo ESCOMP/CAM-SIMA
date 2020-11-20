@@ -98,11 +98,14 @@ class ConfigGen:
 
         # Check that "name" is a string
         if not isinstance(name, str):
-            raise CamConfigTypeError("ERROR:  Configuration variable name '{}' must be a string, not {}".format(name, type(name)))
+            emsg = "ERROR:  Configuration variable name '{}' must be a string, not {}"
+            raise CamConfigTypeError(emsg.format(name, type(name)))
 
         # Check that "desc" is a string
         if not isinstance(desc, str):
-            raise CamConfigTypeError("ERROR:  Configuration variable, '{}', must have a string-type description, not {}".format(name, type(desc)))
+            emsg = ("ERROR:  Configuration variable, '{}', "
+                    "must have a string-type description, not {}")
+            raise CamConfigTypeError(emsg.format(name, type(desc)))
 
         # Add name, description, and namelist attribute logical to object
         self.__name = name
@@ -221,7 +224,9 @@ class ConfigInteger(ConfigGen):
         # Check that "valid_vals" is either "None", a list, or a tuple
         if valid_vals is not None:
             if not isinstance(valid_vals, (list, tuple)):
-                raise CamConfigTypeError("ERROR:  The valid values for variable, '{}', must either be None, a list, or a tuple, not {}".format(name, type(valid_vals)))
+                emsg = ("ERROR:  The valid values for variable, '{}', "
+                        "must either be None, a list, or a tuple, not {}")
+                raise CamConfigTypeError(emsg.format(name, type(valid_vals)))
 
             # If list or tuple, check that all entries are either
             #   "None" or integers
@@ -483,13 +488,17 @@ class ConfigString(ConfigGen):
         # matches one of the valid values in the list
         if isinstance(valid_vals, list):
             if not val in valid_vals:
-                raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match any of the valid values: '{}'".format(val, self.name, valid_vals))
+                emsg = ("ERROR:  Value, '{}', provided for variable, '{}', "
+                        "does not match any of the valid values: '{}'")
+                raise CamConfigValError(emsg.format(val, self.name, valid_vals))
 
         elif valid_vals is not None:
             # If a regular expression object, then check that
             # value is matched by the expression
             if valid_vals.match(val) is None:
-                raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match the valid regular expression".format(val, self.name))
+                emsg = ("ERROR:  Value, '{}', provided for variable, '{}', "
+                        "does not match the valid regular expression")
+                raise CamConfigValError(emsg.format(val, self.name))
 
     #++++++++++++++++++++++++
 
@@ -867,12 +876,16 @@ class ConfigCAM:
 
         else:
             # If neither an integer or a string, then throw an error
-            raise CamConfigTypeError("ERROR:  The input value for new CAM config variable, '{}', must be either an integer or a string, not {}".format(name, type(val)))
+            emsg = ("ERROR:  The input value for new CAM config variable, '{}', "
+                    "must be either an integer or a string, not {}")
+            raise CamConfigTypeError(emsg.format(name, type(val)))
 
         # Next, check that object name isn't already in the config list
         if name in self.config_dict:
             # If so, then throw an error
-            raise CamConfigValError("ERROR:  The CAM config variable, '{}', already exists!  Any new config variable must be given a different name".format(name))
+            emsg = ("ERROR:  The CAM config variable, '{}', already exists! "
+                    "Any new config variable must be given a different name")
+            raise CamConfigValError(emsg.format(name))
 
         # If not, then add object to dictionary
         self.__config_dict[name] = conf_obj
@@ -934,7 +947,10 @@ class ConfigCAM:
 
         # Next, check that the given value is either an integer or a string
         if not isinstance(val, (int, str)):
-            raise  CamConfigTypeError("ERROR:  Value provided for variable, '{}', must be either an integer or a string.  Currently it is type {}".format(obj_name, type(val)))
+            emsg = ("ERROR:  Value provided for variable, '{}', "
+                    "must be either an integer or a string."
+                    "  Currently it is type {}")
+            raise  CamConfigTypeError(emsg.format(obj_name, type(val)))
 
         # Finally, set configure object's value to the value given
         obj.set_value(val)
@@ -958,15 +974,15 @@ class ConfigCAM:
 
     #++++++++++++++++++++++++
 
-    def generate_cam_src(self, gen_fort_indent, set_paths_only=False):
+    def generate_cam_src(self, gen_fort_indent):
 
         """
         Run CAM auto-generation functions, which
         check if the required Fortran source code
         and meta-data are present in the model bld
-        directory, and if not, generates them based
-        off of CAM configure settings and the model
-        registry file.
+        directory and build cache, and if not,
+        generates them based on CAM configure settings
+        and the model registry file.
         """
 
         # Set SourceMods path:
@@ -979,6 +995,12 @@ class ConfigCAM:
 
         # Append CCPP-framework to python path:
         spin_scripts_path = os.path.join(self.__atm_root, "ccpp_framework", "scripts")
+
+        # Check that CCPP-framework scripts directory exists:
+        if not os.path.isdir(spin_scripts_path):
+            emsg = ("ERROR: ccpp_framework/scripts directory doesn't exist! "
+                    "Has 'checkout_externals' been run?")
+            raise CamConfigValError(emsg)
 
         # Extract atm model config settings:
         dyn = self.get_value("dyn")
@@ -996,8 +1018,7 @@ class ConfigCAM:
         reg_dir, force_ccpp, reg_files = generate_registry(data_search,
                                                            build_cache, self.__atm_root,
                                                            self.__bldroot, source_mods_dir,
-                                                           dyn, gen_fort_indent,
-                                                           no_gen=set_paths_only)
+                                                           dyn, gen_fort_indent)
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -1012,8 +1033,7 @@ class ConfigCAM:
                                                        self.__atm_name, phys_suites,
                                                        self.__atm_root, self.__bldroot,
                                                        reg_dir, reg_files,
-                                                       source_mods_dir, force_ccpp,
-                                                       no_gen=set_paths_only)
+                                                       source_mods_dir, force_ccpp)
 
         #Convert physics directory list into a string:
         phys_dirs_str = ';'.join(phys_dirs)
@@ -1029,8 +1049,7 @@ class ConfigCAM:
                                           build_cache, self.__bldroot,
                                           reg_files, force_ccpp,
                                           force_init, gen_fort_indent,
-                                          cap_datafile,
-                                          no_gen=set_paths_only)
+                                          cap_datafile)
 
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initilazation code."

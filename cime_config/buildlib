@@ -63,9 +63,16 @@ def _build_cam():
             _LOGGER.setLevel(logging.INFO)
         # End if
 
-        # Create CAM config object and extract variables:
+        # Create CAM config object:
         config = ConfigCAM(case, _LOGGER)
-        config.generate_cam_src(0, set_paths_only=True)
+
+        #Set number of spaces used to indicate scope in generated code:
+        gen_indent = 3
+
+        # Re-run source generator in case registry, CCPP suites, or
+        # generator scripts have been modified, and
+        # to extract required source code paths:
+        config.generate_cam_src(gen_indent)
 
         dycore = config.get_value('dyn')
         reg_dir = config.get_value('reg_dir')

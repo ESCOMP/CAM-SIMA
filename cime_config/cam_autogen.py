@@ -66,29 +66,58 @@ def _update_file(filename, source_path, bld_dir):
     # End if
 
 ###############################################################################
-def _find_scheme_source(metadata_path):
+def _find_scheme_source(source_dirs, metadata_file_name):
 ###############################################################################
     """
-    Given a path to a metadata file, find the associated Fortran file
-    in that directory. Log a warning if no Fortran file exists and return None.
+    Given a metadata file name, find the associated Fortran file
+    by searching through the relavant source code directories.
+    Log a warning if no Fortran file exists and return None.
     """
 
-    #Set fortran extensions:
+    # Set fortran extensions:
     fortran_extensions = ['.F90', '.F', '.f', '.f90']
 
+    # Initialize return variable:
     source_file = None
-    base = metadata_path[0:-5]
+
+    # Loop over fortran extensions:
     for ext in fortran_extensions:
-        test_file = base + ext
-        if os.path.exists(test_file):
-            source_file = test_file
+
+        # Break loop if source file is found:
+        if source_file:
             break
-        # End if
+
+        # Generate possible source file name:
+        test_file = metadata_file_name + ext
+
+        # Search through all physics source directories,
+        # starting with SourceMods:
+        for direc in source_dirs:
+
+            # Break loop if source file is found:
+            if source_file:
+                break
+
+            # Loop over all files in all relevant
+            # sub-directories:
+            for root, _, files in os.walk(direc):
+
+                # Break loop if source file is found:
+                if source_file:
+                    break
+
+                for fname in files:
+                    # If file name matches what is expected, then
+                    # set it as the associated source file name:
+                    if fname == test_file:
+                        source_file = os.path.join(root, test_file)
+                        break
+                    # End if
+                # End for
+            # End for
+        # End for
     # End for
-    if not source_file:
-        emsg = "WARNING: No Fortran for metadata file, '%s'"
-        _LOGGER.warning(emsg, metadata_path)
-    # End if
+
     return source_file
 
 ###############################################################################
@@ -138,7 +167,22 @@ def _find_metadata_files(source_dirs, scheme_finder):
     metadata file containing that key scheme name and the associated Fortran
     file.
     <scheme_finder> is a function for finding schemes in a metadata file.
+
+    doctests:
+
+    1.  Check that the function works properly if given the proper inputs:
+
+    >>> _find_metadata_files([TEST_SOURCE_MODS_DIR], MetadataTable.find_scheme_names) #doctest: +ELLIPSIS
+    {'temp_adjust': ('.../SourceMods/temp_adjust.meta', '.../SourceMods/temp_adjust.F90')}
+
+    2.  Check that the function throws the correct error if no fortran file is found:
+
+    >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
+                             MetadataTable.find_scheme_names) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamAutoGenError: ERROR: No Fortran file found for meta file '.../test/unit/sample_files/write_init_files/../ref_pres.meta'
     """
+
     meta_files = {}
     for direc in source_dirs:
         for root, _, files in os.walk(direc):
@@ -147,13 +191,17 @@ def _find_metadata_files(source_dirs, scheme_finder):
                     if file not in meta_files:
                         path = os.path.join(root, file)
                         # Check for Fortran source
-                        source_file = _find_scheme_source(path)
+                        source_file = _find_scheme_source(source_dirs, file[:-5])
                         if source_file:
                             # Find all the schemes in the file
                             schemes = scheme_finder(path)
                             for scheme in schemes:
                                 meta_files[scheme] = (path, source_file)
                             # End for
+                        else:
+                            # Raise an error if source file isn't found:
+                            emsg = "ERROR: No Fortran file found for meta file '{}'"
+                            raise CamAutoGenError(emsg.format(path))
                         # End if
                     # End if
                 # End for
@@ -165,7 +213,7 @@ def _find_metadata_files(source_dirs, scheme_finder):
 ###############################################################################
 def generate_registry(data_search, build_cache, atm_root, bldroot,
                       source_mods_dir, dycore, gen_fort_indent,
-                      no_gen=False, reg_config=None):
+                      reg_config=None):
 ###############################################################################
     """
     Generate the CAM data source and metadata from the registry,
@@ -179,17 +227,17 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
 
     >>> generate_registry(["/bad/path"], TestBuildCache, TEST_ATM_ROOT, \
                           TEST_BLDROOT, TEST_SOURCE_MODS_DIR, 'se', \
-                          TEST_FORT_INDENT, no_gen=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+                          TEST_FORT_INDENT) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CamAutoGenError: "ERROR: Cannot find generate_registry_data in '['/bad/path']'
 
 
-    2. Check that generate_init_routines works properly when no_gen is True:
+    2. Check that generate_registry works properly a good path is given:
 
     >>> generate_registry(TEST_DATA_SEARCH, TestBuildCache, TEST_ATM_ROOT, \
                           TEST_BLDROOT, TEST_SOURCE_MODS_DIR, 'se', \
-                          TEST_FORT_INDENT, no_gen=True) #doctest: +ELLIPSIS
-    ('.../test_bldroot/cam_registry', True, [])
+                          TEST_FORT_INDENT) #doctest: +ELLIPSIS
+    ('.../test_bldroot/cam_registry', False, [])
     """
     #pylint: disable=wrong-import-position
     #pylint: disable=import-outside-toplevel
@@ -226,7 +274,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         os.makedirs(genreg_dir)
         do_gen_registry = True
     # End if
-    if do_gen_registry and not no_gen:
+    if do_gen_registry:
         for reg_file in registry_files:
             retcode, reg_file_list = gen_registry(reg_file, dycore, reg_config,
                                                   genreg_dir, gen_fort_indent,
@@ -256,7 +304,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
 ###############################################################################
 def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_name,
                             phys_suites_str, atm_root, bldroot, reg_dir, reg_files,
-                            source_mods_dir, force, no_gen=False):
+                            source_mods_dir, force):
 ###############################################################################
     """
     Generate the source for the configured physics suites,
@@ -271,7 +319,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     >>> generate_physics_suites("/bad/path", TestBuildCache, "UNSET", \
                                 "cam", "simple", TEST_ATM_ROOT, \
                                 TEST_BLDROOT, TEST_REG_DIR, TEST_REGFILES, \
-                                TEST_SOURCE_MODS_DIR, False, no_gen=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+                                TEST_SOURCE_MODS_DIR, False) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CamAutoGenError: ERROR: Cannot find CCPP-framework routines in '/bad/path'
 
@@ -280,7 +328,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     >>> generate_physics_suites(TEST_CCPP_PATH, TestBuildCache, "UNSET", \
                                 "cam", "missing", TEST_ATM_ROOT, \
                                 TEST_BLDROOT, TEST_REG_DIR, TEST_REGFILES, \
-                                TEST_SOURCE_MODS_DIR, False, no_gen=True)
+                                TEST_SOURCE_MODS_DIR, False)
     Traceback (most recent call last):
     CamAutoGenError: ERROR: Unable to find SDF for suite 'missing'
 
@@ -289,17 +337,17 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     >>> generate_physics_suites(TEST_CCPP_PATH, TestBuildCache, "UNSET", \
                                 "cam", "bad", TEST_ATM_ROOT, \
                                 TEST_BLDROOT, TEST_REG_DIR, TEST_REGFILES, \
-                                TEST_SOURCE_MODS_DIR, False, no_gen=True)
+                                TEST_SOURCE_MODS_DIR, False)
     Traceback (most recent call last):
     CamAutoGenError: ERROR: No metadata file found for physics scheme 'bad_scheme'
 
-    4. Check that generate_physics_suites works properly when no_gen is True:
+    4. Check that generate_physics_suites works properly when good inputs are provided:
 
     >>> generate_physics_suites(TEST_CCPP_PATH, TestBuildCache, "UNSET", \
                                 "cam", "simple", TEST_ATM_ROOT, \
                                 TEST_BLDROOT, TEST_REG_DIR, TEST_REGFILES, \
-                                TEST_SOURCE_MODS_DIR, False, no_gen=True) #doctest: +ELLIPSIS
-    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], True, '.../test_bldroot/ccpp/capfiles.txt')
+                                TEST_SOURCE_MODS_DIR, False) #doctest: +ELLIPSIS
+    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/capfiles.txt')
     """
     #pylint: disable=wrong-import-position
     #pylint: disable=import-outside-toplevel
@@ -383,7 +431,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
         os.makedirs(genccpp_dir)
         do_gen_ccpp = True
     # End if
-    if do_gen_ccpp and not no_gen:
+    if do_gen_ccpp:
         gen_hostcap = True
         gen_docfiles = False
 
@@ -413,7 +461,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
 ###############################################################################
 def generate_init_routines(ccpp_scripts_path, data_search, build_cache,
                            bldroot, reg_files, force_reg, force_ccpp,
-                           gen_fort_indent, cap_datafile, no_gen=False):
+                           gen_fort_indent, cap_datafile):
 ###############################################################################
     """
     Generate the host model initialization source code files
@@ -432,17 +480,17 @@ def generate_init_routines(ccpp_scripts_path, data_search, build_cache,
                                TestBuildCache, TEST_BLDROOT, \
                                TEST_REGFILES, False, \
                                False, TEST_FORT_INDENT, \
-                               TEST_CAP_DATAFILE, no_gen=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+                               TEST_CAP_DATAFILE) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CamAutoGenError: ERROR: Cannot find write_init_files in '['/bad/path']'
 
-    2. Check that generate_init_routines works properly when no_gen is True:
+    2. Check that generate_init_routines works properly when good inputs are given:
 
     >>> generate_init_routines(TEST_CCPP_PATH, TEST_DATA_SEARCH, \
                                TestBuildCache, TEST_BLDROOT, \
                                TEST_REGFILES, False, \
                                False, TEST_FORT_INDENT, \
-                               TEST_CAP_DATAFILE, no_gen=True) #doctest: +ELLIPSIS
+                               TEST_CAP_DATAFILE) #doctest: +ELLIPSIS
     '.../test_bldroot/phys_init'
     """
     #pylint: disable=wrong-import-position
@@ -490,7 +538,7 @@ def generate_init_routines(ccpp_scripts_path, data_search, build_cache,
         do_gen_init = True
     # End if
 
-    if do_gen_init and not no_gen:
+    if do_gen_init:
 
         #Run initialization files generator:
         retmsg = write_init.write_init_files(reg_files, init_dir, gen_fort_indent,
@@ -521,12 +569,14 @@ def generate_init_routines(ccpp_scripts_path, data_search, build_cache,
 # Call testing routine, if script is run directly
 if __name__ == "__main__":
 
-    # Import modules needed for testing
+    # Import modules needed for testing:
     import doctest
 
     # Create fake buildcache object for testing:
     #++++++++++++++++++++++++++++++++++++++++++
     #pylint: disable=missing-function-docstring
+    #pylint: disable=unused-argument
+    #pylint: disable=no-self-use
     class FakeBuildCache:
 
         """
@@ -544,20 +594,32 @@ if __name__ == "__main__":
 
         def registry_mismatch(self, gen_reg_file, registry_files,
                               dycore, reg_config):
-            pass
+
+            # Always return False, in order to avoid running the
+            # actual generation routines when performing doctests:
+            return False
 
         def update_ccpp(self, sdfs, scheme_files, preproc_defs, kind_phys):
             pass
 
         def ccpp_mismatch(self, sdfs, scheme_files, preproc_defs, kind_phys):
-            pass
+
+            # Always return False, in order to avoid running the
+            # actual generation routines when performing doctests:
+            return False
 
         def update_init_gen(self, input_file):
             pass
 
         def init_write_mismatch(self, input_file):
-            pass
+
+            # Always return False, in order to avoid running the
+            # actual generation routines when performing doctests:
+            return False
+
     #pylint: enable=missing-function-docstring
+    #pylint: enable=unused-argument
+    #pylint: enable=no-self-use
     #++++++++++++++++++++++++++++++++++++++++++
 
     # Create new, fake BuildCache object:
@@ -576,6 +638,13 @@ if __name__ == "__main__":
     TEST_SOURCE_MODS_DIR = os.path.join(TEST_ATM_ROOT, "SourceMods")
     TEST_FORT_INDENT = 3
 
+    # Remove old test directories if they exist:
+    if os.path.exists(TEST_BLDROOT):
+        shutil.rmtree(TEST_BLDROOT)
+
+    if os.path.exists(TEST_SOURCE_MODS_DIR):
+        shutil.rmtree(TEST_SOURCE_MODS_DIR)
+
     # For generate_physics_suites:
     TEST_REG_DIR = os.path.join(TEST_BLDROOT, "cam_registry")
 
@@ -588,6 +657,13 @@ if __name__ == "__main__":
 
     # Create "SourceMods directory:
     os.mkdir(TEST_SOURCE_MODS_DIR)
+
+    # Create source code directories needed in order
+    # to avoid running the actual code generators
+    # while testing:
+    os.mkdir(os.path.join(TEST_BLDROOT, "cam_registry"))
+    os.mkdir(os.path.join(TEST_BLDROOT, "ccpp"))
+    os.mkdir(os.path.join(TEST_BLDROOT, "phys_init"))
 
     # Set test CCPP suite paths:
     SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
@@ -606,8 +682,21 @@ if __name__ == "__main__":
     # Set logger to fatal, to avoid log messages:
     _LOGGER.setLevel(logging.FATAL)
 
-    # Run doctests:
-    doctest.testmod()
+    # Run doctests in a specific order (to avoid import issues):
+    doctest.run_docstring_examples(generate_physics_suites, globals())
+    doctest.run_docstring_examples(generate_registry, globals())
+    doctest.run_docstring_examples(generate_init_routines, globals())
+
+    # Add CCPP framework external to path:
+    sys.path.append(os.path.join(os.pardir, "ccpp_framework", "scripts"))
+
+    # Import needed CCPP-framework module:
+    #pylint: disable=unused-import
+    from metadata_table import MetadataTable
+    #pylint: enable=unused-import
+
+    # Run additional doctests:
+    doctest.run_docstring_examples(_find_metadata_files, globals())
 
     # Remove testing directories:
     shutil.rmtree(TEST_BLDROOT)

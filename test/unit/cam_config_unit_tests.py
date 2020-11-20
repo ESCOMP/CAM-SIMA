@@ -190,7 +190,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Set error message:
         ermsg = "ERROR: Invalid configuration name, 'fake variable'"
 
-        #Expect "Cam_config_val_error":
+        #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run "get_value" method on made-up variable name:
             self.test_config_cam.get_value("fake variable")
@@ -209,7 +209,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Set error message:
         ermsg = "ERROR:  Invalid configuration name, 'fake variable'"
 
-        #Expect "Cam_config_val_error":
+        #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run "set_value" method on made-up variable name:
             self.test_config_cam.set_value("fake variable", 200)
@@ -232,7 +232,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Create new logger for print_config test:
         print_log = logging.getLogger("print_config")
 
-        #Expect "Cam_config_val_error":
+        #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run "print_config" method on made-up variable name:
             self.test_config_cam.print_config("fake variable", print_log)
@@ -255,7 +255,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Set error message:
         ermsg = "ERROR:  Value provided for variable, 'nlev', must be either an integer or a string.  Currently it is type <type 'float'>"
 
-        #Expect "Cam_config_type_error":
+        #Expect "CamConfigTypeError":
         with self.assertRaises(CamConfigTypeError) as typerr:
             #Run "set_value" method on made-up variable name:
             self.test_config_cam.set_value("nlev", 5.0)
@@ -263,6 +263,28 @@ class CamConfigTestRoutine(unittest.TestCase):
             #Check that error message matches what's expected:
             self.assertEqual(ermsg, str(typerr.exception))
 
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "generate_cam_src" missing "ccpp_framework" error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_gen_cam_src_ccpp_check(self):
+
+        """
+        Check that "generate_cam_src" throws the proper error
+        if the "ccpp_framework" external directory doesn't exist.
+        """
+
+        #Set error message:
+        ermsg = "ERROR: ccpp_framework/scripts directory doesn't exist! Has 'checkout_externals' been run?"
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run "generate_cam_src" method, which should fail
+            #due to the case paths being "fake":
+            self.test_config_cam.generate_cam_src(0)
+
+            #Check that error message matches what's expected:
+            self.asserEqual(ermsg, str(valerr.exception))
 
 #################################################
 #Run unit tests if this script is called directly
