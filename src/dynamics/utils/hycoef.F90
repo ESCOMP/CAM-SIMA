@@ -184,6 +184,8 @@ subroutine hycoef_init(file, psdry)
    alev(:plev) = 0.01_r8*ps0*(hyam(:plev) + hybm(:plev))
    ailev(:plevp) = 0.01_r8*ps0*(hyai(:plevp) + hybi(:plevp))
 
+! --------------------
+! THIS CODE BLOCK TEMPORARILY COMMENTED OUT UNTIL HISTORY OUTPUT IS ENABLED
 !   if (dry_coord) then
 !      call add_vert_coord('lev', plev,                                       &
 !         'hybrid level at midpoints (1000*(A+B))', 'hPa', alev,              &

@@ -34,19 +34,23 @@ integer, protected :: num_pr_lev
 
 ! Pressure used to set troposphere cloud physics top (Pa)
 real(kind_phys), protected :: trop_cloud_top_press = 0._kind_phys
+
 ! Top level for troposphere cloud physics
 integer, protected :: trop_cloud_top_lev
 
 ! Pressure used to set MAM process top (Pa)
 real(kind_phys), protected :: clim_modal_aero_top_press = 0._kind_phys
+
 ! Top level for MAM processes that impact climate
 integer, protected :: clim_modal_aero_top_lev
 
 ! Molecular diffusion is calculated only if the model top is below this
 ! pressure (Pa).
 real(kind_phys), protected :: do_molec_press = 0.1_kind_phys
+
 ! Pressure used to set bottom of molecular diffusion region (Pa).
 real(kind_phys), protected :: molec_diff_bot_press = 50._kind_phys
+
 ! Flag for molecular diffusion, and molecular diffusion level index.
 logical, protected :: do_molec_diff = .false.
 integer, protected :: nbot_molec = 0
@@ -107,7 +111,7 @@ end subroutine ref_pres_readnl
 
 subroutine ref_pres_init(pver, pverp, pref_edge_in, pref_mid_in, num_pr_lev_in)
 
-use phys_vars_init_check, only: mark_as_initialized
+   use phys_vars_init_check, only: mark_as_initialized
 
    ! Initialize reference pressures
 
