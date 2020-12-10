@@ -90,8 +90,6 @@ def buildnml(case, caseroot, compname):
         emsg = "CAM buildnml called with model={}"
         raise AttributeError(emsg.format(compname))
     # End if
-    # pylint: disable=bad-option-value
-    # pylint: disable=bad-whitespace
     srcroot             = case.get_value("SRCROOT")
     rundir              = case.get_value("RUNDIR")
     din_loc_root        = case.get_value("DIN_LOC_ROOT")
@@ -105,8 +103,6 @@ def buildnml(case, caseroot, compname):
     run_refcase         = case.get_value("RUN_REFCASE")
     run_refdate         = case.get_value("RUN_REFDATE")
     run_reftod          = case.get_value("RUN_REFTOD")
-    # pylint: enable=bad-whitespace
-    # pylint: enable=bad-option-value
 
     testsrc = os.path.join(srcroot, "components", "cam")
     if os.path.exists(testsrc):
