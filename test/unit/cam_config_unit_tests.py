@@ -284,7 +284,7 @@ class CamConfigTestRoutine(unittest.TestCase):
             self.test_config_cam.generate_cam_src(0)
 
             #Check that error message matches what's expected:
-            self.asserEqual(ermsg, str(valerr.exception))
+            self.assertEqual(ermsg, str(valerr.exception))
 
 #################################################
 #Run unit tests if this script is called directly

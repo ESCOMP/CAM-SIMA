@@ -20,7 +20,7 @@ from standard_script_setup          import *
 from CIME.XML.standard_module_setup import *
 from CIME.buildnml                  import create_namelist_infile, parse_input
 from CIME.case                      import Case
-from CIME.utils                     import expect, run_cmd
+from CIME.utils                     import expect
 from CIME.nmlgen                    import NamelistGenerator
 
 # Save local (cime_config) directory path:
@@ -90,6 +90,7 @@ def buildnml(case, caseroot, compname):
         emsg = "CAM buildnml called with model={}"
         raise AttributeError(emsg.format(compname))
     # End if
+    # pylint: disable=bad-option-value
     # pylint: disable=bad-whitespace
     srcroot             = case.get_value("SRCROOT")
     rundir              = case.get_value("RUNDIR")
@@ -105,6 +106,7 @@ def buildnml(case, caseroot, compname):
     run_refdate         = case.get_value("RUN_REFDATE")
     run_reftod          = case.get_value("RUN_REFTOD")
     # pylint: enable=bad-whitespace
+    # pylint: enable=bad-option-value
 
     testsrc = os.path.join(srcroot, "components", "cam")
     if os.path.exists(testsrc):
