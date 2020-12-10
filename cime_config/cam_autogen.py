@@ -191,7 +191,8 @@ def _find_metadata_files(source_dirs, scheme_finder):
                     if file not in meta_files:
                         path = os.path.join(root, file)
                         # Check for Fortran source
-                        source_file = _find_scheme_source(source_dirs, file[:-5])
+                        base_name = os.path.splitext(file)[0]
+                        source_file = _find_scheme_source(source_dirs, base_name)
                         if source_file:
                             # Find all the schemes in the file
                             schemes = scheme_finder(path)
