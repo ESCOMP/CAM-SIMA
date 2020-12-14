@@ -180,10 +180,14 @@ def _find_metadata_files(source_dirs, scheme_finder):
     >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
                              MetadataTable.find_scheme_names) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CamAutoGenError: ERROR: No Fortran file found for meta file '.../test/unit/sample_files/write_init_files/../ref_pres.meta'
+    CamAutoGenError: ERROR: No fortran files were found for the following meta files:
+    /glade/work/nusbaume/SE_projects/new_cam_sandbox/CAMDEN/test/unit/sample_files/write_init_files/../ref_pres.meta
+    /glade/work/nusbaume/SE_projects/new_cam_sandbox/CAMDEN/test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
     """
 
-    meta_files = {}
+    meta_files = dict()
+    missing_source_files = list()
+
     for direc in source_dirs:
         for root, _, files in os.walk(direc):
             if '.git' not in root:
@@ -200,15 +204,23 @@ def _find_metadata_files(source_dirs, scheme_finder):
                                 meta_files[scheme] = (path, source_file)
                             # End for
                         else:
-                            # Raise an error if source file isn't found:
-                            emsg = "ERROR: No Fortran file found for meta file '{}'"
-                            raise CamAutoGenError(emsg.format(path))
+                            # Add meta file to list of files
+                            # with missing source files:
+                            missing_source_files.append(path)
                         # End if
                     # End if
                 # End for
             # End if
         # End for
     # End for
+
+    # Raise exception if source files are missing:
+    if missing_source_files:
+        emsg = "ERROR: No fortran files were found for the following meta files:\n"
+        emsg += "\n".join(missing_source_files)
+        raise CamAutoGenError(emsg)
+
+    # Return meta_files dictionary:
     return meta_files
 
 ###############################################################################
