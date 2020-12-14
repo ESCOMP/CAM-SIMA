@@ -9,9 +9,23 @@ CIME case.
 #----------------------------------------
 # Import generic python libraries/modules
 #----------------------------------------
+
 import re
 import sys
 import argparse
+import os.path
+
+#-----------------------------------
+# Import CAM-specific python modules
+#-----------------------------------
+
+# Import build cache object:
+from cam_build_cache import BuildCacheCAM # Re-build consistency cache
+
+# Import fortran auto-generation routines:
+from cam_autogen import generate_registry, generate_physics_suites
+from cam_autogen import generate_init_routines
+
 
 # Determine regular rexpression type  (for later usage in Config_string)
 REGEX_TYPE = type(re.compile(r" "))
@@ -84,11 +98,14 @@ class ConfigGen:
 
         # Check that "name" is a string
         if not isinstance(name, str):
-            raise CamConfigTypeError("ERROR:  Configuration variable name '{}' must be a string, not {}".format(name, type(name)))
+            emsg = "ERROR:  Configuration variable name '{}' must be a string, not {}"
+            raise CamConfigTypeError(emsg.format(name, type(name)))
 
         # Check that "desc" is a string
         if not isinstance(desc, str):
-            raise CamConfigTypeError("ERROR:  Configuration variable, '{}', must have a string-type description, not {}".format(name, type(desc)))
+            emsg = ("ERROR:  Configuration variable, '{}', "
+                    "must have a string-type description, not {}")
+            raise CamConfigTypeError(emsg.format(name, type(desc)))
 
         # Add name, description, and namelist attribute logical to object
         self.__name = name
@@ -207,7 +224,9 @@ class ConfigInteger(ConfigGen):
         # Check that "valid_vals" is either "None", a list, or a tuple
         if valid_vals is not None:
             if not isinstance(valid_vals, (list, tuple)):
-                raise CamConfigTypeError("ERROR:  The valid values for variable, '{}', must either be None, a list, or a tuple, not {}".format(name, type(valid_vals)))
+                emsg = ("ERROR:  The valid values for variable, '{}', "
+                        "must either be None, a list, or a tuple, not {}")
+                raise CamConfigTypeError(emsg.format(name, type(valid_vals)))
 
             # If list or tuple, check that all entries are either
             #   "None" or integers
@@ -469,13 +488,17 @@ class ConfigString(ConfigGen):
         # matches one of the valid values in the list
         if isinstance(valid_vals, list):
             if not val in valid_vals:
-                raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match any of the valid values: '{}'".format(val, self.name, valid_vals))
+                emsg = ("ERROR:  Value, '{}', provided for variable, '{}', "
+                        "does not match any of the valid values: '{}'")
+                raise CamConfigValError(emsg.format(val, self.name, valid_vals))
 
         elif valid_vals is not None:
             # If a regular expression object, then check that
             # value is matched by the expression
             if valid_vals.match(val) is None:
-                raise CamConfigValError("ERROR:  Value, '{}', provided for variable, '{}', does not match the valid regular expression".format(val, self.name))
+                emsg = ("ERROR:  Value, '{}', provided for variable, '{}', "
+                        "does not match the valid regular expression")
+                raise CamConfigValError(emsg.format(val, self.name))
 
     #++++++++++++++++++++++++
 
@@ -546,6 +569,14 @@ class ConfigCAM:
         case_nx = case.get_value("ATM_NX")                  # Number of x-dimension grid-points (longitudes)
         case_ny = case.get_value("ATM_NY")                  # Number of y-dimension grid-points (latitudes)
         comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
+        exeroot = case.get_value("EXEROOT")                 # model executable path
+
+        # Save case variables needed for code auto-generation:
+        self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
+        self.__caseroot = case.get_value("CASEROOT")
+        self.__bldroot = os.path.join(exeroot, "atm", "obj")
+        self.__cppdefs = case.get_value('CAM_CPPDEFS')
+        self.__atm_name = case.get_value('COMP_ATM')
 
         # The following translation is hard-wired for backwards compatibility
         # to support the differences between how the config_grids specifies the
@@ -845,12 +876,16 @@ class ConfigCAM:
 
         else:
             # If neither an integer or a string, then throw an error
-            raise CamConfigTypeError("ERROR:  The input value for new CAM config variable, '{}', must be either an integer or a string, not {}".format(name, type(val)))
+            emsg = ("ERROR:  The input value for new CAM config variable, '{}', "
+                    "must be either an integer or a string, not {}")
+            raise CamConfigTypeError(emsg.format(name, type(val)))
 
         # Next, check that object name isn't already in the config list
         if name in self.config_dict:
             # If so, then throw an error
-            raise CamConfigValError("ERROR:  The CAM config variable, '{}', already exists!  Any new config variable must be given a different name".format(name))
+            emsg = ("ERROR:  The CAM config variable, '{}', already exists! "
+                    "Any new config variable must be given a different name")
+            raise CamConfigValError(emsg.format(name))
 
         # If not, then add object to dictionary
         self.__config_dict[name] = conf_obj
@@ -912,7 +947,10 @@ class ConfigCAM:
 
         # Next, check that the given value is either an integer or a string
         if not isinstance(val, (int, str)):
-            raise  CamConfigTypeError("ERROR:  Value provided for variable, '{}', must be either an integer or a string.  Currently it is type {}".format(obj_name, type(val)))
+            emsg = ("ERROR:  Value provided for variable, '{}', "
+                    "must be either an integer or a string."
+                    "  Currently it is type {}")
+            raise  CamConfigTypeError(emsg.format(obj_name, type(val)))
 
         # Finally, set configure object's value to the value given
         obj.set_value(val)
@@ -933,6 +971,94 @@ class ConfigCAM:
 
         # If it does, then return the object's value
         return obj.value
+
+    #++++++++++++++++++++++++
+
+    def generate_cam_src(self, gen_fort_indent):
+
+        """
+        Run CAM auto-generation functions, which
+        check if the required Fortran source code
+        and meta-data are present in the model bld
+        directory and build cache, and if not,
+        generates them based on CAM configure settings
+        and the model registry file.
+        """
+
+        # Set SourceMods path:
+        source_mods_dir = os.path.join(self.__caseroot, "SourceMods", "src.cam")
+
+        # Set possible locations to search for generation routines
+        # with the SourceMods directory searched first:
+        data_path = os.path.join(self.__atm_root, "src", "data")
+        data_search = [source_mods_dir, data_path]
+
+        # Append CCPP-framework to python path:
+        spin_scripts_path = os.path.join(self.__atm_root, "ccpp_framework", "scripts")
+
+        # Check that CCPP-framework scripts directory exists:
+        if not os.path.isdir(spin_scripts_path):
+            emsg = ("ERROR: ccpp_framework/scripts directory doesn't exist! "
+                    "Has 'checkout_externals' been run?")
+            raise CamConfigValError(emsg)
+
+        # Extract atm model config settings:
+        dyn = self.get_value("dyn")
+        phys_suites = self.get_value("physics_suites")
+
+        #---------------------------------------------------------
+        # Load a build cache, if available
+        #---------------------------------------------------------
+        build_cache = BuildCacheCAM(os.path.join(self.__bldroot,
+                                                 "cam_build_cache.xml"))
+
+        #---------------------------------------------------------
+        # Create the physics derived data types using the registry
+        #---------------------------------------------------------
+        reg_dir, force_ccpp, reg_files = generate_registry(data_search,
+                                                           build_cache, self.__atm_root,
+                                                           self.__bldroot, source_mods_dir,
+                                                           dyn, gen_fort_indent)
+
+        #Add registry path to config object:
+        reg_dir_desc = "Location of auto-generated registry code."
+        self.create_config("reg_dir", reg_dir_desc, reg_dir)
+
+        #---------------------------------------------------------
+        # Call SPIN (CCPP Framework) to generate glue code
+        #---------------------------------------------------------
+        phys_dirs, force_init, cap_datafile = \
+                               generate_physics_suites(spin_scripts_path,
+                                                       build_cache, self.__cppdefs,
+                                                       self.__atm_name, phys_suites,
+                                                       self.__atm_root, self.__bldroot,
+                                                       reg_dir, reg_files,
+                                                       source_mods_dir, force_ccpp)
+
+        #Convert physics directory list into a string:
+        phys_dirs_str = ';'.join(phys_dirs)
+
+        #Add physics directory paths to config object:
+        phys_dirs_desc = "Locations of auto-generated CCPP physics codes."
+        self.create_config("phys_dirs", phys_dirs_desc, phys_dirs_str)
+
+        #---------------------------------------------------------
+        # Create host model variable initialization routines
+        #---------------------------------------------------------
+        init_dir = generate_init_routines(spin_scripts_path, data_search,
+                                          build_cache, self.__bldroot,
+                                          reg_files, force_ccpp,
+                                          force_init, gen_fort_indent,
+                                          cap_datafile)
+
+        #Add registry path to config object:
+        init_dir_desc = "Location of auto-generated physics initilazation code."
+        self.create_config("init_dir", init_dir_desc, init_dir)
+
+        #--------------------------------------------------------------
+        # write out the cache here as we have completed pre-processing
+        #--------------------------------------------------------------
+        build_cache.write()
 
 ###############################################################################
 #IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!
@@ -966,7 +1092,12 @@ if __name__ == "__main__":
                 "ATM_NX"   : 180,
                 "ATM_NY"   : 90,
                 "COMP_OCN" : "socn",
-                "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic"
+                "COMP_ATM" : "cam",
+                "EXEROOT"  : "/some/made-up/path",
+                "CASEROOT" : "/another/made-up/path",
+                "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
+                "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
+                "CAM_CPPDEFS" : "UNSET"
                 }
 
         def get_value(self, key):
@@ -997,6 +1128,6 @@ if __name__ == "__main__":
     # Run doctests on this file's python objects
     doctest.testmod()
 
-##############
-# End of file##
-############
+#############
+# End of file
+#############
