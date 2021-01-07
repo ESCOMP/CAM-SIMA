@@ -1,6 +1,6 @@
 module physics_column_type
 
-   use shr_kind_mod, only: r8 => shr_kind_r8
+   use shr_kind_mod, only: r8 => shr_kind_r8, shr_kind_cl
 !   use ISO_FORTRAN_ENV, only: kind_phys
    use ccpp_kinds,   only: kind_phys
  
@@ -8,6 +8,12 @@ module physics_column_type
    implicit none
    private
    save
+
+   public :: assignment ( = )
+
+   interface assignment ( = )
+      module procedure copy_phys_col
+   end interface
 
 !> \section arg_table_physics_column_t  Argument Table
 !! \htmlinclude physics_column_t.html
@@ -36,9 +42,46 @@ type, public :: physics_column_t
    integer              :: phys_chunk_index = -1   ! Index into physics chunk
 end type physics_column_t
 
-
 !==============================================================================
 CONTAINS
 !==============================================================================
+
+
+   subroutine copy_phys_col(phys_col_out, phys_col_in)
+
+      use cam_abortutils, only: endrun
+
+      ! Copy all of the values from one physics_column type
+      ! structure to another.
+
+      ! Dummy (input) variables:
+      type(physics_column_t), intent(out) :: phys_col_out
+      type(physics_column_t), intent(in)  :: phys_col_in
+
+      ! Copy values from input array to output array:
+
+      ! Column information
+      phys_col_out%lat_rad = phys_col_in%lat_rad
+      phys_col_out%lon_rad = phys_col_in%lon_rad
+      phys_col_out%lat_deg = phys_col_in%lat_deg
+      phys_col_out%lon_deg = phys_col_in%lon_deg
+      phys_col_out%area    = phys_col_in%area
+      phys_col_out%weight  = phys_col_in%weight
+
+      ! File decomposition
+      phys_col_out%global_col_num   = phys_col_in%global_col_num
+      phys_col_out%coord_indices(:) = phys_col_in%coord_indices(:)
+
+      ! Dynamics decomposition
+      phys_col_out%dyn_task         = phys_col_in%dyn_task
+      phys_col_out%local_dyn_block  = phys_col_in%local_dyn_block
+      phys_col_out%global_dyn_block = phys_col_in%global_dyn_block
+
+      ! Physics decomposition
+      phys_col_out%phys_task        = phys_col_in%phys_task
+      phys_col_out%local_phys_chunk = phys_col_in%local_phys_chunk
+      phys_col_out%phys_chunk_index = phys_col_in%phys_chunk_index
+
+   end subroutine copy_phys_col
 
 end module physics_column_type

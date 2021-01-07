@@ -1,7 +1,7 @@
 module physics_grid
 
    use shr_kind_mod,        only: r8 => shr_kind_r8
-   use physics_column_type, only: physics_column_t
+   use physics_column_type, only: physics_column_t, assignment(=)
    use perf_mod,            only: t_adj_detailf, t_startf, t_stopf
 
    implicit none
@@ -35,7 +35,7 @@ module physics_grid
    character(len=8), protected, public :: dycore_name = ''
 
    ! Physics decomposition information
-   type(physics_column_t), pointer     :: phys_columns(:) => NULL()
+   type(physics_column_t), protected, public, allocatable :: phys_columns(:)
 
    ! These variables are last to provide a limited table to search
 
@@ -56,22 +56,36 @@ module physics_grid
 CONTAINS
 !==============================================================================
 
-   subroutine phys_grid_init()
+   subroutine phys_grid_init(hdim1_d_in, hdim2_d_in, pver_in, dycore_name_in, &
+                             index_top_layer_in, index_bottom_layer_in, &
+                             dyn_columns, dyn_gridname, dyn_attributes)
+
 !      use mpi,              only: MPI_reduce ! XXgoldyXX: Should this work?
       use mpi,              only: MPI_INTEGER, MPI_MIN
       use cam_abortutils,   only: endrun
-      use spmd_utils,       only: npes, mpicom
-      use dyn_grid,         only: get_dyn_grid_info, physgrid_copy_attributes_d
+      use spmd_utils,       only: npes, mpicom, iam
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
       use cam_grid_support, only: iMap, hclen => max_hcoordname_len
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
       use cam_grid_support, only: cam_grid_attribute_copy, cam_grid_attr_exists
 
+      ! Dummy (input) variables:
+      integer, intent(in) :: hdim1_d_in            ! First dyn grid horizontal dimension
+      integer, intent(in) :: hdim2_d_in            ! Second dyn grid horizontal dimension
+      integer, intent(in) :: pver_in               ! Dyn grid vertical dimension
+      integer, intent(in) :: index_top_layer_in    ! Vertical index that represents model top
+      integer, intent(in) :: index_bottom_layer_in ! Vertical index that represents model surface
+
+      character(len=*), intent(in) :: dycore_name_in    ! Name of dycore
+      character(len=*), intent(in) :: dyn_gridname      ! Name of dynamics grid
+      character(len=*), intent(in) :: dyn_attributes(:) ! Dyanmics grid attributes
+
+      type(physics_column_t), intent(in) :: dyn_columns(:) ! physics columns structure on dynamics grid
+
       ! Local variables
       integer                             :: index
       integer                             :: col_index
       integer                             :: first_dyn_column, last_dyn_column
-      type(physics_column_t), pointer     :: dyn_columns(:) ! Dyn decomp
       ! Maps and values for physics grid
       real(r8),               pointer     :: lonvals(:)
       real(r8),               pointer     :: latvals(:)
@@ -84,29 +98,29 @@ CONTAINS
       logical                             :: unstructured
       real(r8)                            :: temp ! For MPI
       integer                             :: ierr ! For MPI
-      character(len=hclen),   pointer     :: copy_attributes(:)
-      character(len=hclen)                :: copy_gridname
 
-      nullify(dyn_columns)
       nullify(lonvals)
       nullify(latvals)
       nullify(grid_map)
       nullify(lat_coord)
       nullify(lon_coord)
       nullify(area_d)
-      nullify(copy_attributes)
 
       call t_adj_detailf(-2)
       call t_startf("phys_grid_init")
 
-      ! Gather info from the dycore
-      call get_dyn_grid_info(hdim1_d, hdim2_d, pver, dycore_name,             &
-           index_top_layer, index_bottom_layer, dyn_columns)
-      num_global_phys_cols = hdim1_d * hdim2_d
-      pverp = pver + 1
+      ! Set public variables:
+      hdim1_d            = hdim1_d_in
+      hdim2_d            = hdim2_d_in
+      pver               = pver_in
+      index_top_layer    = index_top_layer_in
+      index_bottom_layer = index_bottom_layer_in
+      dycore_name        = dycore_name_in
+
+      pverp            = pver + 1
       first_dyn_column = LBOUND(dyn_columns, 1)
-      last_dyn_column = UBOUND(dyn_columns, 1)
-      unstructured = hdim2_d <= 1
+      last_dyn_column  = UBOUND(dyn_columns, 1)
+      unstructured     = hdim2_d <= 1
       !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
       !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
       !!XXgoldyXX: This only has a 50% chance of working on a single level model
@@ -118,15 +132,20 @@ CONTAINS
          index_top_interface = index_top_layer + 1
       end if
 
-      ! Set up the physics decomposition
-      columns_on_task = size(dyn_columns)
-      phys_columns => dyn_columns
+      !Calculate total number of physics columns:
+      num_global_phys_cols = hdim1_d * hdim2_d
 
-      ! Now that we are done settine up the physics decomposition, clean up
-      if (.not. associated(phys_columns, target=dyn_columns)) then
-         deallocate(dyn_columns)
+      ! Set columns_on_task and allocate phys_columns if
+      ! not already allocated:
+      if (.not. allocated(phys_columns)) then
+          columns_on_task = size(dyn_columns)
+          allocate(phys_columns(columns_on_task))
       end if
-      nullify(dyn_columns)
+
+      ! Set up the physics decomposition
+      do index = 1, columns_on_task
+         phys_columns(index) = dyn_columns(index)
+      end do
 
       ! Add physics-package grid to set of CAM grids
       ! physgrid always uses 'lat' and 'lon' as coordinate names; If dynamics
@@ -214,12 +233,11 @@ CONTAINS
       call cam_grid_register('physgrid', phys_decomp,                         &
            lat_coord, lon_coord, grid_map, src_in=(/ 1, 0 /),                 &
            unstruct=unstructured, block_indexed=.false.)
+
       ! Copy required attributes from the dynamics array
-      nullify(copy_attributes)
-      call physgrid_copy_attributes_d(copy_gridname, copy_attributes)
-      do index = 1, size(copy_attributes)
-         call cam_grid_attribute_copy(copy_gridname, 'physgrid',              &
-              copy_attributes(index))
+      do index = 1, size(dyn_attributes)
+         call cam_grid_attribute_copy(dyn_gridname, 'physgrid',              &
+              dyn_attributes(index))
       end do
 
       if ((.not. cam_grid_attr_exists('physgrid', 'area')) .and.              &
@@ -242,11 +260,6 @@ CONTAINS
       nullify(latvals)
       deallocate(lonvals)
       nullify(lonvals)
-      ! Cleanup, we are responsible for copy attributes
-      if (associated(copy_attributes)) then
-         deallocate(copy_attributes)
-         nullify(copy_attributes)
-      end if
 
       ! Set flag indicating physics grid is now set
       phys_grid_initialized = .true.
