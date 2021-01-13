@@ -10,7 +10,7 @@ use ccpp_kinds,     only: kind_phys
 use constituents,   only: pcnst
 
 use spmd_dyn,       only: local_dp_map
-use spmd_utils,     only: mpicom, iam
+use spmd_utils,     only: iam
 use dyn_grid,       only: TimeLevel, edgebuf
 use dyn_comp,       only: dyn_export_t, dyn_import_t
 
@@ -21,7 +21,6 @@ use physics_grid,   only: pver, pverp
 
 use dp_mapping,     only: nphys_pts
 
-use cam_logfile,    only: iulog
 use perf_mod,       only: t_startf, t_stopf, t_barrierf
 use cam_abortutils, only: endrun
 
@@ -33,7 +32,6 @@ use dimensions_mod, only: np, npsq, nelemd, nlev, nc, qsize, ntrac, fv_nphys
 
 use dof_mod,        only: UniquePoints, PutUniquePoints
 use element_mod,    only: element_t
-use fvm_control_volume_mod, only: fvm_struct
 
 implicit none
 private
@@ -91,18 +89,13 @@ subroutine d_p_coupling(phys_state, phys_tend,  pbuf2d, dyn_out)
    !real (kind=r8),  allocatable :: frontgf_phys(:,:,:)
    !real (kind=r8),  allocatable :: frontga_phys(:,:,:)
 
-   integer              :: ncols,i,j,ierr,k,iv
+   integer              :: ncols,ierr
    integer              :: col_ind, blk_ind(1), m, m_cnst
-   integer              :: tsize               ! amount of data per grid point passed to physics
-   integer, allocatable :: bpter(:,:)          ! offsets into block buffer for packing data
-   integer              :: cpter(pcols,0:pver) ! offsets into chunk buffer for unpacking data
    integer              :: nphys
 
-   real(r8), allocatable :: bbuffer(:), cbuffer(:) ! transpose buffers
    real(r8), allocatable :: qgll(:,:,:,:)
    real(r8)              :: inv_dp3d(np,np,nlev)
    integer               :: tl_f, tl_qdp_np0, tl_qdp_np1
-   logical               :: lmono
    !----------------------------------------------------------------------------
 
    if (.not. local_dp_map) then
@@ -575,9 +568,8 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    use phys_control,   only: waccmx_is
    use geopotential_t, only: geopotential_t
 !   use check_energy,   only: check_energy_timestep_init
-   use hycoef,         only: hyai, hybi, ps0
+   use hycoef,         only: hyai, ps0
    use shr_vmath_mod,  only: shr_vmath_log
-   use gmean_mod,      only: gmean
 !   use qneg_module,    only: qneg3
    use dyn_comp,       only: ixo, ixo2, ixh, ixh2
 
@@ -586,14 +578,6 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    type(physics_tend ), intent(inout) :: phys_tend
 
    ! local variables
-   real(r8) :: qbot                 ! bottom level q before change
-   real(r8) :: qbotm1               ! bottom-1 level q before change
-   real(r8) :: dqreq                ! q change at pver-1 required to remove q<qmin at pver
-   real(r8) :: qmavl                ! available q at level pver-1
-
-   real(r8) :: ke(pcols,begchunk:endchunk)
-   real(r8) :: se(pcols,begchunk:endchunk)
-   real(r8) :: ke_glob(1),se_glob(1)
    real(r8) :: zvirv(pcols,pver)    ! Local zvir array pointer
    real(kind_phys) :: factor_array(pcols,nlev)
 
@@ -762,9 +746,6 @@ subroutine derived_phys_dry(phys_state, phys_tend)
 #endif
 
       !NOTE:  Should geopotential be done in CCPP physics suite? -JN:
-
-      !ONCE THAT IS DONE, CONTINUE WITH INTILIZATION MARKING!  ALSO SEE
-      !ABOUT DQDT IN PHYSICS_TEND OBJECT!!!!!!!!!!!  GOOD LUCK!!!!!
 
       ! Compute initial geopotential heights - based on full pressure
       !call geopotential_t (phys_state%lnpint, phys_state%lnpmid  , phys_state%pint  , &

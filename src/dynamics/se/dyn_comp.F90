@@ -12,7 +12,7 @@ use constituents,           only: pcnst
 use cam_control_mod,        only: initial_run, simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
 !use phys_control,           only: use_gw_front, use_gw_front_igw, waccmx_is
-use dyn_grid,               only: timelevel, hvcoord, edgebuf
+use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
 
 use cam_grid_support,       only: cam_grid_id, cam_grid_get_gcid, &
                                   cam_grid_dimensions, cam_grid_get_dim_names, &
@@ -107,7 +107,6 @@ subroutine dyn_readnl(NLFileName)
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
    use dp_mapping,     only: nphys_pts
    use native_mapping, only: native_mapping_readnl
-   use physconst,      only: rearth
 
    !SE dycore:
    use namelist_mod,   only: homme_set_defaults, homme_postprocess_namelist
@@ -233,6 +232,15 @@ subroutine dyn_readnl(NLFileName)
 
    !--------------------------------------------------------------------------
 
+   ! defaults for variables not set by build-namelist
+   se_fine_ne                  = -1
+   se_hypervis_power           = 0
+   se_hypervis_scaling         = 0
+   se_max_hypervis_courant     = 1.0e99_r8
+   se_mesh_file                = ''
+   se_npes                     = npes
+   se_write_restart_unstruct   = .false.
+
    ! Read the namelist (dyn_se_inparm)
    call MPI_barrier(mpicom, ierr)
    if (masterproc) then
@@ -298,13 +306,8 @@ subroutine dyn_readnl(NLFileName)
    call MPI_bcast(se_raytau0, 1, mpi_real8, masterprocid, mpicom, ierr)
    call MPI_bcast(se_molecular_diff, 1, mpi_real8, masterprocid, mpicom, ierr)
 
-   ! Set se_npes to the model npes value if a namelist value of zero is given:
-   if (se_npes == 0) then
-      se_npes = npes
-   end if
-
    ! Check that se_npes is a positive integer:
-   if (se_npes < 0) then
+   if (se_npes <= 0) then
       call endrun('dyn_readnl: ERROR: se_npes must be > 0')
    end if
 
@@ -1245,13 +1248,13 @@ subroutine read_inidat(dyn_in)
 
    ! Set mask to indicate which columns are active
    nullify(ldof)
-   call cam_grid_get_gcid(cam_grid_id('GLL'), ldof)
+   call cam_grid_get_gcid(cam_grid_id((ini_grid_name), ldof)
    allocate(pmask(npsq*nelemd))
    pmask(:) = (ldof /= 0)
 
    ! lat/lon needed in radians
-   latvals_deg => cam_grid_get_latvals(cam_grid_id('GLL'))
-   lonvals_deg => cam_grid_get_lonvals(cam_grid_id('GLL'))
+   latvals_deg => cam_grid_get_latvals(cam_grid_id(ini_grid_name))
+   lonvals_deg => cam_grid_get_lonvals(cam_grid_id(ini_grid_name))
    allocate(latvals(np*np*nelemd))
    allocate(lonvals(np*np*nelemd))
    latvals(:) = latvals_deg(:)*deg2rad
@@ -1262,7 +1265,7 @@ subroutine read_inidat(dyn_in)
 
    ! The grid name is defined in dyn_grid::define_cam_grids.
    ! Get the number of columns in the global GLL grid.
-   call cam_grid_dimensions('GLL', dims)
+   call cam_grid_dimensions(ini_grid_name, dims)
    dyn_cols = dims(1)
 
    ! Set ICs.  Either from analytic expressions or read from file.
@@ -2075,6 +2078,9 @@ end subroutine set_phis
 
 subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
 
+   ! This routine is only called when data will be read from the initial file.  It is not
+   ! called when the initial file is only supplying vertical coordinate info.
+
    type(file_desc_t), pointer       :: file
    type(element_t),   pointer       :: elem(:)
    integer,           intent(in)    :: dyn_cols
@@ -2095,22 +2101,15 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
    !----------------------------------------------------------------------------
 
    ! Check that number of columns in IC file matches grid definition.
-   ! The dimension of the unstructured grid in the IC file can either be 'ncol'
-   ! or 'ncol_d'.  Check for ncol_d first since if a file contains distinct GLL
-   ! and physics grids the GLL grid will use dimension ncol_d.
-   ierr = pio_inq_dimid(file, 'ncol_d', ncol_did)
+
+   call cam_grid_get_dim_names(cam_grid_id(ini_grid_name), dimname, dimname2)
+
+   ierr = pio_inq_dimid(file, trim(dimname), ncol_did)
    if (ierr /= PIO_NOERR) then
-      if (dyn_ok) then
-         ierr = pio_inq_dimid(file, 'ncol', ncol_did)
-         if (ierr /= PIO_NOERR) then
-            call endrun(subname//': ERROR: neither ncol nor ncol_d dimension found in ' &
-                        //trim(file_desc)//' file')
-         end if
-      else
-         call endrun(trim(subname)//': ERROR: ncol dimension not found in '//trim(file_desc) &
-                     //' file')
-      end if
+      call endrun(subname//': ERROR: either ncol or ncol_d dimension not found in ' &
+         //trim(file_desc)//' file')
    end if
+
    ierr = pio_inq_dimlen(file, ncol_did, ncol_size)
    if (ncol_size /= dyn_cols) then
       if (masterproc) then
@@ -2120,36 +2119,31 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
       call endrun(subname//': ERROR: dimension ncol size not same as in ncdata file')
    end if
 
-   ! The dimname that's passed to the read_dyn_var routines must match the
-   ! dimname that's in the GLL grid object definition.  The mapping info used by
-   ! pio is constructed using the grid object.  So this dimname is not necessarily
-   ! the one in the IC (or topo) file.
-   grid_id = cam_grid_id('GLL')
-   call cam_grid_get_dim_names(grid_id, dimname, dimname2)
-
-   ! If coordinates come from an initial file containing only the GLL grid then the
-   ! the variable names will be lat/lon.  On the other hand if the file contains both
-   ! GLL and a distinct physics grid, then the variable names will be lat_d/lon_d.
-   ! Check whether lat_d/lon_d are present and use them if they are.  Otherwise use
-   ! lat/lon.
-   if (dyn_field_exists(file, 'lat_d', required=.false.)) then
-      coordname = 'lat_d'
-   else
+   ! Set coordinate name associated with dimname.
+   if (dimname == 'ncol') then
       coordname = 'lat'
+   else
+      coordname = 'lat_d'
    end if
 
-   !! Check to make sure file is in correct order
+    !! Check to make sure file is in correct order
    call read_dyn_var(coordname, file, dimname, dbuf2)
    found = .true.
    do ie = 1, nelemd
       indx = 1
       do j = 1, np
          do i = 1, np
-            if ((abs(dbuf2(indx,ie)) > 1.e-12_r8) .and. &
-               (abs((elem(ie)%spherep(i,j)%lat*rad2deg - dbuf2(indx,ie))/dbuf2(indx,ie)) > 1.0e-10_r8)) then
-               write(iulog, *) 'XXG ',iam,') ',ie,i,j,elem(ie)%spherep(i,j)%lat,dbuf2(indx,ie)*deg2rad
-               call shr_sys_flush(iulog)
-               found = .false.
+            if (abs(dbuf2(indx,ie)) > 1.e-12_r8) then
+               if (abs((elem(ie)%spherep(i,j)%lat*rad2deg - dbuf2(indx,ie)) / &
+                    dbuf2(indx,ie)) > 1.0e-10_r8) then
+                  write(iulog, '(2a,4(i0,a),f11.5,a,f11.5)')                  &
+                       "ncdata file latitudes not in correct column order",   &
+                       ' on task ', iam, ': elem(', ie, ')%spherep(', i,      &
+                       ', ', j, ')%lat = ', elem(ie)%spherep(i,j)%lat,        &
+                       ' /= ', dbuf2(indx, ie)*deg2rad
+                  call shr_sys_flush(iulog)
+                  found = .false.
+               end if
             end if
             indx = indx + 1
          end do
@@ -2159,10 +2153,10 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
       call endrun("ncdata file latitudes not in correct column order")
    end if
 
-   if (dyn_field_exists(file, 'lon_d', required=.false.)) then
-      coordname = 'lon_d'
-   else
+   if (dimname == 'ncol') then
       coordname = 'lon'
+   else
+      coordname = 'lon_d'
    end if
 
    call read_dyn_var(coordname, file, dimname, dbuf2)
@@ -2170,11 +2164,17 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
       indx = 1
       do j = 1, np
          do i = 1, np
-            if ((abs(dbuf2(indx,ie)) > 1.e-12_r8) .and. &
-               (abs((elem(ie)%spherep(i,j)%lon*rad2deg - dbuf2(indx,ie))/dbuf2(indx,ie)) > 1.0e-10_r8)) then
-               write(iulog, *) 'XXG ',iam,') ',ie,i,j,elem(ie)%spherep(i,j)%lon,dbuf2(indx,ie)*deg2rad
-               call shr_sys_flush(iulog)
-               found = .false.
+            if (abs(dbuf2(indx,ie)) > 1.e-12_r8) then
+               if (abs((elem(ie)%spherep(i,j)%lon*rad2deg - dbuf2(indx,ie)) / &
+                    dbuf2(indx,ie)) > 1.0e-10_r8) then
+                  write(iulog, '(2a,4(i0,a),f11.5,a,f11.5)')                  &
+                       "ncdata file longitudes not in correct column order",  &
+                       ' on task ', iam, ': elem(', ie, ')%spherep(', i,      &
+                       ', ', j, ')%lon = ', elem(ie)%spherep(i,j)%lon,        &
+                       ' /= ', dbuf2(indx, ie)*deg2rad
+                  call shr_sys_flush(iulog)
+                  found = .false.
+               end if
             end if
             indx = indx + 1
          end do
@@ -2183,6 +2183,7 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
    if (.not. found) then
       call endrun("ncdata file longitudes not in correct column order")
    end if
+
 end subroutine check_file_layout
 
 !========================================================================================
@@ -2235,20 +2236,23 @@ subroutine read_dyn_field_2d(fieldname, fh, dimname, buffer)
 
    ! Local variables
    logical                  :: found
+   real(r8)                 :: fillvalue
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
 !   call infld(trim(fieldname), fh, dimname, 1, npsq, 1, nelemd, buffer,    &
 !         found, gridname='GLL') !Remove if below works! -JN
-   call cam_read_field(trim(fieldname), fh, buffer, found, gridname='GLL')
+   call cam_read_field(trim(fieldname), fh, buffer, found, &
+                       gridname=ini_grid_name, fillvalue=fillvalue)
    if(.not. found) then
       call endrun('READ_DYN_FIELD_2D: Could not find '//trim(fieldname)//' field on input datafile')
    end if
 
    ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case infld can return NaNs where the element GLL points
-   ! are not "unique columns"
-   where (shr_infnan_isnan(buffer)) buffer = 0.0_r8
+   ! to NaN.  In that case cam_read_feild can return NaNs where the element
+   ! GLL points are not "unique columns".
+   ! Set NaNs or fillvalue points to zero:
+   where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue)) buffer = 0.0_r8
 
 end subroutine read_dyn_field_2d
 
@@ -2264,21 +2268,23 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
 
    ! Local variables
    logical                  :: found
+   real(r8)                 :: fillvalue
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
 !   call infld(trim(fieldname), fh, dimname, 'lev',  1, npsq, 1, nlev,      &
 !         1, nelemd, buffer, found, gridname='GLL') !Remove if below works! -JN
     call cam_read_field(trim(fieldname), fh, buffer, found, 'lev', (/1, nlev/), &
-                        dim3_pos=2, gridname='GLL')
+                        dim3_pos=2, gridname=ini_gird_name, fillvalue=fillvalue)
    if(.not. found) then
       call endrun('READ_DYN_FIELD_3D: Could not find '//trim(fieldname)//' field on input datafile')
    end if
 
    ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case infld can return NaNs where the element GLL points
-   ! are not "unique columns"
-   where (shr_infnan_isnan(buffer)) buffer = 0.0_r8
+   ! to NaN.  In that case infld can return NaNs where the element GLL
+   ! points are not "unique columns".
+   ! Set NaNs or fillvalue points to zero:
+   where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue) buffer = 0.0_r8
 
 end subroutine read_dyn_field_3d
 

@@ -186,12 +186,12 @@ CONTAINS
       ! Local array, <field> is 1D
       !
 
-      use pio,              only: pio_read_darray
+      use pio,              only: pio_read_darray, PIO_NOERR
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
       use cam_grid_support, only: cam_grid_dimensions
       use cam_grid_support, only: cam_grid_is_block_indexed
-      use cam_pio_utils,    only: cam_pio_check_var
+      use cam_pio_utils,    only: cam_pio_check_var, cam_pio_inq_var_fill
 
       ! Dummy arguments
       character(len=*),           intent(in)    :: varname ! variable name
@@ -396,11 +396,11 @@ CONTAINS
       ! Local array, <field> is 2D
       !
 
-      use pio,              only: pio_read_darray
+      use pio,              only: pio_read_darray, PIO_NOERR
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
       use cam_grid_support, only: cam_grid_dimensions,cam_grid_is_block_indexed
-      use cam_pio_utils,    only: cam_pio_check_var
+      use cam_pio_utils,    only: cam_pio_check_var, cam_pio_inq_var_fill
 
       ! Dummy arguments
       character(len=*),  intent(in)    :: varname ! variable name
@@ -654,11 +654,11 @@ CONTAINS
       ! Local array, <field> is 3D
       !
 
-      use pio,              only: pio_read_darray
+      use pio,              only: pio_read_darray, PIO_NOERR
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
       use cam_grid_support, only: cam_grid_dimensions,cam_grid_is_block_indexed
-      use cam_pio_utils,    only: cam_pio_check_var
+      use cam_pio_utils,    only: cam_pio_check_var, cam_pio_inq_var_fill
 
       ! Dummy arguments
       character(len=*),  intent(in)           :: varname ! variable name

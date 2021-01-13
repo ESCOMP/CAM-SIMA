@@ -1,7 +1,7 @@
 ! Utility functions in support of PIO io interface
 module cam_pio_utils
 
-   use shr_kind_mod, only: r8=>shr_kind_r8
+   use shr_kind_mod, only: r4=>shr_kind_r4, r8=>shr_kind_r8
    use shr_sys_mod,  only: shr_sys_flush
    use cam_logfile,  only: iulog, debug_output, DEBUGOUT_NONE, DEBUGOUT_INFO
    use perf_mod,     only: t_startf, t_stopf
@@ -20,6 +20,8 @@ module cam_pio_utils
    public :: init_pio_subsystem   ! called from cam_comp
    public :: cam_pio_get_decomp   ! Find an existing decomp or create a new one
    public :: cam_pio_handle_error ! If error, print a custom error message
+   public :: cam_pio_set_fill     ! Set the PIO fill value to PIO_FILL
+   public :: cam_pio_inq_var_fill ! Return the buffer fill value
 
    public :: cam_permute_array
    public :: calc_permutation
@@ -81,6 +83,12 @@ module cam_pio_utils
       module procedure cam_pio_find_var_single
       module procedure cam_pio_find_var_array
    end interface cam_pio_find_var
+
+   interface cam_pio_inq_var_fill
+     module procedure inq_var_fill_i4
+     module procedure inq_var_fill_r4
+     module procedure inq_var_fill_r8
+   end interface cam_pio_inq_var_fill
 
    interface calc_permutation
       module procedure calc_permutation_int
@@ -637,8 +645,7 @@ contains
             strt = strt + 8
          end do
       end if
-      call pio_initdecomp(pio_subsystem, dtype, dims, dof, iodesc,         &
-           rearr=pio_rearranger)
+      call pio_initdecomp(pio_subsystem, dtype, dims, dof, iodesc)
 
    end subroutine cam_pio_newdecomp
 
@@ -1291,6 +1298,100 @@ contains
       call pio_seterrorhandling(File, err_handling)
 
    end function cam_pio_fileexists
+
+   integer function cam_pio_set_fill(File, fillmode, old_mode) result(ierr)
+
+#ifdef PIO2
+      use pio, only: PIO_FILL, pio_set_fill
+#endif
+      ! Dummy arguments
+      type(File_desc_t), intent(in)  :: File
+      integer, optional, intent(in)  :: fillmode
+      integer, optional, intent(out) :: old_mode
+      ! Local variables
+      integer                        :: oldfill
+      integer                        :: fillval
+
+#ifdef PIO2
+      if (present(fillmode)) then
+         fillval = fillmode
+      else
+         fillval = PIO_FILL
+      end if
+      ierr =  pio_set_fill(File, fillval, oldfill)
+      if (present(old_mode)) then
+         old_mode = oldfill
+      end if
+#else
+      ierr = 0
+      if (present(old_mode)) then
+         old_mode = 0
+      end if
+#endif
+   end function cam_pio_set_fill
+
+   integer function inq_var_fill_i4(File, vdesc, fillvalue, no_fill) result(ierr)
+#ifdef PIO2
+      use pio, only: pio_inq_var_fill
+#endif
+      use pio, only: PIO_NOERR
+
+      type(File_desc_t),  intent(in)  :: File
+      type(var_desc_t),   intent(in)  :: vdesc
+      ! fillvalue needs to not be optional to avoid ambiguity
+      integer, target,    intent(out) :: fillvalue
+      integer, optional,  intent(out) :: no_fill
+
+#ifdef PIO2
+      ierr = pio_inq_var_fill(File, vdesc, no_fill, fillvalue)
+#else
+      ierr = PIO_NOERR
+      fillvalue = 0
+#endif
+
+   end function inq_var_fill_i4
+
+   integer function inq_var_fill_r4(File, vdesc, fillvalue, no_fill) result(ierr)
+#ifdef PIO2
+      use pio, only: pio_inq_var_fill
+#endif
+      use pio, only: PIO_NOERR
+
+      type(File_desc_t),   intent(in)  :: File
+      type(var_desc_t),    intent(in)  :: vdesc
+      ! fillvalue needs to not be optional to avoid ambiguity
+      real(r4), target,    intent(out) :: fillvalue
+      integer,  optional,  intent(out) :: no_fill
+
+#ifdef PIO2
+      ierr = pio_inq_var_fill(File, vdesc, no_fill, fillvalue)
+#else
+      ierr = PIO_NOERR
+      fillvalue = 0.0_R4
+#endif
+
+   end function inq_var_fill_r4
+
+   integer function inq_var_fill_r8(File, vdesc, fillvalue, no_fill) result(ierr)
+#ifdef PIO2
+      use pio, only: pio_inq_var_fill
+#endif
+      use pio, only: PIO_NOERR
+
+      type(File_desc_t),   intent(in)  :: File
+      type(var_desc_t),    intent(in)  :: vdesc
+      ! fillvalue needs to not be optional to avoid ambiguity
+      real(r8), target,    intent(out) :: fillvalue
+      integer,  optional,  intent(out) :: no_fill
+
+#ifdef PIO2
+      ierr = pio_inq_var_fill(File, vdesc, no_fill, fillvalue)
+#else
+      ierr = PIO_NOERR
+      fillvalue = 0.0_R8
+#endif
+
+   end function inq_var_fill_r8
 
    subroutine find_dump_filename(fieldname, filename)
 
