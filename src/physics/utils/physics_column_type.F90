@@ -1,6 +1,6 @@
 module physics_column_type
 
-   use shr_kind_mod, only: r8 => shr_kind_r8, shr_kind_cl
+   use shr_kind_mod, only: r8 => shr_kind_r8
    use ccpp_kinds,   only: kind_phys
 
 

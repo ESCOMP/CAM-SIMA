@@ -65,7 +65,7 @@ CONTAINS
       use cam_abortutils,   only: endrun
       use spmd_utils,       only: npes, mpicom
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
-      use cam_grid_support, only: iMap, hclen => max_hcoordname_len
+      use cam_grid_support, only: iMap
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
       use cam_grid_support, only: cam_grid_attribute_copy, cam_grid_attr_exists
 

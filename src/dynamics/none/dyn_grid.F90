@@ -59,7 +59,7 @@ CONTAINS
       use pio,              only: PIO_BCAST_ERROR, pio_seterrorhandling
       use pio,              only: pio_get_var, pio_freedecomp
       use pio,              only: pio_read_darray
-      use spmd_utils,       only: npes, iam, masterprocid, mpicom
+      use spmd_utils,       only: npes, iam
       use cam_pio_utils,    only: cam_pio_handle_error, cam_pio_find_var
       use cam_pio_utils,    only: cam_pio_var_info, pio_subsystem
       use cam_pio_utils,    only: cam_pio_newdecomp
