@@ -562,35 +562,6 @@ end subroutine physgrid_copy_attributes_d
 
 !=========================================================================================
 
-integer function get_dyn_grid_parm(name) result(ival)
-
-   ! This function is in the process of being deprecated, but is still needed
-   ! as a dummy interface to satisfy external references from some chemistry routines.
-
-   use pmgrid,          only: plat, plev
-
-   character(len=*), intent(in) :: name
-   !----------------------------------------------------------------------------
-
-   if (name.eq.'plat') then
-      ival = plat
-   else if(name.eq.'plon') then
-      if (fv_nphys>0) then
-         ival = fv_nphys*fv_nphys*nelem_d
-      else
-         ival = ngcols_d
-      end if
-   else if(name.eq.'plev') then
-      ival = plev
-
-   else
-      ival = -1
-   end if
-
-end function get_dyn_grid_parm
-
-!=========================================================================================
-
 subroutine dyn_grid_get_colndx(igcol, ncols, owners, col, lbk)
 
    ! For each global column index return the owning task.  If the column is owned

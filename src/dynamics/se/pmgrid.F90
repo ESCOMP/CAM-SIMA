@@ -9,7 +9,4 @@ save
 integer, parameter :: plev   = PLEV      ! number of vertical levels
 integer, parameter :: plevp  = plev + 1
 
-integer, parameter :: plon   = 1
-integer, parameter :: plat   = 1
-
 end module pmgrid

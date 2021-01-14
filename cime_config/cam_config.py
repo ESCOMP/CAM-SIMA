@@ -773,10 +773,8 @@ class ConfigCAM:
 
         # Set number of vertical levels
         if case_nlev:
-            # Save variable for CPPDEFs
             nlev = case_nlev
         else:
-            # Save variable for CPPDEFs
             nlev = 30
 
         # Add vertical levels to configure object
