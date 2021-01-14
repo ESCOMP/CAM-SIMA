@@ -63,7 +63,7 @@ CONTAINS
 !      use mpi,              only: MPI_reduce ! XXgoldyXX: Should this work?
       use mpi,              only: MPI_INTEGER, MPI_MIN
       use cam_abortutils,   only: endrun
-      use spmd_utils,       only: npes, mpicom, iam
+      use spmd_utils,       only: npes, mpicom
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
       use cam_grid_support, only: iMap, hclen => max_hcoordname_len
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
@@ -98,6 +98,9 @@ CONTAINS
       logical                             :: unstructured
       real(r8)                            :: temp ! For MPI
       integer                             :: ierr ! For MPI
+      character(len=128)                  :: emsg
+
+      character(len=*),  parameter :: subname = 'phys_grid_init'
 
       nullify(lonvals)
       nullify(latvals)
@@ -118,8 +121,6 @@ CONTAINS
       dycore_name        = dycore_name_in
 
       pverp            = pver + 1
-      first_dyn_column = LBOUND(dyn_columns, 1)
-      last_dyn_column  = UBOUND(dyn_columns, 1)
       unstructured     = hdim2_d <= 1
       !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
       !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
@@ -138,12 +139,21 @@ CONTAINS
       ! Set columns_on_task and allocate phys_columns if
       ! not already allocated:
       if (.not. allocated(phys_columns)) then
-          columns_on_task = size(dyn_columns)
-          allocate(phys_columns(columns_on_task))
+         columns_on_task = size(dyn_columns)
+         allocate(phys_columns(columns_on_task), stat=ierr)
+         if (ierr /= 0) then
+            write(emsg, *) &
+               subname//': allocate phys_columns failed with stat: ',ierr
+            call endrun(emsg)
+         end if
       end if
 
+      ! Set column index bounds:
+      first_dyn_column = 1
+      last_dyn_column  = columns_on_task
+
       ! Set up the physics decomposition
-      do index = 1, columns_on_task
+      do index = first_dyn_column, last_dyn_column
          phys_columns(index) = dyn_columns(index)
       end do
 
@@ -155,13 +165,30 @@ CONTAINS
       ! It's structure will depend on whether or not the physics grid is
       ! unstructured
       if (unstructured) then
-         allocate(grid_map(3, columns_on_task))
+         allocate(grid_map(3, columns_on_task), stat=ierr)
       else
-         allocate(grid_map(4, columns_on_task))
+         allocate(grid_map(4, columns_on_task), stat=ierr)
+      end if
+      if (ierr /= 0) then
+         write(emsg, *) &
+            subname//': allocate grid_map failed with stat: ',ierr
+         call endrun(emsg)
       end if
       grid_map = 0
-      allocate(latvals(size(grid_map, 2)))
-      allocate(lonvals(size(grid_map, 2)))
+
+      allocate(latvals(size(grid_map, 2)), stat=ierr)
+      if (ierr /= 0) then
+         write(emsg, *) &
+            subname//': allocate latvals failed with stat: ',ierr
+         call endrun(emsg)
+      end if
+
+      allocate(lonvals(size(grid_map, 2)), stat=ierr)
+      if (ierr /= 0) then
+         write(emsg, *) &
+            subname//': allocate lonvals failed with stat: ',ierr
+         call endrun(emsg)
+      end if
 
       lonmin = 1000.0_r8 ! Out of longitude range
       latmin = 1000.0_r8 ! Out of latitude range
@@ -199,7 +226,13 @@ CONTAINS
               'latitude', 'degrees_north', 1, size(latvals), latvals,         &
               map=grid_map(3,:))
       else
-         allocate(coord_map(size(grid_map, 2)))
+         allocate(coord_map(size(grid_map, 2)), stat=ierr)
+         if (ierr /= 0) then
+            write(emsg, *) &
+               subname//': allocate coord_map failed with stat: ',ierr
+            call endrun(emsg)
+         end if
+
          ! We need a global minimum longitude and latitude
          if (npes > 1) then
             temp = lonmin
@@ -246,7 +279,13 @@ CONTAINS
          !   from the dycore (i.e., physics and dynamics are on different
          !   grids), create that attribute here (Note, a separate physics
          !   grid is only supported for unstructured grids).
-         allocate(area_d(size(grid_map, 2)))
+         allocate(area_d(size(grid_map, 2)), stat=ierr)
+         if (ierr /= 0) then
+            write(emsg, *) &
+               subname//': allocate area_d failed with stat: ',ierr
+            call endrun(emsg)
+         end if
+
          do col_index = 1, columns_on_task
             area_d(col_index) = phys_columns(col_index)%area
          end do

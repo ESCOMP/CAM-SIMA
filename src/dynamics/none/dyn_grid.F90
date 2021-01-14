@@ -101,7 +101,7 @@ CONTAINS
       character(len=8)                  :: lon_dim_name
       character(len=128)                :: errormsg
 
-      character(len=*),  parameter :: subname = 'dyn_grid_init'
+      character(len=*),  parameter :: subname = 'model_grid_init'
 
 
       nullify(iodesc)
@@ -264,9 +264,24 @@ CONTAINS
                  '(a,i4,i9,2i7)', (/ kount(1), start(1), start(1)+kount(1)-1/))
          end if
          if (is_degrees) then
-            allocate(local_lons_deg(num_lons))
-            allocate(local_lats_deg(kount(1)))
-            allocate(temp_arr(num_lats))
+            allocate(local_lons_deg(num_lons), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate local_lons_deg(num_lons) failed with stat: ',iret
+               call endrun(errormsg)
+            end if
+            allocate(local_lats_deg(kount(1)), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate local_lats_deg(kount) failed with stat: ',iret
+               call endrun(errormsg)
+            end if
+            allocate(temp_arr(num_lats), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate temp_arr failed with stat: ',iret
+               call endrun(errormsg)
+            end if
             iret = pio_get_var(fh_ini, lat_vardesc, (/ 1 /), (/ num_lats /),  &
                  temp_arr)
             call cam_pio_handle_error(iret,                                   &
@@ -287,14 +302,34 @@ CONTAINS
       else
          ! Do parallel read of lat and lon
          if (is_degrees) then
-            allocate(local_lats_deg(num_local_columns))
-            allocate(local_lons_deg(num_local_columns))
-            allocate(ldof(num_local_columns))
+            allocate(local_lats_deg(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate local_lats_deg(columns) failed with stat: ',iret
+               call endrun(errormsg)
+            end if
+            allocate(local_lons_deg(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate local_lats_deg(columns) failed with stat: ',iret
+               call endrun(errormsg)
+            end if
+            allocate(ldof(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate ldof failed with stat: ',iret
+               call endrun(errormsg)
+            end if
             ldof = 0_iMap
             do lindex = 1, num_local_columns
                ldof(lindex) = col_start + lindex - 1
             end do
-            allocate(iodesc)
+            allocate(iodesc, stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate iodesc failed with stat: ',iret
+               call endrun(errormsg)
+            end if
             call cam_pio_newdecomp(iodesc, (/ num_global_columns /), ldof,    &
                  PIO_DOUBLE)
             call pio_read_darray(fh_ini, lat_vardesc, iodesc, local_lats_deg, &
@@ -321,14 +356,24 @@ CONTAINS
             call endrun(errormsg)
          end if
          if ((num_lats > 1) .and. (dimlens(1) == num_lats)) then
-            allocate(local_areas(num_lats))
+            allocate(local_areas(num_lats), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate local_areas(num_lats) failed with stat: ',iret
+               call endrun(errormsg)
+            end if
             start(1) = 1
             kount(1) = num_lats
             iret = pio_get_var(fh_ini, vardesc, start, kount, local_areas)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read '//trim(var_name))
          else if (dimlens(1) == num_global_columns) then
-            allocate(local_areas(num_local_columns))
+            allocate(local_areas(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               write(errormsg, *) &
+                  subname//': allocate local_areas(columns) failed with stat: ',iret
+               call endrun(errormsg)
+            end if
             call pio_read_darray(fh_ini, vardesc, iodesc, local_areas, iret)
             call cam_pio_handle_error(iret, subname//': Unable to read areas')
          else
@@ -352,7 +397,12 @@ CONTAINS
       call set_dyn_col_values()
 
       ! Set dynamics grid attributes
-      allocate(grid_attribute_names(0))
+      allocate(grid_attribute_names(0), stat=iret)
+      if (iret /= 0) then
+         write(errormsg, *) &
+            subname//': allocate grid_attribute_names failed with stat: ',iret
+         call endrun(errormsg)
+      end if
 
       ! Initialize physics grid decomposition:
       call phys_grid_init(num_lons, num_lats, num_levels, 'NULL', &
@@ -380,18 +430,26 @@ CONTAINS
       use cam_abortutils, only: endrun
       use spmd_utils,     only: iam
 
-      ! Dummy arguments
+      ! Local variables:
       integer                         :: lindex
       integer                         :: gindex
       integer                         :: lat_index, lat1
       integer                         :: lon_index
+      integer                         :: ierr
+      character(len=128)              :: emsg
+
       real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
       real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
       character(len=*), parameter     :: subname = 'set_dyn_col_values'
 
       ! Allocate dyn_columns structure if not already allocated:
       if (.not.allocated(dyn_columns)) then
-         allocate(dyn_columns(num_local_columns))
+         allocate(dyn_columns(num_local_columns), stat=ierr)
+         if (ierr /= 0) then
+            write(emsg, *) &
+               subname//': allocate dyn_columns failed with stat: ',ierr
+            call endrun(emsg)
+         end if
       end if
 
       ! Calculate dyn_columns variable values:
@@ -447,7 +505,13 @@ CONTAINS
          dyn_columns(lindex)%global_dyn_block = iam + 1
          !  If there is more than one block lindex, they are in the same order
          !    as in the dynamics block structure
-         allocate(dyn_columns(lindex)%dyn_block_index(1))
+         allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
+         if (ierr /= 0) then
+            write(emsg, *) &
+               subname//': allocate dyn_block_index failed with stat: ',ierr
+            call endrun(emsg)
+         end if
+
          dyn_columns(lindex)%dyn_block_index(1) = lindex
       end do
 

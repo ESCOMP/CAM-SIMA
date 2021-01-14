@@ -1,9 +1,8 @@
 module physics_column_type
 
    use shr_kind_mod, only: r8 => shr_kind_r8, shr_kind_cl
-!   use ISO_FORTRAN_ENV, only: kind_phys
    use ccpp_kinds,   only: kind_phys
- 
+
 
    implicit none
    private
@@ -58,6 +57,12 @@ CONTAINS
       type(physics_column_t), intent(out) :: phys_col_out
       type(physics_column_t), intent(in)  :: phys_col_in
 
+      ! Local variables:
+      integer :: istat
+
+      character(len=*),  parameter :: subname = 'copy_phys_col'
+      character(len=128)           :: emsg
+
       ! Copy values from input array to output array:
 
       ! Column information
@@ -76,6 +81,25 @@ CONTAINS
       phys_col_out%dyn_task         = phys_col_in%dyn_task
       phys_col_out%local_dyn_block  = phys_col_in%local_dyn_block
       phys_col_out%global_dyn_block = phys_col_in%global_dyn_block
+
+      ! Dynamics blocks
+      if (allocated(phys_col_in%dyn_block_index)) then
+         ! De-allocate output block indices if already allocated:
+         if (allocated(phys_col_out%dyn_block_index)) then
+            deallocate(phys_col_out%dyn_block_index)
+         end if
+
+         ! Allocate output to match size of input:
+         allocate(phys_col_out%dyn_block_index(size(phys_col_in%dyn_block_index)), &
+                  stat=istat)
+         if (istat /= 0) then
+           write(emsg, *) &
+              subname//': allocate dyn_block_index failed with stat: ',istat
+           call endrun(emsg)
+         end if
+
+         phys_col_out%dyn_block_index(:) = phys_col_in%dyn_block_index(:)
+      end if
 
       ! Physics decomposition
       phys_col_out%phys_task        = phys_col_in%phys_task
