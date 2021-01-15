@@ -62,7 +62,6 @@ CONTAINS
       integer :: istat
 
       character(len=*),  parameter :: subname = 'copy_phys_col'
-      character(len=128)           :: emsg
 
       ! Copy values from input array to output array:
 

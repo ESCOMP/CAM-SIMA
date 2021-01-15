@@ -99,7 +99,6 @@ CONTAINS
       logical                             :: unstructured
       real(r8)                            :: temp ! For MPI
       integer                             :: ierr ! For MPI
-      character(len=128)                  :: emsg
 
       character(len=*),  parameter :: subname = 'phys_grid_init'
 

@@ -426,7 +426,6 @@ CONTAINS
       integer                         :: lat_index, lat1
       integer                         :: lon_index
       integer                         :: ierr
-      character(len=128)              :: emsg
 
       real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
       real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
