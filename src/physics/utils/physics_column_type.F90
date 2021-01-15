@@ -49,6 +49,7 @@ CONTAINS
    subroutine copy_phys_col(phys_col_out, phys_col_in)
 
       use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
 
       ! Copy all of the values from one physics_column type
       ! structure to another.
@@ -84,21 +85,28 @@ CONTAINS
 
       ! Dynamics blocks
       if (allocated(phys_col_in%dyn_block_index)) then
-         ! De-allocate output block indices if already allocated:
+         ! De-allocate output block indices allocated to incorrect size:
          if (allocated(phys_col_out%dyn_block_index)) then
-            deallocate(phys_col_out%dyn_block_index)
+            if (size(phys_col_out%dyn_block_index) /= &
+               size(phys_col_in%dyn_block_index)) then
+               deallocate(phys_col_out%dyn_block_index)
+            end if
          end if
 
-         ! Allocate output to match size of input:
-         allocate(phys_col_out%dyn_block_index(size(phys_col_in%dyn_block_index)), &
-                  stat=istat)
-         if (istat /= 0) then
-           write(emsg, *) &
-              subname//': allocate dyn_block_index failed with stat: ',istat
-           call endrun(emsg)
+         ! If necessary, allocate output to match size of input:
+         if (.not. allocated(phys_col_out%dyn_block_index)) then
+            allocate(phys_col_out%dyn_block_index(size(phys_col_in%dyn_block_index)), &
+                     stat=istat)
+            if (istat /= 0) then
+               call endrun(subname//': allocate dyn_block_index failed with stat: '//&
+                           to_str(istat))
+            end if
          end if
 
          phys_col_out%dyn_block_index(:) = phys_col_in%dyn_block_index(:)
+      else if (allocated(phys_col_out%dyn_block_index)) then
+         ! De-allocate output array if input array has not been allocated:
+         deallocate(phys_col_out%dyn_block_index)
       end if
 
       ! Physics decomposition

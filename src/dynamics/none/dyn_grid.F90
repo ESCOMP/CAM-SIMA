@@ -5,6 +5,7 @@ module dyn_grid
    use cam_logfile,         only: iulog, debug_output
    use spmd_utils,          only: masterproc
    use physics_column_type, only: physics_column_t
+   use string_utils,        only: to_str
 
    implicit none
    private
@@ -266,21 +267,18 @@ CONTAINS
          if (is_degrees) then
             allocate(local_lons_deg(num_lons), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate local_lons_deg(num_lons) failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate local_lons_deg(num_lons) failed with stat: '//&
+                           to_str(iret))
             end if
             allocate(local_lats_deg(kount(1)), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate local_lats_deg(kount) failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate local_lats_deg(kount) failed with stat: '//&
+                           to_str(iret))
             end if
             allocate(temp_arr(num_lats), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate temp_arr failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate temp_arr failed with stat: '//&
+                           to_str(iret))
             end if
             iret = pio_get_var(fh_ini, lat_vardesc, (/ 1 /), (/ num_lats /),  &
                  temp_arr)
@@ -304,21 +302,17 @@ CONTAINS
          if (is_degrees) then
             allocate(local_lats_deg(num_local_columns), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate local_lats_deg(columns) failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate local_lats_deg(columns) failed with stat: '//&
+                           to_str(iret))
             end if
             allocate(local_lons_deg(num_local_columns), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate local_lats_deg(columns) failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate local_lons_deg(columns) failed with stat: '//&
+                           to_str(iret))
             end if
             allocate(ldof(num_local_columns), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate ldof failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate ldof failed with stat: '//to_str(iret))
             end if
             ldof = 0_iMap
             do lindex = 1, num_local_columns
@@ -326,9 +320,8 @@ CONTAINS
             end do
             allocate(iodesc, stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate iodesc failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate iodesc failed with stat: '//&
+                           to_str(iret))
             end if
             call cam_pio_newdecomp(iodesc, (/ num_global_columns /), ldof,    &
                  PIO_DOUBLE)
@@ -358,9 +351,8 @@ CONTAINS
          if ((num_lats > 1) .and. (dimlens(1) == num_lats)) then
             allocate(local_areas(num_lats), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate local_areas(num_lats) failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate local_areas(num_lats) failed with stat: '//&
+                           to_str(iret))
             end if
             start(1) = 1
             kount(1) = num_lats
@@ -370,9 +362,8 @@ CONTAINS
          else if (dimlens(1) == num_global_columns) then
             allocate(local_areas(num_local_columns), stat=iret)
             if (iret /= 0) then
-               write(errormsg, *) &
-                  subname//': allocate local_areas(columns) failed with stat: ',iret
-               call endrun(errormsg)
+               call endrun(subname//': allocate local_areas(columns) failed with stat: '//&
+                           to_str(iret))
             end if
             call pio_read_darray(fh_ini, vardesc, iodesc, local_areas, iret)
             call cam_pio_handle_error(iret, subname//': Unable to read areas')
@@ -399,9 +390,8 @@ CONTAINS
       ! Set dynamics grid attributes
       allocate(grid_attribute_names(0), stat=iret)
       if (iret /= 0) then
-         write(errormsg, *) &
-            subname//': allocate grid_attribute_names failed with stat: ',iret
-         call endrun(errormsg)
+         call endrun(subname//': allocate grid_attribute_names failed with stat: '//&
+                     to_str(iret))
       end if
 
       ! Initialize physics grid decomposition:
@@ -446,9 +436,8 @@ CONTAINS
       if (.not.allocated(dyn_columns)) then
          allocate(dyn_columns(num_local_columns), stat=ierr)
          if (ierr /= 0) then
-            write(emsg, *) &
-               subname//': allocate dyn_columns failed with stat: ',ierr
-            call endrun(emsg)
+            call endrun(subname//': allocate dyn_columns failed with stat: '//&
+                        to_str(ierr))
          end if
       end if
 
@@ -507,9 +496,8 @@ CONTAINS
          !    as in the dynamics block structure
          allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
          if (ierr /= 0) then
-            write(emsg, *) &
-               subname//': allocate dyn_block_index failed with stat: ',ierr
-            call endrun(emsg)
+            call endrun(subname//': allocate dyn_block_index failed with stat: '//&
+                        to_str(ierr))
          end if
 
          dyn_columns(lindex)%dyn_block_index(1) = lindex

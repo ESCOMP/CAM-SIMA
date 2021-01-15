@@ -64,6 +64,7 @@ CONTAINS
       use mpi,              only: MPI_INTEGER, MPI_MIN
       use cam_abortutils,   only: endrun
       use spmd_utils,       only: npes, mpicom
+      use string_utils,     only: to_str
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
       use cam_grid_support, only: iMap
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
@@ -133,18 +134,18 @@ CONTAINS
          index_top_interface = index_top_layer + 1
       end if
 
-      !Calculate total number of physics columns:
+      ! Calculate total number of physics columns:
       num_global_phys_cols = hdim1_d * hdim2_d
 
-      ! Set columns_on_task and allocate phys_columns if
-      ! not already allocated:
+      ! Calculate number of columns on tasks:
+      columns_on_task = size(dyn_columns)
+
+      ! Set allocate phys_columns if not already allocated:
       if (.not. allocated(phys_columns)) then
-         columns_on_task = size(dyn_columns)
          allocate(phys_columns(columns_on_task), stat=ierr)
          if (ierr /= 0) then
-            write(emsg, *) &
-               subname//': allocate phys_columns failed with stat: ',ierr
-            call endrun(emsg)
+            call endrun(subname//': allocate phys_columns failed with stat: '//&
+                        to_str(ierr))
          end if
       end if
 
@@ -170,24 +171,21 @@ CONTAINS
          allocate(grid_map(4, columns_on_task), stat=ierr)
       end if
       if (ierr /= 0) then
-         write(emsg, *) &
-            subname//': allocate grid_map failed with stat: ',ierr
-         call endrun(emsg)
+         call endrun(subname//': allocate grid_map failed with stat: '//&
+                     to_str(ierr))
       end if
       grid_map = 0
 
       allocate(latvals(size(grid_map, 2)), stat=ierr)
       if (ierr /= 0) then
-         write(emsg, *) &
-            subname//': allocate latvals failed with stat: ',ierr
-         call endrun(emsg)
+         call endrun(subname//': allocate latvals failed with stat: '//&
+                     to_str(ierr))
       end if
 
       allocate(lonvals(size(grid_map, 2)), stat=ierr)
       if (ierr /= 0) then
-         write(emsg, *) &
-            subname//': allocate lonvals failed with stat: ',ierr
-         call endrun(emsg)
+         call endrun(subname//': allocate lonvals failed with stat: '//&
+                     to_str(ierr))
       end if
 
       lonmin = 1000.0_r8 ! Out of longitude range
@@ -228,9 +226,8 @@ CONTAINS
       else
          allocate(coord_map(size(grid_map, 2)), stat=ierr)
          if (ierr /= 0) then
-            write(emsg, *) &
-               subname//': allocate coord_map failed with stat: ',ierr
-            call endrun(emsg)
+            call endrun(subname//': allocate coord_map failed with stat: '//&
+                        to_str(ierr))
          end if
 
          ! We need a global minimum longitude and latitude
@@ -281,9 +278,8 @@ CONTAINS
          !   grid is only supported for unstructured grids).
          allocate(area_d(size(grid_map, 2)), stat=ierr)
          if (ierr /= 0) then
-            write(emsg, *) &
-               subname//': allocate area_d failed with stat: ',ierr
-            call endrun(emsg)
+            call endrun(subname//': allocate area_d failed with stat: '//&
+                        to_str(ierr))
          end if
 
          do col_index = 1, columns_on_task
