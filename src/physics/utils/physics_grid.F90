@@ -109,6 +109,11 @@ CONTAINS
       nullify(lon_coord)
       nullify(area_d)
 
+      ! Check that the physics grid is not already initialized:
+      if (phys_grid_initialized) then
+         call endrun(subname//": Physics grid is already initialized.")
+      end if
+
       call t_adj_detailf(-2)
       call t_startf("phys_grid_init")
 
@@ -139,13 +144,11 @@ CONTAINS
       ! Calculate number of columns on tasks:
       columns_on_task = size(dyn_columns)
 
-      ! Set allocate phys_columns if not already allocated:
-      if (.not. allocated(phys_columns)) then
-         allocate(phys_columns(columns_on_task), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate phys_columns failed with stat: '//&
-                        to_str(ierr))
-         end if
+      ! Allocate phys_columns:
+      allocate(phys_columns(columns_on_task), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate phys_columns failed with stat: '//&
+                     to_str(ierr))
       end if
 
       ! Set column index bounds:

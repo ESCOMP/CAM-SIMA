@@ -84,7 +84,7 @@ CONTAINS
 
       ! Dynamics blocks
       if (allocated(phys_col_in%dyn_block_index)) then
-         ! De-allocate output block indices allocated to incorrect size:
+         ! De-allocate output block indices if allocated to incorrect size:
          if (allocated(phys_col_out%dyn_block_index)) then
             if (size(phys_col_out%dyn_block_index) /= &
                size(phys_col_in%dyn_block_index)) then
