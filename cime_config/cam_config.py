@@ -570,13 +570,21 @@ class ConfigCAM:
         case_ny = case.get_value("ATM_NY")                  # Number of y-dimension grid-points (latitudes)
         comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
         exeroot = case.get_value("EXEROOT")                 # model executable path
+        nthrds = case.get_value("NTHRDS_ATM")               # number of model OpenMP threads
 
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
         self.__caseroot = case.get_value("CASEROOT")
         self.__bldroot = os.path.join(exeroot, "atm", "obj")
-        self.__cppdefs = case.get_value('CAM_CPPDEFS')
-        self.__atm_name = case.get_value('COMP_ATM')
+        self.__atm_name = case.get_value("COMP_ATM")
+
+        # Save CPP definitions as a list:
+        self.__cppdefs = case.get_value("CAM_CPPDEFS").split()
+
+        # If only "UNSET" is present in the list, then convert to
+        # empty list:
+        if len(self.__cppdefs) == 1 and "UNSET" in self.__cppdefs:
+            self.__cppdefs = list()
 
         # The following translation is hard-wired for backwards compatibility
         # to support the differences between how the config_grids specifies the
@@ -706,6 +714,18 @@ class ConfigCAM:
             self.__nml_groups.append("air_composition_nl")
             self.__nml_groups.append("dyn_se_inparm")
 
+            # Add required CPP definitons:
+            self.add_cppdef("_MPI")
+            self.add_cppdef("SPMD")
+
+            # Add OpenMP CCP definitions, if needed:
+            if nthrds > 1:
+                self.add_cppdef("_OPENMP")
+
+            # Add CSLAM CPP definition, if needed:
+            if atm_grid.find("pg") != -1:
+                self.add_cppdef("FVM_TRACERS")
+
         elif fv3_grid_re.match(atm_grid) is not None:
             # Dynamical core
             self.create_config("dyn", dyn_desc, "fv3",
@@ -777,6 +797,9 @@ class ConfigCAM:
         else:
             nlev = 30
 
+        # Add vertical levels CPP definition (REMOVE ONCE HELD-SUAREZ PR IS MERGED!):
+        self.add_cppdef("PLEV", value=nlev)
+
         # Add vertical levels to configure object
         nlev_desc = "Number of vertical levels."
         self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
@@ -813,13 +836,17 @@ class ConfigCAM:
         # Set initial and/or boundary conditions
         #---------------------------------------
 
-        #Check if user specified Analytic Initial Conditions (ICs):
+        # Check if user specified Analytic Initial Conditions (ICs):
         if user_config_opts.analytic_ic:
-            #Set "analytic_ic" to True (1):
+            # Set "analytic_ic" to True (1):
             analy_ic_val = 1 #Use Analytic ICs
 
-            #Add analytic_ic to namelist group list:
+            # Add analytic_ic to namelist group list:
             self.__nml_groups.append("analytic_ic_nl")
+
+            #Add new CPP definition:
+            self.add_cppdef("ANALYTIC_IC")
+
         else:
             analy_ic_val = 0 #Don't use Analytic ICs
 
@@ -870,14 +897,18 @@ class ConfigCAM:
     # and namelist groups list without underscores
     @property
     def config_dict(self):
-        """Return the configure dictionary of this object"""
+        """Return the configure dictionary of this object."""
         return self.__config_dict
 
     @property
     def nml_groups(self):
-        """Return the namelist groups list of this object"""
+        """Return the namelist groups list of this object."""
         return self.__nml_groups
 
+    @property
+    def cpp_defs(self):
+        """Return the CPP definitions list of this object."""
+        return self.__cppdefs
 
     #++++++++++++++++++++++
     # ConfigCAM functions
@@ -1004,6 +1035,10 @@ class ConfigCAM:
             # Print variable to logger
             self.print_config(obj_name, case_log)
 
+        # Also print CPP definitions, if any:
+        if self.__cppdefs:
+            case_log.debug("\nCAM CPP Defs: {}".format(" ".join(self.__cppdefs)))
+
         # Print additional separator (to help seperate this output from
         #     additional CIME output)
         case_log.debug("-----------------------------")
@@ -1034,10 +1069,30 @@ class ConfigCAM:
 
     #++++++++++++++++++++++++
 
+    def add_cppdef(self, cppname, value=None):
+
+        """
+        Add a CPP definition value to be used during the
+        building of the model.
+        """
+
+        # Check if input value is a logical:
+        if value is None:
+            # Create CPP flag string with no equals sign:
+            cpp_str = "-D{}".format(cppname.upper())
+        else:
+            # Create CPP definition flag string:
+            cpp_str = "-D{}={}".format(cppname.upper(), value)
+
+        # Add string to CPP definition list:
+        self.__cppdefs.append(cpp_str)
+
+    #++++++++++++++++++++++++
+
     def get_value(self, obj_name):
 
         """
-        return value for specified configure object.
+        Return value for specified configure object.
         """
 
         # First check that the given object name exists in the dictionary

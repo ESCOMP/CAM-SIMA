@@ -179,7 +179,6 @@ module physconst
 
    ! standard dry air (constant composition)
    real(kind_phys) :: mmro2, mmrn2           ! Mass mixing ratios of O2 and N2
-   real(kind_phys) :: o2_mwi, n2_mwi         ! Inverse molecular weights
    real(kind_phys) :: mbar                   ! Mean mass at mid level
 
    ! coefficients in expressions for molecular diffusion coefficients
