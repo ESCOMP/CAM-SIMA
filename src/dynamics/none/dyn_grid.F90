@@ -5,17 +5,18 @@ module dyn_grid
    use cam_logfile,         only: iulog, debug_output
    use spmd_utils,          only: masterproc
    use physics_column_type, only: physics_column_t
+   use string_utils,        only: to_str
 
    implicit none
    private
    save
 
-   public dyn_grid_init
-   public get_dyn_grid_info
-   public physgrid_copy_attributes_d
+   public model_grid_init
 
-   type(physics_column_t), public, protected, allocatable :: local_columns(:)
    ! Private module variables
+
+   type(physics_column_t), allocatable :: dyn_columns(:)
+
    integer               :: num_levels         = -1
    integer               :: num_global_columns = -1
    integer               :: num_lats           = -1 ! Global
@@ -52,50 +53,57 @@ module dyn_grid
 CONTAINS
 !==============================================================================
 
-   subroutine dyn_grid_init()
-      use pio,            only: file_desc_t, var_desc_t, io_desc_t
-      use pio,            only: iMap=>PIO_OFFSET_KIND, PIO_DOUBLE
-      use pio,            only: PIO_BCAST_ERROR, pio_seterrorhandling
-      use pio,            only: pio_get_var, pio_freedecomp
-      use pio,            only: pio_read_darray
-      use spmd_utils,     only: npes, iam, masterprocid, mpicom
-      use cam_pio_utils,  only: cam_pio_handle_error, cam_pio_find_var
-      use cam_pio_utils,  only: cam_pio_var_info, pio_subsystem
-      use cam_pio_utils,  only: cam_pio_newdecomp
-      use cam_abortutils, only: endrun
-      use cam_logfile,    only: cam_log_multiwrite
-      use cam_initfiles,  only: initial_file_get_id
+   subroutine model_grid_init()
+      use shr_kind_mod,     only: SHR_KIND_CL
+      use pio,              only: file_desc_t, var_desc_t, io_desc_t
+      use pio,              only: iMap=>PIO_OFFSET_KIND, PIO_DOUBLE
+      use pio,              only: PIO_BCAST_ERROR, pio_seterrorhandling
+      use pio,              only: pio_get_var, pio_freedecomp
+      use pio,              only: pio_read_darray
+      use spmd_utils,       only: npes, iam
+      use cam_pio_utils,    only: cam_pio_handle_error, cam_pio_find_var
+      use cam_pio_utils,    only: cam_pio_var_info, pio_subsystem
+      use cam_pio_utils,    only: cam_pio_newdecomp
+      use cam_abortutils,   only: endrun
+      use cam_logfile,      only: cam_log_multiwrite
+      use cam_initfiles,    only: initial_file_get_id
+      use physics_grid,     only: phys_grid_init
+      use cam_grid_support, only: hclen => max_hcoordname_len
 
-      ! Initialize a dynamics decomposition based on an input data file
+      ! Initializes a dynamics decomposition based on an input data file,
+      ! and then initializes the physics decomposition based on the dynamics
+      ! grid.
 
       ! Local variables
-      type(file_desc_t), pointer     :: fh_ini
-      type(var_desc_t)               :: lat_vardesc
-      type(var_desc_t)               :: lon_vardesc
-      type(var_desc_t)               :: vardesc
-      type(io_desc_t),   pointer     :: iodesc
-      integer                        :: err_handling
-      logical                        :: var_found
-      logical                        :: is_degrees
-      logical                        :: is_lat
-      integer                        :: num_var_dims
-      integer                        :: time_id
-      integer                        :: lindex
-      integer                        :: dimids(MAX_DIMS)
-      integer                        :: dimlens(MAX_DIMS)
-      integer                        :: col_mod ! Temp for calculating decomp
-      integer                        :: col_start, col_end
-      integer                        :: start(1), kount(1)
-      integer                        :: iret
-      integer(iMap),     allocatable :: ldof(:) ! For reading coordinates
-      real(r8),          allocatable :: temp_arr(:)
-      character(len=128)             :: var_name
-      character(len=256)             :: dimnames(MAX_DIMS)
-      character(len=8)               :: lat_dim_name
-      character(len=8)               :: lon_dim_name
-      character(len=128)             :: errormsg
+      type(file_desc_t), pointer        :: fh_ini
+      type(var_desc_t)                  :: lat_vardesc
+      type(var_desc_t)                  :: lon_vardesc
+      type(var_desc_t)                  :: vardesc
+      type(io_desc_t),   pointer        :: iodesc
+      integer                           :: err_handling
+      logical                           :: var_found
+      logical                           :: is_degrees
+      logical                           :: is_lat
+      integer                           :: num_var_dims
+      integer                           :: time_id
+      integer                           :: lindex
+      integer                           :: dimids(MAX_DIMS)
+      integer                           :: dimlens(MAX_DIMS)
+      integer                           :: col_mod ! Temp for calculating decomp
+      integer                           :: col_start, col_end
+      integer                           :: start(1), kount(1)
+      integer                           :: iret
+      integer(iMap),     allocatable    :: ldof(:) ! For reading coordinates
+      real(r8),          allocatable    :: temp_arr(:)
+      character(len=128)                :: var_name
+      character(len=hclen), allocatable :: grid_attribute_names(:)
+      character(len=SHR_KIND_CL)        :: dimnames(MAX_DIMS)
+      character(len=8)                  :: lat_dim_name
+      character(len=8)                  :: lon_dim_name
+      character(len=128)                :: errormsg
 
-      character(len=*),  parameter   :: subname = 'dyn_grid_init'
+      character(len=*),  parameter :: subname = 'model_grid_init'
+
 
       nullify(iodesc)
 
@@ -257,9 +265,21 @@ CONTAINS
                  '(a,i4,i9,2i7)', (/ kount(1), start(1), start(1)+kount(1)-1/))
          end if
          if (is_degrees) then
-            allocate(local_lons_deg(num_lons))
-            allocate(local_lats_deg(kount(1)))
-            allocate(temp_arr(num_lats))
+            allocate(local_lons_deg(num_lons), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate local_lons_deg(num_lons) failed with stat: '//&
+                           to_str(iret))
+            end if
+            allocate(local_lats_deg(kount(1)), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate local_lats_deg(kount) failed with stat: '//&
+                           to_str(iret))
+            end if
+            allocate(temp_arr(num_lats), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate temp_arr(num_lats) failed with stat: '//&
+                           to_str(iret))
+            end if
             iret = pio_get_var(fh_ini, lat_vardesc, (/ 1 /), (/ num_lats /),  &
                  temp_arr)
             call cam_pio_handle_error(iret,                                   &
@@ -280,14 +300,30 @@ CONTAINS
       else
          ! Do parallel read of lat and lon
          if (is_degrees) then
-            allocate(local_lats_deg(num_local_columns))
-            allocate(local_lons_deg(num_local_columns))
-            allocate(ldof(num_local_columns))
+            allocate(local_lats_deg(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate local_lats_deg(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
+            end if
+            allocate(local_lons_deg(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate local_lons_deg(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
+            end if
+            allocate(ldof(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate ldof(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
+            end if
             ldof = 0_iMap
             do lindex = 1, num_local_columns
                ldof(lindex) = col_start + lindex - 1
             end do
-            allocate(iodesc)
+            allocate(iodesc, stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate iodesc failed with stat: '//&
+                           to_str(iret))
+            end if
             call cam_pio_newdecomp(iodesc, (/ num_global_columns /), ldof,    &
                  PIO_DOUBLE)
             call pio_read_darray(fh_ini, lat_vardesc, iodesc, local_lats_deg, &
@@ -314,14 +350,22 @@ CONTAINS
             call endrun(errormsg)
          end if
          if ((num_lats > 1) .and. (dimlens(1) == num_lats)) then
-            allocate(local_areas(num_lats))
+            allocate(local_areas(num_lats), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate local_areas(num_lats) failed with stat: '//&
+                           to_str(iret))
+            end if
             start(1) = 1
             kount(1) = num_lats
             iret = pio_get_var(fh_ini, vardesc, start, kount, local_areas)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read '//trim(var_name))
          else if (dimlens(1) == num_global_columns) then
-            allocate(local_areas(num_local_columns))
+            allocate(local_areas(num_local_columns), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate local_areas(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
+            end if
             call pio_read_darray(fh_ini, vardesc, iodesc, local_areas, iret)
             call cam_pio_handle_error(iret, subname//': Unable to read areas')
          else
@@ -341,42 +385,63 @@ CONTAINS
       ! Back to old error handling
       call pio_seterrorhandling(fh_ini, err_handling)
 
-   end subroutine dyn_grid_init
+      ! Allocate dyn_columns structure if not already allocated:
+      if (.not.allocated(dyn_columns)) then
+         allocate(dyn_columns(num_local_columns), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate dyn_columns(num_local_columns) '//&
+                        'failed with stat: '//to_str(iret))
+         end if
+      end if
+
+      ! Set dyn_columns values:
+      call set_dyn_col_values()
+
+      ! The null dycore has no grid attributes, so allocate to size zero.
+      allocate(grid_attribute_names(0), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate grid_attribute_names(0) failed with stat: '//&
+                     to_str(iret))
+      end if
+
+      ! Initialize physics grid decomposition:
+      call phys_grid_init(num_lons, num_lats, num_levels, 'NULL', &
+                          1, num_levels, dyn_columns, gridname, &
+                          grid_attribute_names)
+
+      ! Deallocate grid_attirbute_names, as it is no longer needed:
+      deallocate(grid_attribute_names)
+
+      ! Deallocate dyn_columns, as it is now stored in the
+      ! global phys_columns structure:
+      deallocate(dyn_columns)
+
+   end subroutine model_grid_init
 
    !===========================================================================
 
-   subroutine get_dyn_grid_info(hdim1_d, hdim2_d, num_lev,                    &
-        dycore_name, index_model_top_layer, index_surface_layer, dyn_columns)
+   subroutine set_dyn_col_values()
+
+      ! Sets the values stored in the "dyn_columns" structure,
+      ! which are the physics columns as they exist on the
+      ! dynamics decomposition.
+
       use shr_const_mod,  only: SHR_CONST_PI
       use cam_abortutils, only: endrun
       use spmd_utils,     only: iam
-      ! Dummy arguments
-      integer,          intent(out)   :: hdim1_d ! # longitudes or grid size
-      integer,          intent(out)   :: hdim2_d ! # latitudes or 1
-      integer,          intent(out)   :: num_lev ! # levels
-      character(len=*), intent(out)   :: dycore_name
-      integer,          intent(out)   :: index_model_top_layer
-      integer,          intent(out)   :: index_surface_layer
-      type(physics_column_t), pointer :: dyn_columns(:) ! Phys col in Dyn decomp
-      ! Local variables
+
+      ! Local variables:
       integer                         :: lindex
       integer                         :: gindex
       integer                         :: lat_index, lat1
       integer                         :: lon_index
+      integer                         :: ierr
+
       real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
       real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
-      character(len=*), parameter     :: subname = 'get_dyn_grid_info'
+      character(len=*), parameter     :: subname = 'set_dyn_col_values'
 
-      if (associated(dyn_columns)) then
-         call endrun(subname//': dyn_columns must be unassociated pointer')
-      end if
-      allocate(dyn_columns(num_local_columns))
-      hdim1_d = num_lons
-      hdim2_d = num_lats
-      num_lev = num_levels
-      dycore_name = 'NULL'
-      index_model_top_layer = 1
-      index_surface_layer = num_levels
+      ! Calculate dyn_columns variable values:
       lat1 = global_col_offset / num_lons
       do lindex = 1, num_local_columns
          if (grid_is_latlon) then
@@ -429,28 +494,17 @@ CONTAINS
          dyn_columns(lindex)%global_dyn_block = iam + 1
          !  If there is more than one block lindex, they are in the same order
          !    as in the dynamics block structure
-         allocate(dyn_columns(lindex)%dyn_block_index(1))
+         allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate dyn_columns('//&
+                        to_str(lindex)//')%dyn_block_index(1)'//&
+                        ' failed with stat: '//to_str(ierr))
+         end if
+
          dyn_columns(lindex)%dyn_block_index(1) = lindex
       end do
 
-   end subroutine get_dyn_grid_info
-
-   !===========================================================================
-
-   subroutine physgrid_copy_attributes_d(gridname_out, grid_attribute_names)
-      ! create list of attributes for the physics grid that should be copied
-      ! from the corresponding grid object on the dynamics decomposition
-
-      use cam_grid_support, only: hclen => max_hcoordname_len
-
-      ! Dummy arguments
-      character(len=hclen),          intent(out) :: gridname_out
-      character(len=hclen), pointer, intent(out) :: grid_attribute_names(:)
-
-      gridname_out = gridname
-      allocate(grid_attribute_names(0))
-
-   end subroutine physgrid_copy_attributes_d
+   end subroutine set_dyn_col_values
 
    !===========================================================================
 

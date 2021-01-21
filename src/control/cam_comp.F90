@@ -67,8 +67,7 @@ CONTAINS
 
 !      use history_defaults,     only: bldfld
       use cam_initfiles,        only: cam_initfiles_open
-      use dyn_grid,             only: dyn_grid_init
-      use physics_grid,         only: phys_grid_init
+      use dyn_grid,             only: model_grid_init
       use phys_comp,            only: phys_init
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
@@ -149,11 +148,8 @@ CONTAINS
       ! Open initial or restart file, and topo file if specified.
       call cam_initfiles_open()
 
-      ! Initialize grids and dynamics grid decomposition
-      call dyn_grid_init()
-
-      ! Initialize physics grid decomposition
-      call phys_grid_init()
+      ! Initialize model grids and decompositions
+      call model_grid_init()
 
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init

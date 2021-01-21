@@ -1,5 +1,7 @@
 module string_utils
 
+   use shr_string_mod, only: to_upper => shr_string_toUpper
+   use shr_string_mod, only: to_lower => shr_string_toLower
 
    implicit none
    private
@@ -10,78 +12,13 @@ module string_utils
    public :: to_lower         ! Convert character string to lower case
    public :: increment_string ! increments a string
    public :: last_sig_char    ! Position of last significant character in string
+   public :: to_str           ! convert integer to left justified string
 
    ! Private module variables
    integer, parameter :: lower_to_upper = iachar("A") - iachar("a")
    integer, parameter :: upper_to_lower = iachar("a") - iachar("A")
 
 CONTAINS
-
-   function to_upper(str)
-
-      !-----------------------------------------------------------------------
-      ! Purpose:
-      ! Convert character string to upper case.
-      !
-      ! Method:
-      ! Use achar and iachar intrinsics to ensure use of ascii collating seq.
-      !
-      ! Author:  B. Eaton, July 2001
-      !
-      !-----------------------------------------------------------------------
-      character(len=*), intent(in) :: str ! String to convert to upper case
-      character(len=len(str))      :: to_upper
-
-      ! Local variables
-
-      integer          :: ind            ! Index
-      integer          :: aseq           ! ascii collating sequence
-      character(len=1) :: ctmp           ! Character temporary
-      !-----------------------------------------------------------------------
-      to_upper = ''
-      do ind = 1, len_trim(str)
-         ctmp = str(ind:ind)
-         aseq = iachar(ctmp)
-         if ((aseq >= iachar("a")) .and. (aseq <= iachar("z"))) then
-            ctmp = achar(aseq + lower_to_upper)
-         end if
-         to_upper(ind:ind) = ctmp
-      end do
-
-   end function to_upper
-
-   function to_lower(str)
-
-      !-----------------------------------------------------------------------
-      ! Purpose:
-      ! Convert character string to lower case.
-      !
-      ! Method:
-      ! Use achar and iachar intrinsics to ensure use of ascii collating seq.
-      !
-      ! Author:  B. Eaton, July 2001
-      !
-      !-----------------------------------------------------------------------
-      character(len=*), intent(in) :: str ! String to convert to lower case
-      character(len=len(str))      :: to_lower
-
-      ! Local variables
-
-      integer          :: ind            ! Index
-      integer          :: aseq           ! ascii collating sequence
-      character(len=1) :: ctmp           ! Character temporary
-      !-----------------------------------------------------------------------
-
-      do ind = 1, len(str)
-         ctmp = str(ind:ind)
-         aseq = iachar(ctmp)
-         if ((aseq >= iachar("A")) .and. (aseq <= iachar("Z"))) then
-            ctmp = achar(aseq + upper_to_lower)
-         end if
-         to_lower(ind:ind) = ctmp
-      end do
-
-   end function to_lower
 
    integer function increment_string(str, increment)
       !-----------------------------------------------------------------------
@@ -155,6 +92,8 @@ CONTAINS
 
    end function increment_string
 
+!=========================================================================================
+
    integer function last_index(cstr)
       !-----------------------------------------------------------------------
       ! 	... Position of last non-digit in the first input token.
@@ -192,6 +131,8 @@ CONTAINS
 
    end function last_index
 
+!=========================================================================================
+
    integer function last_sig_char(cstr)
       !-----------------------------------------------------------------------
       ! 	... Position of last significant character in string.
@@ -226,5 +167,21 @@ CONTAINS
       last_sig_char = index
 
    end function last_sig_char
+
+!=========================================================================================
+
+character(len=10) function to_str(n)
+
+   ! return default integer as a left justified string
+
+   ! arguments
+   integer, intent(in) :: n
+   !----------------------------------------------------------------------------
+
+   write(to_str,'(i0)') n
+
+end function to_str
+
+!=========================================================================================
 
 end module string_utils
