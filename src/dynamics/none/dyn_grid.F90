@@ -496,9 +496,9 @@ CONTAINS
          !    as in the dynamics block structure
          allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
          if (ierr /= 0) then
-            call endrun(subname//': allocate dyn_columns(lindex)%'//&
-                        'dyn_block_index(1) failed with stat: '//&
-                        to_str(ierr))
+            call endrun(subname//': allocate dyn_columns('//&
+                        to_str(lindex)//')%dyn_block_index(1)'//&
+                        ' failed with stat: '//to_str(ierr))
          end if
 
          dyn_columns(lindex)%dyn_block_index(1) = lindex
