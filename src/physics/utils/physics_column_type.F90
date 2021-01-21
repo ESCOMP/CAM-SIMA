@@ -97,8 +97,8 @@ CONTAINS
             allocate(phys_col_out%dyn_block_index(size(phys_col_in%dyn_block_index)), &
                      stat=istat)
             if (istat /= 0) then
-               call endrun(subname//': allocate dyn_block_index failed with stat: '//&
-                           to_str(istat))
+               call endrun(subname//': allocate phys_col_out%dyn_block_index failed '//&
+                           'with stat: '//to_str(istat))
             end if
          end if
 

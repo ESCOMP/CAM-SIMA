@@ -147,8 +147,8 @@ CONTAINS
       ! Allocate phys_columns:
       allocate(phys_columns(columns_on_task), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate phys_columns failed with stat: '//&
-                     to_str(ierr))
+         call endrun(subname//': allocate phys_columns(columns_on_task) '//&
+                     ' failed with stat: '//to_str(ierr))
       end if
 
       ! Set column index bounds:
@@ -169,25 +169,29 @@ CONTAINS
       ! unstructured
       if (unstructured) then
          allocate(grid_map(3, columns_on_task), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate grid_map(3, columns_on_task) '//&
+                        'failed with stat: '//to_str(ierr))
+         end if
       else
          allocate(grid_map(4, columns_on_task), stat=ierr)
-      end if
-      if (ierr /= 0) then
-         call endrun(subname//': allocate grid_map failed with stat: '//&
-                     to_str(ierr))
+         if (ierr /= 0) then
+            call endrun(subname//': allocate grid_map(4, columns_on_task) '//&
+                        'failed with stat: '//to_str(ierr))
+         end if
       end if
       grid_map = 0
 
-      allocate(latvals(size(grid_map, 2)), stat=ierr)
+      allocate(latvals(columns_on_task), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate latvals failed with stat: '//&
-                     to_str(ierr))
+         call endrun(subname//': allocate latvals(columns_on_task) '//&
+                     'failed with stat: '//to_str(ierr))
       end if
 
-      allocate(lonvals(size(grid_map, 2)), stat=ierr)
+      allocate(lonvals(columns_on_task), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate lonvals failed with stat: '//&
-                     to_str(ierr))
+         call endrun(subname//': allocate lonvals(columns_on_task) '//&
+                     'failed with stat: '//to_str(ierr))
       end if
 
       lonmin = 1000.0_r8 ! Out of longitude range
@@ -226,10 +230,10 @@ CONTAINS
               'latitude', 'degrees_north', 1, size(latvals), latvals,         &
               map=grid_map(3,:))
       else
-         allocate(coord_map(size(grid_map, 2)), stat=ierr)
+         allocate(coord_map(columns_on_task), stat=ierr)
          if (ierr /= 0) then
-            call endrun(subname//': allocate coord_map failed with stat: '//&
-                        to_str(ierr))
+            call endrun(subname//': allocate coord_map(columns_on_task) '//&
+                        'failed with stat: '//to_str(ierr))
          end if
 
          ! We need a global minimum longitude and latitude
@@ -278,9 +282,9 @@ CONTAINS
          !   from the dycore (i.e., physics and dynamics are on different
          !   grids), create that attribute here (Note, a separate physics
          !   grid is only supported for unstructured grids).
-         allocate(area_d(size(grid_map, 2)), stat=ierr)
+         allocate(area_d(columns_on_task), stat=ierr)
          if (ierr /= 0) then
-            call endrun(subname//': allocate area_d failed with stat: '//&
+            call endrun(subname//': allocate area_d(columns_on_task) failed with stat: '//&
                         to_str(ierr))
          end if
 

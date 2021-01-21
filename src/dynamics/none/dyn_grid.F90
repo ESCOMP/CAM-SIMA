@@ -277,7 +277,7 @@ CONTAINS
             end if
             allocate(temp_arr(num_lats), stat=iret)
             if (iret /= 0) then
-               call endrun(subname//': allocate temp_arr failed with stat: '//&
+               call endrun(subname//': allocate temp_arr(num_lats) failed with stat: '//&
                            to_str(iret))
             end if
             iret = pio_get_var(fh_ini, lat_vardesc, (/ 1 /), (/ num_lats /),  &
@@ -302,17 +302,18 @@ CONTAINS
          if (is_degrees) then
             allocate(local_lats_deg(num_local_columns), stat=iret)
             if (iret /= 0) then
-               call endrun(subname//': allocate local_lats_deg(columns) failed with stat: '//&
-                           to_str(iret))
+               call endrun(subname//': allocate local_lats_deg(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
             end if
             allocate(local_lons_deg(num_local_columns), stat=iret)
             if (iret /= 0) then
-               call endrun(subname//': allocate local_lons_deg(columns) failed with stat: '//&
-                           to_str(iret))
+               call endrun(subname//': allocate local_lons_deg(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
             end if
             allocate(ldof(num_local_columns), stat=iret)
             if (iret /= 0) then
-               call endrun(subname//': allocate ldof failed with stat: '//to_str(iret))
+               call endrun(subname//': allocate ldof(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
             end if
             ldof = 0_iMap
             do lindex = 1, num_local_columns
@@ -362,8 +363,8 @@ CONTAINS
          else if (dimlens(1) == num_global_columns) then
             allocate(local_areas(num_local_columns), stat=iret)
             if (iret /= 0) then
-               call endrun(subname//': allocate local_areas(columns) failed with stat: '//&
-                           to_str(iret))
+               call endrun(subname//': allocate local_areas(num_local_columns) '//&
+                           'failed with stat: '//to_str(iret))
             end if
             call pio_read_darray(fh_ini, vardesc, iodesc, local_areas, iret)
             call cam_pio_handle_error(iret, subname//': Unable to read areas')
@@ -384,13 +385,22 @@ CONTAINS
       ! Back to old error handling
       call pio_seterrorhandling(fh_ini, err_handling)
 
+      ! Allocate dyn_columns structure if not already allocated:
+      if (.not.allocated(dyn_columns)) then
+         allocate(dyn_columns(num_local_columns), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate dyn_columns(num_local_columns) '//&
+                        'failed with stat: '//to_str(iret))
+         end if
+      end if
+
       ! Set dyn_columns values:
       call set_dyn_col_values()
 
-      ! Set dynamics grid attributes
+      ! The null dycore has no grid attributes, so allocate to size zero.
       allocate(grid_attribute_names(0), stat=iret)
       if (iret /= 0) then
-         call endrun(subname//': allocate grid_attribute_names failed with stat: '//&
+         call endrun(subname//': allocate grid_attribute_names(0) failed with stat: '//&
                      to_str(iret))
       end if
 
@@ -430,15 +440,6 @@ CONTAINS
       real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
       real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
       character(len=*), parameter     :: subname = 'set_dyn_col_values'
-
-      ! Allocate dyn_columns structure if not already allocated:
-      if (.not.allocated(dyn_columns)) then
-         allocate(dyn_columns(num_local_columns), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate dyn_columns failed with stat: '//&
-                        to_str(ierr))
-         end if
-      end if
 
       ! Calculate dyn_columns variable values:
       lat1 = global_col_offset / num_lons
@@ -495,7 +496,8 @@ CONTAINS
          !    as in the dynamics block structure
          allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
          if (ierr /= 0) then
-            call endrun(subname//': allocate dyn_block_index failed with stat: '//&
+            call endrun(subname//': allocate dyn_columns(lindex)%'//&
+                        'dyn_block_index(1) failed with stat: '//&
                         to_str(ierr))
          end if
 
