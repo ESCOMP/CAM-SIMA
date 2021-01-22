@@ -37,6 +37,7 @@ use cam_map_utils,          only: iMap
 
 use cam_logfile,            only: iulog
 use cam_abortutils,         only: endrun
+use string_utils,           only: to_str
 
 !SE dycore:
 use dimensions_mod,         only: globaluniquecols, nelem, nelemd, nelemdmax, &
@@ -78,9 +79,8 @@ public ::         &
    fvm,           &
    edgebuf
 
-public :: dyn_grid_init
+public :: model_grid_init
 public :: get_dyn_grid_info
-public :: physgrid_copy_attributes_d
 
 !!XXgoldyXX: v try to remove?
 public :: get_horiz_grid_dim_d
@@ -105,7 +105,7 @@ type block_global_data
    integer :: Owner           ! task id of element owner
 end type block_global_data
 
-type(physics_column_t), allocatable, target :: local_dyn_columns(:)
+type(physics_column_t), allocatable :: local_dyn_columns(:)
 
 ! number of global dynamics columns. Set by SE dycore init.
 integer :: ngcols_d = 0
@@ -120,9 +120,11 @@ type(EdgeBuffer_t) :: edgebuf
 contains
 !=============================================================================
 
-subroutine dyn_grid_init()
+subroutine model_grid_init()
 
-   ! Initialize SE grid, and decomposition.
+   ! Initializes the SE grid and decomposition,
+   ! and then initializes the physics grid and
+   ! decomposition based on the dynamics (SE) grid.
 
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
@@ -154,10 +156,15 @@ subroutine dyn_grid_init()
    integer                     :: ierr
    integer                     :: dtime
 
-   real(r8), allocatable       ::clat(:), clon(:), areaa(:)
+   real(r8), allocatable       :: clat(:), clon(:), areaa(:)
    integer                     :: nets, nete
 
-   character(len=*), parameter :: sub = 'dyn_grid_init'
+   ! Variables needed for physics grid initialization:
+   integer                     :: num_local_columns
+   integer                     :: hdim1_d ! # longitudes or grid size
+
+
+   character(len=*), parameter :: sub = 'model_grid_init'
    !----------------------------------------------------------------------------
 
    ! Get file handle for initial file and first consistency check
@@ -263,8 +270,23 @@ subroutine dyn_grid_init()
 
    if (do_native_mapping) then
 
-      allocate(areaA(ngcols_d))
-      allocate(clat(ngcols_d),clon(ngcols_d))
+      allocate(areaA(ngcols_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate areaA(ngcols_d) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      allocate(clat(ngcols_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate clat(ngcols_d) failed with stat: '//&
+                     to_str(ierr))
+      end if
+      allocate(clon(ngcols_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate clon(ngcols_d) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
       call get_horiz_grid_int(ngcols_d, clat_d_out=clat, clon_d_out=clon, area_d_out=areaA)
 
       ! Create mapping files using SE basis functions
@@ -274,14 +296,84 @@ subroutine dyn_grid_init()
       deallocate(areaa, clat, clon)
    end if
 
+   ! Calculate number of of local columns:
+   if (fv_nphys > 0) then ! physics uses an FVM grid
+      num_local_columns = nelemd * fv_nphys * fv_nphys
+   else
+      num_local_columns = 0
+      do elem_ind = 1, nelemd
+         num_local_columns = num_local_columns + elem(elem_ind)%idxP%NumUniquePts
+      end do
+   end if
+
+   ! Allocate local_dyn_columns structure if not already allocated:
+   if (.not.allocated(local_dyn_columns)) then
+      allocate(local_dyn_columns(num_local_columns), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate local_dyn_columns(num_local_columns) '//&
+                     'failed with stat: '//to_str(ierr))
+      end if
+   end if
+
+   ! Set local_dyn_columns values:
+   call set_dyn_col_values()
+
+   ! Calculate horizontal dimensions (needed for physics grid):
+   if (fv_nphys > 0) then ! physics uses an FVM grid
+      hdim1_d = nelem * fv_nphys * fv_nphys
+   else
+      hdim1_d = ngcols_d
+   end if
+
+   ! Determine grid name and attributes:
+   if (fv_nphys > 0) then
+      gridname = 'physgrid_d'
+
+      allocate(grid_attribute_names(2), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate grid_attribute_names(2) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      grid_attribute_names(1) = 'fv_nphys'
+      grid_attribute_names(2) = 'ne'
+   else
+      gridname = 'GLL'
+
+      allocate(grid_attribute_names(3), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate grid_attribute_names(3) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      ! For standard CAM-SE, we need to copy the area attribute.
+      ! For physgrid, the physics grid will create area (GLL has area_d)
+      grid_attribute_names(1) = 'area'
+      grid_attribute_names(2) = 'np'
+      grid_attribute_names(3) = 'ne'
+   end if
+
+   ! Initialize physics grid decomposition:
+   call phys_grid_init(hdim1_d, 1, nlev, 'SE', &
+                       1, nlev, local_dyn_columns, gridname, &
+                       grid_attribute_names)
+
+   ! Deallocate grid_attirbute_names, as it is no longer needed:
+   deallocate(grid_attribute_names)
+
+   ! Deallocate dyn_columns, as it is now stored in the
+   ! global phys_columns structure:
+   deallocate(local_dyn_columns)
+
+   ! Make sure all tasks finish initialization
+   ! before continuing on with the run:
    call mpi_barrier(mpicom, ierr)
 
-end subroutine dyn_grid_init
+end subroutine model_grid_init
 
 !==============================================================================
 
-subroutine get_dyn_grid_info(hdim1_d, hdim2_d, num_lev,                    &
-     index_model_top_layer, index_surface_layer, unstructured, dyn_columns)
+subroutine set_dyn_col_values()
 
    use physconst,              only: pi
    use cam_abortutils,         only: endrun
@@ -290,127 +382,96 @@ subroutine get_dyn_grid_info(hdim1_d, hdim2_d, num_lev,                    &
    !SE dycore:
    use coordinate_systems_mod, only: spherical_polar_t
 
-   ! Dummy arguments
-   integer,          intent(out)   :: hdim1_d ! # longitudes or grid size
-   integer,          intent(out)   :: hdim2_d ! # latitudes or 1
-   integer,          intent(out)   :: num_lev ! # levels
-   integer,          intent(out)   :: index_model_top_layer
-   integer,          intent(out)   :: index_surface_layer
-   logical,          intent(out)   :: unstructured
-   ! dyn_columns will contain a copy of the physics column info local to this
-   ! dynamics task
-   type(physics_column_t), allocatable, intent(out) :: dyn_columns(:)
    ! Local variables
    integer                         :: lindex
    integer                         :: gindex
    integer                         :: elem_ind, col_ind, ii, jj
    integer                         :: num_local_cols
+   integer                         :: ierr
    type(spherical_polar_t)         :: coord
    real(r8)                        :: dcoord
    real(kind_pcol),  parameter     :: radtodeg = 180.0_kind_pcol / pi
    real(kind_pcol),  parameter     :: degtorad = pi / 180.0_kind_pcol
    character(len=*), parameter     :: subname = 'get_dyn_grid_info'
 
-   unstructured = .true. ! SE is an unstructured dycore
-
-   if (fv_nphys > 0) then ! physics uses an FVM grid
-      num_local_cols = nelemd * fv_nphys * fv_nphys
-   else
-      num_local_cols = 0
-      do elem_ind = 1, nelemd
-         num_local_cols = num_local_cols + elem(elem_ind)%idxP%NumUniquePts
-      end do
-   end if
-   if (allocated(local_dyn_columns)) then
-      ! Check for correct number of columns
-      if (size(local_dyn_columns) /= num_local_cols) then
-         call endrun(subname//': called with inconsistent column numbers')
-      end if
-   else
-      allocate(local_dyn_columns(num_local_cols))
+   lindex = 0
+   do elem_ind = 1, nelemd
       if (fv_nphys > 0) then ! physics uses an FVM grid
-         hdim1_d = nelem * fv_nphys * fv_nphys
+         do col_ind = 0, (fv_nphys * fv_nphys) - 1
+            lindex = lindex + 1
+            ii = MOD(col_ind, fv_nphys) + 1
+            jj = (col_ind / fv_nphys) + 1
+            coord = fvm(elem_ind)%center_cart_physgrid(ii, jj)
+            local_dyn_columns(lindex)%lat_rad = coord%lat
+            dcoord = local_dyn_columns(lindex)%lat_rad * radtodeg
+            local_dyn_columns(lindex)%lat_deg = dcoord
+            local_dyn_columns(lindex)%lon_rad = coord%lon
+            dcoord = local_dyn_columns(lindex)%lon_rad * radtodeg
+            local_dyn_columns(lindex)%lon_deg = dcoord
+            local_dyn_columns(lindex)%area =                               &
+                  fvm(elem_ind)%area_sphere_physgrid(ii,jj)
+            local_dyn_columns(lindex)%weight =                             &
+                  local_dyn_columns(lindex)%area
+            ! File decomposition
+            gindex = ((elem(elem_ind)%GlobalId-1) * fv_nphys * fv_nphys) + &
+                  col_ind + 1
+            local_dyn_columns(lindex)%global_col_num = gindex
+            ! Note, coord_indices not used for unstructured dycores
+            ! Dynamics decomposition
+            local_dyn_columns(lindex)%dyn_task = iam
+            local_dyn_columns(lindex)%local_dyn_block = elem_ind
+            local_dyn_columns(lindex)%global_dyn_block =                   &
+                 elem(elem_ind)%GlobalId
+
+            allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
+            if (ierr /= 0) then
+               call endrun(subname//': allocate local_dyn_columns('//&
+                           to_str(lindex)//')%dyn_block_index(1)'//&
+                           ' failed with stat: '//to_str(ierr))
+            end if
+
+            local_dyn_columns(lindex)%dyn_block_index(1) = col_ind + 1
+         end do
       else
-         hdim1_d = ngcols_d
+         do col_ind = 1, elem(elem_ind)%idxP%NumUniquePts
+            lindex = lindex + 1
+            ii = elem(elem_ind)%idxP%ia(col_ind)
+            jj = elem(elem_ind)%idxP%ja(col_ind)
+
+            dcoord = elem(elem_ind)%spherep(ii,jj)%lat
+            local_dyn_columns(lindex)%lat_rad = dcoord
+            dcoord = local_dyn_columns(lindex)%lat_rad * radtodeg
+            local_dyn_columns(lindex)%lat_deg = dcoord
+            dcoord = elem(elem_ind)%spherep(ii,jj)%lon
+            local_dyn_columns(lindex)%lon_rad = dcoord
+            dcoord = local_dyn_columns(lindex)%lon_rad * radtodeg
+            local_dyn_columns(lindex)%lon_deg = dcoord
+            local_dyn_columns(lindex)%area =                               &
+                 1.0_r8 / elem(elem_ind)%rspheremp(ii,jj)
+            local_dyn_columns(lindex)%weight = local_dyn_columns(lindex)%area
+            ! File decomposition
+            gindex = elem(elem_ind)%idxP%UniquePtoffset + col_ind - 1
+            local_dyn_columns(lindex)%global_col_num = gindex
+            ! Note, coord_indices not used for unstructured dycores
+            ! Dynamics decomposition
+            local_dyn_columns(lindex)%dyn_task = iam
+            local_dyn_columns(lindex)%local_dyn_block = elem_ind
+            local_dyn_columns(lindex)%global_dyn_block =                   &
+                 elem(elem_ind)%GlobalId
+
+            allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
+            if (ierr /= 0) then
+               call endrun(subname//': allocate local_dyn_columns('//&
+                           to_str(lindex)//')%dyn_block_index(1)'//&
+                           ' failed with stat: '//to_str(ierr))
+            end if
+
+            local_dyn_columns(lindex)%dyn_block_index(1) = col_ind
+         end do
       end if
-      hdim2_d = 1
-      num_lev = nlev
-      index_model_top_layer = 1
-      index_surface_layer = nlev
-      lindex = 0
-      do elem_ind = 1, nelemd
-         if (fv_nphys > 0) then ! physics uses an FVM grid
-            do col_ind = 0, (fv_nphys * fv_nphys) - 1
-               lindex = lindex + 1
-               ii = MOD(col_ind, fv_nphys) + 1
-               jj = (col_ind / fv_nphys) + 1
-               coord = fvm(elem_ind)%center_cart_physgrid(ii, jj)
-               local_dyn_columns(lindex)%lat_rad = coord%lat
-               dcoord = local_dyn_columns(lindex)%lat_rad * radtodeg
-               local_dyn_columns(lindex)%lat_deg = dcoord
-               local_dyn_columns(lindex)%lon_rad = coord%lon
-               dcoord = local_dyn_columns(lindex)%lon_rad * radtodeg
-               local_dyn_columns(lindex)%lon_deg = dcoord
-               local_dyn_columns(lindex)%area =                               &
-                    fvm(elem_ind)%area_sphere_physgrid(ii,jj)
-               local_dyn_columns(lindex)%weight =                             &
-                    local_dyn_columns(lindex)%area
-               ! File decomposition
-               gindex = ((elem(elem_ind)%GlobalId-1) * fv_nphys * fv_nphys) + &
-                    col_ind + 1
-               local_dyn_columns(lindex)%global_col_num = gindex
-               ! Note, coord_indices not used for unstructured dycores
-               ! Dynamics decomposition
-               local_dyn_columns(lindex)%dyn_task = iam
-               local_dyn_columns(lindex)%local_dyn_block = elem_ind
-               local_dyn_columns(lindex)%global_dyn_block =                   &
-                    elem(elem_ind)%GlobalId
-               allocate(local_dyn_columns(lindex)%dyn_block_index(1))
-               local_dyn_columns(lindex)%dyn_block_index(1) = col_ind + 1
-            end do
-         else
-            do col_ind = 1, elem(elem_ind)%idxP%NumUniquePts
-               lindex = lindex + 1
-               ii = elem(elem_ind)%idxP%ia(col_ind)
-               jj = elem(elem_ind)%idxP%ja(col_ind)
-
-               dcoord = elem(elem_ind)%spherep(ii,jj)%lat
-               local_dyn_columns(lindex)%lat_rad = dcoord
-               dcoord = local_dyn_columns(lindex)%lat_rad * radtodeg
-               local_dyn_columns(lindex)%lat_deg = dcoord
-               dcoord = elem(elem_ind)%spherep(ii,jj)%lon
-               local_dyn_columns(lindex)%lon_rad = dcoord
-               dcoord = local_dyn_columns(lindex)%lon_rad * radtodeg
-               local_dyn_columns(lindex)%lon_deg = dcoord
-               local_dyn_columns(lindex)%area =                               &
-                    1.0_r8 / elem(elem_ind)%rspheremp(ii,jj)
-               local_dyn_columns(lindex)%weight = local_dyn_columns(lindex)%area
-               ! File decomposition
-               gindex = elem(elem_ind)%idxP%UniquePtoffset + col_ind - 1
-               local_dyn_columns(lindex)%global_col_num = gindex
-               ! Note, coord_indices not used for unstructured dycores
-               ! Dynamics decomposition
-               local_dyn_columns(lindex)%dyn_task = iam
-               local_dyn_columns(lindex)%local_dyn_block = elem_ind
-               local_dyn_columns(lindex)%global_dyn_block =                   &
-                    elem(elem_ind)%GlobalId
-               allocate(local_dyn_columns(lindex)%dyn_block_index(1))
-               local_dyn_columns(lindex)%dyn_block_index(1) = col_ind
-            end do
-         end if
-      end do
-   end if
-
-   ! Copy the information to the output array
-   if (allocated(dyn_columns)) then
-      deallocate(dyn_columns)
-   end if
-   allocate(dyn_columns(lindex))
-   do lindex = 1, num_local_cols
-      dyn_columns(lindex) = local_dyn_columns(lindex)
    end do
 
-   end subroutine get_dyn_grid_info
+   end subroutine set_dyn_col_values
 
 !==============================================================================
 
@@ -529,36 +590,6 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
    end if
 
 end subroutine get_horiz_grid_int
-
-!=========================================================================================
-
-subroutine physgrid_copy_attributes_d(gridname, grid_attribute_names)
-
-   ! create list of attributes for the physics grid that should be copied
-   ! from the corresponding grid object on the dynamics decomposition
-
-   use cam_grid_support, only: max_hcoordname_len
-
-   ! Dummy arguments
-   character(len=max_hcoordname_len),          intent(out) :: gridname
-   character(len=max_hcoordname_len), pointer, intent(out) :: grid_attribute_names(:)
-
-   if (fv_nphys > 0) then
-      gridname = 'physgrid_d'
-      allocate(grid_attribute_names(2))
-      grid_attribute_names(1) = 'fv_nphys'
-      grid_attribute_names(2) = 'ne'
-   else
-      gridname = 'GLL'
-      allocate(grid_attribute_names(3))
-      ! For standard CAM-SE, we need to copy the area attribute.
-      ! For physgrid, the physics grid will create area (GLL has area_d)
-      grid_attribute_names(1) = 'area'
-      grid_attribute_names(2) = 'np'
-      grid_attribute_names(3) = 'ne'
-   end if
-
-end subroutine physgrid_copy_attributes_d
 
 !=========================================================================================
 

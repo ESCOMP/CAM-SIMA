@@ -1,5 +1,26 @@
 module physics_grid
 
+!------------------------------------------------------------------------------
+!
+! The phys_grid module represents the host model physics decomposition.
+!
+!  phys_grid_init receives the physics column info (area, weight, centers)
+!                 from the dycore.
+!                 The routine then creates the physics decomposition which
+!                 is the arrangement of columns across the atmosphere model's
+!                 MPI tasks as well as the arrangement into groups to
+!                 facilitate efficient threading.
+!                 The routine then creates a grid object to allow for data
+!                 to be read into and written from this decomposition.
+! The phys_grid module also provides interfaces for retrieving information
+! about the decomposition
+!
+! Note: This current implementation does not perform load balancing,
+!       physics columns ae always on the same task as the corresponding
+!       column received from the dycore.
+!
+!------------------------------------------------------------------------------
+
    use shr_kind_mod,        only: r8 => shr_kind_r8
    use ccpp_kinds,          only: kind_phys
    use physics_column_type, only: physics_column_t, assignment(=)
@@ -39,6 +60,9 @@ module physics_grid
    ! Physics decomposition information
    type(physics_column_t), protected, public, allocatable :: phys_columns(:)
 
+   ! Memory debugging control
+   logical :: calc_memory_increase = .false.
+
    ! These variables are last to provide a limited table to search
 
    !> \section arg_table_physics_grid  Argument Table
@@ -63,9 +87,10 @@ CONTAINS
                              dyn_columns, dyn_gridname, dyn_attributes)
 
 !      use mpi,              only: MPI_reduce ! XXgoldyXX: Should this work?
-      use mpi,              only: MPI_INTEGER, MPI_MIN
+      use mpi,              only: MPI_INTEGER, MPI_REAL8, MPI_MIN, MPI_MAX
+      use shr_mem_mod,      only: shr_mem_getusage
       use cam_abortutils,   only: endrun, check_allocate
-      use spmd_utils,       only: npes, mpicom
+      use spmd_utils,       only: npes, mpicom, masterprocid, masterproc
       use string_utils,     only: to_str
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
       use cam_grid_support, only: iMap
@@ -95,9 +120,11 @@ CONTAINS
       type(horiz_coord_t),    pointer     :: lat_coord
       type(horiz_coord_t),    pointer     :: lon_coord
       real(r8),               pointer     :: area_d(:)
+      real(r8)                            :: mem_hw_beg, mem_hw_end
+      real(r8)                            :: mem_beg, mem_end
       logical                             :: unstructured
       real(r8)                            :: temp ! For MPI
-      integer                             :: ierr ! For MPI
+      integer                             :: ierr ! For error codes
 
       character(len=*),  parameter :: subname = 'phys_grid_init'
 
@@ -107,6 +134,10 @@ CONTAINS
       nullify(lat_coord)
       nullify(lon_coord)
       nullify(area_d)
+
+      if (calc_memory_increase) then
+         call shr_mem_getusage(mem_hw_beg, mem_beg)
+      end if
 
       ! Check that the physics grid is not already initialized:
       if (phys_grid_initialized) then
@@ -283,22 +314,26 @@ CONTAINS
               dyn_attributes(index))
       end do
 
-      if ((.not. cam_grid_attr_exists('physgrid', 'area')) .and.              &
-           unstructured) then
-         ! Physgrid always needs an area attribute. If we did not inherit one
-         !   from the dycore (i.e., physics and dynamics are on different
-         !   grids), create that attribute here (Note, a separate physics
-         !   grid is only supported for unstructured grids).
-         allocate(area_d(columns_on_task), stat=ierr)
-         call check_allocate(ierr, subname, 'area_d(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+      if (.not. cam_grid_attr_exists('physgrid', 'area')) then
+         ! Physgird always needs an area attribute
+         if (unstructured) then
+            ! Physgrid always needs an area attribute. If we did not inherit one
+            !   from the dycore (i.e., physics and dynamics are on different
+            !   grids), create that attribute here (Note, a separate physics
+            !   grid is only supported for unstructured grids).
+            allocate(area_d(columns_on_task), stat=ierr)
+            call check_allocate(ierr, subname, 'area_d(columns_on_task)', &
+                             file=__FILE__, line=__LINE__)
 
-         do col_index = 1, columns_on_task
-            area_d(col_index) = phys_columns(col_index)%area
-         end do
-         call cam_grid_attribute_register('physgrid', 'area',                 &
-              'physics column areas', 'ncol', area_d, map=grid_map(3,:))
-         nullify(area_d) ! Belongs to attribute now
+            do col_index = 1, columns_on_task
+               area_d(col_index) = phys_columns(col_index)%area
+            end do
+            call cam_grid_attribute_register('physgrid', 'area',                 &
+                 'physics column areas', 'ncol', area_d, map=grid_map(3,:))
+            nullify(area_d) ! Belongs to attribute now
+         else
+            call endrun(subname//"No 'area' attribute from dycore")
+         end if
       end if
       ! Cleanup pointers (they belong to the grid now)
       nullify(grid_map)
@@ -312,6 +347,25 @@ CONTAINS
 
       call t_stopf("phys_grid_init")
       call t_adj_detailf(+2)
+
+      ! Calculate memory usage stats if requested:
+      if (calc_memory_increase) then
+         call shr_mem_getusage(mem_hw_end, mem_end)
+         temp = mem_end - mem_beg
+         call MPI_reduce(temp, mem_end, 1, MPI_REAL8, MPI_MAX, masterprocid,  &
+              mpicom, ierr)
+         if (masterproc) then
+            write(iulog, *) 'phys_grid_init: Increase in memory usage = ',    &
+                 mem_end, ' (MB)'
+         end if
+         temp = mem_hw_end - mem_hw_beg
+         call MPI_reduce(temp, mem_hw_end, 1, MPI_REAL8, MPI_MAX,             &
+              masterprocid, mpicom, ierr)
+         if (masterproc) then
+            write(iulog, *) subname, 'Increase in memory highwater = ',       &
+                 mem_end, ' (MB)'
+         end if
+      end if
 
    end subroutine phys_grid_init
 
@@ -328,16 +382,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'get_dlat_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         get_dlat_p = phys_columns(index)%lat_deg
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      get_dlat_p = phys_columns(index)%lat_deg
 
    end function get_dlat_p
 
@@ -354,16 +402,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'get_dlon_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         get_dlon_p = phys_columns(index)%lon_deg
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      get_dlon_p = phys_columns(index)%lon_deg
 
    end function get_dlon_p
 
@@ -380,16 +422,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'get_rlat_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task, ')'
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         get_rlat_p = phys_columns(index)%lat_rad
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      get_rlat_p = phys_columns(index)%lat_rad
 
    end function get_rlat_p
 
@@ -406,16 +442,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'get_rlon_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task, ')'
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         get_rlon_p = phys_columns(index)%lon_rad
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      get_rlon_p = phys_columns(index)%lon_rad
 
    end function get_rlon_p
 
@@ -432,16 +462,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'get_area_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task, ')'
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         get_area_p = phys_columns(index)%area
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      get_area_p = phys_columns(index)%area
 
    end function get_area_p
 
@@ -465,18 +489,13 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_rlat_all_p: '
 
       !-----------------------------------------------------------------------
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((rlatdim < 1) .or. (rlatdim > columns_on_task)) then
-         write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlatdim, &
-              ') out of range (1 to ', columns_on_task, ')'
-         write(iulog, *) trim(errmsg)
-         call endrun(trim(errmsg))
-      else
-         do index = 1, rlatdim
-            rlats(index) = phys_columns(index)%lat_rad
-         end do
-      end if
+
+      ! Check that input is valid:
+      call check_phys_input(rlatdim)
+
+      do index = 1, rlatdim
+         rlats(index) = phys_columns(index)%lat_rad
+      end do
 
    end subroutine get_rlat_all_p
 
@@ -500,18 +519,13 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_rlon_all_p: '
 
       !-----------------------------------------------------------------------
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((rlondim < 1) .or. (rlondim > columns_on_task)) then
-         write(errmsg, '(a,3(a,i0))') subname, 'dimension provided (', rlondim, &
-              ') out of range (1 to ', columns_on_task, ')'
-         write(iulog, *) trim(errmsg)
-         call endrun(trim(errmsg))
-      else
-         do index = 1, rlondim
-            rlons(index) = phys_columns(index)%lon_rad
-         end do
-      end if
+
+      ! Check that input is valid:
+      call check_phys_input(rlondim)
+
+      do index = 1, rlondim
+         rlons(index) = phys_columns(index)%lon_rad
+      end do
 
    end subroutine get_rlon_all_p
 
@@ -532,23 +546,17 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'get_dyn_col_p_index: '
 
-      if (.not. phys_grid_initialized()) then
-         call endrun(subname//'physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, 'index (', index,              &
-              ') out of range (1 to ', columns_on_task
-         write(iulog, *) trim(errmsg)
-         call endrun(trim(errmsg))
-      else
-         off_size = SIZE(phys_columns(index)%dyn_block_index, 1)
-         if (SIZE(blk_ind, 1) < off_size) then
-            call endrun(subname//'blk_ind too small')
-         end if
-         blk_num = phys_columns(index)%local_dyn_block
-         blk_ind(1:off_size) = phys_columns(index)%dyn_block_index(1:off_size)
-         if (SIZE(blk_ind, 1) > off_size) then
-            blk_ind(off_size+1:) = -1
-         end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      off_size = SIZE(phys_columns(index)%dyn_block_index, 1)
+      if (SIZE(blk_ind, 1) < off_size) then
+         call endrun(subname//'blk_ind too small')
+      end if
+      blk_num = phys_columns(index)%local_dyn_block
+      blk_ind(1:off_size) = phys_columns(index)%dyn_block_index(1:off_size)
+      if (SIZE(blk_ind, 1) > off_size) then
+         blk_ind(off_size+1:) = -1
       end if
 
    end subroutine get_dyn_col_p
@@ -566,16 +574,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'global_index_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         global_index_p = phys_columns(index)%global_col_num
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      global_index_p = phys_columns(index)%global_col_num
 
    end function global_index_p
 
@@ -590,16 +592,10 @@ CONTAINS
       character(len=128)          :: errmsg
       character(len=*), parameter :: subname = 'local_index_p'
 
-      if (.not. phys_grid_initialized) then
-         call endrun(subname//': physics grid not initialized')
-      else if ((index < 1) .or. (index > columns_on_task)) then
-         write(errmsg, '(a,2(a,i0))') subname, ': index (', index,            &
-              ') out of range (1 to ', columns_on_task
-         write(iulog, *) errmsg
-         call endrun(errmsg)
-      else
-         local_index_p = phys_columns(index)%phys_chunk_index
-      end if
+      ! Check that input is valid:
+      call check_phys_input(index)
+
+      local_index_p = phys_columns(index)%phys_chunk_index
 
    end function local_index_p
 
@@ -618,5 +614,27 @@ CONTAINS
       hdim2_d_out = hdim2_d
 
    end subroutine get_grid_dims
+
+   !========================================================================
+
+   subroutine check_phys_input(subname, index_val)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+      ! Check that the physics grid is initialized, and that the
+      ! user-provided index value is within an acceptable range.
+      ! If either check fails then end the model simulation.
+
+      character(len=*), intent(in) :: subname   !Calling subroutine name
+      integer, intent(in)          :: index_val !User-specified index value
+
+      ! Check if physics grid is initialized,
+      ! if so, then check that index value is within bounds:
+      if (.not. phys_grid_initialized) then
+         call endrun(subname//': physics grid not initialized')
+      else if ((index_val < 1) .or. (index_val > columns_on_task)) then
+         call endrun(subname//': index ('//to_str(index_val)//&
+                     ') out of range (1 to '//&
+                     to_str(columns_on_task)//')')
+      end if
 
 end module physics_grid
