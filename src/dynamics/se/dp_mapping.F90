@@ -117,7 +117,8 @@ contains
 
   subroutine dp_allocate(elem)
     use spmd_utils,     only: masterproc, masterprocid, npes
-    use spmd_utils,     only: mpicom, mpi_integer
+    use spmd_utils,     only: mpicom
+    use mpi,            only: mpi_integer
 
     !SE dycore:
     use dimensions_mod, only: nelem, nelemd
@@ -176,13 +177,13 @@ contains
   !!!
 
   subroutine dp_write(elem, fvm, grid_format, filename_in)
+    use mpi,                    only: mpi_integer, mpi_real8
     use cam_abortutils,         only: endrun
     use netcdf,                 only: nf90_create, nf90_close, nf90_enddef
     use netcdf,                 only: nf90_def_dim, nf90_def_var, nf90_put_var
     use netcdf,                 only: nf90_double, nf90_int, nf90_put_att
     use netcdf,                 only: nf90_noerr, nf90_strerror, nf90_clobber
     use spmd_utils,             only: masterproc, masterprocid, mpicom, npes
-    use spmd_utils,             only: mpi_integer, mpi_real8
     use cam_logfile,            only: iulog
     use shr_sys_mod,            only: shr_sys_flush
 

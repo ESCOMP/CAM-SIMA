@@ -564,7 +564,7 @@ contains
         !
         call Prim_Advec_Tracers_fvm(elem,fvm,hvcoord,hybrid,&
              dt_q,tl,nets,nete,ghostBufQnhcJet_h,ghostBufQ1_h, ghostBufFluxJet_h,kmin_jet,kmax_jet)
-      end if       
+      end if
 
 #ifdef waccm_debug
       do ie=nets,nete
@@ -594,7 +594,9 @@ contains
       use element_mod,      only: element_t
       use hybvcoord_mod ,   only: hvcoord_t
       use dimensions_mod,   only: nelemd, nlev, np
-      use constituents,     only: cnst_type, qmin, pcnst
+!Un-comment once constitutents are enabled -JN:
+!      use constituents,     only: cnst_type, qmin, pcnst
+      use constituents,     only: pcnst
       use cam_logfile,      only: iulog
       use spmd_utils,       only: masterproc
 
@@ -628,16 +630,19 @@ contains
         ! and conserve mixing ratio (not mass) of 'dry' tracers
         !
         do  m_cnst=1,pcnst
-          if (cnst_type(m_cnst).ne.'dry') then
+!Un-comment once constitutents are enabled -JN:
+!          if (cnst_type(m_cnst).ne.'dry') then
             do k=1,nlev
               do j = 1,np
                 do i = 1,np
                   q(i,j,k,ie,m_cnst) = q(i,j,k,ie,m_cnst)*factor(i,j,k)
-                  q(i,j,k,ie,m_cnst) = max(qmin(m_cnst),q(i,j,k,ie,m_cnst))
+!Un-comment once constitutents are enabled -JN:
+!                  q(i,j,k,ie,m_cnst) = max(qmin(m_cnst),q(i,j,k,ie,m_cnst))
+                  q(i,j,k,ie,m_cnst) = max(0._r8,q(i,j,k,ie,m_cnst))
                 end do
               end do
             end do
-          end if
+!          end if
         end do
       end do
       if (masterproc) then

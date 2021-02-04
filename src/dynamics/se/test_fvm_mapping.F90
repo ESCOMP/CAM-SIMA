@@ -376,7 +376,7 @@ contains
 !    use ppgrid,        only: begchunk, endchunk, pver, pcols
 !    use constituents,  only: cnst_get_ind,cnst_name
 
-    type(physics_state), intent(inout) :: phys_state(begchunk:endchunk)
+    type(physics_state), intent(inout) :: phys_state
     type(fvm_struct), pointer:: fvm(:)
 #ifdef debug_coupling
     integer            :: lchnk, ncol,k,icol,m_cnst,nq,ie

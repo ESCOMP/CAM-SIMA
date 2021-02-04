@@ -821,6 +821,9 @@ class ConfigCAM:
             csnp_desc = "Number of points on each edge of the elements in a cubed sphere grid."
             self.create_config("csnp", csnp_desc, csnp_val)
 
+            # Add number of points (NP) CPP definition:
+            self.add_cppdef("NP", csnp_val)
+
         else:
             # Add number of latitudes in grid to configure object
             nlat_desc = "Number of unique latitude points in rectangular lat/lon" \

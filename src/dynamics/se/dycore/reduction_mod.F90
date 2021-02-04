@@ -1,7 +1,7 @@
 module reduction_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
-  use spmd_utils,     only: mpi_sum, mpi_min, mpi_max, mpi_real8, mpi_integer
-  use spmd_utils,     only: mpi_success
+  use mpi,            only: mpi_sum, mpi_min, mpi_max, mpi_real8, mpi_integer
+  use mpi,            only: mpi_success
   use cam_abortutils, only: endrun
 
   implicit none

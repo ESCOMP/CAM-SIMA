@@ -8,7 +8,7 @@ module comp_gll_ctr_vol
   use shr_sys_mod,            only: shr_sys_flush
   use global_norms_mod,       only: wrap_repro_sum
   use physconst,              only: pi
-  use infnan,                 only: isnan
+  use shr_infnan_mod,         only: isnan=>shr_infnan_isnan
 
   use coordinate_systems_mod, only: cartesian3d_t, cartesian2d_t
   use coordinate_systems_mod, only: spherical_polar_t, change_coordinates

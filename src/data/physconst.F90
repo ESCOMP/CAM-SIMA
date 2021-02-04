@@ -28,12 +28,11 @@ module physconst
    private
    save
 
-   public  :: physconst_readnl
-   public  :: physconst_init
-   public  :: composition_init
-   public  :: physconst_update
-   public  :: physconst_calc_kappav
-   public  :: get_cp
+   public :: physconst_readnl
+   public :: physconst_init
+   public :: physconst_update
+   public :: physconst_calc_kappav
+   public :: composition_init
 
    !
    ! subroutines to compute thermodynamic quantities
@@ -41,7 +40,23 @@ module physconst
    ! doi: 10.1029/2017MS001257
    !
 
+   public :: get_dp                  ! pressure level thickness from dry dp and dry mixing ratios
+   public :: get_pmid_from_dp        ! full level pressure from dp (approximation depends on dycore)
+   public :: get_thermal_energy      ! thermal energy quantity = dp*cp*T
+   public :: get_virtual_temp        ! virtual temperature
+   public :: get_cp                  ! (generalized) heat capacity
+   public :: get_cp_dry              ! (generalized) heat capacity for dry air
+   public :: get_gz_given_dp_Tv_Rdry ! geopotential (with dp,dry R and Tv as input)
+   public :: get_R_dry               ! (generalized) dry air gas constant
+   public :: get_kappa_dry           ! (generalized) dry kappa = R_dry/cp_dry
+   public :: get_dp_ref              ! reference pressure layer thickness (include topography)
    public :: get_molecular_diff_coef ! molecular diffusion and thermal conductivity
+   public :: get_rho_dry             ! dry densisty from temperature (temp) and pressure (dp_dry and tracer)
+   public :: get_exner               ! Exner pressure
+
+   public :: get_molecular_diff_coef_reference  ! reference vertical profile of density, molecular diffusion &
+                                                ! and thermal conductivity
+
 
    !> \section arg_table_physconst  Argument Table
    !! \htmlinclude physconst.html
@@ -175,7 +190,7 @@ module physconst
    real(kind_phys), allocatable, protected, public :: thermodynamic_active_species_R(:)
    real(kind_phys), allocatable, protected, public :: thermodynamic_active_species_mwi(:)!inverse molecular weights dry air
    real(kind_phys), allocatable, protected, public :: thermodynamic_active_species_kv(:) !molecular diffusion
-   real(kind_phsy), allocatable, protected, public :: thermodynamic_active_species_kc(:) !thermal conductivity
+   real(kind_phys), allocatable, protected, public :: thermodynamic_active_species_kc(:) !thermal conductivity
 
    ! standard dry air (constant composition)
    real(kind_phys) :: mmro2, mmrn2           ! Mass mixing ratios of O2 and N2
@@ -224,7 +239,7 @@ CONTAINS
       use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
       use shr_flux_mod,   only: shr_flux_adjust_constants
 !      use mpi,            only: mpi_bcast !!XXgoldyXX: Why not?
-      use mpi,            only: mpi_real8
+      use mpi,            only: mpi_real8, mpi_character
       use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,    only: iulog
 
@@ -232,7 +247,7 @@ CONTAINS
       character(len=*), intent(in) :: nlfile
 
       ! Local variables
-      integer :: unitn, ierr
+      integer :: unitn, ierr, i
       character(len=*), parameter :: subname = 'physconst_readnl'
       logical :: newg, newsday, newmwh2o, newcpwv
       logical :: newmwdry, newcpair, newrearth, newtmelt, newomega
@@ -563,6 +578,8 @@ CONTAINS
          if (ix<1) then
            write(iulog, *) subname//' dry air component not found: ', dry_air_species(dry_air_species_num)
            call endrun(subname // ':: dry air component not found')
+!Un-comment once constituents are enabled -JN:
+#if 0
          else
            mw = 2.0_kind_phys*cnst_mw(ix)
            icnst = dry_air_species_num
@@ -573,6 +590,7 @@ CONTAINS
            thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys/mw
            thermodynamic_active_species_kv(icnst)  = 3.42_kind_phys
            thermodynamic_active_species_kc(icnst)  = 56._kind_phys
+#endif
          end if
          !
          ! if last major species is not N2 then add code here
@@ -610,6 +628,8 @@ CONTAINS
          if (ix<1) then
            write(iulog, *) subname//' dry air component not found: ', dry_air_species(i)
            call endrun(subname // ':: dry air component not found')
+!Un-comment once constituents are enabled -JN:
+#if 0
          else
            mw = cnst_mw(ix)
            thermodynamic_active_species_idx(icnst) = ix
@@ -620,6 +640,7 @@ CONTAINS
            thermodynamic_active_species_kv(icnst)  = 3.9_kind_phys
            thermodynamic_active_species_kc(icnst)  = 75.9_kind_phys
            icnst = icnst+1
+#endif
          end if
        !
        ! O2
@@ -630,6 +651,8 @@ CONTAINS
          if (ix<1) then
            write(iulog, *) subname//' dry air component not found: ', dry_air_species(i)
            call endrun(subname // ':: dry air component not found')
+!Un-comment once constituents are enabled -JN:
+#if 0
          else
            mw = cnst_mw(ix)
            thermodynamic_active_species_idx(icnst) = ix
@@ -640,6 +663,7 @@ CONTAINS
            thermodynamic_active_species_kv(icnst)  = 4.03_kind_phys
            thermodynamic_active_species_kc(icnst)  = 56._kind_phys
            icnst = icnst+1
+#endif
          end if
        !
        ! H
@@ -650,6 +674,8 @@ CONTAINS
          if (ix<1) then
            write(iulog, *) subname//' dry air component not found: ', dry_air_species(i)
            call endrun(subname // ':: dry air component not found')
+!Un-comment once constituents are enabled -JN:
+#if 0
          else
            mw = cnst_mw(ix)
            thermodynamic_active_species_idx(icnst) = ix
@@ -660,6 +686,7 @@ CONTAINS
            thermodynamic_active_species_kv(icnst)  = 0.0_kind_phys
            thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
            icnst = icnst+1
+#endif
          end if
        !
        ! If support for more major species is to be included add code here
@@ -784,8 +811,8 @@ CONTAINS
          if (ix<1) then
            write(iulog, *) subname//' moist air component not found: ', water_species_in_air(i)
            call endrun(subname // ':: moist air component not found')
+
          else
-           mw = cnst_mw(ix)
            thermodynamic_active_species_idx(icnst) = ix
            thermodynamic_active_species_cp (icnst) = cpice
            thermodynamic_active_species_cv (icnst) = cpice
@@ -981,7 +1008,245 @@ cpv = 0._kind_phys
 !!XXgoldyXX: ^  until we get constituents figured out in CCPP
 
    end subroutine physconst_calc_kappav
+   !
+   !****************************************************************************************************************
+   !
+   ! Compute pressure level thickness from dry pressure and thermodynamic active species mixing ratios
+   !
+   ! Tracer can either be in units of dry mixing ratio (mixing_ratio=1) or "mass" (=m*dp_dry) (mixing_ratio=2)
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_dp(i0,i1,j0,j1,k0,k1,ntrac,tracer,mixing_ratio,active_species_idx,dp_dry,dp,ps,ptop)
+     !Given that this routine is only used by the dycore,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
 
+     integer,  intent(in)  :: i0,i1,j0,j1,k0,k1,ntrac            ! array bounds
+     real(r8), intent(in)  :: tracer(i0:i1,j0:j1,k0:k1,1:ntrac)  ! tracers; quantity specified by mixing_ratio arg
+     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
+                                                                 ! 2 => tracer is mass (q*dp)
+     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     real(r8), intent(in)  :: dp_dry(i0:i1,j0:j1,k0:k1)          ! dry pressure level thickness
+     real(r8), intent(out) :: dp(i0:i1,j0:j1,k0:k1)              ! pressure level thickness
+     real(r8), optional,intent(out) :: ps(i0:i1,j0:j1)           ! surface pressure (if ps present then ptop
+                                                                 !                   must be present)
+     real(r8), optional,intent(in)  :: ptop                      ! pressure at model top
+
+     integer :: i,j,k,m_cnst,nq
+
+     dp = dp_dry
+     if (mixing_ratio==1) then
+       do nq=dry_air_species_num+1,thermodynamic_active_species_num
+         m_cnst = active_species_idx(nq)
+         do k=k0,k1
+           do j=j0,j1
+             do i = i0,i1
+               dp(i,j,k) = dp(i,j,k) + dp_dry(i,j,k)*tracer(i,j,k,m_cnst)
+             end do
+           end do
+         end do
+       end do
+     else
+       do nq=dry_air_species_num+1,thermodynamic_active_species_num
+         m_cnst = active_species_idx(nq)
+         do k=k0,k1
+           do j=j0,j1
+             do i = i0,i1
+               dp(i,j,k) = dp(i,j,k) + tracer(i,j,k,m_cnst)
+             end do
+           end do
+         end do
+       end do
+     end if
+     if (present(ps)) then
+       if (present(ptop)) then
+         ps = ptop
+         do k=k0,k1
+           do j=j0,j1
+             do i = i0,i1
+               ps(i,j) = ps(i,j)+dp(i,j,k)
+             end do
+           end do
+         end do
+       else
+         call endrun('get_dp: if ps is present ptop must be present')
+       end if
+     end if
+   end subroutine get_dp
+   !
+   !*************************************************************************************************************************
+   !
+   ! compute mid-level (full level) pressure from dry pressure and water tracers
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_pmid_from_dpdry(i0,i1,j0,j1,nlev,ntrac,tracer,mixing_ratio,active_species_idx, &
+                                  dp_dry, ptop, pmid, pint, dp)
+
+     !Given that this routine is only used by the dycore,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)  :: i0,i1,j0,j1,nlev,ntrac             ! array bounds
+     real(r8), intent(in)  :: tracer(i0:i1,j0:j1,nlev,1:ntrac)   ! tracers; quantity specified by mixing_ratio arg
+     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
+                                                                 ! 2 => tracer is mass (q*dp)
+     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     real(r8), intent(in)  :: dp_dry(i0:i1,j0:j1,nlev)           ! dry pressure level thickness
+     real(r8), intent(in)  :: ptop                               ! model top pressure
+     real(r8), intent(out) :: pmid(i0:i1,j0:j1,nlev)             ! mid-level pressure
+     real(r8), optional, intent(out) :: pint(i0:i1,j0:j1,nlev+1) ! half-level pressure
+     real(r8), optional, intent(out) :: dp(i0:i1,j0:j1,nlev)     ! presure level thickness
+
+     real(r8) :: dp_local(i0:i1,j0:j1,nlev)                      ! local pressure level thickness
+     real(r8) :: pint_local(i0:i1,j0:j1,nlev+1)                  ! local interface pressure
+     integer  :: k
+
+     call get_dp(i0,i1,j0,j1,1,nlev,ntrac,tracer,mixing_ratio,active_species_idx,dp_dry,dp_local)
+     pint_local(:,:,1) = ptop
+     do k=2,nlev+1
+       pint_local(:,:,k) = dp_local(:,:,k-1)+pint_local(:,:,k-1)
+     end do
+
+     call get_pmid_from_dp(i0,i1,j0,j1,1,nlev,dp_local,ptop,pmid,pint_local)
+
+     if (present(pint)) pint=pint_local
+     if (present(dp)) dp=dp_local
+   end subroutine get_pmid_from_dpdry
+   !
+   !*************************************************************************************************************************
+   !
+   ! compute mid-level (full level) pressure
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_pmid_from_dp(i0,i1,j0,j1,k0,k1,dp,ptop,pmid,pint)
+     !Given that this routine is only used by the dycore,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+     use physics_types,          only: dycore_gz_log_calc
+
+     integer,  intent(in)            :: i0,i1,j0,j1,k0,k1         ! array bounds
+     real(r8), intent(in)            :: dp(i0:i1,j0:j1,k0:k1)     ! dry pressure level thickness
+     real(r8), intent(in)            :: ptop                      ! pressure at model top
+     real(r8), intent(out)           :: pmid(i0:i1,j0:j1,k0:k1)   ! mid (full) level pressure
+     real(r8), optional, intent(out) :: pint(i0:i1,j0:j1,k0:k1+1) ! pressure at interfaces (half levels)
+
+     real(r8) :: pint_local(i0:i1,j0:j1,k0:k1+1)
+     integer  :: k
+
+     pint_local(:,:,k0) = ptop
+     do k=k0+1,k1+1
+       pint_local(:,:,k) = dp(:,:,k-1)+pint_local(:,:,k-1)
+     end do
+
+     if (dycore_gz_log_calc) then
+       do k=k0,k1
+         pmid(:,:,k) = dp(:,:,k)/(log(pint_local(:,:,k+1))-log(pint_local(:,:,k)))
+       end do
+     else
+       do k=k0,k1
+         pmid(:,:,k) = 0.5_r8*(pint_local(:,:,k)+pint_local(:,:,k+1))
+       end do
+     end if
+     if (present(pint)) pint=pint_local
+   end subroutine get_pmid_from_dp
+   !
+   !****************************************************************************************************************
+   !
+   ! Compute Exner pressure
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_exner(i0,i1,j0,j1,nlev,ntrac,tracer,mixing_ratio,active_species_idx,&
+        dp_dry,ptop,p00,inv_exner,exner,poverp0)
+
+     !Given that this routine is only used by the dycore,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)  :: i0,i1,j0,j1,nlev,ntrac             ! index bounds
+     real(r8), intent(in)  :: tracer(i0:i1,j0:j1,nlev,1:ntrac)   ! tracers; quantity specified by mixing_ratio arg
+     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
+                                                                 ! 2 => tracer is mass (q*dp)
+     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     real(r8), intent(in)  :: dp_dry(i0:i1,j0:j1,nlev)           ! dry pressure level thickness
+     real(r8), intent(in)  :: ptop                               ! pressure at model top
+     real(r8), intent(in)  :: p00                                ! reference pressure for Exner pressure (usually 1000hPa)
+     logical , intent(in)  :: inv_exner                          ! logical for outputting inverse Exner or Exner pressure
+     real(r8), intent(out) :: exner(i0:i1,j0:j1,nlev)
+     real(r8), optional, intent(out) :: poverp0(i0:i1,j0:j1,nlev)! for efficiency when a routine needs this variable
+
+     real(r8) :: pmid(i0:i1,j0:j1,nlev),kappa_dry(i0:i1,j0:j1,nlev)
+     !
+     ! compute mid level pressure
+     !
+     call get_pmid_from_dpdry(i0,i1,j0,j1,nlev,ntrac,tracer,mixing_ratio,active_species_idx,dp_dry,ptop,pmid)
+     !
+     ! compute kappa = Rd/cpd
+     !
+     if (mixing_ratio==1) then
+       call get_kappa_dry(i0,i1,j0,j1,1,nlev,nlev,ntrac,tracer,active_species_idx,kappa_dry)
+     else
+       call get_kappa_dry(i0,i1,j0,j1,1,nlev,nlev,ntrac,tracer,active_species_idx,kappa_dry,1.0_r8/dp_dry)
+     end if
+     if (inv_exner) then
+       exner(:,:,:) = (p00/pmid(:,:,:))**kappa_dry(:,:,:)
+     else
+       exner(:,:,:) = (pmid(:,:,:)/p00)**kappa_dry(:,:,:)
+     end if
+     if (present(poverp0)) poverp0=pmid(:,:,:)/p00
+   end subroutine get_exner
+   !
+   !****************************************************************************************************************
+   !
+   ! Compute geopotential from pressure level thickness and virtual temperature
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_gz_given_dp_Tv_Rdry(i0,i1,j0,j1,nlev,dp,T_v,R_dry,phis,ptop,gz,pmid)
+     !Given that this routine is only used by the dycore,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+     use physics_types,          only: dycore_gz_log_calc
+
+     integer,  intent(in)  :: i0,i1,j0,j1,nlev                 ! array bounds
+     real(r8), intent(in)  :: dp   (i0:i1,j0:j1,nlev)          ! pressure level thickness
+     real(r8), intent(in)  :: T_v  (i0:i1,j0:j1,nlev)          ! virtual temperature
+     real(r8), intent(in)  :: R_dry(i0:i1,j0:j1,nlev)          ! R dry
+     real(r8), intent(in)  :: phis (i0:i1,j0:j1)               ! surface geopotential
+     real(r8), intent(in)  :: ptop                             ! model top presure
+     real(r8), intent(out) :: gz(i0:i1,j0:j1,nlev)             ! geopotential
+     real(r8), optional, intent(out) :: pmid(i0:i1,j0:j1,nlev) ! mid-level pressure
+
+
+     real(r8), dimension(i0:i1,j0:j1,nlev)   :: pmid_local
+     real(r8), dimension(i0:i1,j0:j1,nlev+1) :: pint
+     real(r8), dimension(i0:i1,j0:j1)        :: gzh, Rdry_tv
+     integer                                 :: k
+
+     call get_pmid_from_dp(i0,i1,j0,j1,1,nlev,dp,ptop,pmid_local,pint)
+
+     !
+     ! integrate hydrostatic eqn
+     !
+     gzh = phis
+     if (dycore_gz_log_calc) then
+       do k=nlev,1,-1
+         Rdry_tv(:,:) = R_dry(:,:,k)*T_v(:,:,k)
+         gz(:,:,k) = gzh(:,:)+Rdry_tv(:,:)*(1.0_r8-pint(:,:,k)/pmid_local(:,:,k))
+         gzh(:,:)  = gzh(:,:) + Rdry_tv(:,:)*(log(pint(:,:,k+1))-log(pint(:,:,k)))
+       end do
+     else
+       do k=nlev,1,-1
+         Rdry_tv(:,:) = R_dry(:,:,k)*T_v(:,:,k)
+         gz(:,:,k) = gzh(:,:)+Rdry_tv(:,:)*0.5_r8*dp(:,:,k)/pmid_local(:,:,k)
+         gzh(:,:)  = gzh(:,:) + Rdry_tv(:,:)*dp(:,:,k)/pmid_local(:,:,k)
+       end do
+     end if
+     if (present(pmid)) pmid=pmid_local
+   end subroutine get_gz_given_dp_Tv_Rdry
    !
    !*************************************************************************************************************************
    !
@@ -1117,6 +1382,47 @@ cpv = 0._kind_phys
      end if
    end subroutine get_molecular_diff_coef
    !
+   !*************************************************************************************************************************
+   !
+   ! compute reference vertical profile of density, molecular diffusion and thermal conductivity
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_molecular_diff_coef_reference(k0,k1,tref,press,sponge_factor,kmvis_ref,kmcnd_ref,rho_ref)
+
+     !Given that this routine is only used with the dycore structures,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     ! args
+     integer,  intent(in)           :: k0,k1                !min/max vertical index
+     real(r8), intent(in)           :: tref                 !reference temperature
+     real(r8), intent(in)           :: press(k0:k1)         !pressure
+     real(r8), intent(in)           :: sponge_factor(k0:k1) !multiply kmvis and kmcnd with sponge_factor (for sponge layer)
+     real(r8), intent(out)          :: kmvis_ref(k0:k1)     !reference molecular diffusion coefficient
+     real(r8), intent(out)          :: kmcnd_ref(k0:k1)     !reference thermal conductivity coefficient
+     real(r8), intent(out)          :: rho_ref(k0:k1)       !reference density
+
+     ! local vars
+     integer :: k
+
+     !--------------------------------------------
+     ! Set constants needed for updates
+     !--------------------------------------------
+
+     do k=k0,k1
+       rho_ref(k) = press(k)/(tref*Rair) !ideal gas law for dry air
+       kmvis_ref(k) = sponge_factor(k)* &
+            (kv1*mmro2*o2_mwi +         &
+             kv2*mmrn2*n2_mwi)*mbar*    &
+             tref**kv4 * 1.e-7_r8
+       kmcnd_ref(k) = sponge_factor(k)* &
+            (kc1*mmro2*o2_mwi +         &
+             kc2*mmrn2*n2_mwi)*mbar*    &
+             tref**kc4 * 1.e-5_r8
+     end do
+   end subroutine get_molecular_diff_coef_reference
+   !
    !****************************************************************************************************************
    !
    ! Compute dry air heaet capacity under constant pressure
@@ -1170,6 +1476,186 @@ cpv = 0._kind_phys
      end if
    end subroutine get_cp_dry
    !
+   !****************************************************************************************************************
+   !
+   ! Compute generalized dry air gas constant R
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_R_dry(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer,active_species_idx_dycore,R_dry,fact)
+     !Only called by the dycore, so "r8" kind is used:
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)  :: i0,i1,j0,j1,k0,k1,ntrac,k0_trac,k1_trac    !array boundas
+     real(r8), intent(in)  :: tracer(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac)!tracer array
+     integer,  intent(in)  :: active_species_idx_dycore(:)               !index of active species in tracer
+     real(r8), intent(out) :: R_dry(i0:i1,j0:j1,k0:k1)                   !dry air R
+     real(r8), optional, intent(in) :: fact(i0:i1,j0:j1,k0_trac:k1_trac) !factor for converting tracer to dry mixing ratio
+
+     integer :: i,j,k,m_cnst,nq
+     real(r8):: factor(i0:i1,j0:j1,k0_trac:k1_trac), residual(i0:i1,j0:j1,k0:k1), mm
+     if (dry_air_species_num==0) then
+       !
+       ! dry air not species dependent
+       !
+       R_dry = rair
+     else
+       if (present(fact)) then
+         factor = fact(:,:,:)
+       else
+         factor = 1.0_r8
+       endif
+
+       R_dry = 0.0_r8
+       residual = 1.0_r8
+       do nq=1,dry_air_species_num-1
+         m_cnst = active_species_idx_dycore(nq)
+         do k=k0,k1
+           do j=j0,j1
+             do i = i0,i1
+               mm = tracer(i,j,k,m_cnst)*factor(i,j,k)
+               R_dry(i,j,k) = R_dry(i,j,k)+thermodynamic_active_species_R(nq)*mm
+               residual(i,j,k) = residual(i,j,k) - mm
+             end do
+           end do
+         end do
+       end do
+       !
+       ! last dry air constituent derived from the others
+       !
+       nq = dry_air_species_num
+       do k=k0,k1
+         do j=j0,j1
+           do i = i0,i1
+             R_dry(i,j,k) = R_dry(i,j,k)+thermodynamic_active_species_R(nq)*residual(i,j,k)
+           end do
+         end do
+       end do
+     end if
+   end subroutine get_R_dry
+   !
+   !****************************************************************************************************************
+   !
+   ! g*compute thermal energy = cp*T*dp, where dp is pressure level thickness, cp is generalized cp and T temperature
+   !
+   ! Note:tracer is in units of m*dp_dry ("mass")
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_thermal_energy(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,temp,dp_dry,thermal_energy, &
+                                 active_species_idx_dycore)
+
+     !Only called by the dycore, so "r8" kind is used:
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)           :: i0,i1,j0,j1,k0,k1,ntrac
+     real(r8), intent(in)           :: tracer_mass(i0:i1,j0:j1,k0:k1,ntrac)!tracer array (mass weighted)
+     real(r8), intent(in)           :: temp(i0:i1,j0:j1,k0:k1)             !temperature
+     real(r8), intent(in)           :: dp_dry(i0:i1,j0:j1,k0:k1)           !dry presure level thickness
+     real(r8), optional, intent(out):: thermal_energy(i0:i1,j0:j1,k0:k1)   !thermal energy in each column: sum cp*T*dp
+     !
+     ! array of indicies for index of thermodynamic active species in dycore tracer array
+     ! (if different from physics index)
+     !
+     integer, optional, dimension(:) :: active_species_idx_dycore
+
+     ! local vars
+     integer :: nq, itrac
+     integer, dimension(thermodynamic_active_species_num)                   :: idx_local
+     !
+     ! some sanity checks
+     !
+     if (present(active_species_idx_dycore)) then
+       idx_local = active_species_idx_dycore
+     else
+       idx_local = thermodynamic_active_species_idx
+     end if
+     !
+     ! "mass-weighted" cp (dp must be dry)
+     !
+     if (dry_air_species_num==0) then
+       thermal_energy(:,:,:) = thermodynamic_active_species_cp(0)*dp_dry(:,:,:)
+     else
+       call get_cp_dry(i0,i1,j0,j1,k0,k1,k0,k1,ntrac,tracer_mass,idx_local,thermal_energy,fact=1.0_r8/dp_dry(:,:,:))
+       thermal_energy(:,:,:) = thermal_energy(:,:,:)*dp_dry(:,:,:)
+     end if
+     !
+     ! tracer is in units of m*dp ("mass"), where m is dry mixing ratio and dry pressure level thickness
+     !
+     do nq=dry_air_species_num+1,thermodynamic_active_species_num
+       itrac = idx_local(nq)
+       thermal_energy(:,:,:) = thermal_energy(:,:,:)+thermodynamic_active_species_cp(nq)*tracer_mass(:,:,:,itrac)
+     end do
+     thermal_energy(:,:,:) = thermal_energy(:,:,:)*temp(:,:,:)
+   end subroutine get_thermal_energy
+   !
+   !****************************************************************************************************************
+   !
+   ! Compute virtual temperature T_v
+   !
+   ! tracer is in units of dry mixing ratio unless optional argument dp_dry is present in which case tracer is
+   ! in units of "mass" (=m*dp)
+   !
+   ! If temperature is not supplied then just return factor that T needs to be multiplied by to get T_v
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_virtual_temp(i0,i1,j0,j1,k0,k1,ntrac,tracer,T_v,temp,dp_dry,sum_q, &
+                               active_species_idx_dycore)
+
+     !Given that this routine is only used by the dycore,
+     !the "r8" kind is used instead of "kind_phys":
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+     use cam_logfile,            only: iulog
+     ! args
+     integer,  intent(in)           :: i0,i1,j0,j1,k0,k1,ntrac
+     real(r8), intent(in)           :: tracer(i0:i1,j0:j1,k0:k1,ntrac) !tracer array
+     real(r8), intent(out)          :: T_v(i0:i1,j0:j1,k0:k1)          !virtual temperature
+     real(r8), optional, intent(in) :: temp(i0:i1,j0:j1,k0:k1)         !temperature
+     real(r8), optional, intent(in) :: dp_dry(i0:i1,j0:j1,k0:k1)       !dry pressure level thickness
+     real(r8), optional,intent(out) :: sum_q(i0:i1,j0:j1,k0:k1)        !sum tracer
+     !
+     ! array of indicies for index of thermodynamic active species in dycore tracer array
+     ! (if different from physics index)
+     !
+     integer, optional,  intent(in) :: active_species_idx_dycore(:)
+
+     ! local vars
+     integer :: itrac,nq
+     real(r8),  dimension(i0:i1,j0:j1,k0:k1)              :: sum_species, factor, Rd
+     integer, dimension(thermodynamic_active_species_num) :: idx_local,idx
+     if (present(active_species_idx_dycore)) then
+       idx_local = active_species_idx_dycore
+     else
+       idx_local = thermodynamic_active_species_idx
+     end if
+
+     if (present(dp_dry)) then
+       factor = 1.0_r8/dp_dry
+     else
+       factor = 1.0_r8
+     end if
+
+     sum_species = 1.0_r8 !all dry air species sum to 1
+     do nq=dry_air_species_num+1,thermodynamic_active_species_num
+       itrac = idx_local(nq)
+       sum_species(:,:,:) = sum_species(:,:,:) + tracer(:,:,:,itrac)*factor(:,:,:)
+     end do
+
+     call get_R_dry (i0,i1,j0,j1,k0,k1,k0,k1,ntrac,tracer,idx_local,Rd,fact=factor)
+     t_v(:,:,:)  = Rd(:,:,:)
+     do nq=dry_air_species_num+1,thermodynamic_active_species_num
+       itrac = idx_local(nq)
+       t_v(:,:,:) = t_v(:,:,:)+thermodynamic_active_species_R(nq)*tracer(:,:,:,itrac)*factor(:,:,:)
+     end do
+     if (present(temp)) then
+       t_v(:,:,:)  = t_v(:,:,:)*temp(:,:,:)/(Rd(:,:,:)*sum_species)
+     else
+       t_v(:,:,:)  = t_v(:,:,:)/(Rd(:,:,:)*sum_species)
+     end if
+     if (present(sum_q)) sum_q=sum_species
+   end subroutine get_virtual_temp
+   !
    !*************************************************************************************************************************
    !
    ! Compute generalized heat capacity at constant pressure
@@ -1192,7 +1678,7 @@ cpv = 0._kind_phys
 
      ! local vars
      integer :: nq,i,j,k, itrac
-     real(r8),  dimension(i0:i1,j0:j1,k0:k1)  :: sum_species, sum_cp, factor
+     real(kind_phys),  dimension(i0:i1,j0:j1,k0:k1)  :: sum_species, sum_cp, factor
      integer, dimension(thermodynamic_active_species_num) :: idx_local
 
      if (present(active_species_idx_dycore)) then
@@ -1229,5 +1715,205 @@ cpv = 0._kind_phys
      end if
 
    end subroutine get_cp
+   !
+   !*************************************************************************************************************************
+   !
+   ! compute reference pressure levels
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_dp_ref(hyai, hybi, ps0, i0,i1,j0,j1,k0,k1,phis,dp_ref,ps_ref)
+     !Only called by the dycore, so "r8" kind is used:
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)           :: i0,i1,j0,j1,k0,k1
+     real(r8), intent(in)           :: hyai(k0:k1+1),hybi(k0:k1+1),ps0
+     real(r8), intent(in)           :: phis(i0:i1,j0:j1)
+     real(r8), intent(out)          :: dp_ref(i0:i1,j0:j1,k0:k1)
+     real(r8), intent(out)          :: ps_ref(i0:i1,j0:j1)
+     integer :: k
+     !
+     ! use static reference pressure (hydrostatic balance incl. effect of topography)
+     !
+     ps_ref(:,:) = ps0*exp(-phis(:,:)/(Rair*Tref))
+     do k=k0,k1
+       dp_ref(:,:,k) = ((hyai(k+1)-hyai(k))*ps0 + (hybi(k+1)-hybi(k))*ps_ref(:,:))
+     end do
+   end subroutine get_dp_ref
+   !
+   !*************************************************************************************************************************
+   !
+   ! compute dry densisty from temperature (temp) and pressure (dp_dry and tracer)
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_rho_dry(i0,i1,j0,j1,k1,nlev,ntrac,tracer,temp,ptop,dp_dry,tracer_mass,&
+        rho_dry, rhoi_dry,active_species_idx_dycore,pint_out,pmid_out)
+
+     !Only called by the dycore, so "r8" kind is used:
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     ! args
+     integer,  intent(in)           :: i0,i1,j0,j1,k1,ntrac,nlev
+     real(r8), intent(in)           :: tracer(i0:i1,j0:j1,nlev,ntrac) ! Tracer array
+     real(r8), intent(in)           :: temp(i0:i1,j0:j1,1:nlev) ! Temperature
+     real(r8), intent(in)           :: ptop
+     real(r8), intent(in)           :: dp_dry(i0:i1,j0:j1,nlev)
+     logical,  intent(in)           :: tracer_mass
+     real(r8), optional,intent(out) :: rho_dry(i0:i1,j0:j1,1:k1)
+     real(r8), optional,intent(out) :: rhoi_dry(i0:i1,j0:j1,1:k1+1)
+     !
+     ! array of indicies for index of thermodynamic active species in dycore tracer array
+     ! (if different from physics index)
+     !
+     integer, optional, intent(in)   :: active_species_idx_dycore(:)
+     real(r8),optional,intent(out)   :: pint_out(i0:i1,j0:j1,1:k1+1)
+     real(r8),optional,intent(out)   :: pmid_out(i0:i1,j0:j1,1:k1)
+
+     ! local vars
+     integer :: i,j,k
+     real(r8),  dimension(i0:i1,j0:j1,1:k1)              :: pmid
+     real(r8):: pint(i0:i1,j0:j1,1:k1+1)
+     real(r8), allocatable :: R_dry(:,:,:)
+     integer,  dimension(thermodynamic_active_species_num):: idx_local
+
+     if (present(active_species_idx_dycore)) then
+       idx_local = active_species_idx_dycore
+     else
+       idx_local = thermodynamic_active_species_idx
+     end if
+     !
+     ! we assume that air is dry where molecular viscosity may be significant
+     !
+     call get_pmid_from_dp(i0,i1,j0,j1,1,k1,dp_dry,ptop,pmid,pint=pint)
+     if (present(pint_out)) pint_out=pint
+     if (present(pint_out)) pmid_out=pmid
+     if (present(rhoi_dry)) then
+       allocate(R_dry(i0:i1,j0:j1,1:k1+1))
+       if (tracer_mass) then
+         call get_R_dry(i0,i1,j0,j1,1,k1+1,1,nlev,ntrac,tracer,idx_local,R_dry,fact=1.0_r8/dp_dry)
+       else
+         call get_R_dry(i0,i1,j0,j1,1,k1+1,1,nlev,ntrac,tracer,idx_local,R_dry)
+       end if
+       do k=2,k1+1
+         rhoi_dry(i0:i1,j0:j1,k) = 0.5_r8*(temp(i0:i1,j0:j1,k)+temp(i0:i1,j0:j1,k-1))!could be more accurate!
+         rhoi_dry(i0:i1,j0:j1,k) = pint(i0:i1,j0:j1,k)/(rhoi_dry(i0:i1,j0:j1,k)*R_dry(i0:i1,j0:j1,k)) !ideal gas law for dry air
+       end do
+       !
+       ! extrapolate top level value
+       !
+       k=1
+       rhoi_dry(i0:i1,j0:j1,k) = 1.5_r8*(temp(i0:i1,j0:j1,1)-0.5_r8*temp(i0:i1,j0:j1,2))
+       rhoi_dry(i0:i1,j0:j1,k) = pint(i0:i1,j0:j1,1)/(rhoi_dry(i0:i1,j0:j1,k)*R_dry(i0:i1,j0:j1,k)) !ideal gas law for dry air
+       deallocate(R_dry)
+     end if
+     if (present(rho_dry)) then
+       allocate(R_dry(i0:i1,j0:j1,1:k1))
+       if (tracer_mass) then
+         call get_R_dry(i0,i1,j0,j1,1,k1,1,nlev,ntrac,tracer,idx_local,R_dry,fact=1.0_r8/dp_dry)
+       else
+         call get_R_dry(i0,i1,j0,j1,1,k1,1,nlev,ntrac,tracer,idx_local,R_dry)
+       end if
+       do k=1,k1
+         do j=j0,j1
+           do i=i0,i1
+             rho_dry(i,j,k) = pmid(i,j,k)/(temp(i,j,k)*R_dry(i,j,k)) !ideal gas law for dry air
+           end do
+         end do
+       end do
+     end if
+   end subroutine get_rho_dry
+   !
+   !*************************************************************************************************************************
+   !
+   ! compute molecular weight dry air
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_mbarv(i0,i1,j0,j1,k0,k1,nlev,ntrac,tracer,active_species_idx,mbarv,fact)
+     !Only called by the dycore, so "r8" kind is used:
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)           :: i0,i1,j0,j1,k0,k1,ntrac, nlev
+     real(r8), intent(in)           :: tracer(i0:i1,j0:j1,nlev,1:ntrac) !tracer array
+     integer,  intent(in)           :: active_species_idx(:)     !index of active species in tracer
+     real(r8), intent(out)          :: mbarv(i0:i1,j0:j1,k0:k1)  !molecular weight of dry air
+     real(r8), optional, intent(in) :: fact(i0:i1,j0:j1,nlev)    !factor for converting tracer to dry mixing ratio
+
+     integer :: i,j,k,m_cnst,nq
+     real(r8):: factor(i0:i1,j0:j1,k0:k1), residual(i0:i1,j0:j1,k0:k1), mm
+     !
+     ! dry air not species dependent
+     !
+     if (dry_air_species_num==0) then
+       mbarv = mwdry
+     else
+       if (present(fact)) then
+         factor = fact(:,:,:)
+       else
+         factor = 1.0_r8
+       endif
+
+       mbarv = 0.0_r8
+       residual = 1.0_r8
+       do nq=1,dry_air_species_num-1
+         m_cnst = active_species_idx(nq)
+         do k=k0,k1
+           do j=j0,j1
+             do i = i0,i1
+               mm = tracer(i,j,k,m_cnst)*factor(i,j,k)
+               mbarv(i,j,k) = mbarv(i,j,k)+thermodynamic_active_species_mwi(nq)*mm
+               residual(i,j,k) = residual(i,j,k) - mm
+             end do
+           end do
+         end do
+       end do
+       nq = dry_air_species_num
+       do k=k0,k1
+         do j=j0,j1
+           do i = i0,i1
+             mbarv(i,j,k) = mbarv(i,j,k)+thermodynamic_active_species_mwi(nq)*residual(i,j,k)
+           end do
+         end do
+       end do
+       mbarv(i0:i1,j0:j1,k0:k1) = 1.0_r8/mbarv(i0:i1,j0:j1,k0:k1)
+     end if
+   end subroutine get_mbarv
+   !
+   !*************************************************************************************************************************
+   !
+   ! compute generalized kappa =Rdry/cpdry
+   !
+   !*************************************************************************************************************************
+   !
+   subroutine get_kappa_dry(i0,i1,j0,j1,k0,k1,nlev,ntrac,tracer,active_species_idx,kappa_dry,fact)
+     !Only called by the dycore, so "r8" kind is used:
+     use shr_kind_mod,           only: r8=>shr_kind_r8
+
+     integer,  intent(in)  :: i0,i1,j0,j1,k0,k1,ntrac,nlev
+     real(r8), intent(in)  :: tracer(i0:i1,j0:j1,nlev,1:ntrac)   !tracer array
+     integer,  intent(in)  :: active_species_idx(:)              !index of thermodynamic active tracers
+     real(r8), intent(out) :: kappa_dry(i0:i1,j0:j1,k0:k1)       !kappa dry
+     real(r8), optional, intent(in) :: fact(i0:i1,j0:j1,nlev)    !factor for converting tracer to dry mixing ratio
+     !
+     real(r8), allocatable, dimension(:,:,:) :: cp_dry,R_dry
+     !
+     ! dry air not species dependent
+     if (dry_air_species_num==0) then
+       kappa_dry= rair/cpair
+     else
+       allocate(R_dry(i0:i1,j0:j1,k0:k1))
+       allocate(cp_dry(i0:i1,j0:j1,k0:k1))
+       if (present(fact)) then
+         call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,cp_dry,fact=fact)
+         call get_R_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,R_dry,fact=fact)
+       else
+         call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,cp_dry)
+         call get_R_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,R_dry)
+       end if
+       kappa_dry = R_dry/cp_dry
+       deallocate(R_dry,cp_dry)
+     end if
+   end subroutine get_kappa_dry
 
 end module physconst

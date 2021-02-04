@@ -8,6 +8,7 @@ use perf_mod,       only: t_startf, t_stopf, t_barrierf
 
 !SE dycore:
 use parallel_mod,   only: par
+use dimensions_mod, only: nelemd
 
 implicit none
 private

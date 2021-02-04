@@ -10,7 +10,7 @@ module fvm_consistent_se_cslam
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
   use hybrid_mod,             only: hybrid_t, config_thread_region, get_loop_ranges, threadOwnsVertLevel
-  use perf_mod,               only: t_startf, t_stopf 
+  use perf_mod,               only: t_startf, t_stopf
   implicit none
   private
   save
@@ -36,10 +36,11 @@ contains
     use fvm_reconstruction_mod, only: reconstruction
     use fvm_analytic_mod      , only: gauss_points
     use edge_mod              , only: ghostpack, ghostunpack
-    use edgetype_mod          , only: edgebuffer_t    
+    use edgetype_mod          , only: edgebuffer_t
     use bndry_mod             , only: ghost_exchange
     use hybvcoord_mod         , only: hvcoord_t
-    use constituents          , only: qmin
+!Un-comment once constituents are enabled -JN:
+!    use constituents          , only: qmin
     use dimensions_mod        , only: large_Courant_incr,irecons_tracer_lev
     use thread_mod            , only: vert_num_threads, omp_set_nested
     implicit none
@@ -199,7 +200,7 @@ contains
       call fill_halo_fvm(ghostbufQ1,elem,fvm,hybridnew,nets,nete,1,kmin_jet_local,kmax_jet_local,klev,active=ActiveJetThread)
       !call t_stopf('fvm:fill_halo_fvm:large_Courant')
       !call t_startf('fvm:large_Courant_number_increment')
-      if(ActiveJetThread) then 
+      if(ActiveJetThread) then
         do k=kmin_jet_local,kmax_jet_local !1,nlev
           do ie=nets,nete
             call large_courant_number_increment(fvm(ie),k)
@@ -220,14 +221,16 @@ contains
             inv_dp_area(i,j) = 1.0_r8/fvm(ie)%dp_fvm(i,j,k)
           end do
         end do
-        
+
         do itr=1,ntrac
           do j=1,nc
             do i=1,nc
               ! convert to mixing ratio
               fvm(ie)%c(i,j,k,itr) = fvm(ie)%c(i,j,k,itr)*inv_dp_area(i,j)
               ! remove round-off undershoots
-              fvm(ie)%c(i,j,k,itr) = MAX(fvm(ie)%c(i,j,k,itr),qmin(itr))
+              !fvm(ie)%c(i,j,k,itr) = MAX(fvm(ie)%c(i,j,k,itr),qmin(itr))
+!Remove once constituents are enabled and ucomment above line -JN:
+              fvm(ie)%c(i,j,k,itr) = MAX(fvm(ie)%c(i,j,k,itr), 0._r8)
             end do
           end do
         end do
@@ -246,7 +249,7 @@ contains
       end do
     end do
     !call t_stopf('fvm:end_of_reconstruct_subroutine')
-    !$OMP END PARALLEL 
+    !$OMP END PARALLEL
     call omp_set_nested(.false.)
   end subroutine run_consistent_se_cslam
 
@@ -280,7 +283,7 @@ contains
     REAL(KIND=r8), dimension(num_area) :: dp_area
 
     real (kind=r8) :: dp(1-nhc:nc+nhc,1-nhc:nc+nhc)
-    
+
     logical :: tl1,tl2,tr1,tr2
 
     integer, dimension(4), parameter :: imin_side = (/1   ,0   ,1   ,1   /)

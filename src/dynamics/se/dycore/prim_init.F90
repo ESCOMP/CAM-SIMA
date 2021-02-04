@@ -21,6 +21,8 @@ contains
   subroutine prim_init1(elem, fvm, par, Tl)
     use cam_logfile,            only: iulog
     use shr_sys_mod,            only: shr_sys_flush
+    use shr_infnan_mod,         only: nan=>shr_infnan_nan, assignment(=)
+    use mpi,                    only: mpi_integer, mpi_max
     use thread_mod,             only: max_num_threads
     use dimensions_mod,         only: np, nlev, nelem, nelemd, nelemdmax
     use dimensions_mod,         only: GlobalUniqueCols, fv_nphys,irecons_tracer
@@ -44,7 +46,6 @@ contains
     use schedule_mod,           only: genEdgeSched
     use prim_advection_mod,     only: prim_advec_init1
     use cam_abortutils,         only: endrun
-    use spmd_utils,             only: mpi_integer, mpi_max
     use parallel_mod,           only: parallel_t, syncmp, global_shared_buf, nrepro_vars
     use spacecurve_mod,         only: genspacepart
     use dof_mod,                only: global_dof, CreateUniqueIndex, SetElemOffset
@@ -52,7 +53,6 @@ contains
     use physconst,              only: pi
     use reduction_mod,          only: red_min, red_max, red_max_int, red_flops
     use reduction_mod,          only: red_sum, red_sum_int, initreductionbuffer
-    use infnan,                 only: nan, assignment(=)
     use shr_reprosum_mod,       only: repro_sum => shr_reprosum_calc
     use fvm_analytic_mod,       only: compute_basic_coordinate_vars
     use fvm_control_volume_mod, only: fvm_struct, allocate_physgrid_vars

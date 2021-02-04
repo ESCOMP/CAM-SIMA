@@ -40,9 +40,10 @@ CONTAINS
 
   subroutine analytic_ic_readnl(nlfile)
 
+    use mpi,            only: MPI_CHARACTER, MPI_LOGICAL
     use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
     use shr_file_mod,   only: shr_file_getunit, shr_file_freeunit
-    use spmd_utils,     only: masterproc, masterprocid, mpicom, mpi_character, mpi_logical
+    use spmd_utils,     only: masterproc, masterprocid, mpicom
     use shr_string_mod, only: shr_string_toLower
 
     ! Dummy argument
@@ -82,8 +83,8 @@ CONTAINS
     end if
 
     ! Broadcast namelist variables
-    call mpi_bcast(analytic_ic_type, len(analytic_ic_type), mpi_character, masterprocid, mpicom, ierr)
-    call mpi_bcast(nl_not_found, 1, mpi_logical, masterprocid, mpicom, ierr)
+    call mpi_bcast(analytic_ic_type, len(analytic_ic_type), MPI_CHARACTER, masterprocid, mpicom, ierr)
+    call mpi_bcast(nl_not_found, 1, MPI_LOGICAL, masterprocid, mpicom, ierr)
 
     if (nl_not_found) then
        ! If analytic IC functionality is turned on (via a configure switch), then

@@ -469,7 +469,8 @@ contains
     use fvm_control_volume_mod, only: fvm_struct
     use physconst,       only: thermodynamic_active_species_idx_dycore
     use physconst,       only: get_molecular_diff_coef,get_rho_dry
-    use cam_history,     only: outfld, hist_fld_active
+!Un-comment once history output has been resolved in CAMDEN -JN:
+!    use cam_history,     only: outfld, hist_fld_active
 
     type (hybrid_t)    , intent(in)   :: hybrid
     type (element_t)   , intent(inout), target :: elem(:)
@@ -834,6 +835,8 @@ contains
       !
       ! diagnostics
       !
+!Un-comment once history outputs are enabled -JN:
+#if 0
       if (hist_fld_active('nu_kmvis')) then
         do ie=nets,nete
           tmp_kmvis = 0.0_r8
@@ -861,7 +864,7 @@ contains
           call outfld('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)), npsq, ie)
         end do
       end if
-
+#endif
       !
       ! scale by reference value
       !
@@ -1535,8 +1538,9 @@ contains
     use dimensions_mod,         only: npsq,nlev,np,lcp_moist,nc,ntrac,qsize
     use physconst,              only: gravit, cpair, rearth,omega
     use element_mod,            only: element_t
-    use cam_history,            only: outfld, hist_fld_active
-    use constituents,           only: cnst_get_ind
+!Un-comment once constituents and history outputs are enabled -JN:
+!    use cam_history,            only: outfld, hist_fld_active
+!    use constituents,           only: cnst_get_ind
     use string_utils,           only: strlist_get_ind
     use hycoef,                 only: hyai, ps0
     use fvm_control_volume_mod, only: fvm_struct
@@ -1576,6 +1580,9 @@ contains
     character(len=16) :: name_out1,name_out2,name_out3,name_out4,name_out5,name_out6
 
     !-----------------------------------------------------------------------
+
+!Un-comment once history outputs are enabled -JN:
+#if 0
 
     name_out1 = 'SE_'   //trim(outfld_name_suffix)
     name_out2 = 'KE_'   //trim(outfld_name_suffix)
@@ -1713,13 +1720,15 @@ contains
       end do
     end if
 
+#endif
 
   end subroutine calc_tot_energy_dynamics
 
   subroutine output_qdp_var_dynamics(qdp,nx,num_trac,nets,nete,outfld_name)
     use dimensions_mod, only: nlev,ntrac
-    use cam_history   , only: outfld, hist_fld_active
-    use constituents  , only: cnst_get_ind
+!Un-comment once constituents and history outputs are enabled -JN:
+!    use cam_history   , only: outfld, hist_fld_active
+!    use constituents  , only: cnst_get_ind
     !------------------------------Arguments--------------------------------
 
     integer      ,intent(in) :: nx,num_trac,nets,nete
@@ -1732,6 +1741,9 @@ contains
     integer :: ixcldice, ixcldliq, ixtt
     character(len=16) :: name_out1,name_out2,name_out3,name_out4
     !-----------------------------------------------------------------------
+
+!Un-comment once history outputs are enabled -JN:
+#if 0
 
     name_out1 = 'WV_'   //trim(outfld_name)
     name_out2 = 'WI_'   //trim(outfld_name)
@@ -1752,6 +1764,7 @@ contains
         if (ixtt>0    ) call util_function(qdp(:,:,:,ixtt    ,ie),nx,nlev,name_out4,ie)
       end do
     end if
+#endif
   end subroutine output_qdp_var_dynamics
 
   !
@@ -1759,13 +1772,16 @@ contains
   !
   subroutine util_function(f_in,nx,nz,name_out,ie)
     use physconst,   only: gravit
-    use cam_history, only: outfld, hist_fld_active
+!Un-comment once history outputs are enabled -JN:
+!    use cam_history, only: outfld, hist_fld_active
     integer,           intent(in) :: nx,nz,ie
     real(kind=r8),     intent(in) :: f_in(nx,nx,nz)
     character(len=16), intent(in) :: name_out
     real(kind=r8)       :: f_out(nx*nx)
     integer             :: i,j,k
     real(kind=r8)       :: inv_g
+!Un-comment once history outputs are enabled -JN:
+#if 0
     if (hist_fld_active(name_out)) then
       f_out = 0.0_r8
       inv_g = 1.0_r8/gravit
@@ -1779,6 +1795,7 @@ contains
       f_out = f_out*inv_g
       call outfld(name_out,f_out,nx*nx,ie)
     end if
+#endif
   end subroutine util_function
 
    subroutine compute_omega(hybrid,n0,qn0,elem,deriv,nets,nete,dt,hvcoord)

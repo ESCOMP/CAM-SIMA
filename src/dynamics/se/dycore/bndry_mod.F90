@@ -47,9 +47,9 @@ contains
     use schedtype_mod, only: schedule_t, cycle_t, schedule
     use thread_mod,    only: omp_in_parallel, omp_get_thread_num
     use perf_mod,      only: t_startf, t_stopf
-    use spmd_utils,    only: mpi_real8, mpi_success
     use parallel_mod,  only: parallel_t
     use perf_mod,      only: t_startf, t_stopf
+    use mpi,           only: mpi_real8, mpi_success
 
     type (parallel_t)            :: par
     integer, intent(in)          :: nthreads
@@ -156,9 +156,9 @@ contains
     use schedtype_mod, only : schedule_t, cycle_t, schedule
     use thread_mod, only : omp_in_parallel, omp_get_thread_num
     use perf_mod, only : t_startf, t_stopf
-    use spmd_utils,   only: mpi_real8, mpi_success, mpi_status_size
     use parallel_mod, only: parallel_t
     use perf_mod, only : t_startf, t_stopf
+    use mpi, only: mpi_real8, mpi_success, mpi_status_size
 
     type (parallel_t)                 :: par
     integer, intent(in)               :: nthreads
@@ -236,9 +236,9 @@ contains
     use edgetype_mod,  only: Edgebuffer_t
     use schedtype_mod, only: schedule_t, cycle_t, schedule
     use thread_mod,    only: omp_in_parallel, omp_get_thread_num
-    use spmd_utils,    only: mpi_real8, mpi_success
     use parallel_mod,  only: parallel_t
     use perf_mod,      only: t_startf, t_stopf
+    use mpi,           only: mpi_real8, mpi_success
 
     type (parallel_t)                 :: par
     integer, intent(in)               :: nthreads
@@ -334,8 +334,8 @@ contains
     use edgetype_mod,  only: Edgebuffer_t
     use schedtype_mod, only: schedule_t, cycle_t, schedule
     use thread_mod,    only: omp_in_parallel, omp_get_thread_num
-    use spmd_utils,    only: mpi_real8, mpi_success
     use parallel_mod,  only: parallel_t
+    use mpi,           only: mpi_real8, mpi_success
 
     type (parallel_t)                 :: par
     integer, intent(in)               :: nthreads
@@ -463,7 +463,7 @@ contains
     use schedtype_mod, only: schedule_t, cycle_t, schedule
     use thread_mod,    only: omp_in_parallel
     use parallel_mod,  only: parallel_t, status, srequest, rrequest
-    use spmd_utils,    only: mpi_integer, mpi_success
+    use mpi,           only: mpi_integer, mpi_success
 
     type (parallel_t)            :: par
     type (LongEdgeBuffer_t)      :: buffer
@@ -855,7 +855,7 @@ contains
     use schedtype_mod, only : schedule_t, cycle_t, schedule
     use dimensions_mod, only: nelemd
     use parallel_mod, only : status, srequest, rrequest, parallel_t
-    use spmd_utils,  only: mpi_integer, mpi_success,mpi_real8
+    use mpi,            only: mpi_integer, mpi_success,mpi_real8
 
     implicit none
     type (parallel_t)                :: par

@@ -57,7 +57,6 @@ public ::          &
      dyn_import_t, &
      dyn_export_t, &
      dyn_readnl,   &
-     dyn_register, &
      dyn_init,     &
      dyn_run,      &
      dyn_final
@@ -94,16 +93,18 @@ end interface read_dyn_var
 real(r8), parameter :: rad2deg = 180.0_r8 / pi
 real(r8), parameter :: deg2rad = pi / 180.0_r8
 
+integer, parameter :: max_fieldname_len = 27 !Remove once history is enabled -JN
+
 !===============================================================================
 contains
 !===============================================================================
 
 subroutine dyn_readnl(NLFileName)
+   use mpi,            only: mpi_real8, mpi_integer, mpi_character, mpi_logical
    use physconst,      only: thermodynamic_active_species_num
    use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
    use shr_file_mod,   only: shr_file_getunit, shr_file_freeunit
    use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
-   use spmd_utils,     only: mpi_real8, mpi_integer, mpi_character, mpi_logical
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
    use dp_mapping,     only: nphys_pts
    use native_mapping, only: native_mapping_readnl
@@ -579,6 +580,8 @@ subroutine dyn_init(dyn_in, dyn_out)
    !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
    !use gravity_waves_sources, only: gws_init
 
+   use physics_types,  only: ix_qv, ix_cld_liq !Use until constituents are fully-enabled -JN
+
    !SE dycore:
    use prim_advance_mod,   only: prim_advance_init
    use thread_mod,         only: horz_num_threads
@@ -1007,7 +1010,9 @@ subroutine dyn_run(dyn_state)
 
    if (iam >= par%nprocs) return
 
-   ldiag = hist_fld_active('ABS_dPSdt')
+!Un-comment once history output is enabled -JN
+!   ldiag = hist_fld_active('ABS_dPSdt')
+   ldiag = .false.
    if (ldiag) then
       allocate(ps_before(np,np,nelemd))
       allocate(abs_ps_tend(np,np,nelemd))
@@ -1248,7 +1253,7 @@ subroutine read_inidat(dyn_in)
 
    ! Set mask to indicate which columns are active
    nullify(ldof)
-   call cam_grid_get_gcid(cam_grid_id((ini_grid_name), ldof)
+   call cam_grid_get_gcid(cam_grid_id(ini_grid_name), ldof)
    allocate(pmask(npsq*nelemd))
    pmask(:) = (ldof /= 0)
 
@@ -1622,7 +1627,8 @@ subroutine read_inidat(dyn_in)
       factor_array(:,:,:,:) = 1.0_r8/factor_array(:,:,:,:)
 
       do m_cnst = 1, pcnst
-         if (cnst_type(m_cnst) == 'wet') then
+!Un-comment once constituents are enabled -JN:
+!         if (cnst_type(m_cnst) == 'wet') then
             do ie = 1, nelemd
                do k = 1, nlev
                   do j = 1, np
@@ -1640,7 +1646,7 @@ subroutine read_inidat(dyn_in)
                   end do
                end do
             end do
-         end if
+!         end if
       end do
 
       ! initialize dp3d and qdp
@@ -2275,7 +2281,7 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
 !   call infld(trim(fieldname), fh, dimname, 'lev',  1, npsq, 1, nlev,      &
 !         1, nelemd, buffer, found, gridname='GLL') !Remove if below works! -JN
     call cam_read_field(trim(fieldname), fh, buffer, found, 'lev', (/1, nlev/), &
-                        dim3_pos=2, gridname=ini_gird_name, fillvalue=fillvalue)
+                        dim3_pos=2, gridname=ini_grid_name, fillvalue=fillvalue)
    if(.not. found) then
       call endrun('READ_DYN_FIELD_3D: Could not find '//trim(fieldname)//' field on input datafile')
    end if
@@ -2284,7 +2290,7 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
    ! to NaN.  In that case infld can return NaNs where the element GLL
    ! points are not "unique columns".
    ! Set NaNs or fillvalue points to zero:
-   where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue) buffer = 0.0_r8
+   where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue)) buffer = 0.0_r8
 
 end subroutine read_dyn_field_3d
 

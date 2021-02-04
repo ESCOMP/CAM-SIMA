@@ -1,9 +1,9 @@
 module dof_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8, i8=>shr_kind_i8
+  use mpi,            only: mpi_integer
   use dimensions_mod, only: np, npsq, nelem, nelemd
   use quadrature_mod, only: quadrature_t
   use element_mod,    only: element_t,index_t
-  use spmd_utils,     only: mpi_integer
   use parallel_mod,   only: parallel_t
   use edge_mod,       only: initedgebuffer,freeedgebuffer,            &
                longedgevpack, longedgevunpackmin
@@ -270,7 +270,7 @@ contains
   end subroutine putUniquePoints4D
 
   subroutine SetElemOffset(par,elem,GlobalUniqueColsP)
-    use spmd_utils, only : mpi_sum
+    use mpi, only: mpi_sum
 
     type (parallel_t)    :: par
     type (element_t)     :: elem(:)

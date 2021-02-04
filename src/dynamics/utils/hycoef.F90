@@ -2,7 +2,7 @@ module hycoef
 
 use shr_kind_mod,     only: r8 => shr_kind_r8
 use spmd_utils,       only: masterproc
-use vert_coord,       only: pver, pverp
+use pmgrid,           only: plev, plevp
 use cam_logfile,      only: iulog
 use cam_abortutils,   only: endrun
 use pio,              only: file_desc_t, var_desc_t, &
@@ -23,25 +23,28 @@ save
 !
 !-----------------------------------------------------------------------
 
-real(r8), public, allocatable, target :: hyai(:)  ! ps0 component of hybrid coordinate - interfaces
-real(r8), public, allocatable, target :: hyam(:)  ! ps0 component of hybrid coordinate - midpoints
-real(r8), public, allocatable, target :: hybi(:)  ! ps component of hybrid coordinate - interfaces
-real(r8), public, allocatable, target :: hybm(:)  ! ps component of hybrid coordinate - midpoints
+real(r8), public, target :: hyai(plevp) ! ps0 component of hybrid coordinate - interfaces
+real(r8), public, target :: hyam(plev)  ! ps0 component of hybrid coordinate - midpoints
+real(r8), public, target :: hybi(plevp) ! ps component of hybrid coordinate - interfaces
+real(r8), public, target :: hybm(plev)  ! ps component of hybrid coordinate - midpoints
 
-real(r8), public, allocatable :: etamid(:)  ! hybrid coordinate - midpoints
+real(r8), public :: etamid(plev)      ! hybrid coordinate - midpoints
 
-real(r8), public, allocatable :: hybd(:)    ! difference  in b (hybi) across layers
-real(r8), public, allocatable :: hypi(:)    ! reference pressures at interfaces
-real(r8), public, allocatable :: hypm(:)    ! reference pressures at midpoints
-real(r8), public, allocatable :: hypd(:)    ! reference pressure layer thickness
+real(r8), public :: hybd(plev)        ! difference  in b (hybi) across layers
+real(r8), public :: hypi(plevp)       ! reference pressures at interfaces
+real(r8), public :: hypm(plev)        ! reference pressures at midpoints
+real(r8), public :: hypd(plev)        ! reference pressure layer thickness
+#ifdef planet_mars
+real(r8), public, protected :: ps0 = 6.0e1_r8    ! Base state surface pressure (pascals)
+real(r8), public, protected :: psr = 6.0e1_r8    ! Reference surface pressure (pascals)
+#else
+real(r8), public, protected :: ps0 = 1.0e5_r8    ! Base state surface pressure (pascals)
+real(r8), public, protected :: psr = 1.0e5_r8    ! Reference surface pressure (pascals)
+#endif
+real(r8), target :: alev(plev)    ! level values (pascals) for 'lev' coord
+real(r8), target :: ailev(plevp)  ! interface level values for 'ilev' coord
 
-real(r8), public, protected :: ps0    ! Base state surface pressure (pascals)
-real(r8), public, protected :: psr    ! Reference surface pressure (pascals)
-
-real(r8), allocatable, target :: alev(:)   ! level values (pascals) for 'lev' coord
-real(r8), allocatable, target :: ailev(:)  ! interface level values for 'ilev' coord
-
-integer, public :: nprlev             ! number of pure pressure levels at top
+integer, public :: nprlev       ! number of pure pressure levels at top
 
 public hycoef_init
 
@@ -54,9 +57,7 @@ contains
 
 subroutine hycoef_init(file, psdry)
 
-!   use cam_history_support, only: add_hist_coord, add_vert_coord, formula_terms_t
-   use physconst,    only: ps_base, ps_ref
-   use string_utils, only: to_str
+   !use cam_history_support, only: add_hist_coord, add_vert_coord, formula_terms_t
 
    !-----------------------------------------------------------------------
    !
@@ -86,79 +87,14 @@ subroutine hycoef_init(file, psdry)
    ! arguments
    type(file_desc_t), intent(inout) :: file
    logical, optional, intent(in)    :: psdry  ! set true when coordinate is based
-                                              ! on dry surface pressure
+                                           ! on dry surface pressure
 
    ! local variables
    integer  :: k        ! Level index
-   integer  :: iret     ! Return status integer
    logical  :: dry_coord
    real(r8) :: amean, bmean, atest, btest, eps
 !   type(formula_terms_t) :: formula_terms ! For the 'lev' and 'ilev' coords
-
-   character(len=*), parameter :: subname = 'hycoef_init'
-
    !-----------------------------------------------------------------------
-
-   ! Initalize reference pressures:
-   ps0 = real(ps_base, r8) ! Base state surface pressure (pascals)
-   psr = real(ps_ref, r8)  ! Reference surface pressure (pascals)
-
-   ! Allocate public variables:
-
-   allocate(hyai(pverp), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hyai(pverp) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hyam(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hyam(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hybi(pverp), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hybi(pverp) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hybm(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hybm(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(etamid(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate etamid(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hybd(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hybd(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hypi(pverp), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hypi(pverp) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hypm(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hypm(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(hypd(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate hypd(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(alev(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate alev(pver) failed with stat: '//to_str(iret))
-   end if
-
-   allocate(ailev(pverp), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate ailev(pverp) failed with stat: '//to_str(iret))
-   end if
 
    ! check for dry pressure coordinate (default is moist)
    dry_coord = .false.
@@ -169,46 +105,41 @@ subroutine hycoef_init(file, psdry)
 
    ! Set layer locations
    nprlev = 0
-   do k=1,pver
+   do k=1,plev
 
       ! Interfaces. Set nprlev to the interface above, the first time a
       ! nonzero surface pressure contribution is found. "nprlev"
       ! identifies the lowest pure pressure interface.
 
-! Remove this line once determine its replacement doesn't cause answer changes
-!      if (nprlev==0 .and. hybi(k).ne.0.0_r8) nprlev = k - 1
-      if (hybi(k) /= 0.0_r8) then
-        nprlev = k - 1
-        exit
-      end if
+      if (nprlev==0 .and. hybi(k).ne.0.0_r8) nprlev = k - 1
    end do
 
    ! Set nprlev if no nonzero b's have been found. All interfaces are
    ! pure pressure. A pure pressure model requires other changes as well.
-   if (nprlev==0) nprlev = pver + 2
+   if (nprlev==0) nprlev = plev + 2
 
    ! Set delta sigma part of layer thickness and reference state midpoint
    ! pressures
-   do k=1,pver
+   do k=1,plev
       hybd(k) = hybi(k+1) - hybi(k)
       hypm(k) = hyam(k)*ps0 + hybm(k)*psr
       etamid(k) = hyam(k) + hybm(k)
    end do
 
    ! Reference state interface pressures
-   do k=1,pverp
+   do k=1,plevp
       hypi(k) = hyai(k)*ps0 + hybi(k)*psr
    end do
 
    ! Reference state layer thicknesses
-   do k=1,pver
+   do k=1,plev
       hypd(k) = hypi(k+1) - hypi(k)
    end do
 
    ! Test that A's and B's at full levels are arithmetic means of A's and
    ! B's at interfaces
    eps    = 1.e-05_r8
-   do k = 1,pver
+   do k = 1,plev
       amean = ( hyai(k+1) + hyai(k) )*0.5_r8
       bmean = ( hybi(k+1) + hybi(k) )*0.5_r8
       if(amean == 0._r8 .and. hyam(k) == 0._r8) then
@@ -250,82 +181,86 @@ subroutine hycoef_init(file, psdry)
    ! attributes to the lev and ilev coordinates.
 
    ! 0.01 converts Pascals to millibars
-   alev(:pver) = 0.01_r8*ps0*(hyam(:pver) + hybm(:pver))
-   ailev(:pverp) = 0.01_r8*ps0*(hyai(:pverp) + hybi(:pverp))
+   alev(:plev) = 0.01_r8*ps0*(hyam(:plev) + hybm(:plev))
+   ailev(:plevp) = 0.01_r8*ps0*(hyai(:plevp) + hybi(:plevp))
 
-! --------------------
-! THIS CODE BLOCK TEMPORARILY COMMENTED OUT UNTIL HISTORY OUTPUT IS ENABLED
-!   if (dry_coord) then
-!      call add_vert_coord('lev', plev,                                       &
-!         'hybrid level at midpoints (1000*(A+B))', 'hPa', alev,              &
-!         positive='down')
-!      call add_hist_coord('hyam', plev, &
-!         'hybrid A coefficient at layer midpoints', '1', hyam, dimname='lev')
-!      call add_hist_coord('hybm', plev, &
-!         'hybrid B coefficient at layer midpoints', '1', hybm, dimname='lev')
-!   else
-!
-!      formula_terms%a_name       =  'hyam'
-!      formula_terms%a_long_name  =  'hybrid A coefficient at layer midpoints'
-!      formula_terms%a_values     => hyam
-!      formula_terms%b_name       =  'hybm'
-!      formula_terms%b_long_name  =  'hybrid B coefficient at layer midpoints'
-!      formula_terms%b_values     => hybm
-!      formula_terms%p0_name      =  'P0'
-!      formula_terms%p0_long_name = 'reference pressure'
-!      formula_terms%p0_units     =  'Pa'
-!      formula_terms%p0_value     =  ps0
-!      formula_terms%ps_name      =  'PS'
-!
-!      call add_vert_coord('lev', plev,                                       &
-!         'hybrid level at midpoints (1000*(A+B))', 'hPa', alev,              &
-!         positive='down',                                                    &
-!         standard_name='atmosphere_hybrid_sigma_pressure_coordinate',        &
-!         formula_terms=formula_terms)
-!   end if
-!
-!   if (dry_coord) then
-!      call add_vert_coord('ilev', plevp,                                     &
-!         'hybrid level at interfaces (1000*(A+B))', 'hPa', ailev,            &
-!         positive='down')
-!      call add_hist_coord('hyai', plevp, &
-!         'hybrid A coefficient at layer interfaces', '1', hyai, dimname='ilev')
-!      call add_hist_coord('hybi', plevp, &
-!         'hybrid B coefficient at layer interfaces', '1', hybi, dimname='ilev')
-!   else
-!      formula_terms%a_name       =  'hyai'
-!      formula_terms%a_long_name  =  'hybrid A coefficient at layer interfaces'
-!      formula_terms%a_values     => hyai
-!      formula_terms%b_name       =  'hybi'
-!      formula_terms%b_long_name  =  'hybrid B coefficient at layer interfaces'
-!      formula_terms%b_values     => hybi
-!      formula_terms%p0_name      =  'P0'
-!      formula_terms%p0_long_name = 'reference pressure'
-!      formula_terms%p0_units     =  'Pa'
-!      formula_terms%p0_value     =  ps0
-!      formula_terms%ps_name      =  'PS'
-!
-!      call add_vert_coord('ilev', plevp,                                     &
-!         'hybrid level at interfaces (1000*(A+B))', 'hPa', ailev,            &
-!         positive='down',                                                    &
-!         standard_name='atmosphere_hybrid_sigma_pressure_coordinate',        &
-!         formula_terms=formula_terms)
-!   end if
-!
+!Undo once history output has been developed -JN:
+#if 0
+
+   if (dry_coord) then
+      call add_vert_coord('lev', plev,                                       &
+         'hybrid level at midpoints (1000*(A+B))', 'hPa', alev,              &
+         positive='down')
+      call add_hist_coord('hyam', plev, &
+         'hybrid A coefficient at layer midpoints', '1', hyam, dimname='lev')
+      call add_hist_coord('hybm', plev, &
+         'hybrid B coefficient at layer midpoints', '1', hybm, dimname='lev')
+   else
+
+      formula_terms%a_name       =  'hyam'
+      formula_terms%a_long_name  =  'hybrid A coefficient at layer midpoints'
+      formula_terms%a_values     => hyam
+      formula_terms%b_name       =  'hybm'
+      formula_terms%b_long_name  =  'hybrid B coefficient at layer midpoints'
+      formula_terms%b_values     => hybm
+      formula_terms%p0_name      =  'P0'
+      formula_terms%p0_long_name = 'reference pressure'
+      formula_terms%p0_units     =  'Pa'
+      formula_terms%p0_value     =  ps0
+      formula_terms%ps_name      =  'PS'
+
+      call add_vert_coord('lev', plev,                                       &
+         'hybrid level at midpoints (1000*(A+B))', 'hPa', alev,              &
+         positive='down',                                                    &
+         standard_name='atmosphere_hybrid_sigma_pressure_coordinate',        &
+         formula_terms=formula_terms)
+   end if
+
+   if (dry_coord) then
+      call add_vert_coord('ilev', plevp,                                     &
+         'hybrid level at interfaces (1000*(A+B))', 'hPa', ailev,            &
+         positive='down')
+      call add_hist_coord('hyai', plevp, &
+         'hybrid A coefficient at layer interfaces', '1', hyai, dimname='ilev')
+      call add_hist_coord('hybi', plevp, &
+         'hybrid B coefficient at layer interfaces', '1', hybi, dimname='ilev')
+   else
+      formula_terms%a_name       =  'hyai'
+      formula_terms%a_long_name  =  'hybrid A coefficient at layer interfaces'
+      formula_terms%a_values     => hyai
+      formula_terms%b_name       =  'hybi'
+      formula_terms%b_long_name  =  'hybrid B coefficient at layer interfaces'
+      formula_terms%b_values     => hybi
+      formula_terms%p0_name      =  'P0'
+      formula_terms%p0_long_name = 'reference pressure'
+      formula_terms%p0_units     =  'Pa'
+      formula_terms%p0_value     =  ps0
+      formula_terms%ps_name      =  'PS'
+
+      call add_vert_coord('ilev', plevp,                                     &
+         'hybrid level at interfaces (1000*(A+B))', 'hPa', ailev,            &
+         positive='down',                                                    &
+         standard_name='atmosphere_hybrid_sigma_pressure_coordinate',        &
+         formula_terms=formula_terms)
+   end if
+
+!Undo once history output has been developed -JN:
+#endif
+
    if (masterproc) then
       write(iulog,'(a)')' Layer Locations (*1000) '
-      do k=1,pver
+      do k=1,plev
          write(iulog,9800)k,hyai(k),hybi(k),hyai(k)+hybi(k)
          write(iulog,9810) hyam(k), hybm(k), hyam(k)+hybm(k)
       end do
 
-      write(iulog,9800)pverp,hyai(pverp),hybi(pverp),hyai(pverp)+hybi(pverp)
+      write(iulog,9800)plevp,hyai(plevp),hybi(plevp),hyai(plevp)+hybi(plevp)
       write(iulog,9820)
-      do k=1,pver
+      do k=1,plev
          write(iulog,9830) k, hypi(k)
          write(iulog,9840) hypm(k), hypd(k)
       end do
-      write(iulog,9830) pverp, hypi(pverp)
+      write(iulog,9830) plevp, hypi(plevp)
     end if
 
 9800 format( 1x, i3, 3p, 3(f10.4,10x) )
@@ -349,8 +284,8 @@ subroutine init_restart_hycoef(File, vdimids)
 
    integer :: ierr
 
-   ierr = PIO_Def_Dim(File, 'lev',  pver,  vdimids(1))
-   ierr = PIO_Def_Dim(File, 'ilev', pverp, vdimids(2))
+   ierr = PIO_Def_Dim(File, 'lev',  plev,  vdimids(1))
+   ierr = PIO_Def_Dim(File, 'ilev', plevp, vdimids(2))
 
    ierr = pio_def_var(File, 'hyai', pio_double, vdimids(2:2), hyai_desc)
    ierr = pio_def_var(File, 'hyam', pio_double, vdimids(1:1), hyam_desc)
@@ -400,15 +335,15 @@ subroutine hycoef_read(File)
 
    ierr = PIO_Inq_DimID(File, 'lev', lev_dimid)
    ierr = PIO_Inq_dimlen(File, lev_dimid, flev)
-   if (pver /= flev) then
-      write(iulog,*) routine//': ERROR: file lev does not match model. lev (file, model):',flev, pver
+   if (plev /= flev) then
+      write(iulog,*) routine//': ERROR: file lev does not match model. lev (file, model):',flev, plev
       call endrun(routine//': ERROR: file lev does not match model.')
    end if
 
    ierr = PIO_Inq_DimID(File, 'ilev', lev_dimid)
    ierr = PIO_Inq_dimlen(File, lev_dimid, filev)
-   if (pverp /= filev) then
-      write(iulog,*) routine//':ERROR: file ilev does not match model ilev (file, model):',filev, pverp
+   if (plevp /= filev) then
+      write(iulog,*) routine//':ERROR: file ilev does not match model plevp (file, model):',filev, plevp
       call endrun(routine//':ERROR: file ilev does not match model.')
    end if
 

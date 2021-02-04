@@ -32,11 +32,11 @@ CONTAINS
 
 subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
        Q, m_cnst, mask, verbose)
-    
+
    !----------------------------------------------------------------------------
    !
    ! Set initial values for static atmosphere with vertical profile from US
-   ! Standard Atmosphere.  
+   ! Standard Atmosphere.
    !
    !----------------------------------------------------------------------------
 
@@ -121,7 +121,7 @@ subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
             do k = 1, nlev
                pmid(k) = hyam(k)*ps0 + hybm(k)*psurf(1)
             end do
-            ! get height of pressure level            
+            ! get height of pressure level
             call std_atm_height(pmid, zmid)
             ! given height get temperature
             call std_atm_temp(zmid, T(i,:))
@@ -138,7 +138,7 @@ subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
       if (.not.present(PHIS)) then
          call endrun(subname//': PHIS must be specified to initiallize PS')
       end if
-      
+
       do i = 1, ncol
          if (mask_use(i)) then
             call std_atm_pres(PHIS(i:i)/gravit, PS(i:i))

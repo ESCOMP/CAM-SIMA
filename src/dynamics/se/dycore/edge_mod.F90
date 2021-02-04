@@ -15,7 +15,7 @@ module edge_mod
       Longedgebuffer_t, initedgebuffer_callid, Ghostbuffer3D_t
   use element_mod,            only: element_t
   use gbarrier_mod,           only: gbarrier_init, gbarrier_delete
-  use spmd_utils,             only: mpi_real8, mpi_integer, mpi_info_null, mpi_success
+  use mpi,                    only: mpi_real8, mpi_integer, mpi_info_null, mpi_success
 
   implicit none
   private

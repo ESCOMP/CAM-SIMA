@@ -45,7 +45,7 @@ real(r8), allocatable :: q_prev(:,:,:) ! Previous Q for computing tendencies
 CONTAINS
 !=========================================================================================
 
-subroutine d_p_coupling(phys_state, phys_tend,  pbuf2d, dyn_out)
+subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
 
    ! Convert the dynamics output state into the physics input state.
    ! Note that all pressures and tracer mixing ratios coming from the dycore are based on
@@ -251,7 +251,7 @@ subroutine d_p_coupling(phys_state, phys_tend,  pbuf2d, dyn_out)
 
       do m = 1, pcnst
          do ilyr = 1, pver
-            phys_state(lchnk)%q(icol, ilyr,m) = real(q_tmp(blk_ind(1), ilyr,m, ie), kind_phys)
+            phys_state%q(icol, ilyr,m) = real(q_tmp(blk_ind(1), ilyr,m, ie), kind_phys)
          end do
       end do
    end do
@@ -419,7 +419,7 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
          uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt(icol,ilyr), r8)
          do m = 1, pcnst
             dq_tmp(blk_ind(1),ilyr,m,ie) =                                    &
-                 (real(phys_state(lchnk)%q(icol,ilyr,m), r8) - q_prev(icol,ilyr,m,lchnk))
+                 (real(phys_state%q(icol,ilyr,m), r8) - q_prev(icol,ilyr,m))
          end do
       end do
    end do
@@ -562,14 +562,15 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    use physics_types,  only: psdry, pint, lnpint, pintdry, lnpintdry
    use physics_types,  only: pdel, rpdel, pdeldry, rpdeldry
    use physics_types,  only: pmid, lnpmid, pmiddry, lnpmiddry
-   use physics_types,  only: exner, zi, zm
+   use physics_types,  only: exner, zi, zm, ps, lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa, rairv, physconst_update
    use shr_const_mod,  only: shr_const_rwv
-   use phys_control,   only: waccmx_is
-   use geopotential_t, only: geopotential_t
+!   use phys_control,   only: waccmx_is
+   use geopotential_t, only: geopotential_t_run
 !   use check_energy,   only: check_energy_timestep_init
    use hycoef,         only: hyai, ps0
    use shr_vmath_mod,  only: shr_vmath_log
+   use shr_kind_mod,   only: shr_kind_cx
 !   use qneg_module,    only: qneg3
    use dyn_comp,       only: ixo, ixo2, ixh, ixh2
 
@@ -582,6 +583,10 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    real(kind_phys) :: factor_array(pcols,nlev)
 
    integer :: m, i, k
+
+   !Needed for "geopotential_t" CCPP scheme:
+   integer :: errflg
+   character(len=shr_kind_cx) :: errmsg
 
    !--------------------------------------------
    !  Variables needed for WACCM-X
@@ -690,7 +695,7 @@ subroutine derived_phys_dry(phys_state, phys_tend)
          phys_state%q(i,k,ix_qv) = factor_array(i,k)*phys_state%q(i,k,ix_qv)
          phys_state%q(i,k,ix_cld_liq) = factor_array(i,k)*phys_state%q(i,k,ix_cld_liq)
          phys_state%q(i,k,ix_rain) = factor_array(i,k)*phys_state%q(i,k,ix_rain)
-     end do
+      end do
    end do
 #endif
 
@@ -753,9 +758,11 @@ subroutine derived_phys_dry(phys_state, phys_tend)
       !   phys_state%t     , phys_state%q(:,:,ix_qv), rairv,  gravit,  zvirv       , &
       !   phys_state%zi    , phys_state%zm      , ncol                )
 
-      call geopotential_t(lnpint, lnpmid, pint, pmid, pdel, rpdel, &
-                          phys_state%t,  phys_state%q(:,:,ix_qv), rairv, &
-                          gravit, zvirv, zi, zm, pcols)
+      call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
+                          pverp, 1, lnpint, pint, pmid, pdel, &
+                          rpdel, phys_state%t,  phys_state%q(:,:,ix_qv), &
+                          rairv, gravit, zvirv, zi, zm, pcols, &
+                          errflg, errmsg)
 
       !NOTE:  Should dry static energy be done in CCPP physics suite? -JN:
 
@@ -763,7 +770,7 @@ subroutine derived_phys_dry(phys_state, phys_tend)
       do k = 1, pver
          do i = 1, pcols
             phys_state%s(i,k) = cpair*phys_state%t(i,k) &
-               + gravit*phys_state%zm(i,k) + phys_state%phis(i)
+               + gravit*zm(i,k) + phys_state%phis(i)
          end do
       end do
 
@@ -800,7 +807,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
    type(physics_tend ), intent(inout) :: phys_tend
    integer,  intent(in)               :: ncols, pver
 
-   real(r8):: inv_cp(ncols,pver)
+   real(kind_phys) :: inv_cp(ncols,pver)
    !----------------------------------------------------------------------------
 
    if (lcp_moist.and.phys_dyn_cp==1) then

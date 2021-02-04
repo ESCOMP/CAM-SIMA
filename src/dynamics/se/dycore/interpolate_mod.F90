@@ -1,5 +1,6 @@
 module interpolate_mod
   use shr_kind_mod,           only: r8=>shr_kind_r8
+  use mpi,                    only: MPI_MAX, MPI_SUM, MPI_MIN, mpi_real8, MPI_integer
   use element_mod,            only: element_t
   use dimensions_mod,         only: np, ne, nelemd, nc, nhe, nhc
   use quadrature_mod,         only: quadrature_t, legendre, quad_norm
@@ -10,7 +11,6 @@ module interpolate_mod
   use quadrature_mod,         only: quadrature_t, gauss, gausslobatto
   use parallel_mod,           only: syncmp, parallel_t
   use cam_abortutils,         only: endrun
-  use spmd_utils,             only: MPI_MAX, MPI_SUM, MPI_MIN, mpi_real8, MPI_integer
   use cube_mod,               only: convert_gbl_index, dmap, ref2sphere
   use mesh_mod,               only: MeshUseMeshFile
   use control_mod,            only: cubed_sphere_map

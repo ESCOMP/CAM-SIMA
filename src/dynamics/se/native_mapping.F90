@@ -6,12 +6,12 @@ module native_mapping
 !  using the SE basis functions.   The output mapping file name is generated based on the SE model resolution
 !  and the input grid file name and ends in '_date_native.nc'
 !
-  use cam_logfile,       only : iulog
-  use shr_kind_mod,      only : r8 => shr_kind_r8, shr_kind_cl
-  use shr_const_mod,     only : pi=>shr_const_pi
-  use cam_abortutils,    only : endrun
-  use spmd_utils,        only : iam, masterproc, mpi_character, mpi_logical, mpi_integer, mpi_max, &
-                                mpicom, mstrid=>masterprocid
+  use mpi,               only: mpi_character, mpi_logical, mpi_integer, mpi_max
+  use cam_logfile,       only: iulog
+  use shr_kind_mod,      only: r8 => shr_kind_r8, shr_kind_cl
+  use shr_const_mod,     only: pi=>shr_const_pi
+  use cam_abortutils,    only: endrun
+  use spmd_utils,        only: iam, masterproc, mpicom, mstrid=>masterprocid
 
   implicit none
   private
@@ -84,8 +84,10 @@ end subroutine native_mapping_readnl
 
 subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, areaa)
 
-    use cam_pio_utils, only : cam_pio_openfile, cam_pio_createfile
-    use pio, only : pio_noerr, pio_openfile, pio_createfile, pio_closefile, &
+    use shr_infnan_mod, only: isnan=>shr_infnan_isnan
+    use cam_pio_utils,  only: cam_pio_openfile, cam_pio_createfile
+
+    use pio, only: pio_noerr, pio_openfile, pio_createfile, pio_closefile, &
          pio_get_var, pio_put_var, pio_write_darray,pio_int, pio_double, &
          pio_def_var, pio_put_att, pio_global, file_desc_t, var_desc_t, &
          io_desc_t, pio_internal_error,pio_inq_dimlen, pio_inq_varid, &
@@ -104,7 +106,6 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
     use dimensions_mod, only : nelemd, ne, np, npsq, nelem
     use reduction_mod, only : ParallelMin,ParallelMax
     use cube_mod, only : convert_gbl_index
-    use infnan, only : isnan
     use dof_mod, only : CreateMetaData
     use thread_mod,     only: omp_get_thread_num
     use datetime_mod, only: datetime

@@ -90,10 +90,11 @@ CONTAINS
       use mpi,              only: MPI_INTEGER, MPI_REAL8, MPI_MIN, MPI_MAX
       use shr_mem_mod,      only: shr_mem_getusage
       use cam_abortutils,   only: endrun, check_allocate
+      use cam_logfile,      only: iulog
       use spmd_utils,       only: npes, mpicom, masterprocid, masterproc
       use string_utils,     only: to_str
+      use cam_map_utils,    only: iMap
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
-      use cam_grid_support, only: iMap
       use cam_grid_support, only: horiz_coord_t, horiz_coord_create
       use cam_grid_support, only: cam_grid_attribute_copy, cam_grid_attr_exists
 
@@ -383,7 +384,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_dlat_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       get_dlat_p = phys_columns(index)%lat_deg
 
@@ -403,7 +404,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_dlon_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       get_dlon_p = phys_columns(index)%lon_deg
 
@@ -423,7 +424,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_rlat_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       get_rlat_p = phys_columns(index)%lat_rad
 
@@ -443,7 +444,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_rlon_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       get_rlon_p = phys_columns(index)%lon_rad
 
@@ -463,7 +464,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_area_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       get_area_p = phys_columns(index)%area
 
@@ -491,7 +492,7 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       ! Check that input is valid:
-      call check_phys_input(rlatdim)
+      call check_phys_input(subname, rlatdim)
 
       do index = 1, rlatdim
          rlats(index) = phys_columns(index)%lat_rad
@@ -521,7 +522,7 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       ! Check that input is valid:
-      call check_phys_input(rlondim)
+      call check_phys_input(subname, rlondim)
 
       do index = 1, rlondim
          rlons(index) = phys_columns(index)%lon_rad
@@ -547,7 +548,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'get_dyn_col_p_index: '
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       off_size = SIZE(phys_columns(index)%dyn_block_index, 1)
       if (SIZE(blk_ind, 1) < off_size) then
@@ -575,7 +576,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'global_index_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       global_index_p = phys_columns(index)%global_col_num
 
@@ -593,7 +594,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'local_index_p'
 
       ! Check that input is valid:
-      call check_phys_input(index)
+      call check_phys_input(subname, index)
 
       local_index_p = phys_columns(index)%phys_chunk_index
 
@@ -636,5 +637,7 @@ CONTAINS
                      ') out of range (1 to '//&
                      to_str(columns_on_task)//')')
       end if
+
+   end subroutine check_phys_input
 
 end module physics_grid

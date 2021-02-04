@@ -26,10 +26,12 @@ module dyn_grid
 !
 !-------------------------------------------------------------------------------
 
+use mpi,                    only: mpi_integer, mpi_real8
+use pio,                    only: file_desc_t
 use shr_kind_mod,           only: r8 => shr_kind_r8, shr_kind_cl
 use spmd_utils,             only: masterproc, iam, mpicom, mstrid=>masterprocid, &
-                                  npes, mpi_integer, mpi_real8
-!use constituents,           only: pcnst
+                                  npes
+use constituents,           only: pcnst
 use physconst,              only: pi
 use cam_initfiles,          only: initial_file_get_id
 use physics_column_type,    only: physics_column_t, kind_pcol
@@ -80,12 +82,10 @@ public ::         &
    edgebuf
 
 public :: model_grid_init
-public :: get_dyn_grid_info
 
 !!XXgoldyXX: v try to remove?
 public :: get_horiz_grid_dim_d
 public :: dyn_grid_get_colndx ! get element block/column and MPI process indices
-public :: get_dyn_grid_parm
 !!XXgoldyXX: ^ try to remove?
 public :: dyn_grid_get_elem_coords ! get coords of a specified block element
 
@@ -126,14 +126,17 @@ subroutine model_grid_init()
    ! and then initializes the physics grid and
    ! decomposition based on the dynamics (SE) grid.
 
+   use mpi,                 only: mpi_max
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
    use physconst,           only: thermodynamic_active_species_num
-   use ref_pres,            only: ref_pres_init !Brought in via Held-Suarez - JN
-   use spmd_utils,          only: MPI_MAX, MPI_INTEGER, mpicom
+   use ref_pres,            only: ref_pres_init
+   use pmgrid,              only: plev, plevp !Remove once phys_vert_coord is enabled!! -JN
    use time_manager,        only: get_nstep, get_step_size
    use dp_mapping,          only: dp_init, dp_write
    use native_mapping,      only: do_native_mapping, create_native_mapping_files
+   use cam_grid_support,    only: hclen=>max_hcoordname_len
+   use physics_grid,        only: phys_grid_init
 
    !SE dycore:
    use parallel_mod,        only: par
@@ -150,7 +153,7 @@ subroutine model_grid_init()
    type(file_desc_t), pointer  :: fh_ini
 
    integer                     :: qsize_local
-   integer                     :: k
+   integer                     :: k, elem_ind
 
    type(hybrid_t)              :: hybrid
    integer                     :: ierr
@@ -162,9 +165,11 @@ subroutine model_grid_init()
    ! Variables needed for physics grid initialization:
    integer                     :: num_local_columns
    integer                     :: hdim1_d ! # longitudes or grid size
+   character(len=hclen)        :: gridname
 
+   character(len=hclen), allocatable :: grid_attribute_names(:)
 
-   character(len=*), parameter :: sub = 'model_grid_init'
+   character(len=*), parameter :: subname = 'model_grid_init'
    !----------------------------------------------------------------------------
 
    ! Get file handle for initial file and first consistency check
@@ -183,7 +188,7 @@ subroutine model_grid_init()
    end do
 
    ! Initialize reference pressures
-   call ref_pres_init(hypi, hypm, nprlev)
+   call ref_pres_init(plev, plevp, hypi, hypm, nprlev)
 
    if (iam < par%nprocs) then
 
@@ -377,7 +382,6 @@ subroutine set_dyn_col_values()
 
    use physconst,              only: pi
    use cam_abortutils,         only: endrun
-   use spmd_utils,             only: iam
 
    !SE dycore:
    use coordinate_systems_mod, only: spherical_polar_t
@@ -392,7 +396,7 @@ subroutine set_dyn_col_values()
    real(r8)                        :: dcoord
    real(kind_pcol),  parameter     :: radtodeg = 180.0_kind_pcol / pi
    real(kind_pcol),  parameter     :: degtorad = pi / 180.0_kind_pcol
-   character(len=*), parameter     :: subname = 'get_dyn_grid_info'
+   character(len=*), parameter     :: subname = 'set_dyn_col_values'
 
    lindex = 0
    do elem_ind = 1, nelemd
@@ -1032,7 +1036,8 @@ subroutine write_grid_mapping(par, elem)
    use cam_pio_utils, only: cam_pio_createfile, cam_pio_newdecomp
    use pio,           only: pio_def_dim, var_desc_t, pio_int, pio_def_var, &
                             pio_enddef, pio_closefile, io_desc_t, &
-                            pio_write_darray, pio_freedecomp
+                            pio_write_darray, pio_freedecomp, &
+                            pio_offset_kind
 
    ! SE dycore:
    use parallel_mod,  only: parallel_t
@@ -1047,10 +1052,10 @@ subroutine write_grid_mapping(par, elem)
 
    type(file_desc_t) :: nc
    type(var_desc_t)  :: vid
-   type(io_desc_t)   :: iodesc
+   type(io_desc_t), pointer :: iodesc
    integer :: dim1, dim2, ierr, i, j, ie, cc, base, ii, jj
    integer :: subelement_corners(npm12*nelemd,4)
-   integer :: dof(npm12*nelemd*4)
+   integer(kind=pio_offset_kind) :: dof(npm12*nelemd*4)
    !----------------------------------------------------------------------------
 
    ! Create a CS grid mapping file for postprocessing tools

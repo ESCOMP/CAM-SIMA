@@ -4,7 +4,7 @@ module parallel_mod
   ! ---------------------------
   use dimensions_mod, only : nmpi_per_node, nlev, qsize_d, ntrac_d
   ! ---------------------------
-  use spmd_utils,     only: MPI_STATUS_SIZE, MPI_MAX_ERROR_STRING, MPI_TAG_UB
+  use mpi,     only: MPI_STATUS_SIZE, MPI_MAX_ERROR_STRING, MPI_TAG_UB
 
   implicit none
   private
@@ -110,8 +110,9 @@ CONTAINS
   function initmpi(npes_homme) result(par)
     use cam_logfile,    only: iulog
     use cam_abortutils, only: endrun
-    use spmd_utils,     only: mpicom, MPI_COMM_NULL, MPI_MAX_PROCESSOR_NAME
-    use spmd_utils,     only: MPI_CHARACTER, MPI_INTEGER, MPI_BAND, iam, npes
+    use spmd_utils,     only: mpicom, iam, npes
+    use mpi,            only: MPI_COMM_NULL, MPI_MAX_PROCESSOR_NAME
+    use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_BAND
 
     integer, intent(in) :: npes_homme
 
@@ -227,7 +228,7 @@ CONTAINS
   ! =====================================
   subroutine syncmp(par)
     use cam_abortutils, only: endrun
-    use spmd_utils,     only: MPI_MAX_ERROR_STRING, MPI_ERROR
+    use mpi,            only: MPI_MAX_ERROR_STRING, MPI_ERROR
 
     type (parallel_t), intent(in)       :: par
 

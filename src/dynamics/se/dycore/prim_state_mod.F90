@@ -20,7 +20,9 @@ CONTAINS
 
   subroutine prim_printstate(elem, tl,hybrid,nets,nete, fvm, omega_cn)
     use dimensions_mod,         only: ntrac
-    use constituents,           only: cnst_name
+!Un-comment once constitutents are enabled -JN:
+!    use constituents,           only: cnst_name
+    use string_utils,           only: to_str !Remove once constituents are enabled -JN
     use physconst,              only: thermodynamic_active_species_idx_dycore, dry_air_species_num
     use physconst,              only: thermodynamic_active_species_num,thermodynamic_active_species_idx
     use cam_control_mod,        only: initial_run
@@ -31,7 +33,7 @@ CONTAINS
     type (TimeLevel_t), target,   intent(in)    :: tl
     type (hybrid_t),              intent(in)    :: hybrid
     integer,                      intent(in)    :: nets,nete
-    type(fvm_struct),             intent(inout) :: fvm(:)        
+    type(fvm_struct),             intent(inout) :: fvm(:)
     real (kind=r8), optional,     intent(in)    :: omega_cn(2,nets:nete)
     ! Local variables...
     integer            :: k,ie,m_cnst
@@ -117,7 +119,7 @@ CONTAINS
       nm2 = nm+statediag_numtrac!number of vars after tracers
     end if
 
-    do ie=nets,nete      
+    do ie=nets,nete
       min_local(ie,1)  = MINVAL(elem(ie)%state%v(:,:,1,:,n0))
       max_local(ie,1)  = MAXVAL(elem(ie)%state%v(:,:,1,:,n0))
       min_local(ie,2)  = MINVAL(elem(ie)%state%v(:,:,2,:,n0))
@@ -141,9 +143,11 @@ CONTAINS
         min_local(ie,8)  = MINVAL(elem(ie)%state%psdry(:,:))
         max_local(ie,8)  = MAXVAL(elem(ie)%state%psdry(:,:))
         min_local(ie,9)  = MINVAL(moist_ps(:,:,ie))
-        max_local(ie,9)  = MAXVAL(moist_ps(:,:,ie))      
+        max_local(ie,9)  = MAXVAL(moist_ps(:,:,ie))
         do q=1,statediag_numtrac
-          varname(nm+q)         = TRIM(cnst_name(q))
+!Un-comment once constitutents are enabled -JN:
+          !varname(nm+q)         = TRIM(cnst_name(q))
+          varname(nm+q) = "tracer_"//to_str(q) !remove once  constituents are enabled -JN
           min_local(ie,nm+q) = MINVAL(fvm(ie)%c(1:nc,1:nc,:,q))
           max_local(ie,nm+q) = MAXVAL(fvm(ie)%c(1:nc,1:nc,:,q))
         end do
@@ -151,9 +155,11 @@ CONTAINS
         min_local(ie,6)  = MINVAL(elem(ie)%state%psdry(:,:))
         max_local(ie,6)  = MAXVAL(elem(ie)%state%psdry(:,:))
         min_local(ie,7)  = MINVAL(moist_ps(:,:,ie))
-        max_local(ie,7)  = MAXVAL(moist_ps(:,:,ie))        
+        max_local(ie,7)  = MAXVAL(moist_ps(:,:,ie))
         do q=1,statediag_numtrac
-          varname(nm+q)         = TRIM(cnst_name(q))
+!Un-comment once constitutents are enabled -JN:
+          !varname(nm+q)         = TRIM(cnst_name(q))
+          varname(nm+q) = "tracer_"//to_str(q) !remove once  constituents are enabled -JN
           tmp_q = elem(ie)%state%Qdp(:,:,:,q,n0_qdp)/elem(ie)%state%dp3d(:,:,:,n0)
           min_local(ie,nm+q) = MINVAL(tmp_q)
           max_local(ie,nm+q) = MAXVAL(tmp_q)
@@ -170,13 +176,17 @@ CONTAINS
       max_local(ie,nm2+2)  = MAXVAL(elem(ie)%derived%FM(:,:,:,:))
       if (ntrac>0) then
         do q=1,statediag_numtrac
-          varname(nm2+2+q)         = TRIM('F'//TRIM(cnst_name(q)))
+!Un-comment once constitutents are enabled -JN:
+          !varname(nm2+2+q)         = TRIM('F'//TRIM(cnst_name(q)))
+          varname(nm2+2+q) = "Ftracer_"//to_str(q) !remove once  constituents are enabled -JN
           min_local(ie,nm2+2+q) = MINVAL(fvm(ie)%fc(1:nc,1:nc,:,q))
           max_local(ie,nm2+2+q) = MAXVAL(fvm(ie)%fc(1:nc,1:nc,:,q))
         end do
       else
         do q=1,statediag_numtrac
-          varname(nm2+2+q)         = TRIM('F'//TRIM(cnst_name(q)))
+!Un-comment once constitutents are enabled -JN:
+          !varname(nm2+2+q)         = TRIM('F'//TRIM(cnst_name(q)))
+          varname(nm2+2+q) = "Ftracer_"//to_str(q) !remove once  constituents are enabled -JN
           tmp_q = elem(ie)%derived%FQ(:,:,:,q)
           min_local(ie,nm2+2+q) = MINVAL(tmp_q)
           max_local(ie,nm2+2+q) = MAXVAL(tmp_q)

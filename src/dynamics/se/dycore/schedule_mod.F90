@@ -34,12 +34,12 @@ module schedule_mod
 contains
 
   subroutine genEdgeSched(par,elem, PartNumber,LSchedule,MetaVertex)
+    use mpi,            only: mpi_status_size, mpi_info_null, mpi_success
     use element_mod,    only: element_t
     use metagraph_mod,  only: metavertex_t
     use dimensions_mod, only: nelem, max_neigh_edges
     use gridgraph_mod,  only: gridvertex_t, gridedge_t, assignment ( = )
     use cam_abortutils, only: endrun
-    use spmd_utils,     only: mpi_status_size, mpi_info_null, mpi_success
     use parallel_mod,   only: nComPoints, rrequest, srequest, status, npackpoints
 
     type(parallel_t),    intent(inout) :: par
