@@ -1,12 +1,23 @@
 # CAMDEN
 CAM Developmental and Experimental iNfrastructure
 
-## Important notes for users and developers:
+NOTE:  Only developmental code exists at the moment.  This README will be updated once production code becomes available.
 
-1.  The version of CAM included here is currently NOT runnable!
+## How to checkout and use CAMDEN:
 
-2.  The initial CAMDEN code commit used files copied from the cam6_1_027 trunk tag.
+The instructions below assume you have cloned this repository and are in the repository directory. For example:
+```
+git clone https://github.com/NCAR/CAMDEN.git
+cd CAMDEN
+```
 
-Finally, additional information related to the new CAM infrastructure will be added here when necessary.
+### To use unsupported CAMDEN **development** code:
 
-Have a great day!
+## NOTE: This is **unsupported** development code and is subject to the [CESM developer's agreement](http://www.cgd.ucar.edu/cseg/development-code.html).
+```
+git checkout development
+./manage_externals/checkout_externals
+```
+
+Good luck, and have a great day!
+
