@@ -5,6 +5,8 @@ use spmd_utils,       only: masterproc
 use pmgrid,           only: plev, plevp
 use cam_logfile,      only: iulog
 use cam_abortutils,   only: endrun
+! Using this use statement ends up with a circular dependency
+!use physconst,        only: ps0, psr
 use pio,              only: file_desc_t, var_desc_t, &
                             pio_inq_dimid, pio_inq_dimlen, pio_inq_varid, &
                             pio_double, pio_def_dim, pio_def_var, &
@@ -34,13 +36,11 @@ real(r8), public :: hybd(plev)        ! difference  in b (hybi) across layers
 real(r8), public :: hypi(plevp)       ! reference pressures at interfaces
 real(r8), public :: hypm(plev)        ! reference pressures at midpoints
 real(r8), public :: hypd(plev)        ! reference pressure layer thickness
-#ifdef planet_mars
-real(r8), public, protected :: ps0 = 6.0e1_r8    ! Base state surface pressure (pascals)
-real(r8), public, protected :: psr = 6.0e1_r8    ! Reference surface pressure (pascals)
-#else
+
+! Want to get these from physconst, if can eliminate ciruclar dependency
 real(r8), public, protected :: ps0 = 1.0e5_r8    ! Base state surface pressure (pascals)
 real(r8), public, protected :: psr = 1.0e5_r8    ! Reference surface pressure (pascals)
-#endif
+
 real(r8), target :: alev(plev)    ! level values (pascals) for 'lev' coord
 real(r8), target :: ailev(plevp)  ! interface level values for 'ilev' coord
 
@@ -111,7 +111,12 @@ subroutine hycoef_init(file, psdry)
       ! nonzero surface pressure contribution is found. "nprlev"
       ! identifies the lowest pure pressure interface.
 
-      if (nprlev==0 .and. hybi(k).ne.0.0_r8) nprlev = k - 1
+! Remove this line once determine its replacement doesn't cause answer changes
+!      if (nprlev==0 .and. hybi(k).ne.0.0_r8) nprlev = k - 1
+      if (hybi(k) /= 0.0_r8) then
+        nprlev = k - 1
+        exit
+      end if
    end do
 
    ! Set nprlev if no nonzero b's have been found. All interfaces are

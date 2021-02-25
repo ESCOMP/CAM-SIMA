@@ -56,6 +56,10 @@ module physconst
    real(kind_phys), public, parameter :: pi          = real(shr_const_pi, kind_phys)
    ! Standard pressure (Pascals)
    real(kind_phys), public, protected :: pstd        = real(shr_const_pstd, kind_phys)
+   ! Base state surface pressure (pascals)
+   real(kind_phys), public, parameter :: ps0         = 1.0e5_kind_phys
+   ! Reference surface pressure (pascals)
+   real(kind_phys), public, parameter :: psr         = 1.0e5_kind_phys
    ! Reference temperature
    real(kind_phys), public, parameter :: tref        = 288._kind_phys
    ! reference lapse rate [K/m]

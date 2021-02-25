@@ -61,13 +61,10 @@ contains
 
 subroutine ref_pres_readnl(nlfile)
 
-   use spmd_utils,      only: masterproc
+   use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
    use cam_abortutils,  only: endrun
    use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
    use mpi,             only: mpi_real8
-
-!! SAME ERROR AS !!XXgoldyXX saw
-!!!!!!   use mpi,             only: mpi_bcast 
 
    character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
 
@@ -97,13 +94,13 @@ subroutine ref_pres_readnl(nlfile)
            &than or equal to trop_cloud_top_press.")
    end if
 
-#ifdef SPMD
-   ! Broadcast namelist variables
-   call mpibcast(trop_cloud_top_press,            masterprocid,  mpi_real8, 0, mpicom, ierr)
-   call mpibcast(clim_modal_aero_top_press,       masterprocid,  mpi_real8, 0, mpicom, ierr)
-   call mpibcast(do_molec_press,                  masterprocid,  mpi_real8, 0, mpicom, ierr)
-   call mpibcast(molec_diff_bot_press,            masterprocid,  mpi_real8, 0, mpicom, ierr)
-#endif
+   if (npes > 1) then
+      ! Broadcast namelist variables
+      call mpi_bcast(trop_cloud_top_press,            masterprocid,  mpi_real8, 0, mpicom, ierr)
+      call mpi_bcast(clim_modal_aero_top_press,       masterprocid,  mpi_real8, 0, mpicom, ierr)
+      call mpi_bcast(do_molec_press,                  masterprocid,  mpi_real8, 0, mpicom, ierr)
+      call mpi_bcast(molec_diff_bot_press,            masterprocid,  mpi_real8, 0, mpicom, ierr)
+   endif
 
 end subroutine ref_pres_readnl
 
