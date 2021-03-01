@@ -1201,7 +1201,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Add use statements:
     outfile.write("use pio,                  only: file_desc_t\n" \
                   "use cam_abortutils,       only: endrun\n" \
-                  "use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL\n" \
+                  "use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX\n" \
                   "use physics_data,         only: read_field, find_input_name_idx\n" \
                   "use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx\n" \
                   "use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
@@ -1234,14 +1234,14 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
                   "character(len=SHR_KIND_CL) :: protected_non_init_vars\n" \
                   "character(len=SHR_KIND_CL) :: missing_input_names", 2)
     outfile.write("", 0)
-    outfile.write("character(len=512) :: errmsg    !CCPP framework error message\n" \
-                  "integer            :: errflg    !CCPP framework error flag\n" \
-                  "integer            :: name_idx  !Input variable array index\n" \
-                  "integer            :: req_idx   !Required variable array index\n" \
-                  "integer            :: suite_idx !Suite array index\n" \
-                  "character(len=2)   :: sep  = '' !String separator used to print error messages\n" \
-                  "character(len=2)   :: sep2 = '' !String separator used to print error messages\n" \
-                  "character(len=2)   :: sep3 = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message\n" \
+                  "integer                    :: errflg    !CCPP framework error flag\n" \
+                  "integer                    :: name_idx  !Input variable array index\n" \
+                  "integer                    :: req_idx   !Required variable array index\n" \
+                  "integer                    :: suite_idx !Suite array index\n" \
+                  "character(len=2)           :: sep  = '' !String separator used to print error messages\n" \
+                  "character(len=2)           :: sep2 = '' !String separator used to print error messages\n" \
+                  "character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
     outfile.write("", 0)
 
     #Initialize variables:
