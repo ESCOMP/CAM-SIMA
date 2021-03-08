@@ -33,7 +33,8 @@ contains
 !      use scamMod,             only: scam_readnl
       use physconst,           only: physconst_readnl
       use phys_comp,           only: phys_readnl
-!      use ref_pres,            only: ref_pres_readnl
+      use vert_coord,          only: vert_coord_readnl
+      use ref_pres,            only: ref_pres_readnl
 !      use phys_debug_util,     only: phys_debug_readnl
 
 !      use cam_diagnostics,     only: diag_readnl
@@ -76,6 +77,8 @@ contains
       call cnst_readnl(nlfilename)
 !      call history_readnl(nlfilename)
       call phys_readnl(nlfilename)
+      call vert_coord_readnl(nlfilename)
+      call ref_pres_readnl(nlfilename)
 !      call phys_debug_readnl(nlfilename)
 !      call diag_readnl(nlfilename)
 !      call check_energy_readnl(nlfilename)

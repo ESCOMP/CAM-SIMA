@@ -606,7 +606,6 @@ class ConfigCAM:
         if user_dyn_opt == "none":
             # If so, then set the atmospheric grid to "null"
             atm_grid = "null"
-            case_nlev = "null"
             case_nx = "null"
             case_ny = "null"
         elif not user_dyn_opt:
@@ -622,8 +621,12 @@ class ConfigCAM:
         self.__config_dict = dict()
 
         # Create namelist group list, starting with default namelist groups
-        self.__nml_groups = ['cam_initfiles_nl', 'cam_logfile_nl',
-                             'phys_ctl_nl', 'qneg_nl']
+        self.__nml_groups = ['cam_initfiles_nl',
+                             'cam_logfile_nl',
+                             'phys_ctl_nl',
+                             'qneg_nl',
+                             'vert_coord_nl',
+                             'ref_pres_nl']
 
         #----------------------------------------
         # Set CAM grid variables (nlat,nlon,nlev)
@@ -631,11 +634,9 @@ class ConfigCAM:
 
         # Set number of vertical levels
         if case_nlev:
-            # Save variable for CPPDEFs
             nlev = case_nlev
         else:
-            # Save variable for CPPDEFs
-            nlev = 30
+            nlev = '30' # Default value
 
         # Add vertical levels to configure object
         nlev_desc = "Number of vertical levels."

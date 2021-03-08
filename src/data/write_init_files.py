@@ -910,7 +910,7 @@ def write_ic_arrays(outfile, fort_data):
     #Write a blank space:
     outfile.write("", 0)
 
-    #Write starting declaration of initalized logical array:
+    #Write starting declaration of initialized logical array:
     outfile.write("!Logical array to indicate whether or not variable is initialized:", 1)
     declare_str = "logical, public, protected :: initialized_vars(phys_var_num) = (/ &"
     outfile.write(declare_str, 1)

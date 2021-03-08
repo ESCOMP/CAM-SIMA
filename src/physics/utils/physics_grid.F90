@@ -42,22 +42,15 @@ module physics_grid
    !> \section arg_table_physics_grid  Argument Table
    !! \htmlinclude arg_table_physics_grid.html
    !!
-   integer,          protected, public :: pver = 0
-   integer,          protected, public :: pverp = 0
    integer,          protected, public :: num_global_phys_cols = 0
    integer,          protected, public :: columns_on_task = 0
-   integer,          protected, public :: index_top_layer = 0
-   integer,          protected, public :: index_bottom_layer = 0
-   integer,          protected, public :: index_top_interface = 1
-   integer,          protected, public :: index_bottom_interface = 0
    logical,          protected, public :: phys_grid_initialized = .false.
 
 !==============================================================================
 CONTAINS
 !==============================================================================
 
-   subroutine phys_grid_init(hdim1_d_in, hdim2_d_in, pver_in, dycore_name_in, &
-                             index_top_layer_in, index_bottom_layer_in, &
+   subroutine phys_grid_init(hdim1_d_in, hdim2_d_in, dycore_name_in, &
                              dyn_columns, dyn_gridname, dyn_attributes)
 
 !      use mpi,              only: MPI_reduce ! XXgoldyXX: Should this work?
@@ -73,9 +66,6 @@ CONTAINS
       ! Dummy (input) variables:
       integer, intent(in) :: hdim1_d_in            ! First dyn grid horizontal dimension
       integer, intent(in) :: hdim2_d_in            ! Second dyn grid horizontal dimension
-      integer, intent(in) :: pver_in               ! Dyn grid vertical dimension
-      integer, intent(in) :: index_top_layer_in    ! Vertical index that represents model top
-      integer, intent(in) :: index_bottom_layer_in ! Vertical index that represents model surface
 
       character(len=*), intent(in) :: dycore_name_in    ! Name of dycore
       character(len=*), intent(in) :: dyn_gridname      ! Name of dynamics grid
@@ -120,23 +110,9 @@ CONTAINS
       ! Set public variables:
       hdim1_d            = hdim1_d_in
       hdim2_d            = hdim2_d_in
-      pver               = pver_in
-      index_top_layer    = index_top_layer_in
-      index_bottom_layer = index_bottom_layer_in
       dycore_name        = dycore_name_in
 
-      pverp            = pver + 1
       unstructured     = hdim2_d <= 1
-      !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
-      !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
-      !!XXgoldyXX: This only has a 50% chance of working on a single level model
-      if (index_top_layer < index_bottom_layer) then
-         index_top_interface = index_top_layer
-         index_bottom_interface = index_bottom_layer + 1
-      else
-         index_bottom_interface = index_bottom_layer
-         index_top_interface = index_top_layer + 1
-      end if
 
       ! Calculate total number of physics columns:
       num_global_phys_cols = hdim1_d * hdim2_d

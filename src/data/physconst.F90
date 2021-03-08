@@ -19,7 +19,8 @@ module physconst
    use shr_const_mod,  only: shr_const_spval,   shr_const_omega
    use shr_const_mod,  only: shr_const_cpvir,   shr_const_tktrip
    use shr_const_mod,  only: shr_const_cpice
-   use physics_grid,   only: pcols => columns_on_task, pver, pverp
+   use vert_coord,     only: pver, pverp
+   use physics_grid,   only: pcols => columns_on_task
    use cam_abortutils, only: endrun
    use constituents,   only: pcnst
 
@@ -55,6 +56,10 @@ module physconst
    real(kind_phys), public, parameter :: pi          = real(shr_const_pi, kind_phys)
    ! Standard pressure (Pascals)
    real(kind_phys), public, protected :: pstd        = real(shr_const_pstd, kind_phys)
+   ! Base state surface pressure (pascals)
+   real(kind_phys), public, protected :: ps_base     = 1.0e5_kind_phys
+   ! Reference surface pressure (pascals)
+   real(kind_phys), public, protected :: ps_ref      = 1.0e5_kind_phys
    ! Reference temperature
    real(kind_phys), public, parameter :: tref        = 288._kind_phys
    ! reference lapse rate [K/m]
@@ -93,7 +98,6 @@ module physconst
    real(kind_phys), public, parameter :: mwh2o2      = 34._kind_phys
    real(kind_phys), public, parameter :: mwdms       = 62._kind_phys
    real(kind_phys), public, parameter :: mwnh4       = 18._kind_phys
-
 
    ! modifiable physical constants for aquaplanet
 
@@ -204,15 +208,15 @@ CONTAINS
       end if
 
       ! Broadcast namelist variables
-      call mpi_bcast(gravit, masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(sday,   masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(mwh2o,  masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(cpwv,   masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(mwdry,  masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(cpair,  masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(rearth, masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(tmelt,  masterprocid,  mpi_real8, 0, mpicom, ierr)
-      call mpi_bcast(omega,  masterprocid,  mpi_real8, 0, mpicom, ierr)
+      call mpi_bcast(gravit, 1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(sday,   1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(mwh2o,  1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(cpwv,   1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(mwdry,  1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(cpair,  1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(rearth, 1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(tmelt,  1, mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(omega,  1, mpi_real8, masterprocid, mpicom, ierr)
 
       newg     =  gravit /= real(shr_const_g, kind_phys)
       newsday  =  sday   /= real(shr_const_sday, kind_phys)

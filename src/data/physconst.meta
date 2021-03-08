@@ -64,6 +64,18 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
+[ ps_base ]
+  standard_name = base_state_surface_pressure
+  units = Pa
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True
+[ ps_ref ]
+  standard_name = reference_surface_pressure
+  units = Pa
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True
 [ tref ]
   standard_name = enter_standard_name_11
   units = enter units
