@@ -176,7 +176,7 @@ CONTAINS
       use shr_flux_mod,   only: shr_flux_adjust_constants
 !      use mpi,            only: mpi_bcast !!XXgoldyXX: Why not?
       use mpi,            only: mpi_real8
-      use spmd_utils,     only: masterproc, masterprocid, mpicom
+      use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,    only: iulog
 
       ! filepath for file containing namelist input
@@ -208,15 +208,17 @@ CONTAINS
       end if
 
       ! Broadcast namelist variables
-      call mpi_bcast(gravit, 1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(sday,   1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(mwh2o,  1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(cpwv,   1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(mwdry,  1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(cpair,  1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(rearth, 1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(tmelt,  1, mpi_real8, masterprocid, mpicom, ierr)
-      call mpi_bcast(omega,  1, mpi_real8, masterprocid, mpicom, ierr)
+      if (npes > 1) then
+         call mpi_bcast(gravit, 1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(sday,   1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(mwh2o,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(cpwv,   1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(mwdry,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(cpair,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(rearth, 1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(tmelt,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(omega,  1, mpi_real8, masterprocid, mpicom, ierr)
+      end if
 
       newg     =  gravit /= real(shr_const_g, kind_phys)
       newsday  =  sday   /= real(shr_const_sday, kind_phys)

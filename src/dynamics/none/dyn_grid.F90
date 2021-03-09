@@ -67,7 +67,7 @@ CONTAINS
       use cam_abortutils,   only: endrun
       use cam_logfile,      only: cam_log_multiwrite
       use cam_initfiles,    only: initial_file_get_id
-      use vert_coord,       only: vert_coord_init
+      use vert_coord,       only: vert_coord_init, pver
       use hycoef,           only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
       use ref_pres,         only: ref_pres_init
@@ -115,7 +115,7 @@ CONTAINS
       fh_ini => initial_file_get_id()
 
       ! Set vertical coordinate information not provided by namelist:
-      call vert_coord_init(1, num_levels)
+      call vert_coord_init(1, pver)
 
       ! Initialize hybrid coordinate arrays
       call hycoef_init(fh_ini, psdry=.true.)
