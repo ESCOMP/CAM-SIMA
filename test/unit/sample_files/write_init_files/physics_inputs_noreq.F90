@@ -11,7 +11,7 @@ CONTAINS
    subroutine physics_read_data(file, suite_names, timestep)
       use pio,                  only: file_desc_t
       use cam_abortutils,       only: endrun
-      use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL
+      use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,         only: read_field, find_input_name_idx
       use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
@@ -33,14 +33,14 @@ CONTAINS
       character(len=SHR_KIND_CL) :: protected_non_init_vars
       character(len=SHR_KIND_CL) :: missing_input_names
 
-      character(len=512) :: errmsg    !CCPP framework error message
-      integer            :: errflg    !CCPP framework error flag
-      integer            :: name_idx  !Input variable array index
-      integer            :: req_idx   !Required variable array index
-      integer            :: suite_idx !Suite array index
-      character(len=2)   :: sep  = '' !String separator used to print error messages
-      character(len=2)   :: sep2 = '' !String separator used to print error messages
-      character(len=2)   :: sep3 = '' !String separator used to print error messages
+      character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message
+      integer                    :: errflg    !CCPP framework error flag
+      integer                    :: name_idx  !Input variable array index
+      integer                    :: req_idx   !Required variable array index
+      integer                    :: suite_idx !Suite array index
+      character(len=2)           :: sep  = '' !String separator used to print error messages
+      character(len=2)           :: sep2 = '' !String separator used to print error messages
+      character(len=2)           :: sep3 = '' !String separator used to print error messages
 
       !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
