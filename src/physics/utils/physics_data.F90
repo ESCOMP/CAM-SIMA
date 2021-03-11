@@ -47,7 +47,7 @@ CONTAINS
          if (trim(phys_var_stdnames(idx)) == trim(stdname)) then
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
-            if (initialized_vars(idx)) then
+            if (initialized_vars(idx) == 1) then
                find_input_name_idx = init_mark_idx
             else if (protected_vars(idx)) then
                find_input_name_idx = prot_no_init_idx

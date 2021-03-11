@@ -48,20 +48,22 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
             variable is protected
 
         initialized_vars -
-            Logicals that indicate
-            whether or not each
-            variable is initialized
+            Integers that indicate
+            whether each variable
+            is untouched (0), 
+               initialized (1), or
+               read in from file (2)
 
         It also contains the
         "mark_as_initialized"
         subroutine, which can set
         the logical value
-        in "initialized_vars" to true
+        in "initialized_vars" to 1
         give the variable's standard
         name, and the "is_initialized"
         function, which returns the
         value of the "initialized_vars"
-        logical for a particualar
+        integer for a particualar
         variable given its standard name.
 
     2.  physics_inputs.F90
@@ -911,8 +913,8 @@ def write_ic_arrays(outfile, fort_data):
     outfile.write("", 0)
 
     #Write starting declaration of initialized logical array:
-    outfile.write("!Logical array to indicate whether or not variable is initialized:", 1)
-    declare_str = "logical, public, protected :: initialized_vars(phys_var_num) = (/ &"
+    outfile.write("!array to indicate: variable is untouched (0), initialized (1), or read in from file (2):", 1)
+    declare_str = "integer, public, protected :: initialized_vars(phys_var_num) = (/ &"
     outfile.write(declare_str, 1)
 
     #Write "False" logicals to logical array, unless
@@ -925,9 +927,9 @@ def write_ic_arrays(outfile, fort_data):
 
         #Set array values:
         if var_name in fort_data.parameter_set:
-            log_arr_str = '.true.' + arr_suffix
+            log_arr_str = '1' + arr_suffix
         else:
-            log_arr_str = '.false.' + arr_suffix
+            log_arr_str = '0' + arr_suffix
 
         #Write line to file:
         outfile.write(log_arr_str, 2)
@@ -957,7 +959,7 @@ def write_init_mark_subroutine(outfile):
     outfile.write("!This subroutine  marks the variable as\n" \
                   "!initialized in the `initialized_vars` array,\n" \
                   "!which means any initialization check should now\n" \
-                  "!now return True.", 2)
+                  "!now return 1.", 2)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -987,8 +989,8 @@ def write_init_mark_subroutine(outfile):
     outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
 
     outfile.write("!If so, then set associated initialized_vars\n" \
-                  "!array index to true:", 4)
-    outfile.write("initialized_vars(stdnam_idx) = .true.", 4)
+                  "!array index to 1:", 4)
+    outfile.write("initialized_vars(stdnam_idx) = 1", 4)
 
     outfile.write("", 0)
     outfile.write("!Indicate variable has been found:", 4)
@@ -1073,7 +1075,7 @@ def write_is_init_func(outfile):
 
     outfile.write("!If so, then return initialized_vars\n" \
                   "!value associated with that index:", 4)
-    outfile.write("is_initialized = initialized_vars(stdnam_idx)", 4)
+    outfile.write("is_initialized = (initialized_vars(stdnam_idx) == 1)", 4)
 
     outfile.write("", 0)
     outfile.write("!Exit loop:", 4)
