@@ -93,7 +93,8 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-
+      use phys_vars_init_check, only: mark_as_read_from_file
+      
       !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check, only: ic_name_len
 
@@ -117,6 +118,7 @@ CONTAINS
          end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
+         call mark_as_read_from_file(found_name)
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
@@ -139,6 +141,7 @@ CONTAINS
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use vert_coord,     only: pver, pverp
+      use phys_vars_init_check, only: mark_as_read_from_file
 
       !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check,  only: ic_name_len
@@ -173,6 +176,7 @@ CONTAINS
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=(/1, num_levs/))
+         call mark_as_read_from_file(found_name)
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
