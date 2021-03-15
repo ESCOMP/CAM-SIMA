@@ -15,7 +15,7 @@
   protected = True
 [ pref_mid_norm ]
   standard_name = reference_pressure_normalized_by_surface_pressure
-  units = 1
+  units = Pa Pa-1
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
   protected = True

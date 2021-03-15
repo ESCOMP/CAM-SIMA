@@ -95,9 +95,6 @@ CONTAINS
       index_top_layer    = index_top_layer_in
       index_bottom_layer = index_bottom_layer_in
 
-      !!XXgoldyXX: Can we enforce interface numbering separate from dycore?
-      !!XXgoldyXX: This will work for both CAM and WRF/MPAS physics
-      !!XXgoldyXX: This only has a 50% chance of working on a single level model
       if (index_top_layer < index_bottom_layer) then
          index_top_interface    = index_top_layer
          index_bottom_interface = index_bottom_layer + 1
