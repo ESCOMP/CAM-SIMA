@@ -36,7 +36,8 @@ CONTAINS
       use cam_initfiles,     only: initial_file_get_id
       use physics_types,     only: physics_state, physics_tend
       use camsrfexch,        only: cam_out_t
-      use physics_grid,      only: columns_on_task, pver, pverp
+      use physics_grid,      only: columns_on_task
+      use vert_coord,        only: pver, pverp
       use physics_inputs,    only: physics_read_data
       use physconst,         only: physconst_init
       use physics_types,     only: allocate_physics_types_fields

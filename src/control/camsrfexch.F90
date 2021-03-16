@@ -145,7 +145,7 @@ CONTAINS
       ! Transfer atmospheric fields into necessary surface data structures
 
       use physics_types,    only: physics_state
-      use physics_grid,     only: pver
+      use vert_coord,       only: pver
       use physconst,        only: rair, mwdry, mwco2, gravit
       use constituents,     only: pcnst
 

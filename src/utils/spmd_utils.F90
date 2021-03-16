@@ -23,7 +23,6 @@ module spmd_utils
    public spmd_init
 
    integer, public                :: mpicom
-   integer, public                :: mpichar
    logical, public                :: masterproc
    integer, public                :: masterprocid
    integer, public                :: iam

@@ -7,6 +7,8 @@
   <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
@@ -25,19 +27,6 @@
               standard_name="index_of_rain_water_mixing_ratio"
               units="count" type="integer">
       <initial_value>3</initial_value>
-    </variable>
-    <!-- Coordinates -->
-    <variable local_name="latitude" standard_name="latitude"
-              units="radian" type="real" kind="kind_phys"
-              allocatable="pointer" access="protected">
-      <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>latitude lat</ic_file_input_names>
-    </variable>
-    <variable local_name="longitude" standard_name="longitude"
-              units="radian" type="real" kind="kind_phys"
-              allocatable="pointer" access="protected">
-      <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>longitude lon</ic_file_input_names>
     </variable>
     <!-- State variables -->
     <variable local_name="ps" standard_name="surface_air_pressure"

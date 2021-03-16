@@ -126,9 +126,9 @@ def buildnml(case, caseroot, compname):
     #Generate model code and meta-data:
     config.generate_cam_src(gen_indent)
 
-    #-----------------------------------------------------------------
+    #----------------------------------------------------------------
     # Create namelist attribute dictionary (to set namelist defaults):
-    #-----------------------------------------------------------------
+    #----------------------------------------------------------------
 
     cam_nml_dict = nml_attr_set(config)
 
@@ -163,9 +163,9 @@ def buildnml(case, caseroot, compname):
     # Create the namelist generator object - independent of instance:
     nmlgen = NamelistGenerator(case, definition_file)
 
-    #-----------------------
-    # Loop over all instances
-    #-----------------------
+    #------------------------
+    # Loop over all instances:
+    #------------------------
 
     # Set input data list file name:
     input_data_list = os.path.join(caseroot, "Buildconf", "cam.input_data_list")

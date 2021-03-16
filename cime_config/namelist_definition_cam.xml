@@ -7279,6 +7279,21 @@
     </desc>
   </entry>
 
+<!-- Vertical Coordinate -->
+
+  <entry id="pver">
+    <type>integer</type>
+    <category>vert_coord</category>
+    <group>vert_coord_nl</group>
+    <desc>
+      Number of model vertical levels.
+      Default: 30
+    </desc>
+    <values>
+      <value nlev="30">30</value> <!--Default value -->
+    </values>
+  </entry>
+
 <!-- Reference Pressures -->
 
   <entry id="trop_cloud_top_press">

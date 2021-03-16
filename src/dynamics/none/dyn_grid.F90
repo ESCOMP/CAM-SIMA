@@ -67,6 +67,10 @@ CONTAINS
       use cam_abortutils,   only: endrun
       use cam_logfile,      only: cam_log_multiwrite
       use cam_initfiles,    only: initial_file_get_id
+      use vert_coord,       only: vert_coord_init, pver
+      use hycoef,           only: hycoef_init, hypi, hypm, nprlev, &
+                                  hyam, hybm, hyai, hybi, ps0
+      use ref_pres,         only: ref_pres_init
       use physics_grid,     only: phys_grid_init
       use cam_grid_support, only: hclen => max_hcoordname_len
 
@@ -109,6 +113,15 @@ CONTAINS
 
       ! Get file handle for initial file to find coordinates
       fh_ini => initial_file_get_id()
+
+      ! Set vertical coordinate information not provided by namelist:
+      call vert_coord_init(1, pver)
+
+      ! Initialize hybrid coordinate arrays
+      call hycoef_init(fh_ini, psdry=.true.)
+
+      ! Initialize reference pressures
+      call ref_pres_init(hypi, hypm, nprlev)
 
       ! We will handle errors for this routine
       call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, err_handling)
@@ -405,8 +418,8 @@ CONTAINS
       end if
 
       ! Initialize physics grid decomposition:
-      call phys_grid_init(num_lons, num_lats, num_levels, 'NULL', &
-                          1, num_levels, dyn_columns, gridname, &
+      call phys_grid_init(num_lons, num_lats, 'NULL', &
+                          dyn_columns, gridname, &
                           grid_attribute_names)
 
       ! Deallocate grid_attirbute_names, as it is no longer needed:

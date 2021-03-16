@@ -95,6 +95,7 @@ def _build_cam():
                  os.path.join(atm_root, "src", "cpl",
                               case.get_value("COMP_INTERFACE")),
                  os.path.join(atm_root, "src", "dynamics", dycore),
+                 os.path.join(atm_root, "src", "dynamics","utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
                  os.path.join(atm_root, "src", "utils")]
         for path in phys_dirs:
