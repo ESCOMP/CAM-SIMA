@@ -108,6 +108,7 @@ CONTAINS
       character(len=ic_name_len)       :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_2d: '
+      logical                          :: is_from_file
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
@@ -142,7 +143,8 @@ CONTAINS
       use cam_field_read, only: cam_read_field
       use vert_coord,     only: pver, pverp
       use phys_vars_init_check, only: mark_as_read_from_file
-
+      use phys_vars_init_check, only: get_initialized_vars
+      use phys_vars_init_check, only: phys_var_num
       !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check,  only: ic_name_len
 

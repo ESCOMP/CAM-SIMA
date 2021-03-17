@@ -191,6 +191,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write("public :: mark_as_read_from_file", 1)
         outfile.write("public :: is_initialized", 1)
         outfile.write("public :: is_read_from_file", 1)
+        outfile.write("public :: get_initialized_vars", 1)
 
         #Add "contains" statement:
         outfile.write("\nCONTAINS\n", 0)
@@ -218,6 +219,13 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
 
         #Write read from file check function:
         write_is_read_from_file_func(outfile)
+
+        #Add two blank spaces
+        outfile.write("", 0)
+        outfile.write("", 0)
+
+        #Write getter for initialized_vars
+        write_get_initialized_vars(outfile)
 
         #End module:
         outfile.write("\nend module {}".format(phys_check_fname_str), 0)
@@ -1087,12 +1095,12 @@ def write_read_from_file_mark_subroutine(outfile):
 
     #Add main subroutine section:
     #---------------------------
-    outfile.write("!Loop over standard name array:", 2)
+    outfile.write("!Loop over input name array:", 2)
     outfile.write("do stdnam_idx = 1, phys_var_num", 2)
+    #outfile.write("end if", 2)
 
     outfile.write("!Check if standard name matches provided variable name:", 3)
-    outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
-
+    outfile.write("if (trim(input_var_names(1,stdnam_idx)) == trim(varname).or.trim(input_var_names(2,stdnam_idx)) == trim(varname)) then", 3)
     outfile.write("!If so, then set associated initialized_vars\n" \
                   "!array index to 2:", 4)
     outfile.write("initialized_vars(stdnam_idx) = 2", 4)
@@ -1100,7 +1108,6 @@ def write_read_from_file_mark_subroutine(outfile):
     outfile.write("", 0)
     outfile.write("!Indicate variable has been found:", 4)
     outfile.write("found_var = .true.", 4)
-
     outfile.write("", 0)
     outfile.write("!Exit loop:", 4)
     outfile.write("exit", 4)
@@ -1113,10 +1120,8 @@ def write_read_from_file_mark_subroutine(outfile):
     #outfile.write("if (.not.found_var) then", 2)
     #outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
     #              "!that variable did not exist in standard names array:", 3)
-    #outfile.write("call endrun(&", 3)
-    #outfile.write('''"Variable '"//trim(varname)//"' is missing file from phys_var_stdnames array.")''', 3)
+    #outfile.write("call endrun(&", 2)
     #outfile.write("end if", 2)
-
     outfile.write("", 0)
     #--------------------------
 
@@ -1217,7 +1222,7 @@ def write_is_read_from_file_func(outfile):
     """
 
     #Add subroutine header:
-    outfile.write("logical function is_read_from_file(varname)", 1)
+    outfile.write("subroutine is_read_from_file(varname, is_from_file)", 1)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1241,6 +1246,7 @@ def write_is_read_from_file_func(outfile):
 
     #Add variable declaration statements:
     outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
+    outfile.write("logical, intent(out) :: is_from_file !output variable", 2)
     outfile.write("", 0)
     outfile.write("integer :: stdnam_idx !standard name array index", 2)
 
@@ -1248,7 +1254,7 @@ def write_is_read_from_file_func(outfile):
     outfile.write("", 0)
 
     #Initialize return variable:
-    outfile.write("is_read_from_file = .false.", 2)
+    outfile.write("is_from_file = .false.", 2)
     outfile.write("", 0)
 
     #Add main function section:
@@ -1261,7 +1267,7 @@ def write_is_read_from_file_func(outfile):
 
     outfile.write("!If so, then return initialized_vars\n" \
                   "!value associated with that index:", 4)
-    outfile.write("is_read_from_file = (initialized_vars(stdnam_idx) == 2)", 4)
+    outfile.write("is_from_file = (initialized_vars(stdnam_idx) == 2)", 4)
 
     outfile.write("", 0)
     outfile.write("!Exit loop:", 4 )
@@ -1273,18 +1279,27 @@ def write_is_read_from_file_func(outfile):
 
     outfile.write("", 0)
 
-    outfile.write("if (.not.is_read_from_file) then", 2)
-    outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
-                  "!that variable did not exist in standard names array:", 3)
-    outfile.write("call endrun(&", 3)
-    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
-    outfile.write("end if", 2)
-
-    outfile.write("", 0)
     #--------------------------
 
     #End subroutine
-    outfile.write("end function is_read_from_file", 1)
+    outfile.write("end subroutine is_read_from_file", 1)
+
+######
+
+def write_get_initialized_vars(outfile):
+    #Add subroutine header:
+    outfile.write("function get_initialized_vars() result(initialized_variables)", 1)
+    outfile.write("integer, dimension( phys_var_num ) :: initialized_variables", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Set output variable
+    outfile.write("initialized_variables = initialized_vars", 2)
+    outfile.write("", 0)
+
+    #End subroutine
+    outfile.write("end function get_initialized_vars", 1)
 
 ######
 
