@@ -636,30 +636,6 @@ class ConfigCAM:
                              'vert_coord_nl',
                              'ref_pres_nl']
 
-        #----------------------------------------
-        # Set CAM grid variables (nlat,nlon,nlev)
-        #----------------------------------------
-
-        # Set number of vertical levels
-        if case_nlev:
-            nlev = case_nlev
-        else:
-            nlev = '30' # Default value
-
-        # Add vertical levels to configure object
-        nlev_desc = "Number of vertical levels."
-        self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
-
-        # Add number of latitudes in grid to configure object
-        nlat_desc = "Number of unique latitude points in rectangular lat/lon" \
-                    " grid.\nSet to 1 (one) for unstructured grids."
-        self.create_config("nlat", nlat_desc, case_ny)
-
-        # Add number of longitudes in grid to configure object
-        nlon_desc = "Number of unique longitude points in rectangular lat/lon" \
-                    " grid.\nTotal number of columns for unstructured grids."
-        self.create_config("nlon", nlon_desc, case_nx)
-
         #------------------------
         # Set CAM physics columns
         #------------------------
@@ -787,22 +763,22 @@ class ConfigCAM:
             raise CamConfigValError(emsg.format(user_dyn_opt, dyn))
         # End if
 
-        #--------------------------------------------------------
-        # Set CAM grid variables (nlev and horizontal dimensions)
-        #--------------------------------------------------------
+        #----------------------------------------
+        # Set CAM grid variables (nlat,nlon,nlev)
+        #----------------------------------------
 
         # Set number of vertical levels
         if case_nlev:
             nlev = case_nlev
         else:
-            nlev = 30
-
-        # Add vertical levels CPP definition (REMOVE ONCE HELD-SUAREZ PR IS MERGED!):
-        self.add_cppdef("PLEV", value=nlev)
+            nlev = '30' # Default value
 
         # Add vertical levels to configure object
         nlev_desc = "Number of vertical levels."
         self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
+
+        # Add vertical levels CPP definition (REMOVE ONCE SE DIMENSIONS_MOD HAS INIT SUBROUTINE):
+        self.add_cppdef("PLEV", value=nlev)
 
         #Set horizontal dimension variables:
         if dyn == "se":

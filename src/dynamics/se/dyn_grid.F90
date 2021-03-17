@@ -127,11 +127,11 @@ subroutine model_grid_init()
    ! decomposition based on the dynamics (SE) grid.
 
    use mpi,                 only: mpi_max
+   use vert_coord,          only: vert_coord_init, pver
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
    use physconst,           only: thermodynamic_active_species_num
    use ref_pres,            only: ref_pres_init
-   use pmgrid,              only: plev, plevp !Remove once phys_vert_coord is enabled!! -JN
    use time_manager,        only: get_nstep, get_step_size
    use dp_mapping,          only: dp_init, dp_write
    use native_mapping,      only: do_native_mapping, create_native_mapping_files
@@ -175,6 +175,9 @@ subroutine model_grid_init()
    ! Get file handle for initial file and first consistency check
    fh_ini => initial_file_get_id()
 
+   ! Set vertical coordinate information not provided by namelist:
+   call vert_coord_init(1, pver)
+
    ! Initialize hybrid coordinate arrays
    call hycoef_init(fh_ini, psdry=.true.)
 
@@ -188,7 +191,7 @@ subroutine model_grid_init()
    end do
 
    ! Initialize reference pressures
-   call ref_pres_init(plev, plevp, hypi, hypm, nprlev)
+   call ref_pres_init(hypi, hypm, nprlev)
 
    if (iam < par%nprocs) then
 
@@ -359,8 +362,8 @@ subroutine model_grid_init()
    end if
 
    ! Initialize physics grid decomposition:
-   call phys_grid_init(hdim1_d, 1, nlev, 'SE', &
-                       1, nlev, local_dyn_columns, gridname, &
+   call phys_grid_init(hdim1_d, 1, 'SE', &
+                       local_dyn_columns, gridname, &
                        grid_attribute_names)
 
    ! Deallocate grid_attirbute_names, as it is no longer needed:

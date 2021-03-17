@@ -17,7 +17,7 @@ use dyn_comp,       only: dyn_export_t, dyn_import_t
 use physics_types,  only: physics_state, physics_tend
 use physics_types,  only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled
 use physics_grid,   only: pcols => columns_on_task, get_dyn_col_p
-use physics_grid,   only: pver, pverp
+use vert_coord,     only: pver, pverp
 
 use dp_mapping,     only: nphys_pts
 
