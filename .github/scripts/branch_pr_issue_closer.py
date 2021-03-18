@@ -137,11 +137,10 @@ def _main_prog():
 
     ghub = Github(token)
 
-    #++++++++++++++++++++
-    #Open ESCOMP/CAM repo
-    #++++++++++++++++++++
+    #+++++++++++++++++++++
+    #Open NCAR/CAMDEN repo
+    #+++++++++++++++++++++
 
-    #Official CAM repo:
     cam_repo = ghub.get_repo("NCAR/CAMDEN")
 
     #+++++++++++++++++++++++++++++
