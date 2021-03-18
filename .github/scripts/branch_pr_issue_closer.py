@@ -341,7 +341,7 @@ def _main_prog():
         #Loop over columns:
         for column in proj_columns:
 
-            #check if column name is "Completed Tags"
+            #check if column name is "Completed tags"
             if column.name == "Completed tags":
                 #If so, then extract cards:
                 cards = column.get_cards()
