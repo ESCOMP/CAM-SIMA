@@ -1020,7 +1020,7 @@ def write_init_mark_subroutine(outfile):
     outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
 
     outfile.write("!Only set to INITIALIZED if not already READ_FROM_FILE", 4)
-    outfile.write("if (initialized_vars(stdnam_idx) /= READ_FROM_FILE", 4)
+    outfile.write("if (initialized_vars(stdnam_idx) /= READ_FROM_FILE) then", 4)
 
     outfile.write("!If so, then set associated initialized_vars\n" \
                   "!array index to INITIALIZED:", 5)
