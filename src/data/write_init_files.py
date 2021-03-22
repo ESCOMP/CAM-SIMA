@@ -212,9 +212,6 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write("", 0)
         outfile.write("", 0)
 
-        #Write read from file check function:
-        write_is_read_from_file_func(outfile)
-
         #End module:
         outfile.write("\nend module {}".format(phys_check_fname_str), 0)
     #--------------------------------------
@@ -1210,80 +1207,6 @@ def write_is_init_func(outfile):
 
     #End subroutine:
     outfile.write("end function is_initialized", 1)
-
-######
-
-def write_is_read_from_file_func(outfile):
-
-    """
-    Write "Is Read from File" function which
-    is used to check if a given function has
-    been read from file according to
-    the "initialized_vars" array.
-    """
-
-    #Add subroutine header:
-    outfile.write("subroutine is_read_from_file(varname, is_from_file)", 1)
-
-    #Write a blank space:
-    outfile.write("", 0)
-
-    #Add subroutine description:
-    outfile.write("!This function checks if the variable is\n" \
-                  "!read from file according to the\n" \
-                  "!`initialized_vars` array.", 2)
-
-    #Write a blank space
-    outfile.write("", 0)
-
-    #Add use statements:
-    outfile.write("use cam_abortutils, only: endrun", 2)
-
-    #Write a blank space:
-    outfile.write("", 0)
-
-    #Write a blank space:
-    outfile.write("", 0)
-
-    #Add variable declaration statements:
-    outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
-    outfile.write("logical, intent(out) :: is_from_file !output variable", 2)
-    outfile.write("", 0)
-    outfile.write("integer :: stdnam_idx !standard name array index", 2)
-
-    #Write a blank space
-    outfile.write("", 0)
-
-    #Initialize return variable:
-    outfile.write("is_from_file = .false.", 2)
-    outfile.write("", 0)
-
-    #Add main function section:
-    #-------------------------
-    outfile.write("!Loop over standard name array:", 2)
-    outfile.write("do stdnam_idx = 1, phys_var_num", 2)
-
-    outfile.write("!Check if standard name matches provided variable name:", 3)
-    outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
-
-    outfile.write("!If so, then return initialized_vars\n" \
-                  "!value associated with that index:", 4)
-    outfile.write("is_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)", 4)
-
-    outfile.write("", 0)
-    outfile.write("!Exit loop:", 4 )
-    outfile.write("exit", 4)
-
-    outfile.write("end if", 3)
-
-    outfile.write("end do", 2)
-
-    outfile.write("", 0)
-
-    #--------------------------
-
-    #End subroutine
-    outfile.write("end subroutine is_read_from_file", 1)
 
 ######
 
