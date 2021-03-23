@@ -27,10 +27,10 @@ CONTAINS
       !Finds the 'input_var_names' array index for a given
       !variable standard name.
 
-      use phys_vars_init_check, only: initialized_vars
       use phys_vars_init_check, only: protected_vars
       use phys_vars_init_check, only: phys_var_stdnames
       use phys_vars_init_check, only: phys_var_num
+      use phys_vars_init_check, only: is_initialized
 
       !Variable standard name being checked:
       character(len=*),  intent(in) :: stdname
@@ -47,7 +47,7 @@ CONTAINS
          if (trim(phys_var_stdnames(idx)) == trim(stdname)) then
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
-            if (initialized_vars(idx) == 1) then
+            if (is_initialized(stdname)) then
                find_input_name_idx = init_mark_idx
             else if (protected_vars(idx)) then
                find_input_name_idx = prot_no_init_idx

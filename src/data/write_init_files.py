@@ -50,9 +50,10 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         initialized_vars -
             Integers that indicate
             whether each variable
-            is UNREAD (0), 
-               INITIALIZED (1), or
-               READ_FROM_FILE (2)
+            is UNINITIALIZED (0), 
+               PARAMETER (1),
+               INITIALIZED (2), or
+               READ_FROM_FILE (3)
 
         It also contains the
         "mark_as_initialized"
@@ -60,11 +61,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         value in "initialized_vars" to 
         INITIALIZED given the variable's 
         standard name, and the "is_initialized"
-        function, which returns the
-        TRUE if the value of "initialized_vars"
+        function, which returns TRUE 
+        if the value of "initialized_vars"
         for a particualar variable given 
-        its standard name is INITIALIZED and 
-        FALSE otherwise.
+        its standard name is PARAMETER, 
+        INITIALIZED, or READ_FROM_FILE.
 
         It also contains the
         "mark_as_read_from_file"
@@ -806,10 +807,11 @@ def write_ic_params(outfile, fort_data):
     outfile.write("", 0)
 
     #Add parameters for initialized_vars options:
-    outfile.write("!Parameterized initialized_vars options", 1)
-    outfile.write("integer, public, parameter ::         UNREAD = 0", 1)
-    outfile.write("integer, public, parameter ::    INITIALIZED = 1", 1)
-    outfile.write("integer, public, parameter :: READ_FROM_FILE = 2", 1)
+    outfile.write("!Parameterized initialized_vars options - order matters", 1)
+    outfile.write("integer, public, parameter ::  UNINITIALIZED = 0", 1)
+    outfile.write("integer, public, parameter ::      PARAMETER = 1", 1)
+    outfile.write("integer, public, parameter ::    INITIALIZED = 2", 1)
+    outfile.write("integer, public, parameter :: READ_FROM_FILE = 3", 1)
 
     #Add blank space:
     outfile.write("", 0)
@@ -941,7 +943,7 @@ def write_ic_arrays(outfile, fort_data):
     outfile.write("", 0)
 
     #Write starting declaration of initialized logical array:
-    outfile.write("!array to indicate: variable is UNREAD, INTIIALIZED, or READ_FROM_FILE:", 1)
+    outfile.write("!array to indicate: variable is UNINITIALIZED, PARAMETER, INTIIALIZED, or READ_FROM_FILE:", 1)
     declare_str = "integer, public, protected :: initialized_vars(phys_var_num) = (/ &"
     outfile.write(declare_str, 1)
 
@@ -957,7 +959,7 @@ def write_ic_arrays(outfile, fort_data):
         if var_name in fort_data.parameter_set:
             log_arr_str = 'INITIALIZED' + arr_suffix
         else:
-            log_arr_str = 'UNREAD' + arr_suffix
+            log_arr_str = 'UNINITIALIZED' + arr_suffix
 
         #Write line to file:
         outfile.write(log_arr_str, 2)
@@ -1181,9 +1183,8 @@ def write_is_init_func(outfile):
     outfile.write("!Check if standard name matches provided variable name:", 3)
     outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
 
-    outfile.write("!If so, then return initialized_vars\n" \
-                  "!value associated with that index:", 4)
-    outfile.write("is_initialized = (initialized_vars(stdnam_idx) == INITIALIZED)", 4)
+    outfile.write("!If so, then return True if PARAMETER, INITIALIZED, OR READ_FROM_FILE", 4)
+    outfile.write("is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)", 4)
 
     outfile.write("", 0)
     outfile.write("!Exit loop:", 4)
