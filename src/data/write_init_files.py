@@ -957,7 +957,7 @@ def write_ic_arrays(outfile, fort_data):
 
         #Set array values:
         if var_name in fort_data.parameter_set:
-            log_arr_str = 'INITIALIZED' + arr_suffix
+            log_arr_str = 'PARAMETER' + arr_suffix
         else:
             log_arr_str = 'UNINITIALIZED' + arr_suffix
 
