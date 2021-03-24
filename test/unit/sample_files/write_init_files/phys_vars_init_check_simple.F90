@@ -15,7 +15,7 @@ module phys_vars_init_check_simple
    !Parameterized initialized_vars options - order matters
    integer, public, parameter ::  UNINITIALIZED = 0
    integer, public, parameter ::    INITIALIZED = 1
-   integer, public, parameter ::      PARAMETER = 2
+   integer, public, parameter ::          PARAM = 2
    integer, public, parameter :: READ_FROM_FILE = 3
 
    !Array storing all physics-related variable standard names:
@@ -36,7 +36,7 @@ module phys_vars_init_check_simple
       .false., &
       .false. /)
 
-   !array to indicate: variable is UNINITIALIZED, INTIIALIZED, PARAMETER or READ_FROM_FILE:
+   !array to indicate: variable is UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE:
    integer, public, protected :: initialized_vars(phys_var_num) = (/ &
       UNINITIALIZED, &
       UNINITIALIZED, &
@@ -53,7 +53,7 @@ CONTAINS
 
       !This subroutine  marks the variable as
       !INITIALIZED in the `initialized_vars` array,
-      !which means any initialization check should now
+      !which means any initialization check should
       !now return True.
 
       use cam_abortutils, only: endrun
@@ -68,8 +68,8 @@ CONTAINS
       do stdnam_idx = 1, phys_var_num
          !Check if standard name matches provided variable name:
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
-            !Only set to INITIALIZED if not already PARAMETER or READ_FROM_FILE
-            if (initialized_vars(stdnam_idx) < PARAMETER) then
+            !Only set to INITIALIZED if not already PARAM or READ_FROM_FILE
+            if (initialized_vars(stdnam_idx) < PARAM) then
                !If so, then set associated initialized_vars
                !array index to INITIALIZED:
                initialized_vars(stdnam_idx) = INITIALIZED
@@ -111,7 +111,13 @@ CONTAINS
          !Check if standard name matches provided variable name:
          if (trim(input_var_names(1,stdnam_idx)) ==                                               &
               trim(varname).or.trim(input_var_names(2,stdnam_idx)) == trim(varname)) then
-            !If so, then set associated initialized_vars
+            !Check if initialized_vars at that index has already been set to PARAM
+            if (initialized_vars(stdnam_idx) == PARAM) then
+               !If so, call endrun because that should not happen
+               call endrun(&
+               "Variable '"//trim(varname)//"' was read from file, but was a parameter")
+            end if
+            !Otherwise, set associated initialized_vars
             !array index to READ_FROM_FILE:
             initialized_vars(stdnam_idx) = READ_FROM_FILE
 
@@ -152,7 +158,7 @@ CONTAINS
       do stdnam_idx = 1, phys_var_num
          !Check if standard name matches provided variable name:
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
-            !If so, then return True if PARAMETER, INITIALIZED, OR READ_FROM_FILE
+            !If so, then return True if PARAM, INITIALIZED, OR READ_FROM_FILE
             is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)
 
             !Exit loop:
