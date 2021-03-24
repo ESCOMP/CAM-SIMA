@@ -109,8 +109,7 @@ CONTAINS
       !Loop over input name array:
       do stdnam_idx = 1, phys_var_num
          !Check if standard name matches provided variable name:
-         if (trim(input_var_names(1,stdnam_idx)) ==                                               &
-              trim(varname).or.trim(input_var_names(2,stdnam_idx)) == trim(varname)) then
+         if (any(input_var_names(:, stdnam_idx) == trim(varname))) then
             !Check if initialized_vars at that index has already been set to PARAM
             if (initialized_vars(stdnam_idx) == PARAM) then
                !If so, call endrun because that should not happen

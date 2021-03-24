@@ -947,7 +947,7 @@ def write_ic_arrays(outfile, fort_data):
     declare_str = "integer, public, protected :: initialized_vars(phys_var_num) = (/ &"
     outfile.write(declare_str, 1)
 
-    #Write "False" logicals to logical array, unless
+    #Write UNINITIALIZED to integer array, unless
     #variable is a parameter:
     arr_suffix = ', &'
     for var_num, var_name in enumerate(fort_data.standard_names):
@@ -1096,10 +1096,9 @@ def write_read_from_file_mark_subroutine(outfile):
     #---------------------------
     outfile.write("!Loop over input name array:", 2)
     outfile.write("do stdnam_idx = 1, phys_var_num", 2)
-    #outfile.write("end if", 2)
 
     outfile.write("!Check if standard name matches provided variable name:", 3)
-    outfile.write("if (trim(input_var_names(1,stdnam_idx)) == trim(varname).or.trim(input_var_names(2,stdnam_idx)) == trim(varname)) then", 3)
+    outfile.write("if (any(input_var_names(:, stdnam_idx) == trim(varname))) then", 3)
 
     outfile.write("!Check if initialized_vars at that index has already been set to PARAM", 4)
     outfile.write("if (initialized_vars(stdnam_idx) == PARAM) then", 4)
