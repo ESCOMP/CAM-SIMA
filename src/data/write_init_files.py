@@ -1097,7 +1097,7 @@ def write_read_from_file_mark_subroutine(outfile):
     outfile.write("!Loop over input name array:", 2)
     outfile.write("do stdnam_idx = 1, phys_var_num", 2)
 
-    outfile.write("!Check if standard name matches provided variable name:", 3)
+    outfile.write("!Check if input variable name matches provided variable name:", 3)
     outfile.write("if (any(input_var_names(:, stdnam_idx) == trim(varname))) then", 3)
 
     outfile.write("!Check if initialized_vars at that index has already been set to PARAM", 4)
