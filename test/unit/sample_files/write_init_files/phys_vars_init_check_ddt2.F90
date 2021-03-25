@@ -108,7 +108,7 @@ CONTAINS
 
       !Loop over input name array:
       do stdnam_idx = 1, phys_var_num
-         !Check if standard name matches provided variable name:
+         !Check if input variable name matches provided variable name:
          if (any(input_var_names(:, stdnam_idx) == trim(varname))) then
             !Check if initialized_vars at that index has already been set to PARAM
             if (initialized_vars(stdnam_idx) == PARAM) then
