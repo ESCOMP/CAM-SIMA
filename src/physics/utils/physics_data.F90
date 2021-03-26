@@ -22,7 +22,7 @@ module physics_data
 CONTAINS
 !==============================================================================
 
-   integer function find_input_name_idx(stdname)
+   integer function find_input_name_idx(stdname, use_init_variables)
 
       !Finds the 'input_var_names' array index for a given
       !variable standard name.
@@ -34,6 +34,9 @@ CONTAINS
 
       !Variable standard name being checked:
       character(len=*),  intent(in) :: stdname
+
+      !Logical for whether or not to read initialized variables
+      logical,           intent(in) :: use_init_variables
 
       !standard names array index:
       integer                       :: idx
@@ -48,7 +51,13 @@ CONTAINS
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (is_initialized(stdname)) then
-               find_input_name_idx = init_mark_idx
+               if (use_init_variables) then
+                  !If reading initialized variables, set to idx:
+                  find_input_name_idx = idx
+               else
+                  !Otherwise, set to init_mark_idx:
+                  find_input_name_idx = init_mark_idx
+               end if
             else if (protected_vars(idx)) then
                find_input_name_idx = prot_no_init_idx
             else

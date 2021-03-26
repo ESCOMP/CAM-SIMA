@@ -94,6 +94,7 @@ CONTAINS
    end subroutine phys_run1
 
    subroutine phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
+      use pio,            only: file_desc_t
       use cam_abortutils, only: endrun
       use physics_types,  only: physics_state, physics_tend
       use physics_grid,   only: columns_on_task
@@ -101,6 +102,8 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
+      use physics_inputs, only: physics_read_data
+      use cam_initfiles,  only: initial_file_get_id
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -109,11 +112,15 @@ CONTAINS
       type(cam_out_t),     intent(inout) :: cam_out
       type(cam_in_t),      intent(inout) :: cam_in
       ! Local variables
+      type(file_desc_t), pointer :: ncdata
       character(len=512) :: errmsg
       integer            :: errflg = 0
       integer                            :: part_ind
       integer                            :: col_start
       integer                            :: col_end
+
+      ncdata => initial_file_get_id()
+      call physics_read_data(ncdata, suite_names, 2, read_initialized_variables=.true.) ! Skip first timestep of data
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &

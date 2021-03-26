@@ -1314,7 +1314,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #----------------------------
 
     #Add subroutine header:
-    outfile.write("subroutine physics_read_data(file, suite_names, timestep)", 1)
+    outfile.write("subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)", 1)
 
     #Add use statements:
     outfile.write("use pio,                  only: file_desc_t\n" \
@@ -1338,7 +1338,8 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("! Dummy arguments", 2)
     outfile.write("type(file_desc_t), intent(inout) :: file\n" \
                   "character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites\n" \
-                  "integer,           intent(in)    :: timestep", 2)
+                  "integer,           intent(in)    :: timestep\n" \
+                  "logical,  intent(in),  optional  :: read_initialized_variables", 2)
     outfile.write("", 0)
 
     #Write local variable declarations:
@@ -1361,12 +1362,22 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
                   "character(len=2)           :: sep2 = '' !String separator used to print error messages\n" \
                   "character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
     outfile.write("", 0)
+    outfile.write("!Logical to default optional argument to False:", 2)
+    outfile.write("logical                    :: use_init_variables", 2)
+    outfile.write("", 0)
 
     #Initialize variables:
     outfile.write("!Initalize missing and non-initialized variables strings:", 2)
     outfile.write("missing_required_vars = ' '\n" \
                   "protected_non_init_vars = ' '\n" \
                   "missing_input_names   = ' '", 2)
+    outfile.write("", 0)
+    outfile.write("!Initialize use_init_variables based on whether it was input to function:", 2)
+    outfile.write("if (present(read_initialized_variables)) then", 2)
+    outfile.write("use_init_variables = read_initialized_variables", 3)
+    outfile.write("else", 2)
+    outfile.write("use_init_variables = .false.", 3)
+    outfile.write("end if", 2)
     outfile.write("", 0)
 
     #Loop over physics suites:
@@ -1388,7 +1399,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Call input name search function:
     outfile.write("!Find IC file input name array index for required variable:", 4)
-    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx))", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)", 4)
 
     #Start select-case statement:
     outfile.write("", 0)
