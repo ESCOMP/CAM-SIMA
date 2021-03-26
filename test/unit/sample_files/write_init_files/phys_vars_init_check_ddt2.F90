@@ -12,6 +12,12 @@ module phys_vars_init_check_ddt2
    !Max length of input (IC) file variable names:
    integer, public, parameter :: ic_name_len = 12
 
+   !Parameterized initialized_vars options - order matters
+   integer, public, parameter ::  UNINITIALIZED = 0
+   integer, public, parameter ::    INITIALIZED = 1
+   integer, public, parameter ::          PARAM = 2
+   integer, public, parameter :: READ_FROM_FILE = 3
+
    !Array storing all physics-related variable standard names:
    character(len=21), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
       'sea_level_pressure   ', &
@@ -30,14 +36,15 @@ module phys_vars_init_check_ddt2
       .false., &
       .false. /)
 
-   !Logical array to indicate whether or not variable is initialized:
-   logical, public, protected :: initialized_vars(phys_var_num) = (/ &
-      .false., &
-      .false., &
-      .false. /)
+   !array to indicate: variable is UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE:
+   integer, public, protected :: initialized_vars(phys_var_num) = (/ &
+      UNINITIALIZED, &
+      UNINITIALIZED, &
+      UNINITIALIZED /)
 
 !! public interfaces
    public :: mark_as_initialized
+   public :: mark_as_read_from_file
    public :: is_initialized
 
 CONTAINS
@@ -45,8 +52,8 @@ CONTAINS
    subroutine mark_as_initialized(varname)
 
       !This subroutine  marks the variable as
-      !initialized in the `initialized_vars` array,
-      !which means any initialization check should now
+      !INITIALIZED in the `initialized_vars` array,
+      !which means any initialization check should
       !now return True.
 
       use cam_abortutils, only: endrun
@@ -61,9 +68,12 @@ CONTAINS
       do stdnam_idx = 1, phys_var_num
          !Check if standard name matches provided variable name:
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
-            !If so, then set associated initialized_vars
-            !array index to true:
-            initialized_vars(stdnam_idx) = .true.
+            !Only set to INITIALIZED if not already PARAM or READ_FROM_FILE
+            if (initialized_vars(stdnam_idx) < PARAM) then
+               !If so, then set associated initialized_vars
+               !array index to INITIALIZED:
+               initialized_vars(stdnam_idx) = INITIALIZED
+            end if
 
             !Indicate variable has been found:
             found_var = .true.
@@ -81,6 +91,51 @@ CONTAINS
       end if
 
    end subroutine mark_as_initialized
+
+
+   subroutine mark_as_read_from_file(varname)
+
+      !This subroutine marks the varible as
+      !READ_FROM_FILE in the initialized_vars array
+
+      use cam_abortutils, only: endrun
+
+      character(len=*), intent(in) :: varname !Variable name being marked
+
+      integer :: stdnam_idx !Standard name array index
+
+      logical :: found_var = .false. !Logical which indicates variable exists in array
+
+      !Loop over input name array:
+      do stdnam_idx = 1, phys_var_num
+         !Check if input variable name matches provided variable name:
+         if (any(input_var_names(:, stdnam_idx) == trim(varname))) then
+            !Check if initialized_vars at that index has already been set to PARAM
+            if (initialized_vars(stdnam_idx) == PARAM) then
+               !If so, call endrun because that should not happen
+               call endrun(&
+               "Variable '"//trim(varname)//"' was read from file, but was a parameter")
+            end if
+            !Otherwise, set associated initialized_vars
+            !array index to READ_FROM_FILE:
+            initialized_vars(stdnam_idx) = READ_FROM_FILE
+
+            !Indicate variable has been found:
+            found_var = .true.
+
+            !Exit loop:
+            exit
+         end if
+      end do
+
+      if (.not.found_var) then
+         !If loop has completed with no matches, then endrun with warning
+         !that variable didn't exist in input names array:
+         call endrun(&
+         "Variable '"//trim(varname)//"' is missing from input_var_names array.")
+      end if
+
+   end subroutine mark_as_read_from_file
 
 
    logical function is_initialized(varname)
@@ -102,9 +157,8 @@ CONTAINS
       do stdnam_idx = 1, phys_var_num
          !Check if standard name matches provided variable name:
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
-            !If so, then return initialized_vars
-            !value associated with that index:
-            is_initialized = initialized_vars(stdnam_idx)
+            !If so, then return True if PARAM, INITIALIZED, OR READ_FROM_FILE
+            is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)
 
             !Exit loop:
             exit
@@ -119,5 +173,7 @@ CONTAINS
       end if
 
    end function is_initialized
+
+
 
 end module phys_vars_init_check_ddt2
