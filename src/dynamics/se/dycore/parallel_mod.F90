@@ -2,7 +2,7 @@ module parallel_mod
   ! ---------------------------
   use shr_kind_mod,   only: r8=>shr_kind_r8
   ! ---------------------------
-  use dimensions_mod, only : nmpi_per_node, nlev, qsize_d, ntrac_d
+  use dimensions_mod, only : nmpi_per_node
   ! ---------------------------
   use mpi,     only: MPI_STATUS_SIZE, MPI_MAX_ERROR_STRING, MPI_TAG_UB
 
@@ -21,7 +21,7 @@ module parallel_mod
   integer,  public, parameter   :: HME_BNDRY_A2A   = 3
   integer,  public, parameter   :: HME_BNDRY_A2AO  = 4
 
-  integer,  public, parameter   :: nrepro_vars = MAX(10, nlev*qsize_d, nlev*ntrac_d)
+  integer,  public, protected   :: nrepro_vars
 
   integer,  public              :: MaxNumberFrames
   integer,  public              :: numframes
@@ -43,7 +43,7 @@ module parallel_mod
   integer,  public              :: nPackPoints
 
   real(r8), public, allocatable :: global_shared_buf(:,:)
-  real(r8), public              :: global_shared_sum(nrepro_vars)
+  real(r8), public, allocatable :: global_shared_sum(:)
 
   ! ==================================================
   ! Define type parallel_t for distributed memory info
@@ -113,6 +113,8 @@ CONTAINS
     use spmd_utils,     only: mpicom, iam, npes
     use mpi,            only: MPI_COMM_NULL, MPI_MAX_PROCESSOR_NAME
     use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_BAND
+    use dimensions_mod, only: nlev, qsize_d, ntrac_d
+    use string_utils,   only: to_str
 
     integer, intent(in) :: npes_homme
 
@@ -127,6 +129,9 @@ CONTAINS
     integer, allocatable :: tarray(:)
     integer              :: namelen, i
     integer              :: color
+    integer              :: iret
+
+    character(len=*), parameter :: subname = 'initmpi (SE)'
 
     !================================================
     !     Basic MPI initialization
@@ -143,6 +148,16 @@ CONTAINS
     nmpi_per_node     = 2
     PartitionForNodes = .TRUE.
 
+    ! Initialize number of SE dycore variables used in repro_sum:
+    nrepro_vars = MAX(10, nlev*qsize_d, nlev*ntrac_d)
+
+    ! Allocate repro_sum variable:
+    allocate(global_shared_sum(nrepro_vars), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate global_shared_sum(nrepro_vars) failed with stat: '//&
+                   to_str(iret))
+    end if
+
     ! The SE dycore needs to split from CAM communicator for npes > par%nprocs
     color = iam / npes_homme
     call mpi_comm_split(mpicom, color, iam, par%comm, ierr)
@@ -150,7 +165,7 @@ CONTAINS
       call MPI_comm_size(par%comm, par%nprocs, ierr)
       call MPI_comm_rank(par%comm, par%rank,  ierr)
       if ( par%nprocs /= npes_homme) then
-        call endrun('INITMPI: SE communicator count mismatch')
+        call endrun(subname//': SE communicator count mismatch')
       end if
 
       if(par%rank == par%root) then
@@ -175,7 +190,12 @@ CONTAINS
       my_name(:) = ''
       call MPI_Get_Processor_Name(my_name, namelen, ierr)
 
-      allocate(the_names(par%nprocs))
+      allocate(the_names(par%nprocs), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate the_names(par%nprocs) failed with stat: '//&
+                     to_str(iret))
+      end if
+
       do i = 1, par%nprocs
         the_names(i)(:) =  ''
       end do
@@ -203,7 +223,7 @@ CONTAINS
       call MPI_Allreduce(nmpi_per_node,tmp,1,MPI_INTEGER,MPI_BAND,par%comm,ierr)
       if(tmp /= nmpi_per_node) then
         if (par%masterproc) then
-          write(iulog,*)'initmpi:  disagrement accross nodes for nmpi_per_node'
+          write(iulog,*) subname//':  disagrement accross nodes for nmpi_per_node'
         end if
         nmpi_per_node = 1
         PartitionForNodes = .FALSE.
@@ -212,7 +232,7 @@ CONTAINS
       end if
 
       if(PartitionForFrames .and. par%masterproc) then
-        write(iulog,*)'initmpi: FrameWeight: ', FrameWeight
+        write(iulog,*) subname//': FrameWeight: ', FrameWeight
       end if
 
       deallocate(the_names)

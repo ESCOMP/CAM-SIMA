@@ -28,7 +28,9 @@ CONTAINS
     use cam_control_mod,        only: initial_run
     use time_mod,               only: tstep
     use control_mod,            only: rsplit, qsplit
-    use perf_mod,       only: t_startf, t_stopf
+    use perf_mod,               only: t_startf, t_stopf
+    use cam_abortutils,         only: endrun
+    use string_utils,           only: to_str
     type (element_t),             intent(inout) :: elem(:)
     type (TimeLevel_t), target,   intent(in)    :: tl
     type (hybrid_t),              intent(in)    :: hybrid
@@ -36,23 +38,84 @@ CONTAINS
     type(fvm_struct),             intent(inout) :: fvm(:)
     real (kind=r8), optional,     intent(in)    :: omega_cn(2,nets:nete)
     ! Local variables...
-    integer            :: k,ie,m_cnst
+    integer            :: k,ie,m_cnst,iret
     integer, parameter :: type=ORDERED
 
-    integer, parameter :: vmax=11+2*MAX(qsize_d,ntrac_d)
+    integer :: vmax
 
-    character(len=10) :: varname(vmax)
+    character(len=10), allocatable :: varname(:)
 
-    real (kind=r8), dimension(nets:nete,vmax) :: min_local,max_local
-    real (kind=r8), dimension(vmax)           :: min_p,max_p,mass,mass_chg
-    real (kind=r8), dimension(np,np,nets:nete):: moist_ps
-    real (kind=r8), dimension(nc,nc,nets:nete):: moist_ps_fvm
+    real(kind=r8), allocatable :: min_local(:,:)
+    real(kind=r8), allocatable :: max_local(:,:)
+    real(kind=r8), allocatable :: min_p(:)
+    real(kind=r8), allocatable :: max_p(:)
+    real(kind=r8), allocatable :: mass(:)
+    real(kind=r8), allocatable :: mass_chg(:)
+    real(kind=r8), dimension(np,np,nets:nete):: moist_ps
+    real(kind=r8), dimension(nc,nc,nets:nete):: moist_ps_fvm
 
-    real (kind=r8) :: tmp_gll(np,np,vmax,nets:nete),tmp_mass(vmax)!
-    real (kind=r8) :: tmp_fvm(nc,nc,vmax,nets:nete)
-    real (kind=r8) :: tmp_q(np,np,nlev)
+    real(kind=r8), allocatable :: tmp_gll(:,:,:,:)
+    real(kind=r8), allocatable :: tmp_mass(:)
+    real(kind=r8), allocatable :: tmp_fvm(:,:,:,:)
+    real(kind=r8) :: tmp_q(np,np,nlev)
     integer        :: n0, n0_qdp, q, nm, nm2
     real(kind=r8)  :: da_gll(np,np,nets:nete),da_fvm(nc,nc,nets:nete)
+
+    character(len=*), parameter :: subname = 'prim_printstate (SE)'
+
+    !Allocate tracer-dimensioned variables:
+    !-------------
+    vmax = 11+2*max(qsize_d,ntrac_d)
+    allocate(varname(vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate varname(vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(min_local(nets:nete, vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate min_local(nets:nete,vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(max_local(nets:nete, vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate max_local(nets:nete,vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(min_p(vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate min_p(vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(max_p(vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate max_p(vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(mass(vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate mass(vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(mass_chg(vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate mass_chg(vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(tmp_gll(np,np,vmax,nets:nete), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate tmp_gll(np,np,vmax,nets:nete) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(tmp_mass(vmax), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate tmp_mass(vmax) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(tmp_fvm(nc,nc,vmax,nets:nete), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate tmp_fvm(nc,nc,vmax,nets:nete) failed with stat: '//to_str(iret))
+    end if
+    !-------------
 
     !dynamics variables in n0 are at time =  'time': time=tl%nstep*tstep
     if (hybrid%masterthread) then

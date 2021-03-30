@@ -2,9 +2,10 @@ module element_mod
 
   use shr_kind_mod,           only: r8=>shr_kind_r8, i8=>shr_kind_i8
   use coordinate_systems_mod, only: spherical_polar_t, cartesian2D_t, cartesian3D_t, distance
-  use dimensions_mod,         only: np, nc, npsq, nlev, nlevp, qsize_d, max_neigh_edges,ntrac_d
   use edgetype_mod,           only: edgedescriptor_t
   use gridgraph_mod,          only: gridvertex_t
+  use cam_abortutils,         only: endrun
+  use string_utils,           only: to_str
 
   implicit none
   private
@@ -21,12 +22,12 @@ module element_mod
     ! vertically-lagrangian code advects dp3d instead of ps
     ! tracers Q, Qdp always use 2 level time scheme
 
-    real (kind=r8) :: v     (np,np,2,nlev,timelevels)            ! velocity                           
-    real (kind=r8) :: T     (np,np,nlev,timelevels)              ! temperature                        
-    real (kind=r8) :: dp3d  (np,np,nlev,timelevels)              ! dry delta p on levels              
-    real (kind=r8) :: psdry (np,np)                              ! dry surface pressure               
-    real (kind=r8) :: phis  (np,np)                              ! surface geopotential (prescribed)  
-    real (kind=r8) :: Qdp   (np,np,nlev,qsize_d,2)               ! Tracer mass                        
+    real(kind=r8), allocatable :: v(:,:,:,:,:)     ! velocity
+    real(kind=r8), allocatable :: T(:,:,:,:)       ! temperature
+    real(kind=r8), allocatable :: dp3d(:,:,:,:)    ! dry delta p on levels
+    real(kind=r8), allocatable :: psdry(:,:)       ! dry surface pressure
+    real(kind=r8), allocatable :: phis(:,:)        ! surface geopotential (prescribed)
+    real(kind=r8), allocatable :: Qdp(:,:,:,:,:)   ! Tracer mass
 
   end type elem_state_t
 
@@ -35,44 +36,44 @@ module element_mod
      !
      ! storage for subcycling tracers/dynamics
      !
-    real (kind=r8) :: vn0  (np,np,2,nlev)                      ! velocity for SE tracer advection
-    real (kind=r8) :: dpdiss_biharmonic(np,np,nlev)            ! mean dp dissipation tendency, if nu_p>0
-    real (kind=r8) :: dpdiss_ave(np,np,nlev)                   ! mean dp used to compute psdiss_tens
+    real(kind=r8), allocatable :: vn0(:,:,:,:)                ! velocity for SE tracer advection
+    real(kind=r8), allocatable :: dpdiss_biharmonic(:,:,:)    ! mean dp dissipation tendency, if nu_p>0
+    real(kind=r8), allocatable :: dpdiss_ave(:,:,:)           ! mean dp used to compute psdiss_tens
 
     ! diagnostics for explicit timestep
-    real (kind=r8) :: phi(np,np,nlev)                          ! geopotential
-    real (kind=r8) :: omega(np,np,nlev)                        ! vertical velocity
+    real(kind=r8), allocatable :: phi(:,:,:)                  ! geopotential
+    real(kind=r8), allocatable :: omega(:,:,:)                ! vertical velocity
 
     ! semi-implicit diagnostics: computed in explict-component, reused in Helmholtz-component.
-    real (kind=r8) :: zeta(np,np,nlev)                         ! relative vorticity
-    real (kind=r8) :: div(np,np,nlev,timelevels)               ! divergence
+    real(kind=r8), allocatable :: zeta(:,:,:)                 ! relative vorticity
+    real(kind=r8), allocatable :: div(:,:,:,:)                ! divergence
 
     ! tracer advection fields used for consistency and limiters
-    real (kind=r8) :: dp(np,np,nlev)                           ! for dp_tracers at physics timestep
-    real (kind=r8) :: divdp(np,np,nlev)                        ! divergence of dp
-    real (kind=r8) :: divdp_proj(np,np,nlev)                   ! DSSed divdp
-    real (kind=r8) :: mass(MAX(qsize_d,ntrac_d)+9)             ! total tracer mass for diagnostics
+    real(kind=r8), allocatable :: dp(:,:,:)                   ! for dp_tracers at physics timestep
+    real(kind=r8), allocatable :: divdp(:,:,:)                ! divergence of dp
+    real(kind=r8), allocatable :: divdp_proj(:,:,:)           ! DSSed divdp
+    real(kind=r8), allocatable :: mass(:)                     ! total tracer mass for diagnostics
 
     ! forcing terms for CAM
-    real (kind=r8) :: FQ(np,np,nlev,qsize_d)                   ! tracer forcing
-    real (kind=r8) :: FM(np,np,2,nlev)                         ! momentum forcing
-    real (kind=r8) :: FDP(np,np,nlev)                          ! save full updated dp right after physics
-    real (kind=r8) :: FT(np,np,nlev)                           ! temperature forcing
-    real (kind=r8) :: etadot_prescribed(np,np,nlevp)           ! prescribed vertical tendency
-    real (kind=r8) :: u_met(np,np,nlev)                        ! zonal component of prescribed meteorology winds
-    real (kind=r8) :: dudt_met(np,np,nlev)                     ! rate of change of zonal component of prescribed meteorology winds
-    real (kind=r8) :: v_met(np,np,nlev)                        ! meridional component of prescribed meteorology winds
-    real (kind=r8) :: dvdt_met(np,np,nlev)                     ! rate of change of meridional component of prescribed meteorology winds
-    real (kind=r8) :: T_met(np,np,nlev)                        ! prescribed meteorology temperature
-    real (kind=r8) :: dTdt_met(np,np,nlev)                     ! rate of change of prescribed meteorology temperature
-    real (kind=r8) :: ps_met(np,np)                            ! surface pressure of prescribed meteorology
-    real (kind=r8) :: dpsdt_met(np,np)                         ! rate of change of surface pressure of prescribed meteorology
-    real (kind=r8) :: nudge_factor(np,np,nlev)                 ! nudging factor (prescribed)
-    real (kind=r8) :: Utnd(npsq,nlev)                          ! accumulated U tendency due to nudging towards prescribed met
-    real (kind=r8) :: Vtnd(npsq,nlev)                          ! accumulated V tendency due to nudging towards prescribed met
-    real (kind=r8) :: Ttnd(npsq,nlev)                          ! accumulated T tendency due to nudging towards prescribed met
+    real(kind=r8), allocatable :: FQ(:,:,:,:)                 ! tracer forcing
+    real(kind=r8), allocatable :: FM(:,:,:,:)                 ! momentum forcing
+    real(kind=r8), allocatable :: FDP(:,:,:)                  ! save full updated dp right after physics
+    real(kind=r8), allocatable :: FT(:,:,:)                   ! temperature forcing
+    real(kind=r8), allocatable :: etadot_prescribed(:,:,:)    ! prescribed vertical tendency
+    real(kind=r8), allocatable :: u_met(:,:,:)                ! zonal component of prescribed meteorology winds
+    real(kind=r8), allocatable :: dudt_met(:,:,:)             ! rate of change of zonal component of prescribed meteorology winds
+    real(kind=r8), allocatable :: v_met(:,:,:)                ! meridional component of prescribed meteorology winds
+    real(kind=r8), allocatable :: dvdt_met(:,:,:)             ! rate of change of meridional component of prescribed meteorology winds
+    real(kind=r8), allocatable :: T_met(:,:,:)                ! prescribed meteorology temperature
+    real(kind=r8), allocatable :: dTdt_met(:,:,:)             ! rate of change of prescribed meteorology temperature
+    real(kind=r8), allocatable :: ps_met(:,:)                 ! surface pressure of prescribed meteorology
+    real(kind=r8), allocatable :: dpsdt_met(:,:)              ! rate of change of surface pressure of prescribed meteorology
+    real(kind=r8), allocatable :: nudge_factor(:,:,:)         ! nudging factor (prescribed)
+    real(kind=r8), allocatable :: Utnd(:,:)                   ! accumulated U tendency due to nudging towards prescribed met
+    real(kind=r8), allocatable :: Vtnd(:,:)                   ! accumulated V tendency due to nudging towards prescribed met
+    real(kind=r8), allocatable :: Ttnd(:,:)                   ! accumulated T tendency due to nudging towards prescribed met
 
-    real (kind=r8) :: pecnd(np,np,nlev)                        ! pressure perturbation from condensate
+    real(kind=r8), allocatable :: pecnd(:,:,:)                ! pressure perturbation from condensate
 
   end type derived_state_t
 
@@ -94,7 +95,7 @@ module element_mod
 ! ============= DATA-STRUCTURES COMMON TO ALL SOLVERS ================
 
   type, public :: index_t
-     integer :: ia(npsq),ja(npsq)
+     integer, allocatable :: ia(:),ja(:)
      integer :: is,ie
      integer :: NumUniquePts
      integer :: UniquePtOffset
@@ -106,43 +107,43 @@ module element_mod
      integer :: GlobalId
 
      ! Coordinate values of element points
-     type (spherical_polar_t) :: spherep(np,np)                       ! Spherical coords of GLL points
+     type(spherical_polar_t), allocatable :: spherep(:,:)             ! Spherical coords of GLL points
 
      ! Equ-angular gnomonic projection coordinates
-     type (cartesian2D_t)     :: cartp(np,np)                         ! gnomonic coords of GLL points
-     type (cartesian2D_t)     :: corners(4)                           ! gnomonic coords of element corners
-     real (kind=r8)    :: u2qmap(4,2)                          ! bilinear map from ref element to quad in cubedsphere coordinates
+     type(cartesian2D_t), allocatable    :: cartp(:,:)                ! gnomonic coords of GLL points
+     type(cartesian2D_t)                 :: corners(4)                ! gnomonic coords of element corners
+     real(kind=r8)                       :: u2qmap(4,2)               ! bilinear map from ref element to quad in cubedsphere coordinates
                                                                       ! SHOULD BE REMOVED
      ! 3D cartesian coordinates
-     type (cartesian3D_t)     :: corners3D(4)
+     type(cartesian3D_t)                 :: corners3D(4)
 
      ! Element diagnostics
-     real (kind=r8)    :: area                                 ! Area of element
-     real (kind=r8)    :: normDinv                             ! some type of norm of Dinv used for CFL
-     real (kind=r8)    :: dx_short                             ! short length scale in km
-     real (kind=r8)    :: dx_long                              ! long length scale in km
+     real(kind=r8)              :: area                               ! Area of element
+     real(kind=r8)              :: normDinv                           ! some type of norm of Dinv used for CFL
+     real(kind=r8)              :: dx_short                           ! short length scale in km
+     real(kind=r8)              :: dx_long                            ! long length scale in km
 
-     real (kind=r8)    :: variable_hyperviscosity(np,np)       ! hyperviscosity based on above
-     real (kind=r8)    :: hv_courant                           ! hyperviscosity courant number
-     real (kind=r8)    :: tensorVisc(np,np,2,2)                !og, matrix V for tensor viscosity
+     real(kind=r8), allocatable :: variable_hyperviscosity(:,:)       ! hyperviscosity based on above
+     real(kind=r8)              :: hv_courant                         ! hyperviscosity courant number
+     real(kind=r8), allocatable :: tensorVisc(:,:,:,:)                !og, matrix V for tensor viscosity
 
      ! Edge connectivity information
 !     integer :: node_numbers(4)
 !     integer :: node_multiplicity(4)                 ! number of elements sharing corner node
 
-     type (GridVertex_t)      :: vertex                               ! element grid vertex information
-     type (EdgeDescriptor_t)  :: desc
+     type(GridVertex_t)      :: vertex                               ! element grid vertex information
+     type(EdgeDescriptor_t)  :: desc
 
-     type (elem_state_t)      :: state
+     type(elem_state_t)      :: state
 
-     type (derived_state_t)   :: derived
+     type(derived_state_t)   :: derived
      ! Metric terms
-     real (kind=r8)    :: met(np,np,2,2)                       ! metric tensor on velocity and pressure grid
-     real (kind=r8)    :: metinv(np,np,2,2)                    ! metric tensor on velocity and pressure grid
-     real (kind=r8)    :: metdet(np,np)                        ! g = SQRT(det(g_ij)) on velocity and pressure grid
-     real (kind=r8)    :: rmetdet(np,np)                       ! 1/metdet on velocity pressure grid
-     real (kind=r8)    :: D(np,np,2,2)                         ! Map covariant field on cube to vector field on the sphere
-     real (kind=r8)    :: Dinv(np,np,2,2)                      ! Map vector field on the sphere to covariant v on cube
+     real(kind=r8), allocatable :: met(:,:,:,:)               ! metric tensor on velocity and pressure grid
+     real(kind=r8), allocatable :: metinv(:,:,:,:)            ! metric tensor on velocity and pressure grid
+     real(kind=r8), allocatable :: metdet(:,:)                ! g = SQRT(det(g_ij)) on velocity and pressure grid
+     real(kind=r8), allocatable :: rmetdet(:,:)               ! 1/metdet on velocity pressure grid
+     real(kind=r8), allocatable :: D(:,:,:,:)                 ! Map covariant field on cube to vector field on the sphere
+     real(kind=r8), allocatable :: Dinv(:,:,:,:)              ! Map vector field on the sphere to covariant v on cube
 
 
      ! Mass flux across the sides of each sub-element.
@@ -179,28 +180,28 @@ module element_mod
      !  |    (1,1,1)     |                |              |  (4,1,1)   |
      !  ---------------------------------------------------------------
      !          First Coordinate ------->
-     real (kind=r8) :: sub_elem_mass_flux(nc,nc,4,nlev)
+     real(kind=r8), allocatable :: sub_elem_mass_flux(:,:,:,:)
 
      ! Convert vector fields from spherical to rectangular components
      ! The transpose of this operation is its pseudoinverse.
-     real (kind=r8)    :: vec_sphere2cart(np,np,3,2)
+     real(kind=r8), allocatable :: vec_sphere2cart(:,:,:,:)
 
      ! Mass matrix terms for an element on a cube face
-     real (kind=r8)    :: mp(np,np)                            ! mass matrix on v and p grid
-     real (kind=r8)    :: rmp(np,np)                           ! inverse mass matrix on v and p grid
+     real(kind=r8), allocatable :: mp(:,:)     ! mass matrix on v and p grid
+     real(kind=r8), allocatable :: rmp(:,:)    ! inverse mass matrix on v and p grid
 
      ! Mass matrix terms for an element on the sphere
      ! This mass matrix is used when solving the equations in weak form
      ! with the natural (surface area of the sphere) inner product
-     real (kind=r8)    :: spheremp(np,np)                      ! mass matrix on v and p grid
-     real (kind=r8)    :: rspheremp(np,np)                     ! inverse mass matrix on v and p grid
+     real(kind=r8), allocatable :: spheremp(:,:)     ! mass matrix on v and p grid
+     real(kind=r8), allocatable :: rspheremp(:,:)    ! inverse mass matrix on v and p grid
 
-     integer(i8) :: gdofP(np,np)                     ! global degree of freedom (P-grid)
+     integer(i8), allocatable   :: gdofP(:,:)        ! global degree of freedom (P-grid)
 
-     real (kind=r8)    :: fcor(np,np)                          ! Coreolis term
+     real(kind=r8), allocatable :: fcor(:,:)         ! Coriolis term
 
-     type (index_t) :: idxP
-     type (index_t),pointer :: idxV
+     type(index_t)          :: idxP
+     type(index_t), pointer :: idxV
      integer :: FaceNum
 
      ! force element_t to be a multiple of 8 bytes.
@@ -216,11 +217,16 @@ module element_mod
   public :: element_var_coordinates3D
   public :: GetColumnIdP,GetColumnIdV
   public :: allocate_element_desc
+  public :: allocate_element_dims
   public :: PrintElem
 
+!==============================================================================
 contains
+!==============================================================================
 
   subroutine PrintElem(arr)
+
+    use dimensions_mod, only: np
 
     real(kind=r8) :: arr(:,:)
     integer :: i,j
@@ -350,21 +356,70 @@ contains
   !___________________________________________________________________
   subroutine allocate_element_desc(elem)
 
+    use dimensions_mod, only: max_neigh_edges
+
     type (element_t), intent(inout)   :: elem(:)
-    integer                           :: num, j,i
+    integer                           :: num, j, i, iret
+
+    character(len=*), parameter :: subname = 'allocate_element_desc (SE)'
 
     num = SIZE(elem)
 
     do j=1,num
        allocate(elem(j)%desc%putmapP(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%putmapP(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%getmapP(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%getmapP(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%putmapP_ghost(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%getmapP_ghost(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%putmapS(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%putmapS(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%getmapS(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%getmapS(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%reverse(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%reverse(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%globalID(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%globalID(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        allocate(elem(j)%desc%loc2buf(max_neigh_edges))
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%loc2buf(max_neigh_edges) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        do i=1,max_neigh_edges
           elem(j)%desc%loc2buf(i)=i
           elem(j)%desc%globalID(i)=-1
@@ -372,6 +427,436 @@ contains
 
     end do
   end subroutine allocate_element_desc
+
+  !___________________________________________________________________
+  subroutine allocate_element_dims(elem)
+
+    ! Allocate the SE element arrays using the pre-calculated SE dimensions
+
+    use dimensions_mod, only: np, nc, npsq, nlev, nlevp, qsize_d, ntrac_d
+
+    !Dummy arguments:
+    type(element_t), intent(inout) :: elem(:)
+
+    !Local arguments:
+    integer :: num, i, iret
+
+    character(len=*), parameter :: subname = 'allocate_element_dims (SE)'
+
+    !---------------
+
+    num = size(elem)
+
+    do i=1,num
+
+      !Coordinate values of element points:
+      allocate(elem(i)%spherep(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%spherep(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Gnomonic coords of GLL points:
+      allocate(elem(i)%cartp(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%cartp(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Variable Hyperviscosity:
+      allocate(elem(i)%variable_hyperviscosity(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%variable_hyperviscosity(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !og, matrix V for tensor viscosity:
+      allocate(elem(i)%tensorVisc(np,np,2,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%tensorVisc(np,np,2,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Allocate "state" variables:
+      !--------------------------
+
+      ! velocity
+      allocate(elem(i)%state%v(np,np,2,nlev,timelevels), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%state%v(np,np,2,nlev,timelevels) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! temperature
+      allocate(elem(i)%state%T(np,np,nlev,timelevels), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%state%T(np,np,nlev,timelevels) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! dry delta p on levels
+      allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%state%dp3d(np,np,nlev,timelevels) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! dry surface pressure
+      allocate(elem(i)%state%psdry(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%state%psdry(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! surface geopotential (prescribed)
+      allocate(elem(i)%state%phis(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%state%phis(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! Tracer mass
+      allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%state%Qdp(np,np,nlev,qsize_d,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+      !--------------------------
+
+      !Allocate "derived" variables:
+      !----------------------------
+
+      ! velocity for SE tracer advection
+      allocate(elem(i)%derived%vn0(np,np,2,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%vn0(np,np,2,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! mean dp dissipation tendency, if nu_p>0
+      allocate(elem(i)%derived%dpdiss_biharmonic(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dpdiss_biharmonic(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! mean dp used to compute psdiss_tens
+      allocate(elem(i)%derived%dpdiss_ave(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dpdiss_ave(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! geopotential
+      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%phi(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! vertical velocity
+      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%phi(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! relative vorticity
+      allocate(elem(i)%derived%omega(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%omega(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! divergence
+      allocate(elem(i)%derived%zeta(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%zeta(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! divergence
+      allocate(elem(i)%derived%div(np,np,nlev,timelevels), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%div(np,np,nlev,timelevels) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! for dp_tracers at physics timestep
+      allocate(elem(i)%derived%dp(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dp(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! divergence of dp
+      allocate(elem(i)%derived%divdp(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%divdp(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! DSSed divdp
+      allocate(elem(i)%derived%divdp_proj(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%divdp_proj(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! total tracer mass for diagnostics
+      allocate(elem(i)%derived%mass(max(qsize_d,ntrac_d)+9), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%mass(max(qsize_d,ntrac_d)+9) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! tracer forcing
+      allocate(elem(i)%derived%FQ(np,np,nlev,qsize_d), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%FQ(np,np,nlev,qsize_d) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! momentum forcing
+      allocate(elem(i)%derived%FM(np,np,2,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%FM(np,np,2,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! save full updated dp right after physics
+      allocate(elem(i)%derived%FDP(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%FDP(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! temperature forcing
+      allocate(elem(i)%derived%FT(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%FT(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! prescribed vertical tendency
+      allocate(elem(i)%derived%etadot_prescribed(np,np,nlevp), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%etadot_prescribed(np,np,nlevp) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! zonal component of prescribed meteorology winds
+      allocate(elem(i)%derived%u_met(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%u_met(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! rate of change of zonal component of prescribed meteorology winds
+      allocate(elem(i)%derived%dudt_met(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dudt_met(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! meridional component of prescribed meteorology winds
+      allocate(elem(i)%derived%v_met(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%v_met(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! rate of change of meridional component of prescribed meteorology winds
+      allocate(elem(i)%derived%dvdt_met(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dvdt_met(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! prescribed meteorology temperature
+      allocate(elem(i)%derived%T_met(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%T_met(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! rate of change of prescribed meteorology temperature
+      allocate(elem(i)%derived%dTdt_met(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dTdt_met(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! surface pressure of prescribed meteorology
+      allocate(elem(i)%derived%ps_met(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%ps_met(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! rate of change of surface pressure of prescribed meteorology
+      allocate(elem(i)%derived%dpsdt_met(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%dpsdt_met(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! nudging factor (prescribed)
+      allocate(elem(i)%derived%nudge_factor(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%nudge_factor(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! accumulated U tendency due to nudging towards prescribed met
+      allocate(elem(i)%derived%Utnd(npsq,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%Utnd(npsq,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! accumulated V tendency due to nudging towards prescribed met
+      allocate(elem(i)%derived%Vtnd(npsq,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%Vtnd(npsq,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! accumulated T tendency due to nudging towards prescribed met
+      allocate(elem(i)%derived%Ttnd(npsq,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%Ttnd(npsq,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! pressure perturbation from condensate
+      allocate(elem(i)%derived%pecnd(np,np,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%derived%pecnd(np,np,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+      !----------------------------
+
+      !Allocate "Metric terms":
+      !-----------------------
+
+      ! metric tensor on velocity and pressure grid
+      allocate(elem(i)%met(np,np,2,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%met(np,np,2,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! metric tensor on velocity and pressure grid
+      allocate(elem(i)%metinv(np,np,2,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%metinv(np,np,2,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! g = SQRT(det(g_ij)) on velocity and pressure grid
+      allocate(elem(i)%metdet(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%metdet(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! 1/metdet on velocity pressure grid
+      allocate(elem(i)%rmetdet(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%rmetdet(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! Map covariant field on cube to vector field on the sphere
+      allocate(elem(i)%D(np,np,2,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%D(np,np,2,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      ! Map vector field on the sphere to covariant v on cube
+      allocate(elem(i)%Dinv(np,np,2,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%Dinv(np,np,2,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+      !-----------------------
+
+      !First Coordinate:
+      allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%sub_elem_mass_flux(nc,nc,4,nlev) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Spherical -> rectangular converter:
+      allocate(elem(i)%vec_sphere2cart(np,np,3,2), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%vec_sphere2cart(np,np,3,2) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Mass matrix on v and p grid:
+      allocate(elem(i)%mp(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%mp(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Inverse mass matrix on v and p grid:
+      allocate(elem(i)%rmp(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%rmp(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Mass matrix on v and p grid:
+      allocate(elem(i)%spheremp(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%spheremp(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Inverse mass matrix on v and p grid:
+      allocate(elem(i)%rspheremp(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%rspheremp(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Global degree of freedom (P-grid):
+      allocate(elem(i)%gdofP(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%gdofP(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Coriolis term:
+      allocate(elem(i)%fcor(np,np), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%fcor(np,np) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      !Index terms:
+      !-----------
+      allocate(elem(i)%idxP%ia(npsq), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%idxP%ia(npsq) failed with stat: '//&
+                    to_str(iret))
+      end if
+
+      allocate(elem(i)%idxP%ja(npsq), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate elem%idxP%ja(npsq) failed with stat: '//&
+                    to_str(iret))
+      end if
+      !-----------
+
+    end do
+
+  end subroutine allocate_element_dims
 
 
 end module element_mod

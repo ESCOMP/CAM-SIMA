@@ -4,7 +4,7 @@ module dp_mapping
   use shr_const_mod,          only: pi => shr_const_pi
 
   !SE dycore:
-  use dimensions_mod,         only: np, npsq, fv_nphys
+  use dimensions_mod,         only: np, fv_nphys
   use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
   use coordinate_systems_mod, only: spherical_polar_t
   use fvm_control_volume_mod, only: fvm_struct
@@ -23,7 +23,7 @@ module dp_mapping
   ! no physgrid:   nphys_pts = npsq   (physics on GLL grid)
   !    physgrid:   nphys_pts = nphys2 (physics on CSLAM grid)
   ! Value is set when se_fv_nphys namelist variable is read
-  integer,            public :: nphys_pts = npsq
+  integer, public :: nphys_pts
 
   ! NOTE:  dp_gid() is in space filling curve rank order
   !        all other global arrays are in block id (global id) order
@@ -52,11 +52,14 @@ contains
     use cam_logfile,    only: iulog
 
     !SE dycore:
-    use dimensions_mod, only: nelemd, nc, irecons_tracer
+    use dimensions_mod, only: nelemd, nc, irecons_tracer, npsq
     use element_mod,    only: element_t
 
     type(element_t)  , dimension(nelemd), intent(in) :: elem
     type (fvm_struct), dimension(nelemd), intent(in) :: fvm
+
+    !Initialize total number of physics points per spectral element:
+    nphys_pts = npsq
 
     num_weights_phys2fvm = 0
     num_weights_fvm2phys = 0

@@ -1,23 +1,9 @@
 module dimensions_mod
   use shr_kind_mod, only: r8=>shr_kind_r8
-!Un-comment or modify once a formal plan for pcnst has been developed -JN:
-!#ifdef FVM_TRACERS
-!  use constituents, only: ntrac_d=>pcnst ! _EXTERNAL
-!#else
-!  use constituents, only: qsize_d=>pcnst ! _EXTERNAL
-!#endif
 
   implicit none
   private
 
-! set MAX number of tracers.  actual number of tracers is a run time argument
-#ifdef FVM_TRACERS
- integer, parameter         :: qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
- integer, parameter         :: ntrac_d = 3  ! Needed until pcnst is resolved. -JN
-#else
-  integer, parameter        :: ntrac_d = 0 ! No fvm tracers if CSLAM is off
-  integer, parameter        :: qsize_d = 3 ! Needed until pcnst is resolved. -JN
-#endif
   !
   ! The variables below hold indices of water vapor and condensate loading tracers as well as
   ! associated heat capacities (initialized in dyn_init):
@@ -42,11 +28,14 @@ module dimensions_mod
   logical           , public :: lcp_moist = .true.
 
   integer, parameter, public :: np = NP
-  integer, parameter, public :: nc = 3       !cslam resolution
-  integer           , public :: fv_nphys !physics-grid resolution - the "MAX" is so that the code compiles with NC=0
+  integer, parameter, public :: nc = 3    !cslam resolution
+  integer           , public :: fv_nphys  !physics-grid resolution - the "MAX" is so that the code compiles with NC=0
 
-  integer         :: ntrac = 0 !ntrac is set in dyn_comp
-  integer         :: qsize = 0 !qsize is set in dyn_comp
+  integer, public, protected :: qsize_d   !SE tracer dimension size
+  integer, public, protected :: ntrac_d   !FVM tracer dimension size
+
+  integer, public            :: ntrac = 0 !ntrac is set in dyn_comp
+  integer, public            :: qsize = 0 !qsize is set in dyn_comp
   !
   ! hyperviscosity is applied on approximate pressure levels
   ! Similar to CAM-EUL; see CAM5 scietific documentation (Note TN-486), equation (3.09), page 58.
@@ -56,7 +45,7 @@ module dimensions_mod
   logical, public :: lprint!for debugging
   integer, parameter, public :: ngpc=3          !number of Gausspoints for the fvm integral approximation   !phl change from 4
   integer, parameter, public :: irecons_tracer=6!=1 is PCoM, =3 is PLM, =6 is PPM for tracer reconstruction
-  integer,            public :: irecons_tracer_lev(PLEV)
+  integer, allocatable, public :: irecons_tracer_lev(:)
   integer, parameter, public :: nhe=1           !Max. Courant number
   integer, parameter, public :: nhr=2           !halo width needed for reconstruction - phl
   integer, parameter, public :: nht=nhe+nhr     !total halo width where reconstruction is needed (nht<=nc) - phl
@@ -74,20 +63,20 @@ module dimensions_mod
 
   integer, allocatable, public :: kord_tr(:), kord_tr_cslam(:)
 
-  real(r8), public :: nu_scale_top(PLEV)! scaling of del2 viscosity in sopnge layer (initialized in dyn_comp)
-  real(r8), public :: nu_lev(PLEV)
-  real(r8), public :: otau(PLEV)
-  integer,  public :: ksponge_end       ! sponge is active k=1,ksponge_end
-  real(r8), public :: nu_div_lev(PLEV) = 1.0_r8 ! scaling of viscosity in sponge layer
-                                                      ! (set in prim_state; if applicable)
-  real(r8), public :: kmvis_ref(PLEV)        !reference profiles for molecular diffusion
-  real(r8), public :: kmcnd_ref(PLEV)        !reference profiles for molecular diffusion
-  real(r8), public :: rho_ref(PLEV)          !reference profiles for rho
-  real(r8), public :: km_sponge_factor(PLEV) !scaling for molecular diffusion (when used as sponge)
-  real(r8), public :: kmvisi_ref(PLEV+1)        !reference profiles for molecular diffusion
-  real(r8), public :: kmcndi_ref(PLEV+1)        !reference profiles for molecular diffusion
-  real(r8), public :: rhoi_ref(PLEV+1)          !reference profiles for rho
+  real(r8), allocatable, public :: nu_scale_top(:) ! scaling of del2 viscosity in sponge layer (initialized in dyn_comp)
+  real(r8), allocatable, public :: nu_lev(:)
+  real(r8), allocatable, public :: otau(:)
 
+  integer,  public :: ksponge_end       ! sponge is active k=1,ksponge_end
+  real (r8), allocatable, public :: nu_div_lev(:) ! scaling of viscosity in sponge layer
+
+  real(r8), allocatable, public :: kmvis_ref(:)        !reference profiles for molecular diffusion
+  real(r8), allocatable, public :: kmcnd_ref(:)        !reference profiles for molecular diffusion
+  real(r8), allocatable, public :: rho_ref(:)          !reference profiles for rho
+  real(r8), allocatable, public :: km_sponge_factor(:) !scaling for molecular diffusion (when used as sponge)
+  real(r8), allocatable, public :: kmvisi_ref(:)       !reference profiles for molecular diffusion
+  real(r8), allocatable, public :: kmcndi_ref(:)       !reference profiles for molecular diffusion
+  real(r8), allocatable, public :: rhoi_ref(:)         !reference profiles for rho
 
   integer,  public :: nhc_phys
   integer,  public :: nhe_phys
@@ -96,10 +85,9 @@ module dimensions_mod
 
   integer, public :: npdg = 0  ! dg degree for hybrid cg/dg element  0=disabled
 
-  integer, parameter, public :: npsq = np*np
-  integer, parameter, public :: nlev=PLEV
-  integer, parameter, public :: nlevp=nlev+1
-
+  integer, public, protected :: npsq
+  integer, public, protected :: nlev
+  integer, public, protected :: nlevp
 
 !  params for a mesh
 !  integer, public, parameter :: max_elements_attached_to_node = 7
@@ -111,8 +99,6 @@ module dimensions_mod
   integer, public  :: max_corner_elem               = 1 !max_elements_attached_to_node-3
   integer, public  :: max_neigh_edges               = 8 !4 + 4*max_corner_elem
 
-  public :: qsize,qsize_d,ntrac_d,ntrac
-
   integer, public :: ne
   integer, public :: nelem       ! total number of elements
   integer, public :: nelemd      ! number of elements per MPI task
@@ -121,9 +107,123 @@ module dimensions_mod
   integer, public :: nnodes,npart,nmpi_per_node
   integer, public :: GlobalUniqueCols
 
+  !Public subroutines
+  public :: dimensions_mod_init
   public :: set_mesh_dimensions
 
+!==============================================================================
 contains
+!==============================================================================
+
+  subroutine dimensions_mod_init()
+
+     ! Allocate and initalize the relevant SE dycore dimension variables.
+
+     use vert_coord,     only: pver, pverp
+     use constituents,   only: pcnst
+     use cam_abortutils, only: endrun
+     use string_utils,   only: to_str
+
+     ! Local variables:
+
+     integer :: iret
+
+     character(len=*), parameter :: subname = 'dimensions_mod_init'
+
+     ! Set tracer dimension variables:
+
+#ifdef FVM_TRACERS
+     qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
+     ntrac_d = pcnst
+#else
+     qsize_d = pcnst
+     ntrac_d = 0 ! No fvm tracers if CSLAM is off
+#endif
+
+     ! Set grid dimension variables:
+
+     npsq  = np*np
+     nlev  = pver
+     nlevp = pverp
+
+     ! Allocate vertically-dimensioned variables:
+
+     allocate(irecons_tracer_lev(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate irecons_tracer_lev(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(nu_scale_top(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate nu_scale_top(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(nu_lev(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate nu_lev(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(otau(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate otau(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(nu_div_lev(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate nu_div_lev(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(kmvis_ref(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate kmvis_ref(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(kmcnd_ref(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate kmcnd_ref(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(rho_ref(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate rho_ref(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(km_sponge_factor(pver), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate km_sponge_factor(pver) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(kmvisi_ref(pverp), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate kmvisi_ref(pverp) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(kmcndi_ref(pverp), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate kmcndi_ref(pverp) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+     allocate(rhoi_ref(pverp), stat=iret)
+     if (iret /= 0) then
+        call endrun(subname//': allocate rhoi_ref(pverp) failed with stat: '//&
+                    to_str(iret))
+     end if
+
+
+  end subroutine dimensions_mod_init
+
+!==============================================================================
 
   subroutine set_mesh_dimensions()
 
@@ -138,6 +238,7 @@ contains
 
   end subroutine set_mesh_dimensions
 
+!==============================================================================
 
 end module dimensions_mod
 

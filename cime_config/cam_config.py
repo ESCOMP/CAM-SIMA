@@ -777,9 +777,6 @@ class ConfigCAM:
         nlev_desc = "Number of vertical levels."
         self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
 
-        # Add vertical levels CPP definition (REMOVE ONCE SE DIMENSIONS_MOD HAS INIT SUBROUTINE):
-        self.add_cppdef("PLEV", value=nlev)
-
         #Set horizontal dimension variables:
         if dyn == "se":
             # Extract cubed-sphere grid values from hgrid string:

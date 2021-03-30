@@ -127,7 +127,7 @@ subroutine model_grid_init()
    ! decomposition based on the dynamics (SE) grid.
 
    use mpi,                 only: mpi_max
-   use vert_coord,          only: vert_coord_init, pver
+   use vert_coord,          only: vert_coord_init, pver, pverp
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
    use physconst,           only: thermodynamic_active_species_num
@@ -145,7 +145,7 @@ subroutine model_grid_init()
    use control_mod,         only: qsplit, rsplit
    use time_mod,            only: tstep, nsplit
    use fvm_mod,             only: fvm_init2, fvm_init3, fvm_pg_init
-   use dimensions_mod,      only: irecons_tracer
+   use dimensions_mod,      only: irecons_tracer, dimensions_mod_init
    use comp_gll_ctr_vol,    only: gll_grid_write
 
    ! Local variables
@@ -178,9 +178,58 @@ subroutine model_grid_init()
    ! Set vertical coordinate information not provided by namelist:
    call vert_coord_init(1, pver)
 
+   ! Initialize SE-dycore specific variables:
+   call dimensions_mod_init()
+
    ! Initialize hybrid coordinate arrays
    call hycoef_init(fh_ini, psdry=.true.)
 
+   !Allocate SE dycore "hvcoord" structure:
+   !+++++++
+   allocate(hvcoord%hyai(pverp), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%hyai(pverp) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(hvcoord%hyam(pver), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%hyam(pver) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(hvcoord%hybi(pverp), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%hybi(pverp) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(hvcoord%hybm(pver), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%hybm(pver) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(hvcoord%hybd(pver), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%hybd(pver) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(hvcoord%etam(pver), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%etam(pver) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(hvcoord%etai(pverp), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate hvcoord%etai(pverp) failed with stat: '//&
+                  to_str(ierr))
+   end if
+   !+++++++
+
+   !Set SE "hvcoord" values:
    hvcoord%hyam = hyam
    hvcoord%hyai = hyai
    hvcoord%hybm = hybm

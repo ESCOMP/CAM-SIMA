@@ -27,7 +27,7 @@ contains
     use dimensions_mod,         only: np, nlev, nelem, nelemd, nelemdmax
     use dimensions_mod,         only: GlobalUniqueCols, fv_nphys,irecons_tracer
     use control_mod,            only: topology, partmethod
-    use element_mod,            only: element_t, allocate_element_desc
+    use element_mod,            only: element_t, allocate_element_dims, allocate_element_desc
     use fvm_mod,                only: fvm_init1
     use mesh_mod,               only: MeshUseMeshFile
     use time_mod,               only: timelevel_init, timelevel_t
@@ -55,7 +55,7 @@ contains
     use reduction_mod,          only: red_sum, red_sum_int, initreductionbuffer
     use shr_reprosum_mod,       only: repro_sum => shr_reprosum_calc
     use fvm_analytic_mod,       only: compute_basic_coordinate_vars
-    use fvm_control_volume_mod, only: fvm_struct, allocate_physgrid_vars
+    use fvm_control_volume_mod, only: fvm_struct, allocate_physgrid_vars, allocate_fvm_dims
 
     type(element_t),  pointer        :: elem(:)
     type(fvm_struct), pointer        :: fvm(:)
@@ -167,11 +167,13 @@ contains
 
     if (nelemd > 0) then
       allocate(elem(nelemd))
+      call allocate_element_dims(elem)
       call allocate_element_desc(elem)
     end if
 
     if (fv_nphys > 0) then
       allocate(fvm(nelemd))
+      call allocate_fvm_dims(fvm)
       call allocate_physgrid_vars(fvm,par)
     else
       ! Even if fvm not needed, still desirable to allocate it as empty

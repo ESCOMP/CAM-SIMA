@@ -17,7 +17,6 @@ module vertremap_mod
 
   use shr_kind_mod,           only: r8=>shr_kind_r8
   use dimensions_mod,         only: np,nlev,qsize,nlevp,npsq,nc
-  use hybvcoord_mod,          only: hvcoord_t
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
   use perf_mod,               only: t_startf, t_stopf ! _EXTERNAL
