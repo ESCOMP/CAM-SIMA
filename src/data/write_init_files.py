@@ -72,7 +72,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         subroutine, which can set the
         value in "initialized_vars" to
         READ_FROM_FILE given the variable's
-        standard name
+        standard name, and the "is_read_from_file"
+        function, which returns TRUE 
+        if the value of "initialized_vars"
+        for a particular variable given
+        its standard name is READ_FROM_FILE
 
     2.  physics_inputs.F90
 
@@ -188,6 +192,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write("public :: mark_as_initialized", 1)
         outfile.write("public :: mark_as_read_from_file", 1)
         outfile.write("public :: is_initialized", 1)
+        outfile.write("public :: is_read_from_file", 1)
 
         #Add "contains" statement:
         outfile.write("\nCONTAINS\n", 0)
@@ -208,6 +213,13 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
 
         #Write initialization check function:
         write_is_init_func(outfile)
+
+        #Add two blank spaces:
+        outfile.write("", 0)
+        outfile.write("", 0)
+
+        #Write read from file check function:
+        write_is_read_from_file_func(outfile)
 
         #Add two blank spaces:
         outfile.write("", 0)
@@ -1215,6 +1227,91 @@ def write_is_init_func(outfile):
 
     #End subroutine:
     outfile.write("end function is_initialized", 1)
+
+######
+
+def write_is_read_from_file_func(outfile):
+
+    """
+    Write "Is Read From File" function which
+    is used to check if a given variable has
+    been read from file according to
+    the "initialized_vars" array.
+    """
+
+
+    #Add subroutine header:
+    outfile.write("logical function is_read_from_file(varname)", 1)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Add subroutine description:
+    outfile.write("!This function checks if the variable is\n" \
+                  "!read from file according to the\n " \
+                  "!`initialized_vars` array.", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Add use statements:
+    outfile.write("use cam_abortutils, only: endrun", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Add variable declaration statements:
+    outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
+    outfile.write("", 0)
+    outfile.write("integer :: stdnam_idx !standard name array index", 2)
+    outfile.write("logical :: found_var = .false. !logical for whether variable was found in stdnames array", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Initialize return variable:
+    outfile.write("is_read_from_file = .false.", 2)
+    outfile.write("", 0)
+
+    #Add main function section:
+    #-------------------------
+    outfile.write("!Loop over standard name array:", 2)
+    outfile.write("do stdnam_idx = 1, phys_var_num", 2)
+
+    outfile.write("!Check if standard name matches provided variable name:", 3)
+    outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
+
+    outfile.write("!If so, then return True if READ_FROM_FILE:", 4)
+    outfile.write("is_read_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)", 4)
+
+    outfile.write("!Mark as found:", 4)
+    outfile.write("found_var = .true.", 4)
+
+    outfile.write("", 0)
+    outfile.write("!Exit loop:", 4)
+    outfile.write("exit", 4)
+
+    outfile.write("end if", 3)
+
+    outfile.write("end do", 2)
+
+    outfile.write("", 0)
+
+    outfile.write("if (.not.found_var) then", 2)
+    outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
+                  "!that variable didn't exist in standard names array:", 3)
+    outfile.write("call endrun(&", 3)
+    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write("end if", 2)
+
+    outfile.write("", 0)
+    #-------------------------
+
+    #End subroutine:
+    outfile.write("end function is_read_from_file", 1)
 
 ######
 

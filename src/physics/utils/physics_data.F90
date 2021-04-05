@@ -31,6 +31,7 @@ CONTAINS
       use phys_vars_init_check, only: phys_var_stdnames
       use phys_vars_init_check, only: phys_var_num
       use phys_vars_init_check, only: is_initialized
+      use phys_vars_init_check, only: is_read_from_file
 
       !Variable standard name being checked:
       character(len=*),  intent(in) :: stdname
@@ -51,7 +52,7 @@ CONTAINS
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (is_initialized(stdname)) then
-               if (use_init_variables) then
+               if (use_init_variables.and.is_read_from_file(stdname)) then
                   !If reading initialized variables, set to idx:
                   find_input_name_idx = idx
                else
