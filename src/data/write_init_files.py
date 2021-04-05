@@ -221,10 +221,6 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Write read from file check function:
         write_is_read_from_file_func(outfile)
 
-        #Add two blank spaces:
-        outfile.write("", 0)
-        outfile.write("", 0)
-
         #End module:
         outfile.write("\nend module {}".format(phys_check_fname_str), 0)
     #--------------------------------------
@@ -1267,13 +1263,14 @@ def write_is_read_from_file_func(outfile):
     outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
     outfile.write("", 0)
     outfile.write("integer :: stdnam_idx !standard name array index", 2)
-    outfile.write("logical :: found_var = .false. !logical for whether variable was found in stdnames array", 2)
+    outfile.write("logical :: found      !check that <varname> was found", 2)
 
     #Write a blank space:
     outfile.write("", 0)
 
     #Initialize return variable:
     outfile.write("is_read_from_file = .false.", 2)
+    outfile.write("found = .false.", 2)
     outfile.write("", 0)
 
     #Add main function section:
@@ -1288,7 +1285,7 @@ def write_is_read_from_file_func(outfile):
     outfile.write("is_read_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)", 4)
 
     outfile.write("!Mark as found:", 4)
-    outfile.write("found_var = .true.", 4)
+    outfile.write("found = .true.", 4)
 
     outfile.write("", 0)
     outfile.write("!Exit loop:", 4)
