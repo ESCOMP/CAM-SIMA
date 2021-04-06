@@ -8,7 +8,7 @@ module physics_inputs_simple
 
 CONTAINS
 
-   subroutine physics_read_data(file, suite_names, timestep)
+   subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
       use pio,                  only: file_desc_t
       use cam_abortutils,       only: endrun
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
@@ -24,6 +24,7 @@ CONTAINS
       type(file_desc_t), intent(inout) :: file
       character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites
       integer,           intent(in)    :: timestep
+      logical,  intent(in),  optional  :: read_initialized_variables
 
       !Local variables:
 
@@ -44,10 +45,20 @@ CONTAINS
       character(len=2)           :: sep2 = '' !String separator used to print error messages
       character(len=2)           :: sep3 = '' !String separator used to print error messages
 
+      !Logical to default optional argument to False:
+      logical                    :: use_init_variables
+
       !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
       protected_non_init_vars = ' '
       missing_input_names   = ' '
+
+      !Initialize use_init_variables based on whether it was input to function:
+      if (present(read_initialized_variables)) then
+         use_init_variables = read_initialized_variables
+      else
+         use_init_variables = .false.
+      end if
 
       !Loop over CCPP physics/chemistry suites:
       do suite_idx = 1, size(suite_names, 1)
@@ -61,7 +72,7 @@ CONTAINS
          do req_idx = 1, size(ccpp_required_data, 1)
 
             !Find IC file input name array index for required variable:
-            name_idx = find_input_name_idx(ccpp_required_data(req_idx))
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)
 
             !Check for special index values:
             select case (name_idx)
