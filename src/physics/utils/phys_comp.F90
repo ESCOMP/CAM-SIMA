@@ -125,11 +125,7 @@ CONTAINS
       nstep_cur = get_nstep()
 
       ! Determine if we should read initialized variables from file
-      if (.not. is_first_step() .and. .not. is_first_restart_step()) then
-          use_initialized_variables = .true.
-      else
-          use_initialized_variables = .false.
-      end if
+      use_initialized_variables = (.not. is_first_step() .and. .not. is_first_restart_step())
 
       call physics_read_data(ncdata, suite_names, nstep_cur + 1, read_initialized_variables=use_initialized_variables) ! Skip current timestep of data
 
