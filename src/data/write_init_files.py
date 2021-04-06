@@ -1297,7 +1297,7 @@ def write_is_read_from_file_func(outfile):
 
     outfile.write("", 0)
 
-    outfile.write("if (.not.found_var) then", 2)
+    outfile.write("if (.not. found) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:", 3)
     outfile.write("call endrun(&", 3)
