@@ -116,7 +116,7 @@ CONTAINS
       integer                            :: col_start
       integer                            :: col_end
       integer                            :: nstep_cur
-      logical                            :: use_initialized_variables
+      logical                            :: use_init_variables
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
@@ -125,9 +125,9 @@ CONTAINS
       nstep_cur = get_nstep()
 
       ! Determine if we should read initialized variables from file
-      use_initialized_variables = (.not. is_first_step() .and. .not. is_first_restart_step())
+      use_init_variables = (.not. is_first_step() .and. .not. is_first_restart_step())
 
-      call physics_read_data(ncdata, suite_names, nstep_cur + 1, read_initialized_variables=use_initialized_variables) ! Skip current timestep of data
+      call physics_read_data(ncdata, suite_names, nstep_cur + 1, read_initialized_variables=use_init_variables) ! Skip current timestep of data
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
