@@ -166,6 +166,12 @@ CONTAINS
          end if
       end do
 
+      if (.not.is_initialized) then
+         !If loop has completed with no matches, then endrun with warning
+         !that variable didn't exist in standard names array:
+         call endrun(&
+         "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+      end if
 
    end function is_initialized
 
