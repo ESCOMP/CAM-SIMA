@@ -153,6 +153,7 @@ CONTAINS
 
 
       character(len=*), intent(in) :: varname !Variable name being checked
+      character(len=*), parameter  :: subname = 'is_initialized: '
 
       integer :: stdnam_idx !standard name array index
 
@@ -174,7 +175,7 @@ CONTAINS
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
          call endrun(&
-         "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+         ""//subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end function is_initialized
@@ -190,6 +191,7 @@ CONTAINS
 
 
       character(len=*), intent(in) :: varname !Variable name being checked
+      character(len=*), parameter  :: subname = 'is_read_from_file: '
 
       integer :: stdnam_idx !standard name array index
       logical :: found      !check that <varname> was found
@@ -215,7 +217,7 @@ CONTAINS
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
          call endrun(&
-         "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+         ""//subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end function is_read_from_file
