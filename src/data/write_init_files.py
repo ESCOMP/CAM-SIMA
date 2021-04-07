@@ -1216,7 +1216,7 @@ def write_is_init_func(outfile):
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:", 3)
     outfile.write("call endrun(&", 3)
-    outfile.write('''""//subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write('''subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
@@ -1244,9 +1244,9 @@ def write_is_read_from_file_func(outfile):
     outfile.write("", 0)
 
     #Add subroutine description:
-    outfile.write("!This function checks if the variable is\n" \
-                  "!read from file according to the\n " \
-                  "!`initialized_vars` array.", 2)
+    outfile.write("!This function checks if the variable is", 2)
+    outfile.write("!read from file according to the", 2)
+    outfile.write("!`initialized_vars` array.", 2)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1300,10 +1300,10 @@ def write_is_read_from_file_func(outfile):
     outfile.write("", 0)
     
     outfile.write("if (.not. found) then", 2)
-    outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
-                  "!that variable didn't exist in standard names array:", 3)
+    outfile.write("!If loop has completed with no matches, then endrun with warning", 3)
+    outfile.write("!that variable didn't exist in standard names array:", 3)
     outfile.write("call endrun(&", 3)
-    outfile.write('''""//subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write('''subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
