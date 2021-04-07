@@ -50,6 +50,7 @@ module phys_vars_init_check_ddt_array
    public :: mark_as_initialized
    public :: mark_as_read_from_file
    public :: is_initialized
+   public :: is_read_from_file
 
 CONTAINS
 
@@ -152,6 +153,7 @@ CONTAINS
 
 
       character(len=*), intent(in) :: varname !Variable name being checked
+      character(len=*), parameter  :: subname = 'is_initialized: '
 
       integer :: stdnam_idx !standard name array index
 
@@ -173,11 +175,51 @@ CONTAINS
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
          call endrun(&
-         "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+         subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end function is_initialized
 
 
+   logical function is_read_from_file(varname)
+
+      !This function checks if the variable is
+      !read from file according to the
+      !`initialized_vars` array.
+
+      use cam_abortutils, only: endrun
+
+
+      character(len=*), intent(in) :: varname !Variable name being checked
+      character(len=*), parameter  :: subname = 'is_read_from_file: '
+
+      integer :: stdnam_idx !standard name array index
+      logical :: found      !check that <varname> was found
+
+      is_read_from_file = .false.
+      found = .false.
+
+      !Loop over standard name array:
+      do stdnam_idx = 1, phys_var_num
+         !Check if standard name matches provided variable name:
+         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
+            !If so, then return True if READ_FROM_FILE:
+            is_read_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)
+            !Mark as found:
+            found = .true.
+
+            !Exit loop:
+            exit
+         end if
+      end do
+
+      if (.not. found) then
+         !If loop has completed with no matches, then endrun with warning
+         !that variable didn't exist in standard names array:
+         call endrun(&
+         subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+      end if
+
+   end function is_read_from_file
 
 end module phys_vars_init_check_ddt_array

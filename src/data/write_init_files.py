@@ -72,7 +72,11 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         subroutine, which can set the
         value in "initialized_vars" to
         READ_FROM_FILE given the variable's
-        standard name
+        standard name, and the "is_read_from_file"
+        function, which returns TRUE 
+        if the value of "initialized_vars"
+        for a particular variable given
+        its standard name is READ_FROM_FILE
 
     2.  physics_inputs.F90
 
@@ -188,6 +192,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         outfile.write("public :: mark_as_initialized", 1)
         outfile.write("public :: mark_as_read_from_file", 1)
         outfile.write("public :: is_initialized", 1)
+        outfile.write("public :: is_read_from_file", 1)
 
         #Add "contains" statement:
         outfile.write("\nCONTAINS\n", 0)
@@ -212,6 +217,9 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Add two blank spaces:
         outfile.write("", 0)
         outfile.write("", 0)
+
+        #Write read from file check function:
+        write_is_read_from_file_func(outfile)
 
         #End module:
         outfile.write("\nend module {}".format(phys_check_fname_str), 0)
@@ -1172,6 +1180,7 @@ def write_is_init_func(outfile):
 
     #Add variable declaration statements:
     outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
+    outfile.write("character(len=*), parameter  :: subname = 'is_initialized: '", 2)
     outfile.write("", 0)
     outfile.write("integer :: stdnam_idx !standard name array index", 2)
 
@@ -1207,7 +1216,7 @@ def write_is_init_func(outfile):
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:", 3)
     outfile.write("call endrun(&", 3)
-    outfile.write('''"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write('''subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
@@ -1215,6 +1224,93 @@ def write_is_init_func(outfile):
 
     #End subroutine:
     outfile.write("end function is_initialized", 1)
+
+######
+
+def write_is_read_from_file_func(outfile):
+
+    """
+    Write "Is Read From File" function which
+    is used to check if a given variable has
+    been read from file according to
+    the "initialized_vars" array.
+    """
+
+
+    #Add subroutine header:
+    outfile.write("logical function is_read_from_file(varname)", 1)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Add subroutine description:
+    outfile.write("!This function checks if the variable is", 2)
+    outfile.write("!read from file according to the", 2)
+    outfile.write("!`initialized_vars` array.", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Add use statements:
+    outfile.write("use cam_abortutils, only: endrun", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Add variable declaration statements:
+    outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
+    outfile.write("character(len=*), parameter  :: subname = 'is_read_from_file: '", 2)
+    outfile.write("", 0)
+    outfile.write("integer :: stdnam_idx !standard name array index", 2)
+    outfile.write("logical :: found      !check that <varname> was found", 2)
+
+    #Write a blank space:
+    outfile.write("", 0)
+
+    #Initialize return variable:
+    outfile.write("is_read_from_file = .false.", 2)
+    outfile.write("found = .false.", 2)
+    outfile.write("", 0)
+
+    #Add main function section:
+    #-------------------------
+    outfile.write("!Loop over standard name array:", 2)
+    outfile.write("do stdnam_idx = 1, phys_var_num", 2)
+
+    outfile.write("!Check if standard name matches provided variable name:", 3)
+    outfile.write("if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then", 3)
+
+    outfile.write("!If so, then return True if READ_FROM_FILE:", 4)
+    outfile.write("is_read_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)", 4)
+
+    outfile.write("!Mark as found:", 4)
+    outfile.write("found = .true.", 4)
+
+    outfile.write("", 0)
+    outfile.write("!Exit loop:", 4)
+    outfile.write("exit", 4)
+
+    outfile.write("end if", 3)
+
+    outfile.write("end do", 2)
+
+    outfile.write("", 0)
+    
+    outfile.write("if (.not. found) then", 2)
+    outfile.write("!If loop has completed with no matches, then endrun with warning", 3)
+    outfile.write("!that variable didn't exist in standard names array:", 3)
+    outfile.write("call endrun(&", 3)
+    outfile.write('''subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write("end if", 2)
+
+    outfile.write("", 0)
+    #-------------------------
+
+    #End subroutine:
+    outfile.write("end function is_read_from_file", 1)
 
 ######
 
@@ -1314,15 +1410,15 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #----------------------------
 
     #Add subroutine header:
-    outfile.write("subroutine physics_read_data(file, suite_names, timestep)", 1)
+    outfile.write("subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)", 1)
 
     #Add use statements:
-    outfile.write("use pio,                  only: file_desc_t\n" \
-                  "use cam_abortutils,       only: endrun\n" \
-                  "use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX\n" \
-                  "use physics_data,         only: read_field, find_input_name_idx\n" \
-                  "use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx\n" \
-                  "use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
+    outfile.write("use pio,                  only: file_desc_t", 2)
+    outfile.write("use cam_abortutils,       only: endrun", 2)
+    outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
+    outfile.write("use physics_data,         only: read_field, find_input_name_idx", 2)
+    outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
+    outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
 
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
     outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
@@ -1336,9 +1432,10 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Write dummy variable declarations:
     outfile.write("", 0)
     outfile.write("! Dummy arguments", 2)
-    outfile.write("type(file_desc_t), intent(inout) :: file\n" \
-                  "character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites\n" \
-                  "integer,           intent(in)    :: timestep", 2)
+    outfile.write("type(file_desc_t), intent(inout) :: file", 2) 
+    outfile.write("character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites", 2)
+    outfile.write("integer,           intent(in)    :: timestep", 2)
+    outfile.write("logical,  intent(in),  optional  :: read_initialized_variables", 2)
     outfile.write("", 0)
 
     #Write local variable declarations:
@@ -1348,25 +1445,35 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
     outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
-    outfile.write("character(len=SHR_KIND_CL) :: missing_required_vars\n" \
-                  "character(len=SHR_KIND_CL) :: protected_non_init_vars\n" \
-                  "character(len=SHR_KIND_CL) :: missing_input_names", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_required_vars", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: protected_non_init_vars", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_input_names", 2)
     outfile.write("", 0)
-    outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message\n" \
-                  "integer                    :: errflg    !CCPP framework error flag\n" \
-                  "integer                    :: name_idx  !Input variable array index\n" \
-                  "integer                    :: req_idx   !Required variable array index\n" \
-                  "integer                    :: suite_idx !Suite array index\n" \
-                  "character(len=2)           :: sep  = '' !String separator used to print error messages\n" \
-                  "character(len=2)           :: sep2 = '' !String separator used to print error messages\n" \
-                  "character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message", 2)
+    outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
+    outfile.write("integer                    :: name_idx  !Input variable array index", 2)
+    outfile.write("integer                    :: req_idx   !Required variable array index", 2)
+    outfile.write("integer                    :: suite_idx !Suite array index", 2)
+    outfile.write("character(len=2)           :: sep  = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
+    outfile.write("", 0)
+    outfile.write("!Logical to default optional argument to False:", 2)
+    outfile.write("logical                    :: use_init_variables", 2)
     outfile.write("", 0)
 
     #Initialize variables:
     outfile.write("!Initalize missing and non-initialized variables strings:", 2)
-    outfile.write("missing_required_vars = ' '\n" \
-                  "protected_non_init_vars = ' '\n" \
-                  "missing_input_names   = ' '", 2)
+    outfile.write("missing_required_vars = ' '", 2)
+    outfile.write("protected_non_init_vars = ' '", 2)
+    outfile.write("missing_input_names   = ' '", 2)
+    outfile.write("", 0)
+    outfile.write("!Initialize use_init_variables based on whether it was input to function:", 2)
+    outfile.write("if (present(read_initialized_variables)) then", 2)
+    outfile.write("use_init_variables = read_initialized_variables", 3)
+    outfile.write("else", 2)
+    outfile.write("use_init_variables = .false.", 3)
+    outfile.write("end if", 2)
     outfile.write("", 0)
 
     #Loop over physics suites:
@@ -1375,8 +1482,8 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("", 0)
 
     #Determine physics suite required variables:
-    outfile.write("!Search for all needed CCPP input variables,\n" \
-                  "!so that they can bx e read from input file if need be:", 3)
+    outfile.write("!Search for all needed CCPP input variables,", 3)
+    outfile.write("!so that they can bx e read from input file if need be:", 3)
     outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
     outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
     outfile.write("", 0)
@@ -1388,7 +1495,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Call input name search function:
     outfile.write("!Find IC file input name array index for required variable:", 4)
-    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx))", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)", 4)
 
     #Start select-case statement:
     outfile.write("", 0)
@@ -1405,8 +1512,8 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate error message if required variable isn't found:
     outfile.write("case (no_exist_idx)", 5)
     outfile.write("", 0)
-    outfile.write("!If an index was never found, then save variable name and check the rest\n" \
-                  "!of the variables, after which the model simulation will end:", 6)
+    outfile.write("!If an index was never found, then save variable name and check the rest", 6)
+    outfile.write("!of the variables, after which the model simulation will end:", 6)
     outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 6)
     outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
@@ -1417,9 +1524,9 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate error message if required variable is protected but not initialized:
     outfile.write("case (prot_no_init_idx)", 5)
     outfile.write("", 0)
-    outfile.write("!If an index was found for a protected variable, but that variable\n" \
-                  "!was never marked as initialized, then save the variable name and check\n" \
-                  "!the rest of the variables, after which the model simulation will end:", 6)
+    outfile.write("!If an index was found for a protected variable, but that variable", 6)
+    outfile.write("!was never marked as initialized, then save the variable name and check", 6)
+    outfile.write("!the rest of the variables, after which the model simulation will end:", 6)
     outfile.write("protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = &", 6)
     outfile.write(" trim(sep2)//trim(ccpp_required_data(req_idx))", 7)
     outfile.write("", 0)
@@ -1433,9 +1540,9 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Generate error message if required variable contains no input names
     #(i.e. the <ic_file_input_names> registry tag is missing):
-    outfile.write("!Check that the input variable names aren't blank.\n" \
-                  "!If so, then save variable name and check the rest of the\n" \
-                  "!variables, after which the model simulation will end:", 6)
+    outfile.write("!Check that the input variable names aren't blank.", 6)
+    outfile.write("!If so, then save variable name and check the rest of the", 6)
+    outfile.write("!variables, after which the model simulation will end:", 6)
     outfile.write("if (len_trim(input_var_names(1,name_idx)) == 0) then", 6)
     outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 7)
     outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 8)
@@ -1465,8 +1572,8 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("", 0)
 
     #Generate endrun statement for missing variables:
-    outfile.write("!End simulation if there are missing input\n" \
-                  "!variables that are required:", 3)
+    outfile.write("!End simulation if there are missing input", 3)
+    outfile.write("!variables that are required:", 3)
     outfile.write("if (len_trim(missing_required_vars) > 0) then", 3)
     outfile.write('call endrun("Required variables missing from registered list of input variables: "//&', 4)
     outfile.write("trim(missing_required_vars))", 5)
@@ -1474,8 +1581,8 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("", 0)
 
     #Generate endrun statement for non-initialized protected variables:
-    outfile.write("!End simulation if there are protected input\n" \
-                  "!variables that are not initialized:", 3)
+    outfile.write("!End simulation if there are protected input", 3)
+    outfile.write("!variables that are not initialized:", 3)
     outfile.write("if (len_trim(protected_non_init_vars) > 0) then", 3)
     outfile.write('call endrun("Required, protected input variables are not initialized: "//&', 4)
     outfile.write("trim(protected_non_init_vars))", 5)
@@ -1483,8 +1590,8 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("", 0)
 
     #Generate endrun statement for missing input names:
-    outfile.write("!End simulation if there are variables that\n" \
-                  "!have no input names:", 3)
+    outfile.write("!End simulation if there are variables that", 3)
+    outfile.write("!have no input names:", 3)
     outfile.write("if (len_trim(missing_input_names) > 0) then", 3)
     outfile.write("call endrun(&", 4)
     outfile.write(' "Required variables missing a list of input names (<ic_file_input_names>): "//&', 5)

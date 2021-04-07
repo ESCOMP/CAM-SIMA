@@ -33,12 +33,10 @@ CONTAINS
    subroutine phys_init(phys_state, phys_tend, cam_out)
       use pio,               only: file_desc_t
       use cam_abortutils,    only: endrun
-      use cam_initfiles,     only: initial_file_get_id
       use physics_types,     only: physics_state, physics_tend
       use camsrfexch,        only: cam_out_t
       use physics_grid,      only: columns_on_task
       use vert_coord,        only: pver, pverp
-      use physics_inputs,    only: physics_read_data
       use physconst,         only: physconst_init
       use physics_types,     only: allocate_physics_types_fields
       use constituents,      only: pcnst
@@ -52,12 +50,10 @@ CONTAINS
       type(cam_out_t),     intent(inout) :: cam_out
 
       ! Local variables
-      type(file_desc_t), pointer :: ncdata
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       character(len=512)         :: errmsg
       integer                    :: errflg = 0
 
-      ncdata => initial_file_get_id()
       call physconst_init(columns_on_task, pver, pverp)
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
@@ -71,8 +67,6 @@ CONTAINS
       if (errflg /= 0) then
          call endrun('cam_ccpp_suite_part_list: '//trim(errmsg))
       end if
-      ! Physics needs to read in all data not read in by the dycore
-      call physics_read_data(ncdata, suite_names, 2) ! Skip first timestep of data
 
    end subroutine phys_init
 
@@ -94,6 +88,7 @@ CONTAINS
    end subroutine phys_run1
 
    subroutine phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
+      use pio,            only: file_desc_t
       use cam_abortutils, only: endrun
       use physics_types,  only: physics_state, physics_tend
       use physics_grid,   only: columns_on_task
@@ -101,6 +96,11 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
+      use physics_inputs, only: physics_read_data
+      use cam_initfiles,  only: initial_file_get_id
+      use time_manager,   only: get_nstep
+      use time_manager,   only: is_first_step
+      use time_manager,   only: is_first_restart_step
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -109,11 +109,25 @@ CONTAINS
       type(cam_out_t),     intent(inout) :: cam_out
       type(cam_in_t),      intent(inout) :: cam_in
       ! Local variables
+      type(file_desc_t), pointer :: ncdata
       character(len=512) :: errmsg
       integer            :: errflg = 0
       integer                            :: part_ind
       integer                            :: col_start
       integer                            :: col_end
+      integer                            :: nstep_cur
+      logical                            :: use_init_variables
+
+      ! Physics needs to read in all data not read in by the dycore
+      ncdata => initial_file_get_id()
+
+      ! Get the current timestep
+      nstep_cur = get_nstep()
+
+      ! Determine if we should read initialized variables from file
+      use_init_variables = (.not. is_first_step() .and. .not. is_first_restart_step())
+
+      call physics_read_data(ncdata, suite_names, nstep_cur + 1, read_initialized_variables=use_init_variables) ! Skip current timestep of data
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
