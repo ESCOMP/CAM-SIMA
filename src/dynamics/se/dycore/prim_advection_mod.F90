@@ -63,8 +63,9 @@ contains
 
 
   subroutine Prim_Advec_Init1(par, elem)
-    use dimensions_mod, only : nlev, qsize, nelemd,ntrac
-    use parallel_mod,   only : parallel_t, boundaryCommMethod
+    use dimensions_mod, only: nlev, qsize, nelemd,ntrac
+    use parallel_mod,   only: parallel_t, boundaryCommMethod
+    use string_utils,   only: to_str
     type(parallel_t)    :: par
     type (element_t)    :: elem(:)
     !
@@ -74,8 +75,10 @@ contains
     ! threads. But in this case we want shared pointers.
     real(kind=r8), pointer :: buf_ptr(:) => null()
     real(kind=r8), pointer :: receive_ptr(:) => null()
-    integer       :: advec_remap_num_threads 
+    integer       :: advec_remap_num_threads
+    integer       :: iret
 
+    character(len=*), parameter :: subname = 'Prim_Advec_Init1 (SE)'
 
     !
     ! Set the number of threads used in the subroutine Prim_Advec_tracers_remap()
@@ -109,8 +112,15 @@ contains
 
 
     ! this static array is shared by all threads, so dimension for all threads (nelemd), not nets:nete:
-    allocate (qmin(nlev,qsize,nelemd))
-    allocate (qmax(nlev,qsize,nelemd))
+    allocate(qmin(nlev,qsize,nelemd), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate qmin(nlev,qsize,nelemd) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(qmax(nlev,qsize,nelemd), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate qmax(nlev,qsize,nelemd) failed with stat: '//to_str(iret))
+    end if
 
   end subroutine Prim_Advec_Init1
 
@@ -133,7 +143,7 @@ contains
   subroutine Prim_Advec_Tracers_fvm(elem,fvm,hvcoord,hybrid,&
         dt,tl,nets,nete,ghostbufQnhc,ghostBufQ1, ghostBufFlux,kmin,kmax)
     use fvm_consistent_se_cslam, only: run_consistent_se_cslam
-    use edgetype_mod,            only: edgebuffer_t    
+    use edgetype_mod,            only: edgebuffer_t
     implicit none
     type (element_t), intent(inout)   :: elem(:)
     type (fvm_struct), intent(inout)  :: fvm(:)

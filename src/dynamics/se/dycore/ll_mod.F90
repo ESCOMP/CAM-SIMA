@@ -112,6 +112,10 @@ contains
   end subroutine LLFindEdge
 
   subroutine LLAddEdge(EdgeList,src,dest,id)
+
+    use cam_abortutils, only: endrun
+    use string_utils,   only: to_str
+
     type (root_t), intent(inout) :: EdgeList
     integer, intent(in)  :: src
     integer, intent(in)  :: dest
@@ -121,6 +125,10 @@ contains
     type(node_t), pointer  :: new_node
     type(node_t), pointer :: parent
 
+    integer :: iret
+
+    character(len=*), parameter :: subname = 'LLAddEdge (SE)'
+
     temp_node => EdgeList%first
     parent    => EdgeList%first
 
@@ -128,7 +136,13 @@ contains
        parent => temp_node
        temp_node => parent%next
     enddo
-    allocate(new_node)
+
+    allocate(new_node, stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate new_node failed with stat: '//&
+                   to_str(iret))
+    end if
+
     NumEdges = NumEdges + 1
 
     new_node%src=src

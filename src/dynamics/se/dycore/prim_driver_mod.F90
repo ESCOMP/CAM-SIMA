@@ -9,7 +9,7 @@ module prim_driver_mod
   use derivative_mod,         only: derivative_t
   use fvm_control_volume_mod, only: fvm_struct
 
-  use element_mod,            only: element_t, timelevels, allocate_element_desc
+  use element_mod,            only: element_t, timelevels
   use thread_mod ,            only: horz_num_threads, vert_num_threads, tracer_num_threads
   use thread_mod ,            only: omp_set_nested
   use perf_mod,               only: t_startf, t_stopf
@@ -59,7 +59,7 @@ contains
 !   variables used to calculate CFL
     real (kind=r8) :: dtnu            ! timestep*viscosity parameter
     real (kind=r8) :: dt_dyn_vis      ! viscosity timestep used in dynamics
-    real (kind=r8) :: dt_dyn_del2_sponge, dt_remap 
+    real (kind=r8) :: dt_dyn_del2_sponge, dt_remap
     real (kind=r8) :: dt_tracer_vis      ! viscosity timestep used in tracers
 
     real (kind=r8) :: dp
@@ -659,11 +659,12 @@ contains
     end subroutine prim_set_dry_mass
 
     subroutine get_global_ave_surface_pressure(elem, global_ave_ps_inic)
-      use element_mod       , only : element_t
-      use dimensions_mod    , only : np
-      use global_norms_mod  , only : global_integral
-      use hybrid_mod        , only : config_thread_region, get_loop_ranges, hybrid_t
-      use parallel_mod      , only : par
+      use element_mod       , only: element_t
+      use dimensions_mod    , only: np
+      use global_norms_mod  , only: global_integral
+      use hybrid_mod        , only: config_thread_region, get_loop_ranges, hybrid_t
+      use parallel_mod      , only: par
+      use string_utils      , only: to_str
 
       type (element_t)     , intent(in)   :: elem(:)
       real (kind=r8), intent(out)  :: global_ave_ps_inic
@@ -672,12 +673,18 @@ contains
       real (kind=r8), allocatable  :: tmp(:,:,:)
       type (hybrid_t)                     :: hybrid
       integer                             :: ie, nets, nete
+      integer                             :: iret
+
+      character(len=*), parameter :: subname = 'get_global_ave_surface_pressure (SE)'
 
       !JMD $OMP PARALLEL NUM_THREADS(horz_num_threads), DEFAULT(SHARED), PRIVATE(hybrid,nets,nete,n)
       !JMD        hybrid = config_thread_region(par,'horizontal')
       hybrid = config_thread_region(par,'serial')
       call get_loop_ranges(hybrid,ibeg=nets,iend=nete)
-      allocate(tmp(np,np,nets:nete))
+      allocate(tmp(np,np,nets:nete), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate tmp(np,np,nets:nete) failed with stat: '//to_str(iret))
+      end if
 
       do ie=nets,nete
         tmp(:,:,ie)=elem(ie)%state%psdry(:,:)

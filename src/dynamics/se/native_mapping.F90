@@ -86,6 +86,7 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
 
     use shr_infnan_mod, only: isnan=>shr_infnan_isnan
     use cam_pio_utils,  only: cam_pio_openfile, cam_pio_createfile
+    use string_utils,   only: to_str
 
     use pio, only: pio_noerr, pio_openfile, pio_createfile, pio_closefile, &
          pio_get_var, pio_put_var, pio_write_darray,pio_int, pio_double, &
@@ -153,6 +154,8 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
     character(len=8) :: cdate, ctime
     integer :: olditype, oldnlat, oldnlon, itype
 
+    character(len=*), parameter :: subname = 'create_native_mapping_files'
+
     !Remove once "official" CAMDEN fillvalue code has been developed -JN:
     real(r8) :: fillvalue = 9.87e36_r8
 
@@ -202,11 +205,35 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
 
        ierr = pio_inq_dimid( ogfile, 'grid_size', dimid)
        ierr = pio_inq_dimlen( ogfile, dimid, npts)
-       allocate(lat(npts), lon(npts), grid_imask(npts), areab(npts))
+       allocate(lat(npts), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate lat(npts) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(lon(npts), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate lon(npts) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(grid_imask(npts), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate grid_imask(npts) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(areab(npts), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate areab(npts) failed with stat: '//to_str(ierr))
+       end if
 
        ierr = pio_inq_dimid( ogfile, 'grid_rank', dimid)
        ierr = pio_inq_dimlen(ogfile, dimid, dg_rank)
-       allocate(dg_dims(dg_rank))
+       allocate(dg_dims(dg_rank), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate dg_dims(dg_rank) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
        ierr = pio_inq_varid( ogfile, 'grid_dims', vid)
        ierr = pio_get_var( ogfile, vid, dg_dims)
 
@@ -309,9 +336,24 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        ! allocate storage
        do ii=1,nelemd
           ngrid = interpdata(ii)%n_interp
-          allocate(interpdata(ii)%interp_xy( ngrid ) )
-          allocate(interpdata(ii)%ilat( ngrid ) )
-          allocate(interpdata(ii)%ilon( ngrid ) )
+          allocate(interpdata(ii)%interp_xy( ngrid ), stat=ierr )
+          if (ierr /= 0) then
+             call endrun(subname//': allocate interpdata(ii)%interp_xy(ngrid)'//&
+                         ' failed with stat: '//to_str(ierr))
+          end if
+
+          allocate(interpdata(ii)%ilat( ngrid ), stat=ierr )
+          if (ierr /= 0) then
+             call endrun(subname//': allocate interpdata(ii)%ilat(ngrid)'//&
+                         ' failed with stat: '//to_str(ierr))
+          end if
+
+          allocate(interpdata(ii)%ilon( ngrid ), stat=ierr )
+          if (ierr /= 0) then
+             call endrun(subname//': allocate interpdata(ii)%ilon(ngrid)'//&
+                         ' failed with stat: '//to_str(ierr))
+          end if
+
           interpdata(ii)%n_interp=0  ! reset counter
        enddo
 
@@ -338,10 +380,29 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        end do
 
 
-       allocate(h(int(countx)))
-       allocate(h1d(int(countx)*npsq*nelemd))
-       allocate(row(int(countx)*npsq*nelemd))
-       allocate(col(int(countx)*npsq*nelemd))
+       allocate(h(int(countx)), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate h(int(countx)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(h1d(int(countx)*npsq*nelemd), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate h1d(int(countx)*npsq*nelemd)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(row(int(countx)*npsq*nelemd), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate row(int(countx)*npsq*nelemd)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(col(int(countx)*npsq*nelemd), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate col(int(countx)*npsq*nelemd)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
 
        row = 0
        col = 0
@@ -387,7 +448,11 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        call mpi_allreduce(cntperelem_in, cntperelem_out, nelem, MPI_INTEGER, MPI_MAX, par%comm, ierr)
 
 
-       allocate(ldof(ngrid))
+       allocate(ldof(ngrid), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate ldof(ngrid) failed with stat: '//to_str(ierr))
+       end if
+
        ldof = 0
        ii=1
        do ie=1,nelemd

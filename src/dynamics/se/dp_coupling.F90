@@ -23,6 +23,7 @@ use dp_mapping,     only: nphys_pts
 
 use perf_mod,       only: t_startf, t_stopf, t_barrierf
 use cam_abortutils, only: endrun
+use string_utils,   only: to_str
 
 !SE dycore:
 use parallel_mod,   only: par
@@ -96,6 +97,9 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    real(r8), allocatable :: qgll(:,:,:,:)
    real(r8)              :: inv_dp3d(np,np,nlev)
    integer               :: tl_f, tl_qdp_np0, tl_qdp_np1
+
+   character(len=*), parameter :: subname = 'd_p_coupling'
+
    !----------------------------------------------------------------------------
 
    if (.not. local_dp_map) then
@@ -109,19 +113,63 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    if (fv_nphys > 0) then
       nphys = fv_nphys
    else
-     allocate(qgll(np,np,nlev,pcnst))
+     allocate(qgll(np,np,nlev,pcnst), stat=ierr)
+     if (ierr /= 0) then
+        call endrun(subname//': allocate qgll(np,np,nlev,pcnst) failed with stat: '//&
+                    to_str(ierr))
+     end if
+
      nphys = np
    end if
 
    ! Allocate temporary arrays to hold data for physics decomposition
-   allocate(ps_tmp(nphys_pts,nelemd))
-   allocate(dp3d_tmp(nphys_pts,pver,nelemd))
-   allocate(dp3d_tmp_tmp(nphys_pts,pver))
-   allocate(phis_tmp(nphys_pts,nelemd))
-   allocate(T_tmp(nphys_pts,pver,nelemd))
-   allocate(uv_tmp(nphys_pts,2,pver,nelemd))
-   allocate(q_tmp(nphys_pts,pver,pcnst,nelemd))
-   allocate(omega_tmp(nphys_pts,pver,nelemd))
+   allocate(ps_tmp(nphys_pts,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate ps_tmp(nphys_pts,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(dp3d_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate dp3d_tmp(nphys_pts,pver,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(dp3d_tmp_tmp(nphys_pts,pver), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate dp3d_tmp_tmp(nphys_pts,pver) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(phis_tmp(nphys_pts,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate phis_tmp(nphys_pts,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(T_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate T_tmp(nphys_pts,pver,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(uv_tmp(nphys_pts,2,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate uv_tmp(nphys_pts,2,pver,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(q_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate q_tmp(nphys_pts,pver,pcnst,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(omega_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+     call endrun(subname//': allocate q_tmp(nphys_pts,pver,pcnst,nelemd) failed with stat: '//&
+                 to_str(ierr))
+   end if
 
 !Remove once a gravity wave parameterization is available -JN
 #if 0
@@ -216,7 +264,11 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
 
    ! q_prev is for saving the tracer fields for calculating tendencies
    if (.not. allocated(q_prev)) then
-      allocate(q_prev(pcols,pver,pcnst))
+      allocate(q_prev(pcols,pver,pcnst), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate q_prev(pcols,pver,pcnst) failed with stat: '//&
+                     to_str(ierr))
+      end if
    end if
    q_prev = 0.0_r8
 
@@ -224,8 +276,18 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
 !Remove once a gravity wave parameterization is available -JN
 #if 0
    if (use_gw_front .or. use_gw_front_igw) then
-      allocate(frontgf_phys(pcols, pver, begchunk:endchunk))
-      allocate(frontga_phys(pcols, pver, begchunk:endchunk))
+      allocate(frontgf_phys(pcols, pver, begchunk:endchunk), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate frontgf_phys(pcols, pver, begchunk:endchunk)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
+      allocate(frontga_phys(pcols, pver, begchunk:endchunk), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate frontga_phys(pcols, pver, begchunk:endchunk)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
    end if
 #endif
    !$omp parallel do num_threads(max_num_threads) private (col_ind, icol, ie, blk_ind, ilyr, m)
@@ -343,6 +405,9 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
    integer                  :: num_trac
    integer                  :: nets, nete
    integer                  :: kptr, ii
+   integer                  :: ierr
+
+   character(len=*), parameter :: subname='p_d_coupling'
    !----------------------------------------------------------------------------
 
    if (.not. local_dp_map) then
@@ -355,10 +420,29 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
       nullify(elem)
    end if
 
-   allocate(T_tmp(nphys_pts,pver,nelemd))
-   allocate(uv_tmp(nphys_pts,2,pver,nelemd))
-   allocate(dq_tmp(nphys_pts,pver,pcnst,nelemd))
-   allocate(dp_phys(nphys_pts,pver,nelemd))
+   allocate(T_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate T_tmp(nphys_pts,pver,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(uv_tmp(nphys_pts,2,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate uv_tmp(nphys_pts,2,pver,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(dq_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate dq_tmp(nphys_pts,pver,pcnst,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(dp_phys(nphys_pts,pver,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate dp_phys(nphys_pts,pver,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
 
    T_tmp  = 0.0_r8
    uv_tmp = 0.0_r8

@@ -7,6 +7,7 @@ module cube_mod
   use physconst,              only: pi, rearth
   use control_mod,            only: hypervis_scaling, cubed_sphere_map
   use cam_abortutils,         only: endrun
+  use string_utils,           only: to_str
 
   implicit none
   private
@@ -877,11 +878,13 @@ contains
     integer :: ii,i,j,k
     integer :: ir,jr
     integer :: start, cnt
+    integer :: iret
 
     real (kind=r8) :: Dloc(2,2,np)
     real (kind=r8) :: Drem(2,2,np)
     real (kind=r8) :: x1,x2
 
+    character(len=*), parameter :: subname = 'rotation_init_atomic (SE)'
 
     myface_no = elem%vertex%face_number
 
@@ -911,7 +914,12 @@ contains
     ! =====================================================
 
     if (nrot > 0) then
-       allocate(elem%desc%rot(nrot))
+       allocate(elem%desc%rot(nrot), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate elem%desc%rot(nrot) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        elem%desc%use_rotation=1
        irot=0
 
@@ -929,9 +937,20 @@ contains
                 irot=irot+1
 
                 if (inbr <= 4) then
-                   allocate(elem%desc%rot(irot)%R(2,2,np))  ! edge
+                   allocate(elem%desc%rot(irot)%R(2,2,np), stat=iret)  ! edge
+                   if (iret /= 0) then
+                      call endrun(subname//': allocate elem%desc%rot(irot)%R(2,2,np)'//&
+                                  ' failed with stat: '//to_str(iret))
+                   end if
+
+
                 else
-                   allocate(elem%desc%rot(irot)%R(2,2,1 ))   ! corner
+                   allocate(elem%desc%rot(irot)%R(2,2,1 ), stat=iret)   ! corner
+                   if (iret /= 0) then
+                      call endrun(subname//': allocate elem%desc%rot(irot)%R(2,2,1)'//&
+                                  ' failed with stat: '//to_str(iret))
+                   end if
+
                 end if
                 ! Initialize Dloc and Drem for no-rotation possibilities
                 Dloc(1,1,:) = 1.0_r8
@@ -1448,10 +1467,16 @@ contains
     integer                   :: offset, ierr, loc
     logical, allocatable      :: nbrs_used(:,:,:,:)
 
+    character(len=*), parameter :: subname = 'CubeTopology (SE)'
 
     if (0==ne) call endrun('Error in CubeTopology: ne is zero')
 
     allocate(GridElem(ne,ne,nfaces),stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate GridElem(ne,ne,nfaces)'//&
+                   ' failed with stat: '//to_str(ierr))
+    end if
+
     do k = 1, nfaces
        do j = 1, ne
           do i = 1, ne
@@ -1464,7 +1489,12 @@ contains
        call endrun('error in allocation of GridElem structure')
     end if
 
-    allocate(nbrs_used(ne,ne,nfaces,8))
+    allocate(nbrs_used(ne,ne,nfaces,8), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate nbrs_used(ne,ne,nfaces,8)'//&
+                   ' failed with stat: '//to_str(ierr))
+    end if
+
     nbrs_used = .false.
 
 
@@ -1489,7 +1519,12 @@ contains
        end do
     end do
 
-    allocate(Mesh(ne,ne))
+    allocate(Mesh(ne,ne), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate Mesh(ne,ne)'//&
+                   ' failed with stat: '//to_str(ierr))
+    end if
+
     if(IsFactorable(ne)) then
        call GenspaceCurve(Mesh)
     else
@@ -1499,9 +1534,22 @@ contains
          call endrun('Fatal SFC error')
        end if
 
-       allocate(Mesh2(ne2,ne2))
-       allocate(Mesh2_map(ne2,ne2,2))
-       allocate(sfcij(0:ne2*ne2,2))
+       allocate(Mesh2(ne2,ne2), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate Mesh2(ne2,ne2)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(Mesh2_map(ne2,ne2,2), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate Mesh2_map(ne2,ne2,2)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
+       allocate(sfcij(0:ne2*ne2,2), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate sfcij(0:ne2*ne2,2)'//&
+                      ' failed with stat: '//to_str(ierr))
+       end if
 
        call GenspaceCurve(Mesh2)  ! SFC partition for ne2
 

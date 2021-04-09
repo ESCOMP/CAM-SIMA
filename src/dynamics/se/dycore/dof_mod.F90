@@ -1,6 +1,8 @@
 module dof_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8, i8=>shr_kind_i8
   use mpi,            only: mpi_integer
+  use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
   use dimensions_mod, only: np, npsq, nelem, nelemd
   use quadrature_mod, only: quadrature_t
   use element_mod,    only: element_t,index_t
@@ -283,10 +285,27 @@ contains
     integer            :: ie, ig, nprocs, ierr
     logical, parameter :: Debug = .FALSE.
 
+    character(len=*), parameter :: subname = 'SetElemOffset (SE)'
+
     nprocs = par%nprocs
-    allocate(numElemP(nelem))
-    allocate(numElem2P(nelem))
-    allocate(gOffset(nelem))
+    allocate(numElemP(nelem), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate numElemP(nelem) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(numElem2P(nelem), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate numElem2P(nelem) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(gOffset(nelem), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate gOffset(nelem) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     numElemP=0;numElem2P=0;gOffset=0
 
     do ie = 1, nelemd
@@ -318,10 +337,18 @@ contains
 
     integer, allocatable :: ldof(:,:)
     integer :: i,j,ii,npts
+    integer :: ierr
+
+    character(len=*), parameter :: subname = 'CreateUniqueIndex (SE)'
 
 
     npts = size(gdof,dim=1)
-    allocate(ldof(npts,npts))
+    allocate(ldof(npts,npts), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate ldof(npts,npts) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     ! ====================
     ! Form the local DOF
     ! ====================

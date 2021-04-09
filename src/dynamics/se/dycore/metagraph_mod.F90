@@ -1,10 +1,12 @@
 module metagraph_mod
-  use cam_logfile,   only: iulog
+  use cam_logfile,    only: iulog
+  use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
   use gridgraph_mod, only : gridvertex_t, gridedge_t, &
        allocate_gridvertex_nbrs, assignment ( = )
 
-  implicit none 
-  private 
+  implicit none
+  private
 
   type, public :: MetaEdge_t
      type (GridEdge_t),pointer     :: members(:)
@@ -12,7 +14,7 @@ module metagraph_mod
      integer          ,pointer     :: edgeptrP_ghost(:)
      integer          ,pointer     :: edgeptrS(:)
      integer                       :: number
-     integer                       :: type 
+     integer                       :: type
      integer                       :: wgtP       ! sum of lengths of all messages to pack for edges
      integer                       :: wgtP_ghost ! sum of lengths of all messages to pack for ghost cells
      integer                       :: wgtS
@@ -24,7 +26,7 @@ module metagraph_mod
 
   type, public :: MetaVertex_t             ! one for each processor
      integer                       :: number     ! USELESS just the local processor number
-     integer                       :: nmembers   ! number of elements on this processor 
+     integer                       :: nmembers   ! number of elements on this processor
      type (GridVertex_t),pointer   :: members(:) ! array of elements on this processor
      type (MetaEdge_t),pointer     :: edges(:)   ! description of messages to send/receive
      integer                       :: nedges     ! number of processors to communicate with (length of edges)
@@ -42,7 +44,7 @@ module metagraph_mod
   end interface
 
 CONTAINS
- 
+
   ! =====================================
   ! copy vertex:
   ! copy device for overloading = sign.
@@ -54,6 +56,9 @@ CONTAINS
     type (MetaEdge_t), intent(in)  :: edge1
 
     integer i
+    integer iret
+
+    character(len=*), parameter :: subname = 'copy_metaedge (SE)'
 
     edge2%number   = edge1%number
     edge2%type     = edge1%type
@@ -62,16 +67,39 @@ CONTAINS
     edge2%nmembers = edge1%nmembers
 
     if (associated(edge1%members)) then
-       allocate(edge2%members(edge2%nmembers))
+
+       allocate(edge2%members(edge2%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate edge2%members(edge2%nmembers) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        do i=1,edge2%nmembers
           edge2%members(i)=edge1%members(i)
        end do
     end if
 
     if (associated(edge1%edgeptrP)) then
-       allocate(edge2%edgeptrP(edge2%nmembers))
-       allocate(edge2%edgeptrS(edge2%nmembers))
-       allocate(edge2%edgeptrP_ghost(edge2%nmembers))
+
+       allocate(edge2%edgeptrP(edge2%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate edge2%edgeptrP(edge2%nmembers) failed with stat: '//&
+                      to_str(iret))
+       end if
+
+       allocate(edge2%edgeptrS(edge2%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate edge2%edgeptrS(edge2%nmembers) failed with stat: '//&
+                      to_str(iret))
+       end if
+
+
+       allocate(edge2%edgeptrP_ghost(edge2%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate edge2%edgeptrP_ghost(edge2%nmembers) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        do i=1,edge2%nmembers
           edge2%edgeptrP(i)=edge1%edgeptrP(i)
           edge2%edgeptrS(i)=edge1%edgeptrS(i)
@@ -140,7 +168,7 @@ CONTAINS
     write(iulog,95) Vertex%nmembers
     call PrintGridVertex(Vertex%members)
     write(iulog,96) Vertex%nedges
-    if(associated(Vertex%edges)) then 
+    if(associated(Vertex%edges)) then
        do j=1,Vertex%nedges
           write(iulog,97) Vertex%edges(j)%number,     Vertex%edges(j)%type,              &
                Vertex%edges(j)%wgtP,        Vertex%edges(j)%HeadVertex,        &
@@ -167,7 +195,7 @@ CONTAINS
     type (GridEdge_t),   intent(in),target  :: GridEdge(:)
 
     !type (MetaEdge_t), allocatable :: MetaEdge(:)
-    integer                          :: nelem,nelem_edge, nedges  
+    integer                          :: nelem,nelem_edge, nedges
     integer,allocatable              :: icount(:)
     integer                          :: ic,i,j,ii
     integer                          :: npart
@@ -176,12 +204,14 @@ CONTAINS
     integer :: nedge_active,enum
     logical :: found
     integer iTail, iHead, wgtP,wgtS
+    integer :: iret
 
     type (root_t) :: mEdgeList ! root_t = C++ std::set<std::pair<int,int> >
 
     logical  :: Verbose = .FALSE.
     logical  :: Debug = .FALSE.
 
+    character(len=*), parameter :: subname = 'initMetaGraph (SE)'
 
     if(Debug) write(iulog,*)'initMetagraph: point #1'
     !  Number of grid vertices
@@ -197,7 +227,7 @@ CONTAINS
        tail_processor_number = GridEdge(i)%tail%processor_number
        head_processor_number = GridEdge(i)%head%processor_number
        if(tail_processor_number  .eq. ThisProcessorNumber .or.  &
-          head_processor_number  .eq. ThisProcessorNumber ) then 
+          head_processor_number  .eq. ThisProcessorNumber ) then
           call LLInsertEdge(mEdgeList,tail_processor_number,head_processor_number,eNum)
        endif
     enddo
@@ -205,12 +235,16 @@ CONTAINS
     call LLGetEdgeCount(nedges)
 
     NULLIFY(MetaVertex%edges)
-        
-    allocate(MetaVertex%edges(nedges))
+
+    allocate(MetaVertex%edges(nedges), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate MetaVertex%edges(nedges) failed with stat: '//&
+                   to_str(iret))
+    end if
 
     ! Initalize the Meta Vertices to zero... probably should be done
     ! in a separate routine
-    MetaVertex%nmembers=0  
+    MetaVertex%nmembers=0
     MetaVertex%number=0
     MetaVertex%nedges=0
     if(Debug) write(iulog,*)'initMetagraph: point #2'
@@ -235,7 +269,12 @@ CONTAINS
     if(Debug) write(iulog,*)'initMetagraph: point #4 '
     !  Allocate space for the members of the MetaVertices
     if(Debug) write(iulog,*)'initMetagraph: point #4.1 i,MetaVertex%nmembers',i,MetaVertex%nmembers
-    allocate(MetaVertex%members(MetaVertex%nmembers))
+
+    allocate(MetaVertex%members(MetaVertex%nmembers), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate MetaVertex%members(MetaVertex%nmembers) failed with stat: '//&
+                   to_str(iret))
+    end if
 
     do j=1, MetaVertex%nmembers
        call allocate_gridvertex_nbrs(MetaVertex%members(j))
@@ -246,7 +285,7 @@ CONTAINS
     !  Set the identity of the members of the MetaVertices
     ic=1
     do j=1,nelem
-       if( GridVertex(j)%processor_number .eq. ThisProcessorNumber) then 
+       if( GridVertex(j)%processor_number .eq. ThisProcessorNumber) then
           MetaVertex%members(ic) = GridVertex(j)
           ic=ic+1
        endif
@@ -273,7 +312,7 @@ CONTAINS
        head_processor_number = GridEdge(i)%head%processor_number
        tail_processor_number = GridEdge(i)%tail%processor_number
        call LLFindEdge(mEdgeList,tail_processor_number,head_processor_number,j,found)
-       if(found) then 
+       if(found) then
 
           !  Increment the number of grid edges contained in the grid edge
           !  and setup the pointers
@@ -317,10 +356,30 @@ CONTAINS
 
     do i=1,nedges
        !  Allocate space for the member edges and edge index
-       allocate(MetaVertex%edges(i)%members (MetaVertex%edges(i)%nmembers))
-       allocate(MetaVertex%edges(i)%edgeptrP(MetaVertex%edges(i)%nmembers))
-       allocate(MetaVertex%edges(i)%edgeptrS(MetaVertex%edges(i)%nmembers))
-       allocate(MetaVertex%edges(i)%edgeptrP_ghost(MetaVertex%edges(i)%nmembers))
+       allocate(MetaVertex%edges(i)%members (MetaVertex%edges(i)%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate MetaVertex%edges(i)%members(MetaVertex%edges(i)%nmembers)'//&
+                      ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(MetaVertex%edges(i)%edgeptrP(MetaVertex%edges(i)%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate MetaVertex%edges(i)%edgeptrP(MetaVertex%edges(i)%nmembers)'//&
+                      ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(MetaVertex%edges(i)%edgeptrS(MetaVertex%edges(i)%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate MetaVertex%edges(i)%edgeptrS(MetaVertex%edges(i)%nmembers)'//&
+                      ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(MetaVertex%edges(i)%edgeptrP_ghost(MetaVertex%edges(i)%nmembers), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate MetaVertex%edges(i)%edgeptrP_ghost(MetaVertex%edges(i)%nmembers)'//&
+                      ' failed with stat: '//to_str(iret))
+       end if
+
        MetaVertex%edges(i)%edgeptrP(:)=0
        MetaVertex%edges(i)%edgeptrS(:)=0
        MetaVertex%edges(i)%edgeptrP_ghost(:)=0
@@ -328,13 +387,17 @@ CONTAINS
     if(Debug) write(iulog,*)'initMetagraph: point #14'
 
     !  Insert the edges into the proper meta edges
-    allocate(icount(nelem_edge))
+    allocate(icount(nelem_edge), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate icount(nelem_edge) failed with stat: '//to_str(iret))
+    end if
+
     icount=1
     do i=1,nelem_edge
        head_processor_number = GridEdge(i)%head%processor_number
        tail_processor_number = GridEdge(i)%tail%processor_number
        call LLFindEdge(mEdgeList,tail_processor_number,head_processor_number,j,found)
-       if(found) then 
+       if(found) then
           MetaVertex%edges(j)%members(icount(j)) = GridEdge(i)
           if(icount(j)+1 .le. MetaVertex%edges(j)%nmembers) then
 
@@ -342,7 +405,7 @@ CONTAINS
 
              wgtP=Gridedge(i)%tail%nbrs_wgt(ii)
              MetaVertex%edges(j)%edgeptrP(icount(j)+1) = MetaVertex%edges(j)%edgeptrP(icount(j)) + wgtP
-            
+
              wgtS = 1
              MetaVertex%edges(j)%edgeptrS(icount(j)+1) = MetaVertex%edges(j)%edgeptrS(icount(j)) + wgtS
 

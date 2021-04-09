@@ -5,7 +5,7 @@
 module hybrid_mod
 
 use parallel_mod  , only : parallel_t, copy_par
-use thread_mod    , only : omp_set_num_threads, omp_get_thread_num 
+use thread_mod    , only : omp_set_num_threads, omp_get_thread_num
 use thread_mod    , only : horz_num_threads, vert_num_threads, tracer_num_threads
 use dimensions_mod, only : nlev, qsize, ntrac
 
@@ -46,11 +46,11 @@ private
   public :: threadOwnsTracer, threadOwnsVertlevel
   public :: config_thread_region
 
-  interface config_thread_region 
+  interface config_thread_region
       module procedure config_thread_region_par
       module procedure config_thread_region_hybrid
   end interface
-  interface PrintHybrid 
+  interface PrintHybrid
       module procedure PrintHybridnew
   end interface
 
@@ -122,9 +122,9 @@ contains
 
       new%par          = old%par      ! relies on parallel_mod copy constructor
       new%nthreads     = old%nthreads * region_num_threads
-      if( region_num_threads .ne. 1 ) then 
+      if( region_num_threads .ne. 1 ) then
           new%ithr         = old%ithr * region_num_threads + ithr
-      else 
+      else
           new%ithr         = old%ithr
       endif
       new%masterthread = old%masterthread
@@ -134,21 +134,34 @@ contains
   end function config_thread_region_hybrid
 
   function config_thread_region_par(par,region_name) result(hybrid)
+
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
       type (parallel_t) , intent(in) :: par
       character(len=*), intent(in) :: region_name
       type (hybrid_t)                :: hybrid
-      ! local 
+      ! local
       integer    :: ithr
       integer    :: ibeg_range, iend_range
       integer    :: kbeg_range, kend_range
       integer    :: qbeg_range, qend_range
       integer    :: nthreads
+      integer    :: iret
+
+      character(len=*), parameter :: subname = 'config_thread_region_par (SE)'
 
       ithr            = omp_get_thread_num()
 
       if ( TRIM(region_name) == 'serial') then
          region_num_threads = 1
-         if ( .NOT. allocated(work_pool_horz) ) allocate(work_pool_horz(horz_num_threads,2))
+         if ( .NOT. allocated(work_pool_horz) ) then
+            allocate(work_pool_horz(horz_num_threads,2), stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate work_pool_horz(horz_num_threads,2)'//&
+                           ' failed with stat: '//to_str(iret))
+            end if
+         end if
          call set_thread_ranges_1D ( work_pool_horz, ibeg_range, iend_range, ithr )
          hybrid%ibeg = 1;          hybrid%iend = nelemd_save
          hybrid%kbeg = 1;          hybrid%kend = nlev
@@ -156,7 +169,7 @@ contains
       endif
 
       if ( TRIM(region_name) == 'horizontal') then
-         region_num_threads = horz_num_threads 
+         region_num_threads = horz_num_threads
          call set_thread_ranges_1D ( work_pool_horz, ibeg_range, iend_range, ithr )
          hybrid%ibeg = ibeg_range; hybrid%iend = iend_range
          hybrid%kbeg = 1;          hybrid%kend = nlev
@@ -164,13 +177,13 @@ contains
       endif
 
       if ( TRIM(region_name) == 'vertical') then
-         region_num_threads = vert_num_threads 
+         region_num_threads = vert_num_threads
          call set_thread_ranges_1D ( work_pool_vert, kbeg_range, kend_range, ithr )
          hybrid%ibeg = 1;          hybrid%iend = nelemd_save
          hybrid%kbeg = kbeg_range; hybrid%kend = kend_range
          hybrid%qbeg = 1;          hybrid%qend = qsize
       endif
-  
+
       if ( TRIM(region_name) == 'tracer' ) then
          region_num_threads = tracer_num_threads
          call set_thread_ranges_1D ( work_pool_trac, qbeg_range, qend_range, ithr)
@@ -186,7 +199,7 @@ contains
          hybrid%kbeg = 1;          hybrid%kend = nlev
          hybrid%qbeg = qbeg_range; hybrid%qend = qend_range
       endif
-    
+
       if ( TRIM(region_name) == 'vertical_and_tracer' ) then
          region_num_threads = vert_num_threads*tracer_num_threads
          call set_thread_ranges_2D ( work_pool_vert, work_pool_trac, kbeg_range, kend_range, &
@@ -207,16 +220,28 @@ contains
 
   subroutine init_loop_ranges(nelemd)
 
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
       integer, intent(in) :: nelemd
       integer :: ith, beg_index, end_index
+      integer :: iret
 
-      
+      character(len=*), parameter :: subname = 'init_loop_ranges (SE)'
+
+
       if ( init_ranges ) then
         nelemd_save=nelemd
-        if ( .NOT. allocated(work_pool_horz) ) allocate(work_pool_horz(horz_num_threads,2))
+        if ( .NOT. allocated(work_pool_horz) ) then
+          allocate(work_pool_horz(horz_num_threads,2), stat=iret)
+          if (iret /= 0) then
+            call endrun(subname//': allocate work_pool_horz(horz_num_threads,2)'//&
+                       ' failed with stat: '//to_str(iret))
+          end if
+        end if
         if(nelemd<horz_num_threads) &
           print *,'WARNING: insufficient horizontal parallelism to support ',horz_num_threads,' horizontal threads'
-         
+
         do ith=0,horz_num_threads-1
           call create_work_pool( 1, nelemd, horz_num_threads, ith, beg_index, end_index )
           work_pool_horz(ith+1,1) = beg_index
@@ -225,7 +250,14 @@ contains
 
         if(nlev<vert_num_threads) &
           print *,'WARNING: insufficient vertical parallelism to support ',vert_num_threads,' vertical threads'
-        if ( .NOT. allocated(work_pool_vert) ) allocate(work_pool_vert(vert_num_threads,2))
+        if ( .NOT. allocated(work_pool_vert) ) then
+          allocate(work_pool_vert(vert_num_threads,2), stat=iret)
+          if (iret /= 0) then
+            call endrun(subname//': allocate work_pool_vert(vert_num_threads,2)'//&
+                       ' failed with stat: '//to_str(iret))
+          end if
+
+        end if
         do ith=0,vert_num_threads-1
           call create_work_pool( 1, nlev, vert_num_threads, ith, beg_index, end_index )
           work_pool_vert(ith+1,1) = beg_index
@@ -234,7 +266,14 @@ contains
 
         if(qsize<tracer_num_threads) &
           print *,'WARNING: insufficient tracer parallelism to support ',tracer_num_threads,' tracer threads'
-        if ( .NOT. allocated(work_pool_trac) ) allocate(work_pool_trac(tracer_num_threads,2))
+        if ( .NOT. allocated(work_pool_trac) ) then
+          allocate(work_pool_trac(tracer_num_threads,2), stat=iret)
+          if (iret /= 0) then
+            call endrun(subname//': allocate work_pool_trac(tracer_num_threads,2)'//&
+                       ' failed with stat: '//to_str(iret))
+          end if
+
+        end if
         do ith=0,tracer_num_threads-1
           call create_work_pool( 1, qsize, tracer_num_threads, ith, beg_index, end_index )
           work_pool_trac(ith+1,1) = beg_index
@@ -243,7 +282,13 @@ contains
 
         if(ntrac>0 .and. ntrac<tracer_num_threads) &
           print *,'WARNING: insufficient CSLAM tracer parallelism to support ',tracer_num_threads,' tracer threads'
-        if ( .NOT. allocated(work_pool_ctrac) ) allocate(work_pool_ctrac(tracer_num_threads,2))
+        if ( .NOT. allocated(work_pool_ctrac) ) then
+          allocate(work_pool_ctrac(tracer_num_threads,2), stat=iret)
+          if (iret /= 0) then
+            call endrun(subname//': allocate work_pool_ctrac(tracer_num_threads,2)'//&
+                       ' failed with stat: '//to_str(iret))
+          end if
+        end if
         do ith=0,tracer_num_threads-1
           call create_work_pool( 1, ntrac, tracer_num_threads, ith, beg_index, end_index )
           work_pool_ctrac(ith+1,1) = beg_index

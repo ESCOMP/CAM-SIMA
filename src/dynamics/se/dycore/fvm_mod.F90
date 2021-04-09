@@ -9,7 +9,7 @@
 ! 7.Februar 2012: cslam_run and cslam_runair                                  !
 !-----------------------------------------------------------------------------!
 
-module fvm_mod    
+module fvm_mod
   use shr_kind_mod,           only: r8=>shr_kind_r8
   use edge_mod,               only: initghostbuffer, freeghostbuffer, ghostpack, ghostunpack
   use edgetype_mod,           only: edgebuffer_t
@@ -19,17 +19,17 @@ module fvm_mod
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
   use hybrid_mod,             only: hybrid_t
-  
+
   implicit none
   private
   save
-  
+
   type (EdgeBuffer_t) :: edgeveloc
   type (EdgeBuffer_t), public  :: ghostBufQnhc_s
   type (EdgeBuffer_t), public  :: ghostBufQnhc_vh
   type (EdgeBuffer_t), public  :: ghostBufQnhc_h
   type (EdgeBuffer_t), public  :: ghostBufQ1_h
-  type (EdgeBuffer_t), public  :: ghostBufQ1_vh 
+  type (EdgeBuffer_t), public  :: ghostBufQ1_vh
 !  type (EdgeBuffer_t), private  :: ghostBufFlux_h
   type (EdgeBuffer_t), public  :: ghostBufFlux_vh
   type (EdgeBuffer_t), public  :: ghostBufQnhcJet_h
@@ -172,12 +172,12 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
 
    sz = size(array,dim=1)
 
-   if (sz == 9) then 
+   if (sz == 9) then
      do i=i2,i1,-1
         write(6,9) array(-2,i),array(-1,i), array(0,i), &
                    array( 1,i), array(2,i), array(3,i), &
                    array( 4,i), array(5,i), array(6,i)
-     enddo 
+     enddo
    endif
 
  9      format('|',9(f10.1,'|'))
@@ -192,6 +192,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
 
     use fvm_reconstruction_mod, only: extend_panel_interpolate
     use cam_abortutils,         only: endrun
+    use string_utils,           only: to_str
     use dimensions_mod,         only: fv_nphys,nhr,nhr_phys,nhc,nhc_phys,ns,ns_phys,nhe_phys,nc
     use perf_mod, only : t_startf, t_stopf ! _EXTERNAL
 
@@ -205,9 +206,12 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
 !    real (kind=r8)               :: ftmp(1-nhcc:nphys+nhcc,1-nhcc:nphys+nhcc,numlev,num_flds,nets:nete)
     real (kind=r8), allocatable  :: fld_tmp(:,:)
 
-    integer                 :: ie,k,itr,nht_phys,nh_phys
+    integer               :: ie,k,itr,nht_phys,nh_phys
+    integer               :: iret
     type (edgeBuffer_t)   :: cellghostbuf
-    
+
+    character(len=*), parameter :: subname = 'fill_halo_and_extend_panel (SE)'
+
     if (lfill_halo) then
       !
       !*********************************************
@@ -241,7 +245,13 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
              call endrun("fill_halo_and_extend_panel: ndepth>nhr_phys")
         nht_phys = nhe_phys+nhr_phys
         nh_phys  = nhr_phys
-        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys))
+
+        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret)
+        if (iret /= 0) then
+          call endrun(subname//': allocate fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)'//&
+                    ' failed with stat: '//to_str(iret))
+        end if
+
         do ie=nets,nete
           do itr=1,num_flds
             do k=1,numlev
@@ -261,7 +271,12 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         nhe_phys= 0
         nht_phys= nhe_phys+nhr
         nh_phys = nhr
-        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys))
+        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret)
+        if (iret /= 0) then
+          call endrun(subname//': allocate fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)'//&
+                      ' failed with stat: '//to_str(iret))
+        end if
+
         do ie=nets,nete
           do itr=1,num_flds
             do k=1,numlev
@@ -467,13 +482,13 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     call compute_ghost_corner_orientation(hybrid,elem,nets,nete)
     ! run some tests:
     !    call test_ghost(hybrid,elem,nets,nete)
-    
+
     do ie=nets,nete
       call fvm_set_cubeboundary(elem(ie),fvm(ie))
       call fvm_mesh(elem(ie),fvm(ie))
       fvm(ie)%inv_area_sphere    = 1.0_r8/fvm(ie)%area_sphere
       !
-      ! compute CSLAM areas consistent with SE area (at 1 degree they can be up to 
+      ! compute CSLAM areas consistent with SE area (at 1 degree they can be up to
       ! 1E-6 different than the correct spherical areas used in CSLAM)
       !
       call subcell_integration(one, np, nc, elem(ie)%metdet,fvm(ie)%inv_se_area_sphere)
@@ -483,7 +498,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       fvm(ie)%fm(:,:,:,:) = 0.0_r8
       fvm(ie)%ft(:,:,:  ) = 0.0_r8
     enddo
-    ! Need to allocate ghostBufQnhc after compute_ghost_corner_orientation because it 
+    ! Need to allocate ghostBufQnhc after compute_ghost_corner_orientation because it
     ! changes the values for reverse
 
     call initghostbuffer(hybrid%par,ghostBufQnhc_s,elem,nlev*(ntrac+1),nhc,nc,nthreads=1)
@@ -502,7 +517,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     else
        call initghostbuffer(hybrid%par,ghostBufPG_s,elem,nlev*(3+thermodynamic_active_species_num),nhc_phys,fv_nphys,nthreads=1)
     end if
-    
+
     if (fvm_supercycling.ne.fvm_supercycling_jet) then
       !
       ! buffers for running different fvm time-steps in the jet region
@@ -513,7 +528,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     end if
   end subroutine fvm_init2
 
-  
+
   subroutine fvm_init3(elem,fvm,hybrid,nets,nete,irecons)
     use control_mod     ,       only: neast, nwest, seast, swest
     use fvm_analytic_mod,       only: compute_reconstruct_matrix

@@ -181,6 +181,8 @@ subroutine diag_dynvar_ic(elem, fvm)
    !use physconst,              only: get_sum_species, get_ps,thermodynamic_active_species_idx
    !use physconst,              only: thermodynamic_active_species_idx_dycore,get_dp_ref
    use hycoef,                 only: hyai, hybi, ps0
+   use cam_abortutils,         only: endrun
+   use string_utils,           only: to_str
 
    !SE dycore:
    use time_mod,               only: TimeLevel_Qdp   !  dynamics typestep
@@ -200,6 +202,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    ! Local variables
    integer              :: ie, i, j, k, m, m_cnst, nq
    integer              :: tl_f, tl_qdp
+   integer              :: iret
    character(len=fieldname_len) :: tfname
 
    type(hybrid_t)        :: hybrid
@@ -210,12 +213,19 @@ subroutine diag_dynvar_ic(elem, fvm)
    logical,  allocatable :: llimiter(:)
    real(r8)              :: qtmp(np,np,nlev), dp_ref(np,np,nlev), ps_ref(np,np)
    real(r8), allocatable :: factor_array(:,:,:)
+
+   character(len=*), parameter :: subname = 'diag_dynvar_ic'
    !----------------------------------------------------------------------------
 
    tl_f = timelevel%n0
    call TimeLevel_Qdp(TimeLevel, qsplit, tl_Qdp)
 
-   allocate(ftmp(npsq,nlev,2))
+   allocate(ftmp(npsq,nlev,2), stat=iret)
+   if (iret /= 0) then
+      call endrun(subname//': allocate ftmp(npsq,nlev,2) failed with stat: '//&
+                  to_str(iret))
+   end if
+
 
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #if 0
@@ -303,6 +313,11 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    if (hist_fld_active('PS_gll')) then
      allocate(fld_2d(np,np))
+     if (iret /= 0) then
+        call endrun(subname//': allocate fld_2d(np, np) failed with stat: '//&
+                    to_str(iret))
+     end if
+
      do ie = 1, nelemd
        call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
             thermodynamic_active_species_idx_dycore,elem(ie)%state%dp3d(:,:,:,tl_f),fld_2d,hyai(1)*ps0)
@@ -326,6 +341,11 @@ subroutine diag_dynvar_ic(elem, fvm)
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #if 0
      allocate(fld_2d(np,np))
+     if (iret /= 0) then
+        call endrun(subname//': allocate fld_2d(np, np) failed with stat: '//&
+                    to_str(iret))
+     end if
+
      do ie = 1, nelemd
        call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
             thermodynamic_active_species_idx_dycore,elem(ie)%state%dp3d(:,:,:,tl_f),fld_2d,hyai(1)*ps0)
@@ -337,7 +357,13 @@ subroutine diag_dynvar_ic(elem, fvm)
        call outfld('PS&IC', ftmp(:,1,1), npsq, ie)
      end do
      deallocate(fld_2d)
-      if (fv_nphys < 1) allocate(factor_array(np,np,nlev))
+      if (fv_nphys < 1) then
+         allocate(factor_array(np,np,nlev), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate factor_array(np,np,nlev) failed with stat: '//&
+                        to_str(iret))
+         end if
+      end if
 #endif
 
       do ie = 1, nelemd
@@ -374,10 +400,28 @@ subroutine diag_dynvar_ic(elem, fvm)
          hybrid = config_thread_region(par,'serial')
          call get_loop_ranges(hybrid, ibeg=nets, iend=nete)
 
-         allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete))
-         allocate(fld_gll(np,np,nlev,ntrac,nets:nete))
-         allocate(llimiter(ntrac))
-         allocate(factor_array(nc,nc,nlev))
+         allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete)'//&
+                        ' failed with stat: '//to_str(iret))
+         end if
+
+         allocate(fld_gll(np,np,nlev,ntrac,nets:nete), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate fld_gll(np,np,nlev,ntrac,nets:nete)'//&
+                        ' failed with stat: '//to_str(iret))
+         end if
+
+         allocate(llimiter(ntrac), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate llimiter(ntrac) failed with stat: '//to_str(iret))
+         end if
+
+         allocate(factor_array(nc,nc,nlev), stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate factor_array(nc,nc,nlev) failed with stat: '//to_str(iret))
+         end if
+
          llimiter = .true.
          do ie = nets, nete
            call get_sum_species(1,nc,1,nc,1,nlev,ntrac,fvm(ie)%c(1:nc,1:nc,:,:),thermodynamic_active_species_idx,factor_array)

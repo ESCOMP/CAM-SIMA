@@ -3,6 +3,7 @@ module reduction_mod
   use mpi,            only: mpi_sum, mpi_min, mpi_max, mpi_real8, mpi_integer
   use mpi,            only: mpi_success
   use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
 
   implicit none
   private
@@ -184,8 +185,13 @@ contains
     integer, intent(in)           :: len
     type (ReductionBuffer_int_1d_t),intent(out) :: red
 
+    ! Local variables:
+    integer :: iret
+
+    character(len=*), parameter :: subname = 'InitReductionBuffer_int_1d (SE)'
+
     if (omp_get_num_threads()>1) then
-       call endrun("Error: attempt to allocate reduction buffer in threaded region")
+       call endrun(subname//": Error: attempt to allocate reduction buffer in threaded region")
     endif
 
     ! if buffer is already allocated and large enough, do nothing
@@ -193,7 +199,13 @@ contains
        !buffer is too small, or has not yet been allocated
        if (red%len>0) deallocate(red%buf)
        red%len  = len
-       allocate(red%buf(len))
+
+       allocate(red%buf(len), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate red%buf(len) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        red%buf  = 0
        red%ctr  = 0
     endif
@@ -205,14 +217,25 @@ contains
     integer, intent(in)           :: len
     type (ReductionBuffer_r_1d_t),intent(out) :: red
 
+    ! Local variables:
+    integer :: iret
+
+    character(len=*), parameter :: subname = 'InitReductionBuffer_r_1d (SE)'
+
     if (omp_get_num_threads()>1) then
-       call endrun("Error: attempt to allocate reduction buffer in threaded region")
+       call endrun(subname//": Error: attempt to allocate reduction buffer in threaded region")
     endif
 
     if (len > red%len) then
        if (red%len>0) deallocate(red%buf)
        red%len  = len
-       allocate(red%buf(len))
+
+       allocate(red%buf(len), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate red%buf(len) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        red%buf  = 0.0_R8
        red%ctr  = 0
     endif
@@ -224,14 +247,25 @@ contains
     integer, intent(in)           :: nthread
     type (ReductionBuffer_ordered_1d_t),intent(out) :: red
 
+    ! Local variables:
+    integer :: iret
+
+    character(len=*), parameter :: subname = 'InitReductionBuffer_ordered_1d (SE)'
+
     if (omp_get_num_threads()>1) then
-       call endrun("Error: attempt to allocate reduction buffer in threaded region")
+       call endrun(subname//": Error: attempt to allocate reduction buffer in threaded region")
     endif
 
     if (len > red%len) then
        if (red%len>0) deallocate(red%buf)
        red%len  = len
-       allocate(red%buf(len,nthread+1))
+
+       allocate(red%buf(len,nthread+1), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate red%buf(len,nthread+1) failed with stat: '//&
+                      to_str(iret))
+       end if
+
        red%buf  = 0.0_R8
        red%ctr  = 0
     endif

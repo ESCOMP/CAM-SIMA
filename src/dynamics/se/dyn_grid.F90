@@ -574,22 +574,23 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
    real(r8), intent(out),         optional :: lon_d_out(:)  ! column degree longitudes
 
    ! local variables
+   integer                     :: ierr
    real(r8),           pointer :: area_d(:)
    real(r8),           pointer :: temp(:)
    character(len=shr_kind_cl)  :: errormsg
-   character(len=*), parameter :: sub = 'get_horiz_grid_int'
+   character(len=*), parameter :: subname = 'get_horiz_grid_int'
    !----------------------------------------------------------------------------
 
    ! check that nxy is set to correct size for global arrays
    if (fv_nphys > 0) then
       if (nxy < fv_nphys*fv_nphys*nelem_d) then
-         write(errormsg, *) sub//': arrays too small; Passed',     &
+         write(errormsg, *) subname//': arrays too small; Passed',     &
             nxy, ', needs to be at least', fv_nphys*fv_nphys*nelem_d
          call endrun(errormsg)
       end if
    else
       if (nxy < ngcols_d) then
-         write(errormsg,*) sub//': arrays not large enough; ',     &
+         write(errormsg,*) subname//': arrays not large enough; ',     &
             'Passed', nxy, ', needs to be at least', ngcols_d
          call endrun(errormsg)
       end if
@@ -597,14 +598,14 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
 
    if ( present(area_d_out) ) then
       if (size(area_d_out) /= nxy) then
-         call endrun(sub//': bad area_d_out array size')
+         call endrun(subname//': bad area_d_out array size')
       end if
       area_d => area_d_out
       call create_global_area(area_d)
 
    else if ( present(wght_d_out) ) then
       if (size(wght_d_out) /= nxy) then
-         call endrun(sub//': bad wght_d_out array size')
+         call endrun(subname//': bad wght_d_out array size')
       end if
       area_d => wght_d_out
       call create_global_area(area_d)
@@ -619,7 +620,7 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
 
    if (present(clon_d_out)) then
       if (size(clon_d_out) /= nxy) then
-         call endrun(sub//': bad clon_d_out array size in dyn_grid')
+         call endrun(subname//': bad clon_d_out array size in dyn_grid')
       end if
    end if
 
@@ -632,14 +633,22 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
       if (present(clon_d_out)) then
          call create_global_coords(clat_d_out, clon_d_out, lat_d_out, lon_d_out)
       else
-         allocate(temp(nxy))
+         allocate(temp(nxy), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate temp(nxy) failed with stat: '//to_str(ierr))
+         end if
+
          call create_global_coords(clat_d_out, temp, lat_d_out, lon_d_out)
          deallocate(temp)
       end if
 
    else if (present(clon_d_out)) then
 
-      allocate(temp(nxy))
+      allocate(temp(nxy), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate temp(nxy) failed with stat: '//to_str(ierr))
+      end if
+
       call create_global_coords(temp, clon_d_out, lat_d_out, lon_d_out)
       deallocate(temp)
 
@@ -688,8 +697,10 @@ subroutine dyn_grid_get_elem_coords(ie, rlon, rlat, cdex)
    real(r8),optional, intent(out) :: rlat(:) ! latitudes of the columns in the element
    integer, optional, intent(out) :: cdex(:) ! global column index
 
-   integer :: sb,eb, ii, i,j, icol, igcol
+   integer :: sb,eb, ii, i,j, icol, igcol, ierr
    real(r8), allocatable :: clat(:), clon(:)
+
+   character(len=*), parameter :: subname = 'dyn_grid_get_elem_coords'
    !----------------------------------------------------------------------------
 
    if (fv_nphys > 0) then
@@ -699,7 +710,16 @@ subroutine dyn_grid_get_elem_coords(ie, rlon, rlat, cdex)
    sb = elem(ie)%idxp%UniquePtOffset
    eb = sb + elem(ie)%idxp%NumUniquePts-1
 
-   allocate( clat(sb:eb), clon(sb:eb) )
+   allocate(clat(sb:eb), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate clat(sb:eb) failed with stat: '//to_str(ierr))
+   end if
+
+   allocate(clon(sb:eb), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate clon(sb:eb) failed with stat: '//to_str(ierr))
+   end if
+
    call UniqueCoords( elem(ie)%idxP, elem(ie)%spherep, clat(sb:eb), clon(sb:eb) )
 
    if (present(cdex)) cdex(:) = -1
@@ -742,7 +762,7 @@ subroutine get_hdim_name(fh_ini, ini_grid_hdim_name)
    integer  :: ierr, pio_errtype
    integer  :: ncol_did
 
-   character(len=*), parameter :: sub = 'get_hdim_name'
+   character(len=*), parameter :: subname = 'get_hdim_name'
    !----------------------------------------------------------------------------
 
    ! Set PIO to return error flags.
@@ -802,7 +822,7 @@ subroutine define_cam_grids()
    use dimensions_mod,   only: nc
 
    ! Local variables
-   integer                      :: i, ii, j, k, ie, mapind
+   integer                      :: i, ii, j, k, ie, mapind, ierr
    character(len=8)             :: latname, lonname, ncolname, areaname
 
    type(horiz_coord_t), pointer :: lat_coord
@@ -825,6 +845,8 @@ subroutine define_cam_grids()
    real(r8),        allocatable :: physgrid_coord(:)
    real(r8),            pointer :: physgrid_area(:)
    integer(iMap),       pointer :: physgrid_map(:)
+
+   character(len=*), parameter  :: subname = 'define_cam_grids'
    !----------------------------------------------------------------------------
 
    !-----------------------
@@ -841,10 +863,29 @@ subroutine define_cam_grids()
       end do
    end do
 
-   allocate(pelat_deg(np*np*nelemd))
-   allocate(pelon_deg(np*np*nelemd))
-   allocate(pearea(np*np*nelemd))
-   allocate(pemap(np*np*nelemd))
+   allocate(pelat_deg(np*np*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate pelat_deg(np*np*nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(pelon_deg(np*np*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate pelon_deg(np*np*nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(pearea(np*np*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate pearea(np*np*nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
+   allocate(pemap(np*np*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate pemap(np*np*nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
 
    pemap = 0_iMap
    ii = 1
@@ -882,7 +923,12 @@ subroutine define_cam_grids()
          'longitude', 'degrees_east', 1, size(pelon_deg), pelon_deg, map=pemap)
 
    ! Map for GLL grid
-   allocate(grid_map(3,npsq*nelemd))
+   allocate(grid_map(3,npsq*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate grid_map(3,npsq*nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
    grid_map = 0_iMap
    mapind = 1
    do j = 1, nelemd
@@ -944,9 +990,22 @@ subroutine define_cam_grids()
 
       ncols_fvm = nc * nc * nelemd
       ngcols_fvm = nc * nc * nelem_d
-      allocate(fvm_coord(ncols_fvm))
-      allocate(fvm_map(ncols_fvm))
-      allocate(fvm_area(ncols_fvm))
+      allocate(fvm_coord(ncols_fvm), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate fvm_coord(ncols_fvm) failed with stat: '//&
+                     to_str(ierr))
+      end if
+      allocate(fvm_map(ncols_fvm), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate fvm_map(ncols_fvm) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      allocate(fvm_area(ncols_fvm), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate fvm_area(ncols_fvm) failed with stat: '//&
+                     to_str(ierr))
+      end if
 
       do ie = 1, nelemd
          k = 1
@@ -979,7 +1038,12 @@ subroutine define_cam_grids()
            map=fvm_map)
 
       ! Map for FVM grid
-      allocate(grid_map(3, ncols_fvm))
+      allocate(grid_map(3, ncols_fvm), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate grid_map(3, ncols_fvm) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
       grid_map = 0_iMap
       mapind = 1
       do j = 1, nelemd
@@ -1014,9 +1078,24 @@ subroutine define_cam_grids()
 
       ncols_physgrid = fv_nphys * fv_nphys * nelemd
       ngcols_physgrid = fv_nphys * fv_nphys * nelem_d
-      allocate(physgrid_coord(ncols_physgrid))
-      allocate(physgrid_map(ncols_physgrid))
-      allocate(physgrid_area(ncols_physgrid))
+
+      allocate(physgrid_coord(ncols_physgrid), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate physgrid_coord(ncols_physgrid) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      allocate(physgrid_map(ncols_physgrid), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate physgrid_map(ncols_physgrid) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      allocate(physgrid_area(ncols_physgrid), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate physgrid_area(ncols_physgrid) failed with stat: '//&
+                     to_str(ierr))
+      end if
 
       do ie = 1, nelemd
          k = 1
@@ -1049,7 +1128,12 @@ subroutine define_cam_grids()
            map=physgrid_map)
 
       ! Map for physics grid
-      allocate(grid_map(3, ncols_physgrid))
+      allocate(grid_map(3, ncols_physgrid), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate grid_map(3, ncols_physgrid) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
       grid_map = 0_iMap
       mapind = 1
       do j = 1, nelemd
@@ -1167,11 +1251,11 @@ subroutine create_global_area(area_d)
    integer                     :: ie, sb, eb, i, j, k
    integer                     :: ierr
    integer                     :: ibuf
-   character(len=*), parameter :: sub = 'create_global_area'
+   character(len=*), parameter :: subname = 'create_global_area'
    !----------------------------------------------------------------------------
 
    if (masterproc) then
-      write(iulog, *) sub//': INFO: Non-scalable action: gathering global area in SE dycore.'
+      write(iulog, *) subname//': INFO: Non-scalable action: gathering global area in SE dycore.'
    end if
 
    if (fv_nphys > 0) then ! physics uses an FVM grid
@@ -1179,8 +1263,16 @@ subroutine create_global_area(area_d)
       ! first gather all data onto masterproc, in mpi task order (via
       ! mpi_gatherv) then redorder into globalID order (via dp_reorder)
       ncol = fv_nphys*fv_nphys*nelem_d
-      allocate(rbuf(ncol))
-      allocate(dp_area(fv_nphys*fv_nphys,nelem_d))
+      allocate(rbuf(ncol), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate rbuf(ncol) failed with stat: '//to_str(ierr))
+      end if
+
+      allocate(dp_area(fv_nphys*fv_nphys,nelem_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate dp_area(fv_nphys*fv_nphys,nelem_d)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
 
       do ie = 1, nelemd
          k = 1
@@ -1202,7 +1294,7 @@ subroutine create_global_area(area_d)
          end do
          ! Check to make sure we counted correctly
          if (rdispls(npes) + recvcounts(npes) /= ncol) then
-            call endrun(sub//': bad rdispls array size')
+            call endrun(subname//': bad rdispls array size')
          end if
       end if
 
@@ -1222,7 +1314,12 @@ subroutine create_global_area(area_d)
 
    else ! physics is on the GLL grid
 
-      allocate(rbuf(ngcols_d))
+      allocate(rbuf(ngcols_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate rbuf(ngcols_d) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
       do ie = 1, nelemdmax
          if (ie <= nelemd) then
             rdispls(iam+1)    = elem(ie)%idxp%UniquePtOffset - 1
@@ -1278,11 +1375,11 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
    integer                         :: ierr
    integer                         :: ibuf
    integer                         :: ncol
-   character(len=*), parameter :: sub='create_global_coords'
+   character(len=*), parameter     :: subname = 'create_global_coords'
    !----------------------------------------------------------------------------
 
    if (masterproc) then
-      write(iulog, *) sub//': INFO: Non-scalable action: Creating global coords in SE dycore.'
+      write(iulog, *) subname//': INFO: Non-scalable action: Creating global coords in SE dycore.'
    end if
 
    clat(:) = -iam
@@ -1300,9 +1397,24 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
       ! mpi_gatherv) then redorder into globalID order (via dp_reorder)
 
       ncol = fv_nphys*fv_nphys*nelem_d
-      allocate(rbuf(ncol))
-      allocate(dp_lon(fv_nphys*fv_nphys,nelem_d))
-      allocate(dp_lat(fv_nphys*fv_nphys,nelem_d))
+      allocate(rbuf(ncol), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate rbuf(ncol) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
+      allocate(dp_lon(fv_nphys*fv_nphys,nelem_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate dp_lon(fv_nphys*fv_nphys,nelem_d)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
+      allocate(dp_lat(fv_nphys*fv_nphys,nelem_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate dp_lat(fv_nphys*fv_nphys,nelem_d)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
 
       do ie = 1, nelemd
          k = 1
@@ -1326,7 +1438,7 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
          end do
          ! Check to make sure we counted correctly
          if (rdispls(npes) + recvcounts(npes) /= ncol) then
-            call endrun(sub//': bad rdispls array size')
+            call endrun(subname//': bad rdispls array size')
          end if
       end if
 
@@ -1365,7 +1477,11 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
 
    else ! physics uses the GLL grid
 
-      allocate(rbuf(ngcols_d))
+      allocate(rbuf(ngcols_d), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate rbuf(ngcols_d) failed with stat: '//&
+                     to_str(ierr))
+      end if
 
       do ie = 1, nelemdmax
 

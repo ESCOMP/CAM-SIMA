@@ -26,6 +26,8 @@ contains
     use time_manager,           only: get_step_size
 !    use constituents,           only: tottnam,pcnst
     use constituents,           only: pcnst
+    use cam_abortutils,         only: endrun
+    use string_utils,           only: to_str
 
     ! SE dycore:
     use dimensions_mod,         only: nc,np,nlev,ntrac
@@ -38,21 +40,34 @@ contains
     type(fvm_struct), intent(in) :: fvm(:)
     integer,          intent(in) :: nets,nete,qn0,n0
     real(r8) :: dt,idt
-    integer  :: i,j,ic,nx,ie
+    integer  :: i,j,ic,nx,ie,iret
     logical  :: init
     real(r8), allocatable, dimension(:,:) :: ftmp
+
+    character(len=*), parameter :: subname = 'compute_adv_tends_xyz'
 
     if (ntrac>0) then
       nx=nc
     else
       nx=np
     endif
-    allocate( ftmp(nx*nx,nlev) )
+
+    allocate( ftmp(nx*nx,nlev), stat=iret )
+    if (iret /= 0) then
+      call endrun(subname//': allocate ftmp(nx*nx,nlev) failed with stat: '//&
+                  to_str(iret))
+    end if
+
 
     init = .false.
     if ( .not. allocated( adv_tendxyz ) ) then
       init = .true.
       allocate( adv_tendxyz(nx,nx,nlev,pcnst,nets:nete) )
+      if (iret /= 0) then
+        call endrun(subname//': allocate adv_tendxyz(nx,nx,nlev,pcnst,nets:nete) failed with stat: '//&
+                    to_str(iret))
+      end if
+
       adv_tendxyz(:,:,:,:,:) = 0._r8
     endif
 
@@ -88,6 +103,11 @@ contains
       end do
       deallocate(adv_tendxyz)
     endif
+    deallocate(ftmp)
+#else
+    if (.not. init) then
+      deallocate(adv_tendxyz)
+    end if
     deallocate(ftmp)
 #endif
   end subroutine compute_adv_tends_xyz

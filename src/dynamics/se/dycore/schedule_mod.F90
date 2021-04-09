@@ -40,6 +40,8 @@ contains
     use dimensions_mod, only: nelem, max_neigh_edges
     use gridgraph_mod,  only: gridvertex_t, gridedge_t, assignment ( = )
     use cam_abortutils, only: endrun
+    use string_utils,   only: to_str
+    use shr_kind_mod,   only: shr_kind_cs
     use parallel_mod,   only: nComPoints, rrequest, srequest, status, npackpoints
 
     type(parallel_t),    intent(inout) :: par
@@ -63,9 +65,9 @@ contains
     integer           :: iSched
     logical, parameter            :: VerbosePrint=.FALSE.
     logical, parameter            :: Debug=.FALSE.
-    character(len=*),       parameter :: subname = 'genEdgeSched'
+    character(len=*),       parameter :: subname = 'genEdgeSched (SE)'
     integer                           :: errorcode,errorlen
-    character*(80)                    :: errorstring
+    character(len=shr_kind_cs)        :: errorstring
     integer, allocatable :: intracommranks(:)
     integer :: numIntra, numInter, rank
     logical :: OnNode
@@ -77,8 +79,8 @@ contains
     integer :: icIntra, icInter
 
     integer, allocatable :: srcFull(:), destFull(:),  srcweightFull(:), destweightFull(:)
-    integer, allocatable :: srcInter(:),destInter(:), srcweightInter(:),destweightInter(:) 
-    integer, allocatable :: srcIntra(:),destIntra(:), srcweightIntra(:),destweightIntra(:) 
+    integer, allocatable :: srcInter(:),destInter(:), srcweightInter(:),destweightInter(:)
+    integer, allocatable :: srcIntra(:),destIntra(:), srcweightIntra(:),destweightIntra(:)
 
     logical :: reorder
     integer :: sizeGroup, groupFull
@@ -94,7 +96,12 @@ contains
     ! It looks like this is only used in this routine...
     ! so no need to put it in the schedule data-structure
     ! =====================================================
-    allocate(Global2Local(nelem))
+    allocate(Global2Local(nelem), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate Global2Local(nelem) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     if(Debug) write(iulog,*)'genEdgeSched: point #1'
     iSched = PartNumber
 
@@ -120,15 +127,42 @@ contains
     if(Debug) write(iulog,*)'genEdgeSched: point #5'
 
     ! Temporary array to calculate the Buffer Slot
-    allocate(tmpP(2,nedges+1))
-    allocate(tmpS(2,nedges+1))
-    allocate(tmpP_ghost(2,nedges+1))
+    allocate(tmpP(2,nedges+1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate tmpP(2,nedges+1) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
+    allocate(tmpS(2,nedges+1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate tmpS(2,nedges+1) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(tmpP_ghost(2,nedges+1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate tmpP_ghost(2,nedges+1) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     !  Allocate all the cycle structures
-    allocate(LSchedule%SendCycle(nedges))
-    allocate(LSchedule%RecvCycle(nedges))
-    allocate(LSchedule%MoveCycle(1))
+    allocate(LSchedule%SendCycle(nedges), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%SendCycle(nedges) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(LSchedule%RecvCycle(nedges), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%RecvCycle(nedges) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(LSchedule%MoveCycle(1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%MoveCycle(1) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     ! Initialize the schedules...
     LSchedule%MoveCycle(1)%ptrP = 0
@@ -139,9 +173,23 @@ contains
     !==================================================================
     !  Allocate and initalized the index translation arrays
     Global2Local = -1
-    allocate(LSchedule%Local2Global(nelemd0))
-    allocate(LSchedule%pIndx(max_neigh_edges*nelemd0))
-    allocate(LSchedule%gIndx(max_neigh_edges*nelemd0))
+    allocate(LSchedule%Local2Global(nelemd0), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%Local2Global(nelemd0) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(LSchedule%pIndx(max_neigh_edges*nelemd0), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%pIndx(max_neigh_edges*nelemd0) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(LSchedule%gIndx(max_neigh_edges*nelemd0), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%gIndx(max_neigh_edges*nelemd0) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     LSchedule%pIndx(:)%elemId   = -1
     LSchedule%pIndx(:)%edgeId   = -1
@@ -306,9 +354,23 @@ contains
 
     nSend = nedges
     nRecv = nedges
-    allocate(Rrequest(nRecv))
-    allocate(Srequest(nSend))
-    allocate(status(MPI_STATUS_SIZE,nRecv))
+    allocate(Rrequest(nRecv), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate Rrequest(nRecv) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(Srequest(nSend), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate Srequest(nSend) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(status(MPI_STATUS_SIZE,nRecv), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate status(MPI_STATUS_SIZE,nRecv) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     !===============================================================
     !   Number of communication points ... to be used later to
@@ -321,11 +383,16 @@ contains
 #if MPI_VERSION >= 3
    ! Create a communicator that only contains the on-node MPI ranks
    call MPI_Comm_split_type(par%comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, par%intracomm, ierr)
-   
+
    call MPI_Comm_size(par%intracomm, par%intracommsize, ierr)
    call MPI_Comm_rank(par%intracomm, par%intracommrank, ierr)
 
-   allocate(intracommranks(par%intracommsize))
+   allocate(intracommranks(par%intracommsize), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate intracommranks(par%intracommsize) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
    call MPI_Allgather(par%rank,1,MPIinteger_t,intracommranks,1,MPIinteger_t,par%intracomm,ierr)
 
    numIntra=0
@@ -333,7 +400,7 @@ contains
       rank = LSchedule%SendCycle(icycle)%dest - 1
       onNode = isIntraComm(intracommranks,rank)
       LSchedule%SendCycle(icycle)%onNode = onNode
-      if(onNode) then 
+      if(onNode) then
          numIntra=numIntra+1
       endif
    enddo
@@ -342,9 +409,9 @@ contains
       onNode = isIntraComm(intracommranks,rank)
       LSchedule%RecvCycle(icycle)%onNode = onNode
    enddo
-   numInter = nsend-numIntra 
+   numInter = nsend-numIntra
 
-   
+
    deallocate(intracommranks)
 #else
    numIntra = 0
@@ -360,12 +427,68 @@ contains
     LSchedule%nInter = numInter
     LSchedule%nIntra = numIntra
 
-    allocate(srcFull(nRecv), srcWeightFull(nRecv),destFull(nSend),destWeightFull(nSend))
-    if(numInter>0) then 
-      allocate(srcInter(numInter),srcWeightInter(numInter),destInter(numInter), destWeightInter(numInter))
+    allocate(srcFull(nRecv), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate srcFull(nRecv) failed with stat: '//to_str(ierr))
+    end if
+
+    allocate(srcWeightFull(nRecv), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate srcWeightFull(nRecv) failed with stat: '//to_str(ierr))
+    end if
+
+    allocate(destFull(nSend), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate destFull(nSend) failed with stat: '//to_str(ierr))
+    end if
+
+    allocate(destWeightFull(nSend), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate destWeightFull(nSend) failed with stat: '//to_str(ierr))
+    end if
+
+    if(numInter>0) then
+       allocate(srcInter(numInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate srcInter(numInter) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(srcWeightInter(numInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate srcWeightInter(numInter) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(destInter(numInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate destInter(numInter) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(destWeightInter(numInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate destWeightInter(numInter) failed with stat: '//to_str(ierr))
+       end if
     endif
-    if(numIntra>0) then 
-      allocate(srcIntra(numIntra),srcWeightIntra(numIntra),destIntra(numIntra), destWeightIntra(numIntra))
+
+    if(numIntra>0) then
+       allocate(srcIntra(numIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate srcIntra(numIntra) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(srcWeightIntra(numIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate srcWeightIntra(numIntra) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(destIntra(numIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate destIntra(numIntra) failed with stat: '//to_str(ierr))
+       end if
+
+       allocate(destWeightIntra(numIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate destWeightIntra(numIntra) failed with stat: '//to_str(ierr))
+       end if
     endif
 
     icIntra=0
@@ -375,13 +498,13 @@ contains
        wgt  = LSchedule%SendCycle(icycle)%lengthP
        destFull(icycle) = dest
        destWeightFull(icycle) = wgt
-       if(LSchedule%SendCycle(icycle)%onNode) then 
+       if(LSchedule%SendCycle(icycle)%onNode) then
           icIntra=icIntra+1
-          destIntra(icIntra) = dest          
+          destIntra(icIntra) = dest
           destWeightIntra(icIntra) = wgt
        else
           icInter=icInter+1
-          destInter(icInter) = dest          
+          destInter(icInter) = dest
           destWeightInter(icInter) = wgt
        endif
     enddo
@@ -390,7 +513,7 @@ contains
     icInter=0
     do icycle=1,nRecv
        src = LSchedule%RecvCycle(icycle)%source - 1
-       wgt = LSchedule%RecvCycle(icycle)%lengthP 
+       wgt = LSchedule%RecvCycle(icycle)%lengthP
        srcFull(icycle) = src
        srcWeightFUll(icycle) = wgt
        if(LSchedule%RecvCycle(icycle)%onNode) then
@@ -404,7 +527,7 @@ contains
        endif
     enddo
 
-    ! construct the FULL communication graph 
+    ! construct the FULL communication graph
     reorder=.FALSE.
     call MPI_Dist_graph_create_adjacent(par%comm, nRecv,srcFull,srcWeightFull, &
          nSend,destFull,destWeightFull,MPI_INFO_NULL,reorder,par%commGraphFull,ierr)
@@ -413,7 +536,14 @@ contains
        call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
        print *,subname,': Error after call to MPI_dist_graph_create_adjacent(FULL) ',errorstring
     endif
-    allocate(LSchedule%destFull(nSend),LSchedule%srcFull(nRecv))
+    allocate(LSchedule%destFull(nSend), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%destFull(nSend) failed with stat: '//to_str(ierr))
+    end if
+    allocate(LSchedule%srcFull(nRecv), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate LSchedule%srcFull(nRecv) failed with stat: '//to_str(ierr))
+    end if
     LSchedule%destFull(:) = destFull(:)
     LSchedule%srcFull(:)  = srcFull(:)
     ! construct the FULL communication -group- (for one-sided operations):

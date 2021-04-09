@@ -3,6 +3,7 @@ module prim_advance_mod
   use edgetype_mod,   only: EdgeBuffer_t
   use perf_mod,       only: t_startf, t_stopf, t_adj_detailf !, t_barrierf _EXTERNAL
   use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
   use parallel_mod,   only: parallel_t, HME_BNDRY_P2P!,HME_BNDRY_A2A
   use thread_mod ,    only: horz_num_threads, vert_num_threads, omp_set_nested
 
@@ -26,12 +27,20 @@ contains
     type (parallel_t)                       :: par
     type (element_t), target, intent(inout) :: elem(:)
     integer                                 :: i
+    integer                                 :: iret
+
+    character(len=*), parameter :: subname = 'prim_advance_init (SE)'
 
     call initEdgeBuffer(par,edge3   ,elem,4*nlev   ,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
     call initEdgeBuffer(par,edgeSponge,elem,4*ksponge_end,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
     call initEdgeBuffer(par,edgeOmega ,elem,nlev         ,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
 
-    if(.not. allocated(ur_weights)) allocate(ur_weights(qsplit))
+    if(.not. allocated(ur_weights)) then
+      allocate(ur_weights(qsplit), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate ur_weights(qsplit) failed with stat: '//to_str(iret))
+      end if
+    end if
     ur_weights(:)=0.0_r8
 
     if(mod(qsplit,2).NE.0)then
@@ -287,14 +296,22 @@ contains
 
     ! local
     integer :: i,j,k,ie,q
+    integer :: iret
     real (kind=r8) :: v1,dt_local, dt_local_tracer,tmp
     real (kind=r8) :: dt_local_tracer_fvm
     real (kind=r8) :: ftmp(np,np,nlev,qsize,nets:nete) !diagnostics
     real (kind=r8) :: pdel(np,np,nlev)
     real (kind=r8), allocatable :: ftmp_fvm(:,:,:,:,:) !diagnostics
 
+    character(len=*), parameter :: subname = 'applyCAMforcing (SE)'
 
-    if (ntrac>0) allocate(ftmp_fvm(nc,nc,nlev,ntrac,nets:nete))
+    if (ntrac>0) then
+      allocate(ftmp_fvm(nc,nc,nlev,ntrac,nets:nete), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate ftmp_fvm(nc,nc,nlev,ntrac,nets:nete)'//&
+                    ' failed with stat: '//to_str(iret))
+      end if
+    end if
 
     if (ftype==0) then
       !

@@ -1,6 +1,7 @@
 module derivative_mod
   use shr_kind_mod,       only: r8=>shr_kind_r8
   use cam_abortutils,     only: endrun
+  use string_utils,       only: to_str
   use dimensions_mod, only : np, nc, npdg, nelemd, nlev
   use quadrature_mod, only : quadrature_t, gauss, gausslobatto,legendre, jacobi
   ! needed for spherical differential operators:
@@ -901,12 +902,16 @@ end do
     real(kind=r8),save,pointer :: delta(:)  ! length of i'th intersection
     real(kind=r8),save,pointer :: delta_a(:)  ! length of arrival cells
     integer in_i,in_j,ia,ja,id,jd,count,i,j
+    integer :: iret
     logical :: found
 
     real(kind=r8) :: tol = 1.0e-13_r8
     real(kind=r8) :: weight,x1,x2,dx
     real(kind=r8) :: gll_edges(np+1),phys_edges(nphys+1)
     type(quadrature_t) :: gll_pts
+
+    character(len=*), parameter :: subname = 'remap_phys2gll (SE)'
+
     if (nphys_init/=nphys) then
        ! setup (most be done on masterthread only) since all data is static
        ! MT: move barrier inside if loop - we dont want a barrier every regular call
@@ -915,10 +920,30 @@ end do
        nphys_init=nphys
        ! find number of intersections
        nintersect = np+nphys-1  ! max number of possible intersections
-       allocate(acell(nintersect))
-       allocate(dcell(nintersect))
-       allocate(delta(nintersect))
-       allocate(delta_a(np))
+       allocate(acell(nintersect), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate acell(nintersect) failed with stat: '//&
+                      to_str(iret))
+       end if
+
+       allocate(dcell(nintersect), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate dcell(nintersect) failed with stat: '//&
+                      to_str(iret))
+       end if
+
+       allocate(delta(nintersect), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate delta(nintersect) failed with stat: '//&
+                      to_str(iret))
+       end if
+
+       allocate(delta_a(np), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate delta_a(np) failed with stat: '//&
+                      to_str(iret))
+       end if
+
 
        ! compute phys grid cell edges on [-1,1]
        do i=1,nphys+1
@@ -2238,12 +2263,25 @@ end do
     real (kind=r8) :: legrange_div(np)
     real (kind=r8) :: a,b,x,y, x_j, x_i
     real (kind=r8) :: r(1)
+    integer        :: iret
     integer i,j,n,m
 
+    character(len=*), parameter :: subname = 'allocate_subcell_integration_matrix_cslam (SE)'
+
     if (ALLOCATED(integration_matrix)) deallocate(integration_matrix)
-    allocate(integration_matrix(intervals,np))
+    allocate(integration_matrix(intervals,np), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate integration_matrix(intervals,np)'//&
+                   ' failed with stat: '//to_str(iret))
+    end if
+
     if (ALLOCATED(boundary_interp_matrix)) deallocate(boundary_interp_matrix)
-    allocate(boundary_interp_matrix(intervals,2,np))
+    allocate(boundary_interp_matrix(intervals,2,np), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate boundary_interp_matrix(intervals,2,np)'//&
+                   ' failed with stat: '//to_str(iret))
+    end if
+
 
     gll = gausslobatto(np)
 
@@ -2343,10 +2381,18 @@ end do
     real (kind=r8) :: legrange_div(np)
     real (kind=r8) :: a,b,x,y, x_j, x_i
     real (kind=r8) :: r(1)
+    integer        :: iret
     integer i,j,n,m
 
+    character(len=*), parameter :: subname = 'allocate_subcell_integration_matrix_physgrid (SE)'
+
     if (ALLOCATED(integration_matrix_physgrid)) deallocate(integration_matrix_physgrid)
-    allocate(integration_matrix_physgrid(intervals,np))
+    allocate(integration_matrix_physgrid(intervals,np), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate integration_matrix_physgrid(intervals,np)'//&
+                   ' failed with stat: '//to_str(iret))
+    end if
+
 
     gll = gausslobatto(np)
 

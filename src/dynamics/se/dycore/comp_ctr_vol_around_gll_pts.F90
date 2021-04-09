@@ -4,6 +4,7 @@
 module comp_gll_ctr_vol
   use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
   use cam_abortutils,         only: endrun
+  use string_utils,           only: to_str
   use cam_logfile,            only: iulog
   use shr_sys_mod,            only: shr_sys_flush
   use global_norms_mod,       only: wrap_repro_sum
@@ -98,14 +99,14 @@ CONTAINS
     use element_mod,            only: element_t
     use dof_mod,                only: UniquePoints
     use coordinate_systems_mod, only: cart2spherical
-    
+
     ! Inputs
     type(element_t),   intent(in) :: elem(:)
     character(len=*),  intent(in) :: grid_format
     character(len=*),  intent(in) :: filename_in
-    
+
     real(r8), parameter :: rad2deg = 180._r8/pi
-    
+
     ! Local variables
 !!XXgoldyXX: v debug only
 #ifdef USE_PIO3D
@@ -272,7 +273,12 @@ CONTAINS
     end if
 
     ! Work array to gather info before writing
-    allocate(gwork(np*np, nv_max, nelemd))
+    allocate(gwork(np*np, nv_max, nelemd), stat=ierror)
+    if (ierror /= 0) then
+       call endrun(subname//': allocate gwork(np*np, nv_max, nelemd) failed with stat: '//&
+                   to_str(ierror))
+    end if
+
 
     ! Write grid size
     status = pio_put_var(file, grid_dims_id, (/ gridsize /))
@@ -333,7 +339,11 @@ CONTAINS
     end do
 !!XXgoldyXX: v debug only
 #ifdef USE_PIO3D
-allocate(ldof(np*np*nelemd*nv_max))
+allocate(ldof(np*np*nelemd*nv_max), stat=ierror)
+if (ierror /= 0) then
+   call endrun(subname//': allocate ldof(np*np*nelemd*nv_max) failed with stat: '//to_str(ierror))
+end if
+
 ldof = 0
 do ie = 1, nelemd
   do index = 1, elem(ie)%idxP%NumUniquePts
@@ -351,7 +361,12 @@ do ie = 1, nelemd
     end do
   end do
 end do
-allocate(iodesc)
+allocate(iodesc, stat=ierror)
+if (ierror /= 0) then
+   call endrun(subname//': allocate iodesc failed with stat: '//to_str(ierror))
+end if
+
+
 call cam_pio_newdecomp(iodesc, (/ nv_max, gridsize /), ldof, PIO_double)
 call pio_write_darray(file, grid_corner_lat_id, iodesc, gwork, status)
 #else
@@ -434,13 +449,35 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     integer,          intent(in) :: nelemd
 
     integer                      :: ie
+    integer                      :: iret
+
+    character(len=*), parameter  :: subname='InitControlVolumesData (SE)'
 
     ! Cannot be done in a threaded region
-    allocate(cvlist(nelemd))
+    allocate(cvlist(nelemd), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate vlist(nelemd) failed with stat: '//to_str(iret))
+    end if
+
     do ie = 1, nelemd
-      allocate(cvlist(ie)%vert(nv_max, np,np))
-      allocate(cvlist(ie)%vert_latlon(nv_max,np,np))
-      allocate(cvlist(ie)%face_no(nv_max,np,np))
+      allocate(cvlist(ie)%vert(nv_max, np,np), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate cvlist(ie)%vert(nv_max,np,np) failed with stat: '//&
+                     to_str(iret))
+      end if
+
+      allocate(cvlist(ie)%vert_latlon(nv_max,np,np), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate cvlist(ie)%vert_latlon(nv_max,np,np) failed with stat: '//&
+                     to_str(iret))
+      end if
+
+      allocate(cvlist(ie)%face_no(nv_max,np,np), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate cvlist(ie)%face_no(nv_max,np,np) failed with stat: '//&
+                     to_str(iret))
+      end if
+
     end do
 
     call initedgebuffer(par,edge1,elem,3,bndry_type=HME_BNDRY_P2P, nthreads=1)

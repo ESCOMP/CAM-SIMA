@@ -36,6 +36,7 @@ use shr_infnan_mod,         only: shr_infnan_isnan
 use cam_logfile,            only: iulog
 use cam_abortutils,         only: endrun
 use cam_map_utils,          only: iMap
+use string_utils,           only: to_str
 use shr_sys_mod,            only: shr_sys_flush
 
 use parallel_mod,           only: par
@@ -611,6 +612,7 @@ subroutine dyn_init(dyn_in, dyn_out)
 
    integer :: ixcldice, ixcldliq, ixrain, ixsnow, ixgraupel
    integer :: m_cnst, m
+   integer :: iret
 
    ! variables for initializing energy and axial angular momentum diagnostics
    character (len = 3), dimension(12) :: stage = (/"dED","dAF","dBD","dAD","dAR","dBF","dBH","dCH","dAH",'dBS','dAS','p2d'/)
@@ -658,13 +660,28 @@ subroutine dyn_init(dyn_in, dyn_out)
    !----------------------------------------------------------------------------
 
    ! Now allocate and set condenstate vars
-   allocate(cnst_name_gll(qsize))     ! constituent names for gll tracers
-   allocate(cnst_longname_gll(qsize)) ! long name of constituents for gll tracers
+   allocate(cnst_name_gll(qsize), stat=iret) ! constituent names for gll tracers
+   if (iret /= 0) then
+     call endrun(subname//': allocate cnst_name_gll(qsize) failed with stat: '//to_str(iret))
+   end if
 
-   allocate(kord_tr(qsize))
+   allocate(cnst_longname_gll(qsize), stat=iret) ! long name of constituents for gll tracers
+   if (iret /= 0) then
+     call endrun(subname//': allocate cnst_longname_gll(qsize) failed with stat: '//to_str(iret))
+   end if
+
+   allocate(kord_tr(qsize), stat=iret)
+   if (iret /= 0) then
+     call endrun(subname//': allocate kord_tr(qsize) failed with stat: '//to_str(iret))
+   end if
+
    kord_tr(:) = vert_remap_tracer_alg
    if (ntrac>0) then
-     allocate(kord_tr_cslam(ntrac))
+     allocate(kord_tr_cslam(ntrac), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate kord_tr_cslam(ntrac) failed with stat: '//to_str(iret))
+     end if
+
      kord_tr_cslam(:) = vert_remap_tracer_alg
    end if
 
@@ -990,6 +1007,7 @@ subroutine dyn_run(dyn_state)
    integer        :: nets, nete, ithr
    integer        :: i, ie, j, k, m, nq, m_cnst
    integer        :: n0_qdp, nsplit_local
+   integer        :: iret
    logical        :: ldiag
 
    real(r8) :: ftmp(npsq,nlev,3)
@@ -999,6 +1017,9 @@ subroutine dyn_run(dyn_state)
    real(r8), allocatable, dimension(:,:,:) :: ps_before
    real(r8), allocatable, dimension(:,:,:) :: abs_ps_tend
    real (kind=r8)                          :: omega_cn(2,nelemd) !min and max of vertical Courant number
+
+   character(len=*), parameter :: subname = 'dyn_run'
+
    !----------------------------------------------------------------------------
 
 #ifdef debug_coupling
@@ -1014,8 +1035,15 @@ subroutine dyn_run(dyn_state)
 !   ldiag = hist_fld_active('ABS_dPSdt')
    ldiag = .false.
    if (ldiag) then
-      allocate(ps_before(np,np,nelemd))
-      allocate(abs_ps_tend(np,np,nelemd))
+      allocate(ps_before(np,np,nelemd), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate ps_before(np,np,nelemd) failed with stat: '//to_str(iret))
+      end if
+
+      allocate(abs_ps_tend(np,np,nelemd), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate abs_ps_tend(np,np,nelemd) failed with stat: '//to_str(iret))
+      end if
 
    end if
 
@@ -1248,20 +1276,37 @@ subroutine read_inidat(dyn_in)
       nullify(elem)
    end if
 
-   allocate(qtmp(np,np,nlev,nelemd,pcnst))
+   allocate(qtmp(np,np,nlev,nelemd,pcnst), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate qtmp(np,np,nlev,nelemd,pcnst) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
    qtmp = 0._r8
 
    ! Set mask to indicate which columns are active
    nullify(ldof)
    call cam_grid_get_gcid(cam_grid_id(ini_grid_name), ldof)
-   allocate(pmask(npsq*nelemd))
+   allocate(pmask(npsq*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate pmask(npsq*nelemd) failed with stat: '//to_str(ierr))
+   end if
+
    pmask(:) = (ldof /= 0)
 
    ! lat/lon needed in radians
    latvals_deg => cam_grid_get_latvals(cam_grid_id(ini_grid_name))
    lonvals_deg => cam_grid_get_lonvals(cam_grid_id(ini_grid_name))
-   allocate(latvals(np*np*nelemd))
-   allocate(lonvals(np*np*nelemd))
+   allocate(latvals(np*np*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate latvals(np*np*nelemd) failed with stat: '//to_str(ierr))
+   end if
+
+   allocate(lonvals(np*np*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate lonvals(np*np*nelemd) failed with stat: '//to_str(ierr))
+   end if
+
    latvals(:) = latvals_deg(:)*deg2rad
    lonvals(:) = lonvals_deg(:)*deg2rad
 
@@ -1279,7 +1324,11 @@ subroutine read_inidat(dyn_in)
 
       ! PHIS has already been set by set_phis.  Get local copy for
       ! possible use in setting T and PS in the analytic IC code.
-      allocate(phis_tmp(npsq,nelemd))
+      allocate(phis_tmp(npsq,nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate phis_tmp(npsq,nelemd) failed with stat: '//to_str(ierr))
+      end if
+
       do ie = 1, nelemd
          k = 1
          do j = 1, np
@@ -1291,7 +1340,11 @@ subroutine read_inidat(dyn_in)
       end do
 
       inic_wet = .false.
-      allocate(glob_ind(npsq * nelemd))
+      allocate(glob_ind(npsq * nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate glob_ind(npsq*nelemd) failed with stat: '//to_str(ierr))
+      end if
+
       j = 1
       do ie = 1, nelemd
          do i = 1, npsq
@@ -1302,9 +1355,18 @@ subroutine read_inidat(dyn_in)
       end do
 
       ! First, initialize all the variables, then assign
-      allocate(dbuf4(npsq, nlev, nelemd, (qsize + 4)))
+      allocate(dbuf4(npsq, nlev, nelemd, (qsize + 4)), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate dbuf4(npsq,nlev,nelemd,(qsize+4)) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
       dbuf4 = 0.0_r8
-      allocate(m_ind(qsize))
+      allocate(m_ind(qsize), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate m_ind(qsize) failed with stat: '//to_str(ierr))
+      end if
+
       do m_cnst = 1, qsize
          m_ind(m_cnst) = m_cnst
       end do
@@ -1361,8 +1423,15 @@ subroutine read_inidat(dyn_in)
 
       ! Read ICs from file.  Assume all fields in the initial file are on the GLL grid.
 
-      allocate(dbuf2(npsq,nelemd))
-      allocate(dbuf3(npsq,nlev,nelemd))
+      allocate(dbuf2(npsq,nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate dbuf2(npsq,nelemd) failed with stat: '//to_str(ierr))
+      end if
+
+      allocate(dbuf3(npsq,nlev,nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate dbuf3(npsq,nlev,nelemd) failed with stat: '//to_str(ierr))
+      end if
 
       ! Check that number of columns in IC file matches grid definition.
       call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
@@ -1453,7 +1522,10 @@ subroutine read_inidat(dyn_in)
          end if
 
          call random_seed(size=rndm_seed_sz)
-         allocate(rndm_seed(rndm_seed_sz))
+         allocate(rndm_seed(rndm_seed_sz), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate rndm_seed(rndm_seed_sz) failed with stat: '//to_str(ierr))
+         end if
 
          do ie = 1, nelemd
             ! seed random number generator based on element ID
@@ -1517,7 +1589,10 @@ subroutine read_inidat(dyn_in)
       end if
    end do
 
-   allocate(dbuf3(npsq,nlev,nelemd))
+   allocate(dbuf3(npsq,nlev,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate dbuf3(npsq,nlev,nelemd) failed with stat: '//to_str(ierr))
+   end if
 
    do m_cnst = 1, pcnst
 
@@ -1613,7 +1688,12 @@ subroutine read_inidat(dyn_in)
          write(iulog,*) 'Convert specific/wet mixing ratios to dry'
       end if
 
-      allocate(factor_array(np,np,nlev,nelemd))
+      allocate(factor_array(np,np,nlev,nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate factor_array(np,np,nlev,nelemd) failed with stat: '//&
+                     to_str(ierr))
+      end if
+
       !
       ! compute: factor_array = 1/(1-sum(q))
       !
@@ -1906,11 +1986,21 @@ subroutine set_phis(dyn_in)
       nullify(elem)
    end if
 
-   allocate(phis_tmp(npsq,nelemd))
+   allocate(phis_tmp(npsq,nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate phis_tmp(npsq,nelemd) failed with stat: '//&
+                  to_str(ierr))
+   end if
+
    phis_tmp = 0.0_r8
 
    if (fv_nphys > 0) then
-      allocate(phis_phys_tmp(fv_nphys**2,nelemd))
+      allocate(phis_phys_tmp(fv_nphys**2,nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate phis_phys_tmp(fv_nphys**2,nelemd)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
       phis_phys_tmp = 0.0_r8
       do ie=1,nelemd
         elem(ie)%sub_elem_mass_flux=0.0_r8
@@ -1923,7 +2013,12 @@ subroutine set_phis(dyn_in)
    ! Set mask to indicate which columns are active in GLL grid.
    nullify(ldof)
    call cam_grid_get_gcid(cam_grid_id('GLL'), ldof)
-   allocate(pmask(npsq*nelemd))
+   allocate(pmask(npsq*nelemd), stat=ierr)
+   if (ierr /= 0) then
+      call endrun(subname//': allocate pmask(npsq*nelemd)'//&
+                  ' failed with stat: '//to_str(ierr))
+   end if
+
    pmask(:) = (ldof /= 0)
    deallocate(ldof)
 
@@ -1979,12 +2074,27 @@ subroutine set_phis(dyn_in)
       ! lat/lon needed in radians
       latvals_deg => cam_grid_get_latvals(cam_grid_id('GLL'))
       lonvals_deg => cam_grid_get_lonvals(cam_grid_id('GLL'))
-      allocate(latvals(np*np*nelemd))
-      allocate(lonvals(np*np*nelemd))
+      allocate(latvals(np*np*nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate latvals(np*np*nelemd)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
+      allocate(lonvals(np*np*nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate lonvals(np*np*nelemd)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
       latvals(:) = latvals_deg(:)*deg2rad
       lonvals(:) = lonvals_deg(:)*deg2rad
 
-      allocate(glob_ind(npsq*nelemd))
+      allocate(glob_ind(npsq*nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate glob_ind(npsq*nelemd)'//&
+                     ' failed with stat: '//to_str(ierr))
+      end if
+
       j = 1
       do ie = 1, nelemd
          do i = 1, npsq
@@ -2000,8 +2110,18 @@ subroutine set_phis(dyn_in)
       if (fv_nphys > 0) then
 
          ! initialize PHIS on physgrid
-         allocate(latvals_phys(fv_nphys*fv_nphys*nelemd))
-         allocate(lonvals_phys(fv_nphys*fv_nphys*nelemd))
+         allocate(latvals_phys(fv_nphys*fv_nphys*nelemd), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate latvals_phys(fv_nphys*fv_nphys*nelemd)'//&
+                        ' failed with stat: '//to_str(ierr))
+         end if
+
+         allocate(lonvals_phys(fv_nphys*fv_nphys*nelemd), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate lonvals_phys(fv_nphys*fv_nphys*nelemd)'//&
+                        ' failed with stat: '//to_str(ierr))
+         end if
+
          indx = 1
          do ie = 1, nelemd
             do j = 1, fv_nphys
@@ -2013,9 +2133,18 @@ subroutine set_phis(dyn_in)
             end do
          end do
 
-         allocate(pmask_phys(fv_nphys*fv_nphys*nelemd))
+         allocate(pmask_phys(fv_nphys*fv_nphys*nelemd), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate pmask_phys(fv_nphys*fv_nphys*nelemd)'//&
+                        ' failed with stat: '//to_str(ierr))
+         end if
+
          pmask_phys(:) = .true.
-         allocate(glob_ind(fv_nphys*fv_nphys*nelemd))
+         allocate(glob_ind(fv_nphys*fv_nphys*nelemd), stat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//': allocate glob_ind(fv_nphys*fv_nphys*nelemd)'//&
+                        ' failed with stat: '//to_str(ierr))
+         end if
 
          j = 1
          do ie = 1, nelemd
@@ -2334,9 +2463,12 @@ subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
    logical          , intent(in)    :: pmask(npsq*nelemd)
 
    type(hybrid_t)                   :: hybrid
-   integer                          :: nets, nete, ie,i,j,indx
+   integer                          :: nets, nete, ie,i,j,indx, iret
    real(r8),            allocatable :: fld_phys(:,:,:,:,:),fld_gll(:,:,:,:,:)
    logical                          :: llimiter(1)
+
+   character(len=*), parameter      :: subname = 'map_phis_from_physgrid_to_gll'
+
    !----------------------------------------------------------------------------
 
    !!$OMP PARALLEL NUM_THREADS(horz_num_threads), DEFAULT(SHARED), PRIVATE(hybrid,nets,nete,ie)
@@ -2345,8 +2477,19 @@ subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
 
    call get_loop_ranges(hybrid, ibeg=nets, iend=nete)
 
-   allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,1,1,nets:nete))
-   allocate(fld_gll(np,np,1,1,nets:nete))
+   allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,1,1,nets:nete), stat=iret)
+   if (iret /= 0) then
+      call endrun(subname//': allocate '//&
+                  'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,1,1,nets:nete)'//&
+                  ' failed with stat: '//to_str(iret))
+   end if
+
+   allocate(fld_gll(np,np,1,1,nets:nete), stat=iret)
+   if (iret /= 0) then
+      call endrun(subname//': allocate fld_gll(np,np,1,1,nets:nete)'//&
+                  ' failed with stat: '//to_str(iret))
+   end if
+
    fld_phys = 0.0_r8
    do ie = nets, nete
       fld_phys(1:fv_nphys,1:fv_nphys,1,1,ie) = RESHAPE(phis_phys_tmp(:,ie),(/fv_nphys,fv_nphys/))

@@ -2,6 +2,8 @@
 
 module dp_mapping
   use shr_const_mod,          only: pi => shr_const_pi
+  use cam_abortutils,         only: endrun
+  use string_utils,           only: to_str
 
   !SE dycore:
   use dimensions_mod,         only: np, fv_nphys
@@ -55,8 +57,13 @@ contains
     use dimensions_mod, only: nelemd, nc, irecons_tracer, npsq
     use element_mod,    only: element_t
 
+    ! Dummy variables:
     type(element_t)  , dimension(nelemd), intent(in) :: elem
     type (fvm_struct), dimension(nelemd), intent(in) :: fvm
+
+    ! Local variables:
+    integer :: iret
+    character(len=*), parameter :: subname = 'dp_init'
 
     !Initialize total number of physics points per spectral element:
     nphys_pts = npsq
@@ -67,15 +74,50 @@ contains
       num_weights_phys2fvm = (nc+fv_nphys)**2
       num_weights_fvm2phys = (nc+fv_nphys)**2
 
-       allocate(weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd))
-       allocate(weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd))
-       allocate(weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd))
+       allocate(weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+       allocate(weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
 
-       allocate(weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd))
-       allocate(weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd))
-       allocate(weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd))
-       allocate(jall_fvm2phys(nelemd))
-       allocate(jall_phys2fvm(nelemd))
+       allocate(weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(jall_fvm2phys(nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate jall_fvm2phys(nelemd) failed with stat: '//to_str(iret))
+       end if
+
+       allocate(jall_phys2fvm(nelemd), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate jall_phys2fvm(nelemd) failed with stat: '//to_str(iret))
+       end if
 
        call fvm2phys_init(elem,fvm,nc,fv_nphys,irecons_tracer,&
             weights_all_fvm2phys,weights_eul_index_all_fvm2phys,weights_lgr_index_all_fvm2phys,&
@@ -90,7 +132,6 @@ contains
   end subroutine dp_init
 
   subroutine dp_reorder(before, after)
-    use cam_abortutils, only: endrun
     use cam_logfile,    only: iulog
     use spmd_utils,     only: masterproc
     use shr_sys_mod,    only: shr_sys_flush
@@ -134,11 +175,25 @@ contains
     integer,dimension(nelemd)        :: lgid
     integer,dimension(:),allocatable :: displs,recvcount
 
+    character(len=*), parameter :: subname = 'dp_allocate'
+
     ! begin
 
-    allocate(displs(npes))
-    allocate(dp_gid(nelem))
-    allocate(recvcount(npes))
+    allocate(displs(npes), stat=ierror)
+    if (ierror /= 0) then
+      call endrun(subname//': allocate displs(npes) failed with stat: '//to_str(ierror))
+    end if
+
+    allocate(dp_gid(nelem), stat=ierror)
+    if (ierror /= 0) then
+      call endrun(subname//': allocate dp_gid(nelem) failed with stat: '//to_str(ierror))
+    end if
+
+    allocate(recvcount(npes), stat=ierror)
+    if (ierror /= 0) then
+      call endrun(subname//': allocate recvcount(npes) failed with stat: '//to_str(ierror))
+    end if
+
     call mpi_gather(nelemd, 1, mpi_integer, recvcount, 1, mpi_integer,        &
          masterprocid, mpicom, ierror)
     lgid(:) = elem(:)%globalid
@@ -151,7 +206,11 @@ contains
     call mpi_gatherv(lgid, nelemd, mpi_integer, dp_gid, recvcount, displs,    &
          mpi_integer, masterprocid, mpicom, ierror)
     if (masterproc) then
-      allocate(dp_owner(nelem))
+      allocate(dp_owner(nelem), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate dp_owner(nelem) failed with stat: '//to_str(ierror))
+      end if
+
       dp_owner(:) = -1
       do i = 1,npes
         do j = displs(i)+1,displs(i)+recvcount(i)
@@ -164,7 +223,11 @@ contains
     ! minimize global memory use
     call mpi_barrier(mpicom,ierror)
     if (.not.masterproc) then
-      allocate(dp_owner(nelem))
+      allocate(dp_owner(nelem), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate dp_owner(nelem) failed with stat: '//to_str(ierror))
+      end if
+
     end if
     call mpi_bcast(dp_gid,nelem,mpi_integer,masterprocid,mpicom,ierror)
     call mpi_bcast(dp_owner,nelem,mpi_integer,masterprocid,mpicom,ierror)
@@ -181,7 +244,6 @@ contains
 
   subroutine dp_write(elem, fvm, grid_format, filename_in)
     use mpi,                    only: mpi_integer, mpi_real8
-    use cam_abortutils,         only: endrun
     use netcdf,                 only: nf90_create, nf90_close, nf90_enddef
     use netcdf,                 only: nf90_def_dim, nf90_def_var, nf90_put_var
     use netcdf,                 only: nf90_double, nf90_int, nf90_put_att
@@ -207,7 +269,7 @@ contains
     ! Local variables
     integer           :: i, ie, ierror, j, status, ivtx
     integer           :: grid_corners_id, grid_rank_id, grid_size_id
-    character(len=256) :: errormsg
+    character(len=shr_kind_cl) :: errormsg
     character(len=shr_kind_cl) :: filename
     integer           :: ncid
     integer           :: grid_dims_id, grid_area_id, grid_center_lat_id
@@ -224,6 +286,8 @@ contains
     real(r8), allocatable, dimension(:,:)                  :: gwork
     real(r8)                                               :: x, y
     type (spherical_polar_t)                               :: sphere
+
+    character(len=*), parameter :: subname = 'dp_write'
 
     ! begin
 
@@ -259,11 +323,26 @@ contains
 
     ! Allocate workspace and calculate PE displacement information
     if (IOroot) then
-      allocate(displs(npes))
-      allocate(recvcount(npes))
+      allocate(displs(npes), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate displs(npes) failed with stat: '//to_str(ierror))
+      end if
+
+      allocate(recvcount(npes), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate recvcount(npes) failed with stat: '//to_str(ierror))
+      end if
+
     else
-      allocate(displs(0))
-      allocate(recvcount(0))
+      allocate(displs(0), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate displs(0) failed with stat: '//to_str(ierror))
+      end if
+
+      allocate(recvcount(0), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate recvcount(0) failed with stat: '//to_str(ierror))
+      end if
     end if
     gridsize = nelem * fv_nphys*fv_nphys
     if(masterproc) then
@@ -279,11 +358,22 @@ contains
       do i = 2, npes
         displs(i) = displs(i-1)+recvcount(i-1)
       end do
-      allocate(recvbuf(gridsize))
+      allocate(recvbuf(gridsize), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate recvbuf(gridsize) failed with stat: '//to_str(ierror))
+      end if
+
     else
-      allocate(recvbuf(0))
+      allocate(recvbuf(0), stat=ierror)
+      if (ierror /= 0) then
+        call endrun(subname//': allocate recvbuf(0) failed with stat: '//to_str(ierror))
+      end if
+
     end if
-    allocate(gwork(4, gridsize))
+    allocate(gwork(4, gridsize), stat=ierror)
+    if (ierror /= 0) then
+      call endrun(subname//': allocate gwork(4, gridsize) failed with stat: '//to_str(ierror))
+    end if
 
     if (IOroot) then
       ! Define the horizontal grid dimensions for SCRIP output

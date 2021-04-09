@@ -15,6 +15,7 @@ module interpolate_mod
   use mesh_mod,               only: MeshUseMeshFile
   use control_mod,            only: cubed_sphere_map
   use cam_logfile,            only: iulog
+  use string_utils,           only: to_str
 
   implicit none
   private
@@ -205,17 +206,49 @@ contains
 
     integer k,j
     integer npts
+    integer iret
     real (kind=r8), dimension(:), allocatable :: gamma
     real (kind=r8), dimension(:), allocatable :: leg
 
+    character(len=*), parameter :: subname = 'interpolate_create (SE)'
+
     npts = size(gquad%points)
 
-    allocate(interp%Imat(npts,npts))
-    allocate(interp%rk(npts))
-    allocate(interp%vtemp(npts))
-    allocate(interp%glp(npts))
-    allocate(gamma(npts))
-    allocate(leg(npts))
+    allocate(interp%Imat(npts,npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate interp%Imat(npts,npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(interp%rk(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate interp%rk(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(interp%vtemp(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate interp%vtemp(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(interp%glp(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate interp%glp(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(gamma(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate gamma(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(leg(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate leg(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
 
     gamma = quad_norm(gquad,npts)
 
@@ -1120,12 +1153,33 @@ contains
     integer :: k
     integer, allocatable :: global_elem_gid(:,:),local_elem_gid(:,:), local_elem_num(:,:)
 
+    character(len=*), parameter :: subname = 'setup_latlon_interp (SE)'
+
     ! these arrays often are too large for stack, so lets make sure
     ! they go on the heap:
-    allocate(local_elem_num(nlat,nlon))
-    allocate(local_elem_gid(nlat,nlon))
-    allocate(global_elem_gid(nlat,nlon))
-    allocate(cart_vec(nlat,nlon))
+    allocate(local_elem_num(nlat,nlon), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate local_elem_num(nlat,nlon) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(local_elem_gid(nlat,nlon), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate local_elem_gid(nlat,nlon) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(global_elem_gid(nlat,nlon), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate global_elem_gid(nlat,nlon) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(cart_vec(nlat,nlon), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate cart_vec(nlat,nlon) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     if (par%masterproc) then
        write(iulog,'(a,i4,a,i4,a)') 'Initializing ',nlat,' x ',nlon,' lat-lon interpolation grid: '
@@ -1149,9 +1203,24 @@ contains
        nullify(lon)
     endif
 
-    allocate(lat(nlat))
-    allocate(gweight(nlat))
-    allocate(lon(nlon))
+    allocate(lat(nlat), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate lat(nlat) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(gweight(nlat), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate gweight(nlat) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(lon(nlon), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate lon(nlon) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     call interp_init()
     gweight=0
     do i=1,nlon
@@ -1340,9 +1409,25 @@ contains
        if (associated(interpdata(ii)%ilon))then
           if(size(interpdata(ii)%ilon)>0)deallocate(interpdata(ii)%ilon)
        endif
-       allocate(interpdata(ii)%interp_xy( ngrid ) )
-       allocate(interpdata(ii)%ilat( ngrid ) )
-       allocate(interpdata(ii)%ilon( ngrid ) )
+
+       allocate(interpdata(ii)%interp_xy( ngrid ), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate interpdata(ii)%interp_xy(ngrid) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(interpdata(ii)%ilat( ngrid ), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate interpdata(ii)%ilat(ngrid) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(interpdata(ii)%ilon( ngrid ), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate interpdata(ii)%ilon(ngrid) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
        interpdata(ii)%n_interp=0  ! reset counter
     enddo
     do j=1,nlat

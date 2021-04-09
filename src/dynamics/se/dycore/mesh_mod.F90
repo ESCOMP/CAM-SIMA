@@ -4,6 +4,7 @@ module mesh_mod
   use physconst,      only: PI
   use control_mod,    only: MAX_FILE_LEN
   use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
 
   use netcdf,         only: nf90_strerror, nf90_open, nf90_close
   use netcdf,         only: NF90_NOWRITE, nf90_NoErr
@@ -381,10 +382,17 @@ CONTAINS
     integer             ,  intent(in)    :: element_nodes(p_number_elements, 4)
     integer                              :: cnt, cnt_index, node
     integer                              :: k, ll
+    integer                              :: iret
+
+    character(len=*), parameter :: subname = 'create_index_table (SE)'
 
     !Create an index table so that we can find neighbors on O(n)
     ! so for each node, we want to know which elements it is part of
-    allocate(index_table(p_number_nodes, max_elements_attached_to_node + 1))
+    allocate(index_table(p_number_nodes, max_elements_attached_to_node + 1), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate (index_table(p_number_nodes,max_elements_attached_to_node+1)'//&
+                   ' failed with stat: '//to_str(iret))
+    end if
 
     !the last column in the index table is a count of the number of elements
     index_table = 0
@@ -639,6 +647,9 @@ CONTAINS
     real(kind=r8)               :: x, y, h
     integer                            :: i, j, i2, j2, ne, ne2
     integer                            :: sfc_index, face
+    integer                            :: iret
+
+    character(len=*), parameter :: subname = 'initialize_space_filling_curve (SE)'
 
     if (SIZE(GridVertex) /= p_number_elements) then
        call endrun('initialize_space_filling_curve:Element count check failed &
@@ -664,9 +675,20 @@ CONTAINS
     ne2=2**ceiling( log(real(ne))/log(2._r8) )
     if (ne2<ne) call endrun('initialize_space_filling_curve: Fatel SFC error')
 
-    allocate(Mesh2(ne2,ne2))
-    allocate(Mesh2_map(ne2,ne2))
-    allocate(sfcij(0:ne2*ne2,2))
+    allocate(Mesh2(ne2,ne2), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate Mesh2(ne2,ne2) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(Mesh2_map(ne2,ne2), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate Mesh2_map(ne2,ne2) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(sfcij(0:ne2*ne2,2), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate sfcij(0:ne2*ne2,2) failed with stat: '//to_str(iret))
+    end if
 
     ! create a reverse index array for Mesh2
     ! j = Mesh2(i,j)
@@ -988,6 +1010,9 @@ CONTAINS
 
     integer, allocatable :: node_multiplicity(:)
     integer              :: k
+    integer              :: iret
+
+    character(len=*), parameter :: subname = 'MeshOpen (SE)'
 
     p_mesh_file_name    = mesh_file_name
     call open_mesh_file ()
@@ -1018,12 +1043,22 @@ CONTAINS
        call endrun('The value of the total number of elements does not match all the elements found in face 1')
     end if
 
-    allocate( p_connectivity(4,p_number_elements_per_face) )
+    allocate(p_connectivity(4,p_number_elements_per_face), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate p_connectivity(4,p_number_elements_per_face) failed with stat: '//&
+                   to_str(iret))
+    end if
+
     p_connectivity(:,:)=0
     ! extract the connectivity from the netcdf file
     call get_face_connectivity()
 
-    allocate(node_multiplicity(p_number_nodes))
+    allocate(node_multiplicity(p_number_nodes), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate node_multiplicity(p_number_nodes) failed with stat: '//&
+                   to_str(iret))
+    end if
+
     call get_node_multiplicity(node_multiplicity)
 
     ! tricky:  For each node with multiplicity n, there are n(n-1) neighbor links
@@ -1038,7 +1073,12 @@ CONTAINS
     deallocate(node_multiplicity)
 
     ! allocate the space for the coordinates, this is used in many functions
-    allocate(p_node_coordinates(p_number_nodes, p_number_dimensions))
+    allocate(p_node_coordinates(p_number_nodes, p_number_dimensions), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate p_node_coordinates(p_number_nodes, p_number_dimensions)'//&
+                   ' failed with stat: '//to_str(iret))
+    end if
+
     call get_node_coordinates()
 
     if (p_number_elements_per_face /= p_number_elements) then

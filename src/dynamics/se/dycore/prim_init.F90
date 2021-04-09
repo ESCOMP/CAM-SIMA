@@ -1,6 +1,6 @@
 module prim_init
 
-  use shr_kind_mod,   only: r8=>shr_kind_r8
+  use shr_kind_mod,   only: r8=>shr_kind_r8, shr_kind_cs
   use dimensions_mod, only: nc
   use reduction_mod,  only: reductionbuffer_ordered_1d_t
   use quadrature_mod, only: quadrature_t, gausslobatto
@@ -46,6 +46,7 @@ contains
     use schedule_mod,           only: genEdgeSched
     use prim_advection_mod,     only: prim_advec_init1
     use cam_abortutils,         only: endrun
+    use string_utils,           only: to_str
     use parallel_mod,           only: parallel_t, syncmp, global_shared_buf, nrepro_vars
     use spacecurve_mod,         only: genspacepart
     use dof_mod,                only: global_dof, CreateUniqueIndex, SetElemOffset
@@ -75,12 +76,12 @@ contains
 
     real(r8),          allocatable :: aratio(:,:)
     real(r8)                       :: area(1), xtmp
-    character(len=80)              :: rot_type ! cube edge rotation type
+    character(len=shr_kind_cs)     :: rot_type ! cube edge rotation type
 
     integer                        :: i
 
     character(len=128)             :: errmsg
-    character(len=*),  parameter   :: subname = 'PRIM_INIT1: '
+    character(len=*),  parameter   :: subname = 'PRIM_INIT1 (SE): '
 
     ! ====================================
     ! Set cube edge rotation type for model
@@ -108,8 +109,15 @@ contains
         nelem_edge = CubeEdgeCount()
       end if
 
-      allocate(GridVertex(nelem))
-      allocate(GridEdge(nelem_edge))
+      allocate(GridVertex(nelem), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate GridVertex(nelem) failed with stat: '//to_str(ierr))
+      end if
+
+      allocate(GridEdge(nelem_edge), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate GridEdge(nelem_edge) failed with stat: '//to_str(ierr))
+      end if
 
       do j = 1, nelem
         call allocate_gridvertex_nbrs(GridVertex(j))
@@ -145,8 +153,15 @@ contains
     ! ===========================================================
     ! given partition, count number of local element descriptors
     ! ===========================================================
-    allocate(MetaVertex(1))
-    allocate(Schedule(1))
+    allocate(MetaVertex(1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate MetaVertex(1) failed with stat: '//to_str(ierr))
+    end if
+
+    allocate(Schedule(1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate Schedule(1) failed with stat: '//to_str(ierr))
+    end if
 
     nelem_edge = SIZE(GridEdge)
 
@@ -166,19 +181,31 @@ contains
     call mpi_allreduce(nelemd, nelemdmax, 1, MPI_INTEGER, MPI_MAX, par%comm, ierr)
 
     if (nelemd > 0) then
-      allocate(elem(nelemd))
+      allocate(elem(nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate elem(nelemd) failed with stat: '//to_str(ierr))
+      end if
+
       call allocate_element_dims(elem)
       call allocate_element_desc(elem)
     end if
 
     if (fv_nphys > 0) then
-      allocate(fvm(nelemd))
+      allocate(fvm(nelemd), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate fvm(nelemd) failed with stat: '//to_str(ierr))
+      end if
+
       call allocate_fvm_dims(fvm)
       call allocate_physgrid_vars(fvm,par)
     else
       ! Even if fvm not needed, still desirable to allocate it as empty
       ! so it can be passed as a (size zero) array rather than pointer.
-      allocate(fvm(0))
+      allocate(fvm(0), stat=ierr)
+      if (ierr /= 0) then
+         call endrun(subname//': allocate fvm(0) failed with stat: '//to_str(ierr))
+      end if
+
     end if
 
     ! ====================================================
@@ -187,7 +214,12 @@ contains
 
     call genEdgeSched(par, elem, par%rank+1, Schedule(1), MetaVertex(1))
 
-    allocate(global_shared_buf(nelemd, nrepro_vars))
+    allocate(global_shared_buf(nelemd, nrepro_vars), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate global_shared_buf(nelemd, nrepro_vars)'//&
+                   'failed with stat: '//to_str(ierr))
+    end if
+
     global_shared_buf = 0.0_r8
 
     call syncmp(par)
@@ -253,7 +285,11 @@ contains
       call shr_sys_flush(iulog)
     end if
     call mass_matrix(par, elem)
-    allocate(aratio(nelemd,1))
+    allocate(aratio(nelemd,1), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate aratio(nelemd,1) failed with stat: '//to_str(ierr))
+    end if
+
 
     if (topology == "cube") then
       area = 0
@@ -308,7 +344,7 @@ contains
       elem(ie)%derived%FM=0.0_r8
       elem(ie)%derived%FQ=0.0_r8
       elem(ie)%derived%FT=0.0_r8
-      elem(ie)%derived%FDP=0.0_r8      
+      elem(ie)%derived%FDP=0.0_r8
       elem(ie)%derived%pecnd=0.0_r8
 
       elem(ie)%derived%Omega=0

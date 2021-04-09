@@ -1,6 +1,8 @@
 #undef _GAUSS_TABLE
 module quadrature_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
+  use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
 
   implicit none
   private
@@ -44,8 +46,22 @@ contains
     integer, intent(in) :: npts
     type (quadrature_t) :: gs
 
-    allocate(gs%points(npts))
-    allocate(gs%weights(npts))
+    ! Local variables:
+    integer :: iret
+
+    character(len=*), parameter :: subname = 'gauss (SE)'
+
+    allocate(gs%points(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate gs%points(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(gs%weights(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate gs%weights(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
 
     gs%points=gauss_pts(npts)
     gs%weights=gauss_wts(npts,gs%points)
@@ -276,8 +292,22 @@ contains
     integer, intent(in) :: npts
     type (quadrature_t) :: gll
 
-    allocate(gll%points(npts))
-    allocate(gll%weights(npts))
+    ! Local variables:
+    integer :: iret
+
+    character(len=*), parameter :: subname = 'gausslobatto (SE)'
+
+    allocate(gll%points(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate gll%points(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
+
+    allocate(gll%weights(npts), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate gll%weights(npts) failed with stat: '//&
+                   to_str(iret))
+    end if
 
     gll%points=gausslobatto_pts(npts)
     gll%weights=gausslobatto_wts(npts,gll%points)
@@ -287,7 +317,7 @@ contains
   ! ==============================================================
   ! gausslobatto_pts:
   !
-  ! Compute the Gauss-Lobatto Collocation points 
+  ! Compute the Gauss-Lobatto Collocation points
   ! for Jacobi Polynomials
   !
   ! ==============================================================

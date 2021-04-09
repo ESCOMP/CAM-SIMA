@@ -1,5 +1,7 @@
 module spacecurve_mod
-  use cam_logfile, only: iulog
+  use cam_logfile,    only: iulog
+  use cam_abortutils, only: endrun
+  use string_utils,   only: to_str
 
   implicit none
   private
@@ -902,14 +904,21 @@ contains
     type (factor_t)     :: res
     integer             :: tmp,tmp2,tmp3,tmp5
     integer             :: i,n
+    integer             :: iret
     logical             :: found
+
+    character(len=*), parameter :: subname = 'Factor (SE)'
 
     ! --------------------------------------
     ! Allocate for max # of factors
     ! --------------------------------------
     tmp = num
     tmp2 = log2(num)
-    allocate(res%factors(tmp2))
+    allocate(res%factors(tmp2), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate res%factors(tmp2)'//&
+                   ' failed with stat: '//to_str(iret))
+    end if
 
     n=0
     !-----------------------
@@ -971,7 +980,6 @@ contains
   !---------------------------------------------------------
 
   function IsFactorable(n)
-    use cam_abortutils, only: endrun
 
     integer,intent(in)  :: n
     type (factor_t)     :: fact
@@ -1016,6 +1024,9 @@ contains
        integer :: level,dim
 
        integer :: gridsize
+       integer :: iret
+
+       character(len=*), parameter :: subname = 'GenSpaceCurve (SE)'
 
        !  Setup the size of the grid to traverse
 
@@ -1025,10 +1036,18 @@ contains
        level    = fact%numfact
 
        if(verbose) write(iulog,*)'GenSpacecurve: level is ',level
-       allocate(ordered(gridsize,gridsize))
+       allocate(ordered(gridsize,gridsize), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate ordered(gridsize,gridsize)'//&
+                      ' failed with stat: '//to_str(iret))
+       end if
 
        ! Setup the working arrays for the traversal
-       allocate(pos(0:dim-1))
+       allocate(pos(0:dim-1), stat=iret)
+       if (iret /= 0) then
+          call endrun(subname//': allocate pos(0:dim-1)'//&
+                      ' failed with stat: '//to_str(iret))
+       end if
 
        !  The array ordered will contain the visitation order
        ordered(:,:) = 0

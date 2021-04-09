@@ -74,9 +74,15 @@ contains
 
   subroutine allocate_gridvertex_nbrs(vertex, dim)
 
+    use cam_abortutils, only: endrun
+    use string_utils,   only: to_str
+
     type (GridVertex_t), intent(inout)   :: vertex
     integer, optional, intent(in)        :: dim
     integer                              :: num
+    integer                              :: iret
+
+    character(len=*), parameter :: subname = 'allocate_gridvertex_nbrs (SE)'
 
     if (present(dim)) then
        num = dim
@@ -84,11 +90,26 @@ contains
        num = max_neigh_edges
     end if
 
-    allocate(vertex%nbrs(num))
-    allocate(vertex%nbrs_face(num))
-    allocate(vertex%nbrs_wgt(num))
-    allocate(vertex%nbrs_wgt_ghost(num))
+    allocate(vertex%nbrs(num), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate vertex%nbrs(num) failed with stat: '//to_str(iret))
+    end if
 
+    allocate(vertex%nbrs_face(num), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate vertex%nbrs_face(num) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(vertex%nbrs_wgt(num), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate vertex%nbrs_wgt(num) failed with stat: '//to_str(iret))
+    end if
+
+    allocate(vertex%nbrs_wgt_ghost(num), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate vertex%nbrs_wgt_ghost(num) failed with stat: '//&
+                   to_str(iret))
+    end if
 
   end subroutine allocate_gridvertex_nbrs
 !======================================================================
@@ -288,6 +309,9 @@ contains
 
   subroutine CreateSubGridGraph(Vertex, SVertex, local2global)
 
+    use cam_abortutils, only: endrun
+    use string_utils,   only: to_str
+
     implicit none
 
     type (GridVertex_t),intent(in)         :: Vertex(:)
@@ -296,13 +320,19 @@ contains
 
     integer                                :: nelem,nelem_s,n,ncount,cnt,pos, orig_start
     integer                                :: inbr,i,ig,j,k, new_pos
+    integer                                :: iret
 
     integer,allocatable                    :: global2local(:)
+
+    character(len=*), parameter :: subname = 'CreateSubGridGraph (SE)'
 
     nelem   = SIZE(Vertex)
     nelem_s = SiZE(SVertex)
 
-    allocate(global2local(nelem))
+    allocate(global2local(nelem), stat=iret)
+    if (iret /= 0) then
+       call endrun(subname//': allocate global2local(nelem) failed with stat: '//to_str(iret))
+    end if
 
     global2local(:) = 0
     do i=1,nelem_s

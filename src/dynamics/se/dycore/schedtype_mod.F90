@@ -39,7 +39,7 @@ module schedtype_mod
      integer,pointer             :: Local2Global(:)
      integer,pointer             :: destFull(:)
      integer,pointer             :: srcFull(:)
-     type (Cycle_t), pointer     :: Cycle(:)          
+     type (Cycle_t), pointer     :: Cycle(:)
      type (Cycle_t), pointer :: SendCycle(:)
      type (Cycle_t), pointer :: RecvCycle(:)
      type (Cycle_t), pointer :: MoveCycle(:)

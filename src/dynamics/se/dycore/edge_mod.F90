@@ -7,6 +7,7 @@ module edge_mod
   use coordinate_systems_mod, only: cartesian3D_t
   use schedtype_mod,          only: cycle_t, schedule_t, pgindex_t, schedule, HME_Ordinal,HME_Cardinal
   use cam_abortutils,         only: endrun
+  use string_utils,           only: to_str
   use cam_logfile,            only: iulog
   use parallel_mod,           only: parallel_t, &
       MAX_ACTIVE_MSG, HME_status_size, BNDRY_TAG_BASE, HME_BNDRY_A2A, HME_BNDRY_P2P, &
@@ -187,7 +188,7 @@ contains
     type (EdgeBuffer_t), target,   intent(out) :: edge
     type (element_t),              intent(in)  :: elem(:)
     integer,                       intent(in)  :: nlyr
-    integer,             optional, intent(in)  :: bndry_type 
+    integer,             optional, intent(in)  :: bndry_type
     integer,             optional, intent(in)  :: nthreads
     integer,             optional, intent(in)  :: CardinalLength
     integer,             optional, intent(in)  :: OrdinalLength
@@ -240,9 +241,9 @@ contains
     integer                           :: errorcode,errorlen
     integer :: CardinalLen, OrdinalLen
     character(len=80)                 :: errorstring
-    character(len=80), parameter      :: subname='initedgeBuffer'
+    character(len=*), parameter       :: subname='initedgeBuffer (SE)'
 
-    if(present(bndry_type)) then 
+    if(present(bndry_type)) then
       if ( MPI_VERSION >= 3 ) then
         edge%bndry_type = bndry_type
       else
@@ -253,12 +254,12 @@ contains
     endif
 
     ! Set the length of the cardinal and ordinal message lengths
-    if(present(CardinalLength)) then 
+    if(present(CardinalLength)) then
        CardinalLen = CardinalLength
     else
        CardinalLen = np
     endif
-    if(present(OrdinalLength)) then 
+    if(present(OrdinalLength)) then
        OrdinalLen = OrdinalLength
     else
        OrdinalLen = 1
@@ -283,15 +284,40 @@ contains
     edge%id  = initedgebuffer_callid
     edge%tag = BNDRY_TAG_BASE + MODULO(edge%id, MAX_ACTIVE_MSG)
 
-    allocate(edge%putmap(max_neigh_edges,nelemd))
-    allocate(edge%getmap(max_neigh_edges,nelemd))
-    allocate(edge%reverse(max_neigh_edges,nelemd))
+    allocate(edge%putmap(max_neigh_edges,nelemd), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%putmap(max_neigh_edges,nelemd) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(edge%getmap(max_neigh_edges,nelemd), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%getmap(max_neigh_edges,nelemd) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+
+    allocate(edge%reverse(max_neigh_edges,nelemd), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%reverse(max_neigh_edges,nelemd) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     edge%putmap(:,:)=-1
     edge%getmap(:,:)=-1
 
-    allocate(putmap2(max_neigh_edges,nelemd))
-    allocate(getmap2(max_neigh_edges,nelemd))
+    allocate(putmap2(max_neigh_edges,nelemd), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate putmap2(max_neigh_edges,nelemd) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(getmap2(max_neigh_edges,nelemd), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate getmap2(max_neigh_edges,nelemd) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     putmap2(:,:)=-1
     getmap2(:,:)=-1
     do ie=1,nelemd
@@ -311,17 +337,77 @@ contains
     edge%nIntra=nIntra
 
     if(nInter>0) then
-       allocate(edge%rcountsInter(nInter),edge%rdisplsInter(nInter))
-       allocate(edge%scountsInter(nInter),edge%sdisplsInter(nInter))
+       allocate(edge%rcountsInter(nInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%rcountsInter(nInter) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%rdisplsInter(nInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%rdisplsInter(nInter) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%scountsInter(nInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%scountsInter(nInter) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%sdisplsInter(nInter), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%sdisplsInter(nInter) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
     endif
     if(nIntra>0) then
-       allocate(edge%rcountsIntra(nIntra),edge%rdisplsIntra(nIntra))
-       allocate(edge%scountsIntra(nIntra),edge%sdisplsIntra(nIntra))
+       allocate(edge%rcountsIntra(nIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%rcountsIntra(nIntra) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%rdisplsIntra(nIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%rdisplsIntra(nIntra) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%scountsIntra(nIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%scountsIntra(nIntra) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%sdisplsIntra(nIntra), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%sdisplsIntra(nIntra) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
     endif
 
     if (nSendCycles>0) then
-       allocate(edge%scountsFull(nSendCycles),edge%sdisplsFull(nSendCycles))
-       allocate(edge%Srequest(nSendCycles))
+       allocate(edge%scountsFull(nSendCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%scountsFull(nSendCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%sdisplsFull(nSendCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%sdisplsFull(nSendCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%Srequest(nSendCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%Srequest(nSendCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
        edge%scountsFull(:) = 0
     endif
     !
@@ -334,7 +420,7 @@ contains
     ie        = pSchedule%pIndx(j)%elemid
     len       = CalcSegmentLength(pSchedule%pIndx(j),CardinalLen,OrdinalLen,nlyr)
     edge%putmap(il,ie) = 0
-    if(nSendCycles>0) then 
+    if(nSendCycles>0) then
         edge%sdisplsFull(icycle) = edge%putmap(il,ie)
         edge%scountsFull(icycle) = len
     endif
@@ -378,12 +464,42 @@ contains
     enddo
 
     if (nRecvCycles>0) then
-       allocate(edge%rcountsFull(nRecvCycles),edge%rdisplsFull(nRecvCycles))
-       allocate(edge%getDisplsFull(nRecvCycles),edge%putDisplsFull(nRecvCycles))
+       allocate(edge%rcountsFull(nRecvCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%rcountsFull(nRecvCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%rdisplsFull(nRecvCycles), stat=ierr)
+              if (ierr /= 0) then
+          call endrun(subname//': allocate edge%rdisplsFull(nRecvCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%getDisplsFull(nRecvCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%getDisplsFull(nRecvCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%putDisplsFull(nRecvCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%putDisplsFull(nRecvCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
        edge%rcountsFull(:) = 0
        ! allocate the MPI Send/Recv request handles
-       allocate(edge%Rrequest(nRecvCycles))
-       allocate(edge%status(HME_status_size,nRecvCycles))
+       allocate(edge%Rrequest(nRecvCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%Rrequest(nRecvCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
+
+       allocate(edge%status(HME_status_size,nRecvCycles), stat=ierr)
+       if (ierr /= 0) then
+          call endrun(subname//': allocate edge%status(HME_status_size,nRecvCycles) failed with stat: '//&
+                      to_str(ierr))
+       end if
     endif
 
     !
@@ -479,8 +595,17 @@ contains
     end if
     call gbarrier_init(edge%gbarrier, nlen)
 
-    allocate(edge%moveLength(nlen))
-    allocate(edge%movePtr(nlen))
+    allocate(edge%moveLength(nlen), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%moveLength(nlen) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(edge%movePtr(nlen), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%movePtr(nlen) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
     if (nlen > 1) then
        ! the master thread performs no data movement because it is busy with the
@@ -514,8 +639,16 @@ contains
     edge%nlyr=nlyr
     edge%nbuf=nbuf
 
-    allocate(edge%receive(nbuf))
-    allocate(edge%buf(nbuf))
+    allocate(edge%receive(nbuf), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%receive(nbuf) failed with stat: '//&
+                   to_str(ierr))
+    end if
+    allocate(edge%buf(nbuf), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%buf(nbuf) failed with stat: '//&
+                   to_str(ierr))
+    end if
 
 21  format('RANK: ',i2, A,8(i6))
 
@@ -564,6 +697,9 @@ contains
 
     ! Local variables
     integer :: nbuf
+    integer :: ierr
+
+    character(len=*), parameter :: subname = ''
 
     ! sanity check for threading
     if (omp_get_num_threads()>1) then
@@ -573,10 +709,19 @@ contains
     nbuf=4*(np+max_corner_elem)*nelemd
     edge%nlyr=nlyr
     edge%nbuf=nbuf
-    allocate(edge%buf(nlyr,nbuf))
+    allocate(edge%buf(nlyr,nbuf), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%buf(nlyr,nbuf) failed with stat: '//&
+                   to_str(ierr))
+    end if
     edge%buf(:,:)=0
 
-    allocate(edge%receive(nlyr,nbuf))
+    allocate(edge%receive(nlyr,nbuf), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate edge%receive(nlyr,nbuf) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     edge%receive(:,:)=0
 
   end subroutine initEdgeBuffer_i8
@@ -2144,6 +2289,9 @@ end subroutine ghostunpack
     ! Local variables
 
     integer :: nbuf,nhc,i
+    integer :: ierr
+
+    character(len=*), parameter :: subname = 'initGhostBuffer3d'
 
     ! sanity check for threading
     if (omp_get_num_threads()>1) then
@@ -2163,8 +2311,18 @@ end subroutine ghostunpack
     ghost%np      = np
     ghost%nbuf    = nbuf
     ghost%elem_size = np*(nhc+1)
-    allocate(ghost%buf    (np,(nhc+1),nlyr,nbuf))
-    allocate(ghost%receive(np,(nhc+1),nlyr,nbuf))
+    allocate(ghost%buf    (np,(nhc+1),nlyr,nbuf), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate ghost%buf(np,(nhc+1),nlyr,nbuf) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
+    allocate(ghost%receive(np,(nhc+1),nlyr,nbuf), stat=ierr)
+    if (ierr /= 0) then
+       call endrun(subname//': allocate ghost%receive(np,(nhc+1),nlyr,nbuf) failed with stat: '//&
+                   to_str(ierr))
+    end if
+
     ghost%buf=0
     ghost%receive=0
 

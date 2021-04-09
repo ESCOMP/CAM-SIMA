@@ -1,8 +1,5 @@
 module hybvcoord_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
-  use cam_logfile,    only: iulog
-  use dimensions_mod, only: plev => nlev, plevp => nlevp
-  use physconst,      only: pstd
 
   implicit none
   private
