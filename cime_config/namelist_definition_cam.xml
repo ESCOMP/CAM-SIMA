@@ -115,7 +115,7 @@
     <group>nudging_nl</group>
     <desc>
        Full pathname of analyses data to use for nudging.
-        (e.g. '/$DIN_LOC_ROOT/atm/cam/nudging/')
+        (e.g. '$DIN_LOC_ROOT/atm/cam/nudging/')
        Default: none
     </desc>
   </entry>
@@ -2158,8 +2158,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value hgrid="0.9x1.25">atm/cam/topo/fv_0.9x1.25_nc3000_Nsw006_Nrs002_Co008_Fi001_ZR_c160505.nc</value>
-      <value hgrid="1.9x2.5">atm/cam/topo/fv_1.9x2.5_nc3000_Nsw084_Nrs016_Co120_Fi001_ZR_061116.nc</value>
+      <value hgrid="0.9x1.25">$DIN_LOC_ROOT/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw006_Nrs002_Co008_Fi001_ZR_c160505.nc</value>
+      <value hgrid="1.9x2.5">$DIN_LOC_ROOT/atm/cam/topo/fv_1.9x2.5_nc3000_Nsw084_Nrs016_Co120_Fi001_ZR_061116.nc</value>
     </values>
   </entry>
   <entry id="fcrit2">
@@ -2246,7 +2246,7 @@
       from deep convection.
     </desc>
     <values>
-      <value>atm/waccm/gw/newmfspectra40_dc25.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/gw/newmfspectra40_dc25.nc</value>
     </values>
   </entry>
   <entry id="gw_drag_file_sh">
@@ -2258,7 +2258,7 @@
       from shallow convection.
     </desc>
     <values>
-      <value>atm/waccm/gw/mfspectra_shallow_c140530.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/gw/mfspectra_shallow_c140530.nc</value>
     </values>
   </entry>
   <entry id="taubgnd">
@@ -2490,7 +2490,7 @@
       values.
     </desc>
     <values>
-      <value>atm/cam/ggas/ghg_hist_1765-2005_c091218.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/ggas/ghg_hist_1765-2005_c091218.nc</value>
     </values>
   </entry>
   <entry id="ch4vmr">
@@ -2679,7 +2679,7 @@
       enabled via the argument "-prog_species GHG" to configure.
     </desc>
     <values>
-      <value>atm/cam/ggas/noaamisc.r8.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/ggas/noaamisc.r8.nc</value>
     </values>
   </entry>
   <entry id="ghg_chem">
@@ -2750,8 +2750,8 @@
       Default: none
     </desc>
     <values>
-      <value hgrid="0.9x1.25" sim_year="1850-2000">atm/cam/ggas/emissions-cmip6_CO2_anthro_surface_175001-201512_fv_0.9x1.25_c20181011.nc</value>
-      <value hgrid="1.9x2.5" sim_year="1850-2000">atm/cam/ggas/emissions-cmip6_CO2_anthro_surface_175001-201512_fv_1.9x2.5_c20181011.nc</value>
+      <value hgrid="0.9x1.25" sim_year="1850-2000">$DIN_LOC_ROOT/atm/cam/ggas/emissions-cmip6_CO2_anthro_surface_175001-201512_fv_0.9x1.25_c20181011.nc</value>
+      <value hgrid="1.9x2.5" sim_year="1850-2000">$DIN_LOC_ROOT/atm/cam/ggas/emissions-cmip6_CO2_anthro_surface_175001-201512_fv_1.9x2.5_c20181011.nc</value>
     </values>
   </entry>
 
@@ -6878,11 +6878,11 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value carma="meteor_smoke">atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
-      <value carma="mixed_sulfate">atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
-      <value carma="pmc">atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
-      <value carma="pmc_sulfate">atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
-      <value carma="tholin">atm/waccm/emis/early_earth_haze.nc</value>
+      <value carma="meteor_smoke">$DIN_LOC_ROOT/atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
+      <value carma="mixed_sulfate">$DIN_LOC_ROOT/atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
+      <value carma="pmc">$DIN_LOC_ROOT/atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
+      <value carma="pmc_sulfate">$DIN_LOC_ROOT/atm/waccm/emis/meteor_smoke_kalashnikova.nc</value>
+      <value carma="tholin">$DIN_LOC_ROOT/atm/waccm/emis/early_earth_haze.nc</value>
     </values>
   </entry>
   <entry id="carma_escale_file">
@@ -6895,10 +6895,10 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value carma="meteor_smoke">atm/waccm/emis/smoke_grf_frentzke.nc</value>
-      <value carma="mixed_sulfate">atm/waccm/emis/smoke_grf_frentzke.nc</value>
-      <value carma="pmc">atm/waccm/emis/smoke_grf_frentzke.nc</value>
-      <value carma="pmc_sulfate">atm/waccm/emis/smoke_grf_frentzke.nc</value>
+      <value carma="meteor_smoke">$DIN_LOC_ROOT/atm/waccm/emis/smoke_grf_frentzke.nc</value>
+      <value carma="mixed_sulfate">$DIN_LOC_ROOT/atm/waccm/emis/smoke_grf_frentzke.nc</value>
+      <value carma="pmc">$DIN_LOC_ROOT/atm/waccm/emis/smoke_grf_frentzke.nc</value>
+      <value carma="pmc_sulfate">$DIN_LOC_ROOT/atm/waccm/emis/smoke_grf_frentzke.nc</value>
     </values>
   </entry>
   <entry id="carma_launch_doy">
@@ -6968,8 +6968,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value carma="pmc">atm/cam/physprops/mice_warren2008.nc</value>
-      <value carma="pmc_sulfate">atm/cam/physprops/mice_warren2008.nc</value>
+      <value carma="pmc">$DIN_LOC_ROOT/atm/cam/physprops/mice_warren2008.nc</value>
+      <value carma="pmc_sulfate">$DIN_LOC_ROOT/atm/cam/physprops/mice_warren2008.nc</value>
     </values>
   </entry>
 
@@ -6985,8 +6985,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value carma="cirrus_dust">atm/cam/dst/soil_erosion_factor_1x1_c120907.nc</value>
-      <value carma="dust">atm/cam/dst/soil_erosion_factor_1x1_c120907.nc</value>
+      <value carma="cirrus_dust">$DIN_LOC_ROOT/atm/cam/dst/soil_erosion_factor_1x1_c120907.nc</value>
+      <value carma="dust">$DIN_LOC_ROOT/atm/cam/dst/soil_erosion_factor_1x1_c120907.nc</value>
     </values>
   </entry>
 
@@ -7183,7 +7183,7 @@
       high latitude electric potential model.
     </desc>
     <values>
-      <value>atm/waccm/efld/wei05sc_c080415.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/efld/wei05sc_c080415.nc</value>
     </values>
   </entry>
   <entry id="amienh_file">
@@ -7353,7 +7353,7 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value rad="camrt">atm/cam/rad/abs_ems_factors_fastvx.c030508.nc</value>
+      <value rad="camrt">$DIN_LOC_ROOT/atm/cam/rad/abs_ems_factors_fastvx.c030508.nc</value>
     </values>
   </entry>
   <entry id="iradae">
@@ -7615,7 +7615,7 @@
       Default: none
     </desc>
     <values>
-      <value>atm/cam/physprops/water_refindex_rrtmg_c080910.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/physprops/water_refindex_rrtmg_c080910.nc</value>
     </values>
   </entry>
   <entry id="drydep_srf_file">
@@ -7628,14 +7628,14 @@
       Default: none
     </desc>
     <values>
-      <value hgrid="ne5np4">atm/cam/chem/trop_mam/atmsrf_ne5np4_110920.nc</value>
-      <value hgrid="ne16np4">atm/cam/chem/trop_mam/atmsrf_ne16np4_110920.nc</value>
-      <value hgrid="ne30np4">atm/cam/chem/trop_mam/atmsrf_ne30np4_110920.nc</value>
-      <value hgrid="ne30np4" npg="3">atm/cam/chem/trop_mam/atmsrf_ne30pg3_180522.nc</value>
-      <value hgrid="ne60np4">atm/cam/chem/trop_mam/atmsrf_ne60np4_110920.nc</value>
-      <value hgrid="ne120np4">atm/cam/chem/trop_mam/atmsrf_ne120np4_110920.nc</value>
-      <value hgrid="ne240np4">atm/cam/chem/trop_mam/atmsrf_ne240np4_110920.nc</value>
-      <value hgrid="ne0np4CONUS.ne30x8">atm/cam/chem/trop_mam/atmsrf_ne0np4conus30x8_161116.nc</value>
+      <value hgrid="ne5np4">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne5np4_110920.nc</value>
+      <value hgrid="ne16np4">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne16np4_110920.nc</value>
+      <value hgrid="ne30np4">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne30np4_110920.nc</value>
+      <value hgrid="ne30np4" npg="3">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne30pg3_180522.nc</value>
+      <value hgrid="ne60np4">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne60np4_110920.nc</value>
+      <value hgrid="ne120np4">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne120np4_110920.nc</value>
+      <value hgrid="ne240np4">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne240np4_110920.nc</value>
+      <value hgrid="ne0np4CONUS.ne30x8">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/atmsrf_ne0np4conus30x8_161116.nc</value>
     </values>
   </entry>
   <entry id="oldcldoptics">
@@ -7686,7 +7686,7 @@
       Default: none
     </desc>
     <values>
-      <value rad="rrtmg">atm/cam/physprops/iceoptics_c080917.nc</value>
+      <value rad="rrtmg">$DIN_LOC_ROOT/atm/cam/physprops/iceoptics_c080917.nc</value>
     </values>
   </entry>
   <entry id="liqopticsfile">
@@ -7698,7 +7698,7 @@
       Default: none
     </desc>
     <values>
-      <value rad="rrtmg">atm/cam/physprops/F_nwvl200_mu20_lam50_res64_t298_c080428.nc</value>
+      <value rad="rrtmg">$DIN_LOC_ROOT/atm/cam/physprops/F_nwvl200_mu20_lam50_res64_t298_c080428.nc</value>
     </values>
   </entry>
 
@@ -7752,8 +7752,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value dyn="eul" scam="1">atm/cam/scam/iop/ARM97_4scam.nc</value>
-      <value dyn="eul">atm/cam/scam/iop/ARM95_4scam.nc</value>
+      <value dyn="eul" scam="1">$DIN_LOC_ROOT/atm/cam/scam/iop/ARM97_4scam.nc</value>
+      <value dyn="eul">$DIN_LOC_ROOT/atm/cam/scam/iop/ARM95_4scam.nc</value>
     </values>
   </entry>
   <entry id="scm_cambfb_mode">
@@ -7995,12 +7995,12 @@
       as a time series
     </desc>
     <values>
-      <value phys="cam4">atm/cam/solar/solar_ave_sc19-sc23.c090810.nc</value>
-      <value phys="cam5">atm/cam/solar/solar_ave_sc19-sc23.c090810.nc</value>
-      <value phys="cam4" waccm_phys="1">atm/cam/solar/spectral_irradiance_Lean_1610-2009_ann_c100405.nc</value>
-      <value phys="cam5" waccm_phys="1">atm/cam/solar/spectral_irradiance_Lean_1610-2009_ann_c100405.nc</value>
-      <value>atm/cam/solar/SolarForcing1995-2005avg_c160929.nc</value>
-      <value waccm_phys="1">atm/cam/solar/SolarForcing1995-2005avg_c160929.nc</value>
+      <value phys="cam4">$DIN_LOC_ROOT/atm/cam/solar/solar_ave_sc19-sc23.c090810.nc</value>
+      <value phys="cam5">$DIN_LOC_ROOT/atm/cam/solar/solar_ave_sc19-sc23.c090810.nc</value>
+      <value phys="cam4" waccm_phys="1">$DIN_LOC_ROOT/atm/cam/solar/spectral_irradiance_Lean_1610-2009_ann_c100405.nc</value>
+      <value phys="cam5" waccm_phys="1">$DIN_LOC_ROOT/atm/cam/solar/spectral_irradiance_Lean_1610-2009_ann_c100405.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/solar/SolarForcing1995-2005avg_c160929.nc</value>
+      <value waccm_phys="1">$DIN_LOC_ROOT/atm/cam/solar/SolarForcing1995-2005avg_c160929.nc</value>
     </values>
   </entry>
   <entry id="solar_euv_data_file">
@@ -8022,10 +8022,10 @@
       solar and geomagnetic activity( F10.7, F10.7a, Kp, Ap ).
     </desc>
     <values>
-      <value>atm/waccm/phot/wasolar_ave.nc</value>
-      <value phys="cam4" waccm_phys="1">atm/waccm/solar/wasolar_c140408.nc</value>
-      <value phys="cam5" waccm_phys="1">atm/waccm/solar/wasolar_c140408.nc</value>
-      <value waccm_phys="1">atm/cam/solar/SolarForcing1995-2005avg_c160929.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/wasolar_ave.nc</value>
+      <value phys="cam4" waccm_phys="1">$DIN_LOC_ROOT/atm/waccm/solar/wasolar_c140408.nc</value>
+      <value phys="cam5" waccm_phys="1">$DIN_LOC_ROOT/atm/waccm/solar/wasolar_c140408.nc</value>
+      <value waccm_phys="1">$DIN_LOC_ROOT/atm/cam/solar/SolarForcing1995-2005avg_c160929.nc</value>
     </values>
   </entry>
   <entry id="solar_wind_data_file">
@@ -8037,7 +8037,7 @@
       (solar wind velocity and density; IMF By and Bz components).
     </desc>
     <values>
-      <value>atm/waccm/solar/solar_wind_imf_OMNI_WACCMX_2000001-2017365_c180731.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/solar/solar_wind_imf_OMNI_WACCMX_2000001-2017365_c180731.nc</value>
     </values>
   </entry>
   <entry id="solar_data_type">
@@ -8224,7 +8224,7 @@
     </desc>
     <values>
       <value>UNSET_PATH</value>
-      <value>atm/cam/chem/trop_mozart/ub/clim_p_trop.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc</value>
     </values>
   </entry>
   <entry id="chem_rad_passive">
@@ -8401,7 +8401,7 @@
       Full pathname of boundary dataset for airplane emissions.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/emis/emissions.aircraft.T42LR.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/emis/emissions.aircraft.T42LR.nc</value>
     </values>
   </entry>
   <entry id="clim_soilw_file">
@@ -8413,7 +8413,7 @@
       method of calculating dry deposition of chemical tracers.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/dvel/clim_soilw.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/dvel/clim_soilw.nc</value>
     </values>
   </entry>
   <entry id="depvel_file">
@@ -8425,7 +8425,7 @@
       in the 'table' method of calculating dry deposition  of chemical tracers.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/dvel/depvel_monthly.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/dvel/depvel_monthly.nc</value>
     </values>
   </entry>
   <entry id="depvel_lnd_file">
@@ -8437,8 +8437,8 @@
       method of calculating dry deposition of chemical tracers.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/dvel/regrid_vegetation.nc</value>
-      <value aquaplanet="1">atm/cam/chem/trop_mozart/dvel/regrid_vegetation_all_zero_aquaplanet_1deg_regularGrid_c20170421.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/dvel/regrid_vegetation.nc</value>
+      <value aquaplanet="1">$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/dvel/regrid_vegetation_all_zero_aquaplanet_1deg_regularGrid_c20170421.nc</value>
     </values>
   </entry>
   <entry id="season_wes_file">
@@ -8450,7 +8450,7 @@
       method of calculating dry deposition of chemical tracers.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/dvel/season_wes.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/dvel/season_wes.nc</value>
     </values>
   </entry>
   <entry id="dust_emis_fact">
@@ -8504,7 +8504,7 @@
       for high solar fluxes from the Scherliess low latitude electric potential model.
     </desc>
     <values>
-      <value>atm/waccm/efld/coeff_hflux.dat</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/efld/coeff_hflux.dat</value>
     </values>
   </entry>
   <entry id="efield_lflux_file">
@@ -8516,7 +8516,7 @@
       for low solar fluxes from the Scherliess low latitude electric potential model.
     </desc>
     <values>
-      <value>atm/waccm/efld/coeff_lflux.dat</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/efld/coeff_lflux.dat</value>
     </values>
   </entry>
   <entry id="efield_potential_max">
@@ -8549,7 +8549,7 @@
       photo reactions producing electrons.
     </desc>
     <values>
-      <value>atm/waccm/phot/electron_121129.dat</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/electron_121129.dat</value>
     </values>
   </entry>
   <entry id="srf_emis_type">
@@ -8611,7 +8611,7 @@
       Full pathname of dataset for EUVAC solar EUV model (0.05-121nm).
     </desc>
     <values>
-      <value>atm/waccm/phot/EUVAC_reference_c170222.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/EUVAC_reference_c170222.nc</value>
     </values>
   </entry>
   <entry id="ext_frc_cycle_yr">
@@ -8740,7 +8740,7 @@
       Full pathname of dataset for fixed lower boundary conditions.
     </desc>
     <values>
-      <value>atm/waccm/lb/LBC_1765-2100_1.9x2.5_CCMI_RCP60_za_RNOCStrend_c141002.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/lb/LBC_1765-2100_1.9x2.5_CCMI_RCP60_za_RNOCStrend_c141002.nc</value>
     </values>
   </entry>
   <entry id="flbc_list">
@@ -8850,7 +8850,7 @@
       Full pathname of dataset for chemical tracers constrained  in the stratosphere
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/ub/ubvals_b40.20th.track1_1996-2005_c110315.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/ub/ubvals_b40.20th.track1_1996-2005_c110315.nc</value>
     </values>
   </entry>
   <entry id="fstrat_list">
@@ -8898,7 +8898,7 @@
       Full pathname of dataset for the neutral species absorption cross sections.
     </desc>
     <values>
-      <value>atm/waccm/phot/photon_c130710.dat</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/photon_c130710.dat</value>
     </values>
   </entry>
   <entry id="tuv_xsect_file">
@@ -8909,7 +8909,7 @@
       Full pathname of dataset for fast-tuv photolysis cross sections
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/phot/tuv_xsect.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/phot/tuv_xsect.nc</value>
     </values>
   </entry>
   <entry id="o2_xsect_file">
@@ -8920,7 +8920,7 @@
       Full pathname of dataset of O2 cross sections for fast-tuv photolysis
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/phot/o2src.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/phot/o2src.nc</value>
     </values>
   </entry>
   <entry id="exo_coldens_file">
@@ -8931,7 +8931,7 @@
       Full pathname of dataset of O2 and 03 column densities above the model for look-up-table photolysis
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/phot/exo_coldens.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/phot/exo_coldens.nc</value>
     </values>
   </entry>
   <entry id="aircraft_specifier">
@@ -8953,7 +8953,7 @@
       {{ hilight }}aircraft_specifier{{ closehilight }}.
     </desc>
     <values>
-      <value>atm/cam/ggas</value>
+      <value>$DIN_LOC_ROOT/atm/cam/ggas</value>
     </values>
   </entry>
   <entry id="aircraft_type">
@@ -9067,8 +9067,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value aer_model="bam">atm/cam/chem/trop_mozart_aero/aero</value>
-      <value aer_model="mam">atm/cam/chem/trop_mam/aero</value>
+      <value aer_model="bam">$DIN_LOC_ROOT/atm/cam/chem/trop_mozart_aero/aero</value>
+      <value aer_model="mam">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/aero</value>
     </values>
   </entry>
   <entry id="prescribed_aero_file">
@@ -9189,8 +9189,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value aer_model="bam">atm/cam/chem/trop_mozart_aero/aero</value>
-      <value aer_model="mam">atm/cam/chem/trop_mam/aero</value>
+      <value aer_model="bam">$DIN_LOC_ROOT/atm/cam/chem/trop_mozart_aero/aero</value>
+      <value aer_model="mam">$DIN_LOC_ROOT/atm/cam/chem/trop_mam/aero</value>
     </values>
   </entry>
   <entry id="aerodep_flx_file">
@@ -9301,7 +9301,7 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value ver="fixed_ch4">atm/cam/chem/methane</value>
+      <value ver="fixed_ch4">$DIN_LOC_ROOT/atm/cam/chem/methane</value>
     </values>
   </entry>
   <entry id="prescribed_ghg_file">
@@ -9411,8 +9411,8 @@
       {{ hilight }}prescribed_ozone_filelist{{ closehilight }}.
     </desc>
     <values>
-      <value>atm/cam/ozone</value>
-      <value chem="waccm_sc_mam4">atm/cam/ozone_strataero</value>
+      <value>$DIN_LOC_ROOT/atm/cam/ozone</value>
+      <value chem="waccm_sc_mam4">$DIN_LOC_ROOT/atm/cam/ozone_strataero</value>
     </values>
   </entry>
   <entry id="prescribed_ozone_file">
@@ -9625,10 +9625,10 @@
       {{ hilight }}prescribed_strataero_filelist{{ closehilight }}.
     </desc>
     <values>
-      <value>atm/waccm/sulf</value>
-      <value phys="cam6">atm/cam/volc</value>
-      <value phys="cam6" ver="3modes">atm/cam/ozone</value>
-      <value chem="waccm_sc_mam4" phys="cam6" ver="3modes">atm/cam/ozone_strataero</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/sulf</value>
+      <value phys="cam6">$DIN_LOC_ROOT/atm/cam/volc</value>
+      <value phys="cam6" ver="3modes">$DIN_LOC_ROOT/atm/cam/ozone</value>
+      <value chem="waccm_sc_mam4" phys="cam6" ver="3modes">$DIN_LOC_ROOT/atm/cam/ozone_strataero</value>
     </values>
   </entry>
   <entry id="prescribed_strataero_file">
@@ -9747,7 +9747,7 @@
       Full pathname of dataset for radiative source function used in look up table photloysis
     </desc>
     <values>
-      <value>atm/waccm/phot/RSF_GT200nm_v3.0_c080811.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/RSF_GT200nm_v3.0_c080811.nc</value>
     </values>
   </entry>
   <entry id="snoe_ubc_file">
@@ -9759,7 +9759,7 @@
       to calculate its upper boundary concentration.
     </desc>
     <values>
-      <value>atm/waccm/ub/snoe_eof.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/ub/snoe_eof.nc</value>
     </values>
   </entry>
   <entry id="soil_erod_file">
@@ -9770,10 +9770,10 @@
       Full pathname of boundary dataset for soil erodibility factors.
     </desc>
     <values>
-      <value>atm/cam/dst/dst_source2x2tunedcam6-2x2-04062017.nc</value>
-      <value phys="cam5">atm/cam/dst/dst_source2x2_cam5.4_c150327.nc</value>
-      <value phys="cam4">atm/cam/dst/dst_source2x2tuned-cam4-06132012.nc</value>
-      <value hgrid="0.9x1.25" phys="cam4">atm/cam/dst/dst_source1x1tuned-cam4-06202012.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/dst/dst_source2x2tunedcam6-2x2-04062017.nc</value>
+      <value phys="cam5">$DIN_LOC_ROOT/atm/cam/dst/dst_source2x2_cam5.4_c150327.nc</value>
+      <value phys="cam4">$DIN_LOC_ROOT/atm/cam/dst/dst_source2x2tuned-cam4-06132012.nc</value>
+      <value hgrid="0.9x1.25" phys="cam4">$DIN_LOC_ROOT/atm/cam/dst/dst_source1x1tuned-cam4-06202012.nc</value>
     </values>
   </entry>
   <entry id="srf_emis_specifier">
@@ -9809,7 +9809,7 @@
       Full pathname of dataset containing tropopheric sulfate aerosols
     </desc>
     <values>
-      <value>atm/waccm/sulf/sulfate.ar5_camchem_c130304.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/sulf/sulfate.ar5_camchem_c130304.nc</value>
     </values>
   </entry>
   <entry id="sulf_datapath">
@@ -9913,7 +9913,7 @@
       Full pathname of dataset for TGCM upper boundary
     </desc>
     <values>
-      <value>atm/waccm/ub/tgcm_ubc_1993_c100204.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/ub/tgcm_ubc_1993_c100204.nc</value>
     </values>
   </entry>
   <entry id="tgcm_ubc_data_type">
@@ -9997,7 +9997,7 @@
       Default: none.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/ub/EESC_1850-2100_c090603.nc</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/ub/EESC_1850-2100_c090603.nc</value>
     </values>
   </entry>
   <entry id="chlorine_loading_type">
@@ -10046,7 +10046,7 @@
       Default: none.
     </desc>
     <values>
-      <value>atm/cam/chem/trop_mozart/ub</value>
+      <value>$DIN_LOC_ROOT/atm/cam/chem/trop_mozart/ub</value>
     </values>
   </entry>
   <entry id="linoz_data_file">
@@ -10143,10 +10143,10 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value ver="fixed_ox">atm/cam/chem/trop_mozart_aero/oxid</value>
-      <value ver="fixed_ox_halons">atm/waccm/halons</value>
-      <value ver="fixed_ch4">atm/cam/chem/methane</value>
-      <value chem="waccm_sc_mam4">atm/waccm/halons</value>
+      <value ver="fixed_ox">$DIN_LOC_ROOT/atm/cam/chem/trop_mozart_aero/oxid</value>
+      <value ver="fixed_ox_halons">$DIN_LOC_ROOT/atm/waccm/halons</value>
+      <value ver="fixed_ch4">$DIN_LOC_ROOT/atm/cam/chem/methane</value>
+      <value chem="waccm_sc_mam4">$DIN_LOC_ROOT/atm/waccm/halons</value>
     </values>
   </entry>
   <entry id="tracer_cnst_file">
@@ -10377,7 +10377,7 @@
       cross sections.
     </desc>
     <values>
-      <value>atm/waccm/phot/effxstex.txt</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/effxstex.txt</value>
     </values>
   </entry>
   <entry id="xs_long_file">
@@ -10388,7 +10388,7 @@
       Full pathname of cross section dataset for long wavelengh photolysis
     </desc>
     <values>
-      <value>atm/waccm/phot/temp_prs_GT200nm_JPL10_c140624.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/temp_prs_GT200nm_JPL10_c140624.nc</value>
     </values>
   </entry>
   <entry id="xs_short_file">
@@ -10399,7 +10399,7 @@
       Full pathname of cross section dataset for short wavelengh photolysis
     </desc>
     <values>
-      <value>atm/waccm/phot/xs_short_jpl10_c140303.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/phot/xs_short_jpl10_c140303.nc</value>
     </values>
   </entry>
   <entry id="rxn_rate_sums">
@@ -10527,8 +10527,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value chem="waccm_sc">atm/waccm/ub</value>
-      <value chem="waccm_sc_mam4">atm/waccm/waccm_forcing</value>
+      <value chem="waccm_sc">$DIN_LOC_ROOT/atm/waccm/ub</value>
+      <value chem="waccm_sc_mam4">$DIN_LOC_ROOT/atm/waccm/waccm_forcing</value>
     </values>
   </entry>
   <entry id="waccm_forcing_filelist">
@@ -10623,8 +10623,8 @@
       Default: UNKNOWN.
     </desc>
     <values>
-      <value chem="waccm_sc">atm/waccm/phot/xh2o_c080826.nc</value>
-      <value chem="waccm_sc_mam4">atm/waccm/phot/xh2o_c080826.nc</value>
+      <value chem="waccm_sc">$DIN_LOC_ROOT/atm/waccm/phot/xh2o_c080826.nc</value>
+      <value chem="waccm_sc_mam4">$DIN_LOC_ROOT/atm/waccm/phot/xh2o_c080826.nc</value>
     </values>
   </entry>
 
@@ -10675,7 +10675,7 @@
       Filepath for qbo forcing dataset.
     </desc>
     <values>
-      <value>atm/waccm/qbo/qbocyclic28months.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/qbo/qbocyclic28months.nc</value>
     </values>
   </entry>
   <entry id="qbo_use_forcing">
@@ -10708,7 +10708,7 @@
       Default: None.
     </desc>
     <values>
-      <value>atm/waccm/geomag/igrf_ceofs_c160412.nc</value>
+      <value>$DIN_LOC_ROOT/atm/waccm/geomag/igrf_ceofs_c160412.nc</value>
     </values>
   </entry>
   <entry id="epp_all_filepath">
@@ -10832,32 +10832,6 @@
 
 <!-- SE dycore -->
 
-  <entry id="se_qsize_condensate_loading">
-    <type>integer</type>
-    <category>se</category>
-    <group>dyn_se_inparm</group>
-    <valid_values>1,2,3,4,5,6</valid_values>
-    <desc>
-      Number of water tracers active in condensate-loading terms in dynamical core
-      1: water vapor only
-      2: water vapor and cloud liquid
-      3: water vapor, cloud liquid and cloud ice
-      4: water vapor, cloud liquid, cloud ice and rain
-      5: water vapor, cloud liquid, cloud ice, rain and snow
-      6: water vapor, cloud liquid, cloud ice, rain, snow and graupel
-      Default: 3 for CAM4, CAM5; 5 for CAM6; 1 for Held_Suarez, Adiabatic and Kessler
-    </desc>
-    <values>
-      <value>3</value>
-      <value phys_suite="cam4">3</value>
-      <value phys_suite="cam5">3</value>
-      <value phys_suite="cam6">5</value>
-      <value phys_suite="held_suarez">1</value>
-      <value phys_suite="adiabatic">1</value>
-      <value phys_suite="kessler">1</value>
-      <value phys_suite="tj2016">1</value>
-    </values>
-  </entry>
   <entry id="se_fine_ne">
     <type>integer</type>
     <category>se</category>
@@ -10982,8 +10956,8 @@
     </desc>
     <values>
       <value>none</value>
-      <value hgrid="ne0np4CONUS.ne30x8">atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
-      <value hgrid="ne0np4TESTONLY.ne5x4">atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
+      <value hgrid="ne0np4CONUS.ne30x8">$DIN_LOC_ROOT/atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">$DIN_LOC_ROOT/atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
     </values>
   </entry>
   <entry id="se_ne">
@@ -11028,21 +11002,6 @@
       <value hgrid="ne30np4" npg="3" waccm_phys="1">5</value>
       <value hgrid="ne0np4CONUS.ne30x8">6</value>
       <value hgrid="ne0np4TESTONLY.ne5x4">7</value>
-    </values>
-  </entry>
-  <entry id="se_variable_nsplit">
-    <type>logical</type>
-    <category>se</category>
-    <group>dyn_se_inparm</group>
-    <desc>
-      If TRUE nsplit is dynamically adjusted (increased by 2 if vertical
-      velocity Courant number is larger than 0.85) and reset when vertical
-      velocity Courant number is less than 0.38
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value npg="2" waccm_phys="1">.true.</value>
-      <value npg="3" waccm_phys="1">.true.</value>
     </values>
   </entry>
   <entry id="se_phys_dyn_cp">
@@ -11288,22 +11247,67 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="se_vert_remap_q_alg">
-    <type>integer</type>
+  <entry id="se_vert_remap_T">
+    <type>char*32</type>
     <category>se</category>
     <group>dyn_se_inparm</group>
-    <valid_values>1,2</valid_values>
     <desc>
-      CAM-SE vertical remap algorithm
-      1: PPM vertical remap with mirroring at the boundaries
-         (solid wall bc's, high-order throughout)
-         PCoM in sponge
-      2: PPM vertical remap without mirroring at the boundaries
-         (no bc's enforced, first-order at two cells bordering top and bottom
-         boundaries)
+      CAM-SE vertical remapping of temperature:
+
+        "thermal_energy_over_P": Map cp*T (thermal energy conserving) using a pressure coordinate.
+        "Tv_over_logP"         : Map virtual temperature using a log pressure coordinate.
+
+      Default: "thermal_energy_over_P"
     </desc>
     <values>
-      <value>1</value>
+      <value>thermal_energy_over_P</value>
+    </values>
+  </entry>
+  <entry id="se_vert_remap_uvTq_alg">
+    <type>char*32</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      CAM-SE vertical remap algorithm for u,v,T, and water species:
+
+        "PPM_bc_mirror": PPM vertical remap with mirroring at the boundaries (solid wall boundary conditions, high-order throughout)
+        "PPM_bc_PCoM"  : PPM vertical remap without mirroring at the boundaries (no boundary conditions enforced, first-order at two cells bordering top and bottom boundaries)
+        "PPM_bc_linear_extrapolation": PPM with linear extrapolation in ghost cells (code from A. Bradley, DOE)
+
+      The following options use the FV3 vertical remapping algorithm:
+
+        "FV3_PPM": Monotone PPM
+        "FV3_CS" : Monotonic cubic spline with 2*delta_z oscillations removed
+        "FV3_CS_2dz_filter": Selectively monotonic cubic spline, where local extrema are retained, with 2*delta_z oscillations removed
+        "FV3_non_monotone_CS_2dz_filter": Non-monotonic (linear) cubic spline with 2*delta_z oscillations removed;
+
+      Default: "FV3_CS"
+    </desc>
+    <values>
+      <value>FV3_CS</value>
+    </values>
+  </entry>
+  <entry id="se_vert_remap_tracer_alg">
+    <type>char*32</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      CAM-SE vertical remap algorithm for non-water tracers:
+
+        "PPM_bc_mirror": PPM vertical remap with mirroring at the boundaries (solid wall boundary conditions, high-order throughout)
+        "PPM_bc_PCoM"  : PPM vertical remap without mirroring at the boundaries (no boundary conditions enforced, first-order at two cells bordering top and bottom boundaries)
+        "PPM_bc_linear_extrapolation": PPM with linear extrapolation in ghost cells (code from A. Bradley, DOE)
+
+      The following options use the FV3 vertical remapping algorithm:
+
+        "FV3_PPM": Monotone PPM
+        "FV3_CS" : Monotonic cubic spline with 2*delta_z oscillations removed
+        "FV3_non_monotone_CS_2dz_filter": Non-monotonic (linear) cubic spline with 2*delta_z oscillations removed;
+
+      Default: "PPM_bc_linear_extrapolation"
+    </desc>
+    <values>
+      <value>PPM_bc_linear_extrapolation</value>
     </values>
   </entry>
   <entry id="se_write_restart_unstruct">
@@ -11318,56 +11322,6 @@
     </desc>
     <values>
       <value>.false.</value>
-    </values>
-  </entry>
-
-<!-- Nudging -->
-  <entry id="se_met_nudge_u">
-    <type>real</type>
-    <category>se</category>
-    <group>dyn_se_inparm</group>
-    <desc>
-      Nudging factor for prescribed winds in SE dycore
-      Units: 1/sec
-    </desc>
-    <values>
-      <value>2.0e-5</value>
-    </values>
-  </entry>
-  <entry id="se_met_nudge_t">
-    <type>real</type>
-    <category>se</category>
-    <group>dyn_se_inparm</group>
-    <desc>
-      Nudging factor for prescribed temperature in SE dycore
-      Units: 1/sec
-    </desc>
-    <values>
-      <value>2.0e-5</value>
-    </values>
-  </entry>
-  <entry id="se_met_nudge_p">
-    <type>real</type>
-    <category>se</category>
-    <group>dyn_se_inparm</group>
-    <desc>
-      Nudging factor for prescribed surface pressure in SE dycore
-      Units: 1/sec
-    </desc>
-    <values>
-      <value>0.0</value>
-    </values>
-  </entry>
-  <entry id="se_met_tevolve">
-    <type>integer</type>
-    <category>se</category>
-    <group>dyn_se_inparm</group>
-    <valid_values>0,1</valid_values>
-    <desc>
-      Switch to turn on/off time evolution of dynamics nudging
-    </desc>
-    <values>
-      <value>0</value>
     </values>
   </entry>
 

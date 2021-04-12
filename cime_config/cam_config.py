@@ -569,8 +569,9 @@ class ConfigCAM:
         case_nx = case.get_value("ATM_NX")                  # Number of x-dimension grid-points (longitudes)
         case_ny = case.get_value("ATM_NY")                  # Number of y-dimension grid-points (latitudes)
         comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
-        exeroot = case.get_value("EXEROOT")                 # model executable path
-        nthrds = case.get_value("NTHRDS_ATM")               # number of model OpenMP threads
+        exeroot = case.get_value("EXEROOT")                 # Model executable path
+        nthrds = case.get_value("NTHRDS_ATM")               # Number of model OpenMP threads
+        start_date = case.get_value("RUN_STARTDATE")        # Model simulation starte date
 
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
@@ -635,6 +636,16 @@ class ConfigCAM:
                              'qneg_nl',
                              'vert_coord_nl',
                              'ref_pres_nl']
+
+        #----------------------------------------------------
+        # Set CAM start date (needed for namelist generation)
+        #----------------------------------------------------
+
+        # Remove dashes from CIME-provided start date:
+        start_date_cam = start_date.replace('-','')
+
+        self.create_config("ic_ymd", "Start date of model run.",
+                           start_date_cam, is_nml_attr=True)
 
         #------------------------
         # Set CAM physics columns

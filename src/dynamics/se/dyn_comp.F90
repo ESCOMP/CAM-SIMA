@@ -240,7 +240,6 @@ subroutine dyn_readnl(NLFileName)
    se_hypervis_scaling         = 0
    se_max_hypervis_courant     = 1.0e99_r8
    se_mesh_file                = ''
-   se_npes                     = npes
    se_write_restart_unstruct   = .false.
 
    ! Read the namelist (dyn_se_inparm)
@@ -308,9 +307,14 @@ subroutine dyn_readnl(NLFileName)
    call MPI_bcast(se_raytau0, 1, mpi_real8, masterprocid, mpicom, ierr)
    call MPI_bcast(se_molecular_diff, 1, mpi_real8, masterprocid, mpicom, ierr)
 
-   ! Check that se_npes is a positive integer:
-   if (se_npes <= 0) then
-      call endrun('dyn_readnl: ERROR: se_npes must be > 0')
+   ! If se_npes is set to zero, then make it match host model:
+   if (se_npes == 0) then
+      se_npes = npes
+   else
+      ! Check that se_npes is a positive integer:
+      if (se_npes < 0) then
+         call endrun('dyn_readnl: ERROR: se_npes must be >= 0')
+      end if
    end if
 
    ! Initialize the SE structure that holds the MPI decomposition information
