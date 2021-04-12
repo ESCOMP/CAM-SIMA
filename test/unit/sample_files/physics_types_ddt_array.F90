@@ -1,6 +1,24 @@
+!
+! This work (Common Community Physics Package Framework), identified by
+! NOAA, NCAR, CU/CIRES, is free of known copyright restrictions and is
+! placed in the public domain.
+!
+! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+! THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+!>
+!! @brief Auto-generated Variables for registry source file, physics_types_ddt_array
+!!
+!
 module physics_types_ddt_array
 
   use ccpp_kinds, only: kind_phys
+
 
   implicit none
   private
@@ -9,23 +27,23 @@ module physics_types_ddt_array
 !! \htmlinclude physics_state.html
   type, public :: physics_state
     ! ncol: Number of horizontal columns
-    integer                          :: ncol = 0
+    integer                                   :: ncol = 0
     ! latitude: Latitude
-    real(kind_phys),         pointer :: latitude(:) => NULL()
+    real(kind_phys),         pointer          :: latitude(:) => NULL()
     ! longitude: Longitude
-    real(kind_phys),         pointer :: longitude(:) => NULL()
+    real(kind_phys),         pointer          :: longitude(:) => NULL()
     ! q: Constituent mixing ratio
-    real(kind_phys),         pointer :: q(:, :, :) => NULL()
+    real(kind_phys),         pointer          :: q(:, :, :) => NULL()
   end type physics_state
 
 !> \section arg_table_physics_types_ddt_array  Argument Table
 !! \htmlinclude physics_types_ddt_array.html
   ! ix_qv: Index of water vapor specific humidity
-  integer,             public   :: ix_qv = 1
+  integer,             public            :: ix_qv = 1
   ! ix_cld_liq: Index of cloud liquid water mixing ratio
-  integer,             public   :: ix_cld_liq = 2
+  integer,             public            :: ix_cld_liq = 2
   ! phys_state: Physics state variables updated by dynamical core
-  type(physics_state), public   :: phys_state
+  type(physics_state), public            :: phys_state
 
 !! public interfaces
   public :: allocate_physics_types_ddt_array_fields

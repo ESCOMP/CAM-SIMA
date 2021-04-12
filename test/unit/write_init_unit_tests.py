@@ -143,7 +143,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -211,7 +211,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -279,7 +279,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -346,7 +346,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         # Note: "assertLogs" method doesn't exist in python 2:
@@ -428,7 +428,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -495,7 +495,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -558,7 +558,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -620,7 +620,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -683,7 +683,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         # Note: "assertLogs" method doesn't exist in python 2:
@@ -763,7 +763,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -831,7 +831,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -899,7 +899,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -967,7 +967,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -1035,7 +1035,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Generate CCPP capgen files:
         capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', logger)
+               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,

@@ -94,23 +94,24 @@ CONTAINS
    end function arr2str
 
 
-   subroutine read_field_2d(file, var_names, timestep, buffer)
-      use shr_assert_mod, only: shr_assert_in_domain
-      use shr_sys_mod,    only: shr_sys_flush
-      use pio,            only: file_desc_t, var_desc_t
-      use spmd_utils,     only: masterproc
-      use cam_pio_utils,  only: cam_pio_find_var
-      use cam_abortutils, only: endrun
-      use cam_logfile,    only: iulog
-      use cam_field_read, only: cam_read_field
+   subroutine read_field_2d(file, std_name, var_names, timestep, buffer)
+      use shr_assert_mod,       only: shr_assert_in_domain
+      use shr_sys_mod,          only: shr_sys_flush
+      use pio,                  only: file_desc_t, var_desc_t
+      use spmd_utils,           only: masterproc
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: endrun
+      use cam_logfile,          only: iulog
+      use cam_field_read,       only: cam_read_field
       use phys_vars_init_check, only: mark_as_read_from_file
-      
+
       !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check, only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
-      character(len=*),  intent(in)    :: var_names(:)
+      character(len=*),  intent(in)    :: std_name     ! Standard name
+      character(len=*),  intent(in)    :: var_names(:) ! var name on file
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:)
       ! Local variables
@@ -128,7 +129,7 @@ CONTAINS
          end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
-         call mark_as_read_from_file(found_name)
+         call mark_as_read_from_file(std_name)
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
@@ -141,24 +142,26 @@ CONTAINS
       end if
    end subroutine read_field_2d
 
-   subroutine read_field_3d(file, var_names, vcoord_name, timestep, buffer)
-      use shr_assert_mod, only: shr_assert_in_domain
-      use shr_sys_mod,    only: shr_sys_flush
-      use pio,            only: file_desc_t, var_desc_t
-      use spmd_utils,     only: masterproc
-      use cam_pio_utils,  only: cam_pio_find_var
-      use cam_abortutils, only: endrun
-      use cam_logfile,    only: iulog
-      use cam_field_read, only: cam_read_field
-      use vert_coord,     only: pver, pverp
-      use phys_vars_init_check,  only: mark_as_read_from_file
+   subroutine read_field_3d(file, std_name, var_names, vcoord_name,           &
+        timestep, buffer)
+      use shr_assert_mod,       only: shr_assert_in_domain
+      use shr_sys_mod,          only: shr_sys_flush
+      use pio,                  only: file_desc_t, var_desc_t
+      use spmd_utils,           only: masterproc
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: endrun
+      use cam_logfile,          only: iulog
+      use cam_field_read,       only: cam_read_field
+      use vert_coord,           only: pver, pverp
+      use phys_vars_init_check, only: mark_as_read_from_file
 
       !Max possible length of variable name in input (IC) file:
       use phys_vars_init_check,  only: ic_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
-      character(len=*),  intent(in)    :: var_names(:)
+      character(len=*),  intent(in)    :: std_name     ! Standard name
+      character(len=*),  intent(in)    :: var_names(:) ! var name on file
       character(len=*),  intent(in)    :: vcoord_name
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:,:)
@@ -186,7 +189,7 @@ CONTAINS
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=(/1, num_levs/))
-         call mark_as_read_from_file(found_name)
+         call mark_as_read_from_file(std_name)
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if

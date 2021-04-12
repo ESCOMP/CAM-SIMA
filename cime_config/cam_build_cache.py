@@ -19,7 +19,7 @@ __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
 __SPINSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
 if __SPINSCRIPTS not in sys.path:
     sys.path.append(__SPINSCRIPTS)
-# End if
+# end if
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
@@ -54,7 +54,7 @@ def new_entry_from_xml(item):
         raise ValueError(emsg.format(item.tag))
     else:
         raise ValueError("ERROR: Invalid {} XML item".format(item.tag))
-    # End if
+    # end if
     return new_entry
 
 class FileStatus:
@@ -74,7 +74,7 @@ class FileStatus:
         else:
             emsg = "ERROR: {}, '{}', does not exist"
             raise ValueError(emsg.format(description, file_path))
-        # End if
+        # end if
 
     def hash_mismatch(self, file_path):
         """Return True unless the hash of <file_path> matches our hash"""
@@ -112,8 +112,8 @@ class FileStatus:
         with open(filename, 'rb', buffering=0) as infile:
             for num_read in iter(lambda: infile.readinto(mem_view), 0):
                 file_hash.update(mem_view[:num_read])
-            # End for
-        # End with
+            # end for
+        # end with
         return file_hash.hexdigest()
 
 class BuildCacheCAM:
@@ -166,7 +166,7 @@ class BuildCacheCAM:
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
-                        # End if
+                        # end if
                 elif section.tag == 'CCPP':
                     for item in section:
                         if item.tag == 'SDF':
@@ -182,12 +182,12 @@ class BuildCacheCAM:
                         else:
                             emsg = "ERROR: Unknown CCPP tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
-                        # End if
+                        # end if
                 else:
                     raise ValueError(emsg)
-                # End if
-            # End for
-        # End if (no else, we just have an empty object)
+                # end if
+            # end for
+        # end if (no else, we just have an empty object)
 
     def update_registry(self, gen_reg_file, registry_source_files,
                         dycore, config):
@@ -200,7 +200,7 @@ class BuildCacheCAM:
         for rfile in registry_source_files:
             new_entry = FileStatus(rfile, 'registry_file')
             self.__registry_files[new_entry.key] = new_entry
-        # End for
+        # end for
 
     def update_ccpp(self, suite_definition_files, scheme_files,
                     preproc_defs, kind_phys):
@@ -212,12 +212,12 @@ class BuildCacheCAM:
         for sfile in suite_definition_files:
             new_entry = FileStatus(sfile, 'SDF')
             self.__sdfs[new_entry.key] = new_entry
-        # End for
+        # end for
         self.__schemes = {}
         for sfile in scheme_files:
             new_entry = FileStatus(sfile, 'scheme')
             self.__sdfs[new_entry.key] = new_entry
-        # End for
+        # end for
 
     def update_init_gen(self, gen_init_file):
         """
@@ -238,7 +238,7 @@ class BuildCacheCAM:
         for rfile in self.__registry_files.values():
             new_xml_entry(registry, 'registry_file',
                           rfile.file_path, rfile.file_hash)
-        # End for
+        # end for
         dycore = ET.SubElement(registry, 'dycore')
         dycore.text = self.__dycore
         config = ET.SubElement(registry, 'config')
@@ -247,10 +247,10 @@ class BuildCacheCAM:
         ccpp = ET.SubElement(new_cache, 'CCPP')
         for sfile in self.__sdfs.values():
             new_xml_entry(ccpp, 'SDF', sfile.file_path, sfile.file_hash)
-        # End for
+        # end for
         for sfile in self.__schemes.values():
             new_xml_entry(ccpp, 'scheme', sfile.file_path, sfile.file_hash)
-        # End for
+        # end for
         preproc = ET.SubElement(ccpp, 'preproc_defs')
         preproc.text = self.__preproc_defs
         kind_phys = ET.SubElement(ccpp, 'kind_phys')
@@ -267,7 +267,7 @@ class BuildCacheCAM:
         mismatch = mismatch or (not self.__config) or (self.__config != config)
         if not mismatch:
             mismatch = self.__gen_reg_file.hash_mismatch(gen_reg_file)
-        # End if
+        # end if
         # For registry files, we need to make sure we have 1-1 files
         # Note that this method will ignore duplicated files.
         if not mismatch:
@@ -278,13 +278,12 @@ class BuildCacheCAM:
             for ref_file in registry_source_files:
                 if mismatch:
                     break
-                else:
-                    key = FileStatus.gen_key(ref_file)
-                    fstat = self.__registry_files[key]
-                    mismatch = fstat.hash_mismatch(ref_file)
-                # End if
-            # End for
-        # End if
+                # end if
+                key = FileStatus.gen_key(ref_file)
+                fstat = self.__registry_files[key]
+                mismatch = fstat.hash_mismatch(ref_file)
+            # end for
+        # end if
         return mismatch
 
     def ccpp_mismatch(self, sdfs, scheme_files, preproc_defs, kind_phys):
@@ -304,13 +303,12 @@ class BuildCacheCAM:
             for ref_file in sdfs:
                 if mismatch:
                     break
-                else:
-                    key = FileStatus.gen_key(ref_file)
-                    fstat = self.__sdfs[key]
-                    mismatch = fstat.hash_mismatch(ref_file)
-                # End if
-            # End for
-        # End if
+                # end if
+                key = FileStatus.gen_key(ref_file)
+                fstat = self.__sdfs[key]
+                mismatch = fstat.hash_mismatch(ref_file)
+            # end for
+        # end if
         # For scheme files, we need to make sure we have 1-1 files
         # Note that this method will ignore duplicated files.
         if not mismatch:
@@ -320,13 +318,12 @@ class BuildCacheCAM:
             for ref_file in scheme_files:
                 if mismatch:
                     break
-                else:
-                    key = FileStatus.gen_key(ref_file)
-                    fstat = self.__schemes[key]
-                    mismatch = fstat.hash_mismatch(ref_file)
-                # End if
-            # End for
-        # End if
+                # end if
+                key = FileStatus.gen_key(ref_file)
+                fstat = self.__schemes[key]
+                mismatch = fstat.hash_mismatch(ref_file)
+            # end for
+        # end if
         return mismatch
 
     def init_write_mismatch(self, gen_init_file):

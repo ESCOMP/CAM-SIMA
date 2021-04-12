@@ -1565,6 +1565,7 @@ contains
     integer                            :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
     integer                            :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
     integer                            :: lsize
+    integer                            :: err_handling
     character(len=8)                   :: cvalue
     integer                            :: nloop
     character(len=4)                   :: prefix
@@ -1597,7 +1598,7 @@ contains
 
     call cam_pio_openfile(File, fname_srf_cam, 0)
     call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof, pio_double)
-    call pio_seterrorhandling(File, pio_bcast_error)
+    call pio_seterrorhandling(File, pio_bcast_error, oldmethod=err_handling)
 
     ! ------------------------------
     ! Read in import and export fields
@@ -1698,7 +1699,7 @@ contains
     ! Close file
     ! ------------------------------
 
-    call pio_seterrorhandling(File, pio_internal_error)
+    call pio_seterrorhandling(File, err_handling)
     call pio_freedecomp(File, iodesc)
     call cam_pio_closefile(File)
 
