@@ -608,6 +608,23 @@
       <value>.false.</value>
     </values>
   </entry>
+  <entry id="print_physics_check">
+    <type>char*8</type>
+    <category>diagnostics</category>
+    <group>physics_check_nl</group>
+    <valid_values>on,off</valid_values>
+    <desc>
+      Control the writing of physics check messages.
+      'on' causes a summary of physics check statistics to be printed at the
+          end of the run.
+      'off' causes the physics check messages to be supressed.
+      Default: off
+    </desc>
+    <values>
+      <value>off</value>
+      <value>on</value>
+    </values>
+  </entry>
   <entry id="print_qneg_warn">
     <type>char*8</type>
     <category>diagnostics</category>
@@ -3690,6 +3707,18 @@
       <value dyn="se" hgrid="ne30np4" nlev="70" sim_year="1850">atm/waccm/ic/waccm5_1850_ne30np4_L70_0001-01-11-00000_c151217.nc</value>
       <value dyn="se" hgrid="ne30np4" nlev="70">atm/waccm/ic/fw2000_ne30np4_L70_c181221.nc</value>
       <value hgrid="64x128" nlev="30" scam="1">atm/cam/inic/gaus/cami_0000-09-01_64x128_L30_c031210.nc</value>
+    </values>
+  </entry>
+  <entry id="ncdata_check">
+    <type>char*256</type>
+    <category>initial_conditions</category>
+    <group>physics_check_nl</group>
+    <desc>
+      Full pathname of atmospheric state dataset for comaprison/check (NetCDF format).
+      Default: UNSET
+    </desc>
+    <values>
+      <value>UNSET</value>
     </values>
   </entry>
   <entry id="pertlim">

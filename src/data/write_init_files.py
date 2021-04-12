@@ -245,12 +245,19 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Add public function declarations:
         outfile.write("!! public interfaces", 0)
         outfile.write("public :: physics_read_data", 1)
+        outfile.write("public :: physics_check_data", 1)
 
         #Add "contains" statement:
         outfile.write("\nCONTAINS\n", 0)
 
         #Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str)
+
+        #Add a blank space:
+        outfile.write("", 0)
+
+        #Write physics_check_data subroutine:
+        write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str)
 
         #End module:
         outfile.write("\nend module {}".format(phys_input_fname_str), 0)
@@ -1503,6 +1510,258 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #End subroutine:
     outfile.write("end subroutine physics_read_data", 1)
+
+    #----------------------------
+
+#####
+
+def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
+
+    # pylint: disable=too-many-statements
+    """
+    Write the "physics_check_data" subroutine, which
+    is used to check the physics variables against
+    an optionally input check file by reading
+    by reading in the values from the check file
+    and comparing the values to the variables
+    """
+
+    #Construct dictionary of modules
+    #and variables in use statements:
+    #--------------------------------
+    #Create new (empty) dictionary to store use statements:
+    use_vars_write_dict = OrderedDict()
+
+    #Loop over all variable standard names:
+    for var_stdname in fort_data.standard_names:
+
+        #Check if variable is in use dictionary:
+        if var_stdname in fort_data.use_dict:
+
+            #If so, then extract variable use statement list:
+            var_use_info = fort_data.use_dict[var_stdname]
+
+            #Extract module name (always first item in list):
+            use_mod_name = var_use_info[0]
+
+            #Check if module name is already in dictionary:
+            if use_mod_name in use_vars_write_dict:
+                #If so, then loop over variable use list:
+                for use_var in var_use_info[1:]:
+                    #If variable doesn't already exist in list, then add it:
+                    if use_var not in use_vars_write_dict[use_mod_name]:
+                        use_vars_write_dict[use_mod_name].append(use_var)
+            else:
+                #Add module name as new key to dictionary:
+                use_vars_write_dict[use_mod_name] = var_use_info[1:]
+    #--------------------------------
+
+    #Create actual fortran use statements:
+    #--------------------------------
+    #Create new (empty) list to store use statements:
+    use_list = list()
+
+    #Loop over use statement modules:
+    for use_mod in use_vars_write_dict:
+
+        #Loop over use statement variables:
+        for use_var in use_vars_write_dict[use_mod]:
+
+            #create new use string:
+            use_str = "use {},        only: {}".format(use_mod, use_var)
+
+            #Add to "use statement" list:
+            use_list.append(use_str)
+    #-----------------------------
+
+    #Create fortran "read_field" calls:
+    #---------------------------------
+
+    #Create new (empty) dictionary to store "read_field" calls:
+    call_string_dict = OrderedDict()
+
+    #Loop over all variable standard names:
+    for var_stdname in fort_data.standard_names:
+
+        #Check if variable is in fortran call dictionary:
+        if var_stdname in fort_data.call_dict:
+
+            #Set "if-statement" call string:
+            call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
+                              " '{}') then".format(var_stdname)
+
+            #Extract vertical level variable:
+            levnm = fort_data.vert_dict[var_stdname]
+
+            #Set "read_field" call string:
+            if levnm is not None:
+                call_string_val = "call physics_check_field(file, input_var_names(:,name_idx)," + \
+                                  " '{}', timestep, {})".format(\
+                                  levnm, fort_data.call_dict[var_stdname])
+            else:
+                call_string_val = "call physics_check_field(file, input_var_names(:,name_idx)," + \
+                                  " timestep, {})".format(fort_data.call_dict[var_stdname])
+
+            #Add strings to dictionary:
+            call_string_dict[call_string_key] = call_string_val
+
+    #---------------------------------
+
+    #Write actual subroutine code:
+    #----------------------------
+
+    #Add subroutine header:
+    outfile.write("subroutine physics_check_data(file, suite_names, timestep)", 1)
+
+    #Add use statements:
+    outfile.write("use pio,                  only: file_desc_t", 2)
+    outfile.write("use cam_abortutils,       only: endrun", 2)
+    outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
+    outfile.write("use physics_data,         only: physics_check_field, find_input_name_idx", 2)
+    outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
+    outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
+
+    outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
+    outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
+
+
+    #Loop over use string list:
+    for use_str in use_list:
+        #Add required, registered fortran module use statements:
+        outfile.write(use_str, 2)
+
+    #Write dummy variable declarations:
+    outfile.write("", 0)
+    outfile.write("! Dummy arguments", 2)
+    outfile.write("type(file_desc_t), intent(inout) :: file", 2) 
+    outfile.write("character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites", 2)
+    outfile.write("integer,           intent(in)    :: timestep", 2)
+    outfile.write("", 0)
+
+    #Write local variable declarations:
+    outfile.write("!Local variables:", 2)
+    outfile.write("", 0)
+    outfile.write("!Character array containing all CCPP-required vairable standard names:", 2)
+    outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
+    outfile.write("", 0)
+    outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_required_vars", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: protected_non_init_vars", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_input_names", 2)
+    outfile.write("", 0)
+    outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message", 2)
+    outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
+    outfile.write("integer                    :: name_idx  !Input variable array index", 2)
+    outfile.write("integer                    :: req_idx   !Required variable array index", 2)
+    outfile.write("integer                    :: suite_idx !Suite array index", 2)
+    outfile.write("character(len=2)           :: sep  = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
+    outfile.write("", 0)
+    outfile.write("!Logical to default optional argument to False:", 2)
+    outfile.write("logical                    :: use_init_variables", 2)
+    outfile.write("", 0)
+
+    #Initialize variables:
+    outfile.write("!Initalize missing and non-initialized variables strings:", 2)
+    outfile.write("missing_required_vars = ' '", 2)
+    outfile.write("protected_non_init_vars = ' '", 2)
+    outfile.write("missing_input_names   = ' '", 2)
+    outfile.write("", 0)
+
+    #Loop over physics suites:
+    outfile.write("!Loop over CCPP physics/chemistry suites:", 2)
+    outfile.write("do suite_idx = 1, size(suite_names, 1)", 2)
+    outfile.write("", 0)
+
+    #Determine physics suite required variables:
+    outfile.write("!Search for all needed CCPP input variables,", 3)
+    outfile.write("!so that they can bx e read from input file if need be:", 3)
+    outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
+    outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
+    outfile.write("", 0)
+
+    #Loop over required variables:
+    outfile.write("!Loop over all required variables as specified by CCPP suite:", 3)
+    outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
+    outfile.write("", 0)
+
+    #Call input name search function:
+    outfile.write("!Find IC file input name array index for required variable:", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)", 4)
+
+    #Generate error message if required variable isn't found:
+    outfile.write("if (name_idx == no_exist_idx)", 4)
+    outfile.write("", 0)
+    outfile.write("!If an index was never found, then save variable name and check the rest", 5)
+    outfile.write("!of the variables, after which the model simulation will end:", 5)
+    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 5)
+    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 6)
+    outfile.write("", 0)
+    outfile.write("!Update character separator to now include comma:", 5)
+    outfile.write("sep = ', '", 5)
+    outfile.write("", 0)
+
+    #Generate error message if required variable contains no input names
+    #(i.e. the <ic_file_input_names> registry tag is missing):
+    outfile.write("!Check that the input variable names aren't blank.", 4)
+    outfile.write("!If so, then save variable name and check the rest of the", 4)
+    outfile.write("!variables, after which the model simulation will end:", 4)
+    outfile.write("if (len_trim(input_var_names(1,name_idx)) == 0) then", 4)
+    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 5)
+    outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 6)
+    outfile.write("", 0)
+    outfile.write("!Update character separator to now include comma:", 5)
+    outfile.write("sep3 = ', '", 5)
+    outfile.write("", 0)
+    outfile.write("!Continue on with variable loop:", 5)
+    outfile.write("cycle", 5)
+    outfile.write("end if", 4)
+    outfile.write("", 0)
+
+    #Generate "check_field" calls:
+    outfile.write("!Check variable vs input check file:", 4)
+    outfile.write("", 0)
+    for if_call, read_call in call_string_dict.items():
+        outfile.write(if_call, 4)
+        outfile.write(read_call, 5)
+        outfile.write("end if", 6)
+        outfile.write("", 0)
+
+    #End select catse and required variables loop:
+    outfile.write("end do !Suite-required variables", 3)
+    outfile.write("", 0)
+
+    #Generate endrun statement for missing variables:
+    #outfile.write("!End simulation if there are missing input", 3)
+    #outfile.write("!variables that are required:", 3)
+    #outfile.write("if (len_trim(missing_required_vars) > 0) then", 3)
+    #outfile.write('call endrun("Required variables missing from registered list of input variables: "//&', 4)
+    #outfile.write("trim(missing_required_vars))", 5)
+    #outfile.write("end if", 3)
+    #outfile.write("", 0)
+
+    #Generate endrun statement for missing input names:
+    #outfile.write("!End simulation if there are variables that", 3)
+    #outfile.write("!have no input names:", 3)
+    #outfile.write("if (len_trim(missing_input_names) > 0) then", 3)
+    #outfile.write("call endrun(&", 4)
+    #outfile.write(' "Required variables missing a list of input names (<ic_file_input_names>): "//&', 5)
+    #outfile.write("trim(missing_input_names))", 5)
+    #outfile.write("end if", 3)
+    #outfile.write("", 0)
+
+    #Deallocate ccpp_required_data array:
+    outfile.write("!Deallocate required variables array for use in next suite:", 3)
+    outfile.write("deallocate(ccpp_required_data)", 3)
+    outfile.write("", 0)
+
+    #End suite loop:
+    outfile.write(" end do !CCPP suites", 2)
+    outfile.write("", 0)
+
+    #End subroutine:
+    outfile.write("end subroutine physics_check_data", 1)
 
     #----------------------------
 
