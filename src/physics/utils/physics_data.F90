@@ -208,7 +208,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use mpi,            only: MPI_MAX, MPI_SUM, MPI_REAL, MPI_INTEGER
+      use mpi,            only: MPI_MAXLOC, MPI_SUM, MPI_REAL, MPI_INTEGER
       use spmd_utils,     only: npes, mpicom
 
       !Max possible length of variable name in file:
@@ -269,7 +269,7 @@ CONTAINS
          !Gather results across all nodes to get global values
          temp = diff
          ierr = 0
-         call MPI_Allreduce(temp, diff, 1, MPI_REAL, MPI_MAX,                 &
+         call MPI_Allreduce(temp, diff, 1, MPI_REAL, MPI_MAXLOC,              &
               mpicom, ierr)
          temp = is_diff
          call MPI_Allreduce(temp, is_diff, 1, MPI_INTEGER, MPI_SUM,           &

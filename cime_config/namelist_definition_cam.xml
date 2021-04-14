@@ -612,7 +612,7 @@
     <type>char*8</type>
     <category>diagnostics</category>
     <group>physics_check_nl</group>
-    <valid_values>on,off</valid_values>
+    <valid_values>off,on</valid_values>
     <desc>
       Control the writing of physics check messages.
       'on' causes a summary of physics check statistics to be printed at the

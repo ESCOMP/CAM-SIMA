@@ -1297,8 +1297,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
         if var_stdname in fort_data.call_dict:
 
             #Set "if-statement" call string:
-            call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
-                              " '{}') then".format(var_stdname)
+            call_string_key = "case '{}'".format(var_stdname)
 
             #Extract vertical level variable:
             levnm = fort_data.vert_dict[var_stdname]
@@ -1459,8 +1458,9 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate "read_field" calls:
     outfile.write("!Read variable from IC file:", 6)
     outfile.write("", 0)
-    for if_call, read_call in call_string_dict.items():
-        outfile.write(if_call, 6)
+    outfile.write("select (phys_var_stdnames(stdnam_idx))", 6)
+    for case_call, read_call in call_string_dict.items():
+        outfile.write(case_call, 6)
         outfile.write(read_call, 7)
         outfile.write("end if", 6)
         outfile.write("", 0)
@@ -1587,8 +1587,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
         if var_stdname in fort_data.call_dict:
 
             #Set "if-statement" call string:
-            call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
-                              " '{}') then".format(var_stdname)
+            call_string_key = "case '{}'".format(var_stdname)
 
             #Extract vertical level variable:
             levnm = fort_data.vert_dict[var_stdname]
@@ -1722,8 +1721,9 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate "check_field" calls:
     outfile.write("!Check variable vs input check file:", 4)
     outfile.write("", 0)
-    for if_call, read_call in call_string_dict.items():
-        outfile.write(if_call, 4)
+    outfile.write("select (phys_var_stdnames(stdnam_idx))", 4)
+    for case_call, read_call in call_string_dict.items():
+        outfile.write(case_call, 4)
         outfile.write(read_call, 5)
         outfile.write("end if", 6)
         outfile.write("", 0)

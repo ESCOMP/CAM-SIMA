@@ -101,6 +101,8 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
+      use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
+      use spmd_utils,     only: masterproc, mpicom, npes
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -115,11 +117,31 @@ CONTAINS
       integer                            :: col_start
       integer                            :: col_end
 
+      namelist /physics_check_nl/ ncdata_check, print_physics_check
+
+      ! Read namelist
+      if (masterproc) then
+         open(newunit=unitn, file=trim(nlfile), status='old')
+         call find_group_name(unitn, 'physics_check_nl', status=ierr)
+         if (ierr == 0) then
+            read(unitn, physics_check_nl, iostat=ierr)
+            if (ierr /= 0) then
+               ! *PEVERWHEE*: perhaps don't call endrun
+               call endrun(subname // ':: ERROR reading namelist')
+            end if
+         end if
+         close(unitn)
+      end if
+
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
+      end if
+      ! Determine if physics_check should be run:
+      if (print_physics_check == 'on') then
+         ! *PEVERWHEE*: Call cam_ccpp_physics_check (takes ncdata_check, dtime_phys as arguments [at least])
       end if
       ! Threading vars
       col_start = 1
