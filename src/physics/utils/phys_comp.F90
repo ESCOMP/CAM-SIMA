@@ -2,6 +2,10 @@ module phys_comp
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: SHR_KIND_CS
+!!XXgoldyXX: v debug only
+use spmd_utils, only: masterproc
+use cam_logfile, only: iulog
+!!XXgoldyXX: ^ debug only
 
    implicit none
    private
@@ -115,19 +119,28 @@ CONTAINS
       integer                            :: part_ind
       integer                            :: col_start
       integer                            :: col_end
-      integer                            :: nstep_cur
+      integer                            :: data_frame
       logical                            :: use_init_variables
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
-      ! Get the current timestep
-      nstep_cur = get_nstep()
+      ! data_frame is the next input frame for physics input fields
+      ! Frame 1 is skipped for snapshot files
+      !!XXgoldyXX: This section needs to have better logic once we know if
+      !!           this is a physics test bench run.
+      data_frame = get_nstep() + 2
 
       ! Determine if we should read initialized variables from file
-      use_init_variables = (.not. is_first_step() .and. .not. is_first_restart_step())
+      use_init_variables = (.not. is_first_step()) .and. (.not. is_first_restart_step())
 
-      call physics_read_data(ncdata, suite_names, nstep_cur + 1, read_initialized_variables=use_init_variables) ! Skip current timestep of data
+!!XXgoldyXX: v debug only
+if (masterproc) then
+   write(iulog, '(2(a,i0),a,l7)') 'nstep = ', get_nstep(), ', dframe = ', data_frame, ', use_init = ', use_init_variables
+end if
+!!XXgoldyXX: ^ debug only
+      call physics_read_data(ncdata, suite_names, data_frame,                 &
+           read_initialized_variables=use_init_variables)
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &

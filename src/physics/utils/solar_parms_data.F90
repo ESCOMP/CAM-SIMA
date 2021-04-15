@@ -47,9 +47,10 @@ contains
      use cam_abortutils, only: endrun
      use ioFileMod,      only: cam_get_file, cam_open_file
      use string_utils,   only: to_str
-     use cam_pio_utils,  only: cam_pio_openfile
+     use cam_pio_utils,  only: cam_pio_openfile, cam_pio_handle_error
      use pio,            only: file_desc_t, var_desc_t, pio_get_var
      use pio,            only: pio_inq_varid, pio_closefile, pio_nowrite
+     use pio,            only: PIO_seterrorhandling, PIO_BCAST_ERROR
 
     !---------------------------------------------------------------
     ! arguments
@@ -66,6 +67,7 @@ contains
     type(var_desc_t)           :: varid
     integer                    :: astat
     integer                    :: ierr
+    integer                    :: err_handling
     character(len=shr_kind_cl) :: locfn
     character(len=*), parameter :: subname = 'solar_parms_init'
 
@@ -86,7 +88,7 @@ contains
     !-----------------------------------------------------------------------
 
     call getfil(filepath,  locfn, 0)
-    call cam_pio_openfile ( ncid, locfn, PIO_NOWRITE)
+    call cam_pio_openfile(ncid, locfn, PIO_NOWRITE)
 
     call time_coord_prev%initialize(filepath, fixed=fixed,                    &
          fixed_ymd=fixed_ymd, fixed_tod=fixed_tod, force_time_interp=.true.,  &
@@ -119,14 +121,25 @@ contains
        call endrun(subname//': allocate ap_in failed with stat '//            &
             to_str(astat))
     end if
+    ! We will handle errors for this routine
+    call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, oldmethod=err_handling)
     ierr = pio_inq_varid(ncid, 'f107', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for f107')
     ierr = pio_get_var(ncid, varid, f107_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for f107_in')
     ierr = pio_inq_varid(ncid, 'f107a', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for f107a')
     ierr = pio_get_var(ncid, varid, f107a_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for f107a_in')
     ierr = pio_inq_varid(ncid, 'kp', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for kp')
     ierr = pio_get_var(ncid, varid, kp_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for kp_in')
     ierr = pio_inq_varid(ncid, 'ap', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for ap')
     ierr = pio_get_var(ncid, varid, ap_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for ap_in')
+    call PIO_seterrorhandling(ncid, err_handling)
 
     call pio_closefile(ncid)
 

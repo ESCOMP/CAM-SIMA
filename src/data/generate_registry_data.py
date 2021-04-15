@@ -1338,13 +1338,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
         # Add variables
         # Note, we only support one section per table for host variables
         sections = mtable.sections()
-        if len(sections) > 1:
-            emsg = "Too many metadata sections ([ccpp-arg-table]) for "
-            emsg += "metadata table, {}: [{}]"
-            snames = [s.title for s in sections]
-            raise CCPPError(emsg.format(hname, ", ".join(snames)))
-        # end if
-        if sections:
+        if sections: # CCPP Framework will check for a single section
             mheader = sections[0]
         else:
             emsg = "Missing metadata section ([ccpp-arg-table]) for {}"

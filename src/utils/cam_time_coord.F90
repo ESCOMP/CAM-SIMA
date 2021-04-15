@@ -43,8 +43,10 @@ CONTAINS
    !---------------------------------------------------------------------------
    subroutine initialize(this, filepath, fixed, fixed_ymd, fixed_tod,         &
         force_time_interp, set_weights, try_dates, delta_days)
+      use cam_abortutils, only: check_allocate
       use ioFileMod,      only: cam_get_file
       use cam_pio_utils,  only: cam_pio_openfile, cam_pio_closefile
+      use cam_pio_utils,  only: cam_pio_handle_error
       use string_utils,   only: to_upper
 
       class(time_coordinate), intent(inout) :: this
@@ -119,16 +121,19 @@ CONTAINS
       call pio_seterrorhandling(fileid, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       call get_dimension(fileid, 'time', this%ntimes)
-      allocate(times_file(this%ntimes))
-      allocate(times_modl(this%ntimes))
-      allocate(this%times(this%ntimes))
+      allocate(times_file(this%ntimes), stat=ierr)
+      call check_allocate(ierr, subname, 'times_file')
+      allocate(times_modl(this%ntimes), stat=ierr)
+      call check_allocate(ierr, subname, 'times_modl')
+      allocate(this%times(this%ntimes), stat=ierr)
+      call check_allocate(ierr, subname, 'this%times')
 
       ierr =  pio_inq_varid(fileid, 'time', varid)
       use_time = ierr == PIO_NOERR
       ierr = pio_get_att(fileid, varid, 'calendar', time_calendar)
-      use_time = ierr == PIO_NOERR .and. use_time
+      use_time = (ierr == PIO_NOERR) .and. use_time
       ierr = pio_get_att(fileid, varid, 'units', time_units)
-      use_time = ierr == PIO_NOERR .and. use_time
+      use_time = (ierr == PIO_NOERR) .and. use_time
       if (use_time) then
          use_time = time_units(1:10) == 'days since'
       end if
@@ -199,9 +204,12 @@ CONTAINS
          use_time_bnds = ((ierr == PIO_NOERR) .and. (.not. force_interp))
 
          if (use_time_bnds) then
-            allocate (this%time_bnds(2, this%ntimes))
-            allocate (time_bnds_file(2, this%ntimes))
+            allocate(this%time_bnds(2, this%ntimes), stat=ierr)
+            call check_allocate(ierr, subname, 'this%time_bnds')
+            allocate(time_bnds_file(2, this%ntimes), stat=ierr)
+            call check_allocate(ierr, subname, 'time_bnds_file')
             ierr =  pio_get_var(fileid, varid, time_bnds_file)
+            call cam_pio_handle_error(ierr, subname//': Error with get_var time_bnds_file')
             time_bnds_file = time_bnds_file + ref_time
             this%time_interp = .false.
             do index = 1,this%ntimes
@@ -224,30 +232,22 @@ CONTAINS
 
          ! try using date and datesec
          allocate(dates(this%ntimes), stat=ierr)
-         if(ierr /= 0) then
-            write(err_str, '(3a,i0)') subname,                                &
-                 'failed to allocate dates; error = ', ierr
-            write(iulog, *) trim(err_str)
-            call endrun(trim(err_str))
-         end if
+         call check_allocate(ierr, subname, 'dates')
 
          allocate(datesecs(this%ntimes), stat=ierr)
-         if(ierr /= 0) then
-            write(errmsg, '(2a,i0)') subname,                                 &
-                 'failed to allocate datesecs; error = ', ierr
-            write(iulog, *) trim(errmsg)
-            call endrun(trim(errmsg))
-         end if
+         call check_allocate(ierr, subname, 'datesecs')
 
-         ierr = pio_inq_varid(fileid, 'date', varid )
+         ierr = pio_inq_varid(fileid, 'date', varid)
          if (ierr /= PIO_NOERR) then
             call endrun(subname//'input file must contain time or date '//    &
                  'variable '//trim(filepath))
          end if
          ierr = pio_get_var(fileid, varid, dates)
+         call cam_pio_handle_error(ierr, subname//': Error with get_var date')
          ierr = pio_inq_varid(fileid, 'datesec', varid)
          if (ierr == PIO_NOERR) then
             ierr = pio_get_var(fileid, varid, datesecs)
+            call cam_pio_handle_error(ierr, subname//': Error with get_var datesecs')
          else
             datesecs(:) = 0
          end if
@@ -349,8 +349,12 @@ CONTAINS
    ! produce a duplicate time coordinate object
    !---------------------------------------------------------------------------
    subroutine copy(this, obj)
+      use cam_abortutils, only: check_allocate
+
       class(time_coordinate), intent(inout) :: this
       class(time_coordinate), intent(in) :: obj
+
+      integer :: ierr
 
       call this%destroy()
 
@@ -359,11 +363,14 @@ CONTAINS
       this%fixed_ymd = obj%fixed_ymd
       this%fixed_tod = obj%fixed_tod
 
-      allocate (this%times(this%ntimes))
+      allocate (this%times(this%ntimes), stat=ierr)
+      call check_allocate(ierr, 'copy', 'this%times', file=__FILE__, line=__LINE__)
       this%times = obj%times
 
       if (allocated(obj%time_bnds)) then
-         allocate (this%time_bnds(2, this%ntimes))
+         allocate(this%time_bnds(2, this%ntimes), stat=ierr)
+         call check_allocate(ierr, 'copy', 'this%time_bnds',                  &
+              file=__FILE__, line=__LINE__)
          this%time_bnds = obj%time_bnds
       end if
       this%filename = obj%filename
@@ -454,14 +461,19 @@ CONTAINS
    ! returns dimension size
    !-----------------------------------------------------------------------
    subroutine get_dimension(fid, dname, dsize)
+      use cam_pio_utils, only: cam_pio_handle_error
+
       type(file_desc_t), intent(in)  :: fid
       character(*),      intent(in)  :: dname
       integer,           intent(out) :: dsize
 
       integer :: dimid, ierr
+      character(len=*), parameter :: subname = 'time_coord:get_dimension'
 
       ierr = pio_inq_dimid(fid, dname, dimid)
+      call cam_pio_handle_error(ierr, subname//': Error with inq_dimid dname')
       ierr = pio_inq_dimlen(fid, dimid, dsize)
+      call cam_pio_handle_error(ierr, subname//': Error with inq_dimlen dname')
 
    end subroutine get_dimension
 
@@ -482,8 +494,6 @@ CONTAINS
    ! convert a collection of dates and times to reals
    !---------------------------------------------------------------------------
    subroutine convert_dates(dates, secs, times)
-
-      use time_manager, only: set_time_float_from_date
 
       integer,  intent(in)  :: dates(:)
       integer,  intent(in)  :: secs(:)

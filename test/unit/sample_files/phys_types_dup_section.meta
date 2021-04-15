@@ -1,0 +1,35 @@
+[ccpp-table-properties]
+  name = physics_types_simple
+  type = module
+[ccpp-arg-table]
+  name = physics_types_simple
+  type = module
+[ ncol ]
+  standard_name = horizontal_dimension
+  long_name = Number of horizontal columns
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ latitude ]
+  standard_name = latitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ longitude ]
+  standard_name = longitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ccpp-arg-table]
+  name = physics_types_simple
+  type = module
+[ pver ]
+  standard_name = vertical_layer_dimension
+  long_name = Number of vertical layers
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
