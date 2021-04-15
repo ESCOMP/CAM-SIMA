@@ -1,14 +1,33 @@
+!
+! This work (Common Community Physics Package Framework), identified by
+! NOAA, NCAR, CU/CIRES, is free of known copyright restrictions and is
+! placed in the public domain.
+!
+! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+! THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+!>
+!! @brief Auto-generated Initial conditions source file, physics_inputs_noreq.F90
+!!
+!
 module physics_inputs_noreq
+
 
    implicit none
    private
 
+
 !! public interfaces
    public :: physics_read_data
 
-CONTAINS
 
-   subroutine physics_read_data(file, suite_names, timestep)
+CONTAINS
+   subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
       use pio,                  only: file_desc_t
       use cam_abortutils,       only: endrun
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
@@ -22,6 +41,7 @@ CONTAINS
       type(file_desc_t), intent(inout) :: file
       character(len=SHR_KIND_CS)       :: suite_names(:) !Names of CCPP suites
       integer,           intent(in)    :: timestep
+      logical,  intent(in),  optional  :: read_initialized_variables
 
       !Local variables:
 
@@ -42,10 +62,20 @@ CONTAINS
       character(len=2)           :: sep2 = '' !String separator used to print error messages
       character(len=2)           :: sep3 = '' !String separator used to print error messages
 
+      !Logical to default optional argument to False:
+      logical                    :: use_init_variables
+
       !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
       protected_non_init_vars = ' '
       missing_input_names   = ' '
+
+      !Initialize use_init_variables based on whether it was input to function:
+      if (present(read_initialized_variables)) then
+         use_init_variables = read_initialized_variables
+      else
+         use_init_variables = .false.
+      end if
 
       !Loop over CCPP physics/chemistry suites:
       do suite_idx = 1, size(suite_names, 1)
@@ -59,7 +89,7 @@ CONTAINS
          do req_idx = 1, size(ccpp_required_data, 1)
 
             !Find IC file input name array index for required variable:
-            name_idx = find_input_name_idx(ccpp_required_data(req_idx))
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)
 
             !Check for special index values:
             select case (name_idx)
@@ -128,9 +158,9 @@ CONTAINS
          !End simulation if there are variables that
          !have no input names:
          if (len_trim(missing_input_names) > 0) then
-            call endrun(&
-               "Required variables missing a list of input names (<ic_file_input_names>): "//&
-               trim(missing_input_names))
+               call                                                                               &
+                    endrun('Required variables missing a list of input names (<ic_file_input_names>): '//&
+                    trim(missing_input_names))
          end if
 
          !Deallocate required variables array for use in next suite:

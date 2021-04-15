@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name = physics_state
+  type = ddt
 [ccpp-arg-table]
   name = physics_state
   type = ddt
@@ -35,6 +38,9 @@
   units = kg kg-1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ccpp-table-properties]
+  name = physics_types_ddt_array
+  type = module
 [ccpp-arg-table]
   name = physics_types_ddt_array
   type = module

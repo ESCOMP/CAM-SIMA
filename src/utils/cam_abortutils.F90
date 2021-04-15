@@ -10,6 +10,7 @@ module cam_abortutils
    save
 
    public :: endrun
+   public :: check_allocate
    public :: cam_register_open_file
    public :: cam_register_close_file
 
@@ -24,6 +25,26 @@ module cam_abortutils
    type(open_file_pointer), pointer :: open_files_pool => NULL()
 
 CONTAINS
+
+   subroutine check_allocate(errcode, subname, fieldname, file, line)
+      ! If <errcode> is not zero, call endrun with an error message
+
+      ! Dummy arguments
+      integer,                    intent(in) :: errcode
+      character(len=*),           intent(in) :: subname
+      character(len=*),           intent(in) :: fieldname
+      character(len=*), optional, intent(in) :: file
+      integer,          optional, intent(in) :: line
+      ! Local variable
+      character(len=max_chars) :: abort_msg
+
+      if (errcode /= 0) then
+         write(abort_msg, '(4a,i0)') trim(subname), ": Allocate of '",        &
+              trim(fieldname), "' failed with code ", errcode
+      end if
+      call endrun(abort_msg, file=file, line=line)
+
+   end subroutine check_allocate
 
    subroutine cam_register_open_file(file, file_name)
       ! Dummy arguments
@@ -130,13 +151,13 @@ CONTAINS
 #endif
 !!XXgoldyXX: ^ debug only
       if (present(file) .and. present(line)) then
-         write(abort_msg, *) trim(message),' at ',trim(file),':',line
+         write(abort_msg, '(4a,i0)') trim(message),' at ',trim(file),':',line
       else if (present(file)) then
-         write(abort_msg, *) trim(message),' at ',trim(file)
+         write(abort_msg, '(3a)') trim(message),' at ',trim(file)
       else if (present(line)) then
-         write(abort_msg, *) trim(message),' on line ',line
+         write(abort_msg, '(2a,i0)') trim(message),' on line ',line
       else
-         write(abort_msg, *) trim(message)
+         write(abort_msg, '(a)') trim(message)
       end if
       call shr_sys_abort(abort_msg)
 

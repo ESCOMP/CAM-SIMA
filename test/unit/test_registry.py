@@ -46,6 +46,7 @@ sys.path.append(__REGISTRY_DIR)
 
 # pylint: disable=wrong-import-position
 from generate_registry_data import gen_registry
+from generate_registry_data import metadata_file_to_files, TypeRegistry
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -1144,6 +1145,37 @@ class RegistryTest(unittest.TestCase):
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
+
+    def test_bad_metadata_file_dup_section(self):
+        """Test response to bad metadata file with a duplicate section.
+        Check that the correct error is raised."""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR,
+                                  "phys_types_dup_section.meta")
+
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},
+                                   logging.getLogger("badmf"))
+        # Check exception message
+        emsg = "module, 'physics_types_simple', table already contains "
+        emsg += "'physics_types_simple', at {}:36".format(infilename)
+        self.assertEqual(emsg, str(verr.exception).split('\n')[0])
+
+    def test_bad_metadata_file_no_table(self):
+        """Test response to bad metadata file with no table.
+        Check that the correct error is raised."""
+        # Setup test
+        table_name = "phys_types_no_table.meta"
+        infilename = os.path.join(_SAMPLE_FILES_DIR, table_name)
+
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},
+                                   logging.getLogger("badmf"))
+        # Check exception message
+        emsg = "Missing metadata section ([ccpp-arg-table]) for physics_types_simple"
+        self.assertEqual(emsg, str(verr.exception).split('\n')[0])
 
 if __name__ == '__main__':
     unittest.main()
