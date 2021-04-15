@@ -510,8 +510,15 @@ class VarFortData:
                         elif "vertical_layer_dimension" in var.dimensions:
                             self.__vert_dict[var.standard_name] = "lev"
                         else:
-                            emsg = "Unsupported vertical dimension in {}"
-                            raise CamInitWriteError(emsg.format(var.standard_name))
+                            if var.dimensions[0] == 'horizontal_dimension':
+                                unsupp_dim = var.dimensions[1]
+                            else:
+                                unsupp_dim = var.dimensions[0]
+                            # end if
+                            emsg = "Unsupported vertical dimension"
+                            emsg += ", '{}', in {}".format(unsupp_dim,
+                                                           var.standard_name)
+                            raise CamInitWriteError(emsg)
                         # end if
                     else:
                         #Variable can only have two dimnsions max for "read_field"
@@ -530,7 +537,7 @@ class VarFortData:
 
                     #Check if variable doesn't exist in use dictionary:
                     if var.standard_name not in self.__use_dict:
-                        #Add to dicttionary, with only file name present:
+                        #Add to dictionary, with only file name present:
                         self.__use_dict[var.standard_name] = [var_file]
                     # end if
 
@@ -1091,7 +1098,7 @@ def write_init_mark_subroutine(outfile):
     outfile.write("if (.not. found_var) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:", 3)
-    outfile.write("call endrun('Variable '//trim(varname)//' is missing from phys_var_stdnames array.')", 3)
+    outfile.write('''call endrun("Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
@@ -1151,7 +1158,7 @@ def write_read_from_file_mark_subroutine(outfile):
     outfile.write("!Check if initialized_vars at that index has already been set to PARAM", 4)
     outfile.write("if (initialized_vars(stdnam_idx) == PARAM) then", 4)
     outfile.write("!If so, call endrun because that should not happen", 5)
-    outfile.write("call endrun('Variable '//trim(varname)//' was read from file, but was a parameter')", 5)
+    outfile.write('''call endrun("Variable '"//trim(varname)//"' was read from file, but was a parameter")''', 5)
     outfile.write("end if", 4)
 
     outfile.write("!Otherwise, set associated initialized_vars\n" \
@@ -1171,7 +1178,7 @@ def write_read_from_file_mark_subroutine(outfile):
     outfile.write("if (.not. found_var) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:", 3)
-    outfile.write("call endrun('Variable '//trim(varname)//' is missing from phys_var_stdnames array.')", 3)
+    outfile.write('''call endrun("Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
     outfile.write("", 0)
     #--------------------------
@@ -1252,7 +1259,7 @@ def write_is_init_func(outfile):
     outfile.write("if (.not. found) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning\n" \
                   "!that variable didn't exist in standard names array:", 3)
-    outfile.write("call endrun(subname//'Variable '//trim(varname)//' is missing from phys_var_stdnames array.')", 3)
+    outfile.write('''call endrun(subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
@@ -1335,7 +1342,7 @@ def write_is_read_from_file_func(outfile):
     outfile.write("if (.not. found) then", 2)
     outfile.write("!If loop has completed with no matches, then endrun with warning", 3)
     outfile.write("!that variable didn't exist in standard names array:", 3)
-    outfile.write("call endrun(subname//'Variable '//trim(varname)//' is missing from phys_var_stdnames array.')", 3)
+    outfile.write('''call endrun(subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)

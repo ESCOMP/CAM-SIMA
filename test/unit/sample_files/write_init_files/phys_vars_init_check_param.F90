@@ -108,7 +108,7 @@ CONTAINS
       if (.not. found_var) then
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
-         call endrun('Variable '//trim(varname)//' is missing from phys_var_stdnames array.')
+         call endrun("Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end subroutine mark_as_initialized
@@ -136,8 +136,8 @@ CONTAINS
             if (initialized_vars(stdnam_idx) == PARAM) then
                !If so, call endrun because that should not happen
                call                                                                               &
-                    endrun('Variable '//trim(varname)//                                           &
-                    ' was read from file, but was a parameter')
+                    endrun("Variable '"//trim(varname)//                                          &
+                    "' was read from file, but was a parameter")
             end if
             !Otherwise, set associated initialized_vars
             !array index to READ_FROM_FILE:
@@ -152,7 +152,7 @@ CONTAINS
       if (.not. found_var) then
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
-         call endrun('Variable '//trim(varname)//' is missing from phys_var_stdnames array.')
+         call endrun("Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end subroutine mark_as_read_from_file
@@ -191,8 +191,8 @@ CONTAINS
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
          call                                                                                     &
-              endrun(subname//'Variable '//trim(varname)//                                        &
-              ' is missing from phys_var_stdnames array.')
+              endrun(subname//"Variable '"//trim(varname)//                                       &
+              "' is missing from phys_var_stdnames array.")
       end if
 
    end function is_initialized
@@ -232,8 +232,8 @@ CONTAINS
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
          call                                                                                     &
-              endrun(subname//'Variable '//trim(varname)//                                        &
-              ' is missing from phys_var_stdnames array.')
+              endrun(subname//"Variable '"//trim(varname)//                                       &
+              "' is missing from phys_var_stdnames array.")
       end if
 
    end function is_read_from_file
