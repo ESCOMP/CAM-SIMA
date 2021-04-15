@@ -1,13 +1,32 @@
+!
+! This work (Common Community Physics Package Framework), identified by
+! NOAA, NCAR, CU/CIRES, is free of known copyright restrictions and is
+! placed in the public domain.
+!
+! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+! THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+!>
+!! @brief Auto-generated Initial conditions source file, physics_inputs_ddt_array.F90
+!!
+!
 module physics_inputs_ddt_array
+
 
    implicit none
    private
 
+
 !! public interfaces
    public :: physics_read_data
 
-CONTAINS
 
+CONTAINS
    subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
       use pio,                  only: file_desc_t
       use cam_abortutils,       only: endrun
@@ -121,12 +140,13 @@ CONTAINS
                   !Read variable from IC file:
 
                   if (trim(phys_var_stdnames(name_idx)) == 'sea_level_pressure') then
-                     call read_field(file, input_var_names(:,name_idx), timestep, phys_state%slp)
+                     call read_field(file, 'sea_level_pressure', input_var_names(:,name_idx),     &
+                          timestep, phys_state%slp)
                   end if
 
                   if (trim(phys_var_stdnames(name_idx)) == 'potential_temperature') then
-                     call read_field(file, input_var_names(:,name_idx), 'lev', timestep,          &
-                          phys_state%T(:,:,ix_theta))
+                     call read_field(file, 'potential_temperature', input_var_names(:,name_idx),  &
+                          'lev', timestep, phys_state%T(:,:,ix_theta))
                   end if
 
             end select !special indices
@@ -150,9 +170,9 @@ CONTAINS
          !End simulation if there are variables that
          !have no input names:
          if (len_trim(missing_input_names) > 0) then
-            call endrun(&
-               "Required variables missing a list of input names (<ic_file_input_names>): "//&
-               trim(missing_input_names))
+               call                                                                               &
+                    endrun('Required variables missing a list of input names (<ic_file_input_names>): '//&
+                    trim(missing_input_names))
          end if
 
          !Deallocate required variables array for use in next suite:

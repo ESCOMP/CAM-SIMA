@@ -16,6 +16,20 @@
   units = count
   dimensions = ()
   intent = in
+[ temp_layer ]
+  standard_name = potential_temperature
+  units = K
+  dimensions = (horizontal_loop_extent, vertical_layer_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+[ slp ]
+  standard_name = sea_level_pressure
+  units = Pa
+  dimensions = (horizontal_loop_extent, band_number)
+  type = real
+  kind = kind_phys
+  intent = in
 [ timestep ]
   standard_name = time_step_for_physics
   long_name = time step

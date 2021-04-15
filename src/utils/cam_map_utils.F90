@@ -647,7 +647,7 @@ contains
   subroutine cam_filemap_get_filemap(this, fieldlens, filelens, filemap,      &
        src_in, dest_in, permutation_in)
      use spmd_utils,  only: iam
-     use cam_logfile, only: debug_output, cam_log_multiwrite
+     use cam_logfile, only: debug_output, cam_log_multiwrite, DEBUGOUT_DEBUG
 
     ! Dummy arguments
     class(cam_filemap_t)                      :: this
@@ -844,7 +844,7 @@ contains
       call endrun(subname//'internal error, fmind')
     end if
     deallocate(dsize)
-    if (debug_output > 2) then
+    if (debug_output >= DEBUGOUT_DEBUG) then
        write(errmsg, *) ':   task  size   min   max'
        call cam_log_multiwrite(subname, errmsg, '(a,": ",4i6)',               &
             (/ size(filemap, 1), int(minval(filemap)), int(maxval(filemap)) /))

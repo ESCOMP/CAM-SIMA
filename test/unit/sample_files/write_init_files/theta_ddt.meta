@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name = theta_ddt_type
+  type = ddt
 [ccpp-arg-table]
   name = theta_ddt_type
   type = ddt

@@ -1,0 +1,177 @@
+!-------------------------------------------------------------------------------
+! solar variability parameters -- space weather indices
+!-------------------------------------------------------------------------------
+module solar_parms_data
+
+  use shr_kind_mod,   only : r8 => shr_kind_r8, shr_kind_cl
+  use cam_time_coord, only : time_coordinate
+  use shr_infnan_mod, only : nan => shr_infnan_nan, assignment(=)
+
+  implicit none
+
+  private
+  save
+
+ ! public interface
+
+  public :: solar_parms_init
+  public :: solar_parms_advance
+
+  logical, public :: solar_parms_on = .false.
+
+ ! time-interpolated quantities
+
+  real(r8), public, protected :: solar_parms_f107
+  real(r8), public, protected :: solar_parms_f107a
+  real(r8), public, protected :: solar_parms_f107p ! previous day
+  real(r8), public, protected :: solar_parms_kp
+  real(r8), public, protected :: solar_parms_ap
+
+ ! private data
+
+  real(r8), allocatable :: f107_in(:)
+  real(r8), allocatable :: f107a_in(:)
+  real(r8), allocatable :: kp_in(:)
+  real(r8), allocatable :: ap_in(:)
+
+  type(time_coordinate) :: time_coord_curr ! for current model time interpolation
+  type(time_coordinate) :: time_coord_prev ! for previous day time interpolation
+
+contains
+
+  subroutine solar_parms_init(filepath, fixed, fixed_ymd, fixed_tod)
+    !---------------------------------------------------------------
+    !	... initialize solar parmaters
+    !---------------------------------------------------------------
+
+     use cam_abortutils, only: endrun
+     use ioFileMod,      only: cam_get_file, cam_open_file
+     use string_utils,   only: to_str
+     use cam_pio_utils,  only: cam_pio_openfile, cam_pio_handle_error
+     use pio,            only: file_desc_t, var_desc_t, pio_get_var
+     use pio,            only: pio_inq_varid, pio_closefile, pio_nowrite
+     use pio,            only: PIO_seterrorhandling, PIO_BCAST_ERROR
+
+    !---------------------------------------------------------------
+    ! arguments
+    !---------------------------------------------------------------
+    character(len=*), intent(in) :: filepath
+    logical,          intent(in) :: fixed
+    integer,          intent(in) :: fixed_ymd
+    integer,          intent(in) :: fixed_tod
+
+    !---------------------------------------------------------------
+    !	... local variables
+    !---------------------------------------------------------------
+    type(file_desc_t)          :: ncid
+    type(var_desc_t)           :: varid
+    integer                    :: astat
+    integer                    :: ierr
+    integer                    :: err_handling
+    character(len=shr_kind_cl) :: locfn
+    character(len=*), parameter :: subname = 'solar_parms_init'
+
+    solar_parms_f107  = nan
+    solar_parms_f107a = nan
+    solar_parms_f107p = nan
+    solar_parms_kp    = nan
+    solar_parms_ap    = nan
+
+    solar_parms_on = (filepath /= 'NONE')
+
+    if (.not. solar_parms_on) then
+       return
+    end if
+
+    !-----------------------------------------------------------------------
+    !	... readin the solar parms dataset
+    !-----------------------------------------------------------------------
+
+    call getfil(filepath,  locfn, 0)
+    call cam_pio_openfile(ncid, locfn, PIO_NOWRITE)
+
+    call time_coord_prev%initialize(filepath, fixed=fixed,                    &
+         fixed_ymd=fixed_ymd, fixed_tod=fixed_tod, force_time_interp=.true.,  &
+         try_dates=.true., delta_days=-1._r8)
+
+    call time_coord_curr%initialize(filepath, fixed=fixed,                    &
+         fixed_ymd=fixed_ymd, fixed_tod=fixed_tod, force_time_interp=.true.,  &
+         try_dates=.true.)
+
+    !---------------------------------------------------------------
+    !	... allocate and read solar parms
+    !---------------------------------------------------------------
+    allocate(f107_in(time_coord_curr%ntimes), stat=astat)
+    if(astat /= 0) then
+       call endrun(subname//': allocate f107_in failed with stat '//          &
+            to_str(astat))
+    end if
+    allocate(f107a_in(time_coord_curr%ntimes), stat=astat)
+    if(astat /= 0) then
+       call endrun(subname//': allocate f107a_in failed with stat '//         &
+            to_str(astat))
+    end if
+    allocate(kp_in(time_coord_curr%ntimes), stat=astat)
+    if(astat /= 0) then
+       call endrun(subname//': allocate kp_in failed with stat '//            &
+            to_str(astat))
+    end if
+    allocate(ap_in(time_coord_curr%ntimes), stat=astat)
+    if(astat /= 0) then
+       call endrun(subname//': allocate ap_in failed with stat '//            &
+            to_str(astat))
+    end if
+    ! We will handle errors for this routine
+    call PIO_seterrorhandling(ncid, PIO_BCAST_ERROR, oldmethod=err_handling)
+    ierr = pio_inq_varid(ncid, 'f107', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for f107')
+    ierr = pio_get_var(ncid, varid, f107_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for f107_in')
+    ierr = pio_inq_varid(ncid, 'f107a', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for f107a')
+    ierr = pio_get_var(ncid, varid, f107a_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for f107a_in')
+    ierr = pio_inq_varid(ncid, 'kp', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for kp')
+    ierr = pio_get_var(ncid, varid, kp_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for kp_in')
+    ierr = pio_inq_varid(ncid, 'ap', varid)
+    call cam_pio_handle_error(ierr, subname//': Error inq_varid for ap')
+    ierr = pio_get_var(ncid, varid, ap_in)
+    call cam_pio_handle_error(ierr, subname//': Error get_var for ap_in')
+    call PIO_seterrorhandling(ncid, err_handling)
+
+    call pio_closefile(ncid)
+
+end subroutine solar_parms_init
+
+subroutine solar_parms_advance
+  !---------------------------------------------------------------
+  ! time interpolate space wx indices
+  !---------------------------------------------------------------
+
+  integer  :: ndx1, ndx2
+  real(r8) :: wgt1, wgt2
+
+  if (solar_parms_on) then
+     call time_coord_curr%advance()
+     ndx1=time_coord_curr%indxs(1)
+     ndx2=time_coord_curr%indxs(2)
+     wgt1=time_coord_curr%wghts(1)
+     wgt2=time_coord_curr%wghts(2)
+     solar_parms_f107  = wgt1*f107_in(ndx1) + wgt2*f107_in(ndx2)
+     solar_parms_f107a = wgt1*f107a_in(ndx1) + wgt2*f107a_in(ndx2)
+     solar_parms_kp    = wgt1*kp_in(ndx1) + wgt2*kp_in(ndx2)
+     solar_parms_ap    = wgt1*ap_in(ndx1) + wgt2*ap_in(ndx2)
+
+     call time_coord_prev%advance()
+     ndx1=time_coord_prev%indxs(1)
+     ndx2=time_coord_prev%indxs(2)
+     wgt1=time_coord_prev%wghts(1)
+     wgt2=time_coord_prev%wghts(2)
+     solar_parms_f107p = wgt1*f107_in(ndx1) + wgt2*f107_in(ndx2)
+  endif
+
+end subroutine solar_parms_advance
+
+end module solar_parms_data

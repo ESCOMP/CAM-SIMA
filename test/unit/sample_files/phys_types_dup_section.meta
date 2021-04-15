@@ -23,3 +23,13 @@
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
+[ccpp-arg-table]
+  name = physics_types_simple
+  type = module
+[ pver ]
+  standard_name = vertical_layer_dimension
+  long_name = Number of vertical layers
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True

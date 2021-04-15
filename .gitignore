@@ -9,6 +9,7 @@ src/physics/clubb
 src/physics/cosp2/src
 src/physics/ncar_ccpp
 src/physics/silhs
+src/utils/history_output
 
 
 # Ignore compiled python

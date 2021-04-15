@@ -1,4 +1,22 @@
+!
+! This work (Common Community Physics Package Framework), identified by
+! NOAA, NCAR, CU/CIRES, is free of known copyright restrictions and is
+! placed in the public domain.
+!
+! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+! THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+!>
+!! @brief Auto-generated Initialization-checking source file
+!!
+!
 module phys_vars_init_check_simple
+
 
    implicit none
    private
@@ -63,8 +81,9 @@ CONTAINS
 
       integer :: stdnam_idx !Standard name array index
 
-      logical :: found_var = .false. !Logical which inidcates variable exists in array
+      logical :: found_var !Logical which indicates variable exists in array
 
+      found_var = .false.
       !Loop over standard name array:
       do stdnam_idx = 1, phys_var_num
          !Check if standard name matches provided variable name:
@@ -78,17 +97,14 @@ CONTAINS
 
             !Indicate variable has been found:
             found_var = .true.
-
-            !Exit loop:
-            exit
+            exit ! Exit loop
          end if
       end do
 
-      if (.not.found_var) then
+      if (.not. found_var) then
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
-         call endrun(&
-         "Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+         call endrun("Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end subroutine mark_as_initialized
@@ -105,17 +121,19 @@ CONTAINS
 
       integer :: stdnam_idx !Standard name array index
 
-      logical :: found_var = .false. !Logical which indicates variable exists in array
+      logical :: found_var !Logical which indicates variable exists in array
 
+      found_var = .false.
       !Loop over input name array:
       do stdnam_idx = 1, phys_var_num
          !Check if input variable name matches provided variable name:
-         if (any(input_var_names(:, stdnam_idx) == trim(varname))) then
+         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
             !Check if initialized_vars at that index has already been set to PARAM
             if (initialized_vars(stdnam_idx) == PARAM) then
                !If so, call endrun because that should not happen
-               call endrun(&
-               "Variable '"//trim(varname)//"' was read from file, but was a parameter")
+               call                                                                               &
+                    endrun("Variable '"//trim(varname)//                                          &
+                    "' was read from file, but was a parameter")
             end if
             !Otherwise, set associated initialized_vars
             !array index to READ_FROM_FILE:
@@ -123,17 +141,14 @@ CONTAINS
 
             !Indicate variable has been found:
             found_var = .true.
-
-            !Exit loop:
-            exit
+            exit ! Exit loop
          end if
       end do
 
-      if (.not.found_var) then
+      if (.not. found_var) then
          !If loop has completed with no matches, then endrun with warning
-         !that variable didn't exist in input names array:
-         call endrun(&
-         "Variable '"//trim(varname)//"' is missing from input_var_names array.")
+         !that variable didn't exist in standard names array:
+         call endrun("Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
       end if
 
    end subroutine mark_as_read_from_file
@@ -152,8 +167,10 @@ CONTAINS
       character(len=*), parameter  :: subname = 'is_initialized: '
 
       integer :: stdnam_idx !standard name array index
+      logical :: found      !check that <varname> was found
 
       is_initialized = .false.
+      found = .false.
 
       !Loop over standard name array:
       do stdnam_idx = 1, phys_var_num
@@ -161,17 +178,17 @@ CONTAINS
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
             !If so, then return True if PARAM, INITIALIZED, OR READ_FROM_FILE
             is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)
-
-            !Exit loop:
-            exit
+            found = .true.
+            exit ! Exit loop
          end if
       end do
 
-      if (.not.is_initialized) then
+      if (.not. found) then
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
-         call endrun(&
-         subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+         call                                                                                     &
+              endrun(subname//"Variable '"//trim(varname)//                                       &
+              "' is missing from phys_var_stdnames array.")
       end if
 
    end function is_initialized
@@ -203,17 +220,16 @@ CONTAINS
             is_read_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)
             !Mark as found:
             found = .true.
-
-            !Exit loop:
-            exit
+            exit ! Exit loop
          end if
       end do
 
       if (.not. found) then
          !If loop has completed with no matches, then endrun with warning
          !that variable didn't exist in standard names array:
-         call endrun(&
-         subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")
+         call                                                                                     &
+              endrun(subname//"Variable '"//trim(varname)//                                       &
+              "' is missing from phys_var_stdnames array.")
       end if
 
    end function is_read_from_file

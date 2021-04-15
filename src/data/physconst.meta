@@ -1,3 +1,6 @@
+[ccpp-table-properties]
+  name  = physconst
+  type  = module
 [ccpp-arg-table]
   name  = physconst
   type  = module

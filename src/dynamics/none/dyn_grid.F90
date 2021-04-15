@@ -2,7 +2,8 @@ module dyn_grid
 
    use shr_kind_mod,        only: r8 => shr_kind_r8
    use shr_sys_mod,         only: shr_sys_flush
-   use cam_logfile,         only: iulog, debug_output
+   use cam_logfile,         only: iulog
+   use cam_logfile,         only: debug_output, DEBUGOUT_DEBUG, DEBUGOUT_NONE
    use spmd_utils,          only: masterproc
    use physics_column_type, only: physics_column_t
    use string_utils,        only: to_str
@@ -124,7 +125,7 @@ CONTAINS
       call ref_pres_init(hypi, hypm, nprlev)
 
       ! We will handle errors for this routine
-      call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, err_handling)
+      call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, oldmethod=err_handling)
       ! Find the latitude variable and dimension(s)
       call cam_pio_find_var(fh_ini, (/ 'lat  ', 'lat_d' /), lat_name,         &
            lat_vardesc, var_found)
@@ -150,7 +151,7 @@ CONTAINS
               "on initial data file"
          call endrun(errormsg)
       end if
-      if (masterproc .and. (debug_output > 0)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          call shr_sys_flush(iulog) ! Make sure things line up
          if (grid_is_latlon) then
             write(iulog, *) subname, ': Grid is rectangular (lat / lon)'
@@ -184,7 +185,7 @@ CONTAINS
               "on initial data file"
          call endrun(errormsg)
       end if
-      if (masterproc .and. (debug_output > 0)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          if (grid_is_latlon) then
             write(iulog, '(2a,i0,a,i0,a)') subname, ': Grid has ', num_lats,  &
                  ' latitude coordinates, and ', num_lons,                     &
@@ -201,12 +202,12 @@ CONTAINS
          num_local_columns = num_local_columns + 1
       end if
       col_end = col_start + num_local_columns - 1
-      if (masterproc .and. (debug_output > 0)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          write(iulog, '(2a,i0,a)') subname, ': Grid has ',                    &
               num_global_columns, ' total columns'
          call shr_sys_flush(iulog)
       end if
-      if (debug_output > 2) then
+      if (debug_output >= DEBUGOUT_DEBUG) then
          ! Expensive, print out decomp info from every task
          call cam_log_multiwrite(subname, ':  PE   # cols  start    end',     &
               '(a,i4,i9,2i7)', (/ num_local_columns, col_start, col_end/))
@@ -246,7 +247,7 @@ CONTAINS
          write(errormsg, '(3a)') subname, ": Could not find number of levels"
          call endrun(errormsg)
       end if
-      if (masterproc .and. (debug_output > 0)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
          write(iulog, '(2a,i0,a)') subname, ': Grid has ', num_levels, ' levels'
          call shr_sys_flush(iulog)
       end if
