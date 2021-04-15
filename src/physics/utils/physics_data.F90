@@ -8,15 +8,16 @@ module physics_data
    public :: find_input_name_idx
    public :: read_field
    public :: check_field
+   public :: generate_check_field_result_string
 
    !Non-standard variable indices:
    integer, public, parameter :: no_exist_idx     = -1
    integer, public, parameter :: init_mark_idx    = -2
    integer, public, parameter :: prot_no_init_idx = -3
-   
-   integer, public, parameter :: MIN_DIFFERENCE = 0._r8
-   integer, public, parameter :: MIN_RELATIVE_VALUE = 10E-6
 
+   real(kind_phys), public, parameter :: MIN_DIFFERENCE = 0
+   real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10E-6
+   
    interface read_field
       module procedure read_field_2d
       module procedure read_field_3d
@@ -162,7 +163,7 @@ CONTAINS
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:,:)
       ! Local variables
-      logical                          :: var_found
+      logical                          :: var_found = .true.
       integer                          :: num_levs
       character(len=ic_name_len)       :: found_name
       type(var_desc_t)                 :: vardesc
@@ -198,8 +199,8 @@ CONTAINS
       end if
    end subroutine read_field_3d
 
-   subroutine check_field_2d(file, var_names, current_value, timestep, buffer,&
-        diff, is_diff, is_relative_diff, diff_squared)
+   subroutine check_field_2d(file, var_names, timestep, max_diff, diff_count, &
+                 diff_squared_sum, buffer)
       use shr_assert_mod, only: shr_assert_in_domain
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
@@ -215,22 +216,23 @@ CONTAINS
       use phys_vars_init_check, only: ic_name_len
 
       !Dummy arguments:
+      real(kind_phys),   intent(inout) :: buffer(:)
       type(file_desc_t), intent(inout) :: file
       character(len=*),  intent(in)    :: var_names(:)
-      real(kind_phys),   intent(in)    :: current_value
       integer,           intent(in)    :: timestep
-      real(kind_phys),   intent(in)    :: buffer(:)
-      logical,           intent(out)   :: var_found
-      real(kind_phys),   intent(out)   :: diff
-      integer,           intent(out)   :: is_diff
-      logical,           intent(out)   :: is_relative_diff
-      real(kind_phys),   intent(out)   :: diff_squared
+      real(kind_phys),   intent(out)   :: max_diff
+      integer,           intent(out)   :: diff_count
+      real(kind_phys),   intent(out)   :: diff_squared_sum
 
       !Local variables:
+      logical                          :: var_found
       character(len=ic_name_len)       :: found_name
       type(var_desc_t)                 :: vardesc
-      character(len=*), parameter      :: subname = 'check_field_2d'
-      real(kind_phys)                  :: temp_diff !For MPI
+      character(len=*),  parameter     :: subname = 'check_field_2d'
+      real(kind_phys)                  :: diff
+      integer                          :: is_diff
+      logical                          :: is_relative_diff
+      real(kind_phys)                  :: diff_squared
       integer                          :: ierr      !For MPI
 
       !Initialize output variables
@@ -248,38 +250,80 @@ CONTAINS
          end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
-      else
-         end
-      end if
-      if (var_found) then
-         if (current_value < MIN_RELATIVE_DIFFERENCE) then
-            !Calculate absolute difference:
-            diff = abs(current_value - buffer)
-            is_relative_diff = .false.
-         else
-            !Calculate relative difference:
-            diff = abs(current_value - buffer) / abs(current_value)
+         if (var_found) then
+            if (buffer(1) < MIN_RELATIVE_VALUE) then
+               !Calculate absolute difference:
+               !diff = abs(current_value - REAL(buffer))
+               is_relative_diff = .false.
+            else
+               !Calculate relative difference:
+               !diff = abs(current_value - REAL(buffer)) / abs(current_value)
+            end if
+            !Determine if diff is large enough to be considered a "hit"
+            if (diff > MIN_DIFFERENCE) then
+               is_diff = 1
+               !Calculate square of diff
+               diff_squared = diff ** 2
+            end if
+            !Gather results across all nodes to get global values
+            ierr = 0
+            call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &
+                 mpicom, ierr)
+            call MPI_Allreduce(is_diff, diff_count, 1, MPI_INTEGER, MPI_SUM,  &
+                 mpicom, ierr)
+            call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
+                 MPI_SUM, mpicom, ierr)
          end if
-         !Determine if diff is large enough to be considered a "hit"
-         if (diff > MIN_DIFFERENCE) then
-            is_diff = 1
-            !Calculate square of diff
-            diff_squared = diff ** 2
-         end if
-         !Gather results across all nodes to get global values
-         temp = diff
-         ierr = 0
-         call MPI_Allreduce(temp, diff, 1, MPI_REAL, MPI_MAXLOC,              &
-              mpicom, ierr)
-         temp = is_diff
-         call MPI_Allreduce(temp, is_diff, 1, MPI_INTEGER, MPI_SUM,           &
-              mpicom, ierr)
-         temp = diff_squared
-         call MPI_Allreduce(temp, diff_squared, 1, MPI_INTEGER, MPI_SUM,      &
-              mpicom, ierr)
-      else
-         end
       end if
    end subroutine check_field_2d
+
+   subroutine check_field_3d(file, var_names, vcoord_name, timestep, max_diff, diff_count, &
+                 diff_squared_sum, buffer)
+      use shr_assert_mod, only: shr_assert_in_domain
+      use shr_sys_mod,    only: shr_sys_flush
+      use pio,            only: file_desc_t, var_desc_t
+      use spmd_utils,     only: masterproc
+      use cam_pio_utils,  only: cam_pio_find_var
+      use cam_abortutils, only: endrun
+      use cam_logfile,    only: iulog
+      use cam_field_read, only: cam_read_field
+      use mpi,            only: MPI_MAXLOC, MPI_SUM, MPI_REAL, MPI_INTEGER
+      use spmd_utils,     only: npes, mpicom
+
+      !Max possible length of variable name in file:
+      use phys_vars_init_check, only: ic_name_len
+
+      !Dummy arguments:
+      real(kind_phys),   intent(inout) :: buffer(:,:)
+      type(file_desc_t), intent(inout) :: file
+      character(len=*),  intent(in)    :: var_names(:)
+      integer,           intent(in)    :: timestep
+      real(kind_phys),   intent(out)   :: max_diff
+      integer,           intent(out)   :: diff_count
+      real(kind_phys),   intent(out)   :: diff_squared_sum
+      character(len=*),  intent(in)    :: vcoord_name 
+
+      !Local variables:
+      logical                          :: var_found = .true.
+      character(len=ic_name_len)       :: found_name
+      type(var_desc_t)                 :: vardesc
+      character(len=*),  parameter     :: subname = 'check_field_3d'
+      real(kind_phys)                  :: diff
+      integer                          :: is_diff
+      logical                          :: is_relative_diff
+      real(kind_phys)                  :: diff_squared
+      integer                          :: ierr      !For MPI
+
+   end subroutine check_field_3d
+
+   subroutine generate_check_field_result_string(checked_var, max_diff,       &
+                rms_squared, hits)
+
+      character(len=*), intent(in) :: checked_var
+      real(kind_phys),  intent(in) :: max_diff
+      real(kind_phys),  intent(in) :: rms_squared
+      integer,          intent(in) :: hits
+
+   end subroutine generate_check_field_result_string
 
 end module physics_data

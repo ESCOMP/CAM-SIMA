@@ -1297,7 +1297,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
         if var_stdname in fort_data.call_dict:
 
             #Set "if-statement" call string:
-            call_string_key = "case '{}'".format(var_stdname)
+            call_string_key = "case ('{}')".format(var_stdname)
 
             #Extract vertical level variable:
             levnm = fort_data.vert_dict[var_stdname]
@@ -1458,15 +1458,15 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate "read_field" calls:
     outfile.write("!Read variable from IC file:", 6)
     outfile.write("", 0)
-    outfile.write("select (phys_var_stdnames(stdnam_idx))", 6)
+    outfile.write("select case (phys_var_stdnames(name_idx))", 6)
     for case_call, read_call in call_string_dict.items():
-        outfile.write(case_call, 6)
-        outfile.write(read_call, 7)
-        outfile.write("end if", 6)
+        outfile.write(case_call, 7)
+        outfile.write(read_call, 8)
         outfile.write("", 0)
+    outfile.write("end select !read variables", 6)
 
     #End select catse and required variables loop:
-    outfile.write("end select !special indices", 4)
+    outfile.write("end select !special indices", 5)
     outfile.write("", 0)
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
@@ -1574,10 +1574,10 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
             use_list.append(use_str)
     #-----------------------------
 
-    #Create fortran "read_field" calls:
+    #Create fortran "check_field" calls:
     #---------------------------------
 
-    #Create new (empty) dictionary to store "read_field" calls:
+    #Create new (empty) dictionary to store "check_field" calls:
     call_string_dict = OrderedDict()
 
     #Loop over all variable standard names:
@@ -1587,19 +1587,19 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
         if var_stdname in fort_data.call_dict:
 
             #Set "if-statement" call string:
-            call_string_key = "case '{}'".format(var_stdname)
+            call_string_key = "case ('{}')".format(var_stdname)
 
             #Extract vertical level variable:
             levnm = fort_data.vert_dict[var_stdname]
 
-            #Set "read_field" call string:
+            #Set "check_field" call string:
             if levnm is not None:
-                call_string_val = "call physics_check_field(file, input_var_names(:,name_idx)," + \
-                                  " '{}', timestep, {})".format(\
+                call_string_val = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
+                                  " timestep, max_diff, hits, diff_squared_sum, {})".format(\
                                   levnm, fort_data.call_dict[var_stdname])
             else:
-                call_string_val = "call physics_check_field(file, input_var_names(:,name_idx)," + \
-                                  " timestep, {})".format(fort_data.call_dict[var_stdname])
+                call_string_val = "call check_field(file, input_var_names(:,name_idx)," + \
+                                  " timestep, max_diff, hits, diff_squared_summ, {})".format(fort_data.call_dict[var_stdname])
 
             #Add strings to dictionary:
             call_string_dict[call_string_key] = call_string_val
@@ -1616,9 +1616,10 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use pio,                  only: file_desc_t", 2)
     outfile.write("use cam_abortutils,       only: endrun", 2)
     outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
-    outfile.write("use physics_data,         only: physics_check_field, find_input_name_idx", 2)
+    outfile.write("use physics_data,         only: check_field, find_input_name_idx", 2)
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
+    outfile.write("use ccpp_kinds,           only: kind_phys", 2)
 
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
     outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
@@ -1656,6 +1657,9 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=2)           :: sep  = '' !String separator used to print error messages", 2)
     outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
     outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
+    outfile.write("real(kind_phys)            :: diff_squared_sum", 2)
+    outfile.write("real(kind_phys)            :: max_diff", 2)
+    outfile.write("integer                    :: hits", 2)
     outfile.write("", 0)
     outfile.write("!Logical to default optional argument to False:", 2)
     outfile.write("logical                    :: use_init_variables", 2)
@@ -1690,7 +1694,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)", 4)
 
     #Generate error message if required variable isn't found:
-    outfile.write("if (name_idx == no_exist_idx)", 4)
+    outfile.write("if (name_idx == no_exist_idx) then", 4)
     outfile.write("", 0)
     outfile.write("!If an index was never found, then save variable name and check the rest", 5)
     outfile.write("!of the variables, after which the model simulation will end:", 5)
@@ -1721,12 +1725,12 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate "check_field" calls:
     outfile.write("!Check variable vs input check file:", 4)
     outfile.write("", 0)
-    outfile.write("select (phys_var_stdnames(stdnam_idx))", 4)
+    outfile.write("select case (phys_var_stdnames(name_idx))", 4)
     for case_call, read_call in call_string_dict.items():
-        outfile.write(case_call, 4)
-        outfile.write(read_call, 5)
-        outfile.write("end if", 6)
+        outfile.write(case_call, 5)
+        outfile.write(read_call, 6)
         outfile.write("", 0)
+    outfile.write("end select !check variables", 4)
 
     #End select catse and required variables loop:
     outfile.write("end do !Suite-required variables", 3)
