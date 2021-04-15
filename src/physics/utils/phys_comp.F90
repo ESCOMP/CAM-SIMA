@@ -1,7 +1,7 @@
 module phys_comp
 
    use ccpp_kinds,   only: kind_phys
-   use shr_kind_mod, only: SHR_KIND_CS
+   use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
 !!XXgoldyXX: v debug only
 use spmd_utils, only: masterproc
 use cam_logfile, only: iulog
@@ -21,6 +21,8 @@ use cam_logfile, only: iulog
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
+   character(len=SHR_KIND_CL)              :: ncdata_check = 'UNSET'
+   character(len=SHR_KIND_CS)              :: print_physics_check = 'off'
 
 !==============================================================================
 CONTAINS
@@ -28,9 +30,43 @@ CONTAINS
 
    subroutine phys_readnl(nlfilename)
       ! Read physics options, such as suite to run
+      use shr_kind_mod,    only: r8 => shr_kind_r8
+      use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
+      use shr_flux_mod,    only: shr_flux_adjust_constants
+      !use mpi,             only: mpi_bcast 
+      use mpi,             only: mpi_char
+      use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
+      use cam_logfile,     only: iulog
+      use cam_abortutils, only: endrun
 
-      ! Dummy argument
+      ! filepath for file containing namelist input
       character(len=*), intent(in) :: nlfilename
+
+      ! Local variables
+      integer :: unitn, ierr
+      character(len=*), parameter :: subname = 'phys_readnl'
+      logical :: newg, newsday, newmwh2o, newcpwv
+      logical :: newmwdry, newcpair, newrearth, newtmelt, newomega
+
+      namelist /physics_check_nl/ ncdata_check, print_physics_check
+      ! Read namelist
+      if (masterproc) then
+         open(newunit=unitn, file=trim(nlfilename), status='old')
+         call find_group_name(unitn, 'physics_check_nl', status=ierr)
+         if (ierr == 0) then
+            read(unitn, physics_check_nl, iostat=ierr)
+            if (ierr /= 0) then
+               call endrun(subname // ':: ERROR reading namelist')
+            end if
+         end if
+         close(unitn)
+      end if
+
+      ! Broadcast namelist variables
+      if (npes > 1) then
+         call mpi_bcast(ncdata_check, 1, mpi_char, masterprocid, mpicom, ierr)
+         call mpi_bcast(print_physics_check, 1, mpi_char, masterprocid, mpicom, ierr)
+      end if
 
    end subroutine phys_readnl
 
@@ -123,6 +159,7 @@ CONTAINS
       integer                            :: col_end
       integer                            :: data_frame
       logical                            :: use_init_variables
+      integer                            :: unitn
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
@@ -143,22 +180,6 @@ end if
 !!XXgoldyXX: ^ debug only
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
-
-      namelist /physics_check_nl/ ncdata_check, print_physics_check
-
-      ! Read namelist
-      if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
-         call find_group_name(unitn, 'physics_check_nl', status=ierr)
-         if (ierr == 0) then
-            read(unitn, physics_check_nl, iostat=ierr)
-            if (ierr /= 0) then
-               ! *PEVERWHEE*: perhaps don't call endrun
-               call endrun(subname // ':: ERROR reading namelist')
-            end if
-         end if
-         close(unitn)
-      end if
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &

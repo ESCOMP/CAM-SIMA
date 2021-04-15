@@ -273,7 +273,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str)
 
         #End module:
-        outfile.write("\nend module {}".format(phys_input_fname_str), 0)
+        #outfile.write("\nend module {}".format(phys_input_fname_str), 0)
     # end if
     #--------------------------------------
 
@@ -1623,13 +1623,9 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
         outfile.write(case_call, 7)
         outfile.write(read_call, 8)
         outfile.write("", 0)
-<<<<<<< HEAD
     outfile.write("end select !read variables", 6)
-
-=======
-    # end for
->>>>>>> NCAR/development
-    #End select catse and required variables loop:
+    # end select
+    #End select case and required variables loop:
     outfile.write("end select !special indices", 5)
     outfile.write("", 0)
     outfile.write("end do !Suite-required variables", 3)
@@ -1756,12 +1752,14 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
             #Set "check_field" call string:
             if levnm is not None:
-                call_string_val = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
-                                  " timestep, max_diff, hits, diff_squared_sum, {})".format(\
+                call_str = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
+                                  " timestep, max_diff, hits, diff_squared_sum, {})"
+                call_string_val = call_str.format(\
                                   levnm, fort_data.call_dict[var_stdname])
             else:
-                call_string_val = "call check_field(file, input_var_names(:,name_idx)," + \
-                                  " timestep, max_diff, hits, diff_squared_summ, {})".format(fort_data.call_dict[var_stdname])
+                call_str = "call check_field(file, input_var_names(:,name_idx)," + \
+                                  " timestep, max_diff, hits, diff_squared_sum, {})"
+                call_string_val = call_str.format(fort_data.call_dict[var_stdname])
 
             #Add strings to dictionary:
             call_string_dict[call_string_key] = call_string_val
@@ -1865,6 +1863,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("", 0)
     outfile.write("!Update character separator to now include comma:", 5)
     outfile.write("sep = ', '", 5)
+    outfile.write("end if", 4)
     outfile.write("", 0)
 
     #Generate error message if required variable contains no input names

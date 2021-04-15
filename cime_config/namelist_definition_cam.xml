@@ -3714,7 +3714,7 @@
     <category>initial_conditions</category>
     <group>physics_check_nl</group>
     <desc>
-      Full pathname of atmospheric state dataset for comaprison/check (NetCDF format).
+      Full pathname of atmospheric state dataset for comparison/check (NetCDF format).
       Default: UNSET
     </desc>
     <values>
