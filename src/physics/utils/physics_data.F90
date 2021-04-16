@@ -261,8 +261,10 @@ CONTAINS
             write(iulog, *) subname, ': Checking read-in field, ', trim(found_name)
             call shr_sys_flush(iulog)
          end if
+         write(iulog, *) 'about to read field'
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
+         write(iulog, *) 'read (past tense) field'
          if (var_found) then
             if (buffer(1) < MIN_RELATIVE_VALUE) then
                !Calculate absolute difference:
@@ -278,6 +280,7 @@ CONTAINS
                !Calculate square of diff
                diff_squared = diff ** 2
             end if
+            write(iulog, *) 'calculated everything-ish'
             !Gather results across all nodes to get global values
             ierr = 0
             call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &

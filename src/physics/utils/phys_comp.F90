@@ -2,6 +2,7 @@ module phys_comp
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
+   use pio,          only: file_desc_t
 !!XXgoldyXX: v debug only
 use spmd_utils, only: masterproc
 use cam_logfile, only: iulog
@@ -21,8 +22,8 @@ use cam_logfile, only: iulog
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
-   character(len=SHR_KIND_CL)              :: ncdata_check = 'UNSET'
-   character(len=SHR_KIND_CS)              :: print_physics_check = 'off'
+   character(len=SHR_KIND_CL)              :: print_physics_check = 'print_physics_check'
+   character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
 
 !==============================================================================
 CONTAINS
@@ -33,7 +34,6 @@ CONTAINS
       use shr_kind_mod,    only: r8 => shr_kind_r8
       use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
       use shr_flux_mod,    only: shr_flux_adjust_constants
-      !use mpi,             only: mpi_bcast 
       use mpi,             only: mpi_char
       use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,     only: iulog
@@ -49,6 +49,7 @@ CONTAINS
       logical :: newmwdry, newcpair, newrearth, newtmelt, newomega
 
       namelist /physics_check_nl/ ncdata_check, print_physics_check
+
       ! Read namelist
       if (masterproc) then
          open(newunit=unitn, file=trim(nlfilename), status='old')
@@ -61,7 +62,6 @@ CONTAINS
          end if
          close(unitn)
       end if
-
       ! Broadcast namelist variables
       if (npes > 1) then
          call mpi_bcast(ncdata_check, 1, mpi_char, masterprocid, mpicom, ierr)
@@ -136,13 +136,13 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
-      use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,     only: masterproc, mpicom, npes
       use physics_inputs, only: physics_read_data
       use cam_initfiles,  only: initial_file_get_id
       use time_manager,   only: get_nstep
       use time_manager,   only: is_first_step
       use time_manager,   only: is_first_restart_step
+      use physics_inputs, only: physics_check_data
+      use shr_kind_mod,   only: SHR_KIND_CL
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -152,6 +152,7 @@ CONTAINS
       type(cam_in_t),      intent(inout) :: cam_in
       ! Local variables
       type(file_desc_t), pointer :: ncdata
+      type(file_desc_t), pointer :: ncdata_check
       character(len=512) :: errmsg
       integer            :: errflg = 0
       integer                            :: part_ind
@@ -163,6 +164,7 @@ CONTAINS
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
+      ncdata_check => initial_file_get_id()
 
       ! data_frame is the next input frame for physics input fields
       ! Frame 1 is skipped for snapshot files
@@ -190,6 +192,7 @@ end if
       ! Determine if physics_check should be run:
       if (print_physics_check == 'on') then
          ! *PEVERWHEE*: Call cam_ccpp_physics_check (takes ncdata_check, dtime_phys as arguments [at least])
+         call physics_check_data(ncdata_check, suite_names, data_frame)
       end if
       ! Threading vars
       col_start = 1

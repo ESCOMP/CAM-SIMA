@@ -1290,7 +1290,7 @@ def write_is_read_from_file_func(outfile):
 
 
     #Add subroutine header:
-    outfile.write("logical function is_read_from_file(varname)", 1)
+    outfile.write("logical function is_read_from_file(varname, stdnam_idx_in)", 1)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1313,8 +1313,9 @@ def write_is_read_from_file_func(outfile):
     outfile.write("", 0)
 
     #Add variable declaration statements:
-    outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
-    outfile.write("character(len=*), parameter  :: subname = 'is_read_from_file: '", 2)
+    outfile.write("character(len=*), intent(in)   :: varname !Variable name being checked", 2)
+    outfile.write("integer, optional, intent(out) :: stdnam_idx_in", 2)
+    outfile.write("character(len=*), parameter    :: subname = 'is_read_from_file: '", 2)
     outfile.write("", 0)
     outfile.write("integer :: stdnam_idx !standard name array index", 2)
     outfile.write("logical :: found      !check that <varname> was found", 2)
@@ -1352,6 +1353,11 @@ def write_is_read_from_file_func(outfile):
     outfile.write("!If loop has completed with no matches, then endrun with warning", 3)
     outfile.write("!that variable didn't exist in standard names array:", 3)
     outfile.write('''call endrun(subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
+    outfile.write("end if", 2)
+
+    #Handle optional output variable:
+    outfile.write("if (present(stdnam_idx_in)) then", 2)
+    outfile.write("stdnam_idx_in = stdnam_idx", 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
@@ -1780,6 +1786,8 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
     outfile.write("use ccpp_kinds,           only: kind_phys", 2)
+    outfile.write("use cam_logfile,          only: iulog", 2)
+    outfile.write("use phys_vars_init_check, only: is_read_from_file", 2)
 
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
     outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
@@ -1821,9 +1829,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("real(kind_phys)            :: max_diff", 2)
     outfile.write("integer                    :: hits", 2)
     outfile.write("", 0)
-    outfile.write("!Logical to default optional argument to False:", 2)
-    outfile.write("logical                    :: use_init_variables", 2)
-    outfile.write("", 0)
 
     #Initialize variables:
     outfile.write("!Initalize missing and non-initialized variables strings:", 2)
@@ -1851,20 +1856,9 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Call input name search function:
     outfile.write("!Find IC file input name array index for required variable:", 4)
-    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)", 4)
-
-    #Generate error message if required variable isn't found:
-    outfile.write("if (name_idx == no_exist_idx) then", 4)
-    outfile.write("", 0)
-    outfile.write("!If an index was never found, then save variable name and check the rest", 5)
-    outfile.write("!of the variables, after which the model simulation will end:", 5)
-    outfile.write("missing_required_vars(len_trim(missing_required_vars)+1:) = &", 5)
-    outfile.write(" trim(sep)//trim(ccpp_required_data(req_idx))", 6)
-    outfile.write("", 0)
-    outfile.write("!Update character separator to now include comma:", 5)
-    outfile.write("sep = ', '", 5)
+    outfile.write("if (.not. is_read_from_file(ccpp_required_data(req_idx), name_idx)) then", 4)
+    outfile.write("continue", 5)
     outfile.write("end if", 4)
-    outfile.write("", 0)
 
     #Generate error message if required variable contains no input names
     #(i.e. the <ic_file_input_names> registry tag is missing):
