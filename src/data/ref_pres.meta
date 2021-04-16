@@ -18,7 +18,7 @@
   protected = True
 [ pref_mid_norm ]
   standard_name = reference_pressure_normalized_by_surface_pressure
-  units = Pa Pa-1
+  units = 1
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
   protected = True
@@ -53,7 +53,7 @@
   dimensions = ()
   protected = True
 [ do_molec_press ]
-  standard_name = largest_model_top_pressue_that_allows_molecular_diffusion
+  standard_name = largest_model_top_pressure_that_allows_molecular_diffusion
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
