@@ -261,12 +261,10 @@ CONTAINS
             write(iulog, *) subname, ': Checking read-in field, ', trim(found_name)
             call shr_sys_flush(iulog)
          end if
-         write(iulog, *) 'about to read field'
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
-         write(iulog, *) 'read (past tense) field'
          if (var_found) then
-            if (buffer(1) < MIN_RELATIVE_VALUE) then
+            if (buffer(timestep) < MIN_RELATIVE_VALUE) then
                !Calculate absolute difference:
                !diff = abs(current_value - REAL(buffer))
                is_relative_diff = .false.
@@ -280,15 +278,14 @@ CONTAINS
                !Calculate square of diff
                diff_squared = diff ** 2
             end if
-            write(iulog, *) 'calculated everything-ish'
             !Gather results across all nodes to get global values
             ierr = 0
-            call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &
-                 mpicom, ierr)
-            call MPI_Allreduce(is_diff, diff_count, 1, MPI_INTEGER, MPI_SUM,  &
-                 mpicom, ierr)
-            call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
-                 MPI_SUM, mpicom, ierr)
+            !call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &
+            !     mpicom, ierr)
+            !call MPI_Allreduce(is_diff, diff_count, 1, MPI_INTEGER, MPI_SUM,  &
+            !     mpicom, ierr)
+            !call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
+            !     MPI_SUM, mpicom, ierr)
          end if
       end if
    end subroutine check_field_2d
@@ -305,6 +302,7 @@ CONTAINS
       use cam_field_read, only: cam_read_field
       use mpi,            only: MPI_MAXLOC, MPI_SUM, MPI_REAL, MPI_INTEGER
       use spmd_utils,     only: npes, mpicom
+      use vert_coord,     only: pver, pverp
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: ic_name_len
@@ -329,7 +327,57 @@ CONTAINS
       logical                          :: is_relative_diff
       real(kind_phys)                  :: diff_squared
       integer                          :: ierr      !For MPI
+      integer                          :: num_levs
 
+      !Initialize output variables
+      is_diff = 0
+      is_relative_diff = .true.
+      diff = 0
+      diff_squared = 0
+
+      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+
+      if (var_found) then
+         if (trim(vcoord_name) == 'lev') then
+            num_levs = pver
+         else if (trim(vcoord_name) == 'ilev') then
+            num_levs = pverp
+         else
+            call endrun(subname//'Unknown vcoord_name, '//trim(vcoord_name))
+         end if
+         if (masterproc) then
+            write(iulog, *) subname, ': Checking read-in field, ', trim(found_name)
+            call shr_sys_flush(iulog)
+         end if
+         call cam_read_field(found_name, file, buffer, var_found,             &
+              timelevel=timestep, dim3name=trim(vcoord_name),                 &
+              dim3_bnds=(/1, num_levs/))
+         if (var_found) then
+            if (any(buffer(timestep,:) < MIN_RELATIVE_VALUE)) then
+               !Calculate absolute difference:
+               !diff = abs(current_value - REAL(buffer))
+               is_relative_diff = .false.
+            else
+               !Calculate relative difference:
+               !diff = abs(current_value - REAL(buffer)) / abs(current_value)
+            end if
+            !Determine if diff is large enough to be considered a "hit"
+            if (diff > MIN_DIFFERENCE) then
+               is_diff = 1
+               !Calculate square of diff
+               diff_squared = diff ** 2
+            end if
+            !Gather results across all nodes to get global values
+            ierr = 0
+            !call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &
+            !     mpicom, ierr)
+            !call MPI_Allreduce(is_diff, diff_count, 1, MPI_INTEGER, MPI_SUM,  &
+            !     mpicom, ierr)
+            !call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
+            !     MPI_SUM, mpicom, ierr)
+         end if
+      end if
+ 
    end subroutine check_field_3d
 
    subroutine generate_check_field_result_string(checked_var, max_diff,       &

@@ -1787,6 +1787,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
     outfile.write("use ccpp_kinds,           only: kind_phys", 2)
     outfile.write("use cam_logfile,          only: iulog", 2)
+    outfile.write("use spmd_utils,           only: masterproc", 2)
     outfile.write("use phys_vars_init_check, only: is_read_from_file", 2)
 
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
@@ -1887,7 +1888,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
         outfile.write("", 0)
     outfile.write("end select !check variables", 4)
 
-    #End select catse and required variables loop:
+    #End select case and required variables loop:
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
 

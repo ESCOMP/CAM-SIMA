@@ -191,8 +191,12 @@ end if
       end if
       ! Determine if physics_check should be run:
       if (print_physics_check == 'on') then
-         ! *PEVERWHEE*: Call cam_ccpp_physics_check (takes ncdata_check, dtime_phys as arguments [at least])
-         call physics_check_data(ncdata_check, suite_names, data_frame)
+         ! *PEVERWHEE*: cam_ccpp_physics_check?? 
+         call physics_check_data(ncdata_check, suite_names, get_nstep() + 1)
+      end if
+      !*PEVERWHEE*: LOGGING
+      if (masterproc) then
+         write(iulog, *) 'finished physics_check_data'
       end if
       ! Threading vars
       col_start = 1
