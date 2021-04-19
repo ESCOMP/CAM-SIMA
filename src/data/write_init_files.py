@@ -1484,7 +1484,6 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use physics_data,         only: read_field, find_input_name_idx", 2)
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
-
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
     outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
 
@@ -1620,7 +1619,6 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("end if", 6)
     outfile.write("", 0)
 
-
     #Generate "read_field" calls:
     outfile.write("!Read variable from IC file:", 6)
     outfile.write("", 0)
@@ -1631,6 +1629,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
         outfile.write("", 0)
     outfile.write("end select !read variables", 6)
     # end select
+
     #End select case and required variables loop:
     outfile.write("end select !special indices", 5)
     outfile.write("", 0)
@@ -1885,6 +1884,9 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     for case_call, read_call in call_string_dict.items():
         outfile.write(case_call, 5)
         outfile.write(read_call, 6)
+        outfile.write("if (masterproc) then", 6)
+        outfile.write("write(iulog,*) 'max_diff is ', max_diff", 7)
+        outfile.write("end if", 6)
         outfile.write("", 0)
     outfile.write("end select !check variables", 4)
 

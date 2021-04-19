@@ -183,7 +183,6 @@ CONTAINS
       character(len=*), parameter      :: subname = 'read_field_3d: '
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
-
       if (var_found) then
          if (trim(vcoord_name) == 'lev') then
             num_levs = pver
@@ -255,7 +254,6 @@ CONTAINS
       diff_squared = 0
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
-
       if (var_found) then
          if (masterproc) then
             write(iulog, *) subname, ': Checking read-in field, ', trim(found_name)
@@ -286,6 +284,9 @@ CONTAINS
             !     mpicom, ierr)
             !call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
             !     MPI_SUM, mpicom, ierr)
+            call shr_assert_in_domain(buffer, is_nan=.false.,                    &
+              varname='temp_variable',                                           &
+              msg=subname//'NaN found in '//trim(found_name))
          end if
       end if
    end subroutine check_field_2d
@@ -375,6 +376,9 @@ CONTAINS
             !     mpicom, ierr)
             !call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
             !     MPI_SUM, mpicom, ierr)
+            call shr_assert_in_domain(buffer, is_nan=.false.,                    &
+              varname='temp_variable',                                           &
+              msg=subname//'NaN found in '//trim(found_name))
          end if
       end if
  

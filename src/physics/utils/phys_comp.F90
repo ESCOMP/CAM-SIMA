@@ -189,6 +189,9 @@ end if
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
       end if
+      if (masterproc) then
+         write(iulog,*) 'finished physics_read_data'
+      end if
       ! Determine if physics_check should be run:
       if (print_physics_check == 'on') then
          ! *PEVERWHEE*: cam_ccpp_physics_check?? 
