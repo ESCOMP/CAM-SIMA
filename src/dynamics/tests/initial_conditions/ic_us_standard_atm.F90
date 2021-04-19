@@ -19,6 +19,7 @@ use std_atm_profile,     only: std_atm_pres, std_atm_height, std_atm_temp
 
 use cam_logfile,         only: iulog
 use cam_abortutils,      only: endrun
+use string_utils,        only: to_str
 
 implicit none
 private
@@ -60,13 +61,19 @@ subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
    integer                           :: ncol
    integer                           :: nlev
    integer                           :: ncnst
+   integer                           :: iret
    character(len=*), parameter       :: subname = 'us_std_atm_set_ic'
    real(r8)                          :: psurf(1)
    real(r8), allocatable             :: pmid(:), zmid(:)
    !----------------------------------------------------------------------------
 
    ncol = size(latvals, 1)
-   allocate(mask_use(ncol))
+   allocate(mask_use(ncol), stat=iret)
+   if (iret /= 0) then
+      call endrun(subname//': allocate mask_use(ncol)) failed with stat: '//&
+                  to_str(iret))
+   end if
+
    if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
          call endrun(subname//': input, mask, is wrong size')
@@ -112,7 +119,18 @@ subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
          call endrun(subname//': PHIS must be specified to initiallize T')
       end if
       nlev = size(T, 2)
-      allocate(pmid(nlev), zmid(nlev))
+      allocate(pmid(nlev), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate pmid(nlev) failed with stat: '//&
+                     to_str(iret))
+      end if
+
+      allocate(zmid(nlev), stat=iret)
+      if (iret /= 0) then
+         call endrun(subname//': allocate zmid(nlev) failed with stat: '//&
+                     to_str(iret))
+      end if
+
       do i = 1, ncol
          if (mask_use(i)) then
             ! get surface pressure

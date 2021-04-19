@@ -366,55 +366,55 @@ contains
     num = SIZE(elem)
 
     do j=1,num
-       allocate(elem(j)%desc%putmapP(max_neigh_edges))
+       allocate(elem(j)%desc%putmapP(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%putmapP(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%getmapP(max_neigh_edges))
+       allocate(elem(j)%desc%getmapP(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%getmapP(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges))
+       allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%putmapP_ghost(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges))
+       allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%getmapP_ghost(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%putmapS(max_neigh_edges))
+       allocate(elem(j)%desc%putmapS(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%putmapS(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%getmapS(max_neigh_edges))
+       allocate(elem(j)%desc%getmapS(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%getmapS(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%reverse(max_neigh_edges))
+       allocate(elem(j)%desc%reverse(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%reverse(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%globalID(max_neigh_edges))
+       allocate(elem(j)%desc%globalID(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%globalID(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
        end if
 
-       allocate(elem(j)%desc%loc2buf(max_neigh_edges))
+       allocate(elem(j)%desc%loc2buf(max_neigh_edges), stat=iret)
        if (iret /= 0) then
           call endrun(subname//': allocate elem%desc%loc2buf(max_neigh_edges) failed with stat: '//&
                       to_str(iret))
@@ -555,20 +555,13 @@ contains
       end if
 
       ! vertical velocity
-      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%phi(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
-
-      ! relative vorticity
       allocate(elem(i)%derived%omega(np,np,nlev), stat=iret)
       if (iret /= 0) then
         call endrun(subname//': allocate elem%derived%omega(np,np,nlev) failed with stat: '//&
                     to_str(iret))
       end if
 
-      ! divergence
+      ! relative vorticity
       allocate(elem(i)%derived%zeta(np,np,nlev), stat=iret)
       if (iret /= 0) then
         call endrun(subname//': allocate elem%derived%zeta(np,np,nlev) failed with stat: '//&

@@ -705,7 +705,7 @@ class ConfigCAM:
             self.add_cppdef("_MPI")
             self.add_cppdef("SPMD")
 
-            # Add OpenMP CCP definitions, if needed:
+            # Add OpenMP CPP definitions, if needed:
             if nthrds > 1:
                 self.add_cppdef("_OPENMP")
 

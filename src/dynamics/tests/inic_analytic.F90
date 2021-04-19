@@ -9,6 +9,7 @@ module inic_analytic
   use cam_logfile,         only: iulog
   use shr_kind_mod,        only: r8 => shr_kind_r8
   use cam_abortutils,      only: endrun
+  use string_utils,        only: to_str
   use shr_sys_mod,         only: shr_sys_flush
   use inic_analytic_utils, only: analytic_ic_active, analytic_ic_type
 
@@ -77,10 +78,16 @@ CONTAINS
     integer                           :: rndm_seed_sz
     integer                           :: i, k
     integer                           :: ncol, nlev
+    integer                           :: iret
     character(len=*), parameter       :: subname = 'DYN_SET_INIC_COL'
 
 #ifdef ANALYTIC_IC
-    allocate(mask_use(size(latvals)))
+    allocate(mask_use(size(latvals)), stat=iret)
+    if (iret /= 0) then
+      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
+                  to_str(iret))
+    end if
+
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
         call endrun('cnst_init_default: input, mask, is wrong size')
@@ -186,7 +193,11 @@ CONTAINS
              pertlim,' to initial temperature field'
       end if
       call random_seed(size=rndm_seed_sz)
-      allocate(rndm_seed(rndm_seed_sz))
+      allocate(rndm_seed(rndm_seed_sz), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate rndm_seed(rndm_seed_sz) failed with stat: '//&
+                    to_str(iret))
+      end if
 
       ncol = size(T, 1)
       nlev = size(T, 2)
@@ -242,6 +253,7 @@ CONTAINS
     integer                        :: i, bbeg, bend
     integer                        :: size1, size2, size3
     integer                        :: nblks, blksize
+    integer                        :: iret
     logical                        :: verbose
     character(len=4)               :: mname
     character(len=*), parameter    :: subname = 'DYN_SET_INIC_CBLOCK'
@@ -299,7 +311,7 @@ CONTAINS
             call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                  glob_ind(bbeg:bend), V=V(:,:,i), mask=mask(bbeg:bend), verbose=verbose)
           end if
-          if (present(PS).and.present(PHIS_IN).and.present(T)) then          
+          if (present(PS).and.present(PHIS_IN).and.present(T)) then
             call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                  glob_ind(bbeg:bend), PS=PS(:,i), PHIS_IN=PHIS_IN(:,i), T=T(:,:,i),    &
                  mask=mask(bbeg:bend), verbose=verbose)
@@ -307,7 +319,7 @@ CONTAINS
             if (present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                    glob_ind(bbeg:bend), T=T(:,:,i), mask=mask(bbeg:bend), verbose=verbose)
-            end if            
+            end if
             if (present(PHIS_OUT)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                    glob_ind(bbeg:bend), PHIS_OUT=PHIS_OUT(:,i), mask=mask(bbeg:bend), verbose=verbose)
@@ -334,9 +346,9 @@ CONTAINS
           if (present(PS).and.present(PHIS_IN).and.present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                    glob_ind(bbeg:bend), PHIS_IN=PHIS_IN(:,i),PS=PS(:,i),T=T(:,:,i),      &
-                   verbose=verbose)            
+                   verbose=verbose)
           else
-            if (present(T)) then              
+            if (present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                    glob_ind(bbeg:bend), T=T(:,:,i), verbose=verbose)
             end if
@@ -383,7 +395,7 @@ CONTAINS
           if (present(PS).and.present(PHIS_IN).and.present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                    glob_ind(bbeg:bend), PHIS_IN=PHIS_IN(:,i),PS=PS(:,i),T=T(:,i,:),      &
-                   mask=mask(bbeg:bend), verbose=verbose)            
+                   mask=mask(bbeg:bend), verbose=verbose)
           else
             if (present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
@@ -415,7 +427,7 @@ CONTAINS
           if (present(PS).and.present(PHIS_IN).and.present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
                    glob_ind(bbeg:bend), PHIS_IN=PHIS_IN(:,i),PS=PS(:,i),T=T(:,i,:),      &
-                   verbose=verbose)            
+                   verbose=verbose)
           else
             if (present(T)) then
               call dyn_set_inic_col(vcoord,latvals(bbeg:bend), lonvals(bbeg:bend), &
@@ -444,7 +456,12 @@ CONTAINS
         call endrun(subname//': there must be a global index for every column')
       end if
       nblks = size2
-      allocate(lat_use(size(lonvals)))
+      allocate(lat_use(size(lonvals)), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate lat_use(size(lonvals)) failed with stat: '//&
+                    to_str(iret))
+      end if
+
       if (present(mask)) then
         call endrun(subname//': mask not supported for lon/lat')
       else
@@ -463,7 +480,7 @@ CONTAINS
           end if
           if (present(PS).and.present(PHIS_IN).and.present(T)) then
               call dyn_set_inic_col(vcoord,lat_use, lonvals, glob_ind(bbeg:bend), &
-                   PS=PS(:,i),T=T(:,i,:),PHIS_IN=PHIS_IN(:,i), verbose=verbose)            
+                   PS=PS(:,i),T=T(:,i,:),PHIS_IN=PHIS_IN(:,i), verbose=verbose)
           else
             if (present(T)) then
               call dyn_set_inic_col(vcoord,lat_use, lonvals, glob_ind(bbeg:bend), &
@@ -492,7 +509,12 @@ CONTAINS
       end if
       ! Case: lon,lev,lat
       nblks = size3
-      allocate(lat_use(size(lonvals)))
+      allocate(lat_use(size(lonvals)), stat=iret)
+      if (iret /= 0) then
+        call endrun(subname//': allocate lat_use(size(lonvals)) failed with stat: '//&
+                    to_str(iret))
+      end if
+
       if (present(mask)) then
         call endrun(subname//': mask not supported for lon/lat')
       else
@@ -511,15 +533,15 @@ CONTAINS
           end if
           if (present(PS).and.present(PHIS_IN).and.present(T)) then
             call dyn_set_inic_col(vcoord,lat_use, lonvals, glob_ind(bbeg:bend), &
-                 T=T(:,:,i),PS=PS(:,i), PHIS_IN=PHIS_IN(:,i), verbose=verbose)          
+                 T=T(:,:,i),PS=PS(:,i), PHIS_IN=PHIS_IN(:,i), verbose=verbose)
           else
             if (present(T)) then
               call dyn_set_inic_col(vcoord,lat_use, lonvals, glob_ind(bbeg:bend), &
                    T=T(:,:,i), verbose=verbose)
-            end if          
+            end if
             if (present(PS)) then
               call dyn_set_inic_col(vcoord,lat_use, lonvals, glob_ind(bbeg:bend), &
-                   PS=PS(:,i), verbose=verbose)          
+                   PS=PS(:,i), verbose=verbose)
             end if
             if (present(PHIS_OUT)) then
               call dyn_set_inic_col(vcoord,lat_use, lonvals, glob_ind(bbeg:bend), &

@@ -40,7 +40,7 @@ contains
     type (hybrid_t)      , intent(in) :: hybrid
 
     real (kind=r8) :: I_sphere(num_flds)
-    
+
     real (kind=r8) :: I_priv
     real (kind=r8) :: I_shared
     common /gblintcom/I_shared
@@ -211,7 +211,7 @@ contains
     use dimensions_mod, only: nu_scale_top,nu_div_lev,nu_lev
 
     use quadrature_mod, only: gausslobatto, quadrature_t
-    
+
     use reduction_mod,  only: ParallelMin,ParallelMax
     use physconst,      only: ra, rearth, pi
     use control_mod,    only: nu, nu_div, nu_q, nu_p, nu_s, nu_top, fine_ne, rk_stage_user, max_hypervis_courant
@@ -224,7 +224,7 @@ contains
     use mesh_mod,       only: MeshUseMeshFile
     use dimensions_mod, only: ksponge_end, kmvis_ref, kmcnd_ref,rho_ref
     use physconst,      only: cpair
-  
+
     type(element_t)      , intent(inout) :: elem(:)
     integer              , intent(in) :: nets,nete
     type (hybrid_t)      , intent(in) :: hybrid
@@ -235,7 +235,7 @@ contains
     real (kind=r8), intent(in) :: dt_remap_actual,dt_tracer_fvm_actual,dt_tracer_se_actual,&
                            dt_dyn_actual,dt_dyn_visco_actual,dt_dyn_del2_actual,           &
                            dt_tracer_visco_actual, dt_phys
-    
+
     ! Element statisics
     real (kind=r8) :: max_min_dx,min_min_dx,min_max_dx,max_unif_dx   ! used for normalizing scalar HV
     real (kind=r8) :: max_normDinv, min_normDinv  ! used for CFL
@@ -259,7 +259,7 @@ contains
     real(kind=r8) :: h(np,np,nets:nete)
 
 
-    
+
     ! Eigenvalues calculated by folks at UMich (Paul U & Jared W)
     select case (np)
     case (2)
@@ -623,7 +623,7 @@ contains
       umax = 400.0_r8
     end if
     ugw = 342.0_r8 !max gravity wave speed
-    
+
     dt_max_adv             = S_rk/(umax*max_normDinv*lambda_max*ra)
     dt_max_gw              = S_rk/(ugw*max_normDinv*lambda_max*ra)
     dt_max_tracer_se       = S_rk_tracer*min_gw/(umax*max_normDinv*ra)
@@ -642,8 +642,8 @@ contains
     max_laplace = MAX(MAXVAL(nu_scale_top(:))*nu_top,MAXVAL(kmvis_ref(:)/rho_ref(:)))
     max_laplace = MAX(max_laplace,MAXVAL(kmcnd_ref(:)/(cpair*rho_ref(:))))
     dt_max_laplacian_top   = 1.0_r8/(max_laplace*((ra*max_normDinv)**2)*lambda_vis)
-    
-    if (hybrid%masterthread) then        
+
+    if (hybrid%masterthread) then
       write(iulog,'(a,f10.2,a)') ' '
       write(iulog,'(a,f10.2,a)') 'Estimates for maximum stable and actual time-steps for different aspects of algorithm:'
       write(iulog,'(a,f12.8,a)') '(assume max wind is ',umax,'m/s)'
@@ -652,7 +652,7 @@ contains
       write(iulog,'(a,f10.2,a,f10.2,a)') '* dt_dyn        (time-stepping dycore  ; u,v,T,dM) < ',&
            MIN(dt_max_adv,dt_max_gw),'s ',dt_dyn_actual,'s'
       if (dt_dyn_actual>MIN(dt_max_adv,dt_max_gw)) write(iulog,*) 'WARNING: dt_dyn theoretically unstable'
-      
+
       write(iulog,'(a,f10.2,a,f10.2,a)') '* dt_dyn_vis    (hyperviscosity)       ; u,v,T,dM) < ',dt_max_hypervis,&
            's ',dt_dyn_visco_actual,'s'
       if (dt_dyn_visco_actual>dt_max_hypervis) write(iulog,*) 'WARNING: dt_dyn_vis theoretically unstable'
@@ -662,7 +662,7 @@ contains
       write(iulog,'(a,f10.2,a,f10.2,a)') '* dt_tracer_vis (hyperviscosity tracers; q       ) < ',dt_max_hypervis_tracer,'s',&
            dt_tracer_visco_actual,'s'
       if (dt_tracer_visco_actual>dt_max_hypervis_tracer) write(iulog,*) 'WARNING: dt_tracer_hypervis theoretically unstable'
-      
+
       if (ntrac>0) then
         write(iulog,'(a,f10.2,a,f10.2,a)') '* dt_tracer_fvm (time-stepping tracers ; q       ) < ',dt_max_tracer_fvm,&
              's ',dt_tracer_fvm_actual
@@ -687,8 +687,8 @@ contains
       write(iulog,*) 'tstep_type = ',tstep_type
     end if
   end subroutine print_cfl
-  
-  ! 
+
+  !
   ! ============================
   ! global_maximum:
   !

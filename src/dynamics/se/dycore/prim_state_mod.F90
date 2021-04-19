@@ -257,6 +257,7 @@ CONTAINS
       end if
 
     end do
+
     !JMD This is a Thread Safe Reduction
     do k = 1, nm2+2+statediag_numtrac
        if (k==1) call t_startf('parallelMin')
@@ -359,14 +360,14 @@ CONTAINS
         write(iulog,100) varname(k),min_p(k),max_p(k)
       end do
     end if
-    
+
 100 format (A12,4(E23.15))
 101 format (A12,A23,A23,A23,A23)
 
 #ifdef waccm_debug
     call prim_printstate_cslam_gamma(elem, tl,hybrid,nets,nete, fvm)
 #endif
-    call prim_printstate_U(elem, tl,hybrid,nets,nete, fvm) 
+    call prim_printstate_U(elem, tl,hybrid,nets,nete, fvm)
   end subroutine prim_printstate
 
 
@@ -511,7 +512,7 @@ CONTAINS
     integer            :: k,ie
 
     real (kind=r8), dimension(nets:nete,nlev) :: max_local
-    real (kind=r8), dimension(nets:nete,nlev) :: min_local    
+    real (kind=r8), dimension(nets:nete,nlev) :: min_local
     real (kind=r8), dimension(nlev)           :: max_p
     real (kind=r8), dimension(nlev)           :: min_p
     integer        :: n0, n0_qdp, q, nm, nm2
@@ -535,7 +536,7 @@ CONTAINS
     !JMD This is a Thread Safe Reduction
     do k = 1, nlev
       max_p(k) = Parallelmax(max_local(:,k),hybrid)
-      min_p(k) = Parallelmin(min_local(:,k),hybrid)      
+      min_p(k) = Parallelmin(min_local(:,k),hybrid)
     end do
     if (hybrid%masterthread) then
        write(iulog,*)   '  '

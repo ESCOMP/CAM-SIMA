@@ -22,6 +22,7 @@ module physconst
    use vert_coord,     only: pver, pverp
    use physics_grid,   only: pcols => columns_on_task
    use cam_abortutils, only: endrun
+   use string_utils,   only: to_str
    use constituents,   only: pcnst
 
    implicit none
@@ -451,31 +452,44 @@ CONTAINS
       !------------------------------------------------------------------------
       allocate(cpairv(pcols,pver), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate cpairv failed')
+         call endrun(subname//': allocate cpairv(pcols,pver) failed with stat: '//&
+                     to_str(ierr))
       end if
+
       allocate(rairv(pcols,pver), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate rairv failed')
+         call endrun(subname//': allocate rairv(pcols,pver) failed with stat: '//&
+                     to_str(ierr))
       end if
+
       allocate(cappav(pcols,pver), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate cappav failed')
+         call endrun(subname//': allocate cappav(pcols,pver) failed with stat: '//&
+                     to_str(ierr))
       end if
+
       allocate(mbarv(pcols,pver), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate mbarv failed')
+         call endrun(subname//': allocate mbarv(pcols,pver) failed with stat: '//&
+                     to_str(ierr))
       end if
+
       allocate(zvirv(pcols,pver), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate zvirv failed')
+         call endrun(subname//': allocate zvirv(pcols,pver) failed with stat: '//&
+                     to_str(ierr))
       end if
+
       allocate(kmvis(pcols,pverp), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate kmvis failed')
+         call endrun(subname//': allocate kmvis(pcols,pverp) failed with stat: '//&
+                     to_str(ierr))
       end if
+
       allocate(kmcnd(pcols,pverp), stat=ierr)
       if (ierr /= 0) then
-         call endrun(subname//': allocate kmcnd failed')
+         call endrun(subname//': allocate kmcnd(pcols,pverp) failed with stat: '//&
+                     to_str(ierr))
       end if
 
       !------------------------------------------------------------------------
@@ -528,6 +542,7 @@ CONTAINS
      real(kind_phys) :: mw, dof1, dof2, dof3
 
      integer  :: icnst,ix,i
+     integer  :: iret
 
      ! standard dry air (constant composition)
      o2_mwi = 1._kind_phys/32._kind_phys
@@ -539,16 +554,55 @@ CONTAINS
      ! init for variable composition dry air
 
      i = dry_air_species_num+water_species_in_air_num
-     allocate(thermodynamic_active_species_idx(i))
-     allocate(thermodynamic_active_species_idx_dycore(i))
-     allocate(thermodynamic_active_species_cp(0:i))
-     allocate(thermodynamic_active_species_cv(0:i))
-     allocate(thermodynamic_active_species_R(0:i))
+     allocate(thermodynamic_active_species_idx(i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_idx(i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
+     allocate(thermodynamic_active_species_idx_dycore(i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_idx_dycore(i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
+     allocate(thermodynamic_active_species_cp(0:i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_cp(0:i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
+     allocate(thermodynamic_active_species_cv(0:i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_cv(0:i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
+     allocate(thermodynamic_active_species_R(0:i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_R(0:i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
 
      i = dry_air_species_num
-     allocate(thermodynamic_active_species_mwi(i))
-     allocate(thermodynamic_active_species_kv(i))
-     allocate(thermodynamic_active_species_kc(i))
+     allocate(thermodynamic_active_species_mwi(i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_mwi(i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
+     allocate(thermodynamic_active_species_kv(i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_kv(i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
+     allocate(thermodynamic_active_species_kc(i), stat=iret)
+     if (iret /= 0) then
+       call endrun(subname//': allocate thermodynamic_active_species_kc(i)'//&
+                   ' failed with stat: '//to_str(iret))
+     end if
+
      thermodynamic_active_species_idx        = -999
      thermodynamic_active_species_idx_dycore = -999
      thermodynamic_active_species_cp         = 0.0_kind_phys
@@ -1772,10 +1826,13 @@ cpv = 0._kind_phys
 
      ! local vars
      integer :: i,j,k
+     integer :: iret
      real(r8),  dimension(i0:i1,j0:j1,1:k1)              :: pmid
      real(r8):: pint(i0:i1,j0:j1,1:k1+1)
      real(r8), allocatable :: R_dry(:,:,:)
      integer,  dimension(thermodynamic_active_species_num):: idx_local
+
+     character(len=*), parameter :: subname = 'get_rho_dry'
 
      if (present(active_species_idx_dycore)) then
        idx_local = active_species_idx_dycore
@@ -1789,7 +1846,12 @@ cpv = 0._kind_phys
      if (present(pint_out)) pint_out=pint
      if (present(pint_out)) pmid_out=pmid
      if (present(rhoi_dry)) then
-       allocate(R_dry(i0:i1,j0:j1,1:k1+1))
+       allocate(R_dry(i0:i1,j0:j1,1:k1+1), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate R_dry(i0:i1,j0:j1,1:k1+1)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
        if (tracer_mass) then
          call get_R_dry(i0,i1,j0,j1,1,k1+1,1,nlev,ntrac,tracer,idx_local,R_dry,fact=1.0_r8/dp_dry)
        else
@@ -1808,7 +1870,12 @@ cpv = 0._kind_phys
        deallocate(R_dry)
      end if
      if (present(rho_dry)) then
-       allocate(R_dry(i0:i1,j0:j1,1:k1))
+       allocate(R_dry(i0:i1,j0:j1,1:k1), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate R_dry(i0:i1,j0:j1,1:k1)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
        if (tracer_mass) then
          call get_R_dry(i0,i1,j0,j1,1,k1,1,nlev,ntrac,tracer,idx_local,R_dry,fact=1.0_r8/dp_dry)
        else
@@ -1897,13 +1964,25 @@ cpv = 0._kind_phys
      real(r8), optional, intent(in) :: fact(i0:i1,j0:j1,nlev)    !factor for converting tracer to dry mixing ratio
      !
      real(r8), allocatable, dimension(:,:,:) :: cp_dry,R_dry
+     integer :: iret
+     character(len=*), parameter :: subname = 'get_kappa_dry'
      !
      ! dry air not species dependent
      if (dry_air_species_num==0) then
        kappa_dry= rair/cpair
      else
-       allocate(R_dry(i0:i1,j0:j1,k0:k1))
-       allocate(cp_dry(i0:i1,j0:j1,k0:k1))
+       allocate(R_dry(i0:i1,j0:j1,k0:k1), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate R_dry(i0:i1,j0:j1,k0:k1)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
+       allocate(cp_dry(i0:i1,j0:j1,k0:k1), stat=iret)
+       if (iret /= 0) then
+         call endrun(subname//': allocate cp_dry(i0:i1,j0:j1,k0:k1)'//&
+                     ' failed with stat: '//to_str(iret))
+       end if
+
        if (present(fact)) then
          call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,cp_dry,fact=fact)
          call get_R_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,R_dry,fact=fact)

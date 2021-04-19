@@ -118,23 +118,35 @@ CONTAINS
 
    !---------------------------------------------------------------------------
 
-   subroutine cam_ctrl_set_physics_type(phys_package)
-      ! Dummy argument
-      character(len=*), intent(in) :: phys_package
-      ! Local variable
+   subroutine cam_ctrl_set_physics_type()
+
+      use shr_kind_mod, only: SHR_KIND_CS
+      use cam_ccpp_cap, only: ccpp_physics_suite_list
+
+      ! Local variables:
+
+      ! suite_names: List of CCPP suites
+      character(len=SHR_KIND_CS), allocatable :: suite_names(:)
+      ! suite_name: CCPP suite we are running
+      character(len=SHR_KIND_CS)              :: suite_name
+
       character(len=*), parameter :: subname = 'cam_ctrl_set_physics_type'
 
-      adiabatic = trim(phys_package) == 'adiabatic'
-      ideal_phys = trim(phys_package) == 'held_suarez'
-      kessler_phys = trim(phys_package) == 'kessler'
-      tj2016_phys = trim(phys_package) == 'tj2016'
+      !Determine CCPP physics suite names:
+      call ccpp_physics_suite_list(suite_names)
+      suite_name = suite_names(1)
+
+      adiabatic = trim(suite_name) == 'adiabatic'
+      ideal_phys = trim(suite_name) == 'held_suarez'
+      kessler_phys = trim(suite_name) == 'kessler_cam'
+      tj2016_phys = trim(suite_name) == 'tj2016'
 
       simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys
 
       moist_physics = .not. (adiabatic .or. ideal_phys)
 
       if ((.not. moist_physics) .and. aqua_planet) then
-         call endrun (subname//': FATAL: AQUA_PLANET not compatible with dry physics package, ('//trim(phys_package)//')')
+         call endrun (subname//': FATAL: AQUA_PLANET not compatible with dry physics package, ('//trim(suite_name)//')')
       end if
 
       if (masterproc) then

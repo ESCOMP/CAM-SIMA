@@ -26,6 +26,7 @@ CONTAINS
        Q, m_cnst, mask, verbose)
     !use const_init,    only: cnst_init_default
     !use constituents,  only: cnst_name
+    use string_utils,  only: to_str
     use physics_types, only: ix_cld_liq, ix_rain !Remove once constituents are enabled -JN
 
     !-----------------------------------------------------------------------
@@ -54,9 +55,15 @@ CONTAINS
     integer                           :: ncol
     integer                           :: nlev
     integer                           :: ncnst
+    integer                           :: iret
     character(len=*), parameter       :: subname = 'HS94_SET_IC'
 
-    allocate(mask_use(size(latvals)))
+    allocate(mask_use(size(latvals)), stat=iret)
+    if (iret /= 0) then
+      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
+                  to_str(iret))
+    end if
+
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
         call endrun('cnst_init_default: input, mask, is wrong size')

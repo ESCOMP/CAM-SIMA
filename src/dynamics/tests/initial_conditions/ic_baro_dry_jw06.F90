@@ -3,11 +3,11 @@ module ic_baro_dry_jw06
   !
   ! Purpose: Set idealized initial conditions for the Jablonowski and
   !          Williamson baroclinic instability test.
-  !          References: 
-  !          Jablonowski, C., and D. L. Williamson (2006), A Baroclinic Instability Test Case for 
+  !          References:
+  !          Jablonowski, C., and D. L. Williamson (2006), A Baroclinic Instability Test Case for
   !              Atmospheric Model Dynamical Cores, Quart. J. Roy. Met. Soc., Vol. 132, 2943-2975
-  !          Jablonowski, C., and D. L. Williamson (2006), A Baroclinic Wave Test Case for Dynamical 
-  !              Cores of General Circulation Models: Model Intercomparisons, 
+  !          Jablonowski, C., and D. L. Williamson (2006), A Baroclinic Wave Test Case for Dynamical
+  !              Cores of General Circulation Models: Model Intercomparisons,
   !              NCAR Technical Note NCAR/TN-469+STR, Boulder, CO, 89 pp.
   !
   !-----------------------------------------------------------------------
@@ -54,8 +54,9 @@ contains
     !use constituents,    only: cnst_name
     !use const_init,      only: cnst_init_default
 
+    use string_utils,    only: to_str
     !Remove once constituents are enabled -JN
-    use physics_types, only : ix_cld_liq, ix_rain
+    use physics_types,   only: ix_cld_liq, ix_rain
 
     !-----------------------------------------------------------------------
     !
@@ -85,6 +86,7 @@ contains
     integer                           :: ncol
     integer                           :: nlev
     integer                           :: ncnst
+    integer                           :: iret
     character(len=*), parameter       :: subname = 'BC_DRY_JW06_SET_IC'
     real(r8)                          :: tmp
     real(r8)                          :: r(size(latvals))
@@ -97,7 +99,12 @@ contains
        a_omega                = rearth*omega
        exponent               = rair*gamma/gravit
 
-    allocate(mask_use(size(latvals)))
+    allocate(mask_use(size(latvals)), stat=iret)
+    if (iret /= 0) then
+      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
+                  to_str(iret))
+    end if
+
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
         call endrun(subname//': input, mask, is wrong size')

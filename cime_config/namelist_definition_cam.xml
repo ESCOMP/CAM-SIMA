@@ -10901,10 +10901,20 @@
       Number of hyperviscosity subcycles per dynamics timestep.
     </desc>
     <values>
-      <value>2</value>
+      <value>3</value>
       <value hgrid="ne16np4">4</value>
-      <value hgrid="ne0np4CONUS.ne30x8" hypervis_type="scalar">6</value>
-      <value hgrid="ne0np4CONUS.ne30x8" hypervis_type="tensor">8</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_subcycle_sponge">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      Number of hyperviscosity subcycles per dynamics timestep in sponge del2 diffusion.
+    </desc>
+    <values>
+      <value>1</value>
+      <value hgrid="ne120np4">4</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle_q">
@@ -11067,8 +11077,10 @@
       Second-order viscosity applied only near the model top [m^2/s].
     </desc>
     <values>
-      <value>1.25e5</value>
-      <value waccm_phys="1">1.0e6</value>
+      <value>5.0e5</value>
+      <value waccmx="1">1.0e6</value>
+      <!-- WACCM uses molecular/thermal diffusion in sponge   -->
+      <value waccm_phys="1">0.0</value>
       <value se_refined_mesh="1">2.0e5</value>
     </values>
   </entry>

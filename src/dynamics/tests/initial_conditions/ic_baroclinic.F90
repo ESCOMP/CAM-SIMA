@@ -82,6 +82,7 @@ contains
     !use constituents,        only: cnst_name
     !use const_init,          only: cnst_init_default
     use inic_analytic_utils, only: analytic_ic_is_moist
+    use string_utils,        only: to_str
 
     !-----------------------------------------------------------------------
     !
@@ -111,6 +112,7 @@ contains
     integer                           :: ncol
     integer                           :: nlev
     integer                           :: ncnst
+    integer                           :: iret
     character(len=*), parameter       :: subname = 'BC_WAV_SET_IC'
     real(r8)                          :: ztop,ptop
     real(r8)                          :: uk,vk,Tvk,qk,pk !mid-level state
@@ -139,7 +141,12 @@ contains
       call endrun(subname//' ERROR: vcoord value out of range')
     end if
 
-    allocate(mask_use(size(latvals)))
+    allocate(mask_use(size(latvals)), stat=iret)
+    if (iret /= 0) then
+      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
+                  to_str(iret))
+    end if
+
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
         call endrun(subname//': input, mask, is wrong size')
@@ -225,14 +232,34 @@ contains
          nlev = size(Q, 2)
          ! check whether first constituent in Q is water vapor.
          cnst1_is_moisture = m_cnst(1) == 1
-         allocate(zlocal(size(Q, 1),nlev))         
+         allocate(zlocal(size(Q, 1),nlev), stat=iret)
+         if (iret /= 0) then
+           call endrun(subname//': allocate zlocal(size(Q, 1),nlev) failed with stat: '//&
+                       to_str(iret))
+         end if
+
       end if
 
       allocate(zk(nlev))
       if ((lq.or.lt) .and. (vcoord == vc_dry_pressure)) then
-        allocate(pdry_half(nlev+1))
-        allocate(pwet_half(nlev+1))
-        allocate(zdry_half(nlev+1))
+        allocate(pdry_half(nlev+1), stat=iret)
+        if (iret /= 0) then
+          call endrun(subname//': allocate pdry_half(nlev+1) failed with stat: '//&
+                      to_str(iret))
+        end if
+
+        allocate(pwet_half(nlev+1), stat=iret)
+        if (iret /= 0) then
+          call endrun(subname//': allocate pwet_half(nlev+1) failed with stat: '//&
+                      to_str(iret))
+        end if
+
+        allocate(zdry_half(nlev+1), stat=iret)
+        if (iret /= 0) then
+          call endrun(subname//': allocate zdry_half(nlev+1) failed with stat: '//&
+                      to_str(iret))
+        end if
+
       end if
       do i=1,ncol
         if (mask_use(i)) then
@@ -261,7 +288,7 @@ contains
               zlocal(i,1:nlev) = zk(:)
             end if
           end if
-          
+
 
           do k=1,nlev
             !

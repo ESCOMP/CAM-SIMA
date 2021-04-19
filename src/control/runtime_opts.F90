@@ -38,7 +38,7 @@ contains
 !      use phys_debug_util,     only: phys_debug_readnl
 
 !      use cam_diagnostics,     only: diag_readnl
-!      use inic_analytic_utils, only: analytic_ic_readnl
+      use inic_analytic_utils, only: analytic_ic_readnl
 
 !      use tracers,             only: tracers_readnl
 !      use nudging,             only: nudging_readnl
@@ -82,7 +82,7 @@ contains
 !      call phys_debug_readnl(nlfilename)
 !      call diag_readnl(nlfilename)
 !      call check_energy_readnl(nlfilename)
-!      call analytic_ic_readnl(nlfilename)
+      call analytic_ic_readnl(nlfilename)
 !      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
 !      call nudging_readnl(nlfilename)
 

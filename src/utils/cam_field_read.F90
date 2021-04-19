@@ -392,7 +392,7 @@ CONTAINS
       !
       ! infld_real8_2d:
       ! Netcdf I/O of 8-byte real field from netCDF file
-      ! Field on file is either 2D or 3D
+      ! Field on file must be 1D, 2D, or 3D
       ! Local array, <field> is 2D
       !
 
@@ -548,7 +548,7 @@ CONTAINS
          else if (ndims < target_ndims) then
             call safe_endrun(subname//': too few dimensions for '//trim(varname))
          end if ! No else, things are okay
-         call print_input_field_info(dimlens, pdims, 2, 3, dim_bounds, 2,     &
+         call print_input_field_info(dimlens, pdims, 1, 3, dim_bounds, 2,     &
               varname, subname)
          !
          ! Get array dimension id's and sizes

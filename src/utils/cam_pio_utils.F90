@@ -729,7 +729,7 @@ contains
          iodesc_p => curr
       end if
       if(masterproc .and. (debug_output > DEBUGOUT_INFO)) then
-         write(iulog,*) "FIND_IODESC: Using decomp, '", curr%tag, "'"
+         write(iulog,*) "FIND_IODESC: Using decomp, '"//trim(curr%tag)//"'"
          call shr_sys_flush(iulog)
       end if
 
