@@ -1801,7 +1801,6 @@ subroutine read_inidat(dyn_in)
 
    ! scale PS to achieve prescribed dry mass following FV dycore (dryairm.F90)
 #ifndef planet_mars
-#if 0
    if (runtype == 0) then
       initial_global_ave_dry_ps = 98288.0_r8
       if (.not. associated(fh_topo)) then
@@ -1814,7 +1813,6 @@ subroutine read_inidat(dyn_in)
         call prim_set_dry_mass(elem, hvcoord, initial_global_ave_dry_ps, qtmp)
       end if
    endif
-#endif
 #endif
    ! store Q values:
    !
