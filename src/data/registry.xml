@@ -46,7 +46,6 @@
     <variable local_name="phis" standard_name="geopotential_at_surface"
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Geopotential at surface</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>phis phis_snapshot</ic_file_input_names>
     </variable>
@@ -74,7 +73,6 @@
     <variable local_name="s" standard_name="dry_static_energy_content_of_atmosphere_layer"
               units="J kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>dry static energy content of atmosphere layer</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>s s_snapshot</ic_file_input_names>
     </variable>
@@ -88,7 +86,6 @@
     <variable local_name="pmid" standard_name="air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Midpoint air pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pmid pmid_snapshot</ic_file_input_names>
     </variable>
@@ -102,7 +99,6 @@
     <variable local_name="pdel" standard_name="pressure_thickness"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Pressure thickness</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pdel pdel_snapshot</ic_file_input_names>
     </variable>
@@ -110,7 +106,6 @@
               standard_name="pressure_thickness_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Pressure thickness of dry air</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pdeldry pdeldry_snapshot</ic_file_input_names>
     </variable>
@@ -118,7 +113,6 @@
               standard_name="reciprocal_of_pressure_thickness"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Reciprocal of pressure thickness</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>rpdel rpdel_snapshot</ic_file_input_names>
     </variable>
@@ -126,7 +120,6 @@
               standard_name="reciprocal_of_pressure_thickness_of_dry_air"
               units="Pa-1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Reciprocal of pressure thickness of dry air</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>rpdeldry rpdeldry_snapshot</ic_file_input_names>
     </variable>
@@ -134,7 +127,6 @@
     <variable local_name="lnpmid" standard_name="natural_log_of_air_pressure"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Ln of air pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>lnpmid lnpmid_snapshot</ic_file_input_names>
     </variable>
@@ -142,7 +134,6 @@
               standard_name="natural_log_of_air_pressure_of_dry_air"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Ln of air pressure of dry air</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>lnpmiddry lnpmiddry_snapshot</ic_file_input_names>
     </variable>
@@ -157,7 +148,6 @@
               standard_name="geopotential_height"
               units="m" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Geopotential height</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>zm zm_snapshot</ic_file_input_names>
     </variable>
@@ -165,7 +155,6 @@
               units="kg kg-1"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Constituent mixing ratio</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension
       number_of_constituents</dimensions>
       <element standard_name="water_vapor_specific_humidity"
@@ -188,7 +177,6 @@
               units="Pa"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Air pressure at interface</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>pint pint_snapshot</ic_file_input_names>
     </variable>
@@ -196,7 +184,6 @@
               units="Pa"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Air pressure of dry air at interface</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>pintdry pintdry_snapshot</ic_file_input_names>
     </variable>
@@ -205,7 +192,6 @@
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Ln of air pressure at interface</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>lnpint lnpint_snapshot</ic_file_input_names>
     </variable>
@@ -214,7 +200,6 @@
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Ln of air pressure of dry air at interface</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>lnpintdry lnpintdry_snapshot</ic_file_input_names>
     </variable>
@@ -223,7 +208,6 @@
               units="m"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Geopotential height at interface</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>zi zi_snapshot</ic_file_input_names>
     </variable>
@@ -232,7 +216,6 @@
               units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Column integrated total kinetic and static energy of initial state</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>te_ini te_ini_snapshot</ic_file_input_names>
     </variable>
@@ -241,7 +224,6 @@
               units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Column integrated total kinetic and static energy of current state</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>te_cur te_cur_snapshot</ic_file_input_names>
     </variable>
@@ -250,7 +232,6 @@
               units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Column integrated total water of initial state</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>tw_ini tw_ini_snapshot</ic_file_input_names>
     </variable>
@@ -259,7 +240,6 @@
               units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Column integrated total water of current state</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>tw_cur tw_cur_snapshot</ic_file_input_names>
     </variable>

@@ -31,6 +31,6 @@
   dimensions = ()
 [ weight ]
   standard_name = cell_weight
-  units = none
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
