@@ -8,7 +8,6 @@ module physics_data
    public :: find_input_name_idx
    public :: read_field
    public :: check_field
-   public :: generate_check_field_result_string
 
    !Non-standard variable indices:
    integer, public, parameter :: no_exist_idx     = -1
@@ -220,7 +219,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use mpi,            only: MPI_MAX, MPI_SUM, MPI_REAL, MPI_INTEGER
+      use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
       use spmd_utils,     only: npes, mpicom
 
       !Max possible length of variable name in file:
@@ -243,9 +242,12 @@ CONTAINS
       real(kind_phys), allocatable     :: buffer(:)
       integer                          :: diff_count
       real(kind_phys)                  :: max_diff
+      real(kind_phys)                  :: max_diff_gl
+      integer                          :: diff_count_gl
 
       !Initialize output variables
       diff_count = 0
+      diff = 0
       max_diff = 0
       buffer = current_value
       ierr = 0
@@ -276,17 +278,15 @@ CONTAINS
             end do
             !Gather results across all nodes to get global values
             if (npes > 1) then
-               call MPI_reduce(max_diff, max_diff, 1, MPI_REAL, MPI_MAX,      &
-                    mpicom, masterprocid, ierr)
-               call MPI_reduce(diff_count, diff_count, 1, MPI_INTEGER,        &
-                   MPI_SUM,  mpicom, masterprocid, ierr)
+               call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+                    mpi_sum, masterprocid,  mpicom, ierr)
+               call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
+                    masterprocid, mpicom, ierr)
             end if
             if (masterproc) then
                !Log results
             end if
          end if
-      else
-         write(iulog, *) 'variable not found 2d'
       end if
    end subroutine check_field_2d
 
@@ -299,8 +299,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use mpi,            only: MPI_MAX, MPI_SUM, MPI_REAL, MPI_INTEGER
-      use mpi,            only: MPI_IN_PLACE
+      use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
       use spmd_utils,     only: npes, mpicom
       use vert_coord,     only: pver, pverp
 
@@ -327,12 +326,15 @@ CONTAINS
       real(kind_phys), allocatable     :: buffer(:,:)
       integer                          :: diff_count
       real(kind_phys)                  :: max_diff
+      real(kind_phys)                  :: max_diff_gl
+      integer                          :: diff_count_gl
 
       !Initialize output variables
       diff = 0
       diff_count = 0
       buffer = current_value
       ierr = 0
+      max_diff = 0
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
@@ -373,30 +375,17 @@ CONTAINS
             end do
             !Gather results across all nodes to get global values
             if (npes > 1) then
-               call MPI_reduce(diff_count, diff_count, 1, MPI_INTEGER,        &
-                    MPI_SUM, masterprocid, mpicom, ierr)
-               call MPI_reduce(max_diff, max_diff, 1, MPI_REAL, MPI_MAX,      &
+               call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+                    mpi_sum, masterprocid, mpicom, ierr)
+               call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
                     masterprocid, mpicom, ierr)
             end if
             if (masterproc) then
-               write(iulog,*) found_name 
                !Log results
             end if
          end if
-      else
-         write(iulog,*) 'variable not found 3d'
       end if
  
    end subroutine check_field_3d
-
-   subroutine generate_check_field_result_string(checked_var, max_diff,       &
-                rms_squared, hits)
-
-      character(len=*), intent(in) :: checked_var
-      real(kind_phys),  intent(in) :: max_diff
-      real(kind_phys),  intent(in) :: rms_squared
-      integer,          intent(in) :: hits
-
-   end subroutine generate_check_field_result_string
 
 end module physics_data
