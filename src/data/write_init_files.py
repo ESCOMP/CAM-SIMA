@@ -1758,12 +1758,12 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
             #Set "check_field" call string:
             if levnm is not None:
                 call_str = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
-                                  " timestep, max_diff, hits, diff_squared_sum, {})"
+                                  " timestep, {})"
                 call_string_val = call_str.format(\
                                   levnm, fort_data.call_dict[var_stdname])
             else:
                 call_str = "call check_field(file, input_var_names(:,name_idx)," + \
-                                  " timestep, max_diff, hits, diff_squared_sum, {})"
+                                  " timestep, {})"
                 call_string_val = call_str.format(fort_data.call_dict[var_stdname])
 
             #Add strings to dictionary:
@@ -1825,9 +1825,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=2)           :: sep  = '' !String separator used to print error messages", 2)
     outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
     outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
-    outfile.write("real(kind_phys)            :: diff_squared_sum", 2)
-    outfile.write("real(kind_phys)            :: max_diff", 2)
-    outfile.write("integer                    :: hits", 2)
     outfile.write("", 0)
 
     #Initialize variables:
@@ -1860,23 +1857,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("continue", 5)
     outfile.write("end if", 4)
 
-    #Generate error message if required variable contains no input names
-    #(i.e. the <ic_file_input_names> registry tag is missing):
-    outfile.write("!Check that the input variable names aren't blank.", 4)
-    outfile.write("!If so, then save variable name and check the rest of the", 4)
-    outfile.write("!variables, after which the model simulation will end:", 4)
-    outfile.write("if (len_trim(input_var_names(1,name_idx)) == 0) then", 4)
-    outfile.write("missing_input_names(len_trim(missing_input_names)+1:) = &", 5)
-    outfile.write(" trim(sep3)//trim(ccpp_required_data(req_idx))", 6)
-    outfile.write("", 0)
-    outfile.write("!Update character separator to now include comma:", 5)
-    outfile.write("sep3 = ', '", 5)
-    outfile.write("", 0)
-    outfile.write("!Continue on with variable loop:", 5)
-    outfile.write("cycle", 5)
-    outfile.write("end if", 4)
-    outfile.write("", 0)
-
     #Generate "check_field" calls:
     outfile.write("!Check variable vs input check file:", 4)
     outfile.write("", 0)
@@ -1884,15 +1864,16 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     for case_call, read_call in call_string_dict.items():
         outfile.write(case_call, 5)
         outfile.write(read_call, 6)
-        outfile.write("if (masterproc) then", 6)
-        outfile.write("write(iulog,*) 'max_diff is ', max_diff", 7)
-        outfile.write("end if", 6)
         outfile.write("", 0)
     outfile.write("end select !check variables", 4)
 
     #End select case and required variables loop:
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
+
+    outfile.write("if (masterproc) then", 3)
+    outfile.write("write(iulog,*) 'finished select'", 4)
+    outfile.write("end if", 3)
 
     #Generate endrun statement for missing variables:
     #outfile.write("!End simulation if there are missing input", 3)

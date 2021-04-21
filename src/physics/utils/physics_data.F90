@@ -211,30 +211,26 @@ CONTAINS
       end if
    end subroutine read_field_3d
 
-   subroutine check_field_2d(file, var_names, timestep, max_diff, diff_count, &
-                 diff_squared_sum, buffer)
+   subroutine check_field_2d(file, var_names, timestep, current_value)
       use shr_assert_mod, only: shr_assert_in_domain
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
-      use spmd_utils,     only: masterproc
+      use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use mpi,            only: MPI_MAXLOC, MPI_SUM, MPI_REAL, MPI_INTEGER
+      use mpi,            only: MPI_MAX, MPI_SUM, MPI_REAL, MPI_INTEGER
       use spmd_utils,     only: npes, mpicom
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: ic_name_len
 
       !Dummy arguments:
-      real(kind_phys),   intent(inout) :: buffer(:)
+      real(kind_phys),   intent(in)    :: current_value(:)
       type(file_desc_t), intent(inout) :: file
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
-      real(kind_phys),   intent(out)   :: max_diff
-      integer,           intent(out)   :: diff_count
-      real(kind_phys),   intent(out)   :: diff_squared_sum
 
       !Local variables:
       logical                          :: var_found
@@ -242,16 +238,17 @@ CONTAINS
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_2d'
       real(kind_phys)                  :: diff
-      integer                          :: is_diff
-      logical                          :: is_relative_diff
-      real(kind_phys)                  :: diff_squared
+      integer                          :: col
       integer                          :: ierr      !For MPI
+      real(kind_phys), allocatable     :: buffer(:)
+      integer                          :: diff_count
+      real(kind_phys)                  :: max_diff
 
       !Initialize output variables
-      is_diff = 0
-      is_relative_diff = .true.
-      diff = 0
-      diff_squared = 0
+      diff_count = 0
+      max_diff = 0
+      buffer = current_value
+      ierr = 0
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (var_found) then
@@ -262,46 +259,48 @@ CONTAINS
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
          if (var_found) then
-            if (buffer(timestep) < MIN_RELATIVE_VALUE) then
-               !Calculate absolute difference:
-               !diff = abs(current_value - REAL(buffer))
-               is_relative_diff = .false.
-            else
-               !Calculate relative difference:
-               !diff = abs(current_value - REAL(buffer)) / abs(current_value)
-            end if
-            !Determine if diff is large enough to be considered a "hit"
-            if (diff > MIN_DIFFERENCE) then
-               is_diff = 1
-               !Calculate square of diff
-               diff_squared = diff ** 2
-            end if
+            do col = 1, size(buffer)
+               if (buffer(col) < MIN_RELATIVE_VALUE) then
+                  !Calculate absolute difference:
+                  diff = abs(current_value(col) - buffer(col))
+               else
+                  !Calculate relative difference:
+                  diff = abs(current_value(col) - buffer(col)) / abs(current_value(col))
+               end if
+               if (diff > max_diff) then
+                  max_diff = diff
+               end if
+               if (diff > MIN_DIFFERENCE) then
+                  diff_count = diff_count + 1
+               end if
+            end do
             !Gather results across all nodes to get global values
-            ierr = 0
-            !call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &
-            !     mpicom, ierr)
-            !call MPI_Allreduce(is_diff, diff_count, 1, MPI_INTEGER, MPI_SUM,  &
-            !     mpicom, ierr)
-            !call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
-            !     MPI_SUM, mpicom, ierr)
-            call shr_assert_in_domain(buffer, is_nan=.false.,                    &
-              varname='temp_variable',                                           &
-              msg=subname//'NaN found in '//trim(found_name))
+            if (npes > 1) then
+               call MPI_reduce(max_diff, max_diff, 1, MPI_REAL, MPI_MAX,      &
+                    mpicom, masterprocid, ierr)
+               call MPI_reduce(diff_count, diff_count, 1, MPI_INTEGER,        &
+                   MPI_SUM,  mpicom, masterprocid, ierr)
+            end if
+            if (masterproc) then
+               !Log results
+            end if
          end if
+      else
+         write(iulog, *) 'variable not found 2d'
       end if
    end subroutine check_field_2d
 
-   subroutine check_field_3d(file, var_names, vcoord_name, timestep, max_diff, diff_count, &
-                 diff_squared_sum, buffer)
+   subroutine check_field_3d(file, var_names, vcoord_name, timestep, current_value)
       use shr_assert_mod, only: shr_assert_in_domain
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
-      use spmd_utils,     only: masterproc
+      use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
-      use mpi,            only: MPI_MAXLOC, MPI_SUM, MPI_REAL, MPI_INTEGER
+      use mpi,            only: MPI_MAX, MPI_SUM, MPI_REAL, MPI_INTEGER
+      use mpi,            only: MPI_IN_PLACE
       use spmd_utils,     only: npes, mpicom
       use vert_coord,     only: pver, pverp
 
@@ -309,13 +308,10 @@ CONTAINS
       use phys_vars_init_check, only: ic_name_len
 
       !Dummy arguments:
-      real(kind_phys),   intent(inout) :: buffer(:,:)
+      real(kind_phys),   intent(in)    :: current_value(:,:)
       type(file_desc_t), intent(inout) :: file
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
-      real(kind_phys),   intent(out)   :: max_diff
-      integer,           intent(out)   :: diff_count
-      real(kind_phys),   intent(out)   :: diff_squared_sum
       character(len=*),  intent(in)    :: vcoord_name 
 
       !Local variables:
@@ -324,17 +320,19 @@ CONTAINS
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_3d'
       real(kind_phys)                  :: diff
-      integer                          :: is_diff
-      logical                          :: is_relative_diff
-      real(kind_phys)                  :: diff_squared
       integer                          :: ierr      !For MPI
       integer                          :: num_levs
+      integer                          :: col
+      integer                          :: lev
+      real(kind_phys), allocatable     :: buffer(:,:)
+      integer                          :: diff_count
+      real(kind_phys)                  :: max_diff
 
       !Initialize output variables
-      is_diff = 0
-      is_relative_diff = .true.
       diff = 0
-      diff_squared = 0
+      diff_count = 0
+      buffer = current_value
+      ierr = 0
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
@@ -354,32 +352,39 @@ CONTAINS
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=(/1, num_levs/))
          if (var_found) then
-            if (any(buffer(timestep,:) < MIN_RELATIVE_VALUE)) then
-               !Calculate absolute difference:
-               !diff = abs(current_value - REAL(buffer))
-               is_relative_diff = .false.
-            else
-               !Calculate relative difference:
-               !diff = abs(current_value - REAL(buffer)) / abs(current_value)
-            end if
-            !Determine if diff is large enough to be considered a "hit"
-            if (diff > MIN_DIFFERENCE) then
-               is_diff = 1
-               !Calculate square of diff
-               diff_squared = diff ** 2
-            end if
+            do lev = 1, num_levs
+               do col = 1, size(buffer(:,lev))
+                  if (buffer(col, lev) < MIN_RELATIVE_VALUE) then
+                     !Calculate absolute difference:
+                     diff = abs(current_value(col, lev) - buffer(col, lev))
+                  else
+                     !Calculate relative difference:
+                     diff = abs(current_value(col, lev) - buffer(col, lev)) / &
+                        abs(current_value(col, lev))
+                  end if
+                  if (diff > max_diff) then
+                     max_diff = diff
+                  end if
+                  !Determine if diff is large enough to be considered a "hit"
+                  if (diff > MIN_DIFFERENCE) then
+                     diff_count = diff_count + 1
+                  end if
+               end do
+            end do
             !Gather results across all nodes to get global values
-            ierr = 0
-            !call MPI_Allreduce(diff, max_diff, 1, MPI_REAL, MPI_MAXLOC,       &
-            !     mpicom, ierr)
-            !call MPI_Allreduce(is_diff, diff_count, 1, MPI_INTEGER, MPI_SUM,  &
-            !     mpicom, ierr)
-            !call MPI_Allreduce(diff_squared, diff_squared_sum, 1, MPI_INTEGER,&
-            !     MPI_SUM, mpicom, ierr)
-            call shr_assert_in_domain(buffer, is_nan=.false.,                    &
-              varname='temp_variable',                                           &
-              msg=subname//'NaN found in '//trim(found_name))
+            if (npes > 1) then
+               call MPI_reduce(diff_count, diff_count, 1, MPI_INTEGER,        &
+                    MPI_SUM, masterprocid, mpicom, ierr)
+               call MPI_reduce(max_diff, max_diff, 1, MPI_REAL, MPI_MAX,      &
+                    masterprocid, mpicom, ierr)
+            end if
+            if (masterproc) then
+               write(iulog,*) found_name 
+               !Log results
+            end if
          end if
+      else
+         write(iulog,*) 'variable not found 3d'
       end if
  
    end subroutine check_field_3d
