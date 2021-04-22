@@ -247,7 +247,7 @@ CONTAINS
 
       !Initialize output variables
       ierr = 0
-      allocate(buffer(size(current_value), stat=ierr) 
+      allocate(buffer(size(current_value)), stat=ierr) 
       call check_allocate(ierr, subname, 'buffer')
       diff_count = 0
       diff = 0
