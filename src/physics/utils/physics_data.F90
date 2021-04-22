@@ -216,7 +216,7 @@ CONTAINS
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: endrun, check_allocate
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
@@ -246,11 +246,12 @@ CONTAINS
       integer                          :: diff_count_gl
 
       !Initialize output variables
+      ierr = 0
+      allocate(buffer(size(current_value), stat=ierr) 
+      call check_allocate(ierr, subname, 'buffer')
       diff_count = 0
       diff = 0
       max_diff = 0
-      buffer = current_value
-      ierr = 0
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (var_found) then
@@ -296,7 +297,7 @@ CONTAINS
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: endrun, check_allocate
       use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
@@ -330,10 +331,12 @@ CONTAINS
       integer                          :: diff_count_gl
 
       !Initialize output variables
+      ierr = 0
+      allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
+        stat=ierr)
+      call check_allocate(ierr, subname, 'buffer')
       diff = 0
       diff_count = 0
-      buffer = current_value
-      ierr = 0
       max_diff = 0
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
@@ -383,6 +386,7 @@ CONTAINS
             if (masterproc) then
                !Log results
             end if
+            deallocate(buffer)
          end if
       end if
  
