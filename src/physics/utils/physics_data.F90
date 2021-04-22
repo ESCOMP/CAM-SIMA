@@ -248,7 +248,7 @@ CONTAINS
       !Initialize output variables
       ierr = 0
       allocate(buffer(size(current_value)), stat=ierr) 
-      call check_allocate(ierr, subname, 'buffer')
+      !call check_allocate(ierr, subname, 'buffer')
       diff_count = 0
       diff = 0
       max_diff = 0
@@ -289,6 +289,7 @@ CONTAINS
             end if
          end if
       end if
+      deallocate(buffer)
    end subroutine check_field_2d
 
    subroutine check_field_3d(file, var_names, vcoord_name, timestep, current_value)
@@ -334,7 +335,7 @@ CONTAINS
       ierr = 0
       allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
         stat=ierr)
-      call check_allocate(ierr, subname, 'buffer')
+      !call check_allocate(ierr, subname, 'buffer')
       diff = 0
       diff_count = 0
       max_diff = 0
@@ -376,6 +377,14 @@ CONTAINS
                   end if
                end do
             end do
+            !*PEVERWHEE* DEBUGGING
+            if (masterproc) then
+               write(iulog,*) 'DEBUG: about to try mpi_barrier', diff_count
+            end if
+            call mpi_barrier(mpicom, ierr)
+            if (masterproc) then
+               write(iulog,*) 'DEBUG: came out of mpi_barrier'
+            end if
             !Gather results across all nodes to get global values
             if (npes > 1) then
                call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
@@ -386,9 +395,13 @@ CONTAINS
             if (masterproc) then
                !Log results
             end if
-            deallocate(buffer)
+         else
+            call endrun(subname//'variable not found inner loop')
          end if
+      else
+         call endrun(subname//'variable not found outer loop')
       end if
+      deallocate(buffer)
  
    end subroutine check_field_3d
 
