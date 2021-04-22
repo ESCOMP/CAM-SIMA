@@ -41,8 +41,8 @@ CONTAINS
       if (errcode /= 0) then
          write(abort_msg, '(4a,i0)') trim(subname), ": Allocate of '",        &
               trim(fieldname), "' failed with code ", errcode
+         call endrun(abort_msg, file=file, line=line)
       end if
-      call endrun(abort_msg, file=file, line=line)
 
    end subroutine check_allocate
 

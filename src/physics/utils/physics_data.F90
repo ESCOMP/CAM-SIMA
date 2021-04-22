@@ -248,7 +248,7 @@ CONTAINS
       !Initialize output variables
       ierr = 0
       allocate(buffer(size(current_value)), stat=ierr) 
-      !call check_allocate(ierr, subname, 'buffer')
+      call check_allocate(ierr, subname, 'buffer')
       diff_count = 0
       diff = 0
       max_diff = 0
@@ -335,7 +335,7 @@ CONTAINS
       ierr = 0
       allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
         stat=ierr)
-      !call check_allocate(ierr, subname, 'buffer')
+      call check_allocate(ierr, subname, 'buffer')
       diff = 0
       diff_count = 0
       max_diff = 0
@@ -379,7 +379,7 @@ CONTAINS
             end do
             !*PEVERWHEE* DEBUGGING
             if (masterproc) then
-               write(iulog,*) 'DEBUG: about to try mpi_barrier', diff_count
+               write(iulog,*) 'DEBUG: about to try mpi_barrier'
             end if
             call mpi_barrier(mpicom, ierr)
             if (masterproc) then
