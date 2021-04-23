@@ -19,7 +19,7 @@
   type = integer
   protected = True
 [ phys_grid_initialized ]
-  standard_name = test_of_physics_grid_initialization
+  standard_name = flag_for_physics_grid_initialization
   units = flag
   dimensions = ()
   type = logical

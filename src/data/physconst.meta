@@ -25,7 +25,7 @@
   dimensions = ()
   protected = True
 [ cpliq ]
-  standard_name = specific_head_of_water_at_20c
+  standard_name = specific_heat_of_liquid_water_at_20c
   long_name = Specific heat of fresh H2O
   units = J kg-1 K-1
   type = real | kind = kind_phys
@@ -62,19 +62,19 @@
   dimensions = ()
   protected = True
 [ pstd ]
-  standard_name = reference_pressure_at_sea_level
+  standard_name = us_standard_atmospheric_pressure_at_sea_level
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ ps_base ]
-  standard_name = base_state_surface_pressure
+  standard_name = base_state_surface_pressure_for_hybrid_vertical_coordinate
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ ps_ref ]
-  standard_name = reference_surface_pressure
+  standard_name = reference_pressure_at_surface
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
@@ -322,19 +322,19 @@
   dimensions = ()
   protected = True
 [ cpairv ]
-  standard_name = pressure_dependent_specific_heat_of_dry_air_at_constant_pressure
+  standard_name = composition_dependent_specific_heat_of_dry_air_at_constant_pressure
   units = enter units
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ rairv ]
-  standard_name = pressure_dependent_gas_constant_of_dry_air
+  standard_name = composition_dependent_gas_constant_of_dry_air
   units = enter units
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ cappav ]
-  standard_name = pressure_dependent_ratio_of_dry_air_to_water_vapor_gas_constants
+  standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants
   units = enter units
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
@@ -346,7 +346,7 @@
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ zvirv ]
-  standard_name = pressure_dependent_ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
+  standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
   units = 1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)

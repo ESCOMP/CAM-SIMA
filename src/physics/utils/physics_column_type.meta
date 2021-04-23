@@ -15,12 +15,12 @@
   type = real | kind = kind_phys
   dimensions = ()
 [ lat_deg ]
-  standard_name = latitude_degrees_north
+  standard_name = latitude
   units = degrees
   type = real | kind = kind_phys
   dimensions = ()
 [ lon_deg ]
-  standard_name = longitude_degrees_east
+  standard_name = longitude
   units = degrees
   type = real | kind = kind_phys
   dimensions = ()

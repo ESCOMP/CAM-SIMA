@@ -49,25 +49,25 @@
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>phis phis_snapshot</ic_file_input_names>
     </variable>
-    <variable local_name="T" standard_name="temperature"
+    <variable local_name="T" standard_name="air_temperature"
               units="K" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>T t_snapshot</ic_file_input_names>
     </variable>
-    <variable local_name="u" standard_name="eastward_wind"
+    <variable local_name="u" standard_name="x_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>u u_snapshot</ic_file_input_names>
     </variable>
-    <variable local_name="v" standard_name="northward_wind"
+    <variable local_name="v" standard_name="y_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>v v_snapshot</ic_file_input_names>
     </variable>
-    <variable local_name="s" standard_name="dry_static_energy_content_of_atmosphere_layer"
+    <variable local_name="s" standard_name="dry_static_energy"
               units="J" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -185,7 +185,8 @@
       <ic_file_input_names>pintdry pintdry_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="lnpint"
-              standard_name="natural_log_of_air_pressure_at_interface"
+              standard_name="ln_of_air_pressure_at_interface"
+              long_name="natural_log_of_air_pressure_at_interface"
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -209,7 +210,7 @@
       <ic_file_input_names>zi zi_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="te_ini"
-              standard_name="vertically_integrated_total_kinetic_and_static_energy_of_initial_state"
+              standard_name="column_integrated_total_kinetic_and_static_energy_of_initial_state"
               units="J"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -218,7 +219,7 @@
       <ic_file_input_names>te_ini te_ini_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="te_cur"
-              standard_name="vertically_integrated_total_kinetic_and_static_energy_of_current_state"
+              standard_name="column_integrated_total_kinetic_and_static_energy_of_current_state"
               units="J"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -227,7 +228,7 @@
       <ic_file_input_names>te_cur te_cur_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="tw_ini"
-              standard_name="vertically_integrated_total_water_of_initial_state"
+              standard_name="column_integrated_total_water_of_initial_state"
               units="J"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -235,7 +236,7 @@
       <ic_file_input_names>tw_ini tw_ini_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="tw_cur"
-              standard_name="vertically_integrated_total_water_of_current_state"
+              standard_name="column_integrated_total_water_of_current_state"
               units="J"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -248,12 +249,12 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="dudt" standard_name="tendency_of_eastward_wind"
+    <variable local_name="dudt" standard_name="tendency_of_x_wind"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="dvdt" standard_name="tendency_of_northward_wind"
+    <variable local_name="dvdt" standard_name="tendency_of_y_wind"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -283,12 +284,12 @@
       <data>tendency_of_northward_wind</data>
     </ddt>
     <variable local_name="phys_state"
-              standard_name="physics_state_from_dynamics"
+              standard_name="physics_state_due_to_dynamics"
               units="None" type="physics_state">
       <long_name>Physics state variables updated by dynamical core</long_name>
     </variable>
     <variable local_name="phys_tend"
-              standard_name="total_physics_tendency"
+              standard_name="total_tendency_of_physics"
               units="None" type="physics_tend">
       <long_name>Total tendency from physics suite</long_name>
     </variable>

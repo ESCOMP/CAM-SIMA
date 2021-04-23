@@ -26,7 +26,7 @@
       <data dycore="FV">longitude</data>
     </ddt>
     <variable local_name="phys_state"
-              standard_name="physics_state_from_dynamics"
+              standard_name="physics_state_due_to_dynamics"
               units="None" type="physics_state">
       <long_name>Physics state variables updated by dynamical core</long_name>
     </variable>
