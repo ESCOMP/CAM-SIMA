@@ -160,7 +160,7 @@
                <ic_file_input_names>Q Q_snapshot</ic_file_input_names>
       </element>
       <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
-               index_name="index_of_cloud_liquid_water_mixing_ratio"
+               index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
                index_pos="number_of_constituents">
                <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>
       </element>
