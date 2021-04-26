@@ -107,7 +107,6 @@ subroutine dyn_readnl(NLFileName)
    use shr_file_mod,   only: shr_file_getunit, shr_file_freeunit
    use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
-   use dp_mapping,     only: nphys_pts
    use native_mapping, only: native_mapping_readnl
 
    !SE dycore:
@@ -383,13 +382,11 @@ subroutine dyn_readnl(NLFileName)
    molecular_diff           = se_molecular_diff
 
    if (fv_nphys > 0) then
-      ! Use finite volume physics grid and CSLAM for tracer advection
-      nphys_pts = fv_nphys*fv_nphys
+      ! Use CSLAM for tracer advection
       qsize = thermodynamic_active_species_num ! number tracers advected by GLL
       ntrac = pcnst                            ! number tracers advected by CSLAM
    else
-      ! Use GLL grid for physics and tracer advection
-      nphys_pts = npsq
+      ! Use GLL for tracer advection
       qsize = pcnst
       ntrac = 0
    end if
@@ -1923,6 +1920,9 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("reciprocal_of_pressure_thickness")
    call mark_as_initialized("inverse_exner_function_wrt_surface_pressure")
    call mark_as_initialized("lagrangian_tendency_of_air_pressure")
+
+   !This quantity should be removed once CCPP manages physics-scheme-initialized host variable::
+   call mark_as_initialized("tendency_of_temperature")
 
 end subroutine read_inidat
 

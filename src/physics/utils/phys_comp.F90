@@ -218,6 +218,7 @@ CONTAINS
       ! Threading vars
       col_start = 1
       col_end = columns_on_task
+
       ! Run CCPP suite
       do part_ind = 1, size(suite_parts, 1)
          call cam_ccpp_physics_run(suite_name, suite_parts(part_ind),         &

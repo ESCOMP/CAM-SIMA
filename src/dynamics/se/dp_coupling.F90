@@ -73,7 +73,7 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    ! LOCAL VARIABLES
    type(element_t), pointer     :: elem(:)      ! pointer to dyn_out element array
    integer                      :: ie           ! indices over elements
-   integer                      :: icol, ilyr   ! indices over chunks, columns, layers
+   integer                      :: icol, ilyr   ! indices over columns, layers
 
    real(r8),  allocatable :: ps_tmp(:,:)         ! temp array to hold ps
    real(r8),  allocatable :: dp3d_tmp(:,:,:)     ! temp array to hold dp3d
@@ -91,7 +91,7 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    !real (kind=r8),  allocatable :: frontga_phys(:,:,:)
 
    integer              :: ncols,ierr
-   integer              :: col_ind, blk_ind(1), m, m_cnst
+   integer              :: blk_ind(1), m, m_cnst
    integer              :: nphys
 
    real(r8), allocatable :: qgll(:,:,:,:)
@@ -234,6 +234,7 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
 
             call UniquePoints(elem(ie)%idxP, elem(ie)%state%phis, phis_tmp(1:ncols,ie))
             call UniquePoints(elem(ie)%idxP, nlev, pcnst, qgll,q_tmp(1:ncols,:,:,ie))
+
          end do
          call t_stopf('UniquePoints')
 
@@ -290,9 +291,9 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
 
    end if
 #endif
-   !$omp parallel do num_threads(max_num_threads) private (col_ind, icol, ie, blk_ind, ilyr, m)
-   do col_ind = 1, pcols
-      call get_dyn_col_p(col_ind, ie, blk_ind)
+   !$omp parallel do num_threads(max_num_threads) private (icol, ie, blk_ind, ilyr, m)
+   do icol = 1, pcols
+      call get_dyn_col_p(icol, ie, blk_ind)
       ps(icol) = real(ps_tmp(blk_ind(1), ie), kind_phys)
       phys_state%phis(icol) = real(phis_tmp(blk_ind(1), ie), kind_phys)
       do ilyr = 1, pver
@@ -317,6 +318,11 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
          end do
       end do
    end do
+
+   ! Re-set physics momentum tendencies to zero:
+   ! Is there a better solution here? -JN
+   phys_tend%dudt(:,:) = 0._kind_phys
+   phys_tend%dvdt(:,:) = 0._kind_phys
 
 !Remove once a gravity wave parameterization is available -JN
 #if 0
@@ -391,9 +397,8 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
    integer                  :: ic , ncols       ! index
    type(element_t), pointer :: elem(:)          ! pointer to dyn_in element array
    integer                  :: ie               ! index for elements
-   integer                  :: col_ind          ! index over columns
    integer                  :: blk_ind(1)       ! element offset
-   integer                  :: icol, ilyr       ! indices for chunk, column, layer
+   integer                  :: icol, ilyr       ! indices for column, layer
 
    real(r8),  allocatable   :: dp_phys(:,:,:)   ! temp array to hold dp on physics grid
    real(r8),  allocatable   :: T_tmp(:,:,:)     ! temp array to hold T
@@ -487,9 +492,9 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
 #endif
 
    call t_startf('pd_copy')
-   !$omp parallel do num_threads(max_num_threads) private (col_ind, icol, ie, blk_ind, ilyr, m)
-   do col_ind = 1, pcols
-      call get_dyn_col_p(col_ind, ie, blk_ind)
+   !$omp parallel do num_threads(max_num_threads) private (icol, ie, blk_ind, ilyr, m)
+   do icol = 1, pcols
+      call get_dyn_col_p(icol, ie, blk_ind)
 
       ! test code -- does nothing unless cpp macro debug_coupling is defined.
       call test_mapping_overwrite_tendencies(phys_state,            &
@@ -903,6 +908,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
      ! consistency (not taking into account dme adjust)
      !
      call get_cp(1,ncols,1,pver,1,1,pcnst,phys_state%q(1:ncols,1:pver,:),.true.,inv_cp)
+
      phys_tend%dtdt(1:ncols,1:pver) = phys_tend%dtdt(1:ncols,1:pver)*cpair*inv_cp
    end if
 end subroutine thermodynamic_consistency

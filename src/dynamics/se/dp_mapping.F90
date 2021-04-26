@@ -65,9 +65,6 @@ contains
     integer :: iret
     character(len=*), parameter :: subname = 'dp_init'
 
-    !Initialize total number of physics points per spectral element:
-    nphys_pts = npsq
-
     num_weights_phys2fvm = 0
     num_weights_fvm2phys = 0
     if (fv_nphys>0) then

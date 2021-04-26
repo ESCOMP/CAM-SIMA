@@ -133,7 +133,7 @@ subroutine model_grid_init()
    use physconst,           only: thermodynamic_active_species_num
    use ref_pres,            only: ref_pres_init
    use time_manager,        only: get_nstep, get_step_size
-   use dp_mapping,          only: dp_init, dp_write
+   use dp_mapping,          only: dp_init, dp_write, nphys_pts
    use native_mapping,      only: do_native_mapping, create_native_mapping_files
    use cam_grid_support,    only: hclen=>max_hcoordname_len
    use physics_grid,        only: phys_grid_init
@@ -180,6 +180,15 @@ subroutine model_grid_init()
 
    ! Initialize SE-dycore specific variables:
    call dimensions_mod_init()
+
+   ! Initialize total number of physics points per spectral element:
+   if (fv_nphys > 0) then
+      ! Use finite volume physics grid
+      nphys_pts = fv_nphys*fv_nphys
+   else
+      ! Use GLL grid for physics
+      nphys_pts = npsq
+   end if
 
    ! Initialize hybrid coordinate arrays
    call hycoef_init(fh_ini, psdry=.true.)
