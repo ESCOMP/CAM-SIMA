@@ -19,7 +19,7 @@
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="ix_cld_liq"
-              standard_name="index_of_cloud_liquid_water_mixing_ratio"
+              standard_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
               units="count" type="integer">
       <initial_value>2</initial_value>
     </variable>
@@ -68,7 +68,7 @@
                index_pos="number_of_constituents">
                <ic_file_input_names>Q Q_snapshot</ic_file_input_names>
       </element>
-      <element standard_name="cloud_liquid_water_mixing_ratio"
+      <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
                index_name="index_of_cloud_liquid_water_mixing_ratio"
                index_pos="number_of_constituents">
                <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>

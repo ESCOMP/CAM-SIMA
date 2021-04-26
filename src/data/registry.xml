@@ -19,7 +19,7 @@
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="ix_cld_liq"
-              standard_name="index_of_cloud_liquid_water_mixing_ratio"
+              standard_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
               units="count" type="integer">
       <initial_value>2</initial_value>
     </variable>
@@ -119,14 +119,14 @@
       <ic_file_input_names>rpdeldry rpdeldry_snapshot</ic_file_input_names>
     </variable>
     <!-- State helper values -->
-    <variable local_name="lnpmid" standard_name="natural_log_of_air_pressure"
+    <variable local_name="lnpmid" standard_name="ln_of_air_pressure"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>lnpmid lnpmid_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="lnpmiddry"
-              standard_name="natural_log_of_air_pressure_of_dry_air"
+              standard_name="ln_of_air_pressure_of_dry_air"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -157,7 +157,7 @@
                index_pos="number_of_constituents">
                <ic_file_input_names>Q Q_snapshot</ic_file_input_names>
       </element>
-      <element standard_name="cloud_liquid_water_mixing_ratio"
+      <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
                index_name="index_of_cloud_liquid_water_mixing_ratio"
                index_pos="number_of_constituents">
                <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>
@@ -194,7 +194,7 @@
       <ic_file_input_names>lnpint lnpint_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="lnpintdry"
-              standard_name="natural_log_of_air_pressure_of_dry_air_at_interface"
+              standard_name="ln_of_air_pressure_of_dry_air_at_interface"
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
