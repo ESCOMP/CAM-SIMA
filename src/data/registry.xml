@@ -32,14 +32,12 @@
     <variable local_name="ps" standard_name="surface_air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Surface air pressure</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>ps ps_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="psdry" standard_name="surface_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Surface pressure of dry air</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>psdry psdry_snapshot</ic_file_input_names>
     </variable>
