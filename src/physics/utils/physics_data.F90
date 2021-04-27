@@ -377,15 +377,6 @@ CONTAINS
                   end if
                end do
             end do
-            !*PEVERWHEE* DEBUGGING
-            if (masterproc) then
-               write(iulog,*) 'DEBUG: about to try mpi_barrier'
-            end if
-            call mpi_barrier(mpicom, ierr)
-            if (masterproc) then
-               write(iulog,*) 'DEBUG: came out of mpi_barrier'
-            end if
-            !Gather results across all nodes to get global values
             if (npes > 1) then
                call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
                     mpi_sum, masterprocid, mpicom, ierr)
@@ -395,11 +386,7 @@ CONTAINS
             if (masterproc) then
                !Log results
             end if
-         else
-            call endrun(subname//'variable not found inner loop')
          end if
-      else
-         call endrun(subname//'variable not found outer loop')
       end if
       deallocate(buffer)
  

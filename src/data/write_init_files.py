@@ -1765,7 +1765,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
                 call_str = "call check_field(file, input_var_names(:,name_idx)," + \
                                   " timestep, {})"
                 call_string_val = call_str.format(fort_data.call_dict[var_stdname])
-
             #Add strings to dictionary:
             call_string_dict[call_string_key] = call_string_val
 
@@ -1870,10 +1869,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #End select case and required variables loop:
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
-
-    outfile.write("if (masterproc) then", 3)
-    outfile.write("write(iulog,*) 'finished select'", 4)
-    outfile.write("end if", 3)
 
     #Generate endrun statement for missing variables:
     #outfile.write("!End simulation if there are missing input", 3)

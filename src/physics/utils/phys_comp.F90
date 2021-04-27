@@ -4,7 +4,7 @@ module phys_comp
    use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
    use pio,          only: file_desc_t
 !!XXgoldyXX: v debug only
-use spmd_utils, only: masterproc
+use spmd_utils, only: masterproc, iam
 use cam_logfile, only: iulog
 !!XXgoldyXX: ^ debug only
 
@@ -65,7 +65,7 @@ CONTAINS
       ! Broadcast namelist variables
       if (npes > 1) then
          call mpi_bcast(ncdata_check, 1, mpi_char, masterprocid, mpicom, ierr)
-         call mpi_bcast(print_physics_check, 1, mpi_char, masterprocid, mpicom, ierr)
+         call mpi_bcast(print_physics_check, len(print_physics_check), mpi_char, masterprocid, mpicom, ierr)
       end if
 
    end subroutine phys_readnl
@@ -183,24 +183,14 @@ end if
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
 
+
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
       end if
-      if (masterproc) then
-         write(iulog,*) 'finished physics_read_data'
-      end if
-      ! Determine if physics_check should be run:
-      if (print_physics_check == 'on') then
-         ! *PEVERWHEE*: cam_ccpp_physics_check?? 
-         call physics_check_data(ncdata_check, suite_names, get_nstep() + 1)
-      end if
-      !*PEVERWHEE*: LOGGING
-      if (masterproc) then
-         write(iulog, *) 'finished physics_check_data'
-      end if
+
       ! Threading vars
       col_start = 1
       col_end = columns_on_task
@@ -212,12 +202,19 @@ end if
             call endrun('cam_ccpp_physics_run: '//trim(errmsg))
          end if
       end do
+ 
       ! Finalize the time step
       call cam_ccpp_physics_timestep_final(suite_name, dtime_phys,            &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
       end if
+ 
+      ! Determine if physics_check should be run:
+      if (print_physics_check == 'on') then
+         call physics_check_data(ncdata_check, suite_names, data_frame)
+      end if
+
    end subroutine phys_run2
 
    subroutine phys_final(phys_state, phys_tend)
