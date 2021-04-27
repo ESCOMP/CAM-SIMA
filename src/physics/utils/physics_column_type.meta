@@ -6,12 +6,12 @@
   type = ddt
 [ lat_rad ]
   standard_name = latitude
-  units = radian
+  units = radians
   type = real | kind = kind_phys
   dimensions = ()
 [ lon_rad ]
   standard_name = longitude
-  units = radian
+  units = radians
   type = real | kind = kind_phys
   dimensions = ()
 [ lat_deg ]
@@ -25,12 +25,12 @@
   type = real | kind = kind_phys
   dimensions = ()
 [ area ]
-  standard_name = cell_area
-  units = radian+2
+  standard_name = cell_angular_area
+  units = steradian
   type = real | kind = kind_phys
   dimensions = ()
 [ weight ]
   standard_name = cell_weight
-  units = None
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
