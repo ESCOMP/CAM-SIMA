@@ -169,7 +169,7 @@ contains
       end if
 
       ! Tell rest of model that variables have been initialized:
-      call mark_as_initialized("reference_pressure")   ! pref_mid_in
+      call mark_as_initialized("reference_pressure_at_surface")   ! pref_mid_in
 
    end subroutine ref_pres_init
 

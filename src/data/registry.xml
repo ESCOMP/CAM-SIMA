@@ -247,7 +247,7 @@
       <ic_file_input_names>tw_cur tw_cur_snapshot</ic_file_input_names>
     </variable>
     <!-- State tendencies -->
-    <variable local_name="dTdt" standard_name="tendency_of_temperature"
+    <variable local_name="dTdt" standard_name="tendency_of_air_temperature"
               units="K s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -271,9 +271,9 @@
       <data dycore="FV,EUL">surface_air_pressure</data>
       <data dycore="SE">surface_pressure_of_dry_air</data>
       <data>geopotential_at_surface</data>
-      <data>temperature</data>
-      <data>eastward_wind</data>
-      <data>northward_wind</data>
+      <data>air_temperature</data>
+      <data>x_wind</data>
+      <data>y_wind</data>
       <data>lagrangian_tendency_of_air_pressure</data>
       <data dycore="EUL,FV">air_pressure</data>
       <data dycore="SE">air_pressure_of_dry_air</data>
@@ -282,9 +282,9 @@
       <data>constituent_mixing_ratio</data>
     </ddt>
     <ddt type="physics_tend">
-      <data>tendency_of_temperature</data>
-      <data>tendency_of_eastward_wind</data>
-      <data>tendency_of_northward_wind</data>
+      <data>tendency_of_air_temperature</data>
+      <data>tendency_of_x_wind</data>
+      <data>tendency_of_y_wind</data>
     </ddt>
     <variable local_name="phys_state"
               standard_name="physics_state_due_to_dynamics"
