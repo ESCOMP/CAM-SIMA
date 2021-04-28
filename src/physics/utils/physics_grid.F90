@@ -1,6 +1,7 @@
 module physics_grid
 
    use shr_kind_mod,        only: r8 => shr_kind_r8
+   use ccpp_kinds,          only: kind_phys
    use physics_column_type, only: physics_column_t, assignment(=)
    use perf_mod,            only: t_adj_detailf, t_startf, t_stopf
 
@@ -46,6 +47,13 @@ module physics_grid
    integer,          protected, public :: columns_on_task = 0
    logical,          protected, public :: phys_grid_initialized = .false.
 
+   real(kind_phys), protected, allocatable, public :: lat_rad(:)
+   real(kind_phys), protected, allocatable, public :: lon_rad(:)
+   real(kind_phys), protected, allocatable, public :: lat_deg(:)
+   real(kind_phys), protected, allocatable, public :: lon_deg(:)
+   real(kind_phys), protected, allocatable, public :: area(:)
+   real(kind_phys), protected, allocatable, public :: weight(:)
+
 !==============================================================================
 CONTAINS
 !==============================================================================
@@ -55,7 +63,7 @@ CONTAINS
 
 !      use mpi,              only: MPI_reduce ! XXgoldyXX: Should this work?
       use mpi,              only: MPI_INTEGER, MPI_MIN
-      use cam_abortutils,   only: endrun
+      use cam_abortutils,   only: endrun, check_allocate
       use spmd_utils,       only: npes, mpicom
       use string_utils,     only: to_str
       use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
@@ -122,18 +130,50 @@ CONTAINS
 
       ! Allocate phys_columns:
       allocate(phys_columns(columns_on_task), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate phys_columns(columns_on_task) '//&
-                     ' failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'phys_columns(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
+
+      ! Allocate public physics grid variables for CCPP:
+      allocate(lat_rad(columns_on_task), stat=ierr)
+      call check_allocate(ierr, subname, 'lat_rad(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
+
+      allocate(lon_rad(columns_on_task), stat=ierr)
+      call check_allocate(ierr, subname, 'lon_rad(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
+
+      allocate(lat_deg(columns_on_task), stat=ierr)
+      call check_allocate(ierr, subname, 'lat_deg(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
+
+      allocate(lon_deg(columns_on_task), stat=ierr)
+      call check_allocate(ierr, subname, 'lon_deg(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
+
+      allocate(area(columns_on_task), stat=ierr)
+      call check_allocate(ierr, subname, 'area(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
+
+      allocate(weight(columns_on_task), stat=ierr)
+      call check_allocate(ierr, subname, 'weight(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
 
       ! Set column index bounds:
       first_dyn_column = 1
       last_dyn_column  = columns_on_task
 
-      ! Set up the physics decomposition
+      ! Set up the physics decomposition and public variables:
       do index = first_dyn_column, last_dyn_column
+         !physics columns:
          phys_columns(index) = dyn_columns(index)
+
+         !public CCPP variables:
+         lat_rad(index) = phys_columns(index)%lat_rad
+         lon_rad(index) = phys_columns(index)%lon_rad
+         lat_deg(index) = phys_columns(index)%lat_deg
+         lon_deg(index) = phys_columns(index)%lon_deg
+         area(index)    = phys_columns(index)%area
+         weight(index)  = phys_columns(index)%weight
       end do
 
       ! Add physics-package grid to set of CAM grids
@@ -145,30 +185,22 @@ CONTAINS
       ! unstructured
       if (unstructured) then
          allocate(grid_map(3, columns_on_task), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate grid_map(3, columns_on_task) '//&
-                        'failed with stat: '//to_str(ierr))
-         end if
+         call check_allocate(ierr, subname, 'grid_map(3, columns_on_task)', &
+                             file=__FILE__, line=__LINE__)
       else
          allocate(grid_map(4, columns_on_task), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate grid_map(4, columns_on_task) '//&
-                        'failed with stat: '//to_str(ierr))
-         end if
+         call check_allocate(ierr, subname, 'grid_map(4, columns_on_task)', &
+                             file=__FILE__, line=__LINE__)
       end if
       grid_map = 0
 
       allocate(latvals(columns_on_task), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate latvals(columns_on_task) '//&
-                     'failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'latvals(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(lonvals(columns_on_task), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate lonvals(columns_on_task) '//&
-                     'failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'lonvals(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
 
       lonmin = 1000.0_r8 ! Out of longitude range
       latmin = 1000.0_r8 ! Out of latitude range
@@ -207,10 +239,8 @@ CONTAINS
               map=grid_map(3,:))
       else
          allocate(coord_map(columns_on_task), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate coord_map(columns_on_task) '//&
-                        'failed with stat: '//to_str(ierr))
-         end if
+         call check_allocate(ierr, subname, 'coord_map(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
 
          ! We need a global minimum longitude and latitude
          if (npes > 1) then
@@ -259,10 +289,8 @@ CONTAINS
          !   grids), create that attribute here (Note, a separate physics
          !   grid is only supported for unstructured grids).
          allocate(area_d(columns_on_task), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate area_d(columns_on_task) failed with stat: '//&
-                        to_str(ierr))
-         end if
+         call check_allocate(ierr, subname, 'area_d(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
 
          do col_index = 1, columns_on_task
             area_d(col_index) = phys_columns(col_index)%area
