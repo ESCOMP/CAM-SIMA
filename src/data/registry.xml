@@ -3,7 +3,6 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAMDEN Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
-  <metadata_file>$SRCROOT/src/physics/utils/physics_column_type.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
@@ -15,31 +14,29 @@
     <!-- Constituent indices -->
     <variable local_name="ix_qv"
               standard_name="index_of_water_vapor_specific_humidity"
-              units="count" type="integer">
+              units="index" type="integer">
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="ix_cld_liq"
               standard_name="index_of_cloud_liquid_water_mixing_ratio"
-              units="count" type="integer">
+              units="index" type="integer">
       <initial_value>2</initial_value>
     </variable>
     <variable local_name="ix_rain"
               standard_name="index_of_rain_water_mixing_ratio"
-              units="count" type="integer">
+              units="index" type="integer">
       <initial_value>3</initial_value>
     </variable>
     <!-- State variables -->
     <variable local_name="ps" standard_name="surface_air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>surface pressure</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>ps ps_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="psdry" standard_name="surface_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>surface pressure</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>psdry psdry_snapshot</ic_file_input_names>
     </variable>
@@ -52,23 +49,26 @@
     <variable local_name="T" standard_name="temperature"
               units="K" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Air temperature</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>T t_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="u" standard_name="eastward_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Horizontal wind in a direction perpendicular to y_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>u u_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="v" standard_name="northward_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Horizontal wind in a direction perpendicular to x_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>v v_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="s" standard_name="dry_static_energy_content_of_atmosphere_layer"
-              units="J" type="real" kind="kind_phys"
+              units="J kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>s s_snapshot</ic_file_input_names>
@@ -76,6 +76,7 @@
     <variable local_name="omega" standard_name="lagrangian_tendency_of_air_pressure"
               units="Pa s-1" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Vertical pressure velocity</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>omega omega_snapshot</ic_file_input_names>
     </variable>
@@ -88,6 +89,7 @@
     <variable local_name="pmiddry" standard_name="air_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Dry midpoint pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pmiddry pmiddry_snapshot</ic_file_input_names>
     </variable>
@@ -133,7 +135,7 @@
       <ic_file_input_names>lnpmiddry lnpmiddry_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="exner" standard_name="inverse_exner_function_wrt_surface_pressure"
-              units="None" type="real" kind="kind_phys"
+              units="1" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>inverse exner function w.r.t. surface pressure (ps/p)^(R/cp)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -172,7 +174,6 @@
               units="Pa"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Air pressure at model layer interfaces</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>pint pint_snapshot</ic_file_input_names>
     </variable>
@@ -180,7 +181,6 @@
               units="Pa"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Dry air pressure at model layer interfaces</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>pintdry pintdry_snapshot</ic_file_input_names>
     </variable>
@@ -210,25 +210,23 @@
     </variable>
     <variable local_name="te_ini"
               standard_name="vertically_integrated_total_kinetic_and_static_energy_of_initial_state"
-              units="J"
+              units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Vertically integrated total (kinetic + static) energy of initial state</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>te_ini te_ini_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="te_cur"
               standard_name="vertically_integrated_total_kinetic_and_static_energy_of_current_state"
-              units="J"
+              units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Vertically integrated total (kinetic + static) energy of current state</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>te_cur te_cur_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="tw_ini"
               standard_name="vertically_integrated_total_water_of_initial_state"
-              units="J"
+              units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
@@ -236,7 +234,7 @@
     </variable>
     <variable local_name="tw_cur"
               standard_name="vertically_integrated_total_water_of_current_state"
-              units="J"
+              units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
@@ -246,22 +244,26 @@
     <variable local_name="dTdt" standard_name="tendency_of_temperature"
               units="K s-1" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Change in temperature from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
     <variable local_name="dudt" standard_name="tendency_of_eastward_wind"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Change in x wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
     <variable local_name="dvdt" standard_name="tendency_of_northward_wind"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
+      <long_name>Change in y wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="lagrangian_vertical_coordinate"
               units="flag" type="logical" access="protected">
-    <initial_value>.false.</initial_value>
+      <long_name>flag indicating if vertical coordinate is lagrangian</long_name>
+      <initial_value>.false.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data dycore="FV,EUL">surface_air_pressure</data>
@@ -284,12 +286,12 @@
     </ddt>
     <variable local_name="phys_state"
               standard_name="physics_state_from_dynamics"
-              units="None" type="physics_state">
+              units="none" type="physics_state">
       <long_name>Physics state variables updated by dynamical core</long_name>
     </variable>
     <variable local_name="phys_tend"
               standard_name="total_physics_tendency"
-              units="None" type="physics_tend">
+              units="none" type="physics_tend">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
   </file>
