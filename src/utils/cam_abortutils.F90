@@ -2,6 +2,8 @@ module cam_abortutils
 
    use shr_sys_mod,  only: shr_sys_abort, shr_sys_flush
    use shr_kind_mod, only: max_chars=>shr_kind_cl, msg_len=>SHR_KIND_CS
+   use shr_kind_mod, only: r8 => shr_kind_r8
+   use shr_mem_mod,  only: shr_mem_getusage
    use pio,          only: file_desc_t
    use cam_logfile,  only: iulog
 
@@ -35,14 +37,24 @@ CONTAINS
       character(len=*),           intent(in) :: fieldname
       character(len=*), optional, intent(in) :: file
       integer,          optional, intent(in) :: line
-      ! Local variable
+      ! Local variables
       character(len=max_chars) :: abort_msg
+      real(r8)                 :: mem_val, mem_hw_val
+
+      ! Get memory values
+      call shr_mem_getusage(mem_hw_val, mem_val)
 
       if (errcode /= 0) then
-         write(abort_msg, '(4a,i0)') trim(subname), ": Allocate of '",        &
-              trim(fieldname), "' failed with code ", errcode
+         ! Write error message with memory stats
+         write(abort_msg, '(4a,i0,a,f10.2,a,f10.2,a)') &
+              trim(subname), ": Allocate of '",  &
+              trim(fieldname), "' failed with code ", errcode, &
+              ". Memory highwater is ", mem_hw_val, &
+              " mb, current memory usage is ", mem_val, " mb"
+
+         ! End the simulation
+         call endrun(abort_msg, file=file, line=line)
       end if
-      call endrun(abort_msg, file=file, line=line)
 
    end subroutine check_allocate
 

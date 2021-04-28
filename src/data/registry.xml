@@ -3,7 +3,6 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAMDEN Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
-  <metadata_file>$SRCROOT/src/physics/utils/physics_column_type.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
@@ -261,9 +260,10 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
     <variable local_name="lagrangian_vertical"
-              standard_name="flag indicating if vertical coordinate is lagrangian"
+              standard_name="lagrangian_vertical_coordinate"
               units="flag" type="logical" access="protected">
-    <initial_value>.false.</initial_value>
+      <long_name>flag indicating if vertical coordinate is lagrangian</long_name>
+      <initial_value>.false.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data dycore="FV,EUL">surface_air_pressure</data>
