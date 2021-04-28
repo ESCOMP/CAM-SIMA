@@ -24,3 +24,40 @@
   dimensions = ()
   type = logical
   protected = True
+[ lat_rad ]
+  standard_name = latitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ lon_rad ]
+  standard_name = longitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ lat_deg ]
+  standard_name = latitude_degrees_north
+  units = degrees
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ lon_deg ]
+  standard_name = longitude_degrees_east
+  units = degrees
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ area ]
+  standard_name = cell_angular_area
+  units = steradian
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ weight ]
+  standard_name = cell_weight
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+

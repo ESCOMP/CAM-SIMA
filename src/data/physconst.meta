@@ -7,7 +7,7 @@
 [ avogad ]
   standard_name = avogadro_number
   long_name = Avogadro's Number
-  units = molecules kmole-1
+  units = molecules mole-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -232,7 +232,7 @@
   protected = True
 [ cpair ]
   standard_name = specific_heat_of_dry_air_at_constant_pressure
-  units = J K-1 kg-1
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -275,7 +275,7 @@
 [ rair ]
   standard_name = gas_constant_of_dry_air
   long_name = Dry air gas constant
-  units = J K-1 kg-1
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -305,7 +305,7 @@
   protected = True
 [ cappa ]
   standard_name = ratio_of_dry_air_to_water_vapor_gas_constants
-  units = enter units
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -323,19 +323,19 @@
   protected = True
 [ cpairv ]
   standard_name = composition_dependent_specific_heat_of_dry_air_at_constant_pressure
-  units = enter units
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ rairv ]
   standard_name = composition_dependent_gas_constant_of_dry_air
-  units = enter units
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ cappav ]
   standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants
-  units = enter units
+  units = 1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
