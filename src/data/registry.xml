@@ -18,7 +18,7 @@
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="ix_cld_liq"
-              standard_name="index_of_cloud_liquid_water_mixing_ratio"
+              standard_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
               units="index" type="integer">
       <initial_value>2</initial_value>
     </variable>
@@ -124,7 +124,7 @@
     <variable local_name="lnpmid" standard_name="ln_of_air_pressure"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Natural log of air pressure</long_name>
+      <long_name>ln(air pressure)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>lnpmid lnpmid_snapshot</ic_file_input_names>
     </variable>
@@ -132,7 +132,7 @@
               standard_name="ln_of_air_pressure_of_dry_air"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Natural log of air pressure of dry air</long_name>
+      <long_name>ln(air pressure of dry air)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>lnpmiddry lnpmiddry_snapshot</ic_file_input_names>
     </variable>
@@ -191,7 +191,7 @@
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Natural log of air pressure at interface</long_name>
+      <long_name>ln(air pressure at interface)</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>lnpint lnpint_snapshot</ic_file_input_names>
     </variable>
@@ -200,7 +200,7 @@
               units="1"
               type="real" kind="kind_phys"
               allocatable="pointer">
-      <long_name>Natural log of air pressure of dry air at interface</long_name>
+      <long_name>ln(air pressure of dry air at interface)</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>lnpintdry lnpintdry_snapshot</ic_file_input_names>
     </variable>
