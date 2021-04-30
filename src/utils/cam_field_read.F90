@@ -150,6 +150,9 @@ CONTAINS
          write(iulog, fmt_str) subname, ': field(',                           &
               (values(ind), trim(syntax(ind)), ind = 1, num_vals)
       end if ! else handled above
+      if (masterproc) then
+         call shr_sys_flush(iulog)
+      end if
 
    end subroutine print_input_field_info
 

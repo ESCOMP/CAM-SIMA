@@ -178,13 +178,14 @@ CONTAINS
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:,:)
       ! Local variables
-      logical                          :: var_found = .true.
+      logical                          :: var_found
       integer                          :: num_levs
       character(len=ic_name_len)       :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_3d: '
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+
       if (var_found) then
          if (trim(vcoord_name) == 'lev') then
             num_levs = pver

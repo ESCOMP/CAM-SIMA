@@ -2,9 +2,8 @@ module phys_comp
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
-   use pio,          only: file_desc_t
 !!XXgoldyXX: v debug only
-use spmd_utils, only: masterproc, iam
+use spmd_utils, only: masterproc
 use cam_logfile, only: iulog
 !!XXgoldyXX: ^ debug only
 
@@ -160,7 +159,6 @@ CONTAINS
       integer                            :: col_end
       integer                            :: data_frame
       logical                            :: use_init_variables
-      integer                            :: unitn
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
@@ -174,11 +172,6 @@ CONTAINS
       ! Determine if we should read initialized variables from file
       use_init_variables = (.not. is_first_step()) .and. (.not. is_first_restart_step())
 
-!!XXgoldyXX: v debug only
-if (masterproc) then
-   write(iulog, '(2(a,i0),a,l7)') 'nstep = ', get_nstep(), ', dframe = ', data_frame, ', use_init = ', use_init_variables
-end if
-!!XXgoldyXX: ^ debug only
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
 
