@@ -215,13 +215,10 @@ CONTAINS
    end subroutine read_field_3d
 
    subroutine check_field_2d(file, var_names, timestep, current_value, stdname)
-      use shr_assert_mod, only: shr_assert_in_domain
-      use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun, check_allocate
-      use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
       use spmd_utils,     only: npes, mpicom
@@ -249,9 +246,6 @@ CONTAINS
       real(kind_phys)                  :: max_diff
       real(kind_phys)                  :: max_diff_gl
       integer                          :: diff_count_gl
-      integer                          :: rows
-      integer                          :: row
-      character(len=max_chars)         :: var_name_piece
 
       !Initialize output variables
       ierr = 0
@@ -289,29 +283,7 @@ CONTAINS
                     masterprocid, mpicom, ierr)
             end if
             if (masterproc) then
-               !Get strings for logging
-               if (len(stdname) > max_chars) then
-                  rows = len(stdname) / max_chars
-                  do row = 1, rows
-                     if (row == 1) then
-                        var_name_piece = stdname(:max_chars)
-                        write(iulog, '(a,a,i7,a,e8.2)') ' '//var_name_piece, &
-                          col_sep, diff_count, col_sep, max_diff
-                     else
-                        var_name_piece = stdname(max_chars * (row - 1) + 1:   &
-                          (max_chars)*row)
-                        write(iulog, '(a)') '   '//var_name_piece
-                     end if
-                  end do
-                  if (modulo(len(stdname), max_chars) /= 0) then
-                     var_name_piece = stdname(max_chars * rows + 1:)
-                     write(iulog, '(a)') '   '//var_name_piece
-                  end if
-               else
-                  var_name_piece = stdname
-                  write(iulog,'(a,a,i7,a,e8.2)') ' '//var_name_piece,        &
-                     col_sep, diff_count, col_sep,  max_diff
-               end if
+               call write_check_field_entry(stdname, diff_count, max_diff)
             end if
          end if
       end if
@@ -320,13 +292,11 @@ CONTAINS
 
    subroutine check_field_3d(file, var_names, vcoord_name, timestep,          &
       current_value, stdname)
-      use shr_assert_mod, only: shr_assert_in_domain
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun, check_allocate
-      use cam_logfile,    only: iulog
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
       use spmd_utils,     only: npes, mpicom
@@ -358,9 +328,6 @@ CONTAINS
       real(kind_phys)                  :: max_diff
       real(kind_phys)                  :: max_diff_gl
       integer                          :: diff_count_gl
-      integer                          :: rows
-      integer                          :: row
-      character(len=max_chars)         :: var_name_piece
 
       !Initialize output variables
       ierr = 0
@@ -411,34 +378,51 @@ CONTAINS
                     masterprocid, mpicom, ierr)
             end if
             if (masterproc) then
-               !Get strings for logging
-               if (len(stdname) > max_chars) then
-                  rows = len(stdname) / max_chars
-                  do row = 1, rows
-                     if (row == 1) then
-                        var_name_piece = stdname(:max_chars)
-                        write(iulog, '(a,a,i7,a,e8.2)') ' '//var_name_piece, &
-                          col_sep, diff_count, col_sep, max_diff
-                     else
-                        var_name_piece = stdname(max_chars * (row - 1) + 1:   &
-                          (max_chars)*row)
-                        write(iulog, '(a)') '   '//var_name_piece
-                     end if
-                  end do
-                  if (modulo(len(stdname), max_chars) /= 0) then
-                     var_name_piece = stdname(max_chars * rows + 1:)
-                     write(iulog, '(a)') '   '//var_name_piece
-                  end if
-               else
-                  var_name_piece = stdname
-                  write(iulog,'(a,a,i7,a,e8.2)') ' '//var_name_piece,     &
-                     col_sep, diff_count, col_sep, max_diff
-               end if
+               call write_check_field_entry(stdname, diff_count, max_diff)
             end if
          end if
       end if
       deallocate(buffer)
  
    end subroutine check_field_3d
+
+   subroutine write_check_field_entry(stdname, diff_count, max_diff)
+
+      use cam_logfile, only: iulog
+
+      !Dummy variables:
+      character(len=*), intent(in) :: stdname
+      integer,          intent(in) :: diff_count
+      real(kind_phys),  intent(in) :: max_diff
+
+      !Local variables:
+      character(len=max_chars)     :: var_name_piece
+      integer                      :: rows
+      integer                      :: row
+
+      if (len(stdname) > max_chars) then
+         rows = len(stdname) / max_chars
+         do row = 1, rows
+            if (row == 1) then
+               var_name_piece = stdname(:max_chars)
+               write(iulog, '(a,a,i7,a,e8.2)') ' '//var_name_piece, &
+                     col_sep, diff_count, col_sep, max_diff
+            else
+               var_name_piece = stdname(max_chars * (row - 1) + 1:   &
+                   (max_chars)*row)
+               write(iulog, '(a)') '   '//var_name_piece
+            end if
+         end do
+         if (modulo(len(stdname), max_chars) /= 0) then
+            var_name_piece = stdname(max_chars * rows + 1:)
+            write(iulog, '(a)') '   '//var_name_piece
+         end if
+      else
+         var_name_piece = stdname
+         write(iulog,'(a,a,i7,a,e8.2)') ' '//var_name_piece,     &
+               col_sep, diff_count, col_sep, max_diff
+      end if
+
+   end subroutine write_check_field_entry
 
 end module physics_data
