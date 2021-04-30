@@ -39,8 +39,7 @@ CONTAINS
 !========================================================================
 
    subroutine spmd_init(mpicom_atm)
-      use mpi, only: MPI_MAX_PROCESSOR_NAME, MPI_COMM_WORLD
-      use cam_logfile, only: iulog
+      use mpi, only: MPI_MAX_PROCESSOR_NAME
       !-----------------------------------------------------------------------
       !
       ! Purpose: MPI initialization routine:
