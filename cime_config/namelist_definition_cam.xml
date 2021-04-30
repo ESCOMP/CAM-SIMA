@@ -616,7 +616,7 @@
     <desc>
       Control the writing of physics check messages.
       'on' causes a summary of physics check statistics to be printed at the
-          end of the run.
+          end of each timestep.
       'off' causes the physics check messages to be supressed.
       Default: off
     </desc>
