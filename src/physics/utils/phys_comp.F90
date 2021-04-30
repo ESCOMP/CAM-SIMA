@@ -64,7 +64,7 @@ CONTAINS
       end if
       ! Broadcast namelist variables
       if (npes > 1) then
-         call mpi_bcast(ncdata_check, 1, mpi_char, masterprocid, mpicom, ierr)
+         call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char, masterprocid, mpicom, ierr)
          call mpi_bcast(print_physics_check, len(print_physics_check), mpi_char, masterprocid, mpicom, ierr)
       end if
 
@@ -142,7 +142,6 @@ CONTAINS
       use time_manager,   only: is_first_step
       use time_manager,   only: is_first_restart_step
       use physics_inputs, only: physics_check_data
-      use shr_kind_mod,   only: SHR_KIND_CL
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -152,7 +151,8 @@ CONTAINS
       type(cam_in_t),      intent(inout) :: cam_in
       ! Local variables
       type(file_desc_t), pointer :: ncdata
-      type(file_desc_t), pointer :: ncdata_check
+      type(file_desc_t), pointer :: fh_ncdata_check => null()
+      character(len=256)         :: ncdata_check_loc
       character(len=512) :: errmsg
       integer            :: errflg = 0
       integer                            :: part_ind
@@ -164,7 +164,6 @@ CONTAINS
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
-      ncdata_check => initial_file_get_id()
 
       ! data_frame is the next input frame for physics input fields
       ! Frame 1 is skipped for snapshot files
@@ -182,7 +181,6 @@ end if
 !!XXgoldyXX: ^ debug only
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
-
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &

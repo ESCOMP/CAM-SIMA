@@ -10,9 +10,12 @@ module physics_data
    public :: check_field
 
    !Non-standard variable indices:
-   integer, public, parameter :: no_exist_idx     = -1
-   integer, public, parameter :: init_mark_idx    = -2
-   integer, public, parameter :: prot_no_init_idx = -3
+   integer, public, parameter           :: no_exist_idx     = -1
+   integer, public, parameter           :: init_mark_idx    = -2
+   integer, public, parameter           :: prot_no_init_idx = -3
+   integer, public, parameter           :: max_chars = 35
+   character(len=10), public, parameter :: col_sep   = ""
+
 
    real(kind_phys), public, parameter :: MIN_DIFFERENCE = 0
    real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10E-6
@@ -210,7 +213,7 @@ CONTAINS
       end if
    end subroutine read_field_3d
 
-   subroutine check_field_2d(file, var_names, timestep, current_value)
+   subroutine check_field_2d(file, var_names, timestep, current_value, stdname)
       use shr_assert_mod, only: shr_assert_in_domain
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
@@ -230,6 +233,7 @@ CONTAINS
       type(file_desc_t), intent(inout) :: file
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
+      character(len=*),  intent(in)    :: stdname
 
       !Local variables:
       logical                          :: var_found
@@ -244,6 +248,9 @@ CONTAINS
       real(kind_phys)                  :: max_diff
       real(kind_phys)                  :: max_diff_gl
       integer                          :: diff_count_gl
+      integer                          :: rows
+      integer                          :: row
+      character(len=max_chars)         :: var_name_piece
 
       !Initialize output variables
       ierr = 0
@@ -255,12 +262,8 @@ CONTAINS
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (var_found) then
-         if (masterproc) then
-            write(iulog, *) subname, ': Checking read-in field, ', trim(found_name)
-            call shr_sys_flush(iulog)
-         end if
          call cam_read_field(found_name, file, buffer, var_found,             &
-              timelevel=timestep)
+              timelevel=timestep, log_output=.false.)
          if (var_found) then
             do col = 1, size(buffer)
                if (buffer(col) < MIN_RELATIVE_VALUE) then
@@ -285,14 +288,37 @@ CONTAINS
                     masterprocid, mpicom, ierr)
             end if
             if (masterproc) then
-               !Log results
+               !Get strings for logging
+               if (len(stdname) > max_chars) then
+                  rows = len(stdname) / max_chars
+                  do row = 1, rows
+                     if (row == 1) then
+                        var_name_piece = stdname(:max_chars)
+                        write(iulog, '(a,a,i7,a,e8.2)') ' '//var_name_piece, &
+                          col_sep, diff_count, col_sep, max_diff
+                     else
+                        var_name_piece = stdname(max_chars * (row - 1) + 1:   &
+                          (max_chars)*row)
+                        write(iulog, '(a)') '   '//var_name_piece
+                     end if
+                  end do
+                  if (modulo(len(stdname), max_chars) /= 0) then
+                     var_name_piece = stdname(max_chars * rows + 1:)
+                     write(iulog, '(a)') '   '//var_name_piece
+                  end if
+               else
+                  var_name_piece = stdname
+                  write(iulog,'(a,a,i7,a,e8.2)') ' '//var_name_piece,        &
+                     col_sep, diff_count, col_sep,  max_diff
+               end if
             end if
          end if
       end if
       deallocate(buffer)
    end subroutine check_field_2d
 
-   subroutine check_field_3d(file, var_names, vcoord_name, timestep, current_value)
+   subroutine check_field_3d(file, var_names, vcoord_name, timestep,          &
+      current_value, stdname)
       use shr_assert_mod, only: shr_assert_in_domain
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
@@ -313,7 +339,8 @@ CONTAINS
       type(file_desc_t), intent(inout) :: file
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
-      character(len=*),  intent(in)    :: vcoord_name 
+      character(len=*),  intent(in)    :: vcoord_name
+      character(len=*),  intent(in)    :: stdname 
 
       !Local variables:
       logical                          :: var_found = .true.
@@ -330,6 +357,9 @@ CONTAINS
       real(kind_phys)                  :: max_diff
       real(kind_phys)                  :: max_diff_gl
       integer                          :: diff_count_gl
+      integer                          :: rows
+      integer                          :: row
+      character(len=max_chars)         :: var_name_piece
 
       !Initialize output variables
       ierr = 0
@@ -350,13 +380,9 @@ CONTAINS
          else
             call endrun(subname//'Unknown vcoord_name, '//trim(vcoord_name))
          end if
-         if (masterproc) then
-            write(iulog, *) subname, ': Checking read-in field, ', trim(found_name)
-            call shr_sys_flush(iulog)
-         end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
-              dim3_bnds=(/1, num_levs/))
+              dim3_bnds=(/1, num_levs/), log_output=.false.)
          if (var_found) then
             do lev = 1, num_levs
                do col = 1, size(buffer(:,lev))
@@ -384,7 +410,29 @@ CONTAINS
                     masterprocid, mpicom, ierr)
             end if
             if (masterproc) then
-               !Log results
+               !Get strings for logging
+               if (len(stdname) > max_chars) then
+                  rows = len(stdname) / max_chars
+                  do row = 1, rows
+                     if (row == 1) then
+                        var_name_piece = stdname(:max_chars)
+                        write(iulog, '(a,a,i7,a,e8.2)') ' '//var_name_piece, &
+                          col_sep, diff_count, col_sep, max_diff
+                     else
+                        var_name_piece = stdname(max_chars * (row - 1) + 1:   &
+                          (max_chars)*row)
+                        write(iulog, '(a)') '   '//var_name_piece
+                     end if
+                  end do
+                  if (modulo(len(stdname), max_chars) /= 0) then
+                     var_name_piece = stdname(max_chars * rows + 1:)
+                     write(iulog, '(a)') '   '//var_name_piece
+                  end if
+               else
+                  var_name_piece = stdname
+                  write(iulog,'(a,a,i7,a,e8.2)') ' '//var_name_piece,     &
+                     col_sep, diff_count, col_sep, max_diff
+               end if
             end if
          end if
       end if
