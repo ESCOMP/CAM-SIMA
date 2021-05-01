@@ -237,6 +237,7 @@ CONTAINS
 
    ! Read namelist variables.
    subroutine physconst_readnl(nlfile)
+      use shr_kind_mod,   only: r8=>shr_kind_r8
       use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
       use shr_flux_mod,   only: shr_flux_adjust_constants
 !      use mpi,            only: mpi_bcast !!XXgoldyXX: Why not?
@@ -351,8 +352,8 @@ CONTAINS
          Cpd_on_Cpv  = cpair / cpwv
 
          ! Adjust constants in shr_flux_mod.
-         call shr_flux_adjust_constants(zvir=real(zvir, kind_phys),                  &
-              cpvir=real(cpvir, kind_phys), gravit=real(gravit, kind_phys))
+         call shr_flux_adjust_constants(zvir=real(zvir, r8),                  &
+              cpvir=real(cpvir, r8), gravit=real(gravit, r8))
 
       end if
       ez          = omega / sqrt(0.375_kind_phys)
@@ -499,7 +500,7 @@ CONTAINS
       rairv(:pcols,:pver) = rair
       cappav(:pcols,:pver) = rair/cpair
       mbarv(:pcols,:pver) = mwdry
-      zvirv(:pcols,:pver) = cpair
+      zvirv(:pcols,:pver) = zvir
 
       !!XXgoldyXX: v until we get constituents figured out in CCPP
 #if 0

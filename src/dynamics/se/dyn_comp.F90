@@ -1905,7 +1905,7 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("geopotential_height_at_interface")
    call mark_as_initialized("dry_static_energy_content_of_atmosphere_layer")
 
-   !These quantities are calculated in d_p_coupling using the variables initialized here:
+   !These variables are calculated in d_p_coupling, but need to be marked here:
    call mark_as_initialized("air_pressure")
    call mark_as_initialized("natural_log_of_air_pressure")
    call mark_as_initialized("air_pressure_at_interface")
@@ -1920,9 +1920,9 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("reciprocal_of_pressure_thickness")
    call mark_as_initialized("inverse_exner_function_wrt_surface_pressure")
    call mark_as_initialized("lagrangian_tendency_of_air_pressure")
-
-   !This quantity should be removed once CCPP manages physics-scheme-initialized host variable::
    call mark_as_initialized("tendency_of_temperature")
+   call mark_as_initialized("tendency_of_eastward_wind")
+   call mark_as_initialized("tendency_of_northward_wind")
 
 end subroutine read_inidat
 
