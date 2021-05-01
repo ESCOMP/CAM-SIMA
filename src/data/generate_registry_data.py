@@ -231,8 +231,7 @@ class VarBase(object):
         # end if
         if not init_val:
             if self.var_type.lower() == 'real':
-#                init_val = 'nan'
-                 init_val = 'inf' #DEBUG -JN
+                init_val = 'nan'
             elif self.var_type.lower() == 'integer':
                 init_val = 'HUGE(1)'
             elif self.var_type.lower() == 'character':
@@ -1202,8 +1201,7 @@ class File:
         args.append('{}_in'.format(reall_var))
         outfile.write('subroutine {}({})'.format(subname, ', '.join(args)), 1)
         # Use statements
-#        nanmods = 'nan => shr_infnan_nan, assignment(=)'
-        nanmods = 'inf => shr_infnan_inf, assignment(=)' #DEBUG -JN
+        nanmods = 'nan => shr_infnan_nan, assignment(=)'
         outfile.write('use shr_infnan_mod,   only: {}'.format(nanmods), 2)
         outfile.write('use cam_abortutils,   only: endrun', 2)
         # Dummy arguments
