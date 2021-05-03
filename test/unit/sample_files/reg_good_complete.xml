@@ -79,8 +79,8 @@
       <data>vertical_layer_dimension</data>
     </ddt>
     <ddt type="model_wind">
-      <data>eastward_wind</data>
-      <data>northward_wind</data>
+      <data>x_wind</data>
+      <data>y_wind</data>
     </ddt>
     <variable local_name="wind" standard_name="model_wind"
               units="None" type="model_wind" />
