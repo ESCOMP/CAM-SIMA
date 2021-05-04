@@ -32,93 +32,93 @@
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>ps ps_snapshot</ic_file_input_names>
+      <ic_file_input_names>ps state_ps</ic_file_input_names>
     </variable>
     <variable local_name="psdry" standard_name="surface_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>psdry psdry_snapshot</ic_file_input_names>
+      <ic_file_input_names>psdry state_psdry</ic_file_input_names>
     </variable>
     <variable local_name="phis" standard_name="geopotential_at_surface"
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>phis phis_snapshot</ic_file_input_names>
+      <ic_file_input_names>phis state_phis</ic_file_input_names>
     </variable>
     <variable local_name="T" standard_name="air_temperature"
               units="K" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Air temperature</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>T t_snapshot</ic_file_input_names>
+      <ic_file_input_names>T state_t</ic_file_input_names>
     </variable>
     <variable local_name="u" standard_name="x_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Horizontal wind in a direction perpendicular to y_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>u u_snapshot</ic_file_input_names>
+      <ic_file_input_names>u state_u</ic_file_input_names>
     </variable>
     <variable local_name="v" standard_name="y_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Horizontal wind in a direction perpendicular to x_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>v v_snapshot</ic_file_input_names>
+      <ic_file_input_names>v state_v</ic_file_input_names>
     </variable>
     <variable local_name="s" standard_name="dry_static_energy"
               units="J kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>s s_snapshot</ic_file_input_names>
+      <ic_file_input_names>s state_s</ic_file_input_names>
     </variable>
     <variable local_name="omega" standard_name="lagrangian_tendency_of_air_pressure"
               units="Pa s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Vertical pressure velocity</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>omega omega_snapshot</ic_file_input_names>
+      <ic_file_input_names>omega state_omega</ic_file_input_names>
     </variable>
     <variable local_name="pmid" standard_name="air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pmid pmid_snapshot</ic_file_input_names>
+      <ic_file_input_names>pmid state_pmid</ic_file_input_names>
     </variable>
     <variable local_name="pmiddry" standard_name="air_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Dry midpoint pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pmiddry pmiddry_snapshot</ic_file_input_names>
+      <ic_file_input_names>pmiddry state_pmiddry</ic_file_input_names>
     </variable>
     <variable local_name="pdel" standard_name="pressure_thickness"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pdel pdel_snapshot</ic_file_input_names>
+      <ic_file_input_names>pdel state_pdel</ic_file_input_names>
     </variable>
     <variable local_name="pdeldry"
               standard_name="pressure_thickness_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pdeldry pdeldry_snapshot</ic_file_input_names>
+      <ic_file_input_names>pdeldry state_pdeldry</ic_file_input_names>
     </variable>
     <variable local_name="rpdel"
               standard_name="reciprocal_of_pressure_thickness"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>rpdel rpdel_snapshot</ic_file_input_names>
+      <ic_file_input_names>rpdel state_rpdel</ic_file_input_names>
     </variable>
     <variable local_name="rpdeldry"
               standard_name="reciprocal_of_pressure_thickness_of_dry_air"
               units="Pa-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>rpdeldry rpdeldry_snapshot</ic_file_input_names>
+      <ic_file_input_names>rpdeldry state_rpdeldry</ic_file_input_names>
     </variable>
     <!-- State helper values -->
     <variable local_name="lnpmid" standard_name="ln_of_air_pressure"
@@ -126,7 +126,7 @@
               allocatable="pointer">
       <long_name>ln(air pressure)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>lnpmid lnpmid_snapshot</ic_file_input_names>
+      <ic_file_input_names>lnpmid state_lnpmid</ic_file_input_names>
     </variable>
     <variable local_name="lnpmiddry"
               standard_name="ln_of_air_pressure_of_dry_air"
@@ -134,21 +134,21 @@
               allocatable="pointer">
       <long_name>ln(air pressure of dry air)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>lnpmiddry lnpmiddry_snapshot</ic_file_input_names>
+      <ic_file_input_names>lnpmiddry state_lnpmiddry</ic_file_input_names>
     </variable>
     <variable local_name="exner" standard_name="inverse_exner_function_wrt_surface_pressure"
               units="1" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>inverse exner function w.r.t. surface pressure (ps/p)^(R/cp)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>exner exner_snapshot</ic_file_input_names>
+      <ic_file_input_names>exner state_exner</ic_file_input_names>
     </variable>
     <variable local_name="zm"
               standard_name="geopotential_height"
               units="m" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>zm zm_snapshot</ic_file_input_names>
+      <ic_file_input_names>zm state_zm</ic_file_input_names>
     </variable>
     <array local_name="q" standard_name="constituent_mixing_ratio"
               units="kg kg-1"
@@ -159,17 +159,17 @@
       <element standard_name="water_vapor_specific_humidity"
                index_name="index_of_water_vapor_specific_humidity"
                index_pos="number_of_constituents">
-               <ic_file_input_names>Q Q_snapshot</ic_file_input_names>
+               <ic_file_input_names>Q cnst_Q</ic_file_input_names>
       </element>
       <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
                index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
                index_pos="number_of_constituents">
-               <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>
+               <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
       </element>
       <element standard_name="rain_water_mixing_ratio"
                index_name="index_of_rain_water_mixing_ratio"
                index_pos="number_of_constituents">
-               <ic_file_input_names>RAINQM RAINQM_snapshot</ic_file_input_names>
+               <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
       </element>
     </array>
     <variable local_name="pint" standard_name="air_pressure_at_interface"
@@ -177,14 +177,14 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>pint pint_snapshot</ic_file_input_names>
+      <ic_file_input_names>pint state_pint</ic_file_input_names>
     </variable>
     <variable local_name="pintdry" standard_name="air_pressure_of_dry_air_at_interface"
               units="Pa"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>pintdry pintdry_snapshot</ic_file_input_names>
+      <ic_file_input_names>pintdry state_pintdry</ic_file_input_names>
     </variable>
     <variable local_name="lnpint"
               standard_name="ln_of_air_pressure_at_interface"
@@ -193,7 +193,7 @@
               allocatable="pointer">
       <long_name>ln(air pressure at interface)</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>lnpint lnpint_snapshot</ic_file_input_names>
+      <ic_file_input_names>lnpint state_lnpint</ic_file_input_names>
     </variable>
     <variable local_name="lnpintdry"
               standard_name="ln_of_air_pressure_of_dry_air_at_interface"
@@ -202,7 +202,7 @@
               allocatable="pointer">
       <long_name>ln(air pressure of dry air at interface)</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>lnpintdry lnpintdry_snapshot</ic_file_input_names>
+      <ic_file_input_names>lnpintdry lnpintdry</ic_file_input_names>
     </variable>
     <variable local_name="zi"
               standard_name="geopotential_height_at_interface"
@@ -210,7 +210,7 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>zi zi_snapshot</ic_file_input_names>
+      <ic_file_input_names>zi state_zi</ic_file_input_names>
     </variable>
     <variable local_name="te_ini"
               standard_name="column_integrated_total_kinetic_and_static_energy_of_initial_state"
@@ -218,7 +218,7 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_ini te_ini_snapshot</ic_file_input_names>
+      <ic_file_input_names>te_ini state_te_ini</ic_file_input_names>
     </variable>
     <variable local_name="te_cur"
               standard_name="column_integrated_total_kinetic_and_static_energy_of_current_state"
@@ -226,7 +226,7 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_cur te_cur_snapshot</ic_file_input_names>
+      <ic_file_input_names>te_cur state_te_cur</ic_file_input_names>
     </variable>
     <variable local_name="tw_ini"
               standard_name="column_integrated_total_water_of_initial_state"
@@ -234,7 +234,7 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>tw_ini tw_ini_snapshot</ic_file_input_names>
+      <ic_file_input_names>tw_ini state_tw_ini</ic_file_input_names>
     </variable>
     <variable local_name="tw_cur"
               standard_name="column_integrated_total_water_of_current_state"
@@ -242,7 +242,7 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>tw_cur tw_cur_snapshot</ic_file_input_names>
+      <ic_file_input_names>tw_cur state_tw_cur</ic_file_input_names>
     </variable>
     <!-- State tendencies -->
     <variable local_name="dTdt" standard_name="tendency_of_air_temperature"
@@ -250,6 +250,7 @@
               allocatable="pointer">
       <long_name>Change in temperature from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dTdt tend_dtdt</ic_file_input_names>
     </variable>
     <variable local_name="dudt" standard_name="tendency_of_x_wind"
               units="m s-2" type="real" kind="kind_phys"
