@@ -13,9 +13,7 @@ module physics_data
    integer, public, parameter           :: no_exist_idx     = -1
    integer, public, parameter           :: init_mark_idx    = -2
    integer, public, parameter           :: prot_no_init_idx = -3
-   integer, public, parameter           :: max_chars = 35
-   character(len=10), public, parameter :: col_sep   = ""
-
+   integer, public, parameter           :: indent_level = 50
 
    real(kind_phys), public, parameter :: MIN_DIFFERENCE = 0
    real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10E-6
@@ -266,7 +264,8 @@ CONTAINS
                   diff = abs(current_value(col) - buffer(col))
                else
                   !Calculate relative difference:
-                  diff = abs(current_value(col) - buffer(col)) / abs(current_value(col))
+                  diff = abs(current_value(col) - buffer(col)) /              &
+                     abs(current_value(col))
                end if
                if (diff > max_diff) then
                   max_diff = diff
@@ -396,32 +395,17 @@ CONTAINS
       real(kind_phys),  intent(in) :: max_diff
 
       !Local variables:
-      character(len=max_chars)     :: var_name_piece
-      integer                      :: rows
+      character(len=24)            :: fmt_str
+      integer                      :: slen
       integer                      :: row
 
-      if (len(stdname) > max_chars) then
-         rows = len(stdname) / max_chars
-         do row = 1, rows
-            if (row == 1) then
-               var_name_piece = stdname(:max_chars)
-               write(iulog, '(a,a,i7,a,e8.2)') ' '//var_name_piece, &
-                     col_sep, diff_count, col_sep, max_diff
-            else
-               var_name_piece = stdname(max_chars * (row - 1) + 1:   &
-                   (max_chars)*row)
-               write(iulog, '(a)') '   '//var_name_piece
-            end if
-         end do
-         if (modulo(len(stdname), max_chars) /= 0) then
-            var_name_piece = stdname(max_chars * rows + 1:)
-            write(iulog, '(a)') '   '//var_name_piece
-         end if
-      else
-         var_name_piece = stdname
-         write(iulog,'(a,a,i7,a,e8.2)') ' '//var_name_piece,     &
-               col_sep, diff_count, col_sep, max_diff
+      slen = len_trim(stdname)
+      write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2)"
+      if (slen > indent_level) then
+         write(iulog, '(a)') trim(stdname)
+         slen = 0
       end if
+      write(iulog, fmt_str) stdname(1:slen), diff_count, max_diff
 
    end subroutine write_check_field_entry
 

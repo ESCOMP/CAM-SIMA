@@ -13,7 +13,7 @@ module cam_field_read
    use pio,            only: pio_offset_kind, file_desc_t, var_desc_t
    use pio,            only: pio_max_var_dims, io_desc_t
    use pio,            only: pio_double, pio_setframe
-   use spmd_utils,     only: masterproc, iam
+   use spmd_utils,     only: masterproc
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog, debug_output, DEBUGOUT_NONE, DEBUGOUT_DEBUG
    !!XXgoldyXX: v support SCAM?

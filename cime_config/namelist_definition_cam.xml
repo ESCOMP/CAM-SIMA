@@ -622,7 +622,6 @@
     </desc>
     <values>
       <value>off</value>
-      <value>on</value>
     </values>
   </entry>
   <entry id="print_qneg_warn">

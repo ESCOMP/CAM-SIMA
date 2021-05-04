@@ -2,10 +2,6 @@ module phys_comp
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
-!!XXgoldyXX: v debug only
-use spmd_utils, only: masterproc
-use cam_logfile, only: iulog
-!!XXgoldyXX: ^ debug only
 
    implicit none
    private
@@ -36,7 +32,7 @@ CONTAINS
       use mpi,             only: mpi_char
       use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,     only: iulog
-      use cam_abortutils, only: endrun
+      use cam_abortutils,  only: endrun
 
       ! filepath for file containing namelist input
       character(len=*), intent(in) :: nlfilename
@@ -63,8 +59,21 @@ CONTAINS
       end if
       ! Broadcast namelist variables
       if (npes > 1) then
-         call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char, masterprocid, mpicom, ierr)
-         call mpi_bcast(print_physics_check, len(print_physics_check), mpi_char, masterprocid, mpicom, ierr)
+         call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char,            &
+            masterprocid, mpicom, ierr)
+         call mpi_bcast(print_physics_check, len(print_physics_check),        &
+            mpi_char, masterprocid, mpicom, ierr)
+      end if
+
+      ! Print out namelist variables
+      if (masterproc) then
+         write(iulog,*) subname, ' options:'
+         if (print_physics_check == 'on') then
+            write(iulog,*) '  Physics data check will be performed against: ',&
+               ncdata_check
+         else
+            write(iulog,*) '  Physics data check will not be performed'
+         end if
       end if
 
    end subroutine phys_readnl
@@ -91,8 +100,9 @@ CONTAINS
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       character(len=512)         :: errmsg
-      integer                    :: errflg = 0
+      integer                    :: errflg
 
+      errflg = 0
       call physconst_init(columns_on_task, pver, pverp)
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
@@ -150,16 +160,18 @@ CONTAINS
       type(cam_in_t),      intent(inout) :: cam_in
       ! Local variables
       type(file_desc_t), pointer :: ncdata
-      type(file_desc_t), pointer :: fh_ncdata_check => null()
+      type(file_desc_t), pointer :: fh_ncdata_check
       character(len=256)         :: ncdata_check_loc
       character(len=512) :: errmsg
-      integer            :: errflg = 0
+      integer            :: errflg
       integer                            :: part_ind
       integer                            :: col_start
       integer                            :: col_end
       integer                            :: data_frame
       logical                            :: use_init_variables
 
+      errflg = 0
+      nullify(fh_ncdata_check)
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
@@ -170,7 +182,8 @@ CONTAINS
       data_frame = get_nstep() + 2
 
       ! Determine if we should read initialized variables from file
-      use_init_variables = (.not. is_first_step()) .and. (.not. is_first_restart_step())
+      use_init_variables = (.not. is_first_step()) .and.                      &
+         (.not. is_first_restart_step())
 
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
@@ -220,7 +233,9 @@ CONTAINS
       ! Local variables
       real(kind_phys)    :: dtime_phys = 0.0_kind_phys ! Not used
       character(len=512) :: errmsg
-      integer            :: errflg = 0
+      integer            :: errflg
+
+      errflg = 0
 
       call cam_ccpp_physics_finalize(suite_name, dtime_phys, errmsg, errflg)
       if (errflg /= 0) then

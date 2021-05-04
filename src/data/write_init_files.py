@@ -1290,7 +1290,7 @@ def write_is_read_from_file_func(outfile):
 
 
     #Add subroutine header:
-    outfile.write("logical function is_read_from_file(varname, stdnam_idx_in)", 1)
+    outfile.write("logical function is_read_from_file(varname, stdnam_idx_out)", 1)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1314,7 +1314,7 @@ def write_is_read_from_file_func(outfile):
 
     #Add variable declaration statements:
     outfile.write("character(len=*), intent(in)   :: varname !Variable name being checked", 2)
-    outfile.write("integer, optional, intent(out) :: stdnam_idx_in", 2)
+    outfile.write("integer, optional, intent(out) :: stdnam_idx_out", 2)
     outfile.write("character(len=*), parameter    :: subname = 'is_read_from_file: '", 2)
     outfile.write("", 0)
     outfile.write("integer :: stdnam_idx !standard name array index", 2)
@@ -1356,8 +1356,8 @@ def write_is_read_from_file_func(outfile):
     outfile.write("end if", 2)
 
     #Handle optional output variable:
-    outfile.write("if (present(stdnam_idx_in)) then", 2)
-    outfile.write("stdnam_idx_in = stdnam_idx", 3)
+    outfile.write("if (present(stdnam_idx_out)) then", 2)
+    outfile.write("stdnam_idx_out = stdnam_idx", 3)
     outfile.write("end if", 2)
 
     outfile.write("", 0)
@@ -1370,7 +1370,6 @@ def write_is_read_from_file_func(outfile):
 
 def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
-    # pylint: disable=too-many-statements
     """
     Write the "physics_read_data" subroutine, which
     is used to initialize required physics variables
@@ -1680,7 +1679,6 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
 def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
-    # pylint: disable=too-many-statements
     """
     Write the "physics_check_data" subroutine, which
     is used to check the physics variables against
@@ -1782,7 +1780,8 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
     outfile.write("use physics_data,         only: check_field, find_input_name_idx", 2)
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
-    outfile.write("use physics_data,         only: col_sep, max_chars", 2)
+    outfile.write("use physics_data,         only: indent_level", 2)
+    outfile.write("use physics_data,         only: MIN_DIFFERENCE, MIN_RELATIVE_VALUE", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
     outfile.write("use ccpp_kinds,           only: kind_phys", 2)
     outfile.write("use cam_logfile,          only: iulog", 2)
@@ -1830,8 +1829,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=256)         :: ncdata_check_loc", 2)
     outfile.write("type(file_desc_t), pointer :: file => null()", 2)
     outfile.write("logical                    :: file_found", 2)
-    outfile.write("character(len=max_chars)   :: variable_string =  'Variable'", 2)
-    outfile.write("character(len=max_chars)   :: delimiter_string = '--------'", 2)
+    outfile.write("character(len=24)          :: fmt_str", 2)
     outfile.write("", 0)
 
     #Initialize variables:
@@ -1839,11 +1837,16 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("missing_required_vars = ' '", 2)
     outfile.write("protected_non_init_vars = ' '", 2)
     outfile.write("missing_input_names   = ' '", 2)
+    outfile.write("write(fmt_str, '(a,i0,a)') '(a,t',indent_level+1,',1x,a,2x,a)'", 2)
     outfile.write("", 0)
 
     #Begin check data log:
     outfile.write("write(iulog,*) ''", 2)
     outfile.write("write(iulog,*) '********** Physics Check Data Results **********'", 2)
+    #Log important parameters:
+    outfile.write("write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE", 2)
+    outfile.write("write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ', MIN_RELATIVE_VALUE", 2)
+    outfile.write("write(iulog,*) ''", 2)
 
     #Open check file:
     outfile.write("if (file_name == 'UNSET') then", 2)
@@ -1862,8 +1865,8 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #Add header to log if there are variables to be checked
     if len(call_string_dict) > 0:
        outfile.write("write(iulog,*) ''", 4)
-       outfile.write("write(iulog,'(5a)') ' '//variable_string, col_sep, '# Diffs', col_sep, 'Max Diff'", 4)
-       outfile.write("write(iulog,'(5a)') ' '//delimiter_string, col_sep, '-------', col_sep, '--------'", 4)
+       outfile.write("write(iulog,fmt_str) ' Variable', '# Diffs', 'Max Diff'", 4)
+       outfile.write("write(iulog,fmt_str) ' --------', '-------', '--------'", 4)
 
     #Loop over physics suites:
     outfile.write("!Loop over CCPP physics/chemistry suites:", 2)
