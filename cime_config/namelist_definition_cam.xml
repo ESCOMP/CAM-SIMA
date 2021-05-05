@@ -611,7 +611,7 @@
   <entry id="print_physics_check">
     <type>char*8</type>
     <category>diagnostics</category>
-    <group>physics_check_nl</group>
+    <group>phys_nl</group>
     <valid_values>off,on</valid_values>
     <desc>
       Control the writing of physics check messages.
@@ -3711,7 +3711,7 @@
   <entry id="ncdata_check">
     <type>char*256</type>
     <category>initial_conditions</category>
-    <group>physics_check_nl</group>
+    <group>phys_nl</group>
     <desc>
       Full pathname of atmospheric state dataset for comparison/check (NetCDF format).
       Default: UNSET

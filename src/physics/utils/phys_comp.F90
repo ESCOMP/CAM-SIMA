@@ -43,14 +43,14 @@ CONTAINS
       logical :: newg, newsday, newmwh2o, newcpwv
       logical :: newmwdry, newcpair, newrearth, newtmelt, newomega
 
-      namelist /physics_check_nl/ ncdata_check, print_physics_check
+      namelist /phys_nl/ ncdata_check, print_physics_check
 
       ! Read namelist
       if (masterproc) then
          open(newunit=unitn, file=trim(nlfilename), status='old')
-         call find_group_name(unitn, 'physics_check_nl', status=ierr)
+         call find_group_name(unitn, 'phys_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, physics_check_nl, iostat=ierr)
+            read(unitn, phys_nl, iostat=ierr)
             if (ierr /= 0) then
                call endrun(subname // ':: ERROR reading namelist')
             end if
