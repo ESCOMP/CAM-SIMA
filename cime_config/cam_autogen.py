@@ -386,7 +386,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
                                 "cam", "simple", TEST_ATM_ROOT, \
                                 TEST_BLDROOT, TEST_REG_DIR, TEST_REGFILES, \
                                 TEST_SOURCE_MODS_DIR, False) #doctest: +ELLIPSIS
-    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/capfiles.txt')
+    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/ccpp_datatable.xml')
     """
     #pylint: disable=wrong-import-position
     #pylint: disable=import-outside-toplevel
