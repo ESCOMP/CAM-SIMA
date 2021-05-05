@@ -13,10 +13,10 @@ module physics_data
    integer, public, parameter           :: no_exist_idx     = -1
    integer, public, parameter           :: init_mark_idx    = -2
    integer, public, parameter           :: prot_no_init_idx = -3
-   integer, public, parameter           :: indent_level = 50
+   integer, public, parameter           :: indent_level     = 50
 
-   real(kind_phys), public, parameter :: MIN_DIFFERENCE = 0
-   real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10E-6
+   real(kind_phys), public, parameter :: MIN_DIFFERENCE     = 0._kind_phys
+   real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10.E-6_kind_phys
    
    interface read_field
       module procedure read_field_2d
