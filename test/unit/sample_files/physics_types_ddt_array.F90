@@ -40,7 +40,7 @@ module physics_types_ddt_array
 !! \htmlinclude physics_types_ddt_array.html
   ! ix_qv: Index of water vapor specific humidity
   integer,             public            :: ix_qv = 1
-  ! ix_cld_liq: Index of cloud liquid water mixing ratio
+  ! ix_cld_liq: Index of cloud liquid water mixing ratio of moist air
   integer,             public            :: ix_cld_liq = 2
   ! phys_state: Physics state variables updated by dynamical core
   type(physics_state), public            :: phys_state
