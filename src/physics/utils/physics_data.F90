@@ -280,9 +280,15 @@ CONTAINS
                     mpi_sum, masterprocid,  mpicom, ierr)
                call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
                     masterprocid, mpicom, ierr)
+            else
+               diff_count_gl = diff_count
+               max_diff_gl = max_diff
             end if
             if (masterproc) then
-               call write_check_field_entry(stdname, diff_count, max_diff)
+               if (diff_count_gl > 0) then
+                  call write_check_field_entry(stdname, diff_count_gl,        &
+                     max_diff_gl)
+               end if
             end if
          end if
       end if
@@ -375,9 +381,15 @@ CONTAINS
                     mpi_sum, masterprocid, mpicom, ierr)
                call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
                     masterprocid, mpicom, ierr)
+            else
+               diff_count_gl = diff_count
+               max_diff_gl = max_diff
             end if
             if (masterproc) then
-               call write_check_field_entry(stdname, diff_count, max_diff)
+               if (diff_count_gl > 0) then
+                  call write_check_field_entry(stdname, diff_count_gl,        &
+                     max_diff_gl)
+               end if
             end if
          end if
       end if
