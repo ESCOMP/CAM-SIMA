@@ -259,7 +259,7 @@ CONTAINS
               timelevel=timestep, log_output=.false.)
          if (var_found) then
             do col = 1, size(buffer)
-               if (buffer(col) < MIN_RELATIVE_VALUE) then
+               if (abs(current_value(col)) < MIN_RELATIVE_VALUE) then
                   !Calculate absolute difference:
                   diff = abs(current_value(col) - buffer(col))
                else
@@ -359,7 +359,7 @@ CONTAINS
          if (var_found) then
             do lev = 1, num_levs
                do col = 1, size(buffer(:,lev))
-                  if (buffer(col, lev) < MIN_RELATIVE_VALUE) then
+                  if (abs(current_value(col, lev)) < MIN_RELATIVE_VALUE) then
                      !Calculate absolute difference:
                      diff = abs(current_value(col, lev) - buffer(col, lev))
                   else
