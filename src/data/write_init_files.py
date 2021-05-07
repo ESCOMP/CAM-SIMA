@@ -1756,12 +1756,12 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
             #Set "check_field" call string:
             if levnm is not None:
                 call_str = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
-                                  " timestep, {}, '{}')"
+                                  " timestep, {}, '{}', is_first)"
                 call_string_val = call_str.format(\
                                   levnm, fort_data.call_dict[var_stdname], var_stdname.strip())
             else:
                 call_str = "call check_field(file, input_var_names(:,name_idx)," + \
-                                  " timestep, {}, '{}')"
+                                  " timestep, {}, '{}', is_first)"
                 call_string_val = call_str.format(fort_data.call_dict[var_stdname], var_stdname.strip())
             #Add strings to dictionary:
             call_string_dict[call_string_key] = call_string_val
@@ -1780,7 +1780,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
     outfile.write("use physics_data,         only: check_field, find_input_name_idx", 2)
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
-    outfile.write("use physics_data,         only: indent_level", 2)
     outfile.write("use physics_data,         only: MIN_DIFFERENCE, MIN_RELATIVE_VALUE", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
     outfile.write("use ccpp_kinds,           only: kind_phys", 2)
@@ -1829,7 +1828,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=256)         :: ncdata_check_loc", 2)
     outfile.write("type(file_desc_t), pointer :: file", 2)
     outfile.write("logical                    :: file_found", 2)
-    outfile.write("character(len=24)          :: fmt_str", 2)
+    outfile.write("logical                    :: is_first", 2)
     outfile.write("", 0)
 
     #Initialize variables:
@@ -1837,17 +1836,19 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("missing_required_vars = ' '", 2)
     outfile.write("protected_non_init_vars = ' '", 2)
     outfile.write("missing_input_names   = ' '", 2)
-    outfile.write("write(fmt_str, '(a,i0,a)') '(a,t',indent_level+1,',1x,a,2x,a)'", 2)
     outfile.write("nullify(file)", 2)
+    outfile.write("is_first = .true.", 2)
     outfile.write("", 0)
 
     #Begin check data log:
-    outfile.write("write(iulog,*) ''", 2)
-    outfile.write("write(iulog,*) '********** Physics Check Data Results **********'", 2)
+    outfile.write("if (masterproc) then", 2)
+    outfile.write("write(iulog,*) ''", 3)
+    outfile.write("write(iulog,*) '********** Physics Check Data Results **********'", 3)
     #Log important parameters:
-    outfile.write("write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE", 2)
-    outfile.write("write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ', MIN_RELATIVE_VALUE", 2)
-    outfile.write("write(iulog,*) ''", 2)
+    outfile.write("write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE", 3)
+    outfile.write("write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ', MIN_RELATIVE_VALUE", 3)
+    outfile.write("write(iulog,*) ''", 3)
+    outfile.write("end if", 2)
 
     #Open check file:
     outfile.write("if (file_name == 'UNSET') then", 2)
@@ -1862,12 +1863,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("end if", 2)
     outfile.write("allocate(file)", 2)
     outfile.write("call cam_pio_openfile(file, ncdata_check_loc, pio_nowrite)", 2)
-
-    #Add header to log if there are variables to be checked
-    if len(call_string_dict) > 0:
-       outfile.write("write(iulog,*) ''", 4)
-       outfile.write("write(iulog,fmt_str) ' Variable', '# Diffs', 'Max Diff'", 4)
-       outfile.write("write(iulog,fmt_str) ' --------', '-------', '--------'", 4)
 
     #Loop over physics suites:
     outfile.write("!Loop over CCPP physics/chemistry suites:", 2)

@@ -13,7 +13,6 @@ module physics_data
    integer, public, parameter           :: no_exist_idx     = -1
    integer, public, parameter           :: init_mark_idx    = -2
    integer, public, parameter           :: prot_no_init_idx = -3
-   integer, public, parameter           :: indent_level     = 50
 
    real(kind_phys), public, parameter :: MIN_DIFFERENCE     = 0._kind_phys
    real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10.E-6_kind_phys
@@ -212,7 +211,8 @@ CONTAINS
       end if
    end subroutine read_field_3d
 
-   subroutine check_field_2d(file, var_names, timestep, current_value, stdname)
+   subroutine check_field_2d(file, var_names, timestep, current_value,        &
+      stdname, is_first)
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
@@ -230,6 +230,7 @@ CONTAINS
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
       character(len=*),  intent(in)    :: stdname
+      logical,           intent(inout) :: is_first
 
       !Local variables:
       logical                          :: var_found
@@ -287,7 +288,8 @@ CONTAINS
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
-                     max_diff_gl)
+                     max_diff_gl, is_first)
+                  is_first = .false.
                end if
             end if
          end if
@@ -296,7 +298,7 @@ CONTAINS
    end subroutine check_field_2d
 
    subroutine check_field_3d(file, var_names, vcoord_name, timestep,          &
-      current_value, stdname)
+      current_value, stdname, is_first)
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
@@ -316,7 +318,8 @@ CONTAINS
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
       character(len=*),  intent(in)    :: vcoord_name
-      character(len=*),  intent(in)    :: stdname 
+      character(len=*),  intent(in)    :: stdname
+      logical,           intent(inout) :: is_first 
 
       !Local variables:
       logical                          :: var_found = .true.
@@ -388,7 +391,8 @@ CONTAINS
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
-                     max_diff_gl)
+                     max_diff_gl, is_first)
+                  is_first = .false.
                end if
             end if
          end if
@@ -397,7 +401,7 @@ CONTAINS
  
    end subroutine check_field_3d
 
-   subroutine write_check_field_entry(stdname, diff_count, max_diff)
+   subroutine write_check_field_entry(stdname, diff_count, max_diff, is_first)
 
       use cam_logfile, only: iulog
 
@@ -405,14 +409,25 @@ CONTAINS
       character(len=*), intent(in) :: stdname
       integer,          intent(in) :: diff_count
       real(kind_phys),  intent(in) :: max_diff
+      logical,          intent(in) :: is_first
 
       !Local variables:
       character(len=24)            :: fmt_str
+      character(len=24)            :: fmt_str_header
       integer                      :: slen
       integer                      :: row
+      integer, parameter           :: indent_level = 50
 
       slen = len_trim(stdname)
       write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2)"
+      write(fmt_str_header, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a)"
+
+      if (is_first) then
+         write(iulog, *) ''
+         write(iulog, fmt_str_header) 'Variable', '# Diffs', 'Max Diff'
+         write(iulog, fmt_str_header) '--------', '-------', '--------'
+      end if      
+
       if (slen > indent_level) then
          write(iulog, '(a)') trim(stdname)
          slen = 0
