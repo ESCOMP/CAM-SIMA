@@ -215,7 +215,7 @@ CONTAINS
       character(len=2)           :: sep2 = '' !String separator used to print error messages
       character(len=2)           :: sep3 = '' !String separator used to print error messages
       character(len=256)         :: ncdata_check_loc
-      type(file_desc_t), pointer :: file => null()
+      type(file_desc_t), pointer :: file
       logical                    :: file_found
       character(len=24)          :: fmt_str
 
@@ -224,6 +224,7 @@ CONTAINS
       protected_non_init_vars = ' '
       missing_input_names   = ' '
       write(fmt_str, '(a,i0,a)') '(a,t',indent_level+1,',1x,a,2x,a)'
+      nullify(file)
 
       write(iulog,*) ''
       write(iulog,*) '********** Physics Check Data Results **********'
