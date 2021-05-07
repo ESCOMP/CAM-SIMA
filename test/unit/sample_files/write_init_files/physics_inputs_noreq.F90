@@ -179,7 +179,6 @@ CONTAINS
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,         only: check_field, find_input_name_idx
       use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
-      use physics_data,         only: indent_level
       use physics_data,         only: MIN_DIFFERENCE, MIN_RELATIVE_VALUE
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
       use ccpp_kinds,           only: kind_phys
@@ -217,21 +216,23 @@ CONTAINS
       character(len=256)         :: ncdata_check_loc
       type(file_desc_t), pointer :: file
       logical                    :: file_found
-      character(len=24)          :: fmt_str
+      logical                    :: is_first
 
       !Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
       protected_non_init_vars = ' '
       missing_input_names   = ' '
-      write(fmt_str, '(a,i0,a)') '(a,t',indent_level+1,',1x,a,2x,a)'
       nullify(file)
+      is_first = .true.
 
-      write(iulog,*) ''
-      write(iulog,*) '********** Physics Check Data Results **********'
-      write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE
-      write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ',              &
-           MIN_RELATIVE_VALUE
-      write(iulog,*) ''
+      if (masterproc) then
+         write(iulog,*) ''
+         write(iulog,*) '********** Physics Check Data Results **********'
+         write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE
+         write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ',           &
+              MIN_RELATIVE_VALUE
+         write(iulog,*) ''
+      end if
       if (file_name == 'UNSET') then
          write(iulog,*) 'ERROR: Namelist variable ncdata_check is UNSET'
          return
