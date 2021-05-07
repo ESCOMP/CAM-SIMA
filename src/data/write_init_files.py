@@ -1827,7 +1827,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
     outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
     outfile.write("character(len=256)         :: ncdata_check_loc", 2)
-    outfile.write("type(file_desc_t), pointer :: file => null()", 2)
+    outfile.write("type(file_desc_t), pointer :: file", 2)
     outfile.write("logical                    :: file_found", 2)
     outfile.write("character(len=24)          :: fmt_str", 2)
     outfile.write("", 0)
@@ -1838,6 +1838,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("protected_non_init_vars = ' '", 2)
     outfile.write("missing_input_names   = ' '", 2)
     outfile.write("write(fmt_str, '(a,i0,a)') '(a,t',indent_level+1,',1x,a,2x,a)'", 2)
+    outfile.write("nullify(file)", 2)
     outfile.write("", 0)
 
     #Begin check data log:

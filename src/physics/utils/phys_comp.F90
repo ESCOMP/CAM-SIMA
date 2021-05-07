@@ -160,8 +160,6 @@ CONTAINS
       type(cam_in_t),      intent(inout) :: cam_in
       ! Local variables
       type(file_desc_t), pointer :: ncdata
-      type(file_desc_t), pointer :: fh_ncdata_check
-      character(len=256)         :: ncdata_check_loc
       character(len=512) :: errmsg
       integer            :: errflg
       integer                            :: part_ind
@@ -171,7 +169,6 @@ CONTAINS
       logical                            :: use_init_variables
 
       errflg = 0
-      nullify(fh_ncdata_check)
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
