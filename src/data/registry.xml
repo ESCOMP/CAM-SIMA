@@ -53,6 +53,12 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>T t_snapshot</ic_file_input_names>
     </variable>
+    <variable local_name="t_ttend" standard_name="total_tendency_of_air_temperature"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>t_ttend T_TTEND_snapshot</ic_file_input_names>
+    </variable>
     <variable local_name="u" standard_name="x_wind"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="pointer">
@@ -250,6 +256,7 @@
               allocatable="pointer">
       <long_name>Change in temperature from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dtdt dtdt_snapshot</ic_file_input_names>
     </variable>
     <variable local_name="dudt" standard_name="tendency_of_x_wind"
               units="m s-2" type="real" kind="kind_phys"
