@@ -216,7 +216,7 @@ class BuildCacheCAM:
         self.__schemes = {}
         for sfile in scheme_files:
             new_entry = FileStatus(sfile, 'scheme')
-            self.__sdfs[new_entry.key] = new_entry
+            self.__schemes[new_entry.key] = new_entry
         # end for
 
     def update_init_gen(self, gen_init_file):
@@ -264,7 +264,7 @@ class BuildCacheCAM:
         stored in our cache. Return True if the data differs."""
         mismatch = False
         mismatch = (not self.__dycore) or (self.__dycore != dycore)
-        mismatch = mismatch or (not self.__config) or (self.__config != config)
+        mismatch = mismatch or (self.__config != config)
         if not mismatch:
             mismatch = self.__gen_reg_file.hash_mismatch(gen_reg_file)
         # end if
