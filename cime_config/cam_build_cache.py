@@ -232,6 +232,9 @@ class BuildCacheCAM:
         new_cache = ET.Element("CAMBuildCache")
         # Registry
         registry = ET.SubElement(new_cache, 'registry')
+        new_xml_entry(registry, 'generate_init_file',
+                      self.__gen_init_file.file_path,
+                      self.__gen_init_file.file_hash)
         new_xml_entry(registry, 'generate_registry_file',
                       self.__gen_reg_file.file_path,
                       self.__gen_reg_file.file_hash)
