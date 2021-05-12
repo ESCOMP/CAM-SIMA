@@ -295,6 +295,7 @@ CONTAINS
       deallocate(file)
       nullify(file)
       if (is_first) then
+         write(iulog,*) ''
          write(iulog,*) 'No differences found!'
       end if
       write(iulog,*) ''
