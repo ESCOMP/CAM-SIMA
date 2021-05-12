@@ -413,25 +413,24 @@ CONTAINS
 
       !Local variables:
       character(len=24)            :: fmt_str
-      character(len=24)            :: fmt_str_header
       integer                      :: slen
       integer                      :: row
       integer, parameter           :: indent_level = 50
 
       slen = len_trim(stdname)
-      write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2)"
-      write(fmt_str_header, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a)"
 
       if (is_first) then
          write(iulog, *) ''
-         write(iulog, fmt_str_header) 'Variable', '# Diffs', 'Max Diff'
-         write(iulog, fmt_str_header) '--------', '-------', '--------'
+         write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a)"
+         write(iulog, fmt_str) 'Variable', '# Diffs', 'Max Diff'
+         write(iulog, fmt_str) '--------', '-------', '--------'
       end if      
 
       if (slen > indent_level) then
          write(iulog, '(a)') trim(stdname)
          slen = 0
       end if
+      write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2)"
       write(iulog, fmt_str) stdname(1:slen), diff_count, max_diff
 
    end subroutine write_check_field_entry
