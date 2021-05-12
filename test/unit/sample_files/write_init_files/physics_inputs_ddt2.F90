@@ -294,6 +294,9 @@ CONTAINS
       call cam_pio_closefile(file)
       deallocate(file)
       nullify(file)
+      if (is_first) then
+         write(iulog,*) 'No differences found!'
+      end if
       write(iulog,*) ''
       write(iulog,*) '********** End Physics Check Data Results **********'
       write(iulog,*) ''
