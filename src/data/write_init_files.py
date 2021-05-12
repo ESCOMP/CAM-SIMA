@@ -1918,6 +1918,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Check if no differences were found
     outfile.write("if (is_first) then", 2)
+    outfile.write("write(iulog,*) ''", 3)
     outfile.write("write(iulog,*) 'No differences found!'", 3)
     outfile.write("end if", 2)
 
