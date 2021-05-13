@@ -3,7 +3,7 @@
 <registry name="cam_registry" version="1.0">
   <file name="physics_types_mf" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
-    <variable local_name="slp" standard_name="sea_level_pressure"
+    <variable local_name="slp" standard_name="air_pressure_at_sea_level"
               units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>

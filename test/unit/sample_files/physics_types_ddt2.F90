@@ -35,9 +35,9 @@ module physics_types_ddt2
 !> \section arg_table_model_wind  Argument Table
 !! \htmlinclude model_wind.html
   type, public :: model_wind
-    ! u: Eastward wind
+    ! u: X wind
     real(kind_phys),         pointer          :: u(:, :) => NULL()
-    ! v: Northward wind
+    ! v: Y wind
     real(kind_phys),         pointer          :: v(:, :) => NULL()
   end type model_wind
 
