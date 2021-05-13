@@ -144,9 +144,9 @@ CONTAINS
                           'lev', timestep, theta)
                   end if
 
-                  if (trim(phys_var_stdnames(name_idx)) == 'sea_level_pressure') then
-                     call read_field(file, 'sea_level_pressure', input_var_names(:,name_idx),     &
-                          timestep, slp)
+                  if (trim(phys_var_stdnames(name_idx)) == 'air_pressure_at_sea_level') then
+                     call read_field(file, 'air_pressure_at_sea_level',                           &
+                          input_var_names(:,name_idx), timestep, slp)
                   end if
 
             end select !special indices

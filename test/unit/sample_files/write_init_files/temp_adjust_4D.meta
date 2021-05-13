@@ -26,7 +26,7 @@
 [ slp ]
   standard_name = air_pressure_at_sea_level
   units = Pa
-  dimensions = (horizontal_loop_extent, vertical_layer_dimension, time_step_for_physics)
+  dimensions = (horizontal_loop_extent, vertical_layer_dimension, timestep_for_physics)
   type = real
   kind = kind_phys
   intent = in

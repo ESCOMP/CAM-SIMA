@@ -35,9 +35,9 @@ module physics_types_complete
 !> \section arg_table_model_wind  Argument Table
 !! \htmlinclude model_wind.html
   type, public :: model_wind
-    ! u: Eastward wind
+    ! u: X wind
     real(kind_phys),         pointer          :: u(:, :) => NULL()
-    ! v: Northward wind
+    ! v: Y wind
     real(kind_phys),         pointer          :: v(:, :) => NULL()
   end type model_wind
 
@@ -58,7 +58,7 @@ module physics_types_complete
 !! \htmlinclude physics_types_complete.html
   ! ix_qv: Index of water vapor specific humidity
   integer,             public                     :: ix_qv = 1
-  ! ix_cld_liq: Index of cloud liquid water mixing ratio
+  ! ix_cld_liq: Index of cloud liquid water mixing ratio of moist air
   integer,             public                     :: ix_cld_liq = 2
   ! param_val_var: Made up param variable
   integer,             public, parameter          :: param_val_var = 42

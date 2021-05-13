@@ -32,7 +32,7 @@
       </element>
     </array>
     <ddt type="physics_state">
-      <data>sea_level_pressure</data>
+      <data>air_pressure_at_sea_level</data>
       <data>thermo_vars</data>
     </ddt>
     <variable local_name="phys_state"

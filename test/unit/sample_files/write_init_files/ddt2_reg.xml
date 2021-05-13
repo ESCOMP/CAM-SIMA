@@ -26,7 +26,7 @@
               units="None" type="model_thermo">
     </variable>
     <ddt type="physics_state">
-      <data>sea_level_pressure</data>
+      <data>air_pressure_at_sea_level</data>
       <data>cam_thermo</data>
     </ddt>
     <variable local_name="phys_state"
