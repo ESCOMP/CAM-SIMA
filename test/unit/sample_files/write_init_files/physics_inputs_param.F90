@@ -145,9 +145,9 @@ CONTAINS
                         call read_field(file, 'potential_temperature',                            &
                              input_var_names(:,name_idx), 'lev', timestep, theta)
 
-                     case ('sea_level_pressure')
-                        call read_field(file, 'sea_level_pressure', input_var_names(:,name_idx),  &
-                             timestep, slp)
+                     case ('air_pressure_at_sea_level')
+                        call read_field(file, 'air_pressure_at_sea_level',                        &
+                             input_var_names(:,name_idx), timestep, slp)
 
                   end select !read variables
                end select !special indices
@@ -279,9 +279,9 @@ CONTAINS
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta,     &
                        'potential_temperature', is_first)
 
-               case ('sea_level_pressure')
+               case ('air_pressure_at_sea_level')
                   call check_field(file, input_var_names(:,name_idx), timestep, slp,              &
-                       'sea_level_pressure', is_first)
+                       'air_pressure_at_sea_level', is_first)
 
             end select !check variables
          end do !Suite-required variables

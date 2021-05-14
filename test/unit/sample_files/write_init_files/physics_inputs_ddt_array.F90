@@ -141,9 +141,9 @@ CONTAINS
                   !Read variable from IC file:
 
                   select case (phys_var_stdnames(name_idx))
-                     case ('sea_level_pressure')
-                        call read_field(file, 'sea_level_pressure', input_var_names(:,name_idx),  &
-                             timestep, phys_state%slp)
+                     case ('air_pressure_at_sea_level')
+                        call read_field(file, 'air_pressure_at_sea_level',                        &
+                             input_var_names(:,name_idx), timestep, phys_state%slp)
 
                      case ('potential_temperature')
                         call read_field(file, 'potential_temperature',                            &
@@ -276,9 +276,9 @@ CONTAINS
             !Check variable vs input check file:
 
             select case (phys_var_stdnames(name_idx))
-               case ('sea_level_pressure')
+               case ('air_pressure_at_sea_level')
                   call check_field(file, input_var_names(:,name_idx), timestep, phys_state%slp,   &
-                       'sea_level_pressure', is_first)
+                       'air_pressure_at_sea_level', is_first)
 
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep,            &

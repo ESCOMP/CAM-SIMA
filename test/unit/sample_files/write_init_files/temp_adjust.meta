@@ -24,14 +24,14 @@
   kind = kind_phys
   intent = inout
 [ slp ]
-  standard_name = sea_level_pressure
+  standard_name = air_pressure_at_sea_level
   units = Pa
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = in
 [ timestep ]
-  standard_name = time_step_for_physics
+  standard_name = timestep_for_physics
   long_name = time step
   units = s
   dimensions = ()

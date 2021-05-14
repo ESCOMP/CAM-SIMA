@@ -17,7 +17,7 @@
   dimensions = ()
   intent = in
 [ timestep ]
-  standard_name = time_step_for_physics
+  standard_name = timestep_for_physics
   long_name = time step
   units = s
   dimensions = ()

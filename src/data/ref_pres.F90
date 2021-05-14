@@ -169,7 +169,10 @@ contains
       end if
 
       ! Tell rest of model that variables have been initialized:
-      call mark_as_initialized("reference_pressure")   ! pref_mid_in
+      call mark_as_initialized("reference_pressure_at_interface")                   ! pref_edge_in
+      call mark_as_initialized("reference_pressure")                                ! pref_mid_in
+      call mark_as_initialized("air_pressure_at_top_of_atmosphere_model")           ! ptop_ref
+      call mark_as_initialized("reference_pressure_normalized_by_surface_pressure") ! pref_mid_norm
 
    end subroutine ref_pres_init
 

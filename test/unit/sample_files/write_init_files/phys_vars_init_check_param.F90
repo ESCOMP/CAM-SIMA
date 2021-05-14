@@ -25,7 +25,7 @@ module phys_vars_init_check_param
    integer, public, parameter :: phys_var_num = 4
 
    !Max length of physics-related variable standard names:
-   integer, public, parameter :: std_name_len = 27
+   integer, public, parameter :: std_name_len = 26
 
    !Max length of input (IC) file variable names:
    integer, public, parameter :: ic_name_len = 12
@@ -37,11 +37,11 @@ module phys_vars_init_check_param
    integer, public, parameter :: READ_FROM_FILE = 3
 
    !Array storing all physics-related variable standard names:
-   character(len=27), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
-      'acceleration_due_to_gravity', &
-      'potential_temperature      ', &
-      'sea_level_pressure         ', &
-      'eddy_length_scale          ' /)
+   character(len=26), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
+      'gravitational_acceleration', &
+      'potential_temperature     ', &
+      'air_pressure_at_sea_level ', &
+      'eddy_length_scale         ' /)
 
    !Array storing all registered IC file input names for each variable:
    character(len=12), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
