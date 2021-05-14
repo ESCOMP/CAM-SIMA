@@ -8,9 +8,9 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>theta pot_temp</ic_file_input_names>
     </variable>
-    <variable local_name="slp" standard_name="sea_level_pressure"
+    <variable local_name="slp" standard_name="air_pressure_at_sea_level"
               units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
-      <dimensions>horizontal_dimension vertical_layer_dimension time_step_for_physics</dimensions>
+      <dimensions>horizontal_dimension vertical_layer_dimension timestep_for_physics</dimensions>
       <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
     </variable>
     <variable local_name="eddy_len" standard_name="eddy_length_scale"

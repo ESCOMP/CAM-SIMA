@@ -40,7 +40,7 @@ module phys_vars_init_check_ddt_array
    character(len=30), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
       'index_of_potential_temperature', &
       'eddy_length_scale             ', &
-      'sea_level_pressure            ', &
+      'air_pressure_at_sea_level     ', &
       'potential_temperature         ' /)
 
    !Array storing all registered IC file input names for each variable:

@@ -505,7 +505,7 @@ class WriteInitTest(unittest.TestCase):
                                                      phys_input_filename="physics_inputs_no_horiz.F90")
 
         # Check exception message
-        emsg = "Variable 'sea_level_pressure' needs at least one registered dimension" \
+        emsg = "Variable 'air_pressure_at_sea_level' needs at least one registered dimension" \
                " to be 'horizontal_dimension' in order to be read from a file using 'read_fied'.\n" \
                "Instead variable has dimensions of: ['vertical_layer_dimension']"
         self.assertEqual(emsg, str(verr.exception))
@@ -568,7 +568,7 @@ class WriteInitTest(unittest.TestCase):
                                             phys_input_filename="physics_inputs_scalar.F90")
 
         # Check exception message
-        emsg = "Variable 'sea_level_pressure' needs at least one dimension in order" \
+        emsg = "Variable 'air_pressure_at_sea_level' needs at least one dimension in order" \
                " to be read from a file using 'read_field'."
         self.assertEqual(emsg, str(verr.exception))
 
@@ -630,7 +630,7 @@ class WriteInitTest(unittest.TestCase):
                                             phys_input_filename="physics_inputs_4D.F90")
 
         # Check exception message
-        emsg = "variable 'sea_level_pressure' has more than two dimensions, but" \
+        emsg = "variable 'air_pressure_at_sea_level' has more than two dimensions, but" \
                "'read_field' can only manage up to two dimensions" \
                "when reading a variable from a file."
         self.assertEqual(emsg, str(verr.exception))
@@ -1116,7 +1116,7 @@ class WriteInitTest(unittest.TestCase):
                                             phys_input_filename=pi_name)
 
         # Check exception message
-        emsg = "Unsupported vertical dimension, 'band_number', in sea_level_pressure"
+        emsg = "Unsupported vertical dimension, 'band_number', in air_pressure_at_sea_level"
         self.assertEqual(emsg, str(verr.exception))
 
         # Make sure no output file was created:

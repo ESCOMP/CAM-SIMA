@@ -20,12 +20,12 @@
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
 [ ptop_ref ]
-  standard_name = top_of_model_air_pressure
+  standard_name = air_pressure_at_top_of_atmosphere_model
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
 [ psurf_ref ]
-  standard_name = surface_reference_air_pressure
+  standard_name = reference_pressure_at_surface
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
@@ -45,17 +45,17 @@
   type = integer
   dimensions = ()
 [ clim_modal_aero_top_press ]
-  standard_name = pressure_at_top_of_aerosol_model
+  standard_name = air_pressure_at_top_of_aerosol_model
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
 [ clim_modal_aero_top_lev ]
-  standard_name = index_of_pressure_at_top_of_aerosol_model
+  standard_name = index_of_air_pressure_at_top_of_aerosol_model
   units = index
   type = integer
   dimensions = ()
 [ do_molec_press ]
-  standard_name = pressure_at_top_of_molecular_diffusion
+  standard_name = air_pressure_at_top_of_molecular_diffusion
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
@@ -65,7 +65,7 @@
   type = real | kind = kind_phys
   dimensions = ()
 [ do_molec_diff ]
-  standard_name = molecular_diffusion_flag
+  standard_name = flag_for_molecular_diffusion
   units = flag
   type = logical
   dimensions = ()
