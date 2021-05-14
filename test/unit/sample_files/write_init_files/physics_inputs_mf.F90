@@ -183,13 +183,13 @@ CONTAINS
 
    end subroutine physics_read_data
 
-   subroutine physics_check_data(file_name, suite_names, timestep)
+   subroutine physics_check_data(file_name, suite_names, timestep, min_difference,                &
+        min_relative_value)
       use pio,                  only: file_desc_t, pio_nowrite
       use cam_abortutils,       only: endrun
       use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,         only: check_field, find_input_name_idx
       use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
-      use physics_data,         only: MIN_DIFFERENCE, MIN_RELATIVE_VALUE
       use cam_ccpp_cap,         only: ccpp_physics_suite_variables
       use ccpp_kinds,           only: kind_phys
       use cam_logfile,          only: iulog
@@ -206,6 +206,8 @@ CONTAINS
       character(len=SHR_KIND_CL), intent(in) :: file_name
       character(len=SHR_KIND_CS)             :: suite_names(:) !Names of CCPP suites
       integer,                    intent(in) :: timestep
+      real(kind_phys),            intent(in) :: min_difference
+      real(kind_phys),            intent(in) :: min_relative_value
 
       !Local variables:
 
@@ -237,9 +239,6 @@ CONTAINS
       if (masterproc) then
          write(iulog,*) ''
          write(iulog,*) '********** Physics Check Data Results **********'
-         write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE
-         write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ',           &
-              MIN_RELATIVE_VALUE
          write(iulog,*) ''
       end if
       if (file_name == 'UNSET') then
@@ -278,11 +277,11 @@ CONTAINS
             select case (phys_var_stdnames(name_idx))
                case ('air_pressure_at_sea_level')
                   call check_field(file, input_var_names(:,name_idx), timestep, slp,              &
-                       'air_pressure_at_sea_level', is_first)
+                       'air_pressure_at_sea_level', min_difference, min_relative_value, is_first)
 
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta,     &
-                       'potential_temperature', is_first)
+                       'potential_temperature', min_difference, min_relative_value, is_first)
 
             end select !check variables
          end do !Suite-required variables

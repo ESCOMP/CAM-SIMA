@@ -14,9 +14,6 @@ module physics_data
    integer, public, parameter           :: init_mark_idx    = -2
    integer, public, parameter           :: prot_no_init_idx = -3
 
-   real(kind_phys), public, parameter :: MIN_DIFFERENCE     = 0._kind_phys
-   real(kind_phys), public, parameter :: MIN_RELATIVE_VALUE = 10.E-6_kind_phys
-   
    interface read_field
       module procedure read_field_2d
       module procedure read_field_3d
@@ -212,7 +209,7 @@ CONTAINS
    end subroutine read_field_3d
 
    subroutine check_field_2d(file, var_names, timestep, current_value,        &
-      stdname, is_first)
+      stdname, min_difference, min_relative_value, is_first)
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use cam_pio_utils,  only: cam_pio_find_var
@@ -230,6 +227,8 @@ CONTAINS
       character(len=*),  intent(in)    :: var_names(:)
       integer,           intent(in)    :: timestep
       character(len=*),  intent(in)    :: stdname
+      real(kind_phys),   intent(in)    :: min_difference
+      real(kind_phys),   intent(in)    :: min_relative_value
       logical,           intent(inout) :: is_first
 
       !Local variables:
@@ -260,7 +259,7 @@ CONTAINS
               timelevel=timestep, log_output=.false.)
          if (var_found) then
             do col = 1, size(buffer)
-               if (abs(current_value(col)) < MIN_RELATIVE_VALUE) then
+               if (abs(current_value(col)) < min_relative_value) then
                   !Calculate absolute difference:
                   diff = abs(current_value(col) - buffer(col))
                else
@@ -271,7 +270,7 @@ CONTAINS
                if (diff > max_diff) then
                   max_diff = diff
                end if
-               if (diff > MIN_DIFFERENCE) then
+               if (diff > min_difference) then
                   diff_count = diff_count + 1
                end if
             end do
@@ -298,7 +297,7 @@ CONTAINS
    end subroutine check_field_2d
 
    subroutine check_field_3d(file, var_names, vcoord_name, timestep,          &
-      current_value, stdname, is_first)
+      current_value, stdname, min_difference, min_relative_value, is_first)
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
@@ -319,6 +318,8 @@ CONTAINS
       integer,           intent(in)    :: timestep
       character(len=*),  intent(in)    :: vcoord_name
       character(len=*),  intent(in)    :: stdname
+      real(kind_phys),   intent(in)    :: min_difference
+      real(kind_phys),   intent(in)    :: min_relative_value
       logical,           intent(inout) :: is_first 
 
       !Local variables:
@@ -362,7 +363,7 @@ CONTAINS
          if (var_found) then
             do lev = 1, num_levs
                do col = 1, size(buffer(:,lev))
-                  if (abs(current_value(col, lev)) < MIN_RELATIVE_VALUE) then
+                  if (abs(current_value(col, lev)) < min_relative_value) then
                      !Calculate absolute difference:
                      diff = abs(current_value(col, lev) - buffer(col, lev))
                   else
@@ -374,7 +375,7 @@ CONTAINS
                      max_diff = diff
                   end if
                   !Determine if diff is large enough to be considered a "hit"
-                  if (diff > MIN_DIFFERENCE) then
+                  if (diff > min_difference) then
                      diff_count = diff_count + 1
                   end if
                end do

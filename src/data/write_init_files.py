@@ -1756,12 +1756,12 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
             #Set "check_field" call string:
             if levnm is not None:
                 call_str = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
-                                  " timestep, {}, '{}', is_first)"
+                                  " timestep, {}, '{}', min_difference, min_relative_value, is_first)"
                 call_string_val = call_str.format(\
                                   levnm, fort_data.call_dict[var_stdname], var_stdname.strip())
             else:
                 call_str = "call check_field(file, input_var_names(:,name_idx)," + \
-                                  " timestep, {}, '{}', is_first)"
+                                  " timestep, {}, '{}', min_difference, min_relative_value, is_first)"
                 call_string_val = call_str.format(fort_data.call_dict[var_stdname], var_stdname.strip())
             #Add strings to dictionary:
             call_string_dict[call_string_key] = call_string_val
@@ -1772,7 +1772,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #----------------------------
 
     #Add subroutine header:
-    outfile.write("subroutine physics_check_data(file_name, suite_names, timestep)", 1)
+    outfile.write("subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value)", 1)
 
     #Add use statements:
     outfile.write("use pio,                  only: file_desc_t, pio_nowrite", 2)
@@ -1780,7 +1780,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
     outfile.write("use physics_data,         only: check_field, find_input_name_idx", 2)
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
-    outfile.write("use physics_data,         only: MIN_DIFFERENCE, MIN_RELATIVE_VALUE", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
     outfile.write("use ccpp_kinds,           only: kind_phys", 2)
     outfile.write("use cam_logfile,          only: iulog", 2)
@@ -1804,6 +1803,8 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("character(len=SHR_KIND_CL), intent(in) :: file_name", 2) 
     outfile.write("character(len=SHR_KIND_CS)             :: suite_names(:) !Names of CCPP suites", 2)
     outfile.write("integer,                    intent(in) :: timestep", 2)
+    outfile.write("real(kind_phys),            intent(in) :: min_difference", 2)
+    outfile.write("real(kind_phys),            intent(in) :: min_relative_value", 2)
     outfile.write("", 0)
 
     #Write local variable declarations:
@@ -1841,9 +1842,6 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("if (masterproc) then", 2)
     outfile.write("write(iulog,*) ''", 3)
     outfile.write("write(iulog,*) '********** Physics Check Data Results **********'", 3)
-    #Log important parameters:
-    outfile.write("write(iulog,'(a,e8.2)') ' Minimum Diff Considered Significant: ', MIN_DIFFERENCE", 3)
-    outfile.write("write(iulog,'(a,e8.2)') ' Value Under Which Absolute Difference Caluclated: ', MIN_RELATIVE_VALUE", 3)
     outfile.write("write(iulog,*) ''", 3)
     outfile.write("end if", 2)
 

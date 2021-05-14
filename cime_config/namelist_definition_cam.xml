@@ -611,7 +611,7 @@
   <entry id="print_physics_check">
     <type>logical</type>
     <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
+    <group>physics_nl</group>
     <desc>
       Control the writing of physics check messages.
       .true. causes a summary of physics check statistics to be printed at the
@@ -621,6 +621,30 @@
     </desc>
     <values>
       <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="min_difference">
+    <type>real</type>
+    <category>diagnositcs</category>
+    <group>physics_nl</group>
+    <desc>
+      Threshold over which differences are counted in the physics check process. 
+      Default: 0
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="min_relative_value">
+    <type>real</type>
+    <category>diagnostics</category>
+    <group>physics_nl</group>
+    <desc>
+      Threshold under which the absolute difference is calculated rather than the relative difference.
+      Default: 1e-5
+    </desc>
+    <values>
+      <value>1.e-5</value>
     </values>
   </entry>
   <entry id="print_qneg_warn">
@@ -641,6 +665,38 @@
     </desc>
     <values>
       <value>summary</value>
+    </values>
+  </entry>
+  <entry id="cam_take_snapshot_before">
+    <type>char*32</type>
+    <category>diagnostics</category>
+    <group>physics_nl</group>
+    <valid_values>chem_emissions,aoa_tracers_timestep_tend,co2_cycle_set_ptend,chem_timestep_tend,vertical_diffusion_section,
+      aero_model_drydep,gw_tend,qbo_relax,iondrag_calc_section,physics_dme_adjust,physics_dme_adjust,dadadj_tend,
+      convect_deep_tend,convect_shallow_tend,macrop_driver_tend,clubb_tend_cam,microp_section,microp_driver_tend_subcol,
+      aero_model_wetdep,radiation_tend,held_suarez_tend,kessler_tend,thatcher_jablonowski_precip_tend,user_set,UNSET</valid_values>
+    <desc>
+      Name of parameterization to take snapshot before running
+      Default: UNSET
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+  <entry id="cam_take_snapshot_after">
+    <type>char*32</type>
+    <category>diagnostics</category>
+    <group>physics_nl</group>
+    <valid_values>chem_emissions,aoa_tracers_timestep_tend,co2_cycle_set_ptend,chem_timestep_tend,vertical_diffusion_section,
+      aero_model_drydep,gw_tend,qbo_relax,iondrag_calc_section,physics_dme_adjust,physics_dme_adjust,dadadj_tend,
+      convect_deep_tend,convect_shallow_tend,macrop_driver_tend,clubb_tend_cam,microp_section,microp_driver_tend_subcol,
+      aero_model_wetdep,radiation_tend,held_suarez_tend,kessler_tend,thatcher_jablonowski_precip_tend,user_set,UNSET</valid_values>
+    <desc>
+      Name of parameterization to take snapshot after running
+      Default: UNSET
+    </desc>
+    <values>
+      <value>UNSET</value>
     </values>
   </entry>
 
@@ -1854,66 +1910,6 @@
 
 <!-- Gravity Wave Drag -->
 
-  <entry id="use_gw_oro">
-    <type>logical</type>
-    <category>gw_drag</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Whether or not to enable gravity waves produced by orography.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="use_gw_front">
-    <type>logical</type>
-    <category>gw_drag</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Whether or not to enable gravity waves produced by frontogenesis.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="use_gw_front_igw">
-    <type>logical</type>
-    <category>gw_drag</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Whether or not to enable inertial gravity waves produced by frontogenesis.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="use_gw_convect_dp">
-    <type>logical</type>
-    <category>gw_drag</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Whether or not to enable gravity waves produced by deep convection.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="use_gw_convect_sh">
-    <type>logical</type>
-    <category>gw_drag</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Whether or not to enable gravity waves produced by shallow convection.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
   <entry id="pgwv">
     <type>integer</type>
     <category>gw_drag</category>
@@ -3710,7 +3706,7 @@
   <entry id="ncdata_check">
     <type>char*256</type>
     <category>initial_conditions</category>
-    <group>phys_ctl_nl</group>
+    <group>physics_nl</group>
     <desc>
       Full pathname of atmospheric state dataset for comparison/check (NetCDF format).
       Default: UNSET
@@ -4112,28 +4108,6 @@
     </values>
   </entry>
 
-<!-- Cloud Macro/Micro-physics -->
-
-  <entry id="cld_macmic_num_steps">
-    <type>integer</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Number of macrophysics/microphysics substeps.
-      Default: 1
-    </desc>
-    <values>
-      <value>1</value>
-      <value clubb_sgs="1" microphys="mg2">3</value>
-      <value clubb_sgs="1" microphys="mg2" silhs="1">6</value>
-      <value clubb_sgs="1" microphys="mg2" waccmx="1">1</value>
-      <value clubb_sgs="1" dtime="1200" microphys="mg2">2</value>
-      <value clubb_sgs="1" dtime="600" microphys="mg2">1</value>
-      <value clubb_sgs="1" dtime="300" microphys="mg2">1</value>
-      <value clubb_sgs="1" microphys="mg3">3</value>
-    </values>
-  </entry>
-
 <!-- Cldwat -->
   <entry id="rk_strat_icritc">
     <type>real</type>
@@ -4502,19 +4476,6 @@
     </desc>
     <values>
       <value>2.0</value>
-    </values>
-  </entry>
-  <entry id="use_hetfrz_classnuc">
-    <type>logical</type>
-    <category>microphys</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch to turn on heterogeneous freezing code.
-      Default: FALSE, unless using "cam6" physics.
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value phys="cam6">.true.</value>
     </values>
   </entry>
   <entry id="hist_hetfrz_classnuc">
@@ -5148,20 +5109,6 @@
 
 <!-- Physics sub-column switches -->
 
-  <entry id="use_subcol_microp">
-    <type>logical</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Control use of sub-columns within macro/micro physics;
-      'false' for no subcolumns.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value silhs="1">.true.</value>
-    </values>
-  </entry>
   <entry id="subcol_scheme">
     <type>char*16</type>
     <category>conv</category>
@@ -5504,20 +5451,6 @@
 
 <!-- Moist Convection and Microphysics -->
 
-  <entry id="do_clubb_sgs">
-    <type>logical</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for CLUBB_SGS
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value clubb_sgs="1">.true.</value>
-      <value spcam_clubb_sgs="1">.true.</value>
-    </values>
-  </entry>
   <entry id="do_beljaars">
     <type>logical</type>
     <category>pbl</category>
@@ -7128,36 +7061,17 @@
 
 <!-- Physics control -->
 
-  <entry id="use_simple_phys">
-    <type>logical</type>
+  <entry id="cam_physics_mesh">
+    <type>char*256</type>
     <category>build</category>
-    <group>phys_ctl_nl</group>
+    <group>physics_nl</group>
     <desc>
-      Flag for simple physics package.  N.B. this variable may not be set by
-      the user.  It is instead set by the compset or the CAM_CONFIG_OPTS
-      variable present in the case's env_build.xml file.
-      Default: FALSE
+      Full pathname to CAM physics grid ESMF mesh file.
+      N.B. this variable may not be set by the user.
+      It is set by build-namelist via information in the configure
+      cache file to be consistent with how CAM was built.
+      Default: set by build-namelist
     </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="waccmx_opt">
-    <type>char*16</type>
-    <category>waccmx</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>ionosphere,neutral,off</valid_values>
-    <desc>
-      Runtime options of upper thermosphere WACCM-X.  'ionosphere' for
-      full ionosphere and neutral thermosphere, 'neutral' for just
-      neutral thermosphere, and off for no WACCM-X.
-      Default: OFF
-    </desc>
-    <values>
-      <value>off</value>
-      <value waccmx="1">ionosphere</value>
-      <value ionosphere="none" waccmx="1">neutral</value>
-    </values>
   </entry>
   <entry id="oplus_adiff_limiter">
     <type>real</type>
@@ -7392,264 +7306,6 @@
       debug.  The closest column in the physics grid will be used.
       Default: none
     </desc>
-  </entry>
-  <entry id="state_debug_checks">
-    <type>logical</type>
-    <category>phys_debug</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      If set to .true., turns on extra validation of physics_state objects
-      in physics_update. Used mainly to track down which package is the
-      source of invalid data in state.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-
-<!-- Planetary Boundary Layer and Vertical Diffusion -->
-
-  <entry id="srf_flux_avg">
-    <type>logical</type>
-    <category>pbl</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch to turn on adjustment of the surface fluxes to reduce instabilities
-      in the surface layer.  Set to TRUE to turn on the adjustments.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-
-<!-- Convective Scavenging -->
-
-  <entry id="convproc_do_aer">
-    <type>logical</type>
-    <category>conv</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch to use new convective scavenging for modal aerosols.  This scheme
-      replaces the call to ZM's convtran for the the modal aerosol number and
-      mass mixing ratio constituents.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-
-<!-- Diagnostics -->
-
-  <entry id="history_amwg">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Produce output for the AMWG diagnostic package.
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="history_vdiag">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Produce output for the AMWG variability diagnostics.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_aerosol">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostic output of the aerosol tendencies
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_aero_optics">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostic output of the aerosol optics
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_eddy">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostic output of eddy variables
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_budget">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for cam4 T/Q budget diagnostic output
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_budget_histfile_num">
-    <type>integer</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <valid_values>1,2,3,4,5,6</valid_values>
-    <desc>
-      History tape number T/Q budget output is written to.
-      Default: 1
-    </desc>
-    <values>
-      <value>1</value>
-    </values>
-  </entry>
-  <entry id="history_waccm">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostic output used primarily for WACCM runs.
-      Default: .true. if WACCM physics is on, .false. otherwise.
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value waccm_phys="1">.true.</value>
-    </values>
-  </entry>
-  <entry id="history_waccmx">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostic output used primarily for WACCM-X runs.
-      Default: .true. if WACCM-X is on, .false. otherwise.
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value waccmx="1">.true.</value>
-    </values>
-  </entry>
-  <entry id="history_chemistry">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostics specific to the current chemistry package or
-      configuration.
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="history_carma">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostics specific to the current CARMA model.
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="history_clubb">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostics specific to CLUBB.
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="history_cesm_forcing">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch to turn on/off default output specific to CESM forcings.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_dust">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch for diagnostics specific to dust.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_scwaccm_forcing">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch to turn on/off default output specific to WACCM-SC forcings.
-      Default: FALSE
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="history_chemspecies_srf">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      Switch to turn on/off default output chemical species mixing ratios in the surface layer.
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="offline_driver">
-    <type>logical</type>
-    <category>offline_unit_driver</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      True when model is configured to use an offline driver.
-      Default: FALSE.
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
   </entry>
 
 <!-- Radiation -->
@@ -11805,22 +11461,6 @@
     </desc>
     <values>
       <value>1</value>
-    </values>
-  </entry>
-  <entry id="atm_dep_flux">
-    <type>logical</type>
-    <category>driver</category>
-    <group>phys_ctl_nl</group>
-    <desc>
-      If FALSE then CAM will set the deposition fluxes to zero before sending
-      them to the coupler.  A side effect of setting the
-      variable {{ hilight }}chem_rad_passive{{ closehilight }} to TRUE is that this variable
-      will be set to FALSE (the deposition fluxes must be set to zero in order
-      for the chemistry not to impact the climate).
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
     </values>
   </entry>
 

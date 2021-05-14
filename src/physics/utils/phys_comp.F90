@@ -17,8 +17,13 @@ module phys_comp
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
-   logical                                 :: print_physics_check = .false.
-   character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
+   logical                                 :: print_physics_check
+   character(len=SHR_KIND_CL)              :: ncdata_check = ''
+   character(len=SHR_KIND_CL)              :: cam_physics_mesh = ''
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before = ''
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = ''
+   real(kind_phys)                         :: min_difference
+   real(kind_phys)                         :: min_relative_value
 
 !==============================================================================
 CONTAINS
@@ -29,7 +34,7 @@ CONTAINS
       use shr_kind_mod,    only: r8 => shr_kind_r8
       use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
       use shr_flux_mod,    only: shr_flux_adjust_constants
-      use mpi,             only: mpi_char
+      use mpi,             only: mpi_char, mpi_real8, mpi_logical
       use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,     only: iulog
       use cam_abortutils,  only: endrun
@@ -41,26 +46,40 @@ CONTAINS
       integer :: unitn, ierr
       character(len=*), parameter :: subname = 'phys_readnl'
 
-      namelist /phys_ctl_nl/ ncdata_check, print_physics_check
+      namelist /physics_nl/ ncdata_check, print_physics_check,               &
+         min_difference, min_relative_value, cam_take_snapshot_before,       &
+         cam_take_snapshot_after, cam_physics_mesh
 
       ! Read namelist
       if (masterproc) then
          open(newunit=unitn, file=trim(nlfilename), status='old')
-         call find_group_name(unitn, 'phys_nl', status=ierr)
+         call find_group_name(unitn, 'physics_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, phys_ctl_nl, iostat=ierr)
+            read(unitn, physics_nl, iostat=ierr)
             if (ierr /= 0) then
                call endrun(subname // ':: ERROR reading namelist')
             end if
          end if
          close(unitn)
       end if
+      write(iulog,*) ncdata_check
       ! Broadcast namelist variables
       if (npes > 1) then
          call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char,            &
             masterprocid, mpicom, ierr)
-         call mpi_bcast(print_physics_check, 1, mpi_char, masterprocid,       &
+         call mpi_bcast(print_physics_check, 1, mpi_logical, masterprocid,    &
             mpicom, ierr)
+         call mpi_bcast(min_difference, 1, mpi_real8, masterprocid, mpicom,   &
+            ierr)
+         call mpi_bcast(min_relative_value, 1, mpi_real8, masterprocid,       &
+            mpicom, ierr)
+         call mpi_bcast(cam_physics_mesh, len(cam_physics_mesh), mpi_char,    &
+            masterprocid, mpicom, ierr)
+         call mpi_bcast(cam_take_snapshot_before,                             &
+           len(cam_take_snapshot_before), mpi_char, masterprocid, mpicom,     &
+           ierr)
+         call mpi_bcast(cam_take_snapshot_after, len(cam_take_snapshot_after),&
+           mpi_char, masterprocid, mpicom, ierr)
       end if
 
       ! Print out namelist variables
@@ -69,6 +88,10 @@ CONTAINS
          if (print_physics_check) then
             write(iulog,*) '  Physics data check will be performed against: ',&
                ncdata_check
+            write(iulog,*) 'Minimum Difference considered significant: ',     &
+               min_difference
+            write(iulog,*) 'Value Under Which Absolute Difference Calculated: ', &
+               min_relative_value
          else
             write(iulog,*) '  Physics data check will not be performed'
          end if
@@ -211,7 +234,8 @@ CONTAINS
  
       ! Determine if physics_check should be run:
       if (print_physics_check) then
-         call physics_check_data(ncdata_check, suite_names, data_frame)
+         call physics_check_data(ncdata_check, suite_names, data_frame,       &
+            min_difference, min_relative_value)
       end if
 
    end subroutine phys_run2
