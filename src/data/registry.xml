@@ -202,7 +202,7 @@
               allocatable="pointer">
       <long_name>ln(air pressure of dry air at interface)</long_name>
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>lnpintdry lnpintdry</ic_file_input_names>
+      <ic_file_input_names>lnpintdry state_lnpintdry</ic_file_input_names>
     </variable>
     <variable local_name="zi"
               standard_name="geopotential_height_at_interface"
