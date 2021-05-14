@@ -62,7 +62,6 @@ CONTAINS
          end if
          close(unitn)
       end if
-      write(iulog,*) ncdata_check
       ! Broadcast namelist variables
       if (npes > 1) then
          call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char,            &

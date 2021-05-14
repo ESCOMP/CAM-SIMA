@@ -671,32 +671,24 @@
     <type>char*32</type>
     <category>diagnostics</category>
     <group>physics_nl</group>
-    <valid_values>chem_emissions,aoa_tracers_timestep_tend,co2_cycle_set_ptend,chem_timestep_tend,vertical_diffusion_section,
-      aero_model_drydep,gw_tend,qbo_relax,iondrag_calc_section,physics_dme_adjust,physics_dme_adjust,dadadj_tend,
-      convect_deep_tend,convect_shallow_tend,macrop_driver_tend,clubb_tend_cam,microp_section,microp_driver_tend_subcol,
-      aero_model_wetdep,radiation_tend,held_suarez_tend,kessler_tend,thatcher_jablonowski_precip_tend,user_set,UNSET</valid_values>
     <desc>
       Name of parameterization to take snapshot before running
-      Default: UNSET
+      Default: none
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>none</value>
     </values>
   </entry>
   <entry id="cam_take_snapshot_after">
     <type>char*32</type>
     <category>diagnostics</category>
     <group>physics_nl</group>
-    <valid_values>chem_emissions,aoa_tracers_timestep_tend,co2_cycle_set_ptend,chem_timestep_tend,vertical_diffusion_section,
-      aero_model_drydep,gw_tend,qbo_relax,iondrag_calc_section,physics_dme_adjust,physics_dme_adjust,dadadj_tend,
-      convect_deep_tend,convect_shallow_tend,macrop_driver_tend,clubb_tend_cam,microp_section,microp_driver_tend_subcol,
-      aero_model_wetdep,radiation_tend,held_suarez_tend,kessler_tend,thatcher_jablonowski_precip_tend,user_set,UNSET</valid_values>
     <desc>
       Name of parameterization to take snapshot after running
-      Default: UNSET
+      Default: none
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>none</value>
     </values>
   </entry>
 
