@@ -626,8 +626,7 @@ class ConfigCAM:
                              'phys_ctl_nl',
                              'qneg_nl',
                              'vert_coord_nl',
-                             'ref_pres_nl',
-                             'phys_nl']
+                             'ref_pres_nl']
 
         #----------------------------------------
         # Set CAM grid variables (nlat,nlon,nlev)

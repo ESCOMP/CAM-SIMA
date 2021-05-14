@@ -17,7 +17,7 @@ module phys_comp
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
-   character(len=SHR_KIND_CL)              :: print_physics_check = 'print_physics_check'
+   logical                                 :: print_physics_check = .false.
    character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
 
 !==============================================================================
@@ -40,17 +40,15 @@ CONTAINS
       ! Local variables
       integer :: unitn, ierr
       character(len=*), parameter :: subname = 'phys_readnl'
-      logical :: newg, newsday, newmwh2o, newcpwv
-      logical :: newmwdry, newcpair, newrearth, newtmelt, newomega
 
-      namelist /phys_nl/ ncdata_check, print_physics_check
+      namelist /phys_ctl_nl/ ncdata_check, print_physics_check
 
       ! Read namelist
       if (masterproc) then
          open(newunit=unitn, file=trim(nlfilename), status='old')
          call find_group_name(unitn, 'phys_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, phys_nl, iostat=ierr)
+            read(unitn, phys_ctl_nl, iostat=ierr)
             if (ierr /= 0) then
                call endrun(subname // ':: ERROR reading namelist')
             end if
@@ -61,14 +59,14 @@ CONTAINS
       if (npes > 1) then
          call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char,            &
             masterprocid, mpicom, ierr)
-         call mpi_bcast(print_physics_check, len(print_physics_check),        &
-            mpi_char, masterprocid, mpicom, ierr)
+         call mpi_bcast(print_physics_check, 1, mpi_char, masterprocid,       &
+            mpicom, ierr)
       end if
 
       ! Print out namelist variables
       if (masterproc) then
          write(iulog,*) subname, ' options:'
-         if (print_physics_check == 'on') then
+         if (print_physics_check) then
             write(iulog,*) '  Physics data check will be performed against: ',&
                ncdata_check
          else
@@ -212,7 +210,7 @@ CONTAINS
       end if
  
       ! Determine if physics_check should be run:
-      if (print_physics_check == 'on') then
+      if (print_physics_check) then
          call physics_check_data(ncdata_check, suite_names, data_frame)
       end if
 

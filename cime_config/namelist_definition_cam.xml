@@ -609,19 +609,18 @@
     </values>
   </entry>
   <entry id="print_physics_check">
-    <type>char*8</type>
+    <type>logical</type>
     <category>diagnostics</category>
-    <group>phys_nl</group>
-    <valid_values>off,on</valid_values>
+    <group>phys_ctl_nl</group>
     <desc>
       Control the writing of physics check messages.
-      'on' causes a summary of physics check statistics to be printed at the
+      .true. causes a summary of physics check statistics to be printed at the
           end of each timestep.
-      'off' causes the physics check messages to be supressed.
-      Default: off
+      .false. causes the physics check messages to be supressed.
+      Default: .false.
     </desc>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="print_qneg_warn">
@@ -3711,7 +3710,7 @@
   <entry id="ncdata_check">
     <type>char*256</type>
     <category>initial_conditions</category>
-    <group>phys_nl</group>
+    <group>phys_ctl_nl</group>
     <desc>
       Full pathname of atmospheric state dataset for comparison/check (NetCDF format).
       Default: UNSET
