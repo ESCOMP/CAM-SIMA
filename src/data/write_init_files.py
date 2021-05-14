@@ -1849,13 +1849,13 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Open check file:
     outfile.write("if (file_name == 'UNSET') then", 2)
-    outfile.write("write(iulog,*) 'ERROR: Namelist variable ncdata_check is UNSET'", 3)
+    outfile.write("write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET. Model will run, but physics check data will not be printed'", 3)
     outfile.write("return", 3)
     outfile.write("end if", 2)
     outfile.write("!Open check file:", 2)
     outfile.write("call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found)", 2)
     outfile.write("if (.not. file_found) then", 2)
-    outfile.write("write(iulog,*) 'ERROR: Check file '//file_name//' not found'", 3)
+    outfile.write("write(iulog,*) 'WARNING: Check file '//file_name//' not found. Model will run, but physics check data will not be printed'", 3)
     outfile.write("return", 3)
     outfile.write("end if", 2)
     outfile.write("allocate(file)", 2)

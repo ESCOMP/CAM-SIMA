@@ -242,13 +242,17 @@ CONTAINS
          write(iulog,*) ''
       end if
       if (file_name == 'UNSET') then
-         write(iulog,*) 'ERROR: Namelist variable ncdata_check is UNSET'
+         write(iulog,*)                                                                           &
+              'WARNING: Namelist variable ncdata_check is UNSET. Model will run, but physics check data will not be printed'
+         
          return
       end if
       !Open check file:
       call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found)
       if (.not. file_found) then
-         write(iulog,*) 'ERROR: Check file '//file_name//' not found'
+         write(iulog,*)                                                                           &
+              'WARNING: Check file '//file_name//                                                 &
+              ' not found. Model will run, but physics check data will not be printed'
          return
       end if
       allocate(file)
