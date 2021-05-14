@@ -1504,7 +1504,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Write local variable declarations:
     outfile.write("!Local variables:", 2)
     outfile.write("", 0)
-    outfile.write("!Character array containing all CCPP-required vairable standard names:", 2)
+    outfile.write("!Character array containing all CCPP-required variable standard names:", 2)
     outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
     outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
@@ -1683,8 +1683,8 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     Write the "physics_check_data" subroutine, which
     is used to check the physics variables against
     an optionally input check file by reading
-    by reading in the values from the check file
-    and comparing the values to the variables
+    in the values from the check file and comparing
+    the values to the variables
     """
 
     #Construct dictionary of modules
@@ -1809,7 +1809,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #Write local variable declarations:
     outfile.write("!Local variables:", 2)
     outfile.write("", 0)
-    outfile.write("!Character array containing all CCPP-required vairable standard names:", 2)
+    outfile.write("!Character array containing all CCPP-required variable standard names:", 2)
     outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
     outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
@@ -1822,10 +1822,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("integer                    :: name_idx  !Input variable array index", 2)
     outfile.write("integer                    :: req_idx   !Required variable array index", 2)
     outfile.write("integer                    :: suite_idx !Suite array index", 2)
-    outfile.write("character(len=2)           :: sep  = '' !String separator used to print error messages", 2)
-    outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
-    outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
-    outfile.write("character(len=256)         :: ncdata_check_loc", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: ncdata_check_loc", 2)
     outfile.write("type(file_desc_t), pointer :: file", 2)
     outfile.write("logical                    :: file_found", 2)
     outfile.write("logical                    :: is_first", 2)
@@ -1871,7 +1868,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Determine physics suite required variables:
     outfile.write("!Search for all needed CCPP input variables,", 3)
-    outfile.write("!so that they can bx e read from input file if need be:", 3)
+    outfile.write("!so that they can be read from input file if need be:", 3)
     outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
     outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
     outfile.write("", 0)

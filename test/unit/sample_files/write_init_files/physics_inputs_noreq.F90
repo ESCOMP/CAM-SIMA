@@ -46,7 +46,7 @@ CONTAINS
 
       !Local variables:
 
-      !Character array containing all CCPP-required vairable standard names:
+      !Character array containing all CCPP-required variable standard names:
       character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
       !Strings which store names of any missing or non-initialized vars:
@@ -197,7 +197,7 @@ CONTAINS
 
       !Local variables:
 
-      !Character array containing all CCPP-required vairable standard names:
+      !Character array containing all CCPP-required variable standard names:
       character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
       !Strings which store names of any missing or non-initialized vars:
@@ -210,10 +210,7 @@ CONTAINS
       integer                    :: name_idx  !Input variable array index
       integer                    :: req_idx   !Required variable array index
       integer                    :: suite_idx !Suite array index
-      character(len=2)           :: sep  = '' !String separator used to print error messages
-      character(len=2)           :: sep2 = '' !String separator used to print error messages
-      character(len=2)           :: sep3 = '' !String separator used to print error messages
-      character(len=256)         :: ncdata_check_loc
+      character(len=SHR_KIND_CL) :: ncdata_check_loc
       type(file_desc_t), pointer :: file
       logical                    :: file_found
       logical                    :: is_first
@@ -249,7 +246,7 @@ CONTAINS
       do suite_idx = 1, size(suite_names, 1)
 
          !Search for all needed CCPP input variables,
-         !so that they can bx e read from input file if need be:
+         !so that they can be read from input file if need be:
          call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &
             errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)
 

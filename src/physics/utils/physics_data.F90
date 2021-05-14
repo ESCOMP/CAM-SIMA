@@ -251,8 +251,8 @@ CONTAINS
       allocate(buffer(size(current_value)), stat=ierr) 
       call check_allocate(ierr, subname, 'buffer')
       diff_count = 0
-      diff = 0
-      max_diff = 0
+      diff = 0._kind_phys
+      max_diff = 0._kind_phys
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (var_found) then
@@ -342,9 +342,9 @@ CONTAINS
       allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
         stat=ierr)
       call check_allocate(ierr, subname, 'buffer')
-      diff = 0
+      diff = 0._kind_phys
       diff_count = 0
-      max_diff = 0
+      max_diff = 0._kind_phys
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
