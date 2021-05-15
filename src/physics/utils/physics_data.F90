@@ -10,9 +10,9 @@ module physics_data
    public :: check_field
 
    !Non-standard variable indices:
-   integer, public, parameter           :: no_exist_idx     = -1
-   integer, public, parameter           :: init_mark_idx    = -2
-   integer, public, parameter           :: prot_no_init_idx = -3
+   integer, public, parameter :: no_exist_idx     = -1
+   integer, public, parameter :: init_mark_idx    = -2
+   integer, public, parameter :: prot_no_init_idx = -3
 
    interface read_field
       module procedure read_field_2d
