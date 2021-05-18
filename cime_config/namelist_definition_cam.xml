@@ -7058,11 +7058,6 @@
     <category>build</category>
     <group>physics_nl</group>
     <desc>
-      Full pathname to CAM physics grid ESMF mesh file.
-      N.B. this variable may not be set by the user.
-      It is set by build-namelist via information in the configure
-      cache file to be consistent with how CAM was built.
-      Default: set by build-namelist
     </desc>
   </entry>
   <entry id="oplus_adiff_limiter">
