@@ -131,6 +131,38 @@ class BuildCacheCAM:
     metadata and source code files for all schemes specified in the SDFs.
     Any host model metadata file changes will also trigger a CCPP rebuild so
     a registry-file creation implies a CCPP Framework run.
+
+    doctests
+
+    1.  Check that the proper error is generated when wrong file is input:
+
+    >>> BuildCacheCAM(TEST_SDF) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Check cache file simple_suite.xml
+
+    2.  Check that the proper error is generated when build_cache has an invalid tag:
+
+    >>> BuildCacheCAM(BAD_BUILD_CACHE) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Check cache file simple_suite.xml
+
+    3.  Check that the proper error is generated when build_cache has an invalid registry tag:
+
+    >>> BuildCacheCAM(BAD_BUILD_CACHE_REG) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Unknown registry tag, 'test'
+
+    4.  Check that the proper error is generated when build_cache has an invalid ccpp tag:
+
+    >>> BuildCacheCAM(BAD_BUILD_CACHE_CCPP) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Unknown ccpp tag, 'test'
+
+    5.  Check that parsing works (no errors) when input is valid:
+
+    >>> BuildCacheCAM(BUILD_CACHE)._BuildCacheCAM__dycore #doctest: +ELLIPSIS
+    'none'
+
     """
 
     def __init__(self, build_cache):
@@ -138,37 +170,6 @@ class BuildCacheCAM:
         Initialize all the build state from a build cache file.
         If <build_cache> does not exist, initialize to empty values.
         <build_cache> is also used to store build state when requested.
-        
-        doctests
-
-        1.  Check that the proper error is generated when wrong file is input:
-
-        >>> BUILD_CACHE_CAM.__init__(TEST_SDF) #doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-        ValueError: ERROR: Check cache file simple_suite.xml
-
-        2.  Check that the proper error is generated when build_cache has an invalid tag:
-
-        >>> BUILD_CACHE_CAM.__init__(BAD_BUILD_CACHE) #doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-        ValueError: ERROR: Check cache file simple_suite.xml
-
-        3.  Check that the proper error is generated when build_cache has an invalid registry tag:
-
-        >>> BUILD_CACHE_CAM.__init__(BAD_BUILD_CACHE_REG) #doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-        ValueError: ERROR: Unknown registry tag, 'test'
-
-        4.  Check that the proper error is generated when build_cache has an invalid ccpp tag:
-
-        >>> BUILD_CACHE_CAM.__init__(BAD_BUILD_CACHE_CCPP) #doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-        ValueError: ERROR: Unknown ccpp tag, 'test'
-
-        5.  Check that parsing works (no errors) when input is valid:
-
-        >>> BUILD_CACHE_CAM.__init__(BUILD_CACHE) #doctest: +ELLIPSIS
-
         """
         self.__build_cache = build_cache
         # Set empty values sure to trigger processing
@@ -471,26 +472,13 @@ if __name__ == "__main__":
     TEST_AUTO_DIR = os.path.dirname(os.path.abspath(__file__))
     TEST_ATM_ROOT = os.path.abspath(os.path.join(TEST_AUTO_DIR, os.pardir))
 
-    # Create variables for testing:
-    TEST_DATA_SEARCH = [os.path.join(TEST_ATM_ROOT, "src", "data")]
-    TEST_CCPP_PATH = os.path.join(TEST_ATM_ROOT, "ccpp_framework", "scripts")
-    TEST_BLDROOT = os.path.join(TEST_ATM_ROOT, "test_bldroot")
     TEST_SOURCE_MODS_DIR = os.path.join(TEST_ATM_ROOT, "SourceMods")
-    TEST_FORT_INDENT = 3
 
     # Remove old test directories if they exist:
-    if os.path.exists(TEST_BLDROOT):
-        shutil.rmtree(TEST_BLDROOT)
-
     if os.path.exists(TEST_SOURCE_MODS_DIR):
         shutil.rmtree(TEST_SOURCE_MODS_DIR)
 
-    # For generate_physics_suites:
-    TEST_REG_DIR = os.path.join(TEST_BLDROOT, "cam_registry")
-
-    # For generate_init_routines:
-    TEST_REGFILES = list()
-    TEST_CAP_DATAFILE = os.path.join("test_bldroot", "ccpp", "capfiles.txt")
+    # Create variables for testing:
     NULL_DYCORE = 'none'
     SE_DYCORE = 'se'
     NONE_CONFIG = None
@@ -498,21 +486,11 @@ if __name__ == "__main__":
     PREPROC_DEFS = "UNSET"
     TEST_CHANGE = "TEST" 
 
-    # Create testing buildroot directory:
-    os.mkdir(TEST_BLDROOT)
-
     # Create "SourceMods directory:
     os.mkdir(TEST_SOURCE_MODS_DIR)
 
     # Set logger to fatal, to avoid log messages:
     _LOGGER.setLevel(logging.FATAL)
-
-    # Create source code directories needed in order
-    # to avoid running the actual code generators
-    # while testing:
-    os.mkdir(os.path.join(TEST_BLDROOT, "cam_registry"))
-    os.mkdir(os.path.join(TEST_BLDROOT, "ccpp"))
-    os.mkdir(os.path.join(TEST_BLDROOT, "phys_init"))
 
     # Set test CCPP suite paths:
     SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
@@ -578,7 +556,6 @@ if __name__ == "__main__":
     doctest.testmod()
 
     # Remove testing directories:
-    shutil.rmtree(TEST_BLDROOT)
     shutil.rmtree(TEST_SOURCE_MODS_DIR)
 
 #############
