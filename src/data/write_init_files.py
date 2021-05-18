@@ -1315,10 +1315,10 @@ def write_is_read_from_file_func(outfile):
     #Add variable declaration statements:
     outfile.write("character(len=*), intent(in)   :: varname !Variable name being checked", 2)
     outfile.write("integer, optional, intent(out) :: stdnam_idx_out", 2)
-    outfile.write("character(len=*), parameter    :: subname = 'is_read_from_file: '", 2)
     outfile.write("", 0)
-    outfile.write("integer :: stdnam_idx !standard name array index", 2)
-    outfile.write("logical :: found      !check that <varname> was found", 2)
+    outfile.write("character(len=*), parameter    :: subname = 'is_read_from_file: '", 2)
+    outfile.write("integer                        :: stdnam_idx !standard name array index", 2)
+    outfile.write("logical                        :: found      !check that <varname> was found", 2)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1621,7 +1621,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate "read_field" calls:
     outfile.write("!Read variable from IC file:", 6)
     outfile.write("", 0)
-    outfile.write("select case (phys_var_stdnames(name_idx))", 6)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 6)
     for case_call, read_call in call_string_dict.items():
         outfile.write(case_call, 7)
         outfile.write(read_call, 8)
@@ -1885,7 +1885,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #Generate "check_field" calls:
     outfile.write("!Check variable vs input check file:", 4)
     outfile.write("", 0)
-    outfile.write("select case (phys_var_stdnames(name_idx))", 4)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 4)
     for case_call, read_call in call_string_dict.items():
         outfile.write(case_call, 5)
         outfile.write(read_call, 6)

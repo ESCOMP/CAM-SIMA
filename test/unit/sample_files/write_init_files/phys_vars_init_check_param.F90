@@ -209,10 +209,10 @@ CONTAINS
 
       character(len=*), intent(in)   :: varname !Variable name being checked
       integer, optional, intent(out) :: stdnam_idx_out
-      character(len=*), parameter    :: subname = 'is_read_from_file: '
 
-      integer :: stdnam_idx !standard name array index
-      logical :: found      !check that <varname> was found
+      character(len=*), parameter    :: subname = 'is_read_from_file: '
+      integer                        :: stdnam_idx !standard name array index
+      logical                        :: found      !check that <varname> was found
 
       is_read_from_file = .false.
       found = .false.

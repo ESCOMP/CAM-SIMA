@@ -138,7 +138,7 @@ CONTAINS
 
                   !Read variable from IC file:
 
-                  select case (phys_var_stdnames(name_idx))
+                  select case (trim(phys_var_stdnames(name_idx)))
                   end select !read variables
                end select !special indices
 
@@ -262,7 +262,7 @@ CONTAINS
             end if
             !Check variable vs input check file:
 
-            select case (phys_var_stdnames(name_idx))
+            select case (trim(phys_var_stdnames(name_idx)))
             end select !check variables
          end do !Suite-required variables
 

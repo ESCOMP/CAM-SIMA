@@ -233,6 +233,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)               :: dim1name, dim2name
       character(len=PIO_MAX_NAME)               :: tmpname
       character(len=128)                        :: errormsg
+      ! Logical to determine whether to print output messages
       logical                                   :: log_read_field
       logical                                   :: readvar_tmp
       character(len=*),               parameter :: subname = 'INFLD_REAL8_1D'
@@ -448,6 +449,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
       character(len=PIO_MAX_NAME)             :: tmpname
       character(len=128)                      :: errormsg
+      ! Logical to determine whether to print output messages
       logical                                 :: log_read_field
       logical                                 :: readvar_tmp
       character(len=*), parameter             :: subname = 'INFLD_REAL8_2D'
@@ -704,6 +706,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
       character(len=PIO_MAX_NAME)             :: tmpname
       character(len=128)                      :: errormsg
+      ! Logical to determine whether to print output messages
       logical                                 :: log_read_field
       logical                                 :: readvar_tmp
       character(len=*), parameter             :: subname = 'INFLD_REAL8_3D'

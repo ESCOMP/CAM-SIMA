@@ -140,7 +140,7 @@ CONTAINS
 
                   !Read variable from IC file:
 
-                  select case (phys_var_stdnames(name_idx))
+                  select case (trim(phys_var_stdnames(name_idx)))
                      case ('potential_temperature')
                         call read_field(file, 'potential_temperature',                            &
                              input_var_names(:,name_idx), 'lev', timestep, theta)
@@ -274,7 +274,7 @@ CONTAINS
             end if
             !Check variable vs input check file:
 
-            select case (phys_var_stdnames(name_idx))
+            select case (trim(phys_var_stdnames(name_idx)))
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta,     &
                        'potential_temperature', min_difference, min_relative_value, is_first)

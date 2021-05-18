@@ -18,10 +18,10 @@ module phys_comp
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
    logical                                 :: print_physics_check
-   character(len=SHR_KIND_CL)              :: ncdata_check = ''
-   character(len=SHR_KIND_CL)              :: cam_physics_mesh = ''
-   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before = ''
-   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = ''
+   character(len=SHR_KIND_CL)              :: ncdata_check
+   character(len=SHR_KIND_CL)              :: cam_physics_mesh
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after
    real(kind_phys)                         :: min_difference
    real(kind_phys)                         :: min_relative_value
 

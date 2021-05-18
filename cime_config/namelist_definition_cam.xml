@@ -616,7 +616,7 @@
       Control the writing of physics check messages.
       .true. causes a summary of physics check statistics to be printed at the
           end of each timestep.
-      .false. causes the physics check messages to be supressed.
+      .false. causes the physics check messages to be suppressed.
       Default: .false.
     </desc>
     <values>
@@ -625,7 +625,7 @@
   </entry>
   <entry id="min_difference">
     <type>real</type>
-    <category>diagnositcs</category>
+    <category>diagnostics</category>
     <group>physics_nl</group>
     <desc>
       Threshold over which differences are counted in the physics check process. 
