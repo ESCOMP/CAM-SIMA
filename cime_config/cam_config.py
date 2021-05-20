@@ -799,7 +799,7 @@ class ConfigCAM:
 
             # Add number of elements along edge of cubed-sphere grid
             csne_desc = "Number of elements along one edge of a cubed sphere grid."
-            self.create_config("csne", csne_desc, csne_val)
+            self.create_config("csne", csne_desc, csne_val, is_nml_attr=True)
 
             # Add number of points on each cubed-sphere element edge
             csnp_desc = "Number of points on each edge of the elements in a cubed sphere grid."
@@ -923,9 +923,17 @@ class ConfigCAM:
         SystemExit: 2
         """
         cco_str = "CAM_CONFIG_OPTS"
-        parser = argparse.ArgumentParser(description=cco_str,
-                                         prog="ConfigCAM", allow_abbrev=False,
-                                         epilog="Allowed values of "+cco_str)
+
+        #Don't allow abbreviations if using python 3.5 or greater:
+        if sys.version_info[0] > 2 and sys.version_info[1] > 4:
+            parser = argparse.ArgumentParser(description=cco_str,
+                                             prog="ConfigCAM", allow_abbrev=False,
+                                             epilog="Allowed values of "+cco_str)
+        else:
+            parser = argparse.ArgumentParser(description=cco_str,
+                                             prog="ConfigCAM",
+                                             epilog="Allowed values of "+cco_str)
+
 
         parser.add_argument("--physics-suites", "-physics-suites", type=str,
                             required=True, metavar='<CCPP_SDFs>',

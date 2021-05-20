@@ -10977,10 +10977,16 @@
     <desc>
       Number of elements along a cube edge.
       Must match value of grid. Set this to zero to use a refined mesh.
-      Default: UNKNOWN.
+      Default: 0
     </desc>
     <values>
-      <value hgrid="ne30np4">30</value>
+      <value>0</value>
+      <value csne="5">5</value>
+      <value csne="16">16</value>
+      <value csne="30">30</value>
+      <value csne="60">60</value>
+      <value csne="120">120</value>
+      <value csne="240">240</value>
     </values>
   </entry>
   <entry id="se_npes">
