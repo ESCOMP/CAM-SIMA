@@ -9,13 +9,8 @@ need to be run as part of a current build.
 #----------------------------------------
 import sys
 import os
-import logging
-import shutil
 import hashlib
 import xml.etree.ElementTree as ET
-
-# Acquire python logger:
-_LOGGER = logging.getLogger(__name__)
 
 # Find and include the ccpp-framework scripts directory
 # Assume we are in <CAMROOT>/cime_config and SPIN is in <CAMROOT>/ccpp_framework
@@ -136,15 +131,15 @@ class BuildCacheCAM:
 
     1.  Check that the proper error is generated when wrong file is input:
 
-    >>> BuildCacheCAM(TEST_SDF) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> BuildCacheCAM(TEST_SCHEME) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    ValueError: ERROR: Check cache file simple_suite.xml
+    CCPPError: read_xml_file: Cannot read ...temp_adjust_scalar.meta, syntax error: line 1, column 0
 
     2.  Check that the proper error is generated when build_cache has an invalid tag:
 
     >>> BuildCacheCAM(BAD_BUILD_CACHE) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    ValueError: ERROR: Check cache file simple_suite.xml
+    ValueError: ERROR: Unknown section tag, 'test' 
 
     3.  Check that the proper error is generated when build_cache has an invalid registry tag:
 
@@ -222,8 +217,8 @@ class BuildCacheCAM:
                             raise ValueError(emsg.format(item.tag))
                         # end if
                 else:
-                    emsg = "ERROR: Check cache file {}"
-                    raise ValueError(emsg.format(os.path.basename(build_cache)))
+                    emsg = "ERROR: Unknown section tag, '{}'"
+                    raise ValueError(emsg.format(section.tag))
                 # end if
             # end for
         # end if (no else, we just have an empty object)
@@ -466,6 +461,10 @@ if __name__ == "__main__":
 
     # Import modules needed for testing:
     import doctest
+    import logging
+    import shutil
+
+    _LOGGER = logging.getLogger(__name__)
 
     #++++++++++++++++++++++++++++++++++++++++++
     # Determine current working directory:
@@ -490,7 +489,7 @@ if __name__ == "__main__":
     os.mkdir(TEST_SOURCE_MODS_DIR)
 
     # Set logger to fatal, to avoid log messages:
-    _LOGGER.setLevel(logging.FATAL)
+    _LOGGER.setLevel(logging.DEBUG)
 
     # Set test CCPP suite paths:
     SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",

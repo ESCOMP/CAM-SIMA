@@ -10,6 +10,8 @@ python cime_config/cam_config.py
 python test/unit/cam_config_unit_tests.py
 # CAM autogen doctests:
 python cime_config/cam_autogen.py
+# CAM build cache doctests:
+python cime_config/cam_build_cache.py
 # Registry generator doctests:
 python -m doctest src/data/generate_registry_data.py
 # Registry generator unit tests:
