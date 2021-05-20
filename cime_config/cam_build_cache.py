@@ -489,7 +489,7 @@ if __name__ == "__main__":
     os.mkdir(TEST_SOURCE_MODS_DIR)
 
     # Set logger to fatal, to avoid log messages:
-    _LOGGER.setLevel(logging.DEBUG)
+    _LOGGER.setLevel(logging.FATAL)
 
     # Set test CCPP suite paths:
     SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
