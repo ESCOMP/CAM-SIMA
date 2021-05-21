@@ -49,6 +49,14 @@ CONTAINS
       namelist /physics_nl/ ncdata_check, min_difference, min_relative_value,&
          cam_take_snapshot_before, cam_take_snapshot_after, cam_physics_mesh
 
+      ! Initialize namelist variables to invalid values
+      min_relative_value       = HUGE(1.0_kind_phys)
+      min_difference           = HUGE(1.0_kind_phys)
+      cam_take_snapshot_after  = 'after'
+      cam_take_snapshot_before = 'before'
+      cam_physics_mesh         = 'cam_physics_mesh'
+      ncdata_check             = 'ncdata_check'
+
       ! Read namelist
       if (masterproc) then
          open(newunit=unitn, file=trim(nlfilename), status='old')
