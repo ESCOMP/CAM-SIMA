@@ -613,6 +613,7 @@
     <category>diagnostics</category>
     <group>physics_nl</group>
     <desc>
+      Controls processing of comparison between physics outputs and data from `{{ hilight }}ncdata_check{{ closehilight }}`.
       Threshold over which differences are counted in the physics check process. 
       Default: 0
     </desc>
@@ -625,6 +626,7 @@
     <category>diagnostics</category>
     <group>physics_nl</group>
     <desc>
+      Controls processing of comparison between physics outputs and data from `{{ hilight }}ncdata_check{{ closehilight }}`.
       Threshold under which the absolute difference is calculated rather than the relative difference.
       Default: 1e-5
     </desc>

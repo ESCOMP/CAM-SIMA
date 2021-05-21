@@ -12,17 +12,17 @@ module phys_comp
    public :: phys_run2
    public :: phys_final
 
-   ! Provate module data
+   ! Module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
-   character(len=SHR_KIND_CL)              :: ncdata_check
-   character(len=SHR_KIND_CL)              :: cam_physics_mesh
-   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before
-   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after
-   real(kind_phys)                         :: min_difference
-   real(kind_phys)                         :: min_relative_value
+   character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
+   character(len=SHR_KIND_CL)              :: cam_physics_mesh = 'cam_physics_mesh'
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before ='before'
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = 'after'
+   real(kind_phys)                         :: min_difference = HUGE(1.0_r8)
+   real(kind_phys)                         :: min_relative_value = HUGE(1.0_r8)
 
 !==============================================================================
 CONTAINS
@@ -33,7 +33,7 @@ CONTAINS
       use shr_kind_mod,    only: r8 => shr_kind_r8
       use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
       use shr_flux_mod,    only: shr_flux_adjust_constants
-      use mpi,             only: mpi_char, mpi_real8, mpi_logical
+      use mpi,             only: mpi_character, mpi_real8, mpi_logical
       use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,     only: iulog
       use cam_abortutils,  only: endrun
@@ -62,26 +62,24 @@ CONTAINS
          close(unitn)
       end if
       ! Broadcast namelist variables
-      if (npes > 1) then
-         call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char,            &
-            masterprocid, mpicom, ierr)
-         call mpi_bcast(min_difference, 1, mpi_real8, masterprocid, mpicom,   &
-            ierr)
-         call mpi_bcast(min_relative_value, 1, mpi_real8, masterprocid,       &
-            mpicom, ierr)
-         call mpi_bcast(cam_physics_mesh, len(cam_physics_mesh), mpi_char,    &
-            masterprocid, mpicom, ierr)
-         call mpi_bcast(cam_take_snapshot_before,                             &
-           len(cam_take_snapshot_before), mpi_char, masterprocid, mpicom,     &
-           ierr)
-         call mpi_bcast(cam_take_snapshot_after, len(cam_take_snapshot_after),&
-           mpi_char, masterprocid, mpicom, ierr)
-      end if
+      call mpi_bcast(ncdata_check, len(ncdata_check), mpi_character,       &
+         masterprocid, mpicom, ierr)
+      call mpi_bcast(min_difference, 1, mpi_real8, masterprocid, mpicom,   &
+         ierr)
+      call mpi_bcast(min_relative_value, 1, mpi_real8, masterprocid,       &
+         mpicom, ierr)
+      call mpi_bcast(cam_physics_mesh, len(cam_physics_mesh),              &
+         mpi_charater, masterprocid, mpicom, ierr)
+      call mpi_bcast(cam_take_snapshot_before,                             &
+        len(cam_take_snapshot_before), mpi_character, masterprocid,        &
+         mpicom, ierr)
+      call mpi_bcast(cam_take_snapshot_after, len(cam_take_snapshot_after),&
+        mpi_character, masterprocid, mpicom, ierr)
 
       ! Print out namelist variables
       if (masterproc) then
          write(iulog,*) subname, ' options:'
-         if (trim(ncdata_check) /= unset_path_str) then
+         if (trim(ncdata_check) /= trim(unset_path_str)) then
             write(iulog,*) '  Physics data check will be performed against: ',&
                ncdata_check
             write(iulog,*) 'Minimum Difference considered significant: ',     &

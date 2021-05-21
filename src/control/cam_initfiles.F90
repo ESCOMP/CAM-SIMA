@@ -183,7 +183,7 @@ CONTAINS
          if (initial_run) then
             write(iulog,*) '  Initial run will start from: ', trim(ncdata)
 
-            if (trim(bnd_topo) /= unset_path_str) then
+            if (trim(bnd_topo) /= trim(unset_path_str)) then
                write(iulog,*) '  Topography dataset is: ', trim(bnd_topo)
             else
                write(iulog,*) '  Topography dataset not used: PHIS, SGH, SGH30, LANDM_COSLAT set to zero'
@@ -227,7 +227,7 @@ CONTAINS
       end if
 
       ! Open topography dataset if used.
-      if (trim(bnd_topo) /= unset_path_str) then
+      if (trim(bnd_topo) /= trim(unset_path_str)) then
          if ((trim(bnd_topo) /= 'bnd_topo') .and. (len_trim(bnd_topo) > 0)) then
             allocate(fh_topo)
             call cam_get_file(bnd_topo, bnd_topo_loc)
