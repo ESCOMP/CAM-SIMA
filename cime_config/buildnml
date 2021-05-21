@@ -241,7 +241,7 @@ def buildnml(case, caseroot, compname):
                              cam_branch_file)
             # End if
 
-        # Set "state_debug_checks" namelist variable to true if DEBUG is true:
+        # Set "debug_output" namelist variable to 2 if DEBUG is true:
         if debug:
             infile_lines.append(" debug_output = 2")
         # End if
