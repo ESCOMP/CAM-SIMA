@@ -169,7 +169,7 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
       use physics_inputs, only: physics_read_data
-      use cam_initfiles,  only: initial_file_get_id
+      use cam_initfiles,  only: initial_file_get_id, unset_path_str
       use time_manager,   only: get_nstep
       use time_manager,   only: is_first_step
       use time_manager,   only: is_first_restart_step
@@ -235,7 +235,7 @@ CONTAINS
       end if
  
       ! Determine if physics_check should be run:
-      if (trim(ncdata_check) /= "UNSET_PATH") then
+      if (trim(ncdata_check) /= unset_path_str) then
          call physics_check_data(ncdata_check, suite_names, data_frame,       &
             min_difference, min_relative_value)
       end if
