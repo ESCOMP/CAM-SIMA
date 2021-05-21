@@ -235,7 +235,7 @@ CONTAINS
       end if
  
       ! Determine if physics_check should be run:
-      if (trim(ncdata_check) /= unset_path_str) then
+      if (trim(ncdata_check) /= trim(unset_path_str)) then
          call physics_check_data(ncdata_check, suite_names, data_frame,       &
             min_difference, min_relative_value)
       end if
