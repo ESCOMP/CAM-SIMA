@@ -17,7 +17,6 @@ module phys_comp
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
-   logical                                 :: print_physics_check
    character(len=SHR_KIND_CL)              :: ncdata_check
    character(len=SHR_KIND_CL)              :: cam_physics_mesh
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_before
@@ -38,6 +37,7 @@ CONTAINS
       use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
       use cam_logfile,     only: iulog
       use cam_abortutils,  only: endrun
+      use cam_initfiles,   only: unset_path_str
 
       ! filepath for file containing namelist input
       character(len=*), intent(in) :: nlfilename
@@ -46,9 +46,8 @@ CONTAINS
       integer :: unitn, ierr
       character(len=*), parameter :: subname = 'phys_readnl'
 
-      namelist /physics_nl/ ncdata_check, print_physics_check,               &
-         min_difference, min_relative_value, cam_take_snapshot_before,       &
-         cam_take_snapshot_after, cam_physics_mesh
+      namelist /physics_nl/ ncdata_check, min_difference, min_relative_value,&
+         cam_take_snapshot_before, cam_take_snapshot_after, cam_physics_mesh
 
       ! Read namelist
       if (masterproc) then
@@ -66,8 +65,6 @@ CONTAINS
       if (npes > 1) then
          call mpi_bcast(ncdata_check, len(ncdata_check), mpi_char,            &
             masterprocid, mpicom, ierr)
-         call mpi_bcast(print_physics_check, 1, mpi_logical, masterprocid,    &
-            mpicom, ierr)
          call mpi_bcast(min_difference, 1, mpi_real8, masterprocid, mpicom,   &
             ierr)
          call mpi_bcast(min_relative_value, 1, mpi_real8, masterprocid,       &
@@ -84,7 +81,7 @@ CONTAINS
       ! Print out namelist variables
       if (masterproc) then
          write(iulog,*) subname, ' options:'
-         if (print_physics_check) then
+         if (trim(ncdata_check) /= unset_path_str) then
             write(iulog,*) '  Physics data check will be performed against: ',&
                ncdata_check
             write(iulog,*) 'Minimum Difference considered significant: ',     &
@@ -232,7 +229,7 @@ CONTAINS
       end if
  
       ! Determine if physics_check should be run:
-      if (print_physics_check) then
+      if (trim(ncdata_check) /= "UNSET_PATH") then
          call physics_check_data(ncdata_check, suite_names, data_frame,       &
             min_difference, min_relative_value)
       end if

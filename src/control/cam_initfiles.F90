@@ -32,7 +32,8 @@ module cam_initfiles
         cam_initfiles_close         ! close initial and topo files
 
    ! Namelist inputs
-   logical :: use_topo_file = .true.
+   ! unset_path_str: string representing an unset path
+   character(len=cl), public, protected :: unset_path_str = 'unset_path_str'
    ! ncdata: full pathname for initial dataset
    character(len=cl), public, protected :: ncdata = 'ncdata'
    ! bnd_topo: full pathname for topography dataset
@@ -88,8 +89,8 @@ CONTAINS
 
       character(len=*), parameter :: subname = 'cam_initfiles_readnl'
 
-      namelist /cam_initfiles_nl/ ncdata, use_topo_file, bnd_topo, pertlim, &
-           cam_branch_file
+      namelist /cam_initfiles_nl/ ncdata, bnd_topo, pertlim, cam_branch_file, &
+         unset_path_str
       !------------------------------------------------------------------------
 
       if (masterproc) then
@@ -108,10 +109,6 @@ CONTAINS
       if (ierr /= 0) then
          call endrun(subname//": ERROR: mpi_bcast: ncdata")
       end if
-      call mpi_bcast(use_topo_file, 1, mpi_logical, mstrid, mpicom, ierr)
-      if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: use_topo_file")
-      end if
       call mpi_bcast(bnd_topo, len(bnd_topo), mpi_character,                  &
            mstrid, mpicom, ierr)
       if (ierr /= 0) then
@@ -125,6 +122,11 @@ CONTAINS
            mstrid, mpicom, ierr)
       if (ierr /= 0) then
          call endrun(subname//": ERROR: mpi_bcast: cam_branch_file")
+      end if
+      call mpi_bcast(unset_path_str, len(unset_path_str), mpi_character,      &
+           mstrid, mpicom, ierr)
+      if (ierr /= 0) then
+         call endrun(subname//": ERROR: mpi_bcast: unset_path_str")
       end if
 
       ! Set pointer file name based on instance suffix
@@ -181,7 +183,7 @@ CONTAINS
          if (initial_run) then
             write(iulog,*) '  Initial run will start from: ', trim(ncdata)
 
-            if (use_topo_file) then
+            if (trim(bnd_topo) /= unset_path_str) then
                write(iulog,*) '  Topography dataset is: ', trim(bnd_topo)
             else
                write(iulog,*) '  Topography dataset not used: PHIS, SGH, SGH30, LANDM_COSLAT set to zero'
@@ -225,7 +227,7 @@ CONTAINS
       end if
 
       ! Open topography dataset if used.
-      if (use_topo_file) then
+      if (trim(bnd_topo) /= unset_path_str) then
          if ((trim(bnd_topo) /= 'bnd_topo') .and. (len_trim(bnd_topo) > 0)) then
             allocate(fh_topo)
             call cam_get_file(bnd_topo, bnd_topo_loc)

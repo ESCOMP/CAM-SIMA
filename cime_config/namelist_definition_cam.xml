@@ -608,21 +608,6 @@
       <value>.false.</value>
     </values>
   </entry>
-  <entry id="print_physics_check">
-    <type>logical</type>
-    <category>diagnostics</category>
-    <group>physics_nl</group>
-    <desc>
-      Control the writing of physics check messages.
-      .true. causes a summary of physics check statistics to be printed at the
-          end of each timestep.
-      .false. causes the physics check messages to be suppressed.
-      Default: .false.
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
   <entry id="min_difference">
     <type>real</type>
     <category>diagnostics</category>
@@ -3560,10 +3545,10 @@
     <group>cam_initfiles_nl</group>
     <desc>
       Full pathname of initial atmospheric state dataset (NetCDF format).
-      Default: UNSET
+      Default: UNSET_PATH
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>UNSET_PATH</value>
       <value analytic_ic="1" nlev="26">atm/cam/inic/cam_vcoords_L26_c180105.nc</value>
       <value analytic_ic="1" nlev="30">atm/cam/inic/cam_vcoords_L30_c180105.nc</value>
       <value analytic_ic="1" nlev="32">atm/cam/inic/cam_vcoords_L32_c180105.nc</value>
@@ -3701,10 +3686,11 @@
     <group>physics_nl</group>
     <desc>
       Full pathname of atmospheric state dataset for comparison/check (NetCDF format).
-      Default: UNSET
+      If not UNSET_PATH, the physics check tool will run and print out stats every timestep.
+      Default: UNSET_PATH
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>UNSET_PATH</value>
     </values>
   </entry>
   <entry id="pertlim">
@@ -3731,6 +3717,16 @@
     </desc>
     <values>
       <value>none</value>
+    </values>
+  </entry>
+  <entry id="unset_path_str">
+    <type>char*32</type>
+    <category>initial_conditions</category>
+    <group>cam_initfiles_nl</group>
+    <desc>
+    </desc>
+    <values>
+      <value>UNSET_PATH</value>
     </values>
   </entry>
   <entry id="readtrace">
@@ -8150,10 +8146,13 @@
     <group>cam_initfiles_nl</group>
     <desc>
       Full pathname of time-invariant boundary dataset for topography fields.
-      Default: UNSET
+      Default: UNSET_PATH
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>UNSET_PATH</value>
+      <value aquaplanet="1">UNSET_PATH</value>
+      <value phys="held_suarez">UNSET_PATH</value>
+      <value analytic_ic="1">UNSET_PATH</value>
       <value hgrid="256x512">atm/cam/topo/topo-from-cami_0000-01-01_256x512_L26_c030918.nc</value>
       <value hgrid="128x256">atm/cam/topo/USGS-gtopo30_128x256_c050520.nc</value>
       <value hgrid="64x128">atm/cam/topo/T42_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20180111.nc</value>
@@ -8193,23 +8192,6 @@
       <value hgrid="ne0np4CONUS.ne30x8">atm/cam/topo/se/ne30x8_conus_nc3000_Co060_Fi001_MulG_PF_nullRR_Nsw042_20190710.nc</value>
     </values>
   </entry>
-  <entry id="use_topo_file">
-    <type>logical</type>
-    <category>topo</category>
-    <group>cam_initfiles_nl</group>
-    <desc>
-      Setting use_topo_file=.false. allows the user to specify that PHIS, SGH,
-      SGH30, and LANDM_COSLAT are all zero without having to supply a topo file
-      full of zeros.
-      Default: TRUE
-    </desc>
-    <values>
-      <value>.true.</value>
-      <value aquaplanet="1">.false.</value>
-      <value phys="held_suarez">.false.</value>
-      <value analytic_ic="1">.false.</value>
-    </values>
-  </entry>
 
 <!-- Tropopause -->
 
@@ -8219,8 +8201,10 @@
     <group>tropopause_nl</group>
     <desc>
       Full pathname of boundary dataset for tropopause climatology.
+      Default: UNSET_PATH.
     </desc>
     <values>
+      <value>UNSET_PATH</value>
       <value>atm/cam/chem/trop_mozart/ub/clim_p_trop.nc</value>
     </values>
   </entry>
