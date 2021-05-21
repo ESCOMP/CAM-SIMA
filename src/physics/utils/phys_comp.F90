@@ -21,8 +21,8 @@ module phys_comp
    character(len=SHR_KIND_CL)              :: cam_physics_mesh = 'cam_physics_mesh'
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_before ='before'
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = 'after'
-   real(kind_phys)                         :: min_difference = HUGE(1.0_r8)
-   real(kind_phys)                         :: min_relative_value = HUGE(1.0_r8)
+   real(kind_phys)                         :: min_difference = HUGE(1.0_kind_phys)
+   real(kind_phys)                         :: min_relative_value = HUGE(1.0_kind_phys)
 
 !==============================================================================
 CONTAINS
@@ -69,7 +69,7 @@ CONTAINS
       call mpi_bcast(min_relative_value, 1, mpi_real8, masterprocid,       &
          mpicom, ierr)
       call mpi_bcast(cam_physics_mesh, len(cam_physics_mesh),              &
-         mpi_charater, masterprocid, mpicom, ierr)
+         mpi_character, masterprocid, mpicom, ierr)
       call mpi_bcast(cam_take_snapshot_before,                             &
         len(cam_take_snapshot_before), mpi_character, masterprocid,        &
          mpicom, ierr)
