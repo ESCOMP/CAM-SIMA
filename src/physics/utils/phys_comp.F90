@@ -12,7 +12,7 @@ module phys_comp
    public :: phys_run2
    public :: phys_final
 
-   ! Module data
+   ! Private module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
