@@ -52,10 +52,10 @@ CONTAINS
       ! Initialize namelist variables to invalid values
       min_relative_value       = HUGE(1.0_kind_phys)
       min_difference           = HUGE(1.0_kind_phys)
-      cam_take_snapshot_after  = 'after'
-      cam_take_snapshot_before = 'before'
-      cam_physics_mesh         = 'cam_physics_mesh'
-      ncdata_check             = 'ncdata_check'
+      cam_take_snapshot_after  = unset_path_str
+      cam_take_snapshot_before = unset_path_str
+      cam_physics_mesh         = unset_path_str
+      ncdata_check             = unset_path_str
 
       ! Read namelist
       if (masterproc) then
