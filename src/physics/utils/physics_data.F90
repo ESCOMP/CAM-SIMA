@@ -216,7 +216,7 @@ CONTAINS
       use cam_abortutils, only: endrun, check_allocate
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
-      use spmd_utils,     only: npes, mpicom
+      use spmd_utils,     only: mpicom
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: ic_name_len
@@ -275,15 +275,10 @@ CONTAINS
                end if
             end do
             !Gather results across all nodes to get global values
-            if (npes > 1) then
-               call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
-                    mpi_sum, masterprocid,  mpicom, ierr)
-               call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
-                    masterprocid, mpicom, ierr)
-            else
-               diff_count_gl = diff_count
-               max_diff_gl = max_diff
-            end if
+            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+                 mpi_sum, masterprocid,  mpicom, ierr)
+            call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
+                 masterprocid, mpicom, ierr)
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
@@ -305,7 +300,7 @@ CONTAINS
       use cam_abortutils, only: endrun, check_allocate
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
-      use spmd_utils,     only: npes, mpicom
+      use spmd_utils,     only: mpicom
       use vert_coord,     only: pver, pverp
 
       !Max possible length of variable name in file:
@@ -380,15 +375,10 @@ CONTAINS
                   end if
                end do
             end do
-            if (npes > 1) then
-               call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
-                    mpi_sum, masterprocid, mpicom, ierr)
-               call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
-                    masterprocid, mpicom, ierr)
-            else
-               diff_count_gl = diff_count
-               max_diff_gl = max_diff
-            end if
+            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+                 mpi_sum, masterprocid, mpicom, ierr)
+            call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
+                 masterprocid, mpicom, ierr)
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &

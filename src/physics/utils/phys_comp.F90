@@ -34,7 +34,7 @@ CONTAINS
       use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
       use shr_flux_mod,    only: shr_flux_adjust_constants
       use mpi,             only: mpi_character, mpi_real8, mpi_logical
-      use spmd_utils,      only: masterproc, masterprocid, mpicom, npes
+      use spmd_utils,      only: masterproc, masterprocid, mpicom
       use cam_logfile,     only: iulog
       use cam_abortutils,  only: endrun
       use cam_initfiles,   only: unset_path_str
