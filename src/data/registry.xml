@@ -282,7 +282,7 @@
       <data>x_wind</data>
       <data>y_wind</data>
       <data>lagrangian_tendency_of_air_pressure</data>
-      <data>dry_static_energy_content_of_atmosphere_layer</data>
+      <data>dry_static_energy</data>
       <data>constituent_mixing_ratio</data>
     </ddt>
     <ddt type="physics_tend">

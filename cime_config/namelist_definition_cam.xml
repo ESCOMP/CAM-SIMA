@@ -10917,6 +10917,46 @@
       <value hgrid="ne120np4">4</value>
     </values>
   </entry>
+  <entry id="se_rayk0">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      Variable to specify the vertical index at which the
+      Rayleigh friction term is centered (the peak value).
+      Default: 2
+    </desc>
+    <values>
+      <value>2</value>
+    </values>
+  </entry>
+  <entry id="se_raykrange">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      Rayleigh friction parameter to determine the width of the profile.  If set
+      to 0 then a width is chosen by the algorithm (see rayleigh_friction.F90).
+      Default: 0.5.
+    </desc>
+    <values>
+      <value>0.5</value>
+      <value waccm_phys="1">3</value>
+    </values>
+  </entry>
+  <entry id="se_raytau0">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      Rayleigh friction parameter to determine the approximate value of the decay
+      time (days) at model top.  If 0.0 then no Rayleigh friction is applied.
+      Default: 0.
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
   <entry id="se_hypervis_subcycle_q">
     <type>integer</type>
     <category>se</category>

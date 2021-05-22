@@ -1890,39 +1890,39 @@ subroutine read_inidat(dyn_in)
    !the initial values itself:
    call mark_as_initialized("surface_air_pressure")
    call mark_as_initialized("pressure_thickness")
-   call mark_as_initialized("eastward_wind")
-   call mark_as_initialized("northward_wind")
-   call mark_as_initialized("temperature")
+   call mark_as_initialized("x_wind") !eastward wind
+   call mark_as_initialized("y_wind") !northward wind
+   call mark_as_initialized("air_temperature")
 
    !These calls will need to be modified once constituents are enabled:
    call mark_as_initialized("water_vapor_specific_humidity")
-   call mark_as_initialized("cloud_liquid_water_mixing_ratio")
+   call mark_as_initialized("cloud_liquid_water_mixing_ratio_of_moist_air")
    call mark_as_initialized("rain_water_mixing_ratio")
 
    !These calls may be removed if geopotential_t is only allowed to run
    !in a CCPP physics suite:
    call mark_as_initialized("geopotential_height")
    call mark_as_initialized("geopotential_height_at_interface")
-   call mark_as_initialized("dry_static_energy_content_of_atmosphere_layer")
+   call mark_as_initialized("dry_static_energy")
 
    !These variables are calculated in d_p_coupling, but need to be marked here:
    call mark_as_initialized("air_pressure")
-   call mark_as_initialized("natural_log_of_air_pressure")
+   call mark_as_initialized("ln_of_air_pressure")
    call mark_as_initialized("air_pressure_at_interface")
-   call mark_as_initialized("natural_log_of_air_pressure_at_interface")
+   call mark_as_initialized("ln_of_air_pressure_at_interface")
    call mark_as_initialized("pressure_thickness_of_dry_air")
    call mark_as_initialized("surface_pressure_of_dry_air")
    call mark_as_initialized("air_pressure_of_dry_air")
    call mark_as_initialized("air_pressure_of_dry_air_at_interface")
-   call mark_as_initialized("natural_log_of_air_pressure_of_dry_air_at_interface")
-   call mark_as_initialized("natural_log_of_air_pressure_of_dry_air")
+   call mark_as_initialized("ln_of_air_pressure_of_dry_air_at_interface")
+   call mark_as_initialized("ln_of_air_pressure_of_dry_air")
    call mark_as_initialized("reciprocal_of_pressure_thickness_of_dry_air")
    call mark_as_initialized("reciprocal_of_pressure_thickness")
    call mark_as_initialized("inverse_exner_function_wrt_surface_pressure")
    call mark_as_initialized("lagrangian_tendency_of_air_pressure")
-   call mark_as_initialized("tendency_of_temperature")
-   call mark_as_initialized("tendency_of_eastward_wind")
-   call mark_as_initialized("tendency_of_northward_wind")
+   call mark_as_initialized("total_tendency_of_air_temperature")
+   call mark_as_initialized("total_tendency_of_x_wind")
+   call mark_as_initialized("total_tendency_of_y_wind")
 
 end subroutine read_inidat
 

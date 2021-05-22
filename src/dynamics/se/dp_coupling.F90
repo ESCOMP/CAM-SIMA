@@ -319,8 +319,9 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
       end do
    end do
 
-   ! Re-set physics momentum tendencies to zero:
+   ! Re-set physics tendencies to zero:
    ! Is there a better solution here? -JN
+   phys_tend%dTdt(:,:) = 0._kind_phys
    phys_tend%dudt(:,:) = 0._kind_phys
    phys_tend%dvdt(:,:) = 0._kind_phys
 
@@ -549,11 +550,11 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
          !$omp parallel do num_threads(max_num_threads) private(ie,ncols)
          do ie = 1, nelemd
             ncols = elem(ie)%idxP%NumUniquePts
-            call putUniquePoints(elem(ie)%idxP, nlev, T_tmp(1:pcols,:,ie),       &
+            call putUniquePoints(elem(ie)%idxP, nlev, T_tmp(1:ncols,:,ie),       &
                elem(ie)%derived%fT(:,:,:))
-            call putUniquePoints(elem(ie)%idxV, 2, nlev, uv_tmp(1:pcols,:,:,ie), &
+            call putUniquePoints(elem(ie)%idxV, 2, nlev, uv_tmp(1:ncols,:,:,ie), &
                elem(ie)%derived%fM(:,:,:,:))
-            call putUniquePoints(elem(ie)%idxV, nlev, pcnst, dq_tmp(1:pcols,:,:,ie), &
+            call putUniquePoints(elem(ie)%idxV, nlev, pcnst, dq_tmp(1:ncols,:,:,ie), &
                elem(ie)%derived%fQ(:,:,:,:))
          end do
          call t_stopf('putUniquePoints')
