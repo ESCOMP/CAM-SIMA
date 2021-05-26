@@ -241,6 +241,7 @@ CONTAINS
          write(iulog,*) ''
          write(iulog,*) '********** Physics Check Data Results **********'
          write(iulog,*) ''
+         write(iulog,*) 'TIMESTEP: ', timestep
       end if
       if (file_name == 'UNSET') then
          write(iulog,*)                                                                           &
@@ -249,7 +250,8 @@ CONTAINS
          return
       end if
       !Open check file:
-      call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found)
+      call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found,                  &
+           log_info=.false.)
       if (.not. file_found) then
          write(iulog,*)                                                                           &
               'WARNING: Check file '//file_name//                                                 &
@@ -257,7 +259,7 @@ CONTAINS
          return
       end if
       allocate(file)
-      call cam_pio_openfile(file, ncdata_check_loc, pio_nowrite)
+      call cam_pio_openfile(file, ncdata_check_loc, pio_nowrite, log_info=.false.)
       !Loop over CCPP physics/chemistry suites:
       do suite_idx = 1, size(suite_names, 1)
 

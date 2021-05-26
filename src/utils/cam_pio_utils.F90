@@ -1223,7 +1223,7 @@ contains
 
    end subroutine cam_pio_createfile
 
-   subroutine cam_pio_openfile(file, fname, mode)
+   subroutine cam_pio_openfile(file, fname, mode, log_info)
       use pio,           only: pio_openfile, file_desc_t
       use pio,           only: pio_noerr, pio_iotask_rank
       use cam_abortutils, only: endrun, cam_register_open_file
@@ -1231,14 +1231,22 @@ contains
       type(file_desc_t), intent(inout), target :: file
       character(len=*), intent(in) :: fname
       integer, intent(in) :: mode
+      logical, optional, intent(in) :: log_info ! if .false. suppress informational logging
 
       integer :: ierr
+      logical :: log_information
+
+      if (present(log_info)) then
+         log_information = log_info
+      else
+         log_information = .true.
+      end if
 
       ierr = pio_openfile(pio_subsystem, file, pio_iotype, fname, mode)
 
       if(ierr /= PIO_NOERR) then
          call endrun('Failed to open '//trim(fname)//' to read')
-      else if(pio_iotask_rank(pio_subsystem) == 0) then
+      else if(pio_iotask_rank(pio_subsystem) == 0 .and. log_information) then
          write(iulog,*) 'Opened existing file ', trim(fname), file%fh
 !         call cam_register_open_file(file, trim(fname))
       end if
