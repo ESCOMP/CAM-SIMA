@@ -126,10 +126,43 @@ class BuildCacheCAM:
     metadata and source code files for all schemes specified in the SDFs.
     Any host model metadata file changes will also trigger a CCPP rebuild so
     a registry-file creation implies a CCPP Framework run.
+
+    doctests
+
+    1.  Check that the proper error is generated when wrong file is input:
+
+    >>> BuildCacheCAM(TEST_SCHEME) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CCPPError: read_xml_file: Cannot read ...temp_adjust_scalar.meta, syntax error: line 1, column 0
+
+    2.  Check that the proper error is generated when build_cache has an invalid tag:
+
+    >>> BuildCacheCAM(BAD_BUILD_CACHE) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Unknown section tag, 'test' 
+
+    3.  Check that the proper error is generated when build_cache has an invalid registry tag:
+
+    >>> BuildCacheCAM(BAD_BUILD_CACHE_REG) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Unknown registry tag, 'test'
+
+    4.  Check that the proper error is generated when build_cache has an invalid ccpp tag:
+
+    >>> BuildCacheCAM(BAD_BUILD_CACHE_CCPP) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ERROR: Unknown ccpp tag, 'test'
+
+    5.  Check that parsing works (no errors) when input is valid:
+
+    >>> BuildCacheCAM(BUILD_CACHE)._BuildCacheCAM__dycore #doctest: +ELLIPSIS
+    'none'
+
     """
 
     def __init__(self, build_cache):
-        """Initialize all the build state from a build cache file.
+        """
+        Initialize all the build state from a build cache file.
         If <build_cache> does not exist, initialize to empty values.
         <build_cache> is also used to store build state when requested.
         """
@@ -184,7 +217,8 @@ class BuildCacheCAM:
                             raise ValueError(emsg.format(item.tag))
                         # end if
                 else:
-                    raise ValueError(emsg)
+                    emsg = "ERROR: Unknown section tag, '{}'"
+                    raise ValueError(emsg.format(section.tag))
                 # end if
             # end for
         # end if (no else, we just have an empty object)
@@ -216,7 +250,7 @@ class BuildCacheCAM:
         self.__schemes = {}
         for sfile in scheme_files:
             new_entry = FileStatus(sfile, 'scheme')
-            self.__sdfs[new_entry.key] = new_entry
+            self.__schemes[new_entry.key] = new_entry
         # end for
 
     def update_init_gen(self, gen_init_file):
@@ -232,6 +266,9 @@ class BuildCacheCAM:
         new_cache = ET.Element("CAMBuildCache")
         # Registry
         registry = ET.SubElement(new_cache, 'registry')
+        new_xml_entry(registry, 'generate_init_file',
+                      self.__gen_init_file.file_path,
+                      self.__gen_init_file.file_hash)
         new_xml_entry(registry, 'generate_registry_file',
                       self.__gen_reg_file.file_path,
                       self.__gen_reg_file.file_hash)
@@ -260,11 +297,41 @@ class BuildCacheCAM:
 
     def registry_mismatch(self, gen_reg_file, registry_source_files,
                           dycore, config):
-        """Determine if the registry input data differs from the data
-        stored in our cache. Return True if the data differs."""
+        """
+        Determine if the registry input data differs from the data
+        stored in our cache. Return True if the data differs.
+
+        doctests
+
+        1.  Check that the function returns False when there are no changes:
+
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        False
+
+        2.  Check that the function returns True when the dycore has changed:
+
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], SE_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        True
+
+        3.  Check that the function returns True when the registry has been updated:
+
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [TEST_SDF], NULL_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        True
+
+        4.  Check that the function returns True when the gen_reg_file has been updated:
+
+        >>> BUILD_CACHE_CAM.registry_mismatch(TEST_SDF, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        True
+
+        5.  Check that the function returns True when config changes:
+
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, TEST_CHANGE) #doctest: +ELLIPSIS
+        True
+
+        """
         mismatch = False
         mismatch = (not self.__dycore) or (self.__dycore != dycore)
-        mismatch = mismatch or (not self.__config) or (self.__config != config)
+        mismatch = mismatch or (self.__config != config)
         if not mismatch:
             mismatch = self.__gen_reg_file.hash_mismatch(gen_reg_file)
         # end if
@@ -287,8 +354,38 @@ class BuildCacheCAM:
         return mismatch
 
     def ccpp_mismatch(self, sdfs, scheme_files, preproc_defs, kind_phys):
-        """Determine if the CCPP input data differs from the data stored in
-        our cache. Return True if the data differs."""
+        """
+        Determine if the CCPP input data differs from the data stored in
+        our cache. Return True if the data differs.
+
+        doctests
+
+        1.  Check that the function returns False when no changes were made:
+
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], PREPROC_DEFS, KIND_PHYS) #doctest: +ELLIPSIS
+        False
+
+        2.  Check that the function returns True when the preproc_defs changes:
+
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], TEST_CHANGE, KIND_PHYS) #doctest: +ELLIPSIS
+        True
+
+        3.  Check that the function returns True when kind_phys changes:
+
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], PREPROC_DEFS, TEST_CHANGE) #doctest: +ELLIPSIS
+        True
+
+        4. Check that the function returns True when an SDF changes:
+
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([REGISTRY_FILE], [TEST_SCHEME], PREPROC_DEFS, KIND_PHYS) #doctest: +ELLIPSIS
+        True
+
+        5.  Check that the function returns True when a scheme changes:
+
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [REGISTRY_FILE], PREPROC_DEFS, KIND_PHYS) #doctest: +ELLIPSIS
+        True
+
+        """
         mismatch = False
         mismatch = ((not self.__preproc_defs) or
                     (self.__preproc_defs != preproc_defs))
@@ -327,9 +424,24 @@ class BuildCacheCAM:
         return mismatch
 
     def init_write_mismatch(self, gen_init_file):
-        """Determine if the init_files writer (write_init_files.py)
+        """
+        Determine if the init_files writer (write_init_files.py)
             differs from the data stored in our cache. Return True
-            if the data differs."""
+            if the data differs.
+
+        doctests
+
+        1.  Check that the function returns False when nothing has changed:
+
+        >>> BUILD_CACHE_CAM.init_write_mismatch(REGISTRY_FILE) #doctest: +ELLIPSIS
+        False
+
+        2.  Check that the function returns True when the file has changed:
+
+        >>> BUILD_CACHE_CAM.init_write_mismatch(TEST_SDF) #doctest: +ELLIPSIS
+        True
+
+        """
 
         #Initialize variable:
         mismatch = False
@@ -339,3 +451,112 @@ class BuildCacheCAM:
 
         #Return mismatch logical:
         return mismatch
+
+###############################################################################
+# IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_BUILD_CACHE!
+###############################################################################
+
+# Call testing routine, if script is run directly
+if __name__ == "__main__":
+
+    # Import modules needed for testing:
+    import doctest
+    import logging
+    import shutil
+
+    _LOGGER = logging.getLogger(__name__)
+
+    #++++++++++++++++++++++++++++++++++++++++++
+    # Determine current working directory:
+    TEST_AUTO_DIR = os.path.dirname(os.path.abspath(__file__))
+    TEST_ATM_ROOT = os.path.abspath(os.path.join(TEST_AUTO_DIR, os.pardir))
+
+    TEST_SOURCE_MODS_DIR = os.path.join(TEST_ATM_ROOT, "SourceMods")
+
+    # Remove old test directories if they exist:
+    if os.path.exists(TEST_SOURCE_MODS_DIR):
+        shutil.rmtree(TEST_SOURCE_MODS_DIR)
+
+    # Create variables for testing:
+    NULL_DYCORE = 'none'
+    SE_DYCORE = 'se'
+    NONE_CONFIG = None
+    KIND_PHYS = "REAL64"
+    PREPROC_DEFS = "UNSET"
+    TEST_CHANGE = "TEST" 
+
+    # Create "SourceMods directory:
+    os.mkdir(TEST_SOURCE_MODS_DIR)
+
+    # Set logger to fatal, to avoid log messages:
+    _LOGGER.setLevel(logging.FATAL)
+
+    # Set test CCPP suite paths:
+    SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
+                                   "write_init_files")
+    TEST_SDF = os.path.join(SUITE_TEST_PATH, "simple_suite.xml")
+    TEST_SCHEME = os.path.join(SUITE_TEST_PATH, "temp_adjust_scalar.meta")
+    BUILD_CACHE = os.path.join(SUITE_TEST_PATH, "simple_build_cache_template.xml")
+    REGISTRY_FILE = os.path.join(SUITE_TEST_PATH, "simple_reg.xml")
+
+    # Copy test CCPP suite into SourceMods directory:
+    shutil.copy2(TEST_SDF, TEST_SOURCE_MODS_DIR)
+    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "simple_build_cache.xml"))
+    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache.xml"))
+    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_reg.xml"))
+    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_ccpp.xml"))
+    shutil.copy2(REGISTRY_FILE, TEST_SOURCE_MODS_DIR)
+    shutil.copy2(TEST_SCHEME, TEST_SOURCE_MODS_DIR)
+
+    REGISTRY_FILE = os.path.join(TEST_SOURCE_MODS_DIR, "simple_reg.xml")
+    BUILD_CACHE = os.path.join(TEST_SOURCE_MODS_DIR, "simple_build_cache.xml")
+    BAD_BUILD_CACHE = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache.xml")
+    BAD_BUILD_CACHE_REG = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_reg.xml")
+    BAD_BUILD_CACHE_CCPP = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_ccpp.xml")
+    TEST_SDF = os.path.join(TEST_SOURCE_MODS_DIR, "simple_suite.xml")
+    TEST_SCHEME = os.path.join(TEST_SOURCE_MODS_DIR, "temp_adjust_scalar.meta")
+
+    # Generate test build caches from template:
+    f1 = open(BUILD_CACHE, 'rt')
+    data = f1.read()
+    data = data.replace("TAG1", "").replace("TAG2", "").replace("TAG3", "")
+    f1.close()
+    f1 = open(BUILD_CACHE, 'w')
+    f1.write(data)
+    f1.close()
+
+    f1 = open(BAD_BUILD_CACHE, 'rt')
+    data = f1.read()
+    data = data.replace("TAG1", "<test />").replace("TAG2", "").replace("TAG3", "")
+    f1.close()
+    f1 = open(BAD_BUILD_CACHE, 'w')
+    f1.write(data)
+    f1.close()
+
+    f1 = open(BAD_BUILD_CACHE_REG, 'rt')
+    data = f1.read()
+    data = data.replace("TAG1", "").replace("TAG2", "<test />").replace("TAG3", "")
+    f1.close()
+    f1 = open(BAD_BUILD_CACHE_REG, 'w')
+    f1.write(data)
+    f1.close()
+
+    f1 = open(BAD_BUILD_CACHE_CCPP, 'rt')
+    data = f1.read()
+    data = data.replace("TAG1", "").replace("TAG2", "").replace("TAG3", "<test />")
+    f1.close()
+    f1 = open(BAD_BUILD_CACHE_CCPP, 'w')
+    f1.write(data)
+    f1.close()
+
+    BUILD_CACHE_CAM = BuildCacheCAM(BUILD_CACHE)
+
+    # Run doctests:
+    doctest.testmod()
+
+    # Remove testing directories:
+    shutil.rmtree(TEST_SOURCE_MODS_DIR)
+
+#############
+# End of file
+
