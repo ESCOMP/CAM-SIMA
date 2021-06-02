@@ -121,7 +121,7 @@ contains
 
      use vert_coord,     only: pver, pverp
      use constituents,   only: pcnst
-     use cam_abortutils, only: endrun
+     use cam_abortutils, only: endrun, check_allocate
      use string_utils,   only: to_str
 
      ! Local variables:
@@ -131,14 +131,15 @@ contains
      character(len=*), parameter :: subname = 'dimensions_mod_init'
 
      ! Set tracer dimension variables:
-
-#ifdef FVM_TRACERS
-     qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
-     ntrac_d = pcnst
-#else
-     qsize_d = pcnst
-     ntrac_d = 0 ! No fvm tracers if CSLAM is off
-#endif
+     if (fv_nphys > 0) then
+        ! Use CSLAM for tracer advection
+        qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
+        ntrac_d = pcnst
+     else
+        ! Use GLL for tracer advection
+        qsize_d = pcnst
+        ntrac_d = 0 ! No fvm tracers if CSLAM is off
+     end if
 
      ! Set grid dimension variables:
 
@@ -149,77 +150,52 @@ contains
      ! Allocate vertically-dimensioned variables:
 
      allocate(irecons_tracer_lev(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate irecons_tracer_lev(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'irecons_tracer_lev(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(nu_scale_top(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate nu_scale_top(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'nu_scale_top(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(nu_lev(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate nu_lev(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'nu_lev(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(otau(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate otau(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'otau(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(nu_div_lev(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate nu_div_lev(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'nu_div_lev(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(kmvis_ref(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate kmvis_ref(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'kmvis_ref(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(kmcnd_ref(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate kmcnd_ref(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'kmcnd_ref(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(rho_ref(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate rho_ref(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'rho_ref(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(km_sponge_factor(pver), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate km_sponge_factor(pver) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'km_sponge_factor(pver)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(kmvisi_ref(pverp), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate kmvisi_ref(pverp) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'kmvisi_ref(pverp)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(kmcndi_ref(pverp), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate kmcndi_ref(pverp) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'kmcndi_ref(pverp)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(rhoi_ref(pverp), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate rhoi_ref(pverp) failed with stat: '//&
-                    to_str(iret))
-     end if
-
+     call check_allocate(iret, subname, 'rhoi_ref(pverp)', &
+                         file=__FILE__, line=__LINE__)
 
   end subroutine dimensions_mod_init
 

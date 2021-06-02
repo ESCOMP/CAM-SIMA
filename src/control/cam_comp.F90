@@ -297,10 +297,6 @@ CONTAINS
 !      call ionosphere_run2( phys_state, dyn_in)
 !      call t_stopf ('ionosphere_run2')
 
-      if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf('cam_run2_memusage')
-         call t_stopf('cam_run2_memusage')
-      end if
    end subroutine cam_run2
 
    !
@@ -329,10 +325,6 @@ CONTAINS
       call stepon_run3(dtime_phys, cam_out, phys_state, dyn_in, dyn_out)
       call t_stopf ('stepon_run3')
 
-      if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf('cam_run3_memusage')
-         call t_stopf('cam_run3_memusage')
-      end if
    end subroutine cam_run3
 
    !

@@ -697,7 +697,8 @@ class ConfigCAM:
             # Horizontal grid
             self.create_config("hgrid", hgrid_desc, atm_grid,
                                se_grid_re, is_nml_attr=True)
-            # Add SE namelist groups to nmlgen list:
+
+            # Add SE namelist groups to nmlgen list
             self.__nml_groups.append("air_composition_nl")
             self.__nml_groups.append("dyn_se_inparm")
 
@@ -708,10 +709,6 @@ class ConfigCAM:
             # Add OpenMP CPP definitions, if needed:
             if nthrds > 1:
                 self.add_cppdef("_OPENMP")
-
-            # Add CSLAM CPP definition, if needed:
-            if atm_grid.find("pg") != -1:
-                self.add_cppdef("FVM_TRACERS")
 
         elif fv3_grid_re.match(atm_grid) is not None:
             # Dynamical core
@@ -797,6 +794,13 @@ class ConfigCAM:
             csnp_re = re.search(r"np[0-9]+", atm_grid)
             csnp_val = int(csnp_re.group()[2:])
 
+            # Extract number of CSLAM physics grid points, if available:
+            npg_re = re.search(r"pg[1-9]+", atm_grid)
+            if npg_re:
+                npg_val = int(npg_re.group()[2:])
+            else:
+                npg_val = 0 #No CSLAM grid points
+
             # Add number of elements along edge of cubed-sphere grid
             csne_desc = "Number of elements along one edge of a cubed sphere grid."
             self.create_config("csne", csne_desc, csne_val, is_nml_attr=True)
@@ -804,6 +808,11 @@ class ConfigCAM:
             # Add number of points on each cubed-sphere element edge
             csnp_desc = "Number of points on each edge of the elements in a cubed sphere grid."
             self.create_config("csnp", csnp_desc, csnp_val)
+
+            # Add number of CSLAM physics grid points:
+            npg_desc = "Number of physics grid cells on each edge of" \
+                       " the elements in a cubed sphere grid."
+            self.create_config("npg", npg_desc, npg_val, is_nml_attr=True)
 
             # Add number of points (NP) CPP definition:
             self.add_cppdef("NP", csnp_val)
