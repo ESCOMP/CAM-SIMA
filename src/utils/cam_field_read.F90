@@ -14,8 +14,8 @@ module cam_field_read
    use pio,            only: pio_max_var_dims, io_desc_t
    use pio,            only: pio_double, pio_setframe
    use spmd_utils,     only: masterproc
-   use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog, debug_output, DEBUGOUT_NONE, DEBUGOUT_DEBUG
+   use cam_abortutils, only: safe_endrun
+   use cam_logfile,    only: iulog, debug_output, DEBUGOUT_INFO, DEBUGOUT_DEBUG
    !!XXgoldyXX: v support SCAM?
    !  use shr_scam_mod,   only: shr_scam_getCloseLatLon  ! Standardized system subroutines
    !  use scamMod,        only: scmlat,scmlon,single_column
@@ -62,11 +62,11 @@ CONTAINS
 
       grid_id = cam_grid_id(trim(grid_name))
       if (.not. cam_grid_check(grid_id)) then
-         call endrun(subname//': Internal error, no "'//grid_name//'" grid')
+         call safe_endrun(subname//': Internal error, no "'//grid_name//'" grid')
       end if
       call cam_grid_get_dim_names(grid_id, dim1name, dim2name)
       call cam_grid_get_array_bounds(grid_id, dim_bounds)
-      if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
+      if (masterproc .and. (debug_output > DEBUGOUT_INFO)) then
          if (trim(dim1name) == trim(dim2name)) then
             write(iulog, '(5a)') subname, ': grid ', trim(grid_name),         &
                  ', dimension = ', trim(dim1name)
@@ -101,17 +101,17 @@ CONTAINS
       character(len=8)             :: syntax(9)
 
       if (ndims < max(min_ndims, 1)) then
-         call endrun(subname//': too few dimensions for '//trim(varname))
+         call safe_endrun(subname//': too few dimensions for '//trim(varname))
       else if (ndims > max_ndims) then
          write(errormsg, '(3a,i0)') ': too many dimensions for, ',      &
               trim(varname), ', ', ndims
-         call endrun(subname//trim(errormsg))
+         call safe_endrun(subname//trim(errormsg))
       else if (num_bounds < 1) then
-         call endrun(subname//': too few dimension boundss for '//trim(varname))
+         call safe_endrun(subname//': too few dimension boundss for '//trim(varname))
       else if (num_bounds > 3) then
          write(errormsg, '(3a,i0)') ': too many dimension bounds for, ',      &
               trim(varname), ', ', num_bounds
-         call endrun(subname//trim(errormsg))
+         call safe_endrun(subname//trim(errormsg))
       else if (debug_output >= DEBUGOUT_DEBUG) then
          num_vals = 0
          do ind = 1, num_bounds
@@ -129,7 +129,7 @@ CONTAINS
          errormsg((6 * num_vals) + 8:) = ' '
          write(fmt_str, '("(a,",a,",i5,",i0,"(i6))")') '": "', num_vals
          call cam_log_multiwrite(subname, errormsg, fmt_str, values(1:num_vals))
-      else if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
+      else if (masterproc .and. (debug_output > DEBUGOUT_INFO)) then
          num_vals = 0
          do ind = 1, num_bounds
             num_vals = num_vals + 1
@@ -170,7 +170,7 @@ CONTAINS
          num_target_dims = num_target_dims - 1
       end if
       if (num_target_dims < 1) then
-         call endrun('num_target_dims, bad inputs')
+         call safe_endrun('num_target_dims, bad inputs')
       end if
    end function num_target_dims
 
@@ -260,11 +260,11 @@ CONTAINS
       ! Is this an unstructured grid (i.e., one column dimension on file)?
       unstruct = cam_grid_is_unstructured(grid_id)
       if (block_indexed) then
-         call endrun(subname//': Block indexed 1D field is invalid')
+         call safe_endrun(subname//': Block indexed 1D field is invalid')
       else
          target_ndims = num_target_dims(2, unstruct)
       end if
-      if ((debug_output > DEBUGOUT_NONE) .and. masterproc) then
+      if ((debug_output > DEBUGOUT_INFO) .and. masterproc) then
          if (present(timelevel)) then
             write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
@@ -295,21 +295,21 @@ CONTAINS
               varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
-            call endrun(subname//': too many dimensions for '//trim(varname))
+            call safe_endrun(subname//': too many dimensions for '//trim(varname))
          else if (ndims == target_ndims + 1) then
             ierr = pio_inq_dimname(ncid, dimids(ndims), tmpname)
             if (trim(tmpname) /= 'time') then
-               call endrun(subname//': dimension mismatch for '//trim(varname))
+               call safe_endrun(subname//': dimension mismatch for '//trim(varname))
             end if
             if (present(timelevel)) then
                if (timelevel > dimlens(ndims)) then
                   write(errormsg, '(a,i0,a,i0)') ': timelevel, ', timelevel,  &
                        ', exceeds file limit, ', dimlens(ndims)
-                  call endrun(subname//errormsg)
+                  call safe_endrun(subname//errormsg)
                end if
             end if
          else if (ndims < target_ndims) then
-            call endrun(subname//': too few dimensions for '//trim(varname))
+            call safe_endrun(subname//': too few dimensions for '//trim(varname))
          end if ! No else, things are okay
          !
          ! Get array dimension id's and sizes
@@ -318,7 +318,7 @@ CONTAINS
          if (arraydimsize(1) /= size(field, 1)) then
             write(errormsg, '(4a,i0)') ': Mismatch between array bounds ',    &
                  'and field size for ', trim(varname), ', dimension ', 1
-            call endrun(subname//errormsg)
+            call safe_endrun(subname//errormsg)
          end if
 
          ! Check that the number of columns in the file matches the number of
@@ -329,7 +329,7 @@ CONTAINS
                     trim(varname), ', file = ', dimlens(1), ', grid = ',      &
                     grid_dimlens(1), ' * ', grid_dimlens(2), ' = ',           &
                     (grid_dimlens(1) * grid_dimlens(2))
-               call endrun(subname//trim(errormsg))
+               call safe_endrun(subname//trim(errormsg))
             end if
          else
             do jndex = 1, target_ndims
@@ -337,7 +337,7 @@ CONTAINS
                   write(errormsg, '(a,i0,2a,2(a,i0))') ': Dim ', jndex,       &
                        ' mismatch for ', trim(varname), ', file = ',          &
                        dimlens(jndex), 'grid = ', grid_dimlens(jndex)
-                  call endrun(subname//trim(errormsg))
+                  call safe_endrun(subname//trim(errormsg))
                end if
             end do
          end if
@@ -355,9 +355,9 @@ CONTAINS
          if (single_column) then
             if (unstruct) then
                ! Clearly, this will not work for an unstructured dycore
-               call endrun(subname//': SCAM not supported in this configuration')
+               call safe_endrun(subname//': SCAM not supported in this configuration')
             else
-               call endrun(subname//': SCAM support not implemented')
+               call safe_endrun(subname//': SCAM support not implemented')
             end if
          else
             ! All distributed array processing
@@ -473,7 +473,7 @@ CONTAINS
       else
          target_ndims = num_target_dims(2, unstruct)
       end if
-      if ((debug_output > DEBUGOUT_NONE) .and. masterproc) then
+      if ((debug_output > DEBUGOUT_INFO) .and. masterproc) then
          if (present(timelevel)) then
             write(errormsg, '(a,i0)') ', timelevel = ', timelevel
          else
@@ -493,9 +493,9 @@ CONTAINS
       ! If <field> is a 3D quantity, fix up its dimensions
       if ((dim_bounds(2,2) <= 0) .or. (dim_bounds(2,2) < dim_bounds(2,1))) then
          if (.not. present(dim3name)) then
-            call endrun(subname//': dim3name must be present for 3D field')
+            call safe_endrun(subname//': dim3name must be present for 3D field')
          else if (.not. present(dim3_bnds)) then
-            call endrun(subname//': dim3_bnds must be present for 3D field')
+            call safe_endrun(subname//': dim3_bnds must be present for 3D field')
          end if
          dim_bounds(2,:) = dim3_bnds(:)
          dim2name = trim(dim3name)
@@ -515,22 +515,22 @@ CONTAINS
          pdims = ndims
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
-            call endrun(subname//': too many dimensions for '//trim(varname))
+            call safe_endrun(subname//': too many dimensions for '//trim(varname))
          else if (ndims == target_ndims + 1) then
             ierr = pio_inq_dimname(ncid, dimids(ndims), tmpname)
             if (trim(tmpname) /= 'time') then
-               call endrun(subname//': dimension mismatch for '//trim(varname))
+               call safe_endrun(subname//': dimension mismatch for '//trim(varname))
             end if
             if (present(timelevel)) then
                if (timelevel > dimlens(ndims)) then
                   write(errormsg, '(a,i0,a,i0)') ': timelevel, ', timelevel,  &
                        ', exceeds file limit, ', dimlens(ndims)
-                  call endrun(subname//errormsg)
+                  call safe_endrun(subname//errormsg)
                end if
             end if
             pdims = target_ndims
          else if (ndims < target_ndims) then
-            call endrun(subname//': too few dimensions for '//trim(varname))
+            call safe_endrun(subname//': too few dimensions for '//trim(varname))
          end if ! No else, things are okay
          call print_input_field_info(dimlens, pdims, 2, 3, dim_bounds, 2,     &
               varname, subname)
@@ -545,7 +545,7 @@ CONTAINS
                     ': Mismatch between array size (', arraydimsize(jndex),   &
                     ') and field size (', size(field, jndex), ') for ',       &
                     trim(varname), ', dimension = ', jndex
-               call endrun(subname//errormsg)
+               call safe_endrun(subname//errormsg)
             end if
          end do
 
@@ -557,7 +557,7 @@ CONTAINS
                     trim(varname), ', file = ', dimlens(1), ', grid = ',      &
                     grid_dimlens(1), ' * ', grid_dimlens(2), ' = ',           &
                     (grid_dimlens(1) * grid_dimlens(2))
-               call endrun(subname//trim(errormsg))
+               call safe_endrun(subname//trim(errormsg))
             end if
          else if (unstruct) then
             index = 0
@@ -574,7 +574,7 @@ CONTAINS
                   write(errormsg, '(a,i0,2a,2(a,i0))') ': Dim ', jndex,       &
                        ' mismatch for ', trim(varname), ', file = ',          &
                        dimlens(jndex), 'grid = ', grid_dimlens(jndex+index)
-                  call endrun(subname//trim(errormsg))
+                  call safe_endrun(subname//trim(errormsg))
                end if
             end do
          end if
@@ -583,14 +583,14 @@ CONTAINS
             if(present(timelevel)) then
                call pio_setframe(ncid, varid,                                 &
                     int(timelevel, kind=pio_offset_kind))
-               if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
+               if (masterproc .and. (debug_output > DEBUGOUT_INFO)) then
                   write(iulog, '(2a,i0)') subname, 'Setting time to frame ',  &
                        timelevel
                   call shr_sys_flush(iulog)
                end if
             else
                call pio_setframe(ncid, varid, int(1, kind=pio_offset_kind))
-               if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
+               if (masterproc .and. (debug_output > DEBUGOUT_INFO)) then
                   write(iulog, '(2a)') subname, 'Setting time to frame 1'
                   call shr_sys_flush(iulog)
                end if
@@ -601,9 +601,9 @@ CONTAINS
          if (single_column) then
             if (unstruct) then
                ! Clearly, this will not work for an unstructured dycore
-               call endrun(subname//': SCAM not supported in this configuration')
+               call safe_endrun(subname//': SCAM not supported in this configuration')
             else
-               call endrun(subname//': SCAM support not implemented')
+               call safe_endrun(subname//': SCAM support not implemented')
             end if
          else
             ! All distributed array processing
@@ -745,7 +745,7 @@ CONTAINS
       else
          if (present(dim3_pos)) then
             if ((dim3_pos < 1) .or. (dim3_pos > 3)) then
-               call endrun(subname//': Bad value for dim3_pos')
+               call safe_endrun(subname//': Bad value for dim3_pos')
             end if
             index = dim3_pos
          else
@@ -774,21 +774,21 @@ CONTAINS
               varname, subname)
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
-            call endrun(subname//': too many dimensions for '//trim(varname))
+            call safe_endrun(subname//': too many dimensions for '//trim(varname))
          else if (ndims == target_ndims + 1) then
             ierr = pio_inq_dimname(ncid, dimids(ndims), tmpname)
             if (trim(tmpname) /= 'time') then
-               call endrun(subname//': dimension mismatch for '//trim(varname))
+               call safe_endrun(subname//': dimension mismatch for '//trim(varname))
             end if
             if (present(timelevel)) then
                if (timelevel > dimlens(ndims)) then
                   write(errormsg, '(a,i0,a,i0)') ': timelevel, ', timelevel,  &
                        ', exceeds file limit, ', dimlens(ndims)
-                  call endrun(subname//errormsg)
+                  call safe_endrun(subname//errormsg)
                end if
             end if
          else if (ndims < target_ndims) then
-            call endrun(subname//': too few dimensions for '//trim(varname))
+            call safe_endrun(subname//': too few dimensions for '//trim(varname))
          end if ! No else, things are okay
          !
          ! Get array dimension id's and sizes
@@ -800,7 +800,7 @@ CONTAINS
             if (arraydimsize(jndex) /= size(field, jndex)) then
                write(errormsg, '(4a,i0)') ': Mismatch between array bounds ', &
                     'and field size for ', trim(varname), ', dimension ', jndex
-               call endrun(subname//errormsg)
+               call safe_endrun(subname//errormsg)
             end if
          end do
 
@@ -812,7 +812,7 @@ CONTAINS
                     trim(varname), ', file = ', dimlens(1), ', grid = ',      &
                     grid_dimlens(1), ' * ', grid_dimlens(2), ' = ',           &
                     (grid_dimlens(1) * grid_dimlens(2))
-               call endrun(subname//trim(errormsg))
+               call safe_endrun(subname//trim(errormsg))
             end if
          else
             do jndex = 1, target_ndims
@@ -826,7 +826,7 @@ CONTAINS
                   write(errormsg, '(a,i0,2a,2(a,i0))') ': Dim ', jndex,       &
                        ' mismatch for ', trim(varname), ', file = ',          &
                        dimlens(jndex), 'grid = ', grid_dimlens(jndex+index)
-                  call endrun(subname//trim(errormsg))
+                  call safe_endrun(subname//trim(errormsg))
                end if
             end do
          end if
@@ -844,9 +844,9 @@ CONTAINS
          if (single_column) then
             if (unstruct) then
                ! Clearly, this will not work for an unstructured dycore
-               call endrun(subname//': SCAM not supported in this configuration')
+               call safe_endrun(subname//': SCAM not supported in this configuration')
             else
-               call endrun(subname//': SCAM support not implemented')
+               call safe_endrun(subname//': SCAM support not implemented')
             end if
          else
             ! All distributed array processing

@@ -136,11 +136,6 @@ CONTAINS
    end subroutine cam_register_close_file
 
    subroutine endrun(message, file, line)
-!!XXgoldyXX: v broken
-# if 0
-      use pio, only : pio_closefile
-#endif
-!!XXgoldyXX: ^ debug only
       ! Parallel emergency stop
       ! Dummy arguments
       character(len=*),           intent(in) :: message
@@ -148,20 +143,6 @@ CONTAINS
       integer,          optional, intent(in) :: line
       ! Local variables
       character(len=max_chars)               :: abort_msg
-!!XXgoldyXX: v broken
-# if 0
-      type(open_file_pointer), pointer       :: of_ptr
-
-      ! First, close all open PIO files
-      of_ptr => open_files_head
-      do while (associated(of_ptr))
-         call pio_closefile(of_ptr%file_desc)
-         call cam_register_close_file(of_ptr%file_desc,                       &
-              log_shutdown_in="Emergency close")
-         of_ptr => of_ptr%next
-      end do
-#endif
-!!XXgoldyXX: ^ debug only
       if (present(file) .and. present(line)) then
          write(abort_msg, '(4a,i0)') trim(message),' at ',trim(file),':',line
       else if (present(file)) then
@@ -175,4 +156,37 @@ CONTAINS
 
    end subroutine endrun
 
+   subroutine safe_endrun(message, file, line)
+      ! Sequential/global emergency stop
+      use pio, only : pio_closefile
+      ! Dummy arguments
+      character(len=*),           intent(in) :: message
+      character(len=*), optional, intent(in) :: file
+      integer,          optional, intent(in) :: line
+
+      ! Local variables
+      character(len=max_chars)               :: abort_msg
+      type(open_file_pointer), pointer       :: of_ptr
+
+      ! First, close all open PIO files
+      of_ptr => open_files_head
+      do while (associated(of_ptr))
+         call pio_closefile(of_ptr%file_desc)
+         call cam_register_close_file(of_ptr%file_desc,                       &
+              log_shutdown_in="Emergency close")
+         of_ptr => of_ptr%next
+      end do
+
+      if (present(file) .and. present(line)) then
+         write(abort_msg, '(4a,i0)') trim(message),' at ', trim(file),':',line
+      else if (present(file)) then
+         write(abort_msg, '(3a)') trim(message),' at ', trim(file)
+      else if (present(line)) then
+         write(abort_msg, '(2a,i0)') trim(message),' on line ',line
+      else
+         write(abort_msg, '(a)') trim(message)
+      end if
+      call shr_sys_abort(abort_msg)
+
+   end subroutine safe_endrun
 end module cam_abortutils

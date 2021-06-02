@@ -1218,7 +1218,7 @@ contains
          call endrun('Failed to open file,'//trim(fname)//', to write')
       else if(pio_iotask_rank(pio_subsystem) == 0) then
          write(iulog, *) 'Opened file ', trim(fname),  ' to write', file%fh
-!         call cam_register_open_file(file, trim(fname))
+         call cam_register_open_file(file, trim(fname))
       end if
 
    end subroutine cam_pio_createfile
@@ -1240,7 +1240,7 @@ contains
          call endrun('Failed to open '//trim(fname)//' to read')
       else if(pio_iotask_rank(pio_subsystem) == 0) then
          write(iulog,*) 'Opened existing file ', trim(fname), file%fh
-!         call cam_register_open_file(file, trim(fname))
+         call cam_register_open_file(file, trim(fname))
       end if
 
    end subroutine cam_pio_openfile
@@ -1253,7 +1253,7 @@ contains
       type(file_desc_t), intent(inout), target :: file
 
       call pio_closefile(file)
-!      call cam_register_close_file(file)
+      call cam_register_close_file(file)
 
    end subroutine cam_pio_closefile
 
