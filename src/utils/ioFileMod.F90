@@ -31,7 +31,7 @@ module ioFileMod
 CONTAINS
 !=======================================================================
 
-   subroutine cam_get_file(fulpath, locfn, iflag, lexist)
+   subroutine cam_get_file(fulpath, locfn, iflag, lexist, log_info)
 
       ! --------------------------------------------------------------------
       ! Determine whether file is on local disk.
@@ -50,6 +50,7 @@ CONTAINS
       character(len=*),  intent(out) :: locfn
       integer, optional, intent(in)  :: iflag  ! abort unless iflag=1
       logical, optional, intent(out) :: lexist ! .true. if the file is found
+      logical, optional, intent(in)  :: log_info ! if .false. don't print info
 
       ! ------------------------ local variables ---------------------------
       integer            :: i               ! loop index
@@ -58,6 +59,7 @@ CONTAINS
       logical            :: lexist_in       ! true if local file exists
       logical            :: abort_on_failure
       character(len=192) :: errmsg
+      logical            :: log_information
       character(len=*), parameter :: subname = 'cam_get_file'
       ! --------------------------------------------------------------------
 
@@ -68,6 +70,11 @@ CONTAINS
          end if
       end if
       maxlen = len(locfn)
+      if (present(log_info)) then
+         log_information = log_info
+      else
+         log_information = .true.
+      end if
 
       ! first check if file is in current working directory.
       ! get local file name from full name: start at end. look for first "/"
@@ -94,7 +101,7 @@ CONTAINS
       locfn = fulpath(i+1:klen)
       if (len_trim(locfn) == 0) then
          call endrun (subname//': local filename has zero length')
-      else if (masterproc) then
+      else if (masterproc .and. log_information) then
          write(iulog, *) subname//': attempting to find local file ',         &
               trim(locfn)
       end if
@@ -104,7 +111,7 @@ CONTAINS
          lexist = lexist_in
       end if
       if (lexist_in) then
-         if (masterproc) then
+         if (masterproc .and. log_information) then
             write(iulog, *) subname//': using ', trim(locfn),                 &
                  ' in current working directory'
          end if
@@ -136,7 +143,7 @@ CONTAINS
          lexist = lexist_in
       end if
       if (lexist_in) then
-         if (masterproc) then
+         if (masterproc .and. log_information) then
             write(iulog, *) subname, ': using ', trim(fulpath)
          end if
          return

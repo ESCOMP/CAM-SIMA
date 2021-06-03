@@ -13,6 +13,8 @@ module spmd_utils
 !- use statements ------------------------------------------------------
 !-----------------------------------------------------------------------
 
+   use mpi, only: MPI_COMM_NULL
+
    implicit none
    private                   ! Make the default access private
    save
@@ -22,11 +24,11 @@ module spmd_utils
 !-----------------------------------------------------------------------
    public spmd_init
 
-   integer, public                :: mpicom
-   logical, public                :: masterproc
-   integer, public                :: masterprocid
-   integer, public                :: iam
-   integer, public                :: npes
+   integer, public, protected     :: mpicom = MPI_COMM_NULL
+   logical, public, protected     :: masterproc = .false.
+   integer, public, protected     :: masterprocid = -1
+   integer, public, protected     :: iam = -1
+   integer, public, protected     :: npes = -1
    ! processor name for this task
    character, allocatable         :: proc_name(:)
    ! the value of iam which is assigned the masterproc duties
