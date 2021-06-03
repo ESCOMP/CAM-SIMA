@@ -8,8 +8,7 @@ module inic_analytic
   !-----------------------------------------------------------------------
   use cam_logfile,         only: iulog
   use shr_kind_mod,        only: r8 => shr_kind_r8
-  use cam_abortutils,      only: endrun
-  use string_utils,        only: to_str
+  use cam_abortutils,      only: endrun, check_allocate
   use shr_sys_mod,         only: shr_sys_flush
   use inic_analytic_utils, only: analytic_ic_active, analytic_ic_type
 
@@ -83,10 +82,8 @@ CONTAINS
 
 #ifdef ANALYTIC_IC
     allocate(mask_use(size(latvals)), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
-                  to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'mask_use(size(latvals))', &
+                        file=__FILE__, line=__LINE__)
 
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
@@ -194,10 +191,8 @@ CONTAINS
       end if
       call random_seed(size=rndm_seed_sz)
       allocate(rndm_seed(rndm_seed_sz), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate rndm_seed(rndm_seed_sz) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'rndm_seed(rndm_seed_sz)', &
+                          file=__FILE__, line=__LINE__)
 
       ncol = size(T, 1)
       nlev = size(T, 2)
@@ -457,10 +452,8 @@ CONTAINS
       end if
       nblks = size2
       allocate(lat_use(size(lonvals)), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate lat_use(size(lonvals)) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'lat_use(size(lonvals))', &
+                          file=__FILE__, line=__LINE__)
 
       if (present(mask)) then
         call endrun(subname//': mask not supported for lon/lat')
@@ -510,10 +503,8 @@ CONTAINS
       ! Case: lon,lev,lat
       nblks = size3
       allocate(lat_use(size(lonvals)), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate lat_use(size(lonvals)) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'lat_use(size(lonvals))', &
+                          file=__FILE__, line=__LINE__)
 
       if (present(mask)) then
         call endrun(subname//': mask not supported for lon/lat')

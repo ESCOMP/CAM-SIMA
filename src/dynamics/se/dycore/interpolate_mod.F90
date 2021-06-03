@@ -188,12 +188,12 @@ contains
   end function get_interp_gweight
   function get_interp_lat() result(thislat)
     real(kind=r8) :: thislat(nlat)
-    thislat=lat*180.0_r8/PI
+    thislat=lat*180.0_r8/real(PI, r8)
     return
   end function get_interp_lat
   function get_interp_lon() result(thislon)
     real(kind=r8) :: thislon(nlon)
-    thislon=lon*180.0_r8/PI
+    thislon=lon*180.0_r8/real(PI, r8)
     return
   end function get_interp_lon
 
@@ -1025,10 +1025,10 @@ contains
     yp      = cube%y
 
     ! MNL: for uniform grids (on cube face), analytic solution is fine
-    x1 = xp + 0.25_r8*PI
-    x2 = yp + 0.25_r8*PI
+    x1 = xp + 0.25_r8*real(PI, r8)
+    x2 = yp + 0.25_r8*real(PI, r8)
 
-    dx = (0.5_r8*PI)/ne
+    dx = (0.5_r8*real(PI, r8))/ne
     ie = INT(ABS(x1)/dx)
     je = INT(ABS(x2)/dx)
     ! if we are exactly on an element edge, we can put the point in

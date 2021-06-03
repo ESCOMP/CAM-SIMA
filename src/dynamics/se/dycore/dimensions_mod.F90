@@ -121,8 +121,7 @@ contains
 
      use vert_coord,     only: pver, pverp
      use constituents,   only: pcnst
-     use cam_abortutils, only: endrun, check_allocate
-     use string_utils,   only: to_str
+     use cam_abortutils, only: check_allocate
 
      ! Local variables:
 

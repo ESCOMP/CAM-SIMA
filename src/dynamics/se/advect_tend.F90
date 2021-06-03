@@ -26,8 +26,7 @@ contains
     use time_manager,           only: get_step_size
 !    use constituents,           only: tottnam,pcnst
     use constituents,           only: pcnst
-    use cam_abortutils,         only: endrun
-    use string_utils,           only: to_str
+    use cam_abortutils,         only: check_allocate
 
     ! SE dycore:
     use dimensions_mod,         only: nc,np,nlev,ntrac
@@ -53,20 +52,15 @@ contains
     endif
 
     allocate( ftmp(nx*nx,nlev), stat=iret )
-    if (iret /= 0) then
-      call endrun(subname//': allocate ftmp(nx*nx,nlev) failed with stat: '//&
-                  to_str(iret))
-    end if
-
+    call check_allocate(iret, subname, 'ftmp(nx*nx,nlev)', &
+                        file=__FILE__, line=__LINE__)
 
     init = .false.
     if ( .not. allocated( adv_tendxyz ) ) then
       init = .true.
       allocate( adv_tendxyz(nx,nx,nlev,pcnst,nets:nete) )
-      if (iret /= 0) then
-        call endrun(subname//': allocate adv_tendxyz(nx,nx,nlev,pcnst,nets:nete) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'adv_tendxyz(nx,nx,nlev,pcnst,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       adv_tendxyz(:,:,:,:,:) = 0._r8
     endif

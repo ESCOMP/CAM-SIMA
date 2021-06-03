@@ -161,7 +161,7 @@ contains
     ! Compute first half of the roots by "polynomial deflation".
     ! ============================================================
 
-    dth = PI/(2*n+2)
+    dth = real(pi, r8)/(2*n+2)
 
     nh  = (n+1)/2
 
@@ -396,7 +396,7 @@ contains
     a   = -(jac(n+1)*jacm1(n-1)-jacm1(n+1)*jac(n-1))/det
     b   = -(jac(n  )*jacm1(n+1)-jacm1(n  )*jac(n+1))/det
 
-    dth = PI/(2*n+1)
+    dth = real(pi, r8)/(2*n+1)
     cd  = COS(c2*dth)
     sd  = SIN(c2*dth)
     cs  = COS(dth)

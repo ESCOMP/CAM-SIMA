@@ -682,7 +682,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
         !        if (ABS(a(j)-a(i)).lt. 1e-6)  a(j) = 9999
         delta = abs(a(j)-a(i))
         if (delta < 1.e-6_r8)  a(j) = 9999.0_r8
-        if (abs((2.0_r8*pi) - delta) < 1.0e-6_r8)  a(j) = 9999.0_r8
+        if (abs((2.0_r8*real(pi, r8)) - delta) < 1.0e-6_r8)  a(j) = 9999.0_r8
       end do
     end do
     m = 0
@@ -691,7 +691,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     end do
     if (mod(m,2).ne.0) then
       do i=1,n
-        print *,'angle with centroid: ',i,a(i),mod(a(i),2*pi)
+        print *,'angle with centroid: ',i,a(i),mod(a(i),2*real(pi, r8))
       end do
       call endrun("Error: Found an odd number or nodes for cv element. Should be even.")
     end if
@@ -1385,7 +1385,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     ! MNL: dx and dy are no longer part of element_t
     !      but they are easily computed for the
     !      uniform case
-    dx = pi/(2.0d0*dble(ne))
+    dx = real(pi, r8)/(2.0d0*dble(ne))
     dy = dx
 
     ! intialize local element dual grid, local element areas
@@ -1393,8 +1393,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do ie=nets,nete
 
       call convert_gbl_index(elem(ie)%vertex%number,ie1,je1,face_no)
-      start%x=-pi/4 + ie1*dx
-      start%y=-pi/4 + je1*dy
+      start%x=r-real(pi, r8)/4 + ie1*dx
+      start%y=-1._r8*real(pi, r8)/4 + je1*dy
       endd%x  =start%x + dx
       endd%y  =start%y + dy
       cartp_nm1(0:np,0:np) = element_coordinates(start,endd,gllnm1)
@@ -2260,7 +2260,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
     real(r8), pointer :: locvol(:,:)
 
-    dx = pi/(2.0d0*dble(ne))
+    dx = real(pi, r8)/(2.0d0*dble(ne))
     dy = dx
 
     if(.not. initialized) then
@@ -2333,13 +2333,13 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
       if(hybrid%masterthread) then
         write(*,'(a,i2,a,2e23.15)') "cube face:",face," : SURFACE FV =",&
-             6_r8*psum/(4_r8 * pi), &
-             6_r8*psum/(4_r8 * pi)-1
+             6_r8*psum/(4_r8 * real(pi, r8)), &
+             6_r8*psum/(4_r8 * real(pi, r8))-1
       end if
     end do
 
     if(hybrid%masterthread) then
-      write(iulog, *) "SURFACE FV (total)= ", ptot/(4_r8 * pi)
+      write(iulog, *) "SURFACE FV (total)= ", ptot/(4_r8 * real(pi, r8))
     end if
 
   end subroutine VerifVolumes

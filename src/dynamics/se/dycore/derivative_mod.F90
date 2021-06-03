@@ -1060,8 +1060,8 @@ end do
              dsdx00 = dsdx00 + deriv%Dvv(i,l  )*s(i,j  )
              dsdy00 = dsdy00 + deriv%Dvv(i,l  )*s(j  ,i)
           end do
-          v1(l  ,j  ) = dsdx00*ra
-          v2(j  ,l  ) = dsdy00*ra
+          v1(l  ,j  ) = dsdx00*real(ra, r8)
+          v2(j  ,l  ) = dsdy00*real(ra, r8)
        end do
     end do
     ! convert covarient to latlon
@@ -1121,9 +1121,9 @@ end do
 !DIR$ UNROLL(NP)
           do j=1,np
              ! phi(n)_y  sum over second index, 1st index fixed at m
-             dscontra(m,n,1)=dscontra(m,n,1)-(elem%mp(m,j)*s(m,j)*deriv%Dvv(n,j) )*ra
+             dscontra(m,n,1)=dscontra(m,n,1)-(elem%mp(m,j)*s(m,j)*deriv%Dvv(n,j) )*real(ra, r8)
              ! phi(m)_x  sum over first index, second index fixed at n
-             dscontra(m,n,2)=dscontra(m,n,2)+(elem%mp(j,n)*s(j,n)*deriv%Dvv(m,j) )*ra
+             dscontra(m,n,2)=dscontra(m,n,2)+(elem%mp(j,n)*s(j,n)*deriv%Dvv(m,j) )*real(ra, r8)
           enddo
        enddo
     enddo
@@ -1185,12 +1185,12 @@ end do
              dscontra(m,n,1)=dscontra(m,n,1)-(&
                   (elem%mp(j,n)*elem%metinv(m,n,1,1)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) ) +&
                   (elem%mp(m,j)*elem%metinv(m,n,2,1)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) ) &
-                  ) *ra
+                  ) *real(ra, r8)
 
              dscontra(m,n,2)=dscontra(m,n,2)-(&
                   (elem%mp(j,n)*elem%metinv(m,n,1,2)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) ) +&
                   (elem%mp(m,j)*elem%metinv(m,n,2,2)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) ) &
-                  ) *ra
+                  ) *real(ra, r8)
           enddo
        enddo
     enddo
@@ -1238,9 +1238,9 @@ end do
 !DIR$ UNROLL(NP)
           do j=1,np
              ! phi(m)_x  sum over first index, second index fixed at n
-             dscov(m,n,1)=dscov(m,n,1)-(elem%mp(j,n)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) )*ra
+             dscov(m,n,1)=dscov(m,n,1)-(elem%mp(j,n)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) )*real(ra, r8)
              ! phi(n)_y  sum over second index, 1st index fixed at m
-             dscov(m,n,2)=dscov(m,n,2)-(elem%mp(m,j)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) )*ra
+             dscov(m,n,2)=dscov(m,n,2)-(elem%mp(m,j)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) )*real(ra, r8)
           enddo
        enddo
     enddo
@@ -1280,7 +1280,7 @@ end do
     do component=1,3
        ! Dot u with the gradient of each component
        call gradient_sphere(dum_cart(:,:,component),deriv,elem%Dinv,temp)
-       dum_cart(:,:,component) = sum( u(:,:,:) * temp,3) 
+       dum_cart(:,:,component) = sum( u(:,:,:) * temp,3)
     enddo
 
     ! cartesian -> latlon
@@ -1328,8 +1328,8 @@ end do
              dsdx00 = dsdx00 + deriv%Dvv(i,l  )*s(i,j  )
              dsdy00 = dsdy00 + deriv%Dvv(i,l  )*s(j  ,i)
           end do
-          v2(l  ,j  ) = -dsdx00*ra
-          v1(j  ,l  ) =  dsdy00*ra
+          v2(l  ,j  ) = -dsdx00*real(ra, r8)
+          v1(j  ,l  ) =  dsdy00*real(ra, r8)
        end do
     end do
     ! convert contra -> latlon *and* divide by jacobian
@@ -1389,7 +1389,7 @@ end do
           do j=1,np
              div(m,n)=div(m,n)-(elem%spheremp(j,n)*vtemp(j,n,1)*deriv%Dvv(m,j) &
                               +elem%spheremp(m,j)*vtemp(m,j,2)*deriv%Dvv(n,j)) &
-                              * ra
+                              * real(ra, r8)
           enddo
 
        end do
@@ -1428,22 +1428,22 @@ end do
     result=0
     j=1
     do i=1,np
-       result(i,j)=result(i,j)-deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*ra
+       result(i,j)=result(i,j)-deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*real(ra, r8)
     enddo
 
     j=np
     do i=1,np
-       result(i,j)=result(i,j)+deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*ra
+       result(i,j)=result(i,j)+deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*real(ra, r8)
     enddo
 
     i=1
     do j=1,np
-       result(i,j)=result(i,j)-deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*ra
+       result(i,j)=result(i,j)-deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*real(ra, r8)
     enddo
 
     i=np
     do j=1,np
-       result(i,j)=result(i,j)+deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*ra
+       result(i,j)=result(i,j)+deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*real(ra, r8)
     enddo
   end function element_boundary_integral
 
@@ -1493,13 +1493,13 @@ end do
        j=1
        pstar=p(i,j)
        if (ucontra(i,j,2)>0) pstar=pedges(i,0)
-       flux = -pstar*ucontra(i,j,2)*( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ra)
+       flux = -pstar*ucontra(i,j,2)*( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*real(ra, r8))
        result(i,j)=result(i,j)+flux
 
        j=np
        pstar=p(i,j)
        if (ucontra(i,j,2)<0) pstar=pedges(i,np+1)
-       flux = pstar*ucontra(i,j,2)* ( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ra)
+       flux = pstar*ucontra(i,j,2)* ( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*real(ra, r8))
        result(i,j)=result(i,j)+flux
     enddo
 
@@ -1507,13 +1507,13 @@ end do
        i=1
        pstar=p(i,j)
        if (ucontra(i,j,1)>0) pstar=pedges(0,j)
-       flux = -pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ra)
+       flux = -pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*real(ra, r8))
        result(i,j)=result(i,j)+flux
 
        i=np
        pstar=p(i,j)
        if (ucontra(i,j,1)<0) pstar=pedges(np+1,j)
-       flux = pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ra)
+       flux = pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*real(ra, r8))
        result(i,j)=result(i,j)+flux
     end do
 
@@ -1568,7 +1568,7 @@ end do
 
     do j=1,np
        do i=1,np
-          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*ra)
+          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*real(ra, r8))
        end do
     end do
 
@@ -1622,7 +1622,7 @@ end do
 
       do j=1,np
          do i=1,np
-          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*ra)
+          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*real(ra, r8))
          end do
       end do
 
@@ -1676,7 +1676,7 @@ end do
 
     do j=1,np
        do i=1,np
-          div(i,j)=(div(i,j)+vvtemp(i,j))*(elem%rmetdet(i,j)*ra)
+          div(i,j)=(div(i,j)+vvtemp(i,j))*(elem%rmetdet(i,j)*real(ra, r8))
        end do
     end do
 
@@ -1809,8 +1809,8 @@ end do
       do n=1,np
         do m=1,np
           ! add in correction so we dont damp rigid rotation
-          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(ra**2)
-          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(ra**2)
+          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(real(ra**2, r8))
+          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(real(ra**2, r8))
         enddo
       enddo
     end if
@@ -1856,8 +1856,8 @@ end do
 
     if (undamprrcart) then
       ! add in correction so we dont damp rigid rotation
-      laplace(:,:,1)=laplace(:,:,1) + 2*elem%spheremp(:,:)*v(:,:,1)*(ra**2)
-      laplace(:,:,2)=laplace(:,:,2) + 2*elem%spheremp(:,:)*v(:,:,2)*(ra**2)
+      laplace(:,:,1)=laplace(:,:,1) + 2*elem%spheremp(:,:)*v(:,:,1)*(real(ra**2, r8))
+      laplace(:,:,2)=laplace(:,:,2) + 2*elem%spheremp(:,:)*v(:,:,2)*(real(ra**2, r8))
     end if
 
   end function vlaplace_sphere_wk_cartesian
@@ -1907,8 +1907,8 @@ end do
       do n=1,np
         do m=1,np
           ! add in correction so we dont damp rigid rotation
-          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(ra**2)
-          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(ra**2)
+          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(real(ra**2, r8))
+          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(real(ra**2, r8))
         enddo
       enddo
     end if
@@ -2105,10 +2105,10 @@ end do
     flux_l(:,:) = MATMUL(boundary_interp_matrix(:,1,:),lr)
     flux_r(:,:) = MATMUL(boundary_interp_matrix(:,2,:),lr)
 
-    fluxes(:,:,1) = -flux_b(:,:)*ra
-    fluxes(:,:,2) =  flux_r(:,:)*ra
-    fluxes(:,:,3) =  flux_t(:,:)*ra
-    fluxes(:,:,4) = -flux_l(:,:)*ra
+    fluxes(:,:,1) = -flux_b(:,:)*real(ra, r8)
+    fluxes(:,:,2) =  flux_r(:,:)*real(ra, r8)
+    fluxes(:,:,3) =  flux_t(:,:)*real(ra, r8)
+    fluxes(:,:,4) = -flux_l(:,:)*real(ra, r8)
 
   end subroutine subcell_div_fluxes
 

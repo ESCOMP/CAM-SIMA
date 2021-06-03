@@ -56,6 +56,13 @@ contains
   end subroutine prim_advance_init
 
   subroutine prim_advance_exp(elem, fvm, deriv, hvcoord, hybrid,dt, tl,  nets, nete)
+    use ccpp_kinds,        only: kind_phys
+    use physconst,         only: get_cp, thermodynamic_active_species_num
+    use physconst,         only: get_kappa_dry, dry_air_species_num
+    use physconst,         only: thermodynamic_active_species_idx_dycore
+    use physconst,         only: cpair
+
+    !SE dycore:
     use control_mod,       only: tstep_type, qsplit
     use derivative_mod,    only: derivative_t
     use dimensions_mod,    only: np, nlev
@@ -66,10 +73,7 @@ contains
     use dimensions_mod,    only: lcp_moist
     use fvm_control_volume_mod, only: fvm_struct
     use control_mod,       only: raytau0
-    use physconst,         only: get_cp, thermodynamic_active_species_num
-    use physconst,         only: get_kappa_dry, dry_air_species_num
-    use physconst,         only: thermodynamic_active_species_idx_dycore
-    use physconst,         only: cpair, rair
+
     implicit none
 
     type (element_t), intent(inout), target   :: elem(:)
@@ -86,10 +90,12 @@ contains
     real (kind=r8) :: dt_vis, eta_ave_w
     real (kind=r8) :: dp(np,np)
     integer        :: ie,nm1,n0,np1,k,qn0,m_cnst, nq
-    real (kind=r8) :: inv_cp_full(np,np,nlev,nets:nete)
     real (kind=r8) :: qwater(np,np,nlev,thermodynamic_active_species_num,nets:nete)
     integer        :: qidx(thermodynamic_active_species_num)
     real (kind=r8) :: kappa(np,np,nlev,nets:nete)
+
+    real (kind=kind_phys) :: inv_cp_full(np,np,nlev,nets:nete)
+
     call t_startf('prim_advance_exp')
     nm1   = tl%nm1
     n0    = tl%n0
@@ -144,12 +150,13 @@ contains
     !
     if (lcp_moist) then
       do ie=nets,nete
-        call get_cp(1,np,1,np,1,nlev,thermodynamic_active_species_num,qwater(:,:,:,:,ie),&
-             .true.,inv_cp_full(:,:,:,ie),active_species_idx_dycore=qidx)
+        call get_cp(1,np,1,np,1,nlev,thermodynamic_active_species_num,&
+                    real(qwater(:,:,:,:,ie), kind_phys), &
+                   .true.,inv_cp_full(:,:,:,ie),active_species_idx_dycore=qidx)
       end do
     else
       do ie=nets,nete
-        inv_cp_full(:,:,:,ie) = 1.0_r8/cpair
+        inv_cp_full(:,:,:,ie) = 1.0_kind_phys/cpair
       end do
     end if
     do ie=nets,nete
@@ -165,13 +172,19 @@ contains
       ! not optimal for regular CFL
       ! u1 = u0 + dt/2 RHS(u0)
       call compute_and_apply_rhs(np1,n0,n0,dt/2,elem,hvcoord,hybrid,&
-           deriv,nets,nete,eta_ave_w/3,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,eta_ave_w/3,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u2 = u1 + dt/2 RHS(u1)
       call compute_and_apply_rhs(np1,np1,np1,dt/2,elem,hvcoord,hybrid,&
-           deriv,nets,nete,eta_ave_w/3,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,eta_ave_w/3,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u3 = u2 + dt/2 RHS(u2)
       call compute_and_apply_rhs(np1,np1,np1,dt/2,elem,hvcoord,hybrid,&
-           deriv,nets,nete,eta_ave_w/3,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,eta_ave_w/3,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
 
       ! unew = u/3 +2*u3/3  = u + 1/3 (RHS(u) + RHS(u1) + RHS(u2))
       do ie=nets,nete
@@ -186,50 +199,72 @@ contains
       ! classic RK3  CFL=sqrt(3)
       ! u1 = u0 + dt/3 RHS(u0)
       call compute_and_apply_rhs(np1,n0,n0,dt/3,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u2 = u0 + dt/2 RHS(u1)
       call compute_and_apply_rhs(np1,n0,np1,dt/2,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u3 = u0 + dt RHS(u2)
       call compute_and_apply_rhs(np1,n0,np1,dt,elem,hvcoord,hybrid,&
-           deriv,nets,nete,eta_ave_w,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,eta_ave_w,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
     else if (tstep_type==3) then
       ! KG 4th order 4 stage:   CFL=sqrt(8)
       ! low storage version of classic RK4
       ! u1 = u0 + dt/4 RHS(u0)
       call compute_and_apply_rhs(np1,n0,n0,dt/4,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u2 = u0 + dt/3 RHS(u1)
       call compute_and_apply_rhs(np1,n0,np1,dt/3,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u3 = u0 + dt/2 RHS(u2)
       call compute_and_apply_rhs(np1,n0,np1,dt/2,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! u4 = u0 + dt RHS(u3)
       call compute_and_apply_rhs(np1,n0,np1,dt,elem,hvcoord,hybrid,&
-           deriv,nets,nete,eta_ave_w,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,eta_ave_w,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
     else if (tstep_type==4) then
       !
       ! Ullrich 3nd order 5 stage:   CFL=sqrt( 4^2 -1) = 3.87
       ! u1 = u0 + dt/5 RHS(u0)  (save u1 in timelevel nm1)
       ! rhs: t=t
       call compute_and_apply_rhs(nm1,n0,n0,dt/5,elem,hvcoord,hybrid,&
-           deriv,nets,nete,eta_ave_w/4,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,eta_ave_w/4,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       !
       ! u2 = u0 + dt/5 RHS(u1); rhs: t=t+dt/5
       !
       call compute_and_apply_rhs(np1,n0,nm1,dt/5,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       !
       ! u3 = u0 + dt/3 RHS(u2); rhs: t=t+2*dt/5
       !
       call compute_and_apply_rhs(np1,n0,np1,dt/3,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       !
       ! u4 = u0 + 2dt/3 RHS(u3); rhs: t=t+2*dt/5+dt/3
       !
       call compute_and_apply_rhs(np1,n0,np1,2*dt/3,elem,hvcoord,hybrid,&
-           deriv,nets,nete,0.0_r8,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,0.0_r8,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! compute (5*u1/4 - u0/4) in timelevel nm1:
       do ie=nets,nete
         elem(ie)%state%v(:,:,:,:,nm1)= (5*elem(ie)%state%v(:,:,:,:,nm1) &
@@ -244,7 +279,9 @@ contains
       ! phl: rhs: t=t+2*dt/5+dt/3+3*dt/4         -wrong RK times ...
       !
       call compute_and_apply_rhs(np1,nm1,np1,3*dt/4,elem,hvcoord,hybrid,&
-           deriv,nets,nete,3*eta_ave_w/4,inv_cp_full,qwater,qidx,kappa)
+           deriv,nets,nete,3*eta_ave_w/4,&
+           real(inv_cp_full, r8),&
+           qwater,qidx,kappa)
       ! final method is the same as:
       ! u5 = u0 +  dt/4 RHS(u0)) + 3dt/4 RHS(u4)
     else
@@ -263,7 +300,7 @@ contains
 
     ! forward-in-time, hypervis applied to dp3d
     call advance_hypervis_dp(edge3,elem,fvm,hybrid,deriv,np1,qn0,nets,nete,dt_vis,eta_ave_w,&
-         inv_cp_full,hvcoord)
+         real(inv_cp_full, r8),hvcoord)
 
     call t_stopf('advance_hypervis')
     !
@@ -556,14 +593,14 @@ contains
     !  T1 = .0065*Tref*Cp/g ! = ~191
     !  T0 = Tref-T1         ! = ~97
     !
-    T1 = lapse_rate*Tref*cpair/gravit
+    T1 = real(lapse_rate*Tref*cpair/gravit, r8)
     T0 = Tref-T1
     do ie=nets,nete
       do k=1,nlev
         dp3d_ref(:,:,k,ie) = ((hvcoord%hyai(k+1)-hvcoord%hyai(k))*hvcoord%ps0 + &
                               (hvcoord%hybi(k+1)-hvcoord%hybi(k))*ps_ref(:,:,ie))
         tmp                = hvcoord%hyam(k)*hvcoord%ps0+hvcoord%hybm(k)*ps_ref(:,:,ie)
-        tmp2               = (tmp/hvcoord%ps0)**cappa
+        tmp2               = (tmp/hvcoord%ps0)**real(cappa, r8)
         T_ref(:,:,k,ie)    = (T0+T1*tmp2)
       end do
     end do
@@ -1108,6 +1145,13 @@ contains
      ! allows us to fuse these two loops for more cache reuse
      !
      ! ===================================
+     use ccpp_kinds,      only: kind_phys
+     use physconst,       only: get_gz_given_dp_Tv_Rdry
+     use physconst,       only: thermodynamic_active_species_num, get_virtual_temp, get_cp_dry
+     use physconst,       only: thermodynamic_active_species_idx_dycore,get_R_dry
+     use physconst,       only: dry_air_species_num,get_exner
+
+     !SE dycore:
      use dimensions_mod,  only: np, nc, nlev, ntrac, ksponge_end
      use hybrid_mod,      only: hybrid_t
      use element_mod,     only: element_t
@@ -1117,11 +1161,7 @@ contains
      use edgetype_mod,    only: edgedescriptor_t
      use bndry_mod,       only: bndry_exchange
      use hybvcoord_mod,   only: hvcoord_t
-     use physconst,       only: epsilo, get_gz_given_dp_Tv_Rdry
-     use physconst,       only: thermodynamic_active_species_num, get_virtual_temp, get_cp_dry
-     use physconst,       only: thermodynamic_active_species_idx_dycore,get_R_dry
-     use physconst,       only: dry_air_species_num,get_exner
-     use time_mod, only : tevolve
+     use time_mod,        only: tevolve
 
      implicit none
      integer,        intent(in) :: np1,nm1,n0,nets,nete
@@ -1156,7 +1196,7 @@ contains
      real (kind=r8), dimension(np,np,nlev)                         :: vort         ! vorticity
      real (kind=r8), dimension(np,np,nlev)                         :: p_dry        ! pressure dry
      real (kind=r8), dimension(np,np,nlev)                         :: dp_dry       ! delta pressure dry
-     real (kind=r8), dimension(np,np,nlev)                         :: R_dry, cp_dry!
+     real (kind=r8), dimension(np,np,nlev)                         :: R_dry
      real (kind=r8), dimension(np,np,nlev)                         :: p_full       ! pressure
      real (kind=r8), dimension(np,np,nlev)                         :: dp_full
      real (kind=r8), dimension(np,np)                              :: exner
@@ -1168,6 +1208,8 @@ contains
      real (kind=r8) :: ckk, term, T_v(np,np,nlev)
      real (kind=r8), dimension(np,np,2) :: grad_exner
      real (kind=r8), dimension(np,np)   :: theta_v
+
+     real (kind=kind_phys), dimension(np,np,nlev) :: cp_dry
 
      type (EdgeDescriptor_t):: desc
 
@@ -1190,7 +1232,7 @@ contains
        call get_R_dry(1,np,1,np,1,nlev,1,nlev,thermodynamic_active_species_num,&
             qwater(:,:,:,:,ie),qidx,R_dry)
        call get_cp_dry(1,np,1,np,1,nlev,1,nlev,thermodynamic_active_species_num,&
-            qwater(:,:,:,:,ie),qidx,cp_dry)
+            real(qwater(:,:,:,:,ie),kind_phys),qidx,cp_dry)
 
        do k=1,nlev
          dp_dry(:,:,k)  = elem(ie)%state%dp3d(:,:,k,n0)
@@ -1318,8 +1360,8 @@ contains
            theta_v(:,:)=T_v(:,:,k)/exner(:,:)
            call gradient_sphere(exner(:,:),deriv,elem(ie)%Dinv,grad_exner)
 
-           grad_exner(:,:,1) = cp_dry(:,:,k)*theta_v(:,:)*grad_exner(:,:,1)
-           grad_exner(:,:,2) = cp_dry(:,:,k)*theta_v(:,:)*grad_exner(:,:,2)
+           grad_exner(:,:,1) = real(cp_dry(:,:,k), r8)*theta_v(:,:)*grad_exner(:,:,1)
+           grad_exner(:,:,2) = real(cp_dry(:,:,k), r8)*theta_v(:,:)*grad_exner(:,:,2)
          else
            exner(:,:)=(p_full(:,:,k)/hvcoord%ps0)**kappa(:,:,k,ie)
            theta_v(:,:)=T_v(:,:,k)/exner(:,:)
@@ -1330,8 +1372,8 @@ contains
            grad_kappa_term(:,:,1)=-suml*grad_kappa_term(:,:,1)
            grad_kappa_term(:,:,2)=-suml*grad_kappa_term(:,:,2)
 
-           grad_exner(:,:,1) = cp_dry(:,:,k)*theta_v(:,:)*(grad_exner(:,:,1)+grad_kappa_term(:,:,1))
-           grad_exner(:,:,2) = cp_dry(:,:,k)*theta_v(:,:)*(grad_exner(:,:,2)+grad_kappa_term(:,:,2))
+           grad_exner(:,:,1) = real(cp_dry(:,:,k), r8)*theta_v(:,:)*(grad_exner(:,:,1)+grad_kappa_term(:,:,1))
+           grad_exner(:,:,2) = real(cp_dry(:,:,k), r8)*theta_v(:,:)*(grad_exner(:,:,2)+grad_kappa_term(:,:,2))
          end if
 
          do j=1,np
@@ -1552,17 +1594,20 @@ contains
    end subroutine distribute_flux_at_corners
 
   subroutine calc_tot_energy_dynamics(elem,fvm,nets,nete,tl,tl_qdp,outfld_name_suffix)
-    use dimensions_mod,         only: npsq,nlev,np,lcp_moist,nc,ntrac,qsize
-    use physconst,              only: gravit, cpair, rearth,omega
-    use element_mod,            only: element_t
+    use ccpp_kinds,             only: kind_phys
+    use physconst,              only: gravit, cpair, rearth, omega
+    use physconst,              only: get_dp, get_cp
+    use physconst,              only: thermodynamic_active_species_idx_dycore
+    use hycoef,                 only: hyai, ps0
+    use string_utils,           only: strlist_get_ind
 !Un-comment once constituents and history outputs are enabled -JN:
 !    use cam_history,            only: outfld, hist_fld_active
 !    use constituents,           only: cnst_get_ind
-    use string_utils,           only: strlist_get_ind
-    use hycoef,                 only: hyai, ps0
+
+    !SE dycore:
+    use element_mod,            only: element_t
+    use dimensions_mod,         only: npsq,nlev,np,lcp_moist,nc,ntrac,qsize
     use fvm_control_volume_mod, only: fvm_struct
-    use physconst,              only: get_dp, get_cp
-    use physconst,              only: thermodynamic_active_species_idx_dycore
     use dimensions_mod,         only: cnst_name_gll
     !------------------------------Arguments--------------------------------
 
@@ -1590,7 +1635,8 @@ contains
     real(kind=r8) :: mr(npsq)  ! wind AAM
     real(kind=r8) :: mo(npsq)  ! mass AAM
     real(kind=r8) :: mr_cnst, mo_cnst, cos_lat, mr_tmp, mo_tmp
-    real(kind=r8) :: cp(np,np,nlev)
+
+    real(kind=kind_phys) :: cp(np,np,nlev)
 
     integer :: ie,i,j,k
     integer :: ixwv,ixcldice, ixcldliq, ixtt ! CLDICE, CLDLIQ and test tracer indices
@@ -1632,8 +1678,8 @@ contains
         ke    = 0.0_r8
         call get_dp(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,1:qsize,tl_qdp),2,thermodynamic_active_species_idx_dycore,&
              elem(ie)%state%dp3d(:,:,:,tl),pdel,ps=ps,ptop=hyai(1)*ps0)
-        call get_cp(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,1:qsize,tl_qdp),&
-             .false.,cp,dp_dry=elem(ie)%state%dp3d(:,:,:,tl),&
+        call get_cp(1,np,1,np,1,nlev,qsize,real(elem(ie)%state%Qdp(:,:,:,1:qsize,tl_qdp), kind_phys),&
+             .false.,cp,dp_dry=real(elem(ie)%state%dp3d(:,:,:,tl), kind_phys),&
              active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
         do k = 1, nlev
           do j=1,np
@@ -1641,14 +1687,14 @@ contains
               !
               ! kinetic energy
               !
-              ke_tmp   = 0.5_r8*(elem(ie)%state%v(i,j,1,k,tl)**2+ elem(ie)%state%v(i,j,2,k,tl)**2)*pdel(i,j,k)/gravit
+              ke_tmp   = 0.5_r8*(elem(ie)%state%v(i,j,1,k,tl)**2+ elem(ie)%state%v(i,j,2,k,tl)**2)*pdel(i,j,k)/real(gravit, r8)
               if (lcp_moist) then
-                se_tmp = cp(i,j,k)*elem(ie)%state%T(i,j,k,tl)*pdel(i,j,k)/gravit
+                se_tmp = real(cp(i,j,k), r8)*elem(ie)%state%T(i,j,k,tl)*pdel(i,j,k)/real(gravit, r8)
               else
                 !
                 ! using CAM physics definition of internal energy
                 !
-                se_tmp   = cpair*elem(ie)%state%T(i,j,k,tl)*pdel(i,j,k)/gravit
+                se_tmp   = real(cpair, r8)*elem(ie)%state%T(i,j,k,tl)*pdel(i,j,k)/real(gravit, r8)
               end if
               se   (i+(j-1)*np) = se   (i+(j-1)*np) + se_tmp
               ke   (i+(j-1)*np) = ke   (i+(j-1)*np) + ke_tmp
@@ -1658,7 +1704,7 @@ contains
 
         do j=1,np
           do i = 1, np
-            se(i+(j-1)*np) = se(i+(j-1)*np) + elem(ie)%state%phis(i,j)*ps(i,j)/gravit
+            se(i+(j-1)*np) = se(i+(j-1)*np) + elem(ie)%state%phis(i,j)*ps(i,j)/real(gravit, r8)
           end do
         end do
         !
@@ -1713,8 +1759,8 @@ contains
     if ( hist_fld_active(name_out1).or.hist_fld_active(name_out2)) then
       call strlist_get_ind(cnst_name_gll, 'CLDLIQ', ixcldliq, abort=.false.)
       call strlist_get_ind(cnst_name_gll, 'CLDICE', ixcldice, abort=.false.)
-      mr_cnst = rearth**3/gravit
-      mo_cnst = omega*rearth**4/gravit
+      mr_cnst = real(rearth**3/gravit, r8)
+      mo_cnst = real(omega*rearth**4/gravit, r8)
       do ie=nets,nete
         mr    = 0.0_r8
         mo    = 0.0_r8
@@ -1801,7 +1847,7 @@ contains
 #if 0
     if (hist_fld_active(name_out)) then
       f_out = 0.0_r8
-      inv_g = 1.0_r8/gravit
+      inv_g = 1.0_r8/real(gravit, r8)
       do k = 1, nz
         do j = 1, nx
           do i = 1, nx
@@ -1998,7 +2044,7 @@ contains
 
       ! Calculate (dry) geopotential values
       !--------------------------------------
-      dPhi    (:,:,:)    = 0.5_r8*(rair*elem(ie)%state%T   (:,:,:,nt) &
+      dPhi    (:,:,:)    = 0.5_r8*(real(rair, r8)*elem(ie)%state%T   (:,:,:,nt) &
                                       *elem(ie)%state%dp3d(:,:,:,nt) &
                                                     /P_val(:,:,:)    )
       Phi_val (:,:,nlev) = elem(ie)%state%phis(:,:) + dPhi(:,:,nlev)
@@ -2026,7 +2072,7 @@ contains
       Phis_avg(:,:,ie) = E_phis/E_Awgt
       do kk=1,nlev
         Phi_avg(:,:,kk,ie) = E_phi(kk)     /E_Awgt
-        RT_avg (:,:,kk,ie) = E_T  (kk)*rair/E_Awgt
+        RT_avg (:,:,kk,ie) = E_T  (kk)*real(rair, r8)/E_Awgt
       end do
     end do ! ie=nets,nete
 
@@ -2098,7 +2144,7 @@ contains
       if(.FALSE.) then
         ! DRY ADIABATIC laspe rate
         !------------------------------
-        RT_lapse(:,:) = -cappa
+        RT_lapse(:,:) = -1._r8*real(cappa, r8)
       else
         ! ENVIRONMENTAL (empirical) laspe rate
         !--------------------------------------
@@ -2263,21 +2309,21 @@ contains
       else if (boundary_condition==1) then
         value_level0 = 0.75_r8*fld(i,j,1) ! value above sponge
         k=1
-        alp = dt*(km(i,j,k+1)*gravit*gravit/(pmid(i,j,k)-pmid(i,j,k+1)))/(pint(i,j,k)-pint(i,j,k+1))
-        alm = dt*(km(i,j,k  )*gravit*gravit/(0.5_r8*(pmid(i,j,1)-pmid(i,j,2))))/(pint(i,j,k)-pint(i,j,k+1))
+        alp = dt*(km(i,j,k+1)*real(gravit*gravit, r8)/(pmid(i,j,k)-pmid(i,j,k+1)))/(pint(i,j,k)-pint(i,j,k+1))
+        alm = dt*(km(i,j,k  )*real(gravit*gravit, r8)/(0.5_r8*(pmid(i,j,1)-pmid(i,j,2))))/(pint(i,j,k)-pint(i,j,k+1))
         next_iterate(k) = (fld(i,j,k) + alp * current_guess(k+1) + alm * value_level0)/(1._r8 + alp + alm)
       else
         !
         ! set fld'=0 at model top
         !
         k=1
-        alp = dt*(km(i,j,k+1)*gravit*gravit/(pmid(i,j,k)-pmid(i,j,k+1)))/(pint(i,j,k)-pint(i,j,k+1))
-        alm = dt*(km(i,j,k  )*gravit*gravit/(0.5_r8*(pmid(i,j,1)-pmid(i,j,2))))/(pint(i,j,k)-pint(i,j,k+1))
+        alp = dt*(km(i,j,k+1)*real(gravit*gravit, r8)/(pmid(i,j,k)-pmid(i,j,k+1)))/(pint(i,j,k)-pint(i,j,k+1))
+        alm = dt*(km(i,j,k  )*real(gravit*gravit, r8)/(0.5_r8*(pmid(i,j,1)-pmid(i,j,2))))/(pint(i,j,k)-pint(i,j,k+1))
         next_iterate(k) = (fld(i,j,1) + alp * current_guess(2) + alm * current_guess(1))/(1._r8 + alp + alm)
       end if
       do k = 2, nlay-1
-        alp = dt*(km(i,j,k+1)*gravit*gravit/(pmid(i,j,k  )-pmid(i,j,k+1)))/(pint(i,j,k)-pint(i,j,k+1))
-        alm = dt*(km(i,j,k  )*gravit*gravit/(pmid(i,j,k-1)-pmid(i,j,k  )))/(pint(i,j,k)-pint(i,j,k+1))
+        alp = dt*(km(i,j,k+1)*real(gravit*gravit, r8)/(pmid(i,j,k  )-pmid(i,j,k+1)))/(pint(i,j,k)-pint(i,j,k+1))
+        alm = dt*(km(i,j,k  )*real(gravit*gravit, r8)/(pmid(i,j,k-1)-pmid(i,j,k  )))/(pint(i,j,k)-pint(i,j,k+1))
         next_iterate(k) = (fld(i,j,k) + alp * current_guess(k+1) + alm * current_guess(k-1))/(1._r8 + alp + alm)
       end do
       next_iterate(nlay) = (fld(i,j,nlay) + alp * fld(i,j,nlay) + alm * current_guess(nlay-1))/(1._r8 + alp + alm) ! bottom BC

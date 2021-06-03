@@ -38,8 +38,7 @@ use physics_column_type,    only: physics_column_t, kind_pcol
 use cam_map_utils,          only: iMap
 
 use cam_logfile,            only: iulog
-use cam_abortutils,         only: endrun
-use string_utils,           only: to_str
+use cam_abortutils,         only: endrun, check_allocate
 
 !SE dycore:
 use dimensions_mod,         only: globaluniquecols, nelem, nelemd, nelemdmax, &
@@ -196,46 +195,33 @@ subroutine model_grid_init()
    !Allocate SE dycore "hvcoord" structure:
    !+++++++
    allocate(hvcoord%hyai(pverp), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%hyai(pverp) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%hyai(pverp)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(hvcoord%hyam(pver), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%hyam(pver) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%hyam(pver)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(hvcoord%hybi(pverp), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%hybi(pverp) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%hybi(pverp)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(hvcoord%hybm(pver), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%hybm(pver) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%hybm(pver)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(hvcoord%hybd(pver), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%hybd(pver) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%hybd(pver)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(hvcoord%etam(pver), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%etam(pver) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%etam(pver)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(hvcoord%etai(pverp), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate hvcoord%etai(pverp) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'hvcoord%etai(pverp)', &
+                       file=__FILE__, line=__LINE__)
+
    !+++++++
 
    !Set SE "hvcoord" values:
@@ -337,21 +323,16 @@ subroutine model_grid_init()
    if (do_native_mapping) then
 
       allocate(areaA(ngcols_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate areaA(ngcols_d) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'areaA(ngcols_d)', &
+                       file=__FILE__, line=__LINE__)
 
       allocate(clat(ngcols_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate clat(ngcols_d) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'clat(ngcols_d)', &
+                       file=__FILE__, line=__LINE__)
+
       allocate(clon(ngcols_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate clon(ngcols_d) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'clon(ngcols_d)', &
+                       file=__FILE__, line=__LINE__)
 
       call get_horiz_grid_int(ngcols_d, clat_d_out=clat, clon_d_out=clon, area_d_out=areaA)
 
@@ -375,10 +356,9 @@ subroutine model_grid_init()
    ! Allocate local_dyn_columns structure if not already allocated:
    if (.not.allocated(local_dyn_columns)) then
       allocate(local_dyn_columns(num_local_columns), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate local_dyn_columns(num_local_columns) '//&
-                     'failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'local_dyn_columns(num_local_columns)', &
+                       file=__FILE__, line=__LINE__)
+
    end if
 
    ! Set local_dyn_columns values:
@@ -396,10 +376,8 @@ subroutine model_grid_init()
       gridname = 'physgrid_d'
 
       allocate(grid_attribute_names(2), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate grid_attribute_names(2) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'grid_attribute_names(2)', &
+                       file=__FILE__, line=__LINE__)
 
       grid_attribute_names(1) = 'fv_nphys'
       grid_attribute_names(2) = 'ne'
@@ -407,10 +385,8 @@ subroutine model_grid_init()
       gridname = 'GLL'
 
       allocate(grid_attribute_names(3), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate grid_attribute_names(3) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'grid_attribute_names(3)', &
+                       file=__FILE__, line=__LINE__)
 
       ! For standard CAM-SE, we need to copy the area attribute.
       ! For physgrid, the physics grid will create area (GLL has area_d)
@@ -442,7 +418,7 @@ end subroutine model_grid_init
 subroutine set_dyn_col_values()
 
    use physconst,              only: pi
-   use cam_abortutils,         only: endrun
+   use string_utils,           only: to_str
 
    !SE dycore:
    use coordinate_systems_mod, only: spherical_polar_t
@@ -489,11 +465,10 @@ subroutine set_dyn_col_values()
                  elem(elem_ind)%GlobalId
 
             allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
-            if (ierr /= 0) then
-               call endrun(subname//': allocate local_dyn_columns('//&
-                           to_str(lindex)//')%dyn_block_index(1)'//&
-                           ' failed with stat: '//to_str(ierr))
-            end if
+            call check_allocate(ierr, subname, &
+                                'local_dyn_columns('//&
+                                to_str(lindex)//')%dyn_block_index(1)', &
+                               file=__FILE__, line=__LINE__)
 
             local_dyn_columns(lindex)%dyn_block_index(1) = col_ind + 1
          end do
@@ -525,11 +500,10 @@ subroutine set_dyn_col_values()
                  elem(elem_ind)%GlobalId
 
             allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
-            if (ierr /= 0) then
-               call endrun(subname//': allocate local_dyn_columns('//&
-                           to_str(lindex)//')%dyn_block_index(1)'//&
-                           ' failed with stat: '//to_str(ierr))
-            end if
+            call check_allocate(ierr, subname, &
+                                'local_dyn_columns('//&
+                                to_str(lindex)//')%dyn_block_index(1)', &
+                               file=__FILE__, line=__LINE__)
 
             local_dyn_columns(lindex)%dyn_block_index(1) = col_ind
          end do
@@ -643,9 +617,8 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
          call create_global_coords(clat_d_out, clon_d_out, lat_d_out, lon_d_out)
       else
          allocate(temp(nxy), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate temp(nxy) failed with stat: '//to_str(ierr))
-         end if
+         call check_allocate(ierr, subname, 'temp(nxy)', &
+                             file=__FILE__, line=__LINE__)
 
          call create_global_coords(clat_d_out, temp, lat_d_out, lon_d_out)
          deallocate(temp)
@@ -654,9 +627,8 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
    else if (present(clon_d_out)) then
 
       allocate(temp(nxy), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate temp(nxy) failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'temp(nxy)', &
+                          file=__FILE__, line=__LINE__)
 
       call create_global_coords(temp, clon_d_out, lat_d_out, lon_d_out)
       deallocate(temp)
@@ -720,14 +692,12 @@ subroutine dyn_grid_get_elem_coords(ie, rlon, rlat, cdex)
    eb = sb + elem(ie)%idxp%NumUniquePts-1
 
    allocate(clat(sb:eb), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate clat(sb:eb) failed with stat: '//to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'clat(sb:eb)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(clon(sb:eb), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate clon(sb:eb) failed with stat: '//to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'clon(sb:eb)', &
+                       file=__FILE__, line=__LINE__)
 
    call UniqueCoords( elem(ie)%idxP, elem(ie)%spherep, clat(sb:eb), clon(sb:eb) )
 
@@ -873,28 +843,20 @@ subroutine define_cam_grids()
    end do
 
    allocate(pelat_deg(np*np*nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate pelat_deg(np*np*nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'pelat_deg(np*np*nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(pelon_deg(np*np*nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate pelon_deg(np*np*nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'pelon_deg(np*np*nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(pearea(np*np*nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate pearea(np*np*nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'pearea(np*np*nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(pemap(np*np*nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate pemap(np*np*nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'pemap(np*np*nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    pemap = 0_iMap
    ii = 1
@@ -933,10 +895,8 @@ subroutine define_cam_grids()
 
    ! Map for GLL grid
    allocate(grid_map(3,npsq*nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate grid_map(3,npsq*nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'grid_map(3,npsq*nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    grid_map = 0_iMap
    mapind = 1
@@ -1000,21 +960,16 @@ subroutine define_cam_grids()
       ncols_fvm = nc * nc * nelemd
       ngcols_fvm = nc * nc * nelem_d
       allocate(fvm_coord(ncols_fvm), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate fvm_coord(ncols_fvm) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'fvm_coord(ncols_fvm)', &
+                          file=__FILE__, line=__LINE__)
+
       allocate(fvm_map(ncols_fvm), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate fvm_map(ncols_fvm) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'fvm_map(ncols_fvm)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm_area(ncols_fvm), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate fvm_area(ncols_fvm) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'fvm_area(ncols_fvm)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie = 1, nelemd
          k = 1
@@ -1048,10 +1003,8 @@ subroutine define_cam_grids()
 
       ! Map for FVM grid
       allocate(grid_map(3, ncols_fvm), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate grid_map(3, ncols_fvm) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'grid_map(3, ncols_fvm)', &
+                          file=__FILE__, line=__LINE__)
 
       grid_map = 0_iMap
       mapind = 1
@@ -1089,22 +1042,16 @@ subroutine define_cam_grids()
       ngcols_physgrid = fv_nphys * fv_nphys * nelem_d
 
       allocate(physgrid_coord(ncols_physgrid), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate physgrid_coord(ncols_physgrid) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'physgrid_coord(ncols_physgrid)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(physgrid_map(ncols_physgrid), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate physgrid_map(ncols_physgrid) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'physgrid_map(ncols_physgrid)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(physgrid_area(ncols_physgrid), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate physgrid_area(ncols_physgrid) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'physgrid_area(ncols_physgrid)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie = 1, nelemd
          k = 1
@@ -1138,10 +1085,8 @@ subroutine define_cam_grids()
 
       ! Map for physics grid
       allocate(grid_map(3, ncols_physgrid), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate grid_map(3, ncols_physgrid) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'grid_map(3, ncols_physgrid)', &
+                          file=__FILE__, line=__LINE__)
 
       grid_map = 0_iMap
       mapind = 1
@@ -1273,15 +1218,12 @@ subroutine create_global_area(area_d)
       ! mpi_gatherv) then redorder into globalID order (via dp_reorder)
       ncol = fv_nphys*fv_nphys*nelem_d
       allocate(rbuf(ncol), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate rbuf(ncol) failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'rbuf(ncol)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(dp_area(fv_nphys*fv_nphys,nelem_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate dp_area(fv_nphys*fv_nphys,nelem_d)'//&
-                     ' failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'dp_area(fv_nphys*fv_nphys,nelem_d)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie = 1, nelemd
          k = 1
@@ -1324,10 +1266,8 @@ subroutine create_global_area(area_d)
    else ! physics is on the GLL grid
 
       allocate(rbuf(ngcols_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate rbuf(ngcols_d) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'rbuf(ngcols_d)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie = 1, nelemdmax
          if (ie <= nelemd) then
@@ -1407,23 +1347,16 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
 
       ncol = fv_nphys*fv_nphys*nelem_d
       allocate(rbuf(ncol), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate rbuf(ncol) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'rbuf(ncol)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(dp_lon(fv_nphys*fv_nphys,nelem_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate dp_lon(fv_nphys*fv_nphys,nelem_d)'//&
-                     ' failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'dp_lon(fv_nphys*fv_nphys,nelem_d)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(dp_lat(fv_nphys*fv_nphys,nelem_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate dp_lat(fv_nphys*fv_nphys,nelem_d)'//&
-                     ' failed with stat: '//to_str(ierr))
-      end if
-
+      call check_allocate(ierr, subname, 'dp_lat(fv_nphys*fv_nphys,nelem_d)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie = 1, nelemd
          k = 1
@@ -1487,10 +1420,8 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
    else ! physics uses the GLL grid
 
       allocate(rbuf(ngcols_d), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate rbuf(ngcols_d) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'rbuf(ngcols_d)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie = 1, nelemdmax
 

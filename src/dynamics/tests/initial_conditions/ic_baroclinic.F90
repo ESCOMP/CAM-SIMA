@@ -82,7 +82,7 @@ contains
     !use constituents,        only: cnst_name
     !use const_init,          only: cnst_init_default
     use inic_analytic_utils, only: analytic_ic_is_moist
-    use string_utils,        only: to_str
+    use cam_abortutils,      only: check_allocate
 
     !-----------------------------------------------------------------------
     !
@@ -142,10 +142,8 @@ contains
     end if
 
     allocate(mask_use(size(latvals)), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
-                  to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'mask_use(size(latvals))', &
+                        file=__FILE__, line=__LINE__)
 
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
@@ -233,32 +231,27 @@ contains
          ! check whether first constituent in Q is water vapor.
          cnst1_is_moisture = m_cnst(1) == 1
          allocate(zlocal(size(Q, 1),nlev), stat=iret)
-         if (iret /= 0) then
-           call endrun(subname//': allocate zlocal(size(Q, 1),nlev) failed with stat: '//&
-                       to_str(iret))
-         end if
+         call check_allocate(iret, subname, 'zlocal(size(Q, 1),nlev)', &
+                             file=__FILE__, line=__LINE__)
 
       end if
 
-      allocate(zk(nlev))
+      allocate(zk(nlev), stat=iret)
+      call check_allocate(iret, subname, 'zk(nlev)', &
+                          file=__FILE__, line=__LINE__)
+
       if ((lq.or.lt) .and. (vcoord == vc_dry_pressure)) then
         allocate(pdry_half(nlev+1), stat=iret)
-        if (iret /= 0) then
-          call endrun(subname//': allocate pdry_half(nlev+1) failed with stat: '//&
-                      to_str(iret))
-        end if
+        call check_allocate(iret, subname, 'pdry_half(nlev+1)', &
+                            file=__FILE__, line=__LINE__)
 
         allocate(pwet_half(nlev+1), stat=iret)
-        if (iret /= 0) then
-          call endrun(subname//': allocate pwet_half(nlev+1) failed with stat: '//&
-                      to_str(iret))
-        end if
+        call check_allocate(iret, subname, 'pwet_half(nlev+1)', &
+                            file=__FILE__, line=__LINE__)
 
         allocate(zdry_half(nlev+1), stat=iret)
-        if (iret /= 0) then
-          call endrun(subname//': allocate zdry_half(nlev+1) failed with stat: '//&
-                      to_str(iret))
-        end if
+        call check_allocate(iret, subname, 'zdry_half(nlev+1)', &
+                            file=__FILE__, line=__LINE__)
 
       end if
       do i=1,ncol

@@ -18,7 +18,6 @@ module prim_advection_mod
 !
   use shr_kind_mod,           only: r8=>shr_kind_r8
   use dimensions_mod,         only: nlev, np, qsize, nc
-  use physconst,              only: cpair
   use derivative_mod,         only: derivative_t
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
@@ -962,7 +961,7 @@ contains
     use dimensions_mod,         only : lcp_moist, kord_tr,kord_tr_cslam
     use cam_logfile,            only : iulog
     use physconst,              only : pi,get_thermal_energy,get_dp,get_virtual_temp
-    use physconst             , only : thermodynamic_active_species_idx_dycore    
+    use physconst             , only : thermodynamic_active_species_idx_dycore
     use thread_mod            , only : omp_set_nested
     use control_mod,             only: vert_remap_uvTq_alg
     type (hybrid_t),  intent(in)    :: hybrid  ! distributed parallel structure (shared)
@@ -970,25 +969,25 @@ contains
     type (element_t), intent(inout) :: elem(:)
     !
     real (kind=r8)   :: dpc_star(nc,nc,nlev) !Lagrangian levels on CSLAM grid
-    
+
     type (hvcoord_t) :: hvcoord
     integer          :: ie,i,j,k,np1,nets,nete,np1_qdp,q, m_cnst
     real (kind=r8), dimension(np,np,nlev)  :: dp_moist,dp_star_moist, dp_dry,dp_star_dry
     real (kind=r8), dimension(np,np,nlev)  :: internal_energy_star
     real (kind=r8), dimension(np,np,nlev,2):: ttmp
-    real(r8), parameter                    :: rad2deg = 180.0_r8/pi
+    real(r8), parameter                    :: rad2deg = 180.0_r8/real(pi, r8)
     integer :: region_num_threads,qbeg,qend,kord_uvT(1)
-    type (hybrid_t) :: hybridnew,hybridnew2 
+    type (hybrid_t) :: hybridnew,hybridnew2
     real (kind=r8)  :: ptop
 
     kord_uvT = vert_remap_uvTq_alg
-    
+
     ptop = hvcoord%hyai(1)*hvcoord%ps0
     do ie=nets,nete
       !
       ! prepare for mapping of temperature
       !
-      if (vert_remap_uvTq_alg>-20) then      
+      if (vert_remap_uvTq_alg>-20) then
         if (lcp_moist) then
           !
           ! compute internal energy on Lagrangian levels

@@ -1553,7 +1553,7 @@ cpv = 0._kind_phys
        !
        ! dry air not species dependent
        !
-       R_dry = rair
+       R_dry = real(rair, r8)
      else
        if (present(fact)) then
          factor = fact(:,:,:)
@@ -1970,7 +1970,7 @@ cpv = 0._kind_phys
      !
      ! dry air not species dependent
      if (dry_air_species_num==0) then
-       kappa_dry= rair/cpair
+       kappa_dry= real(rair/cpair, r8)
      else
        allocate(R_dry(i0:i1,j0:j1,k0:k1), stat=iret)
        if (iret /= 0) then
@@ -1985,13 +1985,14 @@ cpv = 0._kind_phys
        end if
 
        if (present(fact)) then
-         call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,cp_dry,fact=fact)
+         call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,real(tracer, kind_phys),active_species_idx,cp_dry,&
+              fact=real(fact, kind_phys))
          call get_R_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,R_dry,fact=fact)
        else
-         call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,cp_dry)
+         call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,real(tracer, kind_phys),active_species_idx,cp_dry)
          call get_R_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,tracer,active_species_idx,R_dry)
        end if
-       kappa_dry = R_dry/cp_dry
+       kappa_dry = R_dry/real(cp_dry, r8)
        deallocate(R_dry,cp_dry)
      end if
    end subroutine get_kappa_dry

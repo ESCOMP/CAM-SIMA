@@ -297,7 +297,7 @@ contains
         aratio(ie,1) = sum(elem(ie)%mp(:,:)*elem(ie)%metdet(:,:))
       end do
       call repro_sum(aratio, area, nelemd, nelemd, 1, commid=par%comm)
-      area(1) = 4.0_r8*pi/area(1)  ! ratio correction
+      area(1) = 4.0_r8*real(pi, r8)/area(1)  ! ratio correction
       deallocate(aratio)
       if (par%masterproc) then
         write(iulog,'(2a,f20.17)') subname, "re-initializing cube elements: area correction=", area(1)

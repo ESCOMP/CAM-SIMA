@@ -669,7 +669,7 @@ CONTAINS
       call endrun('initialize_space_filling_curve: Unreasonably small element found. less than .00001')
     end if
 
-    ne = CEILING(0.5_r8*PI/(h/2));
+    ne = CEILING(0.5_r8*real(PI, r8)/(h/2));
 
     ! find the smallest ne2 which is a power of 2 and ne2>ne
     ne2=2**ceiling( log(real(ne))/log(2._r8) )
@@ -717,8 +717,8 @@ CONTAINS
              y = centroids(i,2)
              ! map this element to an (i2,j2) element
              ! [ -PI/4, PI/4 ]  -> [ 0, ne2 ]
-             i2=nint( (0.5_r8 + 2.0_r8*x/PI)*ne2 + 0.5_r8 )
-             j2=nint( (0.5_r8 + 2.0_r8*y/PI)*ne2 + 0.5_r8 )
+             i2=nint( (0.5_r8 + 2.0_r8*x/real(PI, r8))*ne2 + 0.5_r8 )
+             j2=nint( (0.5_r8 + 2.0_r8*y/real(PI, r8))*ne2 + 0.5_r8 )
              if (face == 4 .or. face == 6 )               i2 = ne2-i2+1
              if (face == 1 .or. face == 2 .or. face == 6) j2 = ne2-j2+1
              if (i2<1  ) i2=1

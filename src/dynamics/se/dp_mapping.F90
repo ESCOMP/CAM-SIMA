@@ -2,8 +2,7 @@
 
 module dp_mapping
   use shr_const_mod,          only: pi => shr_const_pi
-  use cam_abortutils,         only: endrun
-  use string_utils,           only: to_str
+  use cam_abortutils,         only: endrun, check_allocate
 
   !SE dycore:
   use dimensions_mod,         only: np, fv_nphys
@@ -72,49 +71,44 @@ contains
       num_weights_fvm2phys = (nc+fv_nphys)**2
 
        allocate(weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd)', &
+                           file=__FILE__, line=__LINE__)
+
        allocate(weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(jall_fvm2phys(nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate jall_fvm2phys(nelemd) failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'jall_fvm2phys(nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(jall_phys2fvm(nelemd), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate jall_phys2fvm(nelemd) failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'jall_phys2fvm(nelemd)', &
+                           file=__FILE__, line=__LINE__)
 
        call fvm2phys_init(elem,fvm,nc,fv_nphys,irecons_tracer,&
             weights_all_fvm2phys,weights_eul_index_all_fvm2phys,weights_lgr_index_all_fvm2phys,&
@@ -177,19 +171,16 @@ contains
     ! begin
 
     allocate(displs(npes), stat=ierror)
-    if (ierror /= 0) then
-      call endrun(subname//': allocate displs(npes) failed with stat: '//to_str(ierror))
-    end if
+    call check_allocate(ierror, subname, 'displs(npes)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(dp_gid(nelem), stat=ierror)
-    if (ierror /= 0) then
-      call endrun(subname//': allocate dp_gid(nelem) failed with stat: '//to_str(ierror))
-    end if
+    call check_allocate(ierror, subname, 'dp_gid(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(recvcount(npes), stat=ierror)
-    if (ierror /= 0) then
-      call endrun(subname//': allocate recvcount(npes) failed with stat: '//to_str(ierror))
-    end if
+    call check_allocate(ierror, subname, 'recvcount(npes)', &
+                        file=__FILE__, line=__LINE__)
 
     call mpi_gather(nelemd, 1, mpi_integer, recvcount, 1, mpi_integer,        &
          masterprocid, mpicom, ierror)
@@ -204,9 +195,8 @@ contains
          mpi_integer, masterprocid, mpicom, ierror)
     if (masterproc) then
       allocate(dp_owner(nelem), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate dp_owner(nelem) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'dp_owner(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
       dp_owner(:) = -1
       do i = 1,npes
@@ -221,10 +211,8 @@ contains
     call mpi_barrier(mpicom,ierror)
     if (.not.masterproc) then
       allocate(dp_owner(nelem), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate dp_owner(nelem) failed with stat: '//to_str(ierror))
-      end if
-
+      call check_allocate(ierror, subname, 'dp_owner(nelem)', &
+                        file=__FILE__, line=__LINE__)
     end if
     call mpi_bcast(dp_gid,nelem,mpi_integer,masterprocid,mpicom,ierror)
     call mpi_bcast(dp_owner,nelem,mpi_integer,masterprocid,mpicom,ierror)
@@ -321,25 +309,21 @@ contains
     ! Allocate workspace and calculate PE displacement information
     if (IOroot) then
       allocate(displs(npes), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate displs(npes) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'displs(npes)', &
+                        file=__FILE__, line=__LINE__)
 
       allocate(recvcount(npes), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate recvcount(npes) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'recvcount(npes)', &
+                        file=__FILE__, line=__LINE__)
 
     else
       allocate(displs(0), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate displs(0) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'displs(0)', &
+                        file=__FILE__, line=__LINE__)
 
       allocate(recvcount(0), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate recvcount(0) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'recvcount(0)', &
+                        file=__FILE__, line=__LINE__)
     end if
     gridsize = nelem * fv_nphys*fv_nphys
     if(masterproc) then
@@ -356,21 +340,18 @@ contains
         displs(i) = displs(i-1)+recvcount(i-1)
       end do
       allocate(recvbuf(gridsize), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate recvbuf(gridsize) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'recvbuf(gridsize)', &
+                        file=__FILE__, line=__LINE__)
 
     else
       allocate(recvbuf(0), stat=ierror)
-      if (ierror /= 0) then
-        call endrun(subname//': allocate recvbuf(0) failed with stat: '//to_str(ierror))
-      end if
+      call check_allocate(ierror, subname, 'recvbuf(0)', &
+                        file=__FILE__, line=__LINE__)
 
     end if
     allocate(gwork(4, gridsize), stat=ierror)
-    if (ierror /= 0) then
-      call endrun(subname//': allocate gwork(4, gridsize) failed with stat: '//to_str(ierror))
-    end if
+    call check_allocate(ierror, subname, 'gwork(4, gridsize)', &
+                        file=__FILE__, line=__LINE__)
 
     if (IOroot) then
       ! Define the horizontal grid dimensions for SCRIP output
