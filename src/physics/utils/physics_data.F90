@@ -7,6 +7,7 @@ module physics_data
 
    public :: find_input_name_idx
    public :: read_field
+   public :: check_field
 
    !Non-standard variable indices:
    integer, public, parameter :: no_exist_idx     = -1
@@ -17,6 +18,11 @@ module physics_data
       module procedure read_field_2d
       module procedure read_field_3d
    end interface read_field
+
+   interface check_field
+      module procedure check_field_2d
+      module procedure check_field_3d
+   end interface check_field
 
 !==============================================================================
 CONTAINS
@@ -201,5 +207,223 @@ CONTAINS
          call endrun(subname//'Mismatch variable found in '//arr2str(var_names))
       end if
    end subroutine read_field_3d
+
+   subroutine check_field_2d(file, var_names, timestep, current_value,        &
+      stdname, min_difference, min_relative_value, is_first)
+      use pio,            only: file_desc_t, var_desc_t
+      use spmd_utils,     only: masterproc, masterprocid
+      use cam_pio_utils,  only: cam_pio_find_var
+      use cam_abortutils, only: endrun, check_allocate
+      use cam_field_read, only: cam_read_field
+      use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
+      use spmd_utils,     only: mpicom
+
+      !Max possible length of variable name in file:
+      use phys_vars_init_check, only: ic_name_len
+
+      !Dummy arguments:
+      real(kind_phys),   intent(in)    :: current_value(:)
+      type(file_desc_t), intent(inout) :: file
+      character(len=*),  intent(in)    :: var_names(:)
+      integer,           intent(in)    :: timestep
+      character(len=*),  intent(in)    :: stdname
+      real(kind_phys),   intent(in)    :: min_difference
+      real(kind_phys),   intent(in)    :: min_relative_value
+      logical,           intent(inout) :: is_first
+
+      !Local variables:
+      logical                          :: var_found
+      character(len=ic_name_len)       :: found_name
+      type(var_desc_t)                 :: vardesc
+      character(len=*),  parameter     :: subname = 'check_field_2d'
+      real(kind_phys)                  :: diff
+      integer                          :: col
+      integer                          :: ierr      !For MPI
+      real(kind_phys), allocatable     :: buffer(:)
+      integer                          :: diff_count
+      real(kind_phys)                  :: max_diff
+      real(kind_phys)                  :: max_diff_gl
+      integer                          :: diff_count_gl
+
+      !Initialize output variables
+      ierr = 0
+      allocate(buffer(size(current_value)), stat=ierr) 
+      call check_allocate(ierr, subname, 'buffer')
+      diff_count = 0
+      diff = 0._kind_phys
+      max_diff = 0._kind_phys
+
+      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+      if (var_found) then
+         call cam_read_field(found_name, file, buffer, var_found,             &
+              timelevel=timestep, log_output=.false.)
+         if (var_found) then
+            do col = 1, size(buffer)
+               if (abs(current_value(col)) < min_relative_value) then
+                  !Calculate absolute difference:
+                  diff = abs(current_value(col) - buffer(col))
+               else
+                  !Calculate relative difference:
+                  diff = abs(current_value(col) - buffer(col)) /              &
+                     abs(current_value(col))
+               end if
+               if (diff > max_diff) then
+                  max_diff = diff
+               end if
+               if (diff > min_difference) then
+                  diff_count = diff_count + 1
+               end if
+            end do
+            !Gather results across all nodes to get global values
+            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+                 mpi_sum, masterprocid,  mpicom, ierr)
+            call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
+                 masterprocid, mpicom, ierr)
+            if (masterproc) then
+               if (diff_count_gl > 0) then
+                  call write_check_field_entry(stdname, diff_count_gl,        &
+                     max_diff_gl, is_first)
+                  is_first = .false.
+               end if
+            end if
+         end if
+      end if
+      deallocate(buffer)
+   end subroutine check_field_2d
+
+   subroutine check_field_3d(file, var_names, vcoord_name, timestep,          &
+      current_value, stdname, min_difference, min_relative_value, is_first)
+      use shr_sys_mod,    only: shr_sys_flush
+      use pio,            only: file_desc_t, var_desc_t
+      use spmd_utils,     only: masterproc, masterprocid
+      use cam_pio_utils,  only: cam_pio_find_var
+      use cam_abortutils, only: endrun, check_allocate
+      use cam_field_read, only: cam_read_field
+      use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
+      use spmd_utils,     only: mpicom
+      use vert_coord,     only: pver, pverp
+
+      !Max possible length of variable name in file:
+      use phys_vars_init_check, only: ic_name_len
+
+      !Dummy arguments:
+      real(kind_phys),   intent(in)    :: current_value(:,:)
+      type(file_desc_t), intent(inout) :: file
+      character(len=*),  intent(in)    :: var_names(:)
+      integer,           intent(in)    :: timestep
+      character(len=*),  intent(in)    :: vcoord_name
+      character(len=*),  intent(in)    :: stdname
+      real(kind_phys),   intent(in)    :: min_difference
+      real(kind_phys),   intent(in)    :: min_relative_value
+      logical,           intent(inout) :: is_first 
+
+      !Local variables:
+      logical                          :: var_found = .true.
+      character(len=ic_name_len)       :: found_name
+      type(var_desc_t)                 :: vardesc
+      character(len=*),  parameter     :: subname = 'check_field_3d'
+      real(kind_phys)                  :: diff
+      integer                          :: ierr      !For MPI
+      integer                          :: num_levs
+      integer                          :: col
+      integer                          :: lev
+      real(kind_phys), allocatable     :: buffer(:,:)
+      integer                          :: diff_count
+      real(kind_phys)                  :: max_diff
+      real(kind_phys)                  :: max_diff_gl
+      integer                          :: diff_count_gl
+
+      !Initialize output variables
+      ierr = 0
+      allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
+        stat=ierr)
+      call check_allocate(ierr, subname, 'buffer')
+      diff = 0._kind_phys
+      diff_count = 0
+      max_diff = 0._kind_phys
+
+      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+
+      if (var_found) then
+         if (trim(vcoord_name) == 'lev') then
+            num_levs = pver
+         else if (trim(vcoord_name) == 'ilev') then
+            num_levs = pverp
+         else
+            call endrun(subname//'Unknown vcoord_name, '//trim(vcoord_name))
+         end if
+         call cam_read_field(found_name, file, buffer, var_found,             &
+              timelevel=timestep, dim3name=trim(vcoord_name),                 &
+              dim3_bnds=(/1, num_levs/), log_output=.false.)
+         if (var_found) then
+            do lev = 1, num_levs
+               do col = 1, size(buffer(:,lev))
+                  if (abs(current_value(col, lev)) < min_relative_value) then
+                     !Calculate absolute difference:
+                     diff = abs(current_value(col, lev) - buffer(col, lev))
+                  else
+                     !Calculate relative difference:
+                     diff = abs(current_value(col, lev) - buffer(col, lev)) / &
+                        abs(current_value(col, lev))
+                  end if
+                  if (diff > max_diff) then
+                     max_diff = diff
+                  end if
+                  !Determine if diff is large enough to be considered a "hit"
+                  if (diff > min_difference) then
+                     diff_count = diff_count + 1
+                  end if
+               end do
+            end do
+            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+                 mpi_sum, masterprocid, mpicom, ierr)
+            call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
+                 masterprocid, mpicom, ierr)
+            if (masterproc) then
+               if (diff_count_gl > 0) then
+                  call write_check_field_entry(stdname, diff_count_gl,        &
+                     max_diff_gl, is_first)
+                  is_first = .false.
+               end if
+            end if
+         end if
+      end if
+      deallocate(buffer)
+ 
+   end subroutine check_field_3d
+
+   subroutine write_check_field_entry(stdname, diff_count, max_diff, is_first)
+
+      use cam_logfile, only: iulog
+
+      !Dummy variables:
+      character(len=*), intent(in) :: stdname
+      integer,          intent(in) :: diff_count
+      real(kind_phys),  intent(in) :: max_diff
+      logical,          intent(in) :: is_first
+
+      !Local variables:
+      character(len=24)            :: fmt_str
+      integer                      :: slen
+      integer                      :: row
+      integer, parameter           :: indent_level = 50
+
+      slen = len_trim(stdname)
+
+      if (is_first) then
+         write(iulog, *) ''
+         write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a)"
+         write(iulog, fmt_str) 'Variable', '# Diffs', 'Max Diff'
+         write(iulog, fmt_str) '--------', '-------', '--------'
+      end if      
+
+      if (slen > indent_level) then
+         write(iulog, '(a)') trim(stdname)
+         slen = 0
+      end if
+      write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2)"
+      write(iulog, fmt_str) stdname(1:slen), diff_count, max_diff
+
+   end subroutine write_check_field_entry
 
 end module physics_data

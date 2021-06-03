@@ -1,11 +1,7 @@
 module phys_comp
 
    use ccpp_kinds,   only: kind_phys
-   use shr_kind_mod, only: SHR_KIND_CS
-!!XXgoldyXX: v debug only
-use spmd_utils, only: masterproc
-use cam_logfile, only: iulog
-!!XXgoldyXX: ^ debug only
+   use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
 
    implicit none
    private
@@ -16,11 +12,17 @@ use cam_logfile, only: iulog
    public :: phys_run2
    public :: phys_final
 
-   ! Provate module data
+   ! Private module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS)              :: suite_name = ''
+   character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
+   character(len=SHR_KIND_CL)              :: cam_physics_mesh = 'cam_physics_mesh'
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before ='before'
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = 'after'
+   real(kind_phys)                         :: min_difference = HUGE(1.0_kind_phys)
+   real(kind_phys)                         :: min_relative_value = HUGE(1.0_kind_phys)
 
 !==============================================================================
 CONTAINS
@@ -28,9 +30,74 @@ CONTAINS
 
    subroutine phys_readnl(nlfilename)
       ! Read physics options, such as suite to run
+      use shr_kind_mod,    only: r8 => shr_kind_r8
+      use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
+      use shr_flux_mod,    only: shr_flux_adjust_constants
+      use mpi,             only: mpi_character, mpi_real8, mpi_logical
+      use spmd_utils,      only: masterproc, masterprocid, mpicom
+      use cam_logfile,     only: iulog
+      use cam_abortutils,  only: endrun
+      use cam_initfiles,   only: unset_path_str
 
-      ! Dummy argument
+      ! filepath for file containing namelist input
       character(len=*), intent(in) :: nlfilename
+
+      ! Local variables
+      integer :: unitn, ierr
+      character(len=*), parameter :: subname = 'phys_readnl'
+
+      namelist /physics_nl/ ncdata_check, min_difference, min_relative_value,&
+         cam_take_snapshot_before, cam_take_snapshot_after, cam_physics_mesh
+
+      ! Initialize namelist variables to invalid values
+      min_relative_value       = HUGE(1.0_kind_phys)
+      min_difference           = HUGE(1.0_kind_phys)
+      cam_take_snapshot_after  = unset_path_str
+      cam_take_snapshot_before = unset_path_str
+      cam_physics_mesh         = unset_path_str
+      ncdata_check             = unset_path_str
+
+      ! Read namelist
+      if (masterproc) then
+         open(newunit=unitn, file=trim(nlfilename), status='old')
+         call find_group_name(unitn, 'physics_nl', status=ierr)
+         if (ierr == 0) then
+            read(unitn, physics_nl, iostat=ierr)
+            if (ierr /= 0) then
+               call endrun(subname // ':: ERROR reading namelist')
+            end if
+         end if
+         close(unitn)
+      end if
+      ! Broadcast namelist variables
+      call mpi_bcast(ncdata_check, len(ncdata_check), mpi_character,       &
+         masterprocid, mpicom, ierr)
+      call mpi_bcast(min_difference, 1, mpi_real8, masterprocid, mpicom,   &
+         ierr)
+      call mpi_bcast(min_relative_value, 1, mpi_real8, masterprocid,       &
+         mpicom, ierr)
+      call mpi_bcast(cam_physics_mesh, len(cam_physics_mesh),              &
+         mpi_character, masterprocid, mpicom, ierr)
+      call mpi_bcast(cam_take_snapshot_before,                             &
+        len(cam_take_snapshot_before), mpi_character, masterprocid,        &
+         mpicom, ierr)
+      call mpi_bcast(cam_take_snapshot_after, len(cam_take_snapshot_after),&
+        mpi_character, masterprocid, mpicom, ierr)
+
+      ! Print out namelist variables
+      if (masterproc) then
+         write(iulog,*) subname, ' options:'
+         if (trim(ncdata_check) /= trim(unset_path_str)) then
+            write(iulog,*) '  Physics data check will be performed against: ',&
+               ncdata_check
+            write(iulog,*) 'Minimum Difference considered significant: ',     &
+               min_difference
+            write(iulog,*) 'Value Under Which Absolute Difference Calculated: ', &
+               min_relative_value
+         else
+            write(iulog,*) '  Physics data check will not be performed'
+         end if
+      end if
 
    end subroutine phys_readnl
 
@@ -56,8 +123,9 @@ CONTAINS
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       character(len=512)         :: errmsg
-      integer                    :: errflg = 0
+      integer                    :: errflg
 
+      errflg = 0
       call physconst_init(columns_on_task, pver, pverp)
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
@@ -101,10 +169,11 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
       use physics_inputs, only: physics_read_data
-      use cam_initfiles,  only: initial_file_get_id
+      use cam_initfiles,  only: initial_file_get_id, unset_path_str
       use time_manager,   only: get_nstep
       use time_manager,   only: is_first_step
       use time_manager,   only: is_first_restart_step
+      use physics_inputs, only: physics_check_data
 
       ! Dummy arguments
       type(physics_state), intent(inout) :: phys_state
@@ -115,13 +184,14 @@ CONTAINS
       ! Local variables
       type(file_desc_t), pointer :: ncdata
       character(len=512) :: errmsg
-      integer            :: errflg = 0
+      integer            :: errflg
       integer                            :: part_ind
       integer                            :: col_start
       integer                            :: col_end
       integer                            :: data_frame
       logical                            :: use_init_variables
 
+      errflg = 0
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
@@ -132,13 +202,9 @@ CONTAINS
       data_frame = get_nstep() + 2
 
       ! Determine if we should read initialized variables from file
-      use_init_variables = (.not. is_first_step()) .and. (.not. is_first_restart_step())
+      use_init_variables = (.not. is_first_step()) .and.                      &
+         (.not. is_first_restart_step())
 
-!!XXgoldyXX: v debug only
-if (masterproc) then
-   write(iulog, '(2(a,i0),a,l7)') 'nstep = ', get_nstep(), ', dframe = ', data_frame, ', use_init = ', use_init_variables
-end if
-!!XXgoldyXX: ^ debug only
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
 
@@ -148,6 +214,7 @@ end if
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
       end if
+
       ! Threading vars
       col_start = 1
       col_end = columns_on_task
@@ -159,12 +226,20 @@ end if
             call endrun('cam_ccpp_physics_run: '//trim(errmsg))
          end if
       end do
+ 
       ! Finalize the time step
       call cam_ccpp_physics_timestep_final(suite_name, dtime_phys,            &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
       end if
+ 
+      ! Determine if physics_check should be run:
+      if (trim(ncdata_check) /= trim(unset_path_str)) then
+         call physics_check_data(ncdata_check, suite_names, data_frame,       &
+            min_difference, min_relative_value)
+      end if
+
    end subroutine phys_run2
 
    subroutine phys_final(phys_state, phys_tend)
@@ -179,7 +254,9 @@ end if
       ! Local variables
       real(kind_phys)    :: dtime_phys = 0.0_kind_phys ! Not used
       character(len=512) :: errmsg
-      integer            :: errflg = 0
+      integer            :: errflg
+
+      errflg = 0
 
       call cam_ccpp_physics_finalize(suite_name, dtime_phys, errmsg, errflg)
       if (errflg /= 0) then

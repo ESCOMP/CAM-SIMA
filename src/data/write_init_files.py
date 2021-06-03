@@ -257,6 +257,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Add public function declarations:
         outfile.write("!! public interfaces", 0)
         outfile.write("public :: physics_read_data", 1)
+        outfile.write("public :: physics_check_data", 1)
 
         #Add "contains" statement:
         outfile.write("", 0)
@@ -265,6 +266,14 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str)
 
+        #Add a blank space:
+        outfile.write("", 0)
+
+        #Write physics_check_data subroutine:
+        write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str)
+
+        #End module:
+        #outfile.write("\nend module {}".format(phys_input_fname_str), 0)
     # end if
     #--------------------------------------
 
@@ -1281,7 +1290,7 @@ def write_is_read_from_file_func(outfile):
 
 
     #Add subroutine header:
-    outfile.write("logical function is_read_from_file(varname)", 1)
+    outfile.write("logical function is_read_from_file(varname, stdnam_idx_out)", 1)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1304,11 +1313,12 @@ def write_is_read_from_file_func(outfile):
     outfile.write("", 0)
 
     #Add variable declaration statements:
-    outfile.write("character(len=*), intent(in) :: varname !Variable name being checked", 2)
-    outfile.write("character(len=*), parameter  :: subname = 'is_read_from_file: '", 2)
+    outfile.write("character(len=*), intent(in)   :: varname !Variable name being checked", 2)
+    outfile.write("integer, optional, intent(out) :: stdnam_idx_out", 2)
     outfile.write("", 0)
-    outfile.write("integer :: stdnam_idx !standard name array index", 2)
-    outfile.write("logical :: found      !check that <varname> was found", 2)
+    outfile.write("character(len=*), parameter    :: subname = 'is_read_from_file: '", 2)
+    outfile.write("integer                        :: stdnam_idx !standard name array index", 2)
+    outfile.write("logical                        :: found      !check that <varname> was found", 2)
 
     #Write a blank space:
     outfile.write("", 0)
@@ -1345,6 +1355,11 @@ def write_is_read_from_file_func(outfile):
     outfile.write('''call endrun(subname//"Variable '"//trim(varname)//"' is missing from phys_var_stdnames array.")''', 3)
     outfile.write("end if", 2)
 
+    #Handle optional output variable:
+    outfile.write("if (present(stdnam_idx_out)) then", 2)
+    outfile.write("stdnam_idx_out = stdnam_idx", 3)
+    outfile.write("end if", 2)
+
     outfile.write("", 0)
     #-------------------------
 
@@ -1355,7 +1370,6 @@ def write_is_read_from_file_func(outfile):
 
 def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
-    # pylint: disable=too-many-statements
     """
     Write the "physics_read_data" subroutine, which
     is used to initialize required physics variables
@@ -1432,8 +1446,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
         if var_stdname in fort_data.call_dict:
 
             #Set "if-statement" call string:
-            call_string_key = "if (trim(phys_var_stdnames(name_idx)) ==" \
-                              " '{}') then".format(var_stdname)
+            call_string_key = "case ('{}')".format(var_stdname)
 
             #Extract vertical level variable:
             levnm = fort_data.vert_dict[var_stdname]
@@ -1470,7 +1483,6 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use physics_data,         only: read_field, find_input_name_idx", 2)
     outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
     outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
-
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
     outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
 
@@ -1492,7 +1504,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     #Write local variable declarations:
     outfile.write("!Local variables:", 2)
     outfile.write("", 0)
-    outfile.write("!Character array containing all CCPP-required vairable standard names:", 2)
+    outfile.write("!Character array containing all CCPP-required variable standard names:", 2)
     outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
     outfile.write("", 0)
     outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
@@ -1606,18 +1618,19 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("end if", 6)
     outfile.write("", 0)
 
-
     #Generate "read_field" calls:
     outfile.write("!Read variable from IC file:", 6)
     outfile.write("", 0)
-    for if_call, read_call in call_string_dict.items():
-        outfile.write(if_call, 6)
-        outfile.write(read_call, 7)
-        outfile.write("end if", 6)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 6)
+    for case_call, read_call in call_string_dict.items():
+        outfile.write(case_call, 7)
+        outfile.write(read_call, 8)
         outfile.write("", 0)
-    # end for
-    #End select catse and required variables loop:
-    outfile.write("end select !special indices", 4)
+    outfile.write("end select !read variables", 6)
+    # end select
+
+    #End select case and required variables loop:
+    outfile.write("end select !special indices", 5)
     outfile.write("", 0)
     outfile.write("end do !Suite-required variables", 3)
     outfile.write("", 0)
@@ -1659,6 +1672,259 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #End subroutine:
     outfile.write("end subroutine physics_read_data", 1)
+
+    #----------------------------
+
+#####
+
+def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
+
+    """
+    Write the "physics_check_data" subroutine, which
+    is used to check the physics variables against
+    an optionally input check file by reading
+    in the values from the check file and comparing
+    the values to the variables
+    """
+
+    #Construct dictionary of modules
+    #and variables in use statements:
+    #--------------------------------
+    #Create new (empty) dictionary to store use statements:
+    use_vars_write_dict = OrderedDict()
+
+    #Loop over all variable standard names:
+    for var_stdname in fort_data.standard_names:
+
+        #Check if variable is in use dictionary:
+        if var_stdname in fort_data.use_dict:
+
+            #If so, then extract variable use statement list:
+            var_use_info = fort_data.use_dict[var_stdname]
+
+            #Extract module name (always first item in list):
+            use_mod_name = var_use_info[0]
+
+            #Check if module name is already in dictionary:
+            if use_mod_name in use_vars_write_dict:
+                #If so, then loop over variable use list:
+                for use_var in var_use_info[1:]:
+                    #If variable doesn't already exist in list, then add it:
+                    if use_var not in use_vars_write_dict[use_mod_name]:
+                        use_vars_write_dict[use_mod_name].append(use_var)
+            else:
+                #Add module name as new key to dictionary:
+                use_vars_write_dict[use_mod_name] = var_use_info[1:]
+    #--------------------------------
+
+    #Create actual fortran use statements:
+    #--------------------------------
+    #Create new (empty) list to store use statements:
+    use_list = list()
+
+    #Loop over use statement modules:
+    for use_mod in use_vars_write_dict:
+
+        #Loop over use statement variables:
+        for use_var in use_vars_write_dict[use_mod]:
+
+            #create new use string:
+            use_str = "use {},        only: {}".format(use_mod, use_var)
+
+            #Add to "use statement" list:
+            use_list.append(use_str)
+    #-----------------------------
+
+    #Create fortran "check_field" calls:
+    #---------------------------------
+
+    #Create new (empty) dictionary to store "check_field" calls:
+    call_string_dict = OrderedDict()
+
+    #Loop over all variable standard names:
+    for var_stdname in fort_data.standard_names:
+
+        #Check if variable is in fortran call dictionary:
+        if var_stdname in fort_data.call_dict:
+
+            #Set "if-statement" call string:
+            call_string_key = "case ('{}')".format(var_stdname)
+
+            #Extract vertical level variable:
+            levnm = fort_data.vert_dict[var_stdname]
+
+            #Set "check_field" call string:
+            if levnm is not None:
+                call_str = "call check_field(file, input_var_names(:,name_idx), '{}'," + \
+                                  " timestep, {}, '{}', min_difference, min_relative_value, is_first)"
+                call_string_val = call_str.format(\
+                                  levnm, fort_data.call_dict[var_stdname], var_stdname.strip())
+            else:
+                call_str = "call check_field(file, input_var_names(:,name_idx)," + \
+                                  " timestep, {}, '{}', min_difference, min_relative_value, is_first)"
+                call_string_val = call_str.format(fort_data.call_dict[var_stdname], var_stdname.strip())
+            #Add strings to dictionary:
+            call_string_dict[call_string_key] = call_string_val
+
+    #---------------------------------
+
+    #Write actual subroutine code:
+    #----------------------------
+
+    #Add subroutine header:
+    outfile.write("subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value)", 1)
+
+    #Add use statements:
+    outfile.write("use pio,                  only: file_desc_t, pio_nowrite", 2)
+    outfile.write("use cam_abortutils,       only: endrun", 2)
+    outfile.write("use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX", 2)
+    outfile.write("use physics_data,         only: check_field, find_input_name_idx", 2)
+    outfile.write("use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx", 2)
+    outfile.write("use cam_ccpp_cap,         only: ccpp_physics_suite_variables", 2)
+    outfile.write("use ccpp_kinds,           only: kind_phys", 2)
+    outfile.write("use cam_logfile,          only: iulog", 2)
+    outfile.write("use spmd_utils,           only: masterproc", 2)
+    outfile.write("use phys_vars_init_check, only: is_read_from_file", 2)
+    outfile.write("use ioFileMod,            only: cam_get_file" , 2)
+    outfile.write("use cam_pio_utils,        only: cam_pio_openfile, cam_pio_closefile", 2)
+
+    outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
+    outfile.write("use {}, only: std_name_len".format(phys_check_fname_str), 2)
+
+
+    #Loop over use string list:
+    for use_str in use_list:
+        #Add required, registered fortran module use statements:
+        outfile.write(use_str, 2)
+
+    #Write dummy variable declarations:
+    outfile.write("", 0)
+    outfile.write("! Dummy arguments", 2)
+    outfile.write("character(len=SHR_KIND_CL), intent(in) :: file_name", 2) 
+    outfile.write("character(len=SHR_KIND_CS)             :: suite_names(:) !Names of CCPP suites", 2)
+    outfile.write("integer,                    intent(in) :: timestep", 2)
+    outfile.write("real(kind_phys),            intent(in) :: min_difference", 2)
+    outfile.write("real(kind_phys),            intent(in) :: min_relative_value", 2)
+    outfile.write("", 0)
+
+    #Write local variable declarations:
+    outfile.write("!Local variables:", 2)
+    outfile.write("", 0)
+    outfile.write("!Character array containing all CCPP-required variable standard names:", 2)
+    outfile.write("character(len=std_name_len), allocatable :: ccpp_required_data(:)", 2)
+    outfile.write("", 0)
+    outfile.write("!Strings which store names of any missing or non-initialized vars:", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_required_vars", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: protected_non_init_vars", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: missing_input_names", 2)
+    outfile.write("", 0)
+    outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message", 2)
+    outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
+    outfile.write("integer                    :: name_idx  !Input variable array index", 2)
+    outfile.write("integer                    :: req_idx   !Required variable array index", 2)
+    outfile.write("integer                    :: suite_idx !Suite array index", 2)
+    outfile.write("character(len=SHR_KIND_CL) :: ncdata_check_loc", 2)
+    outfile.write("type(file_desc_t), pointer :: file", 2)
+    outfile.write("logical                    :: file_found", 2)
+    outfile.write("logical                    :: is_first", 2)
+    outfile.write("", 0)
+
+    #Initialize variables:
+    outfile.write("!Initalize missing and non-initialized variables strings:", 2)
+    outfile.write("missing_required_vars = ' '", 2)
+    outfile.write("protected_non_init_vars = ' '", 2)
+    outfile.write("missing_input_names   = ' '", 2)
+    outfile.write("nullify(file)", 2)
+    outfile.write("is_first = .true.", 2)
+    outfile.write("", 0)
+
+    #Begin check data log:
+    outfile.write("if (masterproc) then", 2)
+    outfile.write("write(iulog,*) ''", 3)
+    outfile.write("write(iulog,*) '********** Physics Check Data Results **********'", 3)
+    outfile.write("write(iulog,*) ''", 3)
+    outfile.write("write(iulog,*) 'TIMESTEP: ', timestep", 3)
+    outfile.write("end if", 2)
+
+    #Open check file:
+    outfile.write("if (file_name == 'UNSET') then", 2)
+    outfile.write("write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET. Model will run, but physics check data will not be printed'", 3)
+    outfile.write("return", 3)
+    outfile.write("end if", 2)
+    outfile.write("!Open check file:", 2)
+    outfile.write("call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found, log_info=.false.)", 2)
+    outfile.write("if (.not. file_found) then", 2)
+    outfile.write("write(iulog,*) 'WARNING: Check file '//file_name//' not found. Model will run, but physics check data will not be printed'", 3)
+    outfile.write("return", 3)
+    outfile.write("end if", 2)
+    outfile.write("allocate(file)", 2)
+    outfile.write("call cam_pio_openfile(file, ncdata_check_loc, pio_nowrite, log_info=.false.)", 2)
+
+    #Loop over physics suites:
+    outfile.write("!Loop over CCPP physics/chemistry suites:", 2)
+    outfile.write("do suite_idx = 1, size(suite_names, 1)", 2)
+    outfile.write("", 0)
+
+    #Determine physics suite required variables:
+    outfile.write("!Search for all needed CCPP input variables,", 3)
+    outfile.write("!so that they can be read from input file if need be:", 3)
+    outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
+    outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
+    outfile.write("", 0)
+
+    #Loop over required variables:
+    outfile.write("!Loop over all required variables as specified by CCPP suite:", 3)
+    outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
+    outfile.write("", 0)
+
+    #Call input name search function:
+    outfile.write("!Find IC file input name array index for required variable:", 4)
+    outfile.write("if (.not. is_read_from_file(ccpp_required_data(req_idx), name_idx)) then", 4)
+    outfile.write("continue", 5)
+    outfile.write("end if", 4)
+
+    #Generate "check_field" calls:
+    outfile.write("!Check variable vs input check file:", 4)
+    outfile.write("", 0)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 4)
+    for case_call, read_call in call_string_dict.items():
+        outfile.write(case_call, 5)
+        outfile.write(read_call, 6)
+        outfile.write("", 0)
+    outfile.write("end select !check variables", 4)
+
+    #End select case and required variables loop:
+    outfile.write("end do !Suite-required variables", 3)
+    outfile.write("", 0)
+
+    #Deallocate ccpp_required_data array:
+    outfile.write("!Deallocate required variables array for use in next suite:", 3)
+    outfile.write("deallocate(ccpp_required_data)", 3)
+    outfile.write("", 0)
+
+    #End suite loop:
+    outfile.write(" end do !CCPP suites", 2)
+    outfile.write("", 0)
+
+    #Close check file
+    outfile.write("!Close check file:", 2)
+    outfile.write("call cam_pio_closefile(file)", 2)
+    outfile.write("deallocate(file)", 2)
+    outfile.write("nullify(file)", 2)
+
+    #Check if no differences were found
+    outfile.write("if (is_first) then", 2)
+    outfile.write("write(iulog,*) ''", 3)
+    outfile.write("write(iulog,*) 'No differences found!'", 3)
+    outfile.write("end if", 2)
+
+    #End check data log:
+    outfile.write("write(iulog,*) ''", 2)
+    outfile.write("write(iulog,*) '********** End Physics Check Data Results **********'", 2)
+    outfile.write("write(iulog,*) ''", 2)
+
+    #End subroutine:
+    outfile.write("end subroutine physics_check_data", 1)
 
     #----------------------------
 

@@ -24,6 +24,7 @@ module physics_inputs_protect
 
 !! public interfaces
    public :: physics_read_data
+   public :: physics_check_data
 
 
 CONTAINS
@@ -46,7 +47,7 @@ CONTAINS
 
       !Local variables:
 
-      !Character array containing all CCPP-required vairable standard names:
+      !Character array containing all CCPP-required variable standard names:
       character(len=std_name_len), allocatable :: ccpp_required_data(:)
 
       !Strings which store names of any missing or non-initialized vars:
@@ -138,12 +139,13 @@ CONTAINS
 
                   !Read variable from IC file:
 
-                  if (trim(phys_var_stdnames(name_idx)) == 'air_pressure_at_sea_level') then
-                     call read_field(file, 'air_pressure_at_sea_level',                           &
-                          input_var_names(:,name_idx), timestep, slp)
-                  end if
+                  select case (trim(phys_var_stdnames(name_idx)))
+                     case ('air_pressure_at_sea_level')
+                        call read_field(file, 'air_pressure_at_sea_level',                        &
+                             input_var_names(:,name_idx), timestep, slp)
 
-            end select !special indices
+                  end select !read variables
+               end select !special indices
 
          end do !Suite-required variables
 
@@ -175,5 +177,123 @@ CONTAINS
       end do !CCPP suites
 
    end subroutine physics_read_data
+
+   subroutine physics_check_data(file_name, suite_names, timestep, min_difference,                &
+        min_relative_value)
+      use pio,                  only: file_desc_t, pio_nowrite
+      use cam_abortutils,       only: endrun
+      use shr_kind_mod,         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,         only: check_field, find_input_name_idx
+      use physics_data,         only: no_exist_idx, init_mark_idx, prot_no_init_idx
+      use cam_ccpp_cap,         only: ccpp_physics_suite_variables
+      use ccpp_kinds,           only: kind_phys
+      use cam_logfile,          only: iulog
+      use spmd_utils,           only: masterproc
+      use phys_vars_init_check, only: is_read_from_file
+      use ioFileMod,            only: cam_get_file
+      use cam_pio_utils,        only: cam_pio_openfile, cam_pio_closefile
+      use phys_vars_init_check_protect, only: phys_var_stdnames, input_var_names
+      use phys_vars_init_check_protect, only: std_name_len
+      use physics_types_protected,        only: slp
+
+      ! Dummy arguments
+      character(len=SHR_KIND_CL), intent(in) :: file_name
+      character(len=SHR_KIND_CS)             :: suite_names(:) !Names of CCPP suites
+      integer,                    intent(in) :: timestep
+      real(kind_phys),            intent(in) :: min_difference
+      real(kind_phys),            intent(in) :: min_relative_value
+
+      !Local variables:
+
+      !Character array containing all CCPP-required variable standard names:
+      character(len=std_name_len), allocatable :: ccpp_required_data(:)
+
+      !Strings which store names of any missing or non-initialized vars:
+      character(len=SHR_KIND_CL) :: missing_required_vars
+      character(len=SHR_KIND_CL) :: protected_non_init_vars
+      character(len=SHR_KIND_CL) :: missing_input_names
+
+      character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message
+      integer                    :: errflg    !CCPP framework error flag
+      integer                    :: name_idx  !Input variable array index
+      integer                    :: req_idx   !Required variable array index
+      integer                    :: suite_idx !Suite array index
+      character(len=SHR_KIND_CL) :: ncdata_check_loc
+      type(file_desc_t), pointer :: file
+      logical                    :: file_found
+      logical                    :: is_first
+
+      !Initalize missing and non-initialized variables strings:
+      missing_required_vars = ' '
+      protected_non_init_vars = ' '
+      missing_input_names   = ' '
+      nullify(file)
+      is_first = .true.
+
+      if (masterproc) then
+         write(iulog,*) ''
+         write(iulog,*) '********** Physics Check Data Results **********'
+         write(iulog,*) ''
+         write(iulog,*) 'TIMESTEP: ', timestep
+      end if
+      if (file_name == 'UNSET') then
+         write(iulog,*)                                                                           &
+              'WARNING: Namelist variable ncdata_check is UNSET. Model will run, but physics check data will not be printed'
+         
+         return
+      end if
+      !Open check file:
+      call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found,                  &
+           log_info=.false.)
+      if (.not. file_found) then
+         write(iulog,*)                                                                           &
+              'WARNING: Check file '//file_name//                                                 &
+              ' not found. Model will run, but physics check data will not be printed'
+         return
+      end if
+      allocate(file)
+      call cam_pio_openfile(file, ncdata_check_loc, pio_nowrite, log_info=.false.)
+      !Loop over CCPP physics/chemistry suites:
+      do suite_idx = 1, size(suite_names, 1)
+
+         !Search for all needed CCPP input variables,
+         !so that they can be read from input file if need be:
+         call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &
+            errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)
+
+         !Loop over all required variables as specified by CCPP suite:
+         do req_idx = 1, size(ccpp_required_data, 1)
+
+            !Find IC file input name array index for required variable:
+            if (.not. is_read_from_file(ccpp_required_data(req_idx), name_idx)) then
+               continue
+            end if
+            !Check variable vs input check file:
+
+            select case (trim(phys_var_stdnames(name_idx)))
+               case ('air_pressure_at_sea_level')
+                  call check_field(file, input_var_names(:,name_idx), timestep, slp,              &
+                       'air_pressure_at_sea_level', min_difference, min_relative_value, is_first)
+
+            end select !check variables
+         end do !Suite-required variables
+
+         !Deallocate required variables array for use in next suite:
+         deallocate(ccpp_required_data)
+
+      end do !CCPP suites
+
+      !Close check file:
+      call cam_pio_closefile(file)
+      deallocate(file)
+      nullify(file)
+      if (is_first) then
+         write(iulog,*) ''
+         write(iulog,*) 'No differences found!'
+      end if
+      write(iulog,*) ''
+      write(iulog,*) '********** End Physics Check Data Results **********'
+      write(iulog,*) ''
+   end subroutine physics_check_data
 
 end module physics_inputs_protect

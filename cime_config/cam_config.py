@@ -623,7 +623,7 @@ class ConfigCAM:
         # Create namelist group list, starting with default namelist groups
         self.__nml_groups = ['cam_initfiles_nl',
                              'cam_logfile_nl',
-                             'phys_ctl_nl',
+                             'physics_nl',
                              'qneg_nl',
                              'vert_coord_nl',
                              'ref_pres_nl']

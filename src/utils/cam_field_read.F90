@@ -177,7 +177,8 @@ CONTAINS
    !
    ! ROUTINE: infld_real8_1d
    !
-   subroutine infld_real8_1d(varname, ncid, field, readvar, gridname, timelevel)
+   subroutine infld_real8_1d(varname, ncid, field, readvar, gridname,         &
+      timelevel, log_output)
       !
       ! infld_real8_1d:
       ! Netcdf I/O of 8-byte real field from netCDF file
@@ -202,6 +203,7 @@ CONTAINS
       ! gridname: Name of variable's grid (default 'physgrid')
       character(len=*), optional, intent(in)    :: gridname
       integer,          optional, intent(in)    :: timelevel
+      logical,          optional, intent(in)    :: log_output
       !
       ! LOCAL VARIABLES:
       type(io_desc_t), pointer                  :: iodesc
@@ -231,7 +233,8 @@ CONTAINS
       character(len=PIO_MAX_NAME)               :: dim1name, dim2name
       character(len=PIO_MAX_NAME)               :: tmpname
       character(len=128)                        :: errormsg
-
+      ! Logical to determine whether to print output messages
+      logical                                   :: log_read_field
       logical                                   :: readvar_tmp
       character(len=*),               parameter :: subname = 'INFLD_REAL8_1D'
 
@@ -240,7 +243,6 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
       !
-
       dim1name = ''
       dim2name = ''
       dim_bounds(:,1) = 0
@@ -251,6 +253,12 @@ CONTAINS
       else
          call get_grid_diminfo('physgrid', grid_id, dim1name, dim2name,       &
               dim_bounds)
+      end if
+
+      if (present(log_output)) then
+         log_read_field = log_output
+      else
+         log_read_field = .true.
       end if
 
       ! Get the number of columns in the global grid.
@@ -366,7 +374,7 @@ CONTAINS
             call pio_read_darray(ncid, varid, iodesc, field, ierr)
          end if
 
-         if (masterproc) then
+         if (masterproc .and. log_read_field) then
             write(iulog,*) subname//': read field '//trim(varname)
          end if
 
@@ -380,7 +388,7 @@ CONTAINS
    ! ROUTINE: infld_real8_2d
    !
    subroutine infld_real8_2d(varname, ncid, field, readvar, gridname,         &
-        timelevel, dim3name, dim3_bnds)
+        timelevel, dim3name, dim3_bnds, log_output)
       !
       ! infld_real8_2d:
       ! Netcdf I/O of 8-byte real field from netCDF file
@@ -408,6 +416,7 @@ CONTAINS
       character(len=*), optional, intent(in)  :: dim3name
       ! dim3_bnds: Bounds of vertical dimension, if field is 3D
       integer,          optional, intent(in)  :: dim3_bnds(2)
+      logical,          optional, intent(in)  :: log_output
       !
       ! LOCAL VARIABLES:
       type(io_desc_t),  pointer               :: iodesc
@@ -440,7 +449,8 @@ CONTAINS
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
       character(len=PIO_MAX_NAME)             :: tmpname
       character(len=128)                      :: errormsg
-
+      ! Logical to determine whether to print output messages
+      logical                                 :: log_read_field
       logical                                 :: readvar_tmp
       character(len=*), parameter             :: subname = 'INFLD_REAL8_2D'
 
@@ -460,6 +470,12 @@ CONTAINS
       else
          call get_grid_diminfo('physgrid', grid_id, dim1name, dim2name,       &
               dim_bounds)
+      end if
+
+      if (present(log_output)) then
+         log_read_field = log_output
+      else
+         log_read_field = .true.
       end if
 
       ! Get the number of columns in the global grid.
@@ -614,7 +630,7 @@ CONTAINS
             nullify(iodesc) ! Cached by cam_pio_utils
          end if
 
-         if (masterproc) then
+         if (masterproc .and. log_read_field) then
             write(iulog,*) subname//': read field '//trim(varname)
          end if
 
@@ -630,7 +646,7 @@ CONTAINS
    ! ROUTINE: infld_real8_3d
    !
    subroutine infld_real8_3d(varname, ncid, field, readvar, dim3name,         &
-        dim3_bnds, dim3_pos, gridname, timelevel)
+        dim3_bnds, dim3_pos, gridname, timelevel, log_output)
       !
       ! infld_real8_3d:
       ! Netcdf I/O of 8-byte real field from netCDF file
@@ -659,6 +675,7 @@ CONTAINS
       ! gridname: Name of variable's grid (default 'physgrid')
       character(len=*), optional, intent(in)  :: gridname
       integer,          optional, intent(in)  :: timelevel
+      logical,          optional, intent(in)  :: log_output
       !
       ! LOCAL VARIABLES:
       type(io_desc_t),  pointer               :: iodesc
@@ -689,7 +706,8 @@ CONTAINS
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
       character(len=PIO_MAX_NAME)             :: tmpname
       character(len=128)                      :: errormsg
-
+      ! Logical to determine whether to print output messages
+      logical                                 :: log_read_field
       logical                                 :: readvar_tmp
       character(len=*), parameter             :: subname = 'INFLD_REAL8_3D'
 
@@ -709,6 +727,12 @@ CONTAINS
       else
          call get_grid_diminfo('physgrid', grid_id, dim1name, dim2name,       &
               dim_bounds)
+      end if
+
+      if (present(log_output)) then
+         log_read_field = log_output
+      else
+         log_read_field = .true.
       end if
 
       ! Get the number of columns in the global grid.
@@ -855,7 +879,7 @@ CONTAINS
             call pio_read_darray(ncid, varid, iodesc, field, ierr)
          end if
 
-         if (masterproc) then
+         if (masterproc .and. log_read_field) then
             write(iulog,*) subname//': read field '//trim(varname)
          end if
 

@@ -194,7 +194,7 @@ CONTAINS
    end function is_initialized
 
 
-   logical function is_read_from_file(varname)
+   logical function is_read_from_file(varname, stdnam_idx_out)
 
       !This function checks if the variable is
       !read from file according to the
@@ -203,11 +203,12 @@ CONTAINS
       use cam_abortutils, only: endrun
 
 
-      character(len=*), intent(in) :: varname !Variable name being checked
-      character(len=*), parameter  :: subname = 'is_read_from_file: '
+      character(len=*), intent(in)   :: varname !Variable name being checked
+      integer, optional, intent(out) :: stdnam_idx_out
 
-      integer :: stdnam_idx !standard name array index
-      logical :: found      !check that <varname> was found
+      character(len=*), parameter    :: subname = 'is_read_from_file: '
+      integer                        :: stdnam_idx !standard name array index
+      logical                        :: found      !check that <varname> was found
 
       is_read_from_file = .false.
       found = .false.
@@ -230,6 +231,9 @@ CONTAINS
          call                                                                                     &
               endrun(subname//"Variable '"//trim(varname)//                                       &
               "' is missing from phys_var_stdnames array.")
+      end if
+      if (present(stdnam_idx_out)) then
+         stdnam_idx_out = stdnam_idx
       end if
 
    end function is_read_from_file
