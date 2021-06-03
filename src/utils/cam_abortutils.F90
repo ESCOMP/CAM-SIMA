@@ -12,6 +12,7 @@ module cam_abortutils
    save
 
    public :: endrun
+   public :: safe_endrun
    public :: check_allocate
    public :: cam_register_open_file
    public :: cam_register_close_file
