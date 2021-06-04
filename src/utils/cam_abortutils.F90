@@ -85,8 +85,8 @@ CONTAINS
       else
          allocate(of_new)
       end if
-      open_files_tail%next => of_new
       open_files_tail => of_new
+      open_files_tail%next => of_new
    end subroutine cam_register_open_file
 
    subroutine cam_register_close_file(file, log_shutdown_in)
