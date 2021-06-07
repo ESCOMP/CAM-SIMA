@@ -89,7 +89,7 @@ CONTAINS
          write(iulog,*) subname, ' options:'
          if (trim(ncdata_check) /= trim(unset_path_str)) then
             write(iulog,*) '  Physics data check will be performed against: ',&
-               ncdata_check
+               trim(ncdata_check)
             write(iulog,*) 'Minimum Difference considered significant: ',     &
                min_difference
             write(iulog,*) 'Value Under Which Absolute Difference Calculated: ', &
@@ -226,14 +226,14 @@ CONTAINS
             call endrun('cam_ccpp_physics_run: '//trim(errmsg))
          end if
       end do
- 
+
       ! Finalize the time step
       call cam_ccpp_physics_timestep_final(suite_name, dtime_phys,            &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
       end if
- 
+
       ! Determine if physics_check should be run:
       if (trim(ncdata_check) /= trim(unset_path_str)) then
          call physics_check_data(ncdata_check, suite_names, data_frame,       &

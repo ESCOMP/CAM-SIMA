@@ -81,12 +81,23 @@ CONTAINS
       if (associated(open_files_pool)) then
          of_new => open_files_pool
          of_new%file_desc = file
-         open_files_pool => open_files_pool%next
+         of_new%file_name = file_name
+         open_files_pool%next => open_files_pool
       else
          allocate(of_new)
+         allocate(of_new%file_desc)
+         of_new%file_desc = file
+         of_new%file_name = file_name
+         open_files_pool => of_new
       end if
-      open_files_tail => of_new
-      open_files_tail%next => of_new
+      if (associated(open_files_tail)) then
+         open_files_tail%next => of_new
+      else
+         open_files_tail => of_new
+      end if
+      if (.not. associated(open_files_head)) then
+         open_files_head => of_new
+      end if
    end subroutine cam_register_open_file
 
    subroutine cam_register_close_file(file, log_shutdown_in)
@@ -108,7 +119,7 @@ CONTAINS
       end if
       ! Look to see if we have this file
       of_ptr => open_files_head
-      do while (associated(of_ptr))
+      do while (associated(of_ptr) .and. associated(of_ptr%file_desc))
          if (file%fh == of_ptr%file_desc%fh) then
             ! Remove this file from the list
             if (associated(of_prev)) then
