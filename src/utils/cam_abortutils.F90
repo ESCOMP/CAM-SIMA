@@ -81,13 +81,11 @@ CONTAINS
       if (associated(open_files_pool)) then
          of_new => open_files_pool
          of_new%file_desc = file
-         of_new%file_name = file_name
          open_files_pool%next => open_files_pool
       else
          allocate(of_new)
          allocate(of_new%file_desc)
          of_new%file_desc = file
-         of_new%file_name = file_name
          open_files_pool => of_new
       end if
       if (associated(open_files_tail)) then
