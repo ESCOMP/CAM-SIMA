@@ -81,6 +81,7 @@ CONTAINS
       if (associated(open_files_pool)) then
          of_new => open_files_pool
          of_new%file_desc = file
+         allocate(open_files_pool%next)
          open_files_pool%next => open_files_pool
       else
          allocate(of_new)
@@ -88,11 +89,7 @@ CONTAINS
          of_new%file_desc = file
          open_files_pool => of_new
       end if
-      if (associated(open_files_tail)) then
-         open_files_tail%next => of_new
-      else
-         open_files_tail => of_new
-      end if
+      open_files_tail => of_new
       if (.not. associated(open_files_head)) then
          open_files_head => of_new
       end if
