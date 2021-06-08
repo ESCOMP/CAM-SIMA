@@ -184,16 +184,7 @@ CONTAINS
          of_ptr => of_ptr%next
       end do
 
-      if (present(file) .and. present(line)) then
-         write(abort_msg, '(4a,i0)') trim(message),' at ', trim(file),':',line
-      else if (present(file)) then
-         write(abort_msg, '(3a)') trim(message),' at ', trim(file)
-      else if (present(line)) then
-         write(abort_msg, '(2a,i0)') trim(message),' on line ',line
-      else
-         write(abort_msg, '(a)') trim(message)
-      end if
-      call shr_sys_abort(abort_msg)
+      call endrun(message, file, line)
 
    end subroutine safe_endrun
 end module cam_abortutils
