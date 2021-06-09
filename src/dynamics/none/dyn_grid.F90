@@ -213,7 +213,7 @@ CONTAINS
               '(a,i4,i9,2i7)', (/ num_local_columns, col_start, col_end/))
       end if
       ! Find a 3D variable and get its dimensions
-      call cam_pio_find_var(fh_ini, (/ 'U         ', 'state_u' /),         &
+      call cam_pio_find_var(fh_ini, (/ 'U      ', 'state_u' /),         &
            fieldname, vardesc, var_found)
       if (var_found) then
          ! Find the variable dimension info

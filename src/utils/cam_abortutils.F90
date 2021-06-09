@@ -12,6 +12,7 @@ module cam_abortutils
    save
 
    public :: endrun
+   public :: safe_endrun
    public :: check_allocate
    public :: cam_register_open_file
    public :: cam_register_close_file
@@ -80,12 +81,18 @@ CONTAINS
       if (associated(open_files_pool)) then
          of_new => open_files_pool
          of_new%file_desc = file
-         open_files_pool => open_files_pool%next
+         allocate(open_files_pool%next)
+         open_files_pool%next => open_files_pool
       else
          allocate(of_new)
+         allocate(of_new%file_desc)
+         of_new%file_desc = file
+         open_files_pool => of_new
       end if
-      open_files_tail%next => of_new
       open_files_tail => of_new
+      if (.not. associated(open_files_head)) then
+         open_files_head => of_new
+      end if
    end subroutine cam_register_open_file
 
    subroutine cam_register_close_file(file, log_shutdown_in)
@@ -107,7 +114,7 @@ CONTAINS
       end if
       ! Look to see if we have this file
       of_ptr => open_files_head
-      do while (associated(of_ptr))
+      do while (associated(of_ptr) .and. associated(of_ptr%file_desc))
          if (file%fh == of_ptr%file_desc%fh) then
             ! Remove this file from the list
             if (associated(of_prev)) then
@@ -136,11 +143,6 @@ CONTAINS
    end subroutine cam_register_close_file
 
    subroutine endrun(message, file, line)
-!!XXgoldyXX: v broken
-# if 0
-      use pio, only : pio_closefile
-#endif
-!!XXgoldyXX: ^ debug only
       ! Parallel emergency stop
       ! Dummy arguments
       character(len=*),           intent(in) :: message
@@ -148,20 +150,6 @@ CONTAINS
       integer,          optional, intent(in) :: line
       ! Local variables
       character(len=max_chars)               :: abort_msg
-!!XXgoldyXX: v broken
-# if 0
-      type(open_file_pointer), pointer       :: of_ptr
-
-      ! First, close all open PIO files
-      of_ptr => open_files_head
-      do while (associated(of_ptr))
-         call pio_closefile(of_ptr%file_desc)
-         call cam_register_close_file(of_ptr%file_desc,                       &
-              log_shutdown_in="Emergency close")
-         of_ptr => of_ptr%next
-      end do
-#endif
-!!XXgoldyXX: ^ debug only
       if (present(file) .and. present(line)) then
          write(abort_msg, '(4a,i0)') trim(message),' at ',trim(file),':',line
       else if (present(file)) then
@@ -175,4 +163,28 @@ CONTAINS
 
    end subroutine endrun
 
+   subroutine safe_endrun(message, file, line)
+      ! Sequential/global emergency stop
+      use pio, only : pio_closefile
+      ! Dummy arguments
+      character(len=*),           intent(in) :: message
+      character(len=*), optional, intent(in) :: file
+      integer,          optional, intent(in) :: line
+
+      ! Local variables
+      character(len=max_chars)               :: abort_msg
+      type(open_file_pointer), pointer       :: of_ptr
+
+      ! First, close all open PIO files
+      of_ptr => open_files_head
+      do while (associated(of_ptr))
+         call pio_closefile(of_ptr%file_desc)
+         call cam_register_close_file(of_ptr%file_desc,                       &
+              log_shutdown_in="Emergency close")
+         of_ptr => of_ptr%next
+      end do
+
+      call endrun(message, file, line)
+
+   end subroutine safe_endrun
 end module cam_abortutils
