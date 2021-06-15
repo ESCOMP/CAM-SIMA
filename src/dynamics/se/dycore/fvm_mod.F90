@@ -191,8 +191,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use edge_mod,               only: initghostbuffer, freeghostbuffer, ghostpack, ghostunpack
 
     use fvm_reconstruction_mod, only: extend_panel_interpolate
-    use cam_abortutils,         only: endrun
-    use string_utils,           only: to_str
+    use cam_abortutils,         only: endrun, check_allocate
     use dimensions_mod,         only: fv_nphys,nhr,nhr_phys,nhc,nhc_phys,ns,ns_phys,nhe_phys,nc
     use perf_mod, only : t_startf, t_stopf ! _EXTERNAL
 
@@ -247,10 +246,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         nh_phys  = nhr_phys
 
         allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret)
-        if (iret /= 0) then
-          call endrun(subname//': allocate fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)'//&
-                    ' failed with stat: '//to_str(iret))
-        end if
+        call check_allocate(iret, subname, &
+                            'fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)', &
+                            file=__FILE__, line=__LINE__)
 
         do ie=nets,nete
           do itr=1,num_flds
@@ -272,10 +270,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         nht_phys= nhe_phys+nhr
         nh_phys = nhr
         allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret)
-        if (iret /= 0) then
-          call endrun(subname//': allocate fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)'//&
-                      ' failed with stat: '//to_str(iret))
-        end if
+        call check_allocate(iret, subname, &
+                            'fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)', &
+                            file=__FILE__, line=__LINE__)
 
         do ie=nets,nete
           do itr=1,num_flds

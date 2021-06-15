@@ -113,8 +113,7 @@ contains
 
   subroutine LLAddEdge(EdgeList,src,dest,id)
 
-    use cam_abortutils, only: endrun
-    use string_utils,   only: to_str
+    use cam_abortutils, only: endrun, check_allocate
 
     type (root_t), intent(inout) :: EdgeList
     integer, intent(in)  :: src
@@ -138,10 +137,8 @@ contains
     enddo
 
     allocate(new_node, stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate new_node failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'new_node', &
+                        file=__FILE__, line=__LINE__)
 
     NumEdges = NumEdges + 1
 

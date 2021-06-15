@@ -6,8 +6,7 @@ module edge_mod
   use thread_mod,             only: max_num_threads, omp_get_num_threads, omp_get_thread_num
   use coordinate_systems_mod, only: cartesian3D_t
   use schedtype_mod,          only: cycle_t, schedule_t, pgindex_t, schedule, HME_Ordinal,HME_Cardinal
-  use cam_abortutils,         only: endrun
-  use string_utils,           only: to_str
+  use cam_abortutils,         only: endrun, check_allocate
   use cam_logfile,            only: iulog
   use parallel_mod,           only: parallel_t, &
       MAX_ACTIVE_MSG, HME_status_size, BNDRY_TAG_BASE, HME_BNDRY_A2A, HME_BNDRY_P2P, &
@@ -285,38 +284,27 @@ contains
     edge%tag = BNDRY_TAG_BASE + MODULO(edge%id, MAX_ACTIVE_MSG)
 
     allocate(edge%putmap(max_neigh_edges,nelemd), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%putmap(max_neigh_edges,nelemd) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%putmap(max_neigh_edges,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(edge%getmap(max_neigh_edges,nelemd), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%getmap(max_neigh_edges,nelemd) failed with stat: '//&
-                   to_str(ierr))
-    end if
-
+    call check_allocate(ierr, subname, 'edge%getmap(max_neigh_edges,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(edge%reverse(max_neigh_edges,nelemd), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%reverse(max_neigh_edges,nelemd) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%reverse(max_neigh_edges,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     edge%putmap(:,:)=-1
     edge%getmap(:,:)=-1
 
     allocate(putmap2(max_neigh_edges,nelemd), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate putmap2(max_neigh_edges,nelemd) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'putmap2(max_neigh_edges,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(getmap2(max_neigh_edges,nelemd), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate getmap2(max_neigh_edges,nelemd) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'getmap2(max_neigh_edges,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     putmap2(:,:)=-1
     getmap2(:,:)=-1
@@ -338,75 +326,52 @@ contains
 
     if(nInter>0) then
        allocate(edge%rcountsInter(nInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%rcountsInter(nInter) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%rcountsInter(nInter)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%rdisplsInter(nInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%rdisplsInter(nInter) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%rdisplsInter(nInter)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%scountsInter(nInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%scountsInter(nInter) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%scountsInter(nInter)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%sdisplsInter(nInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%sdisplsInter(nInter) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%sdisplsInter(nInter)', &
+                           file=__FILE__, line=__LINE__)
 
     endif
     if(nIntra>0) then
        allocate(edge%rcountsIntra(nIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%rcountsIntra(nIntra) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%rcountsIntra(nIntra)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%rdisplsIntra(nIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%rdisplsIntra(nIntra) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%rdisplsIntra(nIntra)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%scountsIntra(nIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%scountsIntra(nIntra) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%scountsIntra(nIntra)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%sdisplsIntra(nIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%sdisplsIntra(nIntra) failed with stat: '//&
-                      to_str(ierr))
-       end if
-
+       call check_allocate(ierr, subname, 'edge%sdisplsIntra(nIntra)', &
+                           file=__FILE__, line=__LINE__)
     endif
 
     if (nSendCycles>0) then
        allocate(edge%scountsFull(nSendCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%scountsFull(nSendCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%scountsFull(nSendCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%sdisplsFull(nSendCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%sdisplsFull(nSendCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%sdisplsFull(nSendCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%Srequest(nSendCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%Srequest(nSendCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%Srequest(nSendCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        edge%scountsFull(:) = 0
     endif
@@ -465,41 +430,30 @@ contains
 
     if (nRecvCycles>0) then
        allocate(edge%rcountsFull(nRecvCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%rcountsFull(nRecvCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%rcountsFull(nRecvCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%rdisplsFull(nRecvCycles), stat=ierr)
-              if (ierr /= 0) then
-          call endrun(subname//': allocate edge%rdisplsFull(nRecvCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%rdisplsFull(nRecvCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%getDisplsFull(nRecvCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%getDisplsFull(nRecvCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%getDisplsFull(nRecvCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%putDisplsFull(nRecvCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%putDisplsFull(nRecvCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%putDisplsFull(nRecvCycles)', &
+                           file=__FILE__, line=__LINE__)
+
        edge%rcountsFull(:) = 0
        ! allocate the MPI Send/Recv request handles
        allocate(edge%Rrequest(nRecvCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%Rrequest(nRecvCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%Rrequest(nRecvCycles)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(edge%status(HME_status_size,nRecvCycles), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate edge%status(HME_status_size,nRecvCycles) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'edge%status(HME_status_size,nRecvCycles)', &
+                           file=__FILE__, line=__LINE__)
     endif
 
     !
@@ -596,16 +550,12 @@ contains
     call gbarrier_init(edge%gbarrier, nlen)
 
     allocate(edge%moveLength(nlen), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%moveLength(nlen) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%moveLength(nlen)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(edge%movePtr(nlen), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%movePtr(nlen) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%movePtr(nlen)', &
+                        file=__FILE__, line=__LINE__)
 
     if (nlen > 1) then
        ! the master thread performs no data movement because it is busy with the
@@ -640,15 +590,12 @@ contains
     edge%nbuf=nbuf
 
     allocate(edge%receive(nbuf), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%receive(nbuf) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%receive(nbuf)', &
+                        file=__FILE__, line=__LINE__)
+
     allocate(edge%buf(nbuf), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%buf(nbuf) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%buf(nbuf)', &
+                        file=__FILE__, line=__LINE__)
 
 21  format('RANK: ',i2, A,8(i6))
 
@@ -710,17 +657,14 @@ contains
     edge%nlyr=nlyr
     edge%nbuf=nbuf
     allocate(edge%buf(nlyr,nbuf), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%buf(nlyr,nbuf) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%buf(nlyr,nbuf)', &
+                        file=__FILE__, line=__LINE__)
+
     edge%buf(:,:)=0
 
     allocate(edge%receive(nlyr,nbuf), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate edge%receive(nlyr,nbuf) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'edge%receive(nlyr,nbuf)', &
+                        file=__FILE__, line=__LINE__)
 
     edge%receive(:,:)=0
 
@@ -2312,16 +2256,12 @@ end subroutine ghostunpack
     ghost%nbuf    = nbuf
     ghost%elem_size = np*(nhc+1)
     allocate(ghost%buf    (np,(nhc+1),nlyr,nbuf), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate ghost%buf(np,(nhc+1),nlyr,nbuf) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'ghost%buf(np,(nhc+1),nlyr,nbuf)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(ghost%receive(np,(nhc+1),nlyr,nbuf), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate ghost%receive(np,(nhc+1),nlyr,nbuf) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'ghost%receive(np,(nhc+1),nlyr,nbuf)', &
+                        file=__FILE__, line=__LINE__)
 
     ghost%buf=0
     ghost%receive=0

@@ -29,7 +29,7 @@ CONTAINS
     use time_mod,               only: tstep
     use control_mod,            only: rsplit, qsplit
     use perf_mod,               only: t_startf, t_stopf
-    use cam_abortutils,         only: endrun
+    use cam_abortutils,         only: check_allocate
     use string_utils,           only: to_str
     type (element_t),             intent(inout) :: elem(:)
     type (TimeLevel_t), target,   intent(in)    :: tl
@@ -67,54 +67,44 @@ CONTAINS
     !-------------
     vmax = 11+2*max(qsize_d,ntrac_d)
     allocate(varname(vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate varname(vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'varname(vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(min_local(nets:nete, vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate min_local(nets:nete,vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'min_local(nets:nete,vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(max_local(nets:nete, vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate max_local(nets:nete,vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'max_local(nets:nete,vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(min_p(vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate min_p(vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'min_p(vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(max_p(vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate max_p(vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'max_p(vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(mass(vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate mass(vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'mass(vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(mass_chg(vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate mass_chg(vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'mass_chg(vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(tmp_gll(np,np,vmax,nets:nete), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate tmp_gll(np,np,vmax,nets:nete) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'tmp_gll(np,np,vmax,nets:nete)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(tmp_mass(vmax), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate tmp_mass(vmax) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'tmp_mass(vmax)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(tmp_fvm(nc,nc,vmax,nets:nete), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate tmp_fvm(nc,nc,vmax,nets:nete) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'tmp_fvm(nc,nc,vmax,nets:nete)', &
+                        file=__FILE__, line=__LINE__)
     !-------------
 
     !dynamics variables in n0 are at time =  'time': time=tl%nstep*tstep

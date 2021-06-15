@@ -1,8 +1,7 @@
 #undef _GAUSS_TABLE
 module quadrature_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: check_allocate
 
   implicit none
   private
@@ -52,16 +51,12 @@ contains
     character(len=*), parameter :: subname = 'gauss (SE)'
 
     allocate(gs%points(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate gs%points(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'gs%points(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(gs%weights(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate gs%weights(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'gs%weights(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     gs%points=gauss_pts(npts)
     gs%weights=gauss_wts(npts,gs%points)
@@ -298,16 +293,12 @@ contains
     character(len=*), parameter :: subname = 'gausslobatto (SE)'
 
     allocate(gll%points(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate gll%points(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'gll%points(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(gll%weights(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate gll%weights(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'gll%weights(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     gll%points=gausslobatto_pts(npts)
     gll%weights=gausslobatto_wts(npts,gll%points)

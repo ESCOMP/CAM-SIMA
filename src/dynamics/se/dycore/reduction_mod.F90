@@ -2,8 +2,7 @@ module reduction_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
   use mpi,            only: mpi_sum, mpi_min, mpi_max, mpi_real8, mpi_integer
   use mpi,            only: mpi_success
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: endrun, check_allocate
 
   implicit none
   private
@@ -201,10 +200,8 @@ contains
        red%len  = len
 
        allocate(red%buf(len), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate red%buf(len) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'red%buf(len)', &
+                           file=__FILE__, line=__LINE__)
 
        red%buf  = 0
        red%ctr  = 0
@@ -231,10 +228,8 @@ contains
        red%len  = len
 
        allocate(red%buf(len), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate red%buf(len) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'red%buf(len)', &
+                           file=__FILE__, line=__LINE__)
 
        red%buf  = 0.0_R8
        red%ctr  = 0
@@ -261,10 +256,8 @@ contains
        red%len  = len
 
        allocate(red%buf(len,nthread+1), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate red%buf(len,nthread+1) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'red%buf(len,nthread+1)', &
+                           file=__FILE__, line=__LINE__)
 
        red%buf  = 0.0_R8
        red%ctr  = 0

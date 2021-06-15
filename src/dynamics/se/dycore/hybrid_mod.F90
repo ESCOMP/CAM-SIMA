@@ -135,8 +135,7 @@ contains
 
   function config_thread_region_par(par,region_name) result(hybrid)
 
-      use cam_abortutils, only: endrun
-      use string_utils,   only: to_str
+      use cam_abortutils, only: endrun, check_allocate
 
       type (parallel_t) , intent(in) :: par
       character(len=*), intent(in) :: region_name
@@ -157,10 +156,8 @@ contains
          region_num_threads = 1
          if ( .NOT. allocated(work_pool_horz) ) then
             allocate(work_pool_horz(horz_num_threads,2), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate work_pool_horz(horz_num_threads,2)'//&
-                           ' failed with stat: '//to_str(iret))
-            end if
+            call check_allocate(iret, subname, 'work_pool_horz(horz_num_threads,2)', &
+                                file=__FILE__, line=__LINE__)
          end if
          call set_thread_ranges_1D ( work_pool_horz, ibeg_range, iend_range, ithr )
          hybrid%ibeg = 1;          hybrid%iend = nelemd_save
@@ -220,8 +217,7 @@ contains
 
   subroutine init_loop_ranges(nelemd)
 
-      use cam_abortutils, only: endrun
-      use string_utils,   only: to_str
+      use cam_abortutils, only: endrun, check_allocate
 
       integer, intent(in) :: nelemd
       integer :: ith, beg_index, end_index
@@ -234,10 +230,8 @@ contains
         nelemd_save=nelemd
         if ( .NOT. allocated(work_pool_horz) ) then
           allocate(work_pool_horz(horz_num_threads,2), stat=iret)
-          if (iret /= 0) then
-            call endrun(subname//': allocate work_pool_horz(horz_num_threads,2)'//&
-                       ' failed with stat: '//to_str(iret))
-          end if
+          call check_allocate(iret, subname, 'work_pool_horz(horz_num_threads,2)', &
+                              file=__FILE__, line=__LINE__)
         end if
         if(nelemd<horz_num_threads) &
           print *,'WARNING: insufficient horizontal parallelism to support ',horz_num_threads,' horizontal threads'
@@ -252,11 +246,8 @@ contains
           print *,'WARNING: insufficient vertical parallelism to support ',vert_num_threads,' vertical threads'
         if ( .NOT. allocated(work_pool_vert) ) then
           allocate(work_pool_vert(vert_num_threads,2), stat=iret)
-          if (iret /= 0) then
-            call endrun(subname//': allocate work_pool_vert(vert_num_threads,2)'//&
-                       ' failed with stat: '//to_str(iret))
-          end if
-
+          call check_allocate(iret, subname, 'work_pool_vert(vert_num_threads,2)', &
+                              file=__FILE__, line=__LINE__)
         end if
         do ith=0,vert_num_threads-1
           call create_work_pool( 1, nlev, vert_num_threads, ith, beg_index, end_index )
@@ -268,11 +259,8 @@ contains
           print *,'WARNING: insufficient tracer parallelism to support ',tracer_num_threads,' tracer threads'
         if ( .NOT. allocated(work_pool_trac) ) then
           allocate(work_pool_trac(tracer_num_threads,2), stat=iret)
-          if (iret /= 0) then
-            call endrun(subname//': allocate work_pool_trac(tracer_num_threads,2)'//&
-                       ' failed with stat: '//to_str(iret))
-          end if
-
+          call check_allocate(iret, subname, 'work_pool_trac(tracer_num_threads,2)', &
+                              file=__FILE__, line=__LINE__)
         end if
         do ith=0,tracer_num_threads-1
           call create_work_pool( 1, qsize, tracer_num_threads, ith, beg_index, end_index )
@@ -284,10 +272,8 @@ contains
           print *,'WARNING: insufficient CSLAM tracer parallelism to support ',tracer_num_threads,' tracer threads'
         if ( .NOT. allocated(work_pool_ctrac) ) then
           allocate(work_pool_ctrac(tracer_num_threads,2), stat=iret)
-          if (iret /= 0) then
-            call endrun(subname//': allocate work_pool_ctrac(tracer_num_threads,2)'//&
-                       ' failed with stat: '//to_str(iret))
-          end if
+          call check_allocate(iret, subname, 'work_pool_ctrac(tracer_num_threads,2)', &
+                              file=__FILE__, line=__LINE__)
         end if
         do ith=0,tracer_num_threads-1
           call create_work_pool( 1, ntrac, tracer_num_threads, ith, beg_index, end_index )

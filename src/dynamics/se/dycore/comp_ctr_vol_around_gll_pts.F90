@@ -3,8 +3,7 @@
 
 module comp_gll_ctr_vol
   use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
-  use cam_abortutils,         only: endrun
-  use string_utils,           only: to_str
+  use cam_abortutils,         only: endrun, check_allocate
   use cam_logfile,            only: iulog
   use shr_sys_mod,            only: shr_sys_flush
   use global_norms_mod,       only: wrap_repro_sum
@@ -274,11 +273,8 @@ CONTAINS
 
     ! Work array to gather info before writing
     allocate(gwork(np*np, nv_max, nelemd), stat=ierror)
-    if (ierror /= 0) then
-       call endrun(subname//': allocate gwork(np*np, nv_max, nelemd) failed with stat: '//&
-                   to_str(ierror))
-    end if
-
+    call check_allocate(ierror, subname, 'gwork(np*np, nv_max, nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     ! Write grid size
     status = pio_put_var(file, grid_dims_id, (/ gridsize /))
@@ -340,9 +336,8 @@ CONTAINS
 !!XXgoldyXX: v debug only
 #ifdef USE_PIO3D
 allocate(ldof(np*np*nelemd*nv_max), stat=ierror)
-if (ierror /= 0) then
-   call endrun(subname//': allocate ldof(np*np*nelemd*nv_max) failed with stat: '//to_str(ierror))
-end if
+call check_allocate(ierror, subname, 'ldof(np*np*nelemd*nv_max)', &
+                    file=__FILE__, line=__LINE__)
 
 ldof = 0
 do ie = 1, nelemd
@@ -362,10 +357,8 @@ do ie = 1, nelemd
   end do
 end do
 allocate(iodesc, stat=ierror)
-if (ierror /= 0) then
-   call endrun(subname//': allocate iodesc failed with stat: '//to_str(ierror))
-end if
-
+call check_allocate(ierror, subname, 'iodesc', &
+                    file=__FILE__, line=__LINE__)
 
 call cam_pio_newdecomp(iodesc, (/ nv_max, gridsize /), ldof, PIO_double)
 call pio_write_darray(file, grid_corner_lat_id, iodesc, gwork, status)
@@ -455,29 +448,21 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
     ! Cannot be done in a threaded region
     allocate(cvlist(nelemd), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate vlist(nelemd) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'vlist(nelemd)', &
+                    file=__FILE__, line=__LINE__)
 
     do ie = 1, nelemd
       allocate(cvlist(ie)%vert(nv_max, np,np), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate cvlist(ie)%vert(nv_max,np,np) failed with stat: '//&
-                     to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'cvlist(ie)%vert(nv_max,np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(cvlist(ie)%vert_latlon(nv_max,np,np), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate cvlist(ie)%vert_latlon(nv_max,np,np) failed with stat: '//&
-                     to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'cvlist(ie)%vert_latlon(nv_max,np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(cvlist(ie)%face_no(nv_max,np,np), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate cvlist(ie)%face_no(nv_max,np,np) failed with stat: '//&
-                     to_str(iret))
-      end if
-
+      call check_allocate(iret, subname, 'cvlist(ie)%face_no(nv_max,np,np)', &
+                          file=__FILE__, line=__LINE__)
     end do
 
     call initedgebuffer(par,edge1,elem,3,bndry_type=HME_BNDRY_P2P, nthreads=1)

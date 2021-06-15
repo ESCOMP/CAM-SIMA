@@ -1,7 +1,6 @@
 module derivative_mod
   use shr_kind_mod,       only: r8=>shr_kind_r8
-  use cam_abortutils,     only: endrun
-  use string_utils,       only: to_str
+  use cam_abortutils,     only: endrun, check_allocate
   use dimensions_mod, only : np, nc, npdg, nelemd, nlev
   use quadrature_mod, only : quadrature_t, gauss, gausslobatto,legendre, jacobi
   ! needed for spherical differential operators:
@@ -921,29 +920,20 @@ end do
        ! find number of intersections
        nintersect = np+nphys-1  ! max number of possible intersections
        allocate(acell(nintersect), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate acell(nintersect) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'acell(nintersect)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(dcell(nintersect), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate dcell(nintersect) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'dcell(nintersect)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(delta(nintersect), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate delta(nintersect) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'delta(nintersect)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(delta_a(np), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate delta_a(np) failed with stat: '//&
-                      to_str(iret))
-       end if
-
+       call check_allocate(iret, subname, 'delta_a(np)', &
+                           file=__FILE__, line=__LINE__)
 
        ! compute phys grid cell edges on [-1,1]
        do i=1,nphys+1
@@ -2270,18 +2260,13 @@ end do
 
     if (ALLOCATED(integration_matrix)) deallocate(integration_matrix)
     allocate(integration_matrix(intervals,np), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate integration_matrix(intervals,np)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'integration_matrix(intervals,np)', &
+                        file=__FILE__, line=__LINE__)
 
     if (ALLOCATED(boundary_interp_matrix)) deallocate(boundary_interp_matrix)
     allocate(boundary_interp_matrix(intervals,2,np), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate boundary_interp_matrix(intervals,2,np)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
-
+    call check_allocate(iret, subname, 'boundary_interp_matrix(intervals,2,np)', &
+                        file=__FILE__, line=__LINE__)
 
     gll = gausslobatto(np)
 
@@ -2388,11 +2373,8 @@ end do
 
     if (ALLOCATED(integration_matrix_physgrid)) deallocate(integration_matrix_physgrid)
     allocate(integration_matrix_physgrid(intervals,np), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate integration_matrix_physgrid(intervals,np)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
-
+    call check_allocate(iret, subname, 'integration_matrix_physgrid(intervals,np)', &
+                        file=__FILE__, line=__LINE__)
 
     gll = gausslobatto(np)
 

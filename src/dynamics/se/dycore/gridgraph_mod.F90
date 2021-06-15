@@ -74,8 +74,7 @@ contains
 
   subroutine allocate_gridvertex_nbrs(vertex, dim)
 
-    use cam_abortutils, only: endrun
-    use string_utils,   only: to_str
+    use cam_abortutils, only: endrun, check_allocate
 
     type (GridVertex_t), intent(inout)   :: vertex
     integer, optional, intent(in)        :: dim
@@ -91,25 +90,20 @@ contains
     end if
 
     allocate(vertex%nbrs(num), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate vertex%nbrs(num) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'vertex%nbrs(num)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(vertex%nbrs_face(num), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate vertex%nbrs_face(num) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'vertex%nbrs_face(num)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(vertex%nbrs_wgt(num), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate vertex%nbrs_wgt(num) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'vertex%nbrs_face(num)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(vertex%nbrs_wgt_ghost(num), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate vertex%nbrs_wgt_ghost(num) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'vertex%nbrs_wgt_ghost(num)', &
+                        file=__FILE__, line=__LINE__)
 
   end subroutine allocate_gridvertex_nbrs
 !======================================================================
@@ -309,8 +303,7 @@ contains
 
   subroutine CreateSubGridGraph(Vertex, SVertex, local2global)
 
-    use cam_abortutils, only: endrun
-    use string_utils,   only: to_str
+    use cam_abortutils, only: endrun, check_allocate
 
     implicit none
 
@@ -330,9 +323,8 @@ contains
     nelem_s = SiZE(SVertex)
 
     allocate(global2local(nelem), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate global2local(nelem) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'global2local(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
     global2local(:) = 0
     do i=1,nelem_s

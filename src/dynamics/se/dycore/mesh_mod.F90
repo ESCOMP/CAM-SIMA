@@ -3,8 +3,7 @@ module mesh_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
   use physconst,      only: PI
   use control_mod,    only: MAX_FILE_LEN
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: endrun, check_allocate
 
   use netcdf,         only: nf90_strerror, nf90_open, nf90_close
   use netcdf,         only: NF90_NOWRITE, nf90_NoErr
@@ -389,10 +388,9 @@ CONTAINS
     !Create an index table so that we can find neighbors on O(n)
     ! so for each node, we want to know which elements it is part of
     allocate(index_table(p_number_nodes, max_elements_attached_to_node + 1), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate (index_table(p_number_nodes,max_elements_attached_to_node+1)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'index_table(p_number_nodes,max_elements_attached_to_node+1)',&
+                        file=__FILE__, line=__LINE__)
 
     !the last column in the index table is a count of the number of elements
     index_table = 0
@@ -676,19 +674,16 @@ CONTAINS
     if (ne2<ne) call endrun('initialize_space_filling_curve: Fatel SFC error')
 
     allocate(Mesh2(ne2,ne2), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate Mesh2(ne2,ne2) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'Mesh2(ne2,ne2)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(Mesh2_map(ne2,ne2), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate Mesh2_map(ne2,ne2) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'Mesh2_map(ne2,ne2)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(sfcij(0:ne2*ne2,2), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate sfcij(0:ne2*ne2,2) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'sfcij(0:ne2*ne2,2)', &
+                        file=__FILE__, line=__LINE__)
 
     ! create a reverse index array for Mesh2
     ! j = Mesh2(i,j)
@@ -1044,20 +1039,18 @@ CONTAINS
     end if
 
     allocate(p_connectivity(4,p_number_elements_per_face), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate p_connectivity(4,p_number_elements_per_face) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'p_connectivity(4,p_number_elements_per_face)', &
+                        file=__FILE__, line=__LINE__)
 
     p_connectivity(:,:)=0
     ! extract the connectivity from the netcdf file
     call get_face_connectivity()
 
     allocate(node_multiplicity(p_number_nodes), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate node_multiplicity(p_number_nodes) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'node_multiplicity(p_number_nodes)', &
+                        file=__FILE__, line=__LINE__)
 
     call get_node_multiplicity(node_multiplicity)
 
@@ -1074,10 +1067,9 @@ CONTAINS
 
     ! allocate the space for the coordinates, this is used in many functions
     allocate(p_node_coordinates(p_number_nodes, p_number_dimensions), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate p_node_coordinates(p_number_nodes, p_number_dimensions)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'p_node_coordinates(p_number_nodes, p_number_dimensions)', &
+                        file=__FILE__, line=__LINE__)
 
     call get_node_coordinates()
 

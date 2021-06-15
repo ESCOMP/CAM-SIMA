@@ -2,8 +2,7 @@ module prim_advance_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
   use edgetype_mod,   only: EdgeBuffer_t
   use perf_mod,       only: t_startf, t_stopf, t_adj_detailf !, t_barrierf _EXTERNAL
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: endrun, check_allocate
   use parallel_mod,   only: parallel_t, HME_BNDRY_P2P!,HME_BNDRY_A2A
   use thread_mod ,    only: horz_num_threads, vert_num_threads, omp_set_nested
 
@@ -37,9 +36,8 @@ contains
 
     if(.not. allocated(ur_weights)) then
       allocate(ur_weights(qsplit), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate ur_weights(qsplit) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'ur_weights(qsplit)', &
+                          file=__FILE__, line=__LINE__)
     end if
     ur_weights(:)=0.0_r8
 
@@ -344,10 +342,8 @@ contains
 
     if (ntrac>0) then
       allocate(ftmp_fvm(nc,nc,nlev,ntrac,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate ftmp_fvm(nc,nc,nlev,ntrac,nets:nete)'//&
-                    ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'ftmp_fvm(nc,nc,nlev,ntrac,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
     end if
 
     if (ftype==0) then

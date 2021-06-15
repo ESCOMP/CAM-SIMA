@@ -13,7 +13,7 @@ module ic_baro_dry_jw06
   !-----------------------------------------------------------------------
   use cam_logfile,         only: iulog
   use shr_kind_mod,        only: r8 => shr_kind_r8
-  use cam_abortutils,      only: endrun
+  use cam_abortutils,      only: endrun, check_allocate
   use spmd_utils,          only: masterproc
   use shr_sys_mod,         only: shr_sys_flush
 
@@ -54,7 +54,6 @@ contains
     !use constituents,    only: cnst_name
     !use const_init,      only: cnst_init_default
 
-    use string_utils,    only: to_str
     !Remove once constituents are enabled -JN
     use physics_types,   only: ix_cld_liq, ix_rain
 
@@ -100,10 +99,8 @@ contains
        exponent               = rair*gamma/gravit
 
     allocate(mask_use(size(latvals)), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate mask_use(size(latvals)) failed with stat: '//&
-                  to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'mask_use(size(latvals))', &
+                        file=__FILE__, line=__LINE__)
 
     if (present(mask)) then
       if (size(mask_use) /= size(mask)) then

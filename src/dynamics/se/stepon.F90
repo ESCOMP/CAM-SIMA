@@ -181,8 +181,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    !use physconst,              only: get_sum_species, get_ps,thermodynamic_active_species_idx
    !use physconst,              only: thermodynamic_active_species_idx_dycore,get_dp_ref
    use hycoef,                 only: hyai, hybi, ps0
-   use cam_abortutils,         only: endrun
-   use string_utils,           only: to_str
+   use cam_abortutils,         only: endrun, check_allocate
 
    !SE dycore:
    use time_mod,               only: TimeLevel_Qdp   !  dynamics typestep
@@ -221,11 +220,8 @@ subroutine diag_dynvar_ic(elem, fvm)
    call TimeLevel_Qdp(TimeLevel, qsplit, tl_Qdp)
 
    allocate(ftmp(npsq,nlev,2), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate ftmp(npsq,nlev,2) failed with stat: '//&
-                  to_str(iret))
-   end if
-
+   call check_allocate(iret, subname, 'ftmp(npsq,nlev,2)', &
+                       file=__FILE__, line=__LINE__)
 
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #if 0
@@ -313,10 +309,8 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    if (hist_fld_active('PS_gll')) then
      allocate(fld_2d(np,np))
-     if (iret /= 0) then
-        call endrun(subname//': allocate fld_2d(np, np) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fld_2d(np, np)', &
+                       file=__FILE__, line=__LINE__)
 
      do ie = 1, nelemd
        call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
@@ -341,12 +335,9 @@ subroutine diag_dynvar_ic(elem, fvm)
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #if 0
      allocate(fld_2d(np,np))
-     if (iret /= 0) then
-        call endrun(subname//': allocate fld_2d(np, np) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fld_2d(np, np)', &
+                       file=__FILE__, line=__LINE__)
 
-     do ie = 1, nelemd
        call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
             thermodynamic_active_species_idx_dycore,elem(ie)%state%dp3d(:,:,:,tl_f),fld_2d,hyai(1)*ps0)
        do j = 1, np
@@ -359,10 +350,8 @@ subroutine diag_dynvar_ic(elem, fvm)
      deallocate(fld_2d)
       if (fv_nphys < 1) then
          allocate(factor_array(np,np,nlev), stat=iret)
-         if (iret /= 0) then
-            call endrun(subname//': allocate factor_array(np,np,nlev) failed with stat: '//&
-                        to_str(iret))
-         end if
+         call check_allocate(iret, subname, 'factor_array(np,np,nlev)', &
+                             file=__FILE__, line=__LINE__)
       end if
 #endif
 
@@ -401,26 +390,22 @@ subroutine diag_dynvar_ic(elem, fvm)
          call get_loop_ranges(hybrid, ibeg=nets, iend=nete)
 
          allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete), stat=iret)
-         if (iret /= 0) then
-            call endrun(subname//': allocate fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete)'//&
-                        ' failed with stat: '//to_str(iret))
-         end if
+         call check_allocate(iret, subname, &
+                             'fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete)', &
+                             file=__FILE__, line=__LINE__)
 
          allocate(fld_gll(np,np,nlev,ntrac,nets:nete), stat=iret)
-         if (iret /= 0) then
-            call endrun(subname//': allocate fld_gll(np,np,nlev,ntrac,nets:nete)'//&
-                        ' failed with stat: '//to_str(iret))
-         end if
+         call check_allocate(iret, subname, &
+                             'fld_gll(np,np,nlev,ntrac,nets:nete)', &
+                             file=__FILE__, line=__LINE__)
 
          allocate(llimiter(ntrac), stat=iret)
-         if (iret /= 0) then
-            call endrun(subname//': allocate llimiter(ntrac) failed with stat: '//to_str(iret))
-         end if
+         call check_allocate(iret, subname, 'llimiter(ntrac)', &
+                             file=__FILE__, line=__LINE__)
 
          allocate(factor_array(nc,nc,nlev), stat=iret)
-         if (iret /= 0) then
-            call endrun(subname//': allocate factor_array(nc,nc,nlev) failed with stat: '//to_str(iret))
-         end if
+         call check_allocate(iret, subname, 'factor_array(nc,nc,nlev)', &
+                             file=__FILE__, line=__LINE__)
 
          llimiter = .true.
          do ie = nets, nete

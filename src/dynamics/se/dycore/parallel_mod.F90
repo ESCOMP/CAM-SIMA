@@ -109,12 +109,11 @@ CONTAINS
 
   function initmpi(npes_homme) result(par)
     use cam_logfile,    only: iulog
-    use cam_abortutils, only: endrun
+    use cam_abortutils, only: endrun, check_allocate
     use spmd_utils,     only: mpicom, iam, npes
     use mpi,            only: MPI_COMM_NULL, MPI_MAX_PROCESSOR_NAME
     use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_BAND
     use dimensions_mod, only: nlev, qsize_d, ntrac_d
-    use string_utils,   only: to_str
 
     integer, intent(in) :: npes_homme
 
@@ -153,10 +152,8 @@ CONTAINS
 
     ! Allocate repro_sum variable:
     allocate(global_shared_sum(nrepro_vars), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate global_shared_sum(nrepro_vars) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'global_shared_sum(nrepro_vars)', &
+                        file=__FILE__, line=__LINE__)
 
     ! The SE dycore needs to split from CAM communicator for npes > par%nprocs
     color = iam / npes_homme
@@ -191,10 +188,8 @@ CONTAINS
       call MPI_Get_Processor_Name(my_name, namelen, ierr)
 
       allocate(the_names(par%nprocs), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate the_names(par%nprocs) failed with stat: '//&
-                     to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'the_names(par%nprocs)', &
+                          file=__FILE__, line=__LINE__)
 
       do i = 1, par%nprocs
         the_names(i)(:) =  ''

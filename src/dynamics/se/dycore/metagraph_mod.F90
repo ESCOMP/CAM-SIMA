@@ -1,7 +1,6 @@
 module metagraph_mod
   use cam_logfile,    only: iulog
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: endrun, check_allocate
   use gridgraph_mod, only : gridvertex_t, gridedge_t, &
        allocate_gridvertex_nbrs, assignment ( = )
 
@@ -69,10 +68,8 @@ CONTAINS
     if (associated(edge1%members)) then
 
        allocate(edge2%members(edge2%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate edge2%members(edge2%nmembers) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'edge2%members(edge2%nmembers)', &
+                        file=__FILE__, line=__LINE__)
 
        do i=1,edge2%nmembers
           edge2%members(i)=edge1%members(i)
@@ -82,23 +79,16 @@ CONTAINS
     if (associated(edge1%edgeptrP)) then
 
        allocate(edge2%edgeptrP(edge2%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate edge2%edgeptrP(edge2%nmembers) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'edge2%edgeptrP(edge2%nmembers)', &
+                        file=__FILE__, line=__LINE__)
 
        allocate(edge2%edgeptrS(edge2%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate edge2%edgeptrS(edge2%nmembers) failed with stat: '//&
-                      to_str(iret))
-       end if
-
+       call check_allocate(iret, subname, 'edge2%edgeptrS(edge2%nmembers)', &
+                        file=__FILE__, line=__LINE__)
 
        allocate(edge2%edgeptrP_ghost(edge2%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate edge2%edgeptrP_ghost(edge2%nmembers) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'edge2%edgeptrP_ghost(edge2%nmembers)', &
+                        file=__FILE__, line=__LINE__)
 
        do i=1,edge2%nmembers
           edge2%edgeptrP(i)=edge1%edgeptrP(i)
@@ -237,10 +227,8 @@ CONTAINS
     NULLIFY(MetaVertex%edges)
 
     allocate(MetaVertex%edges(nedges), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate MetaVertex%edges(nedges) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'MetaVertex%edges(nedges)', &
+                        file=__FILE__, line=__LINE__)
 
     ! Initalize the Meta Vertices to zero... probably should be done
     ! in a separate routine
@@ -271,10 +259,8 @@ CONTAINS
     if(Debug) write(iulog,*)'initMetagraph: point #4.1 i,MetaVertex%nmembers',i,MetaVertex%nmembers
 
     allocate(MetaVertex%members(MetaVertex%nmembers), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate MetaVertex%members(MetaVertex%nmembers) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'MetaVertex%members(MetaVertex%nmembers)', &
+                        file=__FILE__, line=__LINE__)
 
     do j=1, MetaVertex%nmembers
        call allocate_gridvertex_nbrs(MetaVertex%members(j))
@@ -357,28 +343,24 @@ CONTAINS
     do i=1,nedges
        !  Allocate space for the member edges and edge index
        allocate(MetaVertex%edges(i)%members (MetaVertex%edges(i)%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate MetaVertex%edges(i)%members(MetaVertex%edges(i)%nmembers)'//&
-                      ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'MetaVertex%edges(i)%members(MetaVertex%edges(i)%nmembers)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(MetaVertex%edges(i)%edgeptrP(MetaVertex%edges(i)%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate MetaVertex%edges(i)%edgeptrP(MetaVertex%edges(i)%nmembers)'//&
-                      ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'MetaVertex%edges(i)%edgeptrP(MetaVertex%edges(i)%nmembers)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(MetaVertex%edges(i)%edgeptrS(MetaVertex%edges(i)%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate MetaVertex%edges(i)%edgeptrS(MetaVertex%edges(i)%nmembers)'//&
-                      ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'MetaVertex%edges(i)%edgeptrS(MetaVertex%edges(i)%nmembers)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(MetaVertex%edges(i)%edgeptrP_ghost(MetaVertex%edges(i)%nmembers), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate MetaVertex%edges(i)%edgeptrP_ghost(MetaVertex%edges(i)%nmembers)'//&
-                      ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'MetaVertex%edges(i)%edgeptrP_ghost(MetaVertex%edges(i)%nmembers)', &
+                           file=__FILE__, line=__LINE__)
 
        MetaVertex%edges(i)%edgeptrP(:)=0
        MetaVertex%edges(i)%edgeptrS(:)=0
@@ -388,9 +370,8 @@ CONTAINS
 
     !  Insert the edges into the proper meta edges
     allocate(icount(nelem_edge), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate icount(nelem_edge) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'icount(nelem_edge)', &
+                        file=__FILE__, line=__LINE__)
 
     icount=1
     do i=1,nelem_edge

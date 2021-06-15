@@ -16,8 +16,7 @@ module fvm_control_volume_mod
   use dimensions_mod,         only: nc, nhe, nlev, ntrac_d, qsize_d,ne, np, nhr, ns, nhc
   use dimensions_mod,         only: fv_nphys, nhe_phys, nhr_phys, ns_phys, nhc_phys,fv_nphys
   use dimensions_mod,         only: irecons_tracer
-  use string_utils,           only: to_str
-  use cam_abortutils,         only: endrun
+  use cam_abortutils,         only: endrun, check_allocate
 
   implicit none
   private
@@ -287,142 +286,112 @@ contains
 
     do ie=1,nelemd
       allocate(fvm(ie)%phis_physgrid          (fv_nphys,fv_nphys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%phis_physgrid(fv_nphys,fv_nphys) failed with stat: '//&
-                     to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'fvm(ie)%phis_physgrid(fv_nphys,fv_nphys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%vtx_cart_physgrid      (4,2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%vtx_cart_physgrid(4,2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%vtx_cart_physgrid(4,2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%flux_orient_physgrid   (2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%flux_orient_physgrid(2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%flux_orient_physgrid(2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%ifct_physgrid         (1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%ifct_physgrid(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%ifct_physgrid(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%rot_matrix_physgrid   (2,2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%rot_matrix_physgrid(2,2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%rot_matrix_physgrid(2,2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%spherecentroid_physgrid(irecons_tracer-1,&
            1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%spherecentroid_physgrid(irecons_tracer-1,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%spherecentroid_physgrid(irecons_tracer-1,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%recons_metrics_physgrid         (3,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%recons_metrics_physgrid(3,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%recons_metrics_physgrid(3,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%recons_metrics_integral_physgrid(3,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%recons_metrics_integral_physgrid(3,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%recons_metrics_integral_physgrid(3,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%centroid_stretch_physgrid       (7,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%centroid_stretch_physgrid(7,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%centroid_stretch_physgrid(7,1-nhe_phys:fv_nphys+nhe_phys,1-nhe_phys:fv_nphys+nhe_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%center_cart_physgrid(fv_nphys,fv_nphys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%center_cart_physgrid(fv_nphys,fv_nphys) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%center_cart_physgrid(fv_nphys,fv_nphys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%area_sphere_physgrid(fv_nphys,fv_nphys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%area_sphere_physgrid(fv_nphys,fv_nphys) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%area_sphere_physgrid(fv_nphys,fv_nphys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%ibase_physgrid(1-nhr_phys:fv_nphys+nhr_phys,1:nhr_phys,2), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%ibase_physgrid(1-nhr_phys:fv_nphys+nhr_phys,1:nhr_phys,2)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%ibase_physgrid(1-nhr_phys:fv_nphys+nhr_phys,1:nhr_phys,2)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%halo_interp_weight_physgrid(1:ns_phys,1-nhr_phys:fv_nphys+nhr_phys,1:nhr_phys,2), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%halo_interp_weight_physgrid(1:ns_phys,1-nhr_phys:fv_nphys+nhr_phys,1:nhr_phys,2)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%halo_interp_weight_physgrid(1:ns_phys,1-nhr_phys:fv_nphys+nhr_phys,1:nhr_phys,2)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%vertex_recons_weights_physgrid(4,1:irecons_tracer-1,1-nhe_phys:fv_nphys+nhe_phys,&
             1-nhe_phys:fv_nphys+nhe_phys), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%vertex_recons_weights_physgrid(4,1:irecons_tracer-1,1-nhe_phys:fv_nphys+nhe_phys,'//&
-                     '1-nhe_phys:fv_nphys+nhe_phys) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                         'fvm(ie)%vertex_recons_weights_physgrid(4,1:irecons_tracer-1,1-nhe_phys:fv_nphys+nhe_phys,'//&
+                         '1-nhe_phys:fv_nphys+nhe_phys)',&
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%norm_elem_coord_physgrid(2,1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys    ))
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%vertex_recons_weights_physgrid(4,1:irecons_tracer-1,1-nhe_phys:fv_nphys+nhe_phys,'//&
-                     '1-nhe_phys:fv_nphys+nhe_phys) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%vertex_recons_weights_physgrid(4,1:irecons_tracer-1,1-nhe_phys:fv_nphys+nhe_phys,'//&
+                          '1-nhe_phys:fv_nphys+nhe_phys)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%Dinv_physgrid           (  1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,2), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%Dinv_physgrid(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,2)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%Dinv_physgrid(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,2)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%fc(nc,nc,nlev,max(ntrac_d,qsize_d)), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%fc(nc,nc,nlev,max(ntrac_d,qsize_d)) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%fc(nc,nc,nlev,max(ntrac_d,qsize_d))', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac_d,qsize_d)), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate '//&
-                     'fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac_d,qsize_d))'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac_d,qsize_d))', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%ft(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%ft(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%ft(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%fm(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,nlev), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%fm(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,nlev)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%fm(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%dp_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate fvm(ie)%dp_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev)'//&
-                     ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fvm(ie)%dp_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
     end do
   end subroutine allocate_physgrid_vars
@@ -452,169 +421,128 @@ contains
 
      !fvm tracer mixing ratio:
      allocate(fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac_d), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac_d) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac_d)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%se_flux(1-nhe:nc+nhe,1-nhe:nc+nhe,4,nlev), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%se_flux(1-nhe:nc+nhe,1-nhe:nc+nhe,4,nlev) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%se_flux(1-nhe:nc+nhe,1-nhe:nc+nhe,4,nlev)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%dp_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%dp_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%dp_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%dp_ref(nlev), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%dp_ref(nlev) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%dp_ref(nlev)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%dp_ref_inverse(nlev), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%dp_ref_inverse(nlev) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%dp_ref_inverse(nlev)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%psc(nc,nc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%psc(nc,nc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%psc(nc,nc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! inverse area_sphere
      allocate(fvm(ie)%inv_area_sphere(nc,nc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%inv_area_sphere(nc,nc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%inv_area_sphere(nc,nc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! inverse area_sphere
      allocate(fvm(ie)%inv_se_area_sphere(nc,nc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%inv_se_area_sphere(nc,nc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%inv_se_area_sphere(nc,nc)', &
+                         file=__FILE__, line=__LINE__)
 
 #ifdef waccm_debug
      allocate(fvm(ie)%CSLAM_gamma(nc,nc,nlev,4), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%CSLAM_gamma(nc,nc,nlev,4) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%CSLAM_gamma(nc,nc,nlev,4)', &
+                         file=__FILE__, line=__LINE__)
 #endif
 
      allocate(fvm(ie)%displ_max(1-nhc:nc+nhc,1-nhc:nc+nhc,4), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%displ_max(1-nhc:nc+nhc,1-nhc:nc+nhc,4) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%displ_max(1-nhc:nc+nhc,1-nhc:nc+nhc,4)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%flux_vec(2,1-nhc:nc+nhc,1-nhc:nc+nhc,4), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%flux_vec(2,1-nhc:nc+nhc,1-nhc:nc+nhc,4) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%flux_vec(2,1-nhc:nc+nhc,1-nhc:nc+nhc,4)', &
+                         file=__FILE__, line=__LINE__)
 
      ! cartesian location of vertices for flux sides
      allocate(fvm(ie)%vtx_cart(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%vtx_cart(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%vtx_cart(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%flux_orient(2,1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%flux_orient(2,1-nhc:nc+nhc,1-nhc:nc+nhc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%flux_orient(2,1-nhc:nc+nhc,1-nhc:nc+nhc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! indicator function for non-existent cells
      allocate(fvm(ie)%ifct(1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%ifct(1-nhc:nc+nhc,1-nhc:nc+nhc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%ifct(1-nhc:nc+nhc,1-nhc:nc+nhc)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%rot_matrix(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%rot_matrix(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%rot_matrix(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! center of fvm cell in gnomonic coordinates
      allocate(fvm(ie)%center_cart(nc,nc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%center_cart(nc,nc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%center_cart(nc,nc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! spherical area of fvm cell
      allocate(fvm(ie)%area_sphere(nc,nc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%area_sphere(nc,nc) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%area_sphere(nc,nc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! centroids
      allocate(fvm(ie)%spherecentroid(irecons_tracer-1,1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%spherecentroid(irecons_tracer-1,1-nhc:nc+nhc,1-nhc:nc+nhc)'//&
-                    ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%spherecentroid(irecons_tracer-1,1-nhc:nc+nhc,1-nhc:nc+nhc)', &
+                         file=__FILE__, line=__LINE__)
 
      ! pre-computed metric terms (for efficiency)
      allocate(fvm(ie)%recons_metrics(3,1-nhe:nc+nhe,1-nhe:nc+nhe), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%recons_metrics(3,1-nhe:nc+nhe,1-nhe:nc+nhe)'//&
-                    ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%recons_metrics(3,1-nhe:nc+nhe,1-nhe:nc+nhe)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%recons_metrics_integral(3,1-nhe:nc+nhe,1-nhe:nc+nhe), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%recons_metrics_integral(3,1-nhe:nc+nhe,1-nhe:nc+nhe)'//&
-                    ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%recons_metrics_integral(3,1-nhe:nc+nhe,1-nhe:nc+nhe)', &
+                         file=__FILE__, line=__LINE__)
 
      ! provide fixed interpolation points with respect to the arrival grid for reconstruction
      allocate(fvm(ie)%ibase(1-nh:nc+nh,1:nhr,2), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%ibase(1-nh:nc+nh,1:nhr,2) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'fvm(ie)%ibase(1-nh:nc+nh,1:nhr,2)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%halo_interp_weight(1:ns,1-nh:nc+nh,1:nhr,2), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%halo_interp_weight(1:ns,1-nh:nc+nh,1:nhr,2) failed with stat: '//&
-                    to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%halo_interp_weight(1:ns,1-nh:nc+nh,1:nhr,2)', &
+                         file=__FILE__, line=__LINE__)
 
      ! for finite-difference reconstruction
      allocate(fvm(ie)%centroid_stretch(7,1-nhe:nc+nhe,1-nhe:nc+nhe), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%centroid_stretch(7,1-nhe:nc+nhe,1-nhe:nc+nhe)'//&
-                    ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%centroid_stretch(7,1-nhe:nc+nhe,1-nhe:nc+nhe)', &
+                         file=__FILE__, line=__LINE__)
 
      ! pre-compute weights for reconstruction at cell vertices
      allocate(fvm(ie)%vertex_recons_weights(4,1:irecons_tracer-1,1-nhe:nc+nhe,1-nhe:nc+nhe), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate '//&
-                    'fvm(ie)%vertex_recons_weights(4,1:irecons_tracer-1,1-nhe:nc+nhe,1-nhe:nc+nhe)'//&
-                    ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%vertex_recons_weights(4,1:irecons_tracer-1,1-nhe:nc+nhe,1-nhe:nc+nhe)', &
+                         file=__FILE__, line=__LINE__)
 
      ! for mapping fvm2dyn
      allocate(fvm(ie)%norm_elem_coord(2,1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
-     if (iret /= 0) then
-        call endrun(subname//': allocate fvm(ie)%norm_elem_coord(2,1-nhc:nc+nhc,1-nhc:nc+nhc)'//&
-                    ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, &
+                         'fvm(ie)%norm_elem_coord(2,1-nhc:nc+nhc,1-nhc:nc+nhc)', &
+                         file=__FILE__, line=__LINE__)
 
   end do
 

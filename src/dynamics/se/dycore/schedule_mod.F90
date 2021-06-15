@@ -39,8 +39,7 @@ contains
     use metagraph_mod,  only: metavertex_t
     use dimensions_mod, only: nelem, max_neigh_edges
     use gridgraph_mod,  only: gridvertex_t, gridedge_t, assignment ( = )
-    use cam_abortutils, only: endrun
-    use string_utils,   only: to_str
+    use cam_abortutils, only: check_allocate
     use shr_kind_mod,   only: shr_kind_cs
     use parallel_mod,   only: nComPoints, rrequest, srequest, status, npackpoints
 
@@ -97,10 +96,8 @@ contains
     ! so no need to put it in the schedule data-structure
     ! =====================================================
     allocate(Global2Local(nelem), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate Global2Local(nelem) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'Global2Local(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
     if(Debug) write(iulog,*)'genEdgeSched: point #1'
     iSched = PartNumber
@@ -128,41 +125,29 @@ contains
 
     ! Temporary array to calculate the Buffer Slot
     allocate(tmpP(2,nedges+1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate tmpP(2,nedges+1) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'tmpP(2,nedges+1)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(tmpS(2,nedges+1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate tmpS(2,nedges+1) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'tmpS(2,nedges+1)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(tmpP_ghost(2,nedges+1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate tmpP_ghost(2,nedges+1) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'tmpP_ghost(2,nedges+1)', &
+                        file=__FILE__, line=__LINE__)
 
     !  Allocate all the cycle structures
     allocate(LSchedule%SendCycle(nedges), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%SendCycle(nedges) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%SendCycle(nedges)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(LSchedule%RecvCycle(nedges), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%RecvCycle(nedges) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%RecvCycle(nedges)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(LSchedule%MoveCycle(1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%MoveCycle(1) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%MoveCycle(1)', &
+                        file=__FILE__, line=__LINE__)
 
     ! Initialize the schedules...
     LSchedule%MoveCycle(1)%ptrP = 0
@@ -174,22 +159,16 @@ contains
     !  Allocate and initalized the index translation arrays
     Global2Local = -1
     allocate(LSchedule%Local2Global(nelemd0), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%Local2Global(nelemd0) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%Local2Global(nelemd0)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(LSchedule%pIndx(max_neigh_edges*nelemd0), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%pIndx(max_neigh_edges*nelemd0) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%pIndx(max_neigh_edges*nelemd0)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(LSchedule%gIndx(max_neigh_edges*nelemd0), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%gIndx(max_neigh_edges*nelemd0) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%gIndx(max_neigh_edges*nelemd0)', &
+                        file=__FILE__, line=__LINE__)
 
     LSchedule%pIndx(:)%elemId   = -1
     LSchedule%pIndx(:)%edgeId   = -1
@@ -355,22 +334,16 @@ contains
     nSend = nedges
     nRecv = nedges
     allocate(Rrequest(nRecv), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate Rrequest(nRecv) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'Rrequest(nRecv)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(Srequest(nSend), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate Srequest(nSend) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'Srequest(nSend)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(status(MPI_STATUS_SIZE,nRecv), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate status(MPI_STATUS_SIZE,nRecv) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'status(MPI_STATUS_SIZE,nRecv)', &
+                        file=__FILE__, line=__LINE__)
 
     !===============================================================
     !   Number of communication points ... to be used later to
@@ -388,10 +361,8 @@ contains
    call MPI_Comm_rank(par%intracomm, par%intracommrank, ierr)
 
    allocate(intracommranks(par%intracommsize), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate intracommranks(par%intracommsize) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'intracommranks(par%intracommsize)', &
+                       file=__FILE__, line=__LINE__)
 
    call MPI_Allgather(par%rank,1,MPIinteger_t,intracommranks,1,MPIinteger_t,par%intracomm,ierr)
 
@@ -428,67 +399,55 @@ contains
     LSchedule%nIntra = numIntra
 
     allocate(srcFull(nRecv), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate srcFull(nRecv) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'srcFull(nRecv)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(srcWeightFull(nRecv), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate srcWeightFull(nRecv) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'srcWeightFull(nRecv)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(destFull(nSend), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate destFull(nSend) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'destFull(nSend)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(destWeightFull(nSend), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate destWeightFull(nSend) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'destWeightFull(nSend)', &
+                        file=__FILE__, line=__LINE__)
 
     if(numInter>0) then
        allocate(srcInter(numInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate srcInter(numInter) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'srcInter(numInter)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(srcWeightInter(numInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate srcWeightInter(numInter) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'srcWeightInter(numInter)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(destInter(numInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate destInter(numInter) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'destInter(numInter)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(destWeightInter(numInter), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate destWeightInter(numInter) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'destWeightInter(numInter)', &
+                           file=__FILE__, line=__LINE__)
     endif
 
     if(numIntra>0) then
        allocate(srcIntra(numIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate srcIntra(numIntra) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'srcIntra(numIntra)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(srcWeightIntra(numIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate srcWeightIntra(numIntra) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'srcWeightIntra(numIntra)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(destIntra(numIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate destIntra(numIntra) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'destIntra(numIntra)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(destWeightIntra(numIntra), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate destWeightIntra(numIntra) failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'destWeightIntra(numIntra)', &
+                           file=__FILE__, line=__LINE__)
     endif
 
     icIntra=0
@@ -537,13 +496,13 @@ contains
        print *,subname,': Error after call to MPI_dist_graph_create_adjacent(FULL) ',errorstring
     endif
     allocate(LSchedule%destFull(nSend), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%destFull(nSend) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%destFull(nSend)', &
+                        file=__FILE__, line=__LINE__)
+
     allocate(LSchedule%srcFull(nRecv), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate LSchedule%srcFull(nRecv) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'LSchedule%srcFull(nRecv)', &
+                        file=__FILE__, line=__LINE__)
+
     LSchedule%destFull(:) = destFull(:)
     LSchedule%srcFull(:)  = srcFull(:)
     ! construct the FULL communication -group- (for one-sided operations):

@@ -4,8 +4,7 @@ module element_mod
   use coordinate_systems_mod, only: spherical_polar_t, cartesian2D_t, cartesian3D_t, distance
   use edgetype_mod,           only: edgedescriptor_t
   use gridgraph_mod,          only: gridvertex_t
-  use cam_abortutils,         only: endrun
-  use string_utils,           only: to_str
+  use cam_abortutils,         only: endrun, check_allocate
 
   implicit none
   private
@@ -367,58 +366,40 @@ contains
 
     do j=1,num
        allocate(elem(j)%desc%putmapP(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%putmapP(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%putmapP(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%getmapP(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%getmapP(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%getmapP(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%putmapP_ghost(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%putmapP_ghost(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%getmapP_ghost(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%getmapP_ghost(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%putmapS(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%putmapS(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%putmapS(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%getmapS(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%getmapS(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%getmapS(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%reverse(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%reverse(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%reverse(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%globalID(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%globalID(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%globalID(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(elem(j)%desc%loc2buf(max_neigh_edges), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%loc2buf(max_neigh_edges) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%loc2buf(max_neigh_edges)', &
+                           file=__FILE__, line=__LINE__)
 
        do i=1,max_neigh_edges
           elem(j)%desc%loc2buf(i)=i
@@ -451,76 +432,57 @@ contains
 
       !Coordinate values of element points:
       allocate(elem(i)%spherep(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%spherep(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%spherep(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Gnomonic coords of GLL points:
       allocate(elem(i)%cartp(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%cartp(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%cartp(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Variable Hyperviscosity:
       allocate(elem(i)%variable_hyperviscosity(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%variable_hyperviscosity(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%variable_hyperviscosity(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !og, matrix V for tensor viscosity:
       allocate(elem(i)%tensorVisc(np,np,2,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%tensorVisc(np,np,2,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%tensorVisc(np,np,2,2)', &
+                          file=__FILE__, line=__LINE__)
 
       !Allocate "state" variables:
       !--------------------------
 
       ! velocity
       allocate(elem(i)%state%v(np,np,2,nlev,timelevels), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%state%v(np,np,2,nlev,timelevels) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%state%v(np,np,2,nlev,timelevels)', &
+                          file=__FILE__, line=__LINE__)
 
       ! temperature
       allocate(elem(i)%state%T(np,np,nlev,timelevels), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%state%T(np,np,nlev,timelevels) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%state%T(np,np,nlev,timelevels)', &
+                          file=__FILE__, line=__LINE__)
 
       ! dry delta p on levels
       allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%state%dp3d(np,np,nlev,timelevels) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%state%dp3d(np,np,nlev,timelevels)', &
+                          file=__FILE__, line=__LINE__)
 
       ! dry surface pressure
       allocate(elem(i)%state%psdry(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%state%psdry(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%state%psdry(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       ! surface geopotential (prescribed)
       allocate(elem(i)%state%phis(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%state%phis(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%state%phis(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       ! Tracer mass
       allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%state%Qdp(np,np,nlev,qsize_d,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,2)', &
+                          file=__FILE__, line=__LINE__)
+
       !--------------------------
 
       !Allocate "derived" variables:
@@ -528,206 +490,149 @@ contains
 
       ! velocity for SE tracer advection
       allocate(elem(i)%derived%vn0(np,np,2,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%vn0(np,np,2,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%vn0(np,np,2,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! mean dp dissipation tendency, if nu_p>0
       allocate(elem(i)%derived%dpdiss_biharmonic(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dpdiss_biharmonic(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dpdiss_biharmonic(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! mean dp used to compute psdiss_tens
       allocate(elem(i)%derived%dpdiss_ave(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dpdiss_ave(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dpdiss_ave(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! geopotential
       allocate(elem(i)%derived%phi(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%phi(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%phi(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! vertical velocity
       allocate(elem(i)%derived%omega(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%omega(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%omega(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! relative vorticity
       allocate(elem(i)%derived%zeta(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%zeta(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%zeta(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! divergence
       allocate(elem(i)%derived%div(np,np,nlev,timelevels), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%div(np,np,nlev,timelevels) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%div(np,np,nlev,timelevels)', &
+                          file=__FILE__, line=__LINE__)
 
       ! for dp_tracers at physics timestep
       allocate(elem(i)%derived%dp(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dp(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dp(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! divergence of dp
       allocate(elem(i)%derived%divdp(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%divdp(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%divdp(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! DSSed divdp
       allocate(elem(i)%derived%divdp_proj(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%divdp_proj(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%divdp_proj(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! total tracer mass for diagnostics
       allocate(elem(i)%derived%mass(max(qsize_d,ntrac_d)+9), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%mass(max(qsize_d,ntrac_d)+9) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%mass(max(qsize_d,ntrac_d)+9)', &
+                          file=__FILE__, line=__LINE__)
 
       ! tracer forcing
       allocate(elem(i)%derived%FQ(np,np,nlev,qsize_d), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%FQ(np,np,nlev,qsize_d) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%FQ(np,np,nlev,qsize_d)', &
+                          file=__FILE__, line=__LINE__)
 
       ! momentum forcing
       allocate(elem(i)%derived%FM(np,np,2,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%FM(np,np,2,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%FM(np,np,2,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! save full updated dp right after physics
       allocate(elem(i)%derived%FDP(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%FDP(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%FDP(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! temperature forcing
       allocate(elem(i)%derived%FT(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%FT(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%FT(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! prescribed vertical tendency
       allocate(elem(i)%derived%etadot_prescribed(np,np,nlevp), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%etadot_prescribed(np,np,nlevp) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%etadot_prescribed(np,np,nlevp)', &
+                          file=__FILE__, line=__LINE__)
 
       ! zonal component of prescribed meteorology winds
       allocate(elem(i)%derived%u_met(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%u_met(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%u_met(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! rate of change of zonal component of prescribed meteorology winds
       allocate(elem(i)%derived%dudt_met(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dudt_met(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dudt_met(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! meridional component of prescribed meteorology winds
       allocate(elem(i)%derived%v_met(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%v_met(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%v_met(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! rate of change of meridional component of prescribed meteorology winds
       allocate(elem(i)%derived%dvdt_met(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dvdt_met(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dvdt_met(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! prescribed meteorology temperature
       allocate(elem(i)%derived%T_met(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%T_met(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%T_met(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! rate of change of prescribed meteorology temperature
       allocate(elem(i)%derived%dTdt_met(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dTdt_met(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dTdt_met(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! surface pressure of prescribed meteorology
       allocate(elem(i)%derived%ps_met(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%ps_met(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%ps_met(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       ! rate of change of surface pressure of prescribed meteorology
       allocate(elem(i)%derived%dpsdt_met(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%dpsdt_met(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%dpsdt_met(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       ! nudging factor (prescribed)
       allocate(elem(i)%derived%nudge_factor(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%nudge_factor(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%nudge_factor(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! accumulated U tendency due to nudging towards prescribed met
       allocate(elem(i)%derived%Utnd(npsq,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%Utnd(npsq,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%Utnd(npsq,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! accumulated V tendency due to nudging towards prescribed met
       allocate(elem(i)%derived%Vtnd(npsq,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%Vtnd(npsq,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%Vtnd(npsq,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! accumulated T tendency due to nudging towards prescribed met
       allocate(elem(i)%derived%Ttnd(npsq,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%Ttnd(npsq,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%Ttnd(npsq,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       ! pressure perturbation from condensate
       allocate(elem(i)%derived%pecnd(np,np,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%derived%pecnd(np,np,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%derived%pecnd(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__)
+
       !----------------------------
 
       !Allocate "Metric terms":
@@ -735,116 +640,87 @@ contains
 
       ! metric tensor on velocity and pressure grid
       allocate(elem(i)%met(np,np,2,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%met(np,np,2,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%met(np,np,2,2)', &
+                          file=__FILE__, line=__LINE__)
 
       ! metric tensor on velocity and pressure grid
       allocate(elem(i)%metinv(np,np,2,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%metinv(np,np,2,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%metinv(np,np,2,2)', &
+                          file=__FILE__, line=__LINE__)
 
       ! g = SQRT(det(g_ij)) on velocity and pressure grid
       allocate(elem(i)%metdet(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%metdet(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%metdet(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       ! 1/metdet on velocity pressure grid
       allocate(elem(i)%rmetdet(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%rmetdet(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%rmetdet(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       ! Map covariant field on cube to vector field on the sphere
       allocate(elem(i)%D(np,np,2,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%D(np,np,2,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%D(np,np,2,2)', &
+                          file=__FILE__, line=__LINE__)
 
       ! Map vector field on the sphere to covariant v on cube
       allocate(elem(i)%Dinv(np,np,2,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%Dinv(np,np,2,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%Dinv(np,np,2,2)', &
+                          file=__FILE__, line=__LINE__)
+
       !-----------------------
 
       !First Coordinate:
       allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%sub_elem_mass_flux(nc,nc,4,nlev) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%sub_elem_mass_flux(nc,nc,4,nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       !Spherical -> rectangular converter:
       allocate(elem(i)%vec_sphere2cart(np,np,3,2), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%vec_sphere2cart(np,np,3,2) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%vec_sphere2cart(np,np,3,2)', &
+                          file=__FILE__, line=__LINE__)
 
       !Mass matrix on v and p grid:
       allocate(elem(i)%mp(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%mp(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%mp(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Inverse mass matrix on v and p grid:
       allocate(elem(i)%rmp(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%rmp(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%rmp(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Mass matrix on v and p grid:
       allocate(elem(i)%spheremp(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%spheremp(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%spheremp(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Inverse mass matrix on v and p grid:
       allocate(elem(i)%rspheremp(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%rspheremp(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%rspheremp(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Global degree of freedom (P-grid):
       allocate(elem(i)%gdofP(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%gdofP(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%gdofP(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Coriolis term:
       allocate(elem(i)%fcor(np,np), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%fcor(np,np) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%fcor(np,np)', &
+                          file=__FILE__, line=__LINE__)
 
       !Index terms:
       !-----------
+
       allocate(elem(i)%idxP%ia(npsq), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%idxP%ia(npsq) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%idxP%ia(npsq)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(elem(i)%idxP%ja(npsq), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate elem%idxP%ja(npsq) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'elem%idxP%ja(npsq)', &
+                          file=__FILE__, line=__LINE__)
+
       !-----------
 
     end do

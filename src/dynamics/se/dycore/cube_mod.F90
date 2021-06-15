@@ -6,8 +6,7 @@ module cube_mod
 
   use physconst,              only: pi, rearth
   use control_mod,            only: hypervis_scaling, cubed_sphere_map
-  use cam_abortutils,         only: endrun
-  use string_utils,           only: to_str
+  use cam_abortutils,         only: endrun, check_allocate
 
   implicit none
   private
@@ -915,10 +914,8 @@ contains
 
     if (nrot > 0) then
        allocate(elem%desc%rot(nrot), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate elem%desc%rot(nrot) failed with stat: '//&
-                      to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'elem%desc%rot(nrot)', &
+                           file=__FILE__, line=__LINE__)
 
        elem%desc%use_rotation=1
        irot=0
@@ -938,19 +935,13 @@ contains
 
                 if (inbr <= 4) then
                    allocate(elem%desc%rot(irot)%R(2,2,np), stat=iret)  ! edge
-                   if (iret /= 0) then
-                      call endrun(subname//': allocate elem%desc%rot(irot)%R(2,2,np)'//&
-                                  ' failed with stat: '//to_str(iret))
-                   end if
-
+                   call check_allocate(iret, subname, 'elem%desc%rot(irot)%R(2,2,np)', &
+                                       file=__FILE__, line=__LINE__)
 
                 else
                    allocate(elem%desc%rot(irot)%R(2,2,1 ), stat=iret)   ! corner
-                   if (iret /= 0) then
-                      call endrun(subname//': allocate elem%desc%rot(irot)%R(2,2,1)'//&
-                                  ' failed with stat: '//to_str(iret))
-                   end if
-
+                   call check_allocate(iret, subname, 'elem%desc%rot(irot)%R(2,2,1)', &
+                                       file=__FILE__, line=__LINE__)
                 end if
                 ! Initialize Dloc and Drem for no-rotation possibilities
                 Dloc(1,1,:) = 1.0_r8
@@ -1472,10 +1463,8 @@ contains
     if (0==ne) call endrun('Error in CubeTopology: ne is zero')
 
     allocate(GridElem(ne,ne,nfaces),stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate GridElem(ne,ne,nfaces)'//&
-                   ' failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'GridElem(ne,ne,nfaces)', &
+                        file=__FILE__, line=__LINE__)
 
     do k = 1, nfaces
        do j = 1, ne
@@ -1490,10 +1479,8 @@ contains
     end if
 
     allocate(nbrs_used(ne,ne,nfaces,8), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate nbrs_used(ne,ne,nfaces,8)'//&
-                   ' failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'nbrs_used(ne,ne,nfaces,8)', &
+                        file=__FILE__, line=__LINE__)
 
     nbrs_used = .false.
 
@@ -1520,10 +1507,8 @@ contains
     end do
 
     allocate(Mesh(ne,ne), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate Mesh(ne,ne)'//&
-                   ' failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'Mesh(ne,ne)', &
+                        file=__FILE__, line=__LINE__)
 
     if(IsFactorable(ne)) then
        call GenspaceCurve(Mesh)
@@ -1535,21 +1520,16 @@ contains
        end if
 
        allocate(Mesh2(ne2,ne2), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate Mesh2(ne2,ne2)'//&
-                      ' failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'Mesh2(ne2,ne2)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(Mesh2_map(ne2,ne2,2), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate Mesh2_map(ne2,ne2,2)'//&
-                      ' failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'Mesh2_map(ne2,ne2,2)', &
+                           file=__FILE__, line=__LINE__)
+
        allocate(sfcij(0:ne2*ne2,2), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate sfcij(0:ne2*ne2,2)'//&
-                      ' failed with stat: '//to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'sfcij(0:ne2*ne2,2)', &
+                           file=__FILE__, line=__LINE__)
 
        call GenspaceCurve(Mesh2)  ! SFC partition for ne2
 

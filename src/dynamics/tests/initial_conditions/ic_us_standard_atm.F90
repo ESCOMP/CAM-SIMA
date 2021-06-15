@@ -18,8 +18,7 @@ use physconst,           only: gravit
 use std_atm_profile,     only: std_atm_pres, std_atm_height, std_atm_temp
 
 use cam_logfile,         only: iulog
-use cam_abortutils,      only: endrun
-use string_utils,        only: to_str
+use cam_abortutils,      only: endrun, check_allocate
 
 implicit none
 private
@@ -69,10 +68,8 @@ subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
 
    ncol = size(latvals, 1)
    allocate(mask_use(ncol), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate mask_use(ncol)) failed with stat: '//&
-                  to_str(iret))
-   end if
+   call check_allocate(iret, subname, 'mask_use(ncol)', &
+                       file=__FILE__, line=__LINE__)
 
    if (present(mask)) then
       if (size(mask_use) /= size(mask)) then
@@ -120,16 +117,12 @@ subroutine us_std_atm_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
       end if
       nlev = size(T, 2)
       allocate(pmid(nlev), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate pmid(nlev) failed with stat: '//&
-                     to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'pmid(nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(zmid(nlev), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate zmid(nlev) failed with stat: '//&
-                     to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'zmid(nlev)', &
+                          file=__FILE__, line=__LINE__)
 
       do i = 1, ncol
          if (mask_use(i)) then

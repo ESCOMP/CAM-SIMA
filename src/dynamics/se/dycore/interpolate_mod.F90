@@ -10,12 +10,11 @@ module interpolate_mod
   use physconst,              only: PI
   use quadrature_mod,         only: quadrature_t, gauss, gausslobatto
   use parallel_mod,           only: syncmp, parallel_t
-  use cam_abortutils,         only: endrun
+  use cam_abortutils,         only: endrun, check_allocate
   use cube_mod,               only: convert_gbl_index, dmap, ref2sphere
   use mesh_mod,               only: MeshUseMeshFile
   use control_mod,            only: cubed_sphere_map
   use cam_logfile,            only: iulog
-  use string_utils,           only: to_str
 
   implicit none
   private
@@ -215,40 +214,28 @@ contains
     npts = size(gquad%points)
 
     allocate(interp%Imat(npts,npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate interp%Imat(npts,npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interp%Imat(npts,npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(interp%rk(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate interp%rk(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interp%rk(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(interp%vtemp(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate interp%vtemp(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interp%vtemp(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(interp%glp(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate interp%glp(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interp%glp(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(gamma(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate gamma(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'gamma(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(leg(npts), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate leg(npts) failed with stat: '//&
-                   to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'leg(npts)', &
+                        file=__FILE__, line=__LINE__)
 
     gamma = quad_norm(gquad,npts)
 
@@ -1158,28 +1145,20 @@ contains
     ! these arrays often are too large for stack, so lets make sure
     ! they go on the heap:
     allocate(local_elem_num(nlat,nlon), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate local_elem_num(nlat,nlon) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'local_elem_num(nlat,nlon)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(local_elem_gid(nlat,nlon), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate local_elem_gid(nlat,nlon) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'local_elem_gid(nlat,nlon)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(global_elem_gid(nlat,nlon), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate global_elem_gid(nlat,nlon) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'global_elem_gid(nlat,nlon)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(cart_vec(nlat,nlon), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate cart_vec(nlat,nlon) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'cart_vec(nlat,nlon)', &
+                        file=__FILE__, line=__LINE__)
 
     if (par%masterproc) then
        write(iulog,'(a,i4,a,i4,a)') 'Initializing ',nlat,' x ',nlon,' lat-lon interpolation grid: '
@@ -1204,22 +1183,16 @@ contains
     endif
 
     allocate(lat(nlat), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate lat(nlat) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'lat(nlat)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(gweight(nlat), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate gweight(nlat) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'gweight(nlat)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(lon(nlon), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate lon(nlon) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'lon(nlon)', &
+                        file=__FILE__, line=__LINE__)
 
     call interp_init()
     gweight=0
@@ -1411,22 +1384,16 @@ contains
        endif
 
        allocate(interpdata(ii)%interp_xy( ngrid ), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate interpdata(ii)%interp_xy(ngrid) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'interpdata(ii)%interp_xy(ngrid)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(interpdata(ii)%ilat( ngrid ), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate interpdata(ii)%ilat(ngrid) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'interpdata(ii)%ilat(ngrid)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(interpdata(ii)%ilon( ngrid ), stat=ierr)
-       if (ierr /= 0) then
-          call endrun(subname//': allocate interpdata(ii)%ilon(ngrid) failed with stat: '//&
-                      to_str(ierr))
-       end if
+       call check_allocate(ierr, subname, 'interpdata(ii)%ilon(ngrid)', &
+                           file=__FILE__, line=__LINE__)
 
        interpdata(ii)%n_interp=0  ! reset counter
     enddo

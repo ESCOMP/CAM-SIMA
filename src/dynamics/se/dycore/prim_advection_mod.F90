@@ -64,7 +64,7 @@ contains
   subroutine Prim_Advec_Init1(par, elem)
     use dimensions_mod, only: nlev, qsize, nelemd,ntrac
     use parallel_mod,   only: parallel_t, boundaryCommMethod
-    use string_utils,   only: to_str
+    use cam_abortutils, only: check_allocate
     type(parallel_t)    :: par
     type (element_t)    :: elem(:)
     !
@@ -112,14 +112,12 @@ contains
 
     ! this static array is shared by all threads, so dimension for all threads (nelemd), not nets:nete:
     allocate(qmin(nlev,qsize,nelemd), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate qmin(nlev,qsize,nelemd) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'qmin(nlev,qsize,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(qmax(nlev,qsize,nelemd), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate qmax(nlev,qsize,nelemd) failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'qmax(nlev,qsize,nelemd)', &
+                        file=__FILE__, line=__LINE__)
 
   end subroutine Prim_Advec_Init1
 

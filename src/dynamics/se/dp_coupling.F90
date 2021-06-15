@@ -22,8 +22,7 @@ use vert_coord,     only: pver, pverp
 use dp_mapping,     only: nphys_pts
 
 use perf_mod,       only: t_startf, t_stopf, t_barrierf
-use cam_abortutils, only: endrun
-use string_utils,   only: to_str
+use cam_abortutils, only: endrun, check_allocate
 
 !SE dycore:
 use parallel_mod,   only: par
@@ -52,7 +51,7 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    ! Note that all pressures and tracer mixing ratios coming from the dycore are based on
    ! dry air mass.
 
-   use physics_types,          only: ps, pdel
+   use physics_types,          only: pdel
 !   use gravity_waves_sources,  only: gws_src_fnct
    use dyn_comp,               only: frontgf_idx, frontga_idx
 !   use phys_control,           only: use_gw_front, use_gw_front_igw
@@ -114,70 +113,55 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
       nphys = fv_nphys
    else
      allocate(qgll(np,np,nlev,pcnst), stat=ierr)
-     if (ierr /= 0) then
-        call endrun(subname//': allocate qgll(np,np,nlev,pcnst) failed with stat: '//&
-                    to_str(ierr))
-     end if
+     call check_allocate(ierr, subname, 'qgll(np,np,nlev,pcnst)', &
+                         file=__FILE__, line=__LINE__)
 
      nphys = np
    end if
 
    ! Allocate temporary arrays to hold data for physics decomposition
    allocate(ps_tmp(nphys_pts,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate ps_tmp(nphys_pts,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'ps_tmp(nphys_pts,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(dp3d_tmp(nphys_pts,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate dp3d_tmp(nphys_pts,pver,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'dp3d_tmp(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(dp3d_tmp_tmp(nphys_pts,pver), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate dp3d_tmp_tmp(nphys_pts,pver) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'dp3d_tmp_tmp(nphys_pts,pver)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(phis_tmp(nphys_pts,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate phis_tmp(nphys_pts,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'phis_tmp(nphys_pts,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(T_tmp(nphys_pts,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate T_tmp(nphys_pts,pver,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'T_tmp(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(uv_tmp(nphys_pts,2,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate uv_tmp(nphys_pts,2,pver,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(q_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate q_tmp(nphys_pts,pver,pcnst,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'q_tmp(nphys_pts,pver,pcnst,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(omega_tmp(nphys_pts,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-     call endrun(subname//': allocate q_tmp(nphys_pts,pver,pcnst,nelemd) failed with stat: '//&
-                 to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'omega_tmp(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
 !Remove once a gravity wave parameterization is available -JN
 #if 0
    if (use_gw_front .or. use_gw_front_igw) then
       allocate(frontgf(nphys_pts,pver,nelemd), stat=ierr)
-      if (ierr /= 0) call endrun("dp_coupling: Allocate of frontgf failed.")
+      call check_allocate(ierr, subname, 'frontgf(nphys_pts,pver,nelemd)', &
+                          file=__FILE__, line=__LINE__)
+
       allocate(frontga(nphys_pts,pver,nelemd), stat=ierr)
-      if (ierr /= 0) call endrun("dp_coupling: Allocate of frontga failed.")
+      call check_allocate(ierr, subname, 'frontga(nphys_pts,pver,nelemd)', &
+                          file=__FILE__, line=__LINE__)
    end if
 #endif
 
@@ -266,10 +250,8 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    ! q_prev is for saving the tracer fields for calculating tendencies
    if (.not. allocated(q_prev)) then
       allocate(q_prev(pcols,pver,pcnst), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate q_prev(pcols,pver,pcnst) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'q_prev(pcols,pver,pcnst)', &
+                          file=__FILE__, line=__LINE__)
    end if
    q_prev = 0.0_r8
 
@@ -278,23 +260,18 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
 #if 0
    if (use_gw_front .or. use_gw_front_igw) then
       allocate(frontgf_phys(pcols, pver, begchunk:endchunk), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate frontgf_phys(pcols, pver, begchunk:endchunk)'//&
-                     ' failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'frontgf_phys(pcols, pver, begchunk:endchunk)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(frontga_phys(pcols, pver, begchunk:endchunk), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate frontga_phys(pcols, pver, begchunk:endchunk)'//&
-                     ' failed with stat: '//to_str(ierr))
-      end if
-
+      call check_allocate(ierr, subname, 'frontga_phys(pcols, pver, begchunk:endchunk)', &
+                          file=__FILE__, line=__LINE__)
    end if
 #endif
    !$omp parallel do num_threads(max_num_threads) private (icol, ie, blk_ind, ilyr, m)
    do icol = 1, pcols
       call get_dyn_col_p(icol, ie, blk_ind)
-      ps(icol) = real(ps_tmp(blk_ind(1), ie), kind_phys)
+      phys_state%ps(icol)   = real(ps_tmp(blk_ind(1), ie), kind_phys)
       phys_state%phis(icol) = real(phis_tmp(blk_ind(1), ie), kind_phys)
       do ilyr = 1, pver
          pdel(icol, ilyr) = real(dp3d_tmp(blk_ind(1), ilyr, ie), kind_phys)
@@ -427,28 +404,20 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
    end if
 
    allocate(T_tmp(nphys_pts,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate T_tmp(nphys_pts,pver,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'T_tmp(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(uv_tmp(nphys_pts,2,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate uv_tmp(nphys_pts,2,pver,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(dq_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate dq_tmp(nphys_pts,pver,pcnst,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'dq_tmp(nphys_pts,pver,pcnst,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    allocate(dp_phys(nphys_pts,pver,nelemd), stat=ierr)
-   if (ierr /= 0) then
-      call endrun(subname//': allocate dp_phys(nphys_pts,pver,nelemd) failed with stat: '//&
-                  to_str(ierr))
-   end if
+   call check_allocate(ierr, subname, 'dp_phys(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    T_tmp  = 0.0_r8
    uv_tmp = 0.0_r8
@@ -652,7 +621,7 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    use physics_types,  only: psdry, pint, lnpint, pintdry, lnpintdry
    use physics_types,  only: pdel, rpdel, pdeldry, rpdeldry
    use physics_types,  only: pmid, lnpmid, pmiddry, lnpmiddry
-   use physics_types,  only: exner, zi, zm, ps, lagrangian_vertical
+   use physics_types,  only: exner, zi, zm, lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa, rairv, physconst_update
    use shr_const_mod,  only: shr_const_rwv
 !   use phys_control,   only: waccmx_is
@@ -737,17 +706,17 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    !$omp parallel do num_threads(horz_num_threads) private (i)
    do i=1, pcols
       ! Set model-top values assuming zero moisture:
-      ps(i)     = pintdry(i,1)
-      pint(i,1) = pintdry(i,1)
+      phys_state%ps(i) = pintdry(i,1)
+      pint(i,1)        = pintdry(i,1)
    end do
 
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
    do k = 1, nlev
       do i=1, pcols
          ! Calculate wet (total) pressure variables for rest of column:
-         pint(i,k+1) =  pint(i,k) + pdel(i,k)
-         pmid(i,k)   = (pint(i,k+1) + pint(i,k))/2._kind_phys
-         ps(i)       =  ps(i) + pdel(i,k)
+         pint(i,k+1)      =  pint(i,k) + pdel(i,k)
+         pmid(i,k)        = (pint(i,k+1) + pint(i,k))/2._kind_phys
+         phys_state%ps(i) =  phys_state%ps(i) + pdel(i,k)
       end do
       ! Calculate (natural) logarithms:
       call shr_vmath_log(pint(1:pcols,k), lnpint(1:pcols,k), pcols)

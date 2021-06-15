@@ -45,8 +45,7 @@ contains
     use schedtype_mod,          only: schedule
     use schedule_mod,           only: genEdgeSched
     use prim_advection_mod,     only: prim_advec_init1
-    use cam_abortutils,         only: endrun
-    use string_utils,           only: to_str
+    use cam_abortutils,         only: endrun, check_allocate
     use parallel_mod,           only: parallel_t, syncmp, global_shared_buf, nrepro_vars
     use spacecurve_mod,         only: genspacepart
     use dof_mod,                only: global_dof, CreateUniqueIndex, SetElemOffset
@@ -110,14 +109,12 @@ contains
       end if
 
       allocate(GridVertex(nelem), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate GridVertex(nelem) failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'GridVertex(nelem)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(GridEdge(nelem_edge), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate GridEdge(nelem_edge) failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'GridEdge(nelem_edge)', &
+                          file=__FILE__, line=__LINE__)
 
       do j = 1, nelem
         call allocate_gridvertex_nbrs(GridVertex(j))
@@ -154,14 +151,12 @@ contains
     ! given partition, count number of local element descriptors
     ! ===========================================================
     allocate(MetaVertex(1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate MetaVertex(1) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'MetaVertex(1)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(Schedule(1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate Schedule(1) failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'Schedule(1)', &
+                        file=__FILE__, line=__LINE__)
 
     nelem_edge = SIZE(GridEdge)
 
@@ -182,9 +177,8 @@ contains
 
     if (nelemd > 0) then
       allocate(elem(nelemd), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate elem(nelemd) failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'elem(nelemd)', &
+                         file=__FILE__, line=__LINE__)
 
       call allocate_element_dims(elem)
       call allocate_element_desc(elem)
@@ -192,9 +186,8 @@ contains
 
     if (fv_nphys > 0) then
       allocate(fvm(nelemd), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate fvm(nelemd) failed with stat: '//to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'fvm(nelemd)', &
+                         file=__FILE__, line=__LINE__)
 
       call allocate_fvm_dims(fvm)
       call allocate_physgrid_vars(fvm,par)
@@ -202,10 +195,8 @@ contains
       ! Even if fvm not needed, still desirable to allocate it as empty
       ! so it can be passed as a (size zero) array rather than pointer.
       allocate(fvm(0), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate fvm(0) failed with stat: '//to_str(ierr))
-      end if
-
+      call check_allocate(ierr, subname, 'fvm(0)', &
+                         file=__FILE__, line=__LINE__)
     end if
 
     ! ====================================================
@@ -215,10 +206,8 @@ contains
     call genEdgeSched(par, elem, par%rank+1, Schedule(1), MetaVertex(1))
 
     allocate(global_shared_buf(nelemd, nrepro_vars), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate global_shared_buf(nelemd, nrepro_vars)'//&
-                   'failed with stat: '//to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'global_shared_buf(nelemd, nrepro_vars)', &
+                        file=__FILE__, line=__LINE__)
 
     global_shared_buf = 0.0_r8
 
@@ -286,10 +275,8 @@ contains
     end if
     call mass_matrix(par, elem)
     allocate(aratio(nelemd,1), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate aratio(nelemd,1) failed with stat: '//to_str(ierr))
-    end if
-
+    call check_allocate(ierr, subname, 'aratio(nelemd,1)', &
+                        file=__FILE__, line=__LINE__)
 
     if (topology == "cube") then
       area = 0

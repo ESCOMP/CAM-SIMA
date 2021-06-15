@@ -1,7 +1,6 @@
 module spacecurve_mod
   use cam_logfile,    only: iulog
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: endrun, check_allocate
 
   implicit none
   private
@@ -915,10 +914,8 @@ contains
     tmp = num
     tmp2 = log2(num)
     allocate(res%factors(tmp2), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate res%factors(tmp2)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'res%factors(tmp2)', &
+                        file=__FILE__, line=__LINE__)
 
     n=0
     !-----------------------
@@ -1037,17 +1034,13 @@ contains
 
        if(verbose) write(iulog,*)'GenSpacecurve: level is ',level
        allocate(ordered(gridsize,gridsize), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate ordered(gridsize,gridsize)'//&
-                      ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'ordered(gridsize,gridsize)', &
+                           file=__FILE__, line=__LINE__)
 
        ! Setup the working arrays for the traversal
        allocate(pos(0:dim-1), stat=iret)
-       if (iret /= 0) then
-          call endrun(subname//': allocate pos(0:dim-1)'//&
-                      ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'pos(0:dim-1)', &
+                           file=__FILE__, line=__LINE__)
 
        !  The array ordered will contain the visitation order
        ordered(:,:) = 0

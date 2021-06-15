@@ -277,6 +277,7 @@
       <initial_value dycore="SE,FV">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
+      <data>surface_air_pressure</data>
       <data>geopotential_at_surface</data>
       <data>air_temperature</data>
       <data>x_wind</data>

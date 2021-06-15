@@ -664,7 +664,7 @@ contains
       use global_norms_mod  , only: global_integral
       use hybrid_mod        , only: config_thread_region, get_loop_ranges, hybrid_t
       use parallel_mod      , only: par
-      use string_utils      , only: to_str
+      use cam_abortutils    , only: check_allocate
 
       type (element_t)     , intent(in)   :: elem(:)
       real (kind=r8), intent(out)  :: global_ave_ps_inic
@@ -682,9 +682,8 @@ contains
       hybrid = config_thread_region(par,'serial')
       call get_loop_ranges(hybrid,ibeg=nets,iend=nete)
       allocate(tmp(np,np,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate tmp(np,np,nets:nete) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'tmp(np,np,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       do ie=nets,nete
         tmp(:,:,ie)=elem(ie)%state%psdry(:,:)

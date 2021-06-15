@@ -10957,6 +10957,28 @@
       <value>0.0</value>
     </values>
   </entry>
+  <entry id="se_molecular_diff">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_inparm</group>
+    <desc>
+      Used by SE dycore to apply sponge layer diffusion to u, v, and T for
+      stability of WACCM configurations. The diffusion is modeled on 3D molecular
+      diffusion and thermal conductivity by using actual molecular diffusion and
+      thermal conductivity coefficients multiplied by the value of
+      se_molecular_diff.
+
+      If set &lt;= 0.0 then the code is not activated.  If set &gt; 0.0 then
+      the molecular diffusion and thermal conductivity coefficients will be
+      multiplied by a factor of se_molecular_diff.
+
+      Default: 0.
+    </desc>
+    <values>
+      <value>0.0</value>
+      <value waccm_phys="1" waccmx="0">100.0</value>
+    </values>
+  </entry>
   <entry id="se_hypervis_subcycle_q">
     <type>integer</type>
     <category>se</category>

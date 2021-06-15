@@ -19,8 +19,7 @@ module fvm_mapping
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
   use perf_mod,               only: t_startf, t_stopf
-  use cam_abortutils,         only: endrun
-  use string_utils,           only: to_str
+  use cam_abortutils,         only: endrun, check_allocate
 
   implicit none
   private
@@ -66,10 +65,9 @@ contains
     character(len=*), parameter :: subname = 'phys2dyn_forcings_fvm (SE)'
 
     allocate(qgll(np,np,nlev,thermodynamic_active_species_num,nets:nete), stat=iret)
-    if (iret /= 0) then
-       call endrun(subname//': allocate qgll(np,np,nlev,thermodynamic_active_species_num,nets:nete)'//&
-                   ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'qgll(np,np,nlev,thermodynamic_active_species_num,nets:nete)', &
+                        file=__FILE__, line=__LINE__)
 
     do ie=nets,nete
       do nq=1,thermodynamic_active_species_num
@@ -90,21 +88,17 @@ contains
       call t_startf('p2d-pg2:copying')
       nflds = 4+ntrac
       allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//&
-                    ': allocate fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)'//&
-                    ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(fld_gll(np,np,nlev,3,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate fld_gll(np,np,nlev,3,nets:nete) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'fld_gll(np,np,nlev,3,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(llimiter(nflds), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate llimiter(nflds) failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, 'llimiter(nflds)', &
+                          file=__FILE__, line=__LINE__)
 
       fld_phys = -9.99E99_r8!xxx necessary?
 
@@ -156,15 +150,12 @@ contains
        !
        nflds = thermodynamic_active_species_num
        allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate fld_gll(np,np,nlev,nflds,nets:nete) failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'fld_gll(np,np,nlev,nflds,nets:nete)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete)', &
+                           file=__FILE__, line=__LINE__)
 
        do ie=nets,nete
          !
@@ -205,20 +196,18 @@ contains
        ! nflds is ft, fu, fv, + thermo species
        nflds = 3+thermodynamic_active_species_num
        allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate fld_gll(np,np,nlev,nflds,nets:nete) failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, &
+                           'fld_gll(np,np,nlev,nflds,nets:nete)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(llimiter(nflds), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate llimiter(nflds) failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, ' llimiter(nflds)', &
+                           file=__FILE__, line=__LINE__)
 
        llimiter(1:nflds) = .false.
        do ie=nets,nete
@@ -483,49 +472,40 @@ contains
     if (nc.ne.fv_nphys) then
       save_max_overlap = 4 !max number of mass overlap areas between phys and fvm grids
       allocate(save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//&
-                    ': allocate save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete)'//&
-                    ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete)'//&
-                    ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete)'//&
-                    ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//': allocate save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete) failed with stat: '//&
-                    to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
       save_num_overlap = 0
       allocate(save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete), stat=iret)
-      if (iret /= 0) then
-        call endrun(subname//&
-                    ': allocate save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete)'//&
-                    ' failed with stat: '//to_str(iret))
-      end if
+      call check_allocate(iret, subname, &
+                          'save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete)', &
+                          file=__FILE__, line=__LINE__)
 
     end if
 
@@ -706,22 +686,16 @@ contains
     gp_quadrature = gausslobatto(np)
     call interpolate_create(gp_quadrature,interp_p)
     allocate(interpdata%interp_xy(ngrid), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate interpdata%interp_xy(ngrid) failed with stat: '//&
-                  to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interpdata%interp_xy(ngrid)', &
+                          file=__FILE__, line=__LINE__)
 
     allocate(interpdata%ilat(ngrid), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate interpdata%ilat(ngrid) failed with stat: '//&
-                  to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interpdata%ilat(ngrid)', &
+                          file=__FILE__, line=__LINE__)
 
     allocate(interpdata%ilon(ngrid), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate interpdata%ilon(ngrid) failed with stat: '//&
-                  to_str(iret))
-    end if
+    call check_allocate(iret, subname, 'interpdata%ilon(ngrid)', &
+                          file=__FILE__, line=__LINE__)
 
     !
     !WARNING: THIS CODE INTERFERES WITH LAT-LON OUTPUT
@@ -1051,28 +1025,24 @@ contains
     character(len=*), parameter :: subname = 'phys2fvm (SE)'
 
     allocate(dq_min_overlap       (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate dq_min_overlap(save_max_overlap,fv_nphys,fv_nphys)'//&
-                  ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'dq_min_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(dq_max_overlap       (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate dq_max_overlap(save_max_overlap,fv_nphys,fv_nphys)'//&
-                  ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'dq_max_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(dq_overlap           (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate dq_overlap(save_max_overlap,fv_nphys,fv_nphys)'//&
-                  ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'dq_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(fq_phys_overlap      (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
-    if (iret /= 0) then
-      call endrun(subname//': allocate fq_phys_overlap(save_max_overlap,fv_nphys,fv_nphys)'//&
-                  ' failed with stat: '//to_str(iret))
-    end if
+    call check_allocate(iret, subname, &
+                        'fq_phys_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
+                        file=__FILE__, line=__LINE__)
 
     do m_cnst=1,num_trac
       fqdp_fvm(:,:,m_cnst) = 0.0_r8

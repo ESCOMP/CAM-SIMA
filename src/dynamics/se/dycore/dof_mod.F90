@@ -1,8 +1,7 @@
 module dof_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8, i8=>shr_kind_i8
   use mpi,            only: mpi_integer
-  use cam_abortutils, only: endrun
-  use string_utils,   only: to_str
+  use cam_abortutils, only: endrun, check_allocate
   use dimensions_mod, only: np, npsq, nelem, nelemd
   use quadrature_mod, only: quadrature_t
   use element_mod,    only: element_t,index_t
@@ -289,22 +288,16 @@ contains
 
     nprocs = par%nprocs
     allocate(numElemP(nelem), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate numElemP(nelem) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'numElemP(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(numElem2P(nelem), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate numElem2P(nelem) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'numElem2P(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
     allocate(gOffset(nelem), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate gOffset(nelem) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'gOffset(nelem)', &
+                        file=__FILE__, line=__LINE__)
 
     numElemP=0;numElem2P=0;gOffset=0
 
@@ -344,10 +337,8 @@ contains
 
     npts = size(gdof,dim=1)
     allocate(ldof(npts,npts), stat=ierr)
-    if (ierr /= 0) then
-       call endrun(subname//': allocate ldof(npts,npts) failed with stat: '//&
-                   to_str(ierr))
-    end if
+    call check_allocate(ierr, subname, 'ldof(npts,npts)', &
+                        file=__FILE__, line=__LINE__)
 
     ! ====================
     ! Form the local DOF
