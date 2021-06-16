@@ -874,10 +874,10 @@ class ConfigCAM:
         phys_desc = """\n\
         A semi-colon separated list of physics Suite Definition\n\
         File (SDF) names. To specify the Kessler and Held-Suarez\n\
-        suites as run time options, use '--physics-suites kessler;hs94'."""
+        suites as run time options, use '--physics-suites kessler;rhs94'."""
 
         self.create_config("physics_suites", phys_desc,
-                           user_config_opts.physics_suites)
+                           user_config_opts.physics_suites, is_nml_attr=True)
 
         #--------------------------------------------------------
         # Print CAM configure settings and values to debug logger
@@ -1233,7 +1233,9 @@ if __name__ == "__main__":
                 "CASEROOT" : "/another/made-up/path",
                 "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
                 "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
-                "CAM_CPPDEFS" : "UNSET"
+                "CAM_CPPDEFS" : "UNSET",
+                "NTHRDS_ATM" : 1,
+                "RUN_STARTDATE" : "101"
                 }
 
         def get_value(self, key):

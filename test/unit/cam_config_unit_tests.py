@@ -65,7 +65,9 @@ class FakeCase:
             "CASEROOT" : "/another/made-up/path",
             "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
             "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
-            "CAM_CPPDEFS" : "UNSET"
+            "CAM_CPPDEFS" : "UNSET",
+            "NTHRDS_ATM" : 1,
+            "RUN_STARTDATE" : "101"
             }
 
     def get_value(self, key):
