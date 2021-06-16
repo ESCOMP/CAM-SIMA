@@ -27,7 +27,6 @@ use dyn_tests_utils,        only: vcoord=>vc_dry_pressure
 !use cam_history_support,    only: max_fieldname_len
 use time_manager,           only: get_step_size
 
-!use ncdio_atm,              only: infld
 use cam_field_read,         only: cam_read_field
 
 use pio,                    only: file_desc_t, pio_seterrorhandling, PIO_BCAST_ERROR, &
@@ -2337,8 +2336,6 @@ subroutine read_dyn_field_2d(fieldname, fh, dimname, buffer)
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
-!   call infld(trim(fieldname), fh, dimname, 1, npsq, 1, nelemd, buffer,    &
-!         found, gridname='GLL') !Remove if below works! -JN
    call cam_read_field(trim(fieldname), fh, buffer, found, &
                        gridname=ini_grid_name, fillvalue=fillvalue)
    if(.not. found) then
@@ -2369,10 +2366,8 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
-!   call infld(trim(fieldname), fh, dimname, 'lev',  1, npsq, 1, nlev,      &
-!         1, nelemd, buffer, found, gridname='GLL') !Remove if below works! -JN
-    call cam_read_field(trim(fieldname), fh, buffer, found, 'lev', (/1, nlev/), &
-                        dim3_pos=2, gridname=ini_grid_name, fillvalue=fillvalue)
+   call cam_read_field(trim(fieldname), fh, buffer, found, 'lev', (/1, nlev/), &
+                       dim3_pos=2, gridname=ini_grid_name, fillvalue=fillvalue)
    if(.not. found) then
       call endrun('READ_DYN_FIELD_3D: Could not find '//trim(fieldname)//' field on input datafile')
    end if
@@ -2399,8 +2394,6 @@ subroutine read_phys_field_2d(fieldname, fh, dimname, buffer)
    logical                  :: found
    !----------------------------------------------------------------------------
 
-!   call infld(trim(fieldname), fh, dimname, 1, fv_nphys**2, 1, nelemd, buffer,    &
-!      found, gridname='physgrid_d') !Remove if below works! -JN
    call cam_read_field(trim(fieldname), fh, buffer, found, gridname='physgrid_d')
    if(.not. found) then
       call endrun('READ_PHYS_FIELD_2D: Could not find '//trim(fieldname)//' field on input datafile')

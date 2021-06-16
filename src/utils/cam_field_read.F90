@@ -178,7 +178,7 @@ CONTAINS
    ! ROUTINE: infld_real8_1d
    !
    subroutine infld_real8_1d(varname, ncid, field, readvar, gridname,         &
-      timelevel, log_output)
+      timelevel, log_output, fillvalue)
       !
       ! infld_real8_1d:
       ! Netcdf I/O of 8-byte real field from netCDF file
@@ -204,6 +204,8 @@ CONTAINS
       character(len=*), optional, intent(in)    :: gridname
       integer,          optional, intent(in)    :: timelevel
       logical,          optional, intent(in)    :: log_output
+      ! fillvalue: Provides the fill value as specified in the input file
+      real(r8),         optional, intent(out)   :: fillvalue
       !
       ! LOCAL VARIABLES:
       type(io_desc_t), pointer                  :: iodesc
@@ -374,6 +376,16 @@ CONTAINS
             call pio_read_darray(ncid, varid, iodesc, field, ierr)
          end if
 
+         ! Acquire fill value for variable if requested
+         if (present(fillvalue)) then
+            ierr = cam_pio_inq_var_fill(ncid, varid, fillvalue)
+            !End run if PIO error occurred:
+            if (ierr /= PIO_NOERR) then
+               write(errormsg, *) subname//': cam_pio_inq_var_fill failed with PIO error: ', ierr
+               call safe_endrun(errormsg)
+            end if
+         end if
+
          if (masterproc .and. log_read_field) then
             write(iulog,*) subname//': read field '//trim(varname)
          end if
@@ -388,7 +400,7 @@ CONTAINS
    ! ROUTINE: infld_real8_2d
    !
    subroutine infld_real8_2d(varname, ncid, field, readvar, gridname,         &
-        timelevel, dim3name, dim3_bnds, log_output)
+        timelevel, dim3name, dim3_bnds, log_output, fillvalue)
       !
       ! infld_real8_2d:
       ! Netcdf I/O of 8-byte real field from netCDF file
@@ -417,6 +429,8 @@ CONTAINS
       ! dim3_bnds: Bounds of vertical dimension, if field is 3D
       integer,          optional, intent(in)  :: dim3_bnds(2)
       logical,          optional, intent(in)  :: log_output
+      ! fillvalue: Provides the fill value as specified in the input file
+      real(r8),         optional, intent(out) :: fillvalue
       !
       ! LOCAL VARIABLES:
       type(io_desc_t),  pointer               :: iodesc
@@ -630,6 +644,16 @@ CONTAINS
             nullify(iodesc) ! Cached by cam_pio_utils
          end if
 
+         ! Acquire fill value for variable if requested
+         if (present(fillvalue)) then
+            ierr = cam_pio_inq_var_fill(ncid, varid, fillvalue)
+            !End run if PIO error occurred:
+            if (ierr /= PIO_NOERR) then
+               write(errormsg, *) subname//': cam_pio_inq_var_fill failed with PIO error: ', ierr
+               call safe_endrun(errormsg)
+            end if
+         end if
+
          if (masterproc .and. log_read_field) then
             write(iulog,*) subname//': read field '//trim(varname)
          end if
@@ -646,7 +670,7 @@ CONTAINS
    ! ROUTINE: infld_real8_3d
    !
    subroutine infld_real8_3d(varname, ncid, field, readvar, dim3name,         &
-        dim3_bnds, dim3_pos, gridname, timelevel, log_output)
+        dim3_bnds, dim3_pos, gridname, timelevel, log_output, fillvalue)
       !
       ! infld_real8_3d:
       ! Netcdf I/O of 8-byte real field from netCDF file
@@ -676,6 +700,8 @@ CONTAINS
       character(len=*), optional, intent(in)  :: gridname
       integer,          optional, intent(in)  :: timelevel
       logical,          optional, intent(in)  :: log_output
+      ! fillvalue: Provides the fill value as specified in the input file
+      real(r8),         optional, intent(out) :: fillvalue
       !
       ! LOCAL VARIABLES:
       type(io_desc_t),  pointer               :: iodesc
@@ -877,6 +903,16 @@ CONTAINS
             call cam_grid_get_decomp(grid_id, arraydimsize, dimlens(1:ndims), &
                  pio_double, iodesc, file_dnames=file_dnames(1:target_ndims))
             call pio_read_darray(ncid, varid, iodesc, field, ierr)
+         end if
+
+         ! Acquire fill value for variable if requested
+         if (present(fillvalue)) then
+            ierr = cam_pio_inq_var_fill(ncid, varid, fillvalue)
+            !End run if PIO error occurred:
+            if (ierr /= PIO_NOERR) then
+               write(errormsg, *) subname//': cam_pio_inq_var_fill failed with PIO error: ', ierr
+               call safe_endrun(errormsg)
+            end if
          end if
 
          if (masterproc .and. log_read_field) then
