@@ -8152,8 +8152,10 @@
     </desc>
     <values>
       <value>UNSET_PATH</value>
-      <value aquaplanet="1">UNSET_PATH</value>
       <value analytic_ic="1">UNSET_PATH</value>
+      <value analytic_ic="1" npg="2">UNSET_PATH</value>
+      <value analytic_ic="1" npg="3">UNSET_PATH</value>
+      <value analytic_ic="1" npg="4">UNSET_PATH</value>
       <value hgrid="256x512">$DIN_LOC_ROOT/atm/cam/topo/topo-from-cami_0000-01-01_256x512_L26_c030918.nc</value>
       <value hgrid="128x256">$DIN_LOC_ROOT/atm/cam/topo/USGS-gtopo30_128x256_c050520.nc</value>
       <value hgrid="64x128">$DIN_LOC_ROOT/atm/cam/topo/T42_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20180111.nc</value>
@@ -11401,6 +11403,9 @@
     </desc>
     <values>
       <value>0</value>
+      <value npg="2">2</value>
+      <value npg="3">3</value>
+      <value npg="4">4</value>
     </values>
   </entry>
 
@@ -11644,9 +11649,6 @@
     </desc>
     <values>
       <value>0</value>
-      <value npg="2">2</value>
-      <value npg="3">3</value>
-      <value npg="4">4</value>
     </values>
   </entry>
 
