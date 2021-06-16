@@ -94,7 +94,6 @@ def _build_cam():
                  os.path.join(atm_root, "src", "control"),
                  os.path.join(atm_root, "src", "cpl",
                               case.get_value("COMP_INTERFACE")),
-                 os.path.join(atm_root, "src", "dynamics", dycore),
                  os.path.join(atm_root, "src", "dynamics", "utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
                  os.path.join(atm_root, "src", "utils")]
@@ -106,9 +105,9 @@ def _build_cam():
         # Add main dynamics directory:
         dyn_dir = os.path.join(atm_root, "src", "dynamics", dycore)
         paths.append(dyn_dir)
-        # Add IC source directories if using a non-null dycore:
+        # Add IC source directories:
+        paths.append(os.path.join(atm_root, "src", "dynamics", "tests")) #Required due to namelist call.
         if dycore != "none":
-            paths.append(os.path.join(atm_root, "src", "dynamics", "tests"))
             paths.append(os.path.join(atm_root, "src", "dynamics", "tests",
                          "initial_conditions"))
         # Add any necessary dycore sub-directories:

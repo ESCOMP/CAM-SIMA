@@ -315,26 +315,22 @@ CONTAINS
               dyn_attributes(index))
       end do
 
-      if (.not. cam_grid_attr_exists('physgrid', 'area')) then
-         ! Physgird always needs an area attribute
-         if (unstructured) then
-            ! Physgrid always needs an area attribute. If we did not inherit one
-            !   from the dycore (i.e., physics and dynamics are on different
-            !   grids), create that attribute here (Note, a separate physics
-            !   grid is only supported for unstructured grids).
-            allocate(area_d(columns_on_task), stat=ierr)
-            call check_allocate(ierr, subname, 'area_d(columns_on_task)', &
-                             file=__FILE__, line=__LINE__)
+      if ((.not. cam_grid_attr_exists('physgrid', 'area')) .and.              &
+           unstructured) then
+         ! Physgrid always needs an area attribute. If we did not inherit one
+         !   from the dycore (i.e., physics and dynamics are on different
+         !   grids), create that attribute here (Note, a separate physics
+         !   grid is only supported for unstructured grids).
+         allocate(area_d(columns_on_task), stat=ierr)
+         call check_allocate(ierr, subname, 'area_d(columns_on_task)', &
+                          file=__FILE__, line=__LINE__)
 
-            do col_index = 1, columns_on_task
-               area_d(col_index) = phys_columns(col_index)%area
-            end do
-            call cam_grid_attribute_register('physgrid', 'area',                 &
-                 'physics column areas', 'ncol', area_d, map=grid_map(3,:))
-            nullify(area_d) ! Belongs to attribute now
-         else
-            call endrun(subname//"No 'area' attribute from dycore")
-         end if
+         do col_index = 1, columns_on_task
+            area_d(col_index) = phys_columns(col_index)%area
+         end do
+         call cam_grid_attribute_register('physgrid', 'area',                 &
+              'physics column areas', 'ncol', area_d, map=grid_map(3,:))
+         nullify(area_d) ! Belongs to attribute now
       end if
       ! Cleanup pointers (they belong to the grid now)
       nullify(grid_map)
