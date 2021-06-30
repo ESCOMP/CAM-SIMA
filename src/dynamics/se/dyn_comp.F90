@@ -182,7 +182,7 @@ subroutine dyn_readnl(NLFileName)
    integer                      :: se_rayk0
    real(r8)                     :: se_molecular_diff
 
-   namelist /dyn_se_inparm/        &
+   namelist /dyn_se_nl/            &
       se_fine_ne,                  & ! For refined meshes
       se_ftype,                    & ! forcing type
       se_statediag_numtrac,        &
@@ -232,7 +232,7 @@ subroutine dyn_readnl(NLFileName)
 
    !--------------------------------------------------------------------------
 
-   ! defaults for variables not set by build-namelist
+   ! defaults for variables if not set by the namelist
    se_fine_ne                  = -1
    se_hypervis_power           = 0
    se_hypervis_scaling         = 0
@@ -240,17 +240,17 @@ subroutine dyn_readnl(NLFileName)
    se_mesh_file                = ''
    se_write_restart_unstruct   = .false.
 
-   ! Read the namelist (dyn_se_inparm)
+   ! Read the namelist (dyn_se_nl)
    call MPI_barrier(mpicom, ierr)
    if (masterproc) then
-      write(iulog, *) "dyn_readnl: reading dyn_se_inparm namelist..."
+      write(iulog, *) "dyn_readnl: reading dyn_se_nl namelist..."
       unitn = shr_file_getunit()
       open( unitn, file=trim(NLFileName), status='old' )
-      call find_group_name(unitn, 'dyn_se_inparm', status=ierr)
+      call find_group_name(unitn, 'dyn_se_nl', status=ierr)
       if (ierr == 0) then
-         read(unitn, dyn_se_inparm, iostat=ierr)
+         read(unitn, dyn_se_nl, iostat=ierr)
          if (ierr /= 0) then
-            call endrun('dyn_readnl: ERROR reading dyn_se_inparm namelist')
+            call endrun('dyn_readnl: ERROR reading dyn_se_nl namelist')
          end if
       end if
       close(unitn)
@@ -305,13 +305,13 @@ subroutine dyn_readnl(NLFileName)
    call MPI_bcast(se_raytau0, 1, mpi_real8, masterprocid, mpicom, ierr)
    call MPI_bcast(se_molecular_diff, 1, mpi_real8, masterprocid, mpicom, ierr)
 
-   ! If se_npes is set to zero, then make it match host model:
-   if (se_npes == 0) then
+   ! If se_npes is set to negative one, then make it match host model:
+   if (se_npes == -1) then
       se_npes = npes
    else
       ! Check that se_npes is a positive integer:
-      if (se_npes < 0) then
-         call endrun('dyn_readnl: ERROR: se_npes must be >= 0')
+      if (se_npes <= 0) then
+         call endrun('dyn_readnl: ERROR: se_npes must either be > 0 or exactly -1')
       end if
    end if
 

@@ -672,6 +672,12 @@ class ConfigCAM:
         # Cam horizontal grid meta-data
         hgrid_desc = "Horizontal grid specifier."
 
+        # dynamics package source directories meta-data
+        dyn_dirs_desc = "Comma-seperated list of local directories containing" \
+                        " dynamics package source code.\n" \
+                        "These directories are assumed to be located under" \
+                        " src/dynamics, with a backslah ('/') indicating directory hierarchy."
+
         # Create regex expressions to search for the different dynamics grids
         eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dycore
         fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")     # FV dycore
@@ -698,9 +704,12 @@ class ConfigCAM:
             self.create_config("hgrid", hgrid_desc, atm_grid,
                                se_grid_re, is_nml_attr=True)
 
+            # Source code directories
+            self.create_config("dyn_src_dirs", dyn_dirs_desc, "se,se/dycore")
+
             # Add SE namelist groups to nmlgen list
             self.__nml_groups.append("air_composition_nl")
-            self.__nml_groups.append("dyn_se_inparm")
+            self.__nml_groups.append("dyn_se_nl")
 
             # Add required CPP definitons:
             self.add_cppdef("_MPI")
@@ -754,6 +763,9 @@ class ConfigCAM:
             self.create_config("hgrid", hgrid_desc, atm_grid,
                                None, is_nml_attr=True)
 
+            # Source code directories
+            self.create_config("dyn_src_dirs", dyn_dirs_desc, "none")
+
         else:
             emsg = "ERROR: The specified CAM horizontal grid, '{}', "
             emsg += "does not match any known format."
@@ -787,19 +799,23 @@ class ConfigCAM:
 
         #Set horizontal dimension variables:
         if dyn == "se":
-            # Extract cubed-sphere grid values from hgrid string:
-            csne_re = re.search(r"ne[0-9]+", atm_grid)
-            csne_val = int(csne_re.group()[2:])
 
-            csnp_re = re.search(r"np[0-9]+", atm_grid)
-            csnp_val = int(csnp_re.group()[2:])
+            # Determine location of "np" in atm_grid string:
+            np_idx = atm_grid.find("np")
 
-            # Extract number of CSLAM physics grid points, if available:
-            npg_re = re.search(r"pg[1-9]+", atm_grid)
-            if npg_re:
-                npg_val = int(npg_re.group()[2:])
+            #Determine location of "pg" in atm_grid string:
+            pg_idx = atm_grid.find(".pg")
+
+            # Extract cubed-sphere grid values from atm_grid/hgrid string:
+            # Note that the string always starts with "ne".
+
+            csne_val = int(atm_grid[2:np_idx])
+            if pg_idx > -1:
+                csnp_val = int(atm_grid[np_idx+2:pg_idx])
+                npg_val  = int(atm_grid[pg_idx+3:])
             else:
-                npg_val = 0 #No CSLAM grid points
+                csnp_val = int(atm_grid[np_idx+2:])
+                npg_val  = 0
 
             # Add number of elements along edge of cubed-sphere grid
             csne_desc = "Number of elements along one edge of a cubed sphere grid."
@@ -877,7 +893,7 @@ class ConfigCAM:
         suites as run time options, use '--physics-suites kessler;rhs94'."""
 
         self.create_config("physics_suites", phys_desc,
-                           user_config_opts.physics_suites, is_nml_attr=True)
+                           user_config_opts.physics_suites)
 
         #--------------------------------------------------------
         # Print CAM configure settings and values to debug logger
@@ -1195,6 +1211,78 @@ class ConfigCAM:
         # write out the cache here as we have completed pre-processing
         #--------------------------------------------------------------
         build_cache.write()
+
+    #++++++++++++++++++++++++
+
+    def ccpp_phys_set(config, cam_nml_attr_dict, user_nl_file):
+
+        """
+        Determine if a user has specified which
+        CCPP physics suite to use in the namelist,
+        assuming there is more than one suite
+        listed in the 'physics_suites' CAM
+        configure option.
+        """
+
+        #Extract physics suite list:
+        phys_suites = config.get_value('physics_suites').split(';')
+
+        if len(phys_suites) > 1:
+            #If more than one physics suite is listed,
+            #then check the "user_nl_cam" file to see if user
+            #specified a particular suite to use for this
+            #simulation:
+            with open(user_nl_file, 'r') as nl_file:
+                #Read lines in file:
+                nl_user_lines = nl_file.readlines()
+
+                #Break out "physics_suite" lines:
+                phys_suite_lines = \
+                    [[x.strip() for x in line.split('=')] \
+                    for line in nl_user_lines if line[0] != "!" and 'physics_suite' in line]
+
+                #If there is no "physics_suite" line, then throw an error:
+                if not phys_suite_lines:
+                    emsg = "No 'physics_suite' variable is present in user_nl_cam.\n \
+                            This is required if more than one suite is listed\n \
+                            in CAM_CONFIG_OPTS."
+                    raise CamConfigValError(emsg)
+
+                #If there is more than one "physics_suite" entry, then throw an error:
+                if len(phys_suite_lines) > 1:
+                    emsg = "More than one 'physics_suite' variable is present in user_nl_cam.\n \
+                            Only one 'physics_suite' line is allowed."
+                    raise CamConfigValError(emsg)
+
+                #The split string list exists inside another, otherwise empty list, so extract
+                #from empty list:
+                phys_suite_list = phys_suite_lines[0]
+
+                if len(phys_suite_list) == 1:
+                    #If there is only one string entry, then it means the equals (=) sign was never found:
+                    emsg = "No equals (=) sign was found with the 'physics_suite' variable."
+                    raise CamConfigValError(emsg)
+                elif len(phys_suite_list) > 2:
+                    #If there is more than two entries, it means there were two or more equals signs:
+                    emsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
+                    raise CamConfigValError(emsg)
+
+                #Remove quotation marks around physics_suite entry, if any:
+                phys_suite_val = phys_suite_list[1].strip(''' "' ''')
+
+                #Check that physics suite specified is actually in config list:
+                if phys_suite_val not in phys_suites:
+                    emsg = "physics_suite specified in user_nl_cam doesn't match any suites\n \
+                            listed in CAM_CONFIG_OPTS"
+                    raise CamConfigValError(emsg)
+
+        else:
+            #If only a single physics suite is listed, then just use that one:
+            phys_suite_val = phys_suites[0]
+
+        #Add new namelist attribute to dictionary:
+        cam_nml_attr_dict["phys_suite"] = phys_suite_val
+
 
 ###############################################################################
 #IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!

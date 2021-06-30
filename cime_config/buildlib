@@ -102,25 +102,29 @@ def _build_cam():
                 paths.append(path)
             # End if
         # End for
-        # Add main dynamics directory:
-        dyn_dir = os.path.join(atm_root, "src", "dynamics", dycore)
-        paths.append(dyn_dir)
-        # Add IC source directories:
+
+        # Add dynamics source code directories:
+        for direc in config.get_value("dyn_src_dirs").split(","):
+           dyn_dir = os.path.join(atm_root, "src", "dynamics")
+           for subdir in direc.split("/"):
+               dyn_dir = os.path.join(dyn_dir, subdir)
+               #Add to list of filepaths if not already present:
+               if dyn_dir not in paths:
+                   paths.append(dyn_dir)
+
+        # Add analytical IC source code directories:
         paths.append(os.path.join(atm_root, "src", "dynamics", "tests")) #Required due to namelist call.
         if dycore != "none":
             paths.append(os.path.join(atm_root, "src", "dynamics", "tests",
                          "initial_conditions"))
-        # Add any necessary dycore sub-directories:
-        for root, direcs, _ in os.walk(dyn_dir):
-            for direc in direcs:
-                dyn_subdir = os.path.join(root, direc)
-                if dyn_subdir not in paths:
-                    paths.append(dyn_subdir)
-        #If using the CMEPS/NUOPC coupler, then add additional path:
+
+        # If using the CMEPS/NUOPC coupler, then add additional path:
         if case.get_value("COMP_INTERFACE") == "nuopc":
             paths.append(os.path.join(__CIMEROOT, "src", "drivers",
                                       "nuopc", "nuopc_cap_share"))
         # End if
+
+        # Write Filepath text file
         with open(filepath_src, "w") as filepath:
             filepath.write("\n".join(paths))
             filepath.write("\n")

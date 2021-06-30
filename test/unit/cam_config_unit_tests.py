@@ -63,7 +63,7 @@ class FakeCase:
             "COMP_ATM" : "cam",
             "EXEROOT"  : "/some/made-up/path",
             "CASEROOT" : "/another/made-up/path",
-            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
+            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic;kessler",
             "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
@@ -287,6 +287,257 @@ class CamConfigTestRoutine(unittest.TestCase):
 
             #Check that error message matches what's expected:
             self.assertEqual(ermsg, str(valerr.exception))
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that "ccpp_phys_set" works as expected with one physics suite entry
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_check_single_suite(self):
+
+        """
+        Check that "ccpp_phys_set" works as expected
+        when given a correctly formatted namelist file
+        and a single physics suite in the config object.
+        """
+
+        #Save "physics_suites" value:
+        cam_config_suites_orig = self.test_config_cam.get_value("physics_suites")
+
+
+        #Set "new" physics_suites value with one physics suite:
+        self.test_config_cam.set_value("physics_suites", "kessler")
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+            f.write('physics_suite = "adiabatic"\n')
+
+        #Run ccpp_phys_set config method:
+        self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+        #Check that dictonary entries are correct:
+        self.assertEqual(cam_nml_attr_dict["phys_suite"], "kessler")
+
+        #Remove text file:
+        os.remove("test.txt")
+
+        #Set physics_suites back to its original value:
+        self.test_config_cam.set_value("physics_suites", cam_config_suites_orig)
+
+
+    #++++++++++++++++++++++++++++++++++++++++++++
+    #Check that "ccpp_phys_set" works as expected
+    #++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_check_multi_suite(self):
+
+        """
+        Check that "ccpp_phys_set" works as expected
+        when given a correctly formatted namelist file
+        and multiple physics suites in the config object.
+        """
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+            f.write('physics_suite = "adiabatic"\n')
+
+        #Run ccpp_phys_set config method:
+        self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+        #Check that dictonary entries are correct:
+        self.assertEqual(cam_nml_attr_dict["phys_suite"], "adiabatic")
+
+        #Remove text file:
+        os.remove("test.txt")
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "ccpp_phys_set" missing "physics_suite" error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_missing_phys(self):
+
+        """
+        Check that "ccpp_phys_set" throws the proper
+        error if there is more than one CCPP suite and the
+        "physics_suite" namelist variable is missing.
+        """
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Set error message:
+        ermsg = "No 'physics_suite' variable is present in user_nl_cam.\n \
+                 This is required if more than one suite is listed\n \
+                 in CAM_CONFIG_OPTS."
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run ccpp_phys_set config method, which should fail
+            #due to missing "physics_suite" namelist variable:
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
+
+        #Remove text file:
+        os.remove("test.txt")
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "ccpp_phys_set" missing equals-sign error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_two_phys(self):
+
+        """
+        Check that "ccpp_phys_set" throws the proper
+        error if there is more than one CCPP suite and
+        more than one "physics_suite" namelist variable.
+        """
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Set error message:
+        ermsg = "More than one 'physics_suite' variable is present in user_nl_cam.\n \
+                 Only one 'physics_suite' line is allowed."
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+            f.write('physics_suite = "adiabatic"\n')
+            f.write('physics_suite = "kessler"\n')
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run ccpp_phys_set config method, which should fail
+            #due to missing "physics_suite" namelist variable:
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
+
+        #Remove text file:
+        os.remove("test.txt")
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "ccpp_phys_set" missing equals-sign error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_missing_equals(self):
+
+        """
+        Check that "ccpp_phys_set" throws the proper
+        error if there is a missing equals (=) sign
+        after the "physics_suite" namelist variable.
+        """
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Set error message:
+        ermsg = "No equals (=) sign was found with the 'physics_suite' variable."
+
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+            f.write('physics_suite  "adiabatic"\n')
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run ccpp_phys_set config method, which should fail
+            #due to missing "physics_suite" namelist variable:
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
+
+        #Remove text file:
+        os.remove("test.txt")
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "ccpp_phys_set" multiple equals-signs error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_two_equals(self):
+
+        """
+        Check that "ccpp_phys_set" throws the proper
+        error if there is more than one equals (=) sign
+        after the "physics_suite" namelist variable.
+        """
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Set error message:
+        ermsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+            f.write('physics_suite == "adiabatic"\n')
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run ccpp_phys_set config method, which should fail
+            #due to missing "physics_suite" namelist variable:
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
+
+        #Remove text file:
+        os.remove("test.txt")
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "ccpp_phys_set" non-matching physics_suite error-handling
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_ccpp_phys_set_no_physics_suite_match(self):
+
+        """
+        Check that "ccpp_phys_set" throws the proper
+        error if the "physics_suite" namelist variable
+        value doesn't match any of the options listed
+        in "CAM_CONFIG_OPTS".
+        """
+
+        #Create namelist attribute dictionary:
+        cam_nml_attr_dict = dict()
+
+        #Set error message:
+        ermsg = "physics_suite specified in user_nl_cam doesn't match any suites\n \
+                 listed in CAM_CONFIG_OPTS"
+
+        #Create namelist file:
+        with open("test.txt", "w") as f:
+            f.write('!Namelist test file\n')
+            f.write('physics_suite = "cam6"\n')
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run ccpp_phys_set config method, which should fail
+            #due to missing "physics_suite" namelist variable:
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+
+            #Check that error message matches what's expected:
+            self.assertEqual(ermsg, str(valerr.exception))
+
+        #Remove text file:
+        os.remove("test.txt")
+
 
 #################################################
 #Run unit tests if this script is called directly

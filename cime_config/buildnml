@@ -74,91 +74,12 @@ def nml_attr_set(config):
             #is also a namelist attribute:
             if conf.is_nml_attr:
                 #If so, then add to attribute dictionary:
-                if type(conf.value) is str:
-                    #If value is a string, then add directly:
-                    cam_nml_attr_dict[conf_name] = conf.value
-                else:
-                    #If not, then convert to string before adding:
-                    cam_nml_attr_dict[conf_name] = "{}".format(conf.value)
-                # End if
+                cam_nml_attr_dict[conf_name] = str(conf.value)
             # End if
         # End for
     # End if
     #Return namelist attribute dictionary:
     return cam_nml_attr_dict
-
-##################
-
-def ccpp_phys_set(config, cam_nml_attr_dict, user_nl_file):
-
-    """
-    Determines if a user has specified
-    which CCPP physics suite to use,
-    assuming there is more than one suite
-    listed in the 'physics_suites' CAM
-    configure option.
-    """
-
-    #Extract physics suite list:
-    phys_suites = config.get_value('physics_suites').split(';')
-
-    if len(phys_suites) > 1:
-        #If more than one physics suite is listed,
-        #then check the "user_nl_cam" file to see if user
-        #specified a particular suite to use for this
-        #simulation:
-        with open(user_nl_file, 'r') as nl_file:
-            #Read lines in file:
-            nl_user_lines = nl_file.readlines()
-
-        #Strip out all comment lines:
-        real_nl_lines = \
-            [line for line in nl_user_lines if line[0] != "!"]
-
-        #Search for "physics_suite" line:
-        phys_suite_lines = \
-            [line for line in real_nl_lines if "physics_suite" in line]
-
-        #If there is no "physics_suite" line, then throw an error:
-        if not phys_suite_lines:
-            emsg = "No 'physics_suite' variable is present in user_nl_cam.\n \
-                    This is required if more than one suite is listed\n \
-                    in CAM_CONFIG_OPTS."
-            raise CamBuildnmlError(emsg)
-
-        #If there is more than one "physics_suite" line, then also throw an error:
-        if len(phys_suite_lines) > 1:
-            emsg = "More than one 'physics_suite' variable is present in user_nl_cam.\n \
-                    Only one 'physics_suite' line is allowed."
-            raise CamBuildnmlError(emsg)
-
-        #Extract string from list:
-        phys_suite_line = phys_suite_lines[0]
-
-        #Search for equals (=) sign in "physics_suite" string:
-        eq_sign_idx = phys_suite_line.find("=")
-
-        if eq_sign_idx > 0:
-            #Assume all text left of equals sign is the physics suite name:
-            phys_suite_val = phys_suite_line[(eq_sign_idx+1):].strip()
-        else:
-            #Syntax is bad, so raise an error:
-            emsg = "No equals (=) sign was found with the 'physics_suite' variable."
-            raise CamBuildnmlError(emsg)
-
-        #Check that physics suite specified is actually in config list:
-        if phys_suite_val not in phys_suites:
-            emsg = "physics_suite specified in user_nl_cam doesn't match any suites\n \
-                    listed in CAM_CONFIG_OPTS"
-            raise CamBuildnmlError(emsg)
-
-    else:
-        #If only physics suite is listed, then
-        #just use that one:
-        phys_suite_val = phys_suites[0]
-
-    #Add new namelist attribute to dictionary:
-    cam_nml_attr_dict["phys_suite"] = phys_suite_val
 
 #################
 #PRIMARY FUNCTION
@@ -348,7 +269,7 @@ def buildnml(case, caseroot, compname):
         #-----------------------------------------------------------
 
         # Find user-chosen CCPP physics suite, and set as an attribute:
-        ccpp_phys_set(config, cam_nml_dict, user_nl_file)
+        config.ccpp_phys_set(cam_nml_dict, user_nl_file)
 
         #--------------------------------
         # Create CIME namelist input file:
