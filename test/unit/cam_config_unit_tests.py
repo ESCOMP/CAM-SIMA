@@ -311,9 +311,9 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
-            f.write('physics_suite = "adiabatic"\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
+            test_fil.write('physics_suite = "adiabatic"\n')
 
         #Run ccpp_phys_set config method:
         self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
@@ -344,9 +344,9 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
-            f.write('physics_suite = "adiabatic"\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
+            test_fil.write('physics_suite = "adiabatic"\n')
 
         #Run ccpp_phys_set config method:
         self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
@@ -378,8 +378,8 @@ class CamConfigTestRoutine(unittest.TestCase):
                  in CAM_CONFIG_OPTS."
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
@@ -413,10 +413,10 @@ class CamConfigTestRoutine(unittest.TestCase):
                  Only one 'physics_suite' line is allowed."
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
-            f.write('physics_suite = "adiabatic"\n')
-            f.write('physics_suite = "kessler"\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
+            test_fil.write('physics_suite = "adiabatic"\n')
+            test_fil.write('physics_suite = "kessler"\n')
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
@@ -450,9 +450,9 @@ class CamConfigTestRoutine(unittest.TestCase):
 
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
-            f.write('physics_suite  "adiabatic"\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
+            test_fil.write('physics_suite  "adiabatic"\n')
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
@@ -485,9 +485,9 @@ class CamConfigTestRoutine(unittest.TestCase):
         ermsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
-            f.write('physics_suite == "adiabatic"\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
+            test_fil.write('physics_suite == "adiabatic"\n')
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
@@ -522,9 +522,9 @@ class CamConfigTestRoutine(unittest.TestCase):
                  listed in CAM_CONFIG_OPTS"
 
         #Create namelist file:
-        with open("test.txt", "w") as f:
-            f.write('!Namelist test file\n')
-            f.write('physics_suite = "cam6"\n')
+        with open("test.txt", "w") as test_fil:
+            test_fil.write('!Namelist test file\n')
+            test_fil.write('physics_suite = "cam6"\n')
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:

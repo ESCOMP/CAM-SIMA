@@ -105,12 +105,12 @@ def _build_cam():
 
         # Add dynamics source code directories:
         for direc in config.get_value("dyn_src_dirs").split(","):
-           dyn_dir = os.path.join(atm_root, "src", "dynamics")
-           for subdir in direc.split("/"):
-               dyn_dir = os.path.join(dyn_dir, subdir)
-               #Add to list of filepaths if not already present:
-               if dyn_dir not in paths:
-                   paths.append(dyn_dir)
+            dyn_dir = os.path.join(atm_root, "src", "dynamics")
+            for subdir in direc.split("/"):
+                dyn_dir = os.path.join(dyn_dir, subdir)
+                #Add to list of filepaths if not already present:
+                if dyn_dir not in paths:
+                    paths.append(dyn_dir)
 
         # Add analytical IC source code directories:
         paths.append(os.path.join(atm_root, "src", "dynamics", "tests")) #Required due to namelist call.

@@ -378,7 +378,7 @@ class WriteInitTest(unittest.TestCase):
         # Check return message:
         amsg = "Test failure: retmsg={}".format(retmsg)
         self.assertEqual(retmsg,
-                         "Required CCPPP physics variables missing from host model.",
+                         "Required CCPP physics variables missing from host model.",
                          msg=amsg)
 
         # Make sure no output file was created:
