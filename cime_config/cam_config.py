@@ -597,11 +597,9 @@ class ConfigCAM:
 
         # Level information for CAM is part of the atm grid name
         #    and must be stripped out
-        case_nlev = ''
         match = re.match(r'(.+)z(\d+)', atm_grid)
         if match:
             atm_grid = match.groups()[0]
-            case_nlev = match.groups()[1]
         # End if
 
         # Save user options as list
@@ -783,19 +781,9 @@ class ConfigCAM:
             raise CamConfigValError(emsg.format(user_dyn_opt, dyn))
         # End if
 
-        #----------------------------------------
-        # Set CAM grid variables (nlat,nlon,nlev)
-        #----------------------------------------
-
-        # Set number of vertical levels
-        if case_nlev:
-            nlev = case_nlev
-        else:
-            nlev = '30' # Default value
-
-        # Add vertical levels to configure object
-        nlev_desc = "Number of vertical levels."
-        self.create_config("nlev", nlev_desc, nlev, None, is_nml_attr=True)
+        #---------------------------------------
+        # Set CAM grid variables (nlat and nlon)
+        #---------------------------------------
 
         #Set horizontal dimension variables:
         if dyn == "se":
