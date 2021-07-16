@@ -165,6 +165,7 @@
       <value compset="_CAM%HS94">-phys held_suarez</value>
       <value compset="_CAM%KESSLER">-phys kessler -chem terminator -analytic_ic</value> -->
       <value compset="_CAM%KESSLER">--physics-suites kessler --analytic_ic</value>
+      <value compset="_CAM%FHS94">--physics-suites held_suarez_1994 --analytic_ic</value>
       <value compset="_CAM%PHYSTEST">--dyn none --physics-suites adiabatic</value>
 
       <!-- Aquaplanet -->

@@ -280,9 +280,24 @@ def buildnml(case, caseroot, compname):
         # Convert namelist input file to list:
         namelist_infile_list = [namelist_infile]
 
-        #-----------------------------
-        # Initialize namelist defaults:
-        #-----------------------------
+        #-------------------------------------------------
+        # Initialize only "vert_coord_nl" namelist entries
+        #-------------------------------------------------
+
+        # Initalize vert_coord_nl defaults:
+        nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
+                             skip_groups=filter(lambda group: group !='vert_coord_nl',
+                             config.nml_groups))
+
+        #--------------------------------------------
+        # Set "nlev" namelist attribute to equal pver
+        #--------------------------------------------
+
+        cam_nml_dict["nlev"] = nmlgen.get_value("pver")
+
+        #---------------------------------
+        # Initialize all namelist defaults:
+        #---------------------------------
 
         # Initalize namelist defaults in used namelist groups:
         nmlgen.init_defaults(namelist_infile_list, cam_nml_dict)

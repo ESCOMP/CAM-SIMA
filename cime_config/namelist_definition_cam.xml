@@ -7214,9 +7214,15 @@
     <desc>
       Number of model vertical levels.
       Default: 30
+
+      Please note that changing this variable
+      will likely change other namelist variables
+      via the "nlev" attribute.
     </desc>
     <values>
-      <value nlev="30">30</value> <!--Default value -->
+      <value>30</value>
+      <value phys_suite="cam4">26</value>
+      <value phys_suite="cam6">32</value>
     </values>
   </entry>
 

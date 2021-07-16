@@ -21,7 +21,7 @@ module physconst
    use shr_const_mod,  only: shr_const_cpice
    use vert_coord,     only: pver, pverp
    use physics_grid,   only: pcols => columns_on_task
-   use cam_abortutils, only: endrun
+   use cam_abortutils, only: endrun, check_allocate
    use string_utils,   only: to_str
    use constituents,   only: pcnst
 
@@ -383,7 +383,7 @@ CONTAINS
      dry_air_species_num   = 0
      water_species_in_air_num = 0
      do i = 1, num_names_max
-        if (.not. LEN(TRIM(dry_air_species(i)))==0) then
+        if ((LEN_TRIM(dry_air_species(i)) > 0) .and. (TRIM(dry_air_species(i)) /= 'N2')) then
            dry_air_species_num = dry_air_species_num + 1
         end if
         if (.not. LEN(TRIM(water_species_in_air(i)))==0) then
@@ -452,46 +452,32 @@ CONTAINS
       !  Allocate constituent dependent properties
       !------------------------------------------------------------------------
       allocate(cpairv(pcols,pver), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate cpairv(pcols,pver) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'cpairv(pcols,pver)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(rairv(pcols,pver), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate rairv(pcols,pver) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'rairv(pcols,pver)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(cappav(pcols,pver), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate cappav(pcols,pver) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'cappav(pcols,pver)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(mbarv(pcols,pver), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate mbarv(pcols,pver) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'mbarv(pcols,pver)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(zvirv(pcols,pver), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate zvirv(pcols,pver) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'zvirv(pcols,pver)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(kmvis(pcols,pverp), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate kmvis(pcols,pverp) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'kmvis(pcols,pverp)', &
+                          file=__FILE__, line=__LINE__)
 
       allocate(kmcnd(pcols,pverp), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//': allocate kmcnd(pcols,pverp) failed with stat: '//&
-                     to_str(ierr))
-      end if
+      call check_allocate(ierr, subname, 'kmcnd(pcols,pverp)', &
+                          file=__FILE__, line=__LINE__)
 
       !------------------------------------------------------------------------
       !  Initialize constituent dependent properties
@@ -556,53 +542,37 @@ CONTAINS
 
      i = dry_air_species_num+water_species_in_air_num
      allocate(thermodynamic_active_species_idx(i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_idx(i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'thermodynamic_active_species_idx(i)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(thermodynamic_active_species_idx_dycore(i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_idx_dycore(i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'thermodynamic_active_species_idx_dycore(i)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(thermodynamic_active_species_cp(0:i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_cp(0:i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'thermodynamic_active_species_cp(0:i)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(thermodynamic_active_species_cv(0:i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_cv(0:i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'thermodynamic_active_species_cv(0:i)', &
+                         file=__FILE__, line=__LINE__)
 
      allocate(thermodynamic_active_species_R(0:i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_R(0:i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     call check_allocate(iret, subname, 'thermodynamic_active_species_R(0:i)', &
+                         file=__FILE__, line=__LINE__)
 
      i = dry_air_species_num
-     allocate(thermodynamic_active_species_mwi(i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_mwi(i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     allocate(thermodynamic_active_species_mwi(0:i), stat=iret)
+     call check_allocate(iret, subname, 'thermodynamic_active_species_mwi(0:i)', &
+                         file=__FILE__, line=__LINE__)
 
-     allocate(thermodynamic_active_species_kv(i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_kv(i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     allocate(thermodynamic_active_species_kv(0:i), stat=iret)
+     call check_allocate(iret, subname, 'thermodynamic_active_species_kv(0:i)', &
+                         file=__FILE__, line=__LINE__)
 
-     allocate(thermodynamic_active_species_kc(i), stat=iret)
-     if (iret /= 0) then
-       call endrun(subname//': allocate thermodynamic_active_species_kc(i)'//&
-                   ' failed with stat: '//to_str(iret))
-     end if
+     allocate(thermodynamic_active_species_kc(0:i), stat=iret)
+     call check_allocate(iret, subname, 'thermodynamic_active_species_kc(0:i)', &
+                         file=__FILE__, line=__LINE__)
 
      thermodynamic_active_species_idx        = -999
      thermodynamic_active_species_idx_dycore = -999
@@ -627,18 +597,17 @@ CONTAINS
        ! last major species in dry_air_species is derived from the others and constants associated with it
        ! are initialized here
       !
-       if (TRIM(dry_air_species(dry_air_species_num))=='N2') then
+       if (TRIM(dry_air_species(dry_air_species_num+1))=='N2') then
 !         call cnst_get_ind('N' ,ix, abort=.false.)
           ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
-           write(iulog, *) subname//' dry air component not found: ', dry_air_species(dry_air_species_num)
+           write(iulog, *) subname//' dry air component not found: ', dry_air_species(dry_air_species_num+1)
            call endrun(subname // ':: dry air component not found')
 !Un-comment once constituents are enabled -JN:
 #if 0
          else
            mw = 2.0_kind_phys*cnst_mw(ix)
-           icnst = dry_air_species_num
-           thermodynamic_active_species_idx(icnst) = 1!note - this is not used since this tracer value is derived
+           icnst = 0 ! index for the derived tracer N2
            thermodynamic_active_species_cp (icnst) = 0.5_kind_phys*shr_const_rgas*(2._kind_phys+dof2)/mw !N2
            thermodynamic_active_species_cv (icnst) = 0.5_kind_phys*shr_const_rgas*dof2/mw !N2
            thermodynamic_active_species_R  (icnst) = shr_const_rgas/mw
@@ -763,7 +732,7 @@ CONTAINS
      if (i>0) then
        if (masterproc) then
          write(iulog, *) "Dry air composition ",TRIM(dry_air_species(i)),&
-              icnst,thermodynamic_active_species_idx(icnst),&
+              icnst-1,&
               thermodynamic_active_species_mwi(icnst),&
               thermodynamic_active_species_cp(icnst),&
               thermodynamic_active_species_cv(icnst)
@@ -1399,7 +1368,7 @@ cpv = 0._kind_phys
                kmvis(i,j,k) = 0.0_r8
                kmcnd(i,j,k) = 0.0_r8
                residual = 1.0_r8
-               do icnst=1,dry_air_species_num-1
+               do icnst=1,dry_air_species_num
                  ispecies = idx_local(icnst)
                  mm       = 0.5_r8*(tracer(i,j,k,ispecies)*factor(i,j,k)+tracer(i,j,k-1,ispecies)*factor(i,j,k-1))
                  kmvis(i,j,k) = kmvis(i,j,k)+thermodynamic_active_species_kv(icnst)* &
@@ -1409,7 +1378,7 @@ cpv = 0._kind_phys
                  residual         = residual - mm
                end do
                icnst=dry_air_species_num
-               ispecies = idx_local(icnst)
+               icnst=0 ! N2
                kmvis(i,j,k) = kmvis(i,j,k)+thermodynamic_active_species_kv(icnst)* &
                                            thermodynamic_active_species_mwi(icnst)*residual
                kmcnd(i,j,k) = kmcnd(i,j,k)+thermodynamic_active_species_kc(icnst)* &
@@ -1508,7 +1477,7 @@ cpv = 0._kind_phys
 
        cp_dry = 0.0_kind_phys
        residual = 1.0_kind_phys
-       do nq=1,dry_air_species_num-1
+       do nq=1,dry_air_species_num
          m_cnst = active_species_idx(nq)
          do k=k0,k1
            do j=j0,j1
@@ -1520,7 +1489,7 @@ cpv = 0._kind_phys
            end do
          end do
        end do
-       nq = dry_air_species_num
+       nq = 0 ! N2
        do k=k0,k1
          do j=j0,j1
            do i = i0,i1
@@ -1563,7 +1532,7 @@ cpv = 0._kind_phys
 
        R_dry = 0.0_r8
        residual = 1.0_r8
-       do nq=1,dry_air_species_num-1
+       do nq=1,dry_air_species_num
          m_cnst = active_species_idx_dycore(nq)
          do k=k0,k1
            do j=j0,j1
@@ -1576,9 +1545,9 @@ cpv = 0._kind_phys
          end do
        end do
        !
-       ! last dry air constituent derived from the others
+       ! N2 derived from the others
        !
-       nq = dry_air_species_num
+       nq = 0
        do k=k0,k1
          do j=j0,j1
            do i = i0,i1
@@ -1848,10 +1817,8 @@ cpv = 0._kind_phys
      if (present(pint_out)) pmid_out=pmid
      if (present(rhoi_dry)) then
        allocate(R_dry(i0:i1,j0:j1,1:k1+1), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate R_dry(i0:i1,j0:j1,1:k1+1)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'R_dry(i0:i1,j0:j1,1:k1+1)', &
+                           file=__FILE__, line=__LINE__)
 
        if (tracer_mass) then
          call get_R_dry(i0,i1,j0,j1,1,k1+1,1,nlev,ntrac,tracer,idx_local,R_dry,fact=1.0_r8/dp_dry)
@@ -1872,10 +1839,8 @@ cpv = 0._kind_phys
      end if
      if (present(rho_dry)) then
        allocate(R_dry(i0:i1,j0:j1,1:k1), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate R_dry(i0:i1,j0:j1,1:k1)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'R_dry(i0:i1,j0:j1,1:k1)', &
+                           file=__FILE__, line=__LINE__)
 
        if (tracer_mass) then
          call get_R_dry(i0,i1,j0,j1,1,k1,1,nlev,ntrac,tracer,idx_local,R_dry,fact=1.0_r8/dp_dry)
@@ -1924,7 +1889,7 @@ cpv = 0._kind_phys
 
        mbarv = 0.0_r8
        residual = 1.0_r8
-       do nq=1,dry_air_species_num-1
+       do nq=1,dry_air_species_num
          m_cnst = active_species_idx(nq)
          do k=k0,k1
            do j=j0,j1
@@ -1936,7 +1901,7 @@ cpv = 0._kind_phys
            end do
          end do
        end do
-       nq = dry_air_species_num
+       nq = 0 ! N2
        do k=k0,k1
          do j=j0,j1
            do i = i0,i1
@@ -1973,16 +1938,12 @@ cpv = 0._kind_phys
        kappa_dry= real(rair/cpair, r8)
      else
        allocate(R_dry(i0:i1,j0:j1,k0:k1), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate R_dry(i0:i1,j0:j1,k0:k1)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'R_dry(i0:i1,j0:j1,k0:k1)', &
+                           file=__FILE__, line=__LINE__)
 
        allocate(cp_dry(i0:i1,j0:j1,k0:k1), stat=iret)
-       if (iret /= 0) then
-         call endrun(subname//': allocate cp_dry(i0:i1,j0:j1,k0:k1)'//&
-                     ' failed with stat: '//to_str(iret))
-       end if
+       call check_allocate(iret, subname, 'cp_dry(i0:i1,j0:j1,k0:k1)', &
+                           file=__FILE__, line=__LINE__)
 
        if (present(fact)) then
          call get_cp_dry(i0,i1,j0,j1,k0,k1,1,nlev,ntrac,real(tracer, kind_phys),active_species_idx,cp_dry,&
