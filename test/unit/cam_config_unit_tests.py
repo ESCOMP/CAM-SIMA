@@ -136,11 +136,11 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Set new value:
         newval = 200
 
-        #Set nlev to "newval":
-        self.test_config_cam.set_value("nlev", newval)
+        #Set pcols to "newval":
+        self.test_config_cam.set_value("pcols", newval)
 
         #Get new value:
-        testval = self.test_config_cam.get_value("nlev")
+        testval = self.test_config_cam.get_value("pcols")
 
         #Check that testval matches
         self.assertEqual(testval, newval)
@@ -255,12 +255,12 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Set error message:
-        ermsg = "ERROR:  Value provided for variable, 'nlev', must be either an integer or a string.  Currently it is type <type 'float'>"
+        ermsg = "ERROR:  Value provided for variable, 'pcols', must be either an integer or a string.  Currently it is type <type 'float'>"
 
         #Expect "CamConfigTypeError":
         with self.assertRaises(CamConfigTypeError) as typerr:
             #Run "set_value" method on made-up variable name:
-            self.test_config_cam.set_value("nlev", 5.0)
+            self.test_config_cam.set_value("pcols", 5.0)
 
             #Check that error message matches what's expected:
             self.assertEqual(ermsg, str(typerr.exception))
