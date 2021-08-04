@@ -197,7 +197,7 @@ class VarBase(object):
         # end if
         outfile.write('  {} = {}\n'.format('units', self.units))
         if self.is_ddt:
-            outfile.write('  {} = {}\n'.format('ddt_type', self.var_type))
+            outfile.write('  {} = {}\n'.format('type', self.var_type))
         elif self.kind:
             outfile.write('  {} = {} | {} = {}\n'.format('type', self.var_type,
                                                          'kind', self.kind))
@@ -1095,6 +1095,7 @@ class File:
         # end if
         if self.__known_types.known_type(newddt.ddt_type):
             raise CCPPError('Duplicate DDT entry, {}'.format(newddt.ddt_type))
+        # end if
         self.__ddts[newddt.ddt_type] = newddt
         self.__known_types.add_type(newddt.ddt_type,
                                     self.__name, type_ddt=newddt)

@@ -1548,7 +1548,7 @@ def write_phys_read_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("!Search for all needed CCPP input variables,", 3)
     outfile.write("!so that they can bx e read from input file if need be:", 3)
     outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
-    outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
+    outfile.write("errmsg, errflg, input_vars=.true., output_vars=.false.)", 4)
     outfile.write("", 0)
 
     #Loop over required variables:
@@ -1800,7 +1800,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     #Write dummy variable declarations:
     outfile.write("", 0)
     outfile.write("! Dummy arguments", 2)
-    outfile.write("character(len=SHR_KIND_CL), intent(in) :: file_name", 2) 
+    outfile.write("character(len=SHR_KIND_CL), intent(in) :: file_name", 2)
     outfile.write("character(len=SHR_KIND_CS)             :: suite_names(:) !Names of CCPP suites", 2)
     outfile.write("integer,                    intent(in) :: timestep", 2)
     outfile.write("real(kind_phys),            intent(in) :: min_difference", 2)
@@ -1869,7 +1869,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("!Search for all needed CCPP input variables,", 3)
     outfile.write("!so that they can be read from input file if need be:", 3)
     outfile.write("call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &", 3)
-    outfile.write("errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)", 4)
+    outfile.write("errmsg, errflg, input_vars=.true., output_vars=.false.)", 4)
     outfile.write("", 0)
 
     #Loop over required variables:

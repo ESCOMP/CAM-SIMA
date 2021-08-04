@@ -82,7 +82,6 @@ CONTAINS
       logical                     :: use_time, adj_times, use_time_bnds
       integer                     :: index
       integer                     :: err_handling
-      character(len=cl)           :: errmsg
       character(len=*), parameter :: subname = 'time_coordinate%initialize: '
 
       if (present(fixed)) then
