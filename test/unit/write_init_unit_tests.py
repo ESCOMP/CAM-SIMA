@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #-----------------------------------------------------------------------
 # Description:  Contains unit tests for testing CAM "phys_init" code
 #               generation using the registry and CCPP physics suites.
