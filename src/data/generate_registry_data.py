@@ -129,7 +129,7 @@ class TypeRegistry(dict):
         return ddt_names
 
 ###############################################################################
-class VarBase(object):
+class VarBase:
 ###############################################################################
     """VarBase contains elements common to variables, arrays, and
     array elements."""
@@ -575,8 +575,8 @@ class Variable(VarBase):
         """
         # Protected string
         if has_protect and self.protected:
-                pro_str = "protected"
-                has_pro = True
+            pro_str = "protected"
+            has_pro = True
         else:
             pro_str = "         "
             has_pro = False

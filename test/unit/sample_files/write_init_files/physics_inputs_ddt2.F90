@@ -85,7 +85,7 @@ CONTAINS
          !Search for all needed CCPP input variables,
          !so that they can bx e read from input file if need be:
          call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &
-            errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)
+            errmsg, errflg, input_vars=.true., output_vars=.false.)
 
          !Loop over all required variables as specified by CCPP suite:
          do req_idx = 1, size(ccpp_required_data, 1)
@@ -242,9 +242,8 @@ CONTAINS
          write(iulog,*) 'TIMESTEP: ', timestep
       end if
       if (file_name == 'UNSET') then
-         write(iulog,*)                                                                           &
-              'WARNING: Namelist variable ncdata_check is UNSET. Model will run, but physics check data will not be printed'
-         
+         write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET.',                      &
+              ' Model will run, but physics check data will not be printed'
          return
       end if
       !Open check file:
@@ -264,7 +263,7 @@ CONTAINS
          !Search for all needed CCPP input variables,
          !so that they can be read from input file if need be:
          call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, &
-            errmsg, errflg, input_vars_in=.true., output_vars_in=.false.)
+            errmsg, errflg, input_vars=.true., output_vars=.false.)
 
          !Loop over all required variables as specified by CCPP suite:
          do req_idx = 1, size(ccpp_required_data, 1)

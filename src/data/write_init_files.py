@@ -1785,7 +1785,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("use cam_logfile,          only: iulog", 2)
     outfile.write("use spmd_utils,           only: masterproc", 2)
     outfile.write("use phys_vars_init_check, only: is_read_from_file", 2)
-    outfile.write("use ioFileMod,            only: cam_get_file" , 2)
+    outfile.write("use ioFileMod,            only: cam_get_file", 2)
     outfile.write("use cam_pio_utils,        only: cam_pio_openfile, cam_pio_closefile", 2)
 
     outfile.write("use {}, only: phys_var_stdnames, input_var_names".format(phys_check_fname_str), 2)
@@ -1848,7 +1848,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
 
     #Open check file:
     outfile.write("if (file_name == 'UNSET') then", 2)
-    outfile.write("write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET. Model will run, but physics check data will not be printed'", 3)
+    outfile.write("write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET.', ' Model will run, but physics check data will not be printed'", 3)
     outfile.write("return", 3)
     outfile.write("end if", 2)
     outfile.write("!Open check file:", 2)

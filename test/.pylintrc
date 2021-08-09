@@ -54,7 +54,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=import-error, too-many-statements, too-many-lines, too-many-locals
+disable=import-error, too-many-statements, too-many-lines, too-many-locals, bad-whitespace
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -402,7 +402,7 @@ max-attributes=20
 max-bool-expr=5
 
 # Maximum number of branch for function / method body
-max-branches=45
+max-branches=50
 
 # Maximum number of locals for function / method body
 max-locals=40

@@ -397,7 +397,10 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     # Import needed CCPP-framework scripts:
     try:
         from ccpp_capgen import capgen
+        #pylint: disable=redefined-outer-name
+        # pylint change because of doctest import below
         from metadata_table import find_scheme_names
+        #pylint: enable=redefined-outer-name
         from parse_tools import read_xml_file
         ##XXgoldyXX: See note below about when these imports can be removed
         from ccpp_datafile import DatatableReport
