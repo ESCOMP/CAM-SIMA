@@ -1127,7 +1127,10 @@ if __name__ == "__main__":
     FCONFIG = ConfigCAM(FCASE, LOGGER)
 
     # Run doctests on this file's python objects
-    doctest.testmod()
+    TEST_SUCCESS = doctest.testmod()[0]
+
+    # Exit script with error code matching number of failed tests:
+    sys.exit(TEST_SUCCESS)
 
 #############
 # End of file
