@@ -552,10 +552,13 @@ if __name__ == "__main__":
     BUILD_CACHE_CAM = BuildCacheCAM(BUILD_CACHE)
 
     # Run doctests:
-    doctest.testmod()
+    TEST_SUCCESS = doctest.testmod()[0]
 
     # Remove testing directories:
     shutil.rmtree(TEST_SOURCE_MODS_DIR)
+
+    # Exit script with error code matching number of failed tests:
+    sys.exit(TEST_SUCCESS)
 
 #############
 # End of file
