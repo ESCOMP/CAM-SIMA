@@ -97,6 +97,10 @@ class ConfigGen:
     Traceback (most recent call last):
     CamConfigTypeError: ERROR:
 
+    >>> ConfigGen("test", ["test", ("object", "description")]).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not [<class 'str'>, <class 'tuple'>]
+
     """
 
     def __init__(self, name, desc, is_nml_attr=False):
@@ -121,7 +125,7 @@ class ConfigGen:
             elif isinstance(desc, list):
                 derr = [type(x) for x in desc]
             else:
-                derr = desc
+                derr = "{} ({})".format(type(desc), desc)
             # end if
             raise CamConfigTypeError(emsg.format(name, derr))
         # end if
