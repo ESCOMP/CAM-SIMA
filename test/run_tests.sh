@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# Script to run doctest tests on CAM python scripts
+# Script to run doctest tests and unit tests on CAM python scripts
 # Note: This script should be kept up to date with
 #       .github/workflows/pr_open_sync_workflow.yml
 

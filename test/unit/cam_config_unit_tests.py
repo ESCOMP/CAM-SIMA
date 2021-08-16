@@ -173,10 +173,11 @@ class CamConfigTestRoutine(unittest.TestCase):
             self.test_config_cam.print_config("nlon", print_log)
 
             #Check that log output matches what is expected:
-            logmsg = "#Number of unique longitude points in rectangular lat/lon" \
-                     " grid.\nTotal number of columns for unstructured grids."
+            logmsg1 = "# Number of unique longitude points in rectangular lat/lon grid."
+            logmsg2 = "#    Total number of columns for unstructured grids."
+            logmsg = 'DEBUG:print_config:'+logmsg1+'\n'+logmsg2
 
-            self.assertEqual(cmplog.output, ['DEBUG:print_config:'+logmsg,
+            self.assertEqual(cmplog.output, [logmsg,
                                              'DEBUG:print_config:nlon = null'])
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++

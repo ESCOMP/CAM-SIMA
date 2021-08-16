@@ -84,6 +84,7 @@ contains
       ! Modules that read their own namelist are responsible for making sure
       ! all processes receive the values.
       ! Note that namelists for physics schemes are read by
+      !    cam_read_ccpp_scheme_namelists
 
       call cam_logfile_readnl(nlfilename)
 !      call physics_grid_readnl(nlfilename)
