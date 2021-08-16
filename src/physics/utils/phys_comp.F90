@@ -109,6 +109,7 @@ CONTAINS
       use physics_grid,      only: columns_on_task
       use vert_coord,        only: pver, pverp
       use physconst,         only: physconst_init
+      use dynconst,          only: dynconst_init
       use physics_types,     only: allocate_physics_types_fields
       use constituents,      only: pcnst
       use cam_ccpp_cap,      only: cam_ccpp_physics_initialize
@@ -127,6 +128,7 @@ CONTAINS
 
       errflg = 0
       call physconst_init(columns_on_task, pver, pverp)
+
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
       call ccpp_physics_suite_list(suite_names)

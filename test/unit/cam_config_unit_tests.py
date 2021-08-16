@@ -25,7 +25,7 @@ import sys
 #Python unit-testing library:
 import unittest
 
-#Adddirectory to python path:
+#Add directory to python path:
 CURRDIR = os.path.abspath(os.path.dirname(__file__))
 CAM_ROOT_DIR = os.path.join(CURRDIR, os.pardir, os.pardir)
 CAM_CONF_DIR = os.path.abspath(os.path.join(CAM_ROOT_DIR, "cime_config"))
@@ -190,15 +190,15 @@ class CamConfigTestRoutine(unittest.TestCase):
         """Check that "get_value" throws the proper error when non-existent variable is requested"""
 
         #Set error message:
-        ermsg = "ERROR: Invalid configuration name, 'fake variable'"
+        ermsg = "ERROR:  Invalid configuration name, 'fake variable'"
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run "get_value" method on made-up variable name:
             self.test_config_cam.get_value("fake variable")
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "set_value" non-created variable error-handling
@@ -216,9 +216,8 @@ class CamConfigTestRoutine(unittest.TestCase):
             #Run "set_value" method on made-up variable name:
             self.test_config_cam.set_value("fake variable", 200)
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
-
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "print_config" non-created variable error-handling
@@ -239,9 +238,8 @@ class CamConfigTestRoutine(unittest.TestCase):
             #Run "print_config" method on made-up variable name:
             self.test_config_cam.print_config("fake variable", print_log)
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
-
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
     #++++++++++++++++++++++++++++++++++++++++++++
     #Check "set_value" input value error-handling
@@ -255,15 +253,15 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Set error message:
-        ermsg = "ERROR:  Value provided for variable, 'pcols', must be either an integer or a string.  Currently it is type <type 'float'>"
+        ermsg = "ERROR:  Value provided for variable, 'pcols', must be either an integer or a string.  Currently it is type <class 'float'>"
 
         #Expect "CamConfigTypeError":
         with self.assertRaises(CamConfigTypeError) as typerr:
             #Run "set_value" method on made-up variable name:
             self.test_config_cam.set_value("pcols", 5.0)
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(typerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(typerr.exception))
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "generate_cam_src" missing "ccpp_framework" error-handling
@@ -285,8 +283,8 @@ class CamConfigTestRoutine(unittest.TestCase):
             #due to the case paths being "fake":
             self.test_config_cam.generate_cam_src(0)
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check that "ccpp_phys_set" works as expected with one physics suite entry
@@ -373,9 +371,9 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Set error message:
-        ermsg = "No 'physics_suite' variable is present in user_nl_cam.\n \
-                 This is required if more than one suite is listed\n \
-                 in CAM_CONFIG_OPTS."
+        ermsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
+        ermsg += "This is required if more than one suite is listed\n"
+        ermsg += "in CAM_CONFIG_OPTS."
 
         #Create namelist file:
         with open("test.txt", "w") as test_fil:
@@ -387,8 +385,8 @@ class CamConfigTestRoutine(unittest.TestCase):
             #due to missing "physics_suite" namelist variable:
             self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
         #Remove text file:
         os.remove("test.txt")
@@ -409,8 +407,8 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Set error message:
-        ermsg = "More than one 'physics_suite' variable is present in user_nl_cam.\n \
-                 Only one 'physics_suite' line is allowed."
+        ermsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
+        ermsg += "Only one 'physics_suite' line is allowed."
 
         #Create namelist file:
         with open("test.txt", "w") as test_fil:
@@ -421,11 +419,11 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run ccpp_phys_set config method, which should fail
-            #due to missing "physics_suite" namelist variable:
+            #due to multiple "physics_suite" namelist variable:
             self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
         #Remove text file:
         os.remove("test.txt")
@@ -457,11 +455,11 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run ccpp_phys_set config method, which should fail
-            #due to missing "physics_suite" namelist variable:
+            #due to a missing equals sign in the namelist entry:
             self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
         #Remove text file:
         os.remove("test.txt")
@@ -492,11 +490,12 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run ccpp_phys_set config method, which should fail
-            #due to missing "physics_suite" namelist variable:
+            #due to an incorrect number of equal signs in the
+            #namelist entry:
             self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
         #Remove text file:
         os.remove("test.txt")
@@ -518,8 +517,8 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Set error message:
-        ermsg = "physics_suite specified in user_nl_cam doesn't match any suites\n \
-                 listed in CAM_CONFIG_OPTS"
+        ermsg  = "physics_suite specified in user_nl_cam doesn't match any suites\n" 
+        ermsg += "listed in CAM_CONFIG_OPTS"
 
         #Create namelist file:
         with open("test.txt", "w") as test_fil:
@@ -529,11 +528,13 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run ccpp_phys_set config method, which should fail
-            #due to missing "physics_suite" namelist variable:
+            #due to a mis-match between the "physics_suite" namelist
+            #variable and the physics suite options listed in the
+            #physics_suites config variable:
             self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
 
-            #Check that error message matches what's expected:
-            self.assertEqual(ermsg, str(valerr.exception))
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
         #Remove text file:
         os.remove("test.txt")

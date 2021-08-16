@@ -286,7 +286,8 @@ def buildnml(case, caseroot, compname):
 
         # Initalize vert_coord_nl defaults:
         nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
-                             skip_groups=filter(lambda group: group !='vert_coord_nl',
+                             skip_default_for_groups=\
+                             filter(lambda group: group !='vert_coord_nl',
                              config.nml_groups))
 
         #--------------------------------------------

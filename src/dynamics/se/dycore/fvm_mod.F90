@@ -436,20 +436,20 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       endif
       call endrun("stopping")
     end if
-    
+
     if (nhe .ne. 1) then
       if (par%masterproc) then
         write(iulog,*) "PARAMETER ERROR for fvm: Number of halo zone for the extended"
         write(iulog,*) "element nhe has to be 1, only this is available now! STOP!"
       endif
       call endrun("stopping")
-    end if   
+    end if
   end subroutine fvm_init1
-  
-  
-  
-  
-  
+
+
+
+
+
   ! initialization that can be done in threaded regions
   subroutine fvm_init2(elem,fvm,hybrid,nets,nete)
     use fvm_control_volume_mod, only: fvm_mesh,fvm_set_cubeboundary
@@ -461,7 +461,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use hycoef,                 only: hyai, hybi, ps0
     use derivative_mod,         only: subcell_integration
     use physconst,              only: thermodynamic_active_species_num
-    
+
     type (fvm_struct) :: fvm(:)
     type (element_t)  :: elem(:)
     type (hybrid_t)   :: hybrid

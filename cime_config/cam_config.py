@@ -883,6 +883,26 @@ class ConfigCAM:
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites)
 
+        #------------------------------------------------------------------
+        # Set Fortran kinds for real-type variables in dynamics and physics
+        #------------------------------------------------------------------
+
+        kind_valid_vals = ["REAL32","REAL64"]
+
+        #dycore kind:
+        self.create_config("dyn_kind", 
+                           "Fortran kind used in dycore for type real.",
+                           user_config_opts.dyn_kind, kind_valid_vals)
+ 
+        #physics kind:
+        self.create_config("phys_kind",
+                           "Fortran kind used in physics for type real.",
+                           user_config_opts.phys_kind, kind_valid_vals)
+
+        # Set phys->dyn kind conversion CPPdef if kinds are different:
+        if self.get_value("dyn_kind") != self.get_value("phys_kind"):
+             self.add_cppdef("DYN_PHYS_KIND_DIFF")
+
         #--------------------------------------------------------
         # Print CAM configure settings and values to debug logger
         #--------------------------------------------------------
@@ -959,6 +979,12 @@ class ConfigCAM:
                             action='store_true', required=False,
                             help="""Flag to turn on Analytic Initial
                                  Conditions (ICs).""")
+        parser.add_argument("--dyn_kind", "-dyn_kind",
+                            type=str, required=False, default="REAL64",
+                            help="""Fortran kind used in dycore for type real.""")
+        parser.add_argument("--phys_kind", "-phys_kind",
+                            type=str, required=False, default="REAL64",
+                            help="""Fortran kind used in physics for type real.""")
 
         popts = [opt for opt in config_opts.split(" ") if opt]
         if test_mode:
@@ -1231,15 +1257,15 @@ class ConfigCAM:
 
                 #If there is no "physics_suite" line, then throw an error:
                 if not phys_suite_lines:
-                    emsg = "No 'physics_suite' variable is present in user_nl_cam.\n \
-                            This is required if more than one suite is listed\n \
-                            in CAM_CONFIG_OPTS."
+                    emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
+                    emsg += "This is required if more than one suite is listed\n" 
+                    emsg += "in CAM_CONFIG_OPTS."
                     raise CamConfigValError(emsg)
 
                 #If there is more than one "physics_suite" entry, then throw an error:
                 if len(phys_suite_lines) > 1:
-                    emsg = "More than one 'physics_suite' variable is present in user_nl_cam.\n \
-                            Only one 'physics_suite' line is allowed."
+                    emsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
+                    emsg += "Only one 'physics_suite' line is allowed."
                     raise CamConfigValError(emsg)
 
                 #The split string list exists inside another, otherwise empty list, so extract
@@ -1260,8 +1286,8 @@ class ConfigCAM:
 
                 #Check that physics suite specified is actually in config list:
                 if phys_suite_val not in phys_suites:
-                    emsg = "physics_suite specified in user_nl_cam doesn't match any suites\n \
-                            listed in CAM_CONFIG_OPTS"
+                    emsg  = "physics_suite specified in user_nl_cam doesn't match any suites\n"
+                    emsg += "listed in CAM_CONFIG_OPTS"
                     raise CamConfigValError(emsg)
 
         else:

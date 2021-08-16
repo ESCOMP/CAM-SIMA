@@ -3,7 +3,7 @@ module dyn_comp
 ! CAM interfaces to the SE Dynamical Core
 
 use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
-use physconst,              only: pi
+use dynconst,               only: pi
 use spmd_utils,             only: iam, masterproc
 !use constituents,           only: pcnst, cnst_get_ind, cnst_name, cnst_longname, &
 !                                  cnst_read_iv, qmin, cnst_type, tottnam,        &
@@ -576,8 +576,9 @@ subroutine dyn_init(dyn_in, dyn_out)
    use dyn_grid,           only: elem, fvm
    use cam_pio_utils,      only: clean_iodesc_list
    use physconst,          only: thermodynamic_active_species_num, thermodynamic_active_species_idx
-   use physconst,          only: thermodynamic_active_species_idx_dycore, rair, cpair
-   use physconst,          only: get_molecular_diff_coef_reference
+   use physconst,          only: thermodynamic_active_species_idx_dycore
+   use dynconst,           only: cpair
+   use dyn_thermo,         only: get_molecular_diff_coef_reference
    !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
    !use gravity_waves_sources, only: gws_init
 

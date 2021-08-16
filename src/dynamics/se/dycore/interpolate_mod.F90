@@ -7,7 +7,7 @@ module interpolate_mod
   use coordinate_systems_mod, only: spherical_polar_t, cartesian2d_t,         &
        cartesian3D_t, sphere2cubedsphere, spherical_to_cart,                  &
        cubedsphere2cart, distance, change_coordinates, projectpoint
-  use physconst,              only: PI
+  use dynconst,               only: PI
   use quadrature_mod,         only: quadrature_t, gauss, gausslobatto
   use parallel_mod,           only: syncmp, parallel_t
   use cam_abortutils,         only: endrun, check_allocate
@@ -187,12 +187,12 @@ contains
   end function get_interp_gweight
   function get_interp_lat() result(thislat)
     real(kind=r8) :: thislat(nlat)
-    thislat=lat*180.0_r8/real(PI, r8)
+    thislat=lat*180.0_r8/PI
     return
   end function get_interp_lat
   function get_interp_lon() result(thislon)
     real(kind=r8) :: thislon(nlon)
-    thislon=lon*180.0_r8/real(PI, r8)
+    thislon=lon*180.0_r8/PI
     return
   end function get_interp_lon
 
@@ -1012,10 +1012,10 @@ contains
     yp      = cube%y
 
     ! MNL: for uniform grids (on cube face), analytic solution is fine
-    x1 = xp + 0.25_r8*real(PI, r8)
-    x2 = yp + 0.25_r8*real(PI, r8)
+    x1 = xp + 0.25_r8*PI
+    x2 = yp + 0.25_r8*PI
 
-    dx = (0.5_r8*real(PI, r8))/ne
+    dx = (0.5_r8*PI)/ne
     ie = INT(ABS(x1)/dx)
     je = INT(ABS(x2)/dx)
     ! if we are exactly on an element edge, we can put the point in

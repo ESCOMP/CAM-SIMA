@@ -32,7 +32,7 @@ use shr_kind_mod,           only: r8 => shr_kind_r8, shr_kind_cl
 use spmd_utils,             only: masterproc, iam, mpicom, mstrid=>masterprocid, &
                                   npes
 use constituents,           only: pcnst
-use physconst,              only: pi
+use dynconst,               only: pi
 use cam_initfiles,          only: initial_file_get_id
 use physics_column_type,    only: physics_column_t, kind_pcol
 use cam_map_utils,          only: iMap
@@ -130,6 +130,7 @@ subroutine model_grid_init()
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
    use physconst,           only: thermodynamic_active_species_num
+   use dynconst,            only: dynconst_init
    use ref_pres,            only: ref_pres_init
    use time_manager,        only: get_nstep, get_step_size
    use dp_mapping,          only: dp_init, dp_write, nphys_pts
@@ -191,6 +192,13 @@ subroutine model_grid_init()
 
    ! Initialize hybrid coordinate arrays
    call hycoef_init(fh_ini, psdry=.true.)
+
+   ! Initialize physical and mathematical constants used by dynamics:
+
+   ! Please note that this call must be done after 'physconst_readnl'
+   ! but before 'prim_init1' in order to avoid dependency issues
+   ! while still using the correct values for the constants:
+   call dynconst_init()
 
    !Allocate SE dycore "hvcoord" structure:
    !+++++++
@@ -443,14 +451,14 @@ subroutine set_dyn_col_values()
             ii = MOD(col_ind, fv_nphys) + 1
             jj = (col_ind / fv_nphys) + 1
             coord = fvm(elem_ind)%center_cart_physgrid(ii, jj)
-            local_dyn_columns(lindex)%lat_rad = coord%lat
+            local_dyn_columns(lindex)%lat_rad = real(coord%lat, kind_pcol)
             dcoord = local_dyn_columns(lindex)%lat_rad * radtodeg
             local_dyn_columns(lindex)%lat_deg = dcoord
-            local_dyn_columns(lindex)%lon_rad = coord%lon
+            local_dyn_columns(lindex)%lon_rad = real(coord%lon, kind_pcol)
             dcoord = local_dyn_columns(lindex)%lon_rad * radtodeg
             local_dyn_columns(lindex)%lon_deg = dcoord
             local_dyn_columns(lindex)%area =                               &
-                  fvm(elem_ind)%area_sphere_physgrid(ii,jj)
+                  real(fvm(elem_ind)%area_sphere_physgrid(ii,jj), kind_pcol)
             local_dyn_columns(lindex)%weight =                             &
                   local_dyn_columns(lindex)%area
             ! File decomposition
@@ -479,15 +487,15 @@ subroutine set_dyn_col_values()
             jj = elem(elem_ind)%idxP%ja(col_ind)
 
             dcoord = elem(elem_ind)%spherep(ii,jj)%lat
-            local_dyn_columns(lindex)%lat_rad = dcoord
+            local_dyn_columns(lindex)%lat_rad = real(dcoord, kind_pcol)
             dcoord = local_dyn_columns(lindex)%lat_rad * radtodeg
             local_dyn_columns(lindex)%lat_deg = dcoord
             dcoord = elem(elem_ind)%spherep(ii,jj)%lon
-            local_dyn_columns(lindex)%lon_rad = dcoord
+            local_dyn_columns(lindex)%lon_rad = real(dcoord, kind_pcol)
             dcoord = local_dyn_columns(lindex)%lon_rad * radtodeg
             local_dyn_columns(lindex)%lon_deg = dcoord
             local_dyn_columns(lindex)%area =                               &
-                 1.0_r8 / elem(elem_ind)%rspheremp(ii,jj)
+                 real(1.0_kind_pcol / elem(elem_ind)%rspheremp(ii,jj), kind_pcol)
             local_dyn_columns(lindex)%weight = local_dyn_columns(lindex)%area
             ! File decomposition
             gindex = elem(elem_ind)%idxP%UniquePtoffset + col_ind - 1

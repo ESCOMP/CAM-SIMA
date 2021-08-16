@@ -958,7 +958,8 @@ contains
     use dimensions_mod        , only : ntrac
     use dimensions_mod,         only : lcp_moist, kord_tr,kord_tr_cslam
     use cam_logfile,            only : iulog
-    use physconst,              only : pi,get_thermal_energy,get_dp,get_virtual_temp
+    use dynconst              , only : pi
+    use dyn_thermo            , only : get_thermal_energy, get_dp, get_virtual_temp
     use physconst             , only : thermodynamic_active_species_idx_dycore
     use thread_mod            , only : omp_set_nested
     use control_mod,             only: vert_remap_uvTq_alg
@@ -973,7 +974,7 @@ contains
     real (kind=r8), dimension(np,np,nlev)  :: dp_moist,dp_star_moist, dp_dry,dp_star_dry
     real (kind=r8), dimension(np,np,nlev)  :: internal_energy_star
     real (kind=r8), dimension(np,np,nlev,2):: ttmp
-    real(r8), parameter                    :: rad2deg = 180.0_r8/real(pi, r8)
+    real(r8), parameter                    :: rad2deg = 180.0_r8/pi
     integer :: region_num_threads,qbeg,qend,kord_uvT(1)
     type (hybrid_t) :: hybridnew,hybridnew2
     real (kind=r8)  :: ptop
@@ -1001,7 +1002,7 @@ contains
         !
         call get_virtual_temp(1,np,1,np,1,nlev,qsize,elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
              internal_energy_star,dp_dry=elem(ie)%state%dp3d(:,:,:,np1),                        &
-             active_species_idx_dycore=thermodynamic_active_species_idx_dycore)             
+             active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
         internal_energy_star = internal_energy_star*elem(ie)%state%t(:,:,:,np1)
       end if
       !
@@ -1049,23 +1050,23 @@ contains
       !
       call get_dp(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),2,&
            thermodynamic_active_species_idx_dycore,dp_dry,dp_moist(:,:,:))
-      
+
       !
       ! Remapping of temperature
       !
-      if (vert_remap_uvTq_alg>-20) then      
+      if (vert_remap_uvTq_alg>-20) then
         !
         ! remap internal energy and back out temperature
-        !        
+        !
         if (lcp_moist) then
           call remap1(internal_energy_star,np,1,1,1,dp_star_dry,dp_dry,ptop,1,.true.,kord_uvT)
           !
           ! compute sum c^(l)_p*m^(l)*dp on arrival (Eulerian) grid
-          !       
+          !
           ttmp(:,:,:,1) = 1.0_r8
           call get_thermal_energy(1,np,1,np,1,nlev,qsize,elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp),   &
                ttmp(:,:,:,1),dp_dry,ttmp(:,:,:,2), &
-               active_species_idx_dycore=thermodynamic_active_species_idx_dycore)          
+               active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
           elem(ie)%state%t(:,:,:,np1)=internal_energy_star/ttmp(:,:,:,2)
         else
           internal_energy_star(:,:,:)=elem(ie)%state%t(:,:,:,np1)*dp_star_moist
@@ -1091,13 +1092,13 @@ contains
       call remap1(elem(ie)%state%v(:,:,1,:,np1),np,1,1,1,dp_star_moist,dp_moist,ptop,-1,.false.,kord_uvT)
       call remap1(elem(ie)%state%v(:,:,2,:,np1),np,1,1,1,dp_star_moist,dp_moist,ptop,-1,.false.,kord_uvT)
     enddo
-    
+
     if (ntrac>0) then
       !
       ! vertical remapping of CSLAM tracers
       !
       do ie=nets,nete
-        dpc_star=fvm(ie)%dp_fvm(1:nc,1:nc,:)        
+        dpc_star=fvm(ie)%dp_fvm(1:nc,1:nc,:)
         do k=1,nlev
          do j=1,nc
            do i=1,nc

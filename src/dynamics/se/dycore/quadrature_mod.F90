@@ -104,7 +104,7 @@ contains
   ! ==============================================================
 
   function gauss_pts(np1) result(pts)
-    use physconst, only: pi
+    use dynconst, only: pi
 
     integer, intent(in)     :: np1        ! Number of velocity grid points
     real (kind=r8) :: pts(np1)
@@ -156,7 +156,7 @@ contains
     ! Compute first half of the roots by "polynomial deflation".
     ! ============================================================
 
-    dth = real(pi, r8)/(2*n+2)
+    dth = pi/(2._r8*real(n+2, r8))
 
     nh  = (n+1)/2
 
@@ -314,7 +314,7 @@ contains
   ! ==============================================================
 
   function gausslobatto_pts(np1) result(pts)
-    use physconst, only: pi
+    use dynconst, only: pi
 
     integer, intent(in)     :: np1        ! Number of velocity grid points
     real (kind=r8) :: pts(np1)
@@ -327,10 +327,10 @@ contains
     real (kind=r8) :: jacm1(0:np1)
     real (kind=r8) :: djac(0:np1)
 
-    integer  prec                    ! number of mantissa bits 
+    integer  prec                    ! number of mantissa bits
     real (kind=r8) eps      ! machine epsilon
-    real (kind=r8), parameter :: convthresh = 10  ! convergence threshold relative 
-    ! to machine epsilon 
+    real (kind=r8), parameter :: convthresh = 10  ! convergence threshold relative
+    ! to machine epsilon
     integer, parameter :: kstop = 30 ! max iterations for polynomial deflation
 
     real (kind=r8) :: a,b,det
@@ -357,7 +357,7 @@ contains
 
     ! =========================================================
     ! compute machine precision and set the convergence
-    ! threshold thresh to 10 times that level 
+    ! threshold thresh to 10 times that level
     ! =========================================================
 
     prec   = PRECISION(c10)
@@ -376,7 +376,7 @@ contains
     ! ============================================================
 
     ! ============================================================
-    ! compute the parameters in the polynomial whose 
+    ! compute the parameters in the polynomial whose
     ! roots are desired...
     ! ============================================================
 
@@ -387,7 +387,7 @@ contains
     a   = -(jac(n+1)*jacm1(n-1)-jacm1(n+1)*jac(n-1))/det
     b   = -(jac(n  )*jacm1(n+1)-jacm1(n  )*jac(n+1))/det
 
-    dth = real(pi, r8)/(2*n+1)
+    dth = pi/real(2*n+1, r8)
     cd  = COS(c2*dth)
     sd  = SIN(c2*dth)
     cs  = COS(dth)
@@ -396,7 +396,7 @@ contains
     nh  = (n+1)/2
 
     do j=1,nh-1
-       x=cs          ! first guess at root 
+       x=cs          ! first guess at root
        k=0
        delx=c1
        do while(k<kstop .and. ABS(delx) > thresh)
@@ -422,16 +422,16 @@ contains
        !  cs = cs(theta) => cs(theta+2*dth)
        ! =====================================================
 
-       cstmp=cs*cd-ss*sd      
-       ss=cs*sd+ss*cd    
-       cs=cstmp          
+       cstmp=cs*cd-ss*sd
+       ss=cs*sd+ss*cd
+       cs=cstmp
     end do
 
     ! ================================================
     ! compute the second half of the roots by symmetry
     ! ================================================
 
-    do j=1,nh 
+    do j=1,nh
        xjac(n-j) = -xjac(j)
     end do
 
@@ -439,7 +439,7 @@ contains
 
     ! ====================================================
     ! Reverse the sign of everything so that indexing
-    ! increases with position          
+    ! increases with position
     ! ====================================================
 
     do j=0,n
@@ -449,8 +449,8 @@ contains
   end function gausslobatto_pts
 
   ! ================================================
-  ! Gauss Lobatto Legendre Weights   
-  ! ================================================ 
+  ! Gauss Lobatto Legendre Weights
+  ! ================================================
 
   function gausslobatto_wts(np1, glpts) result(wts)
 

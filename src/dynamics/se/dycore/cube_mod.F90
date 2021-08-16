@@ -4,7 +4,7 @@ module cube_mod
        projectpoint, cubedsphere2cart, spherical_to_cart, sphere_tri_area,dist_threshold, &
        change_coordinates
 
-  use physconst,              only: pi, rearth
+  use dynconst,               only: pi, rearth
   use control_mod,            only: hypervis_scaling, cubed_sphere_map
   use cam_abortutils,         only: endrun, check_allocate
 
@@ -15,10 +15,10 @@ module cube_mod
   integer,public, parameter :: nInnerElemEdge = 8  ! number of edges for an interior element
   integer,public, parameter :: nCornerElemEdge = 4 ! number of corner elements
 
-  real(kind=r8), public, parameter :: cube_xstart = -0.25_R8*real(pi, r8)
-  real(kind=r8), public, parameter :: cube_xend   =  0.25_R8*real(pi, r8)
-  real(kind=r8), public, parameter :: cube_ystart = -0.25_R8*real(pi, r8)
-  real(kind=r8), public, parameter :: cube_yend   =  0.25_R8*real(pi, r8)
+  real(kind=r8), public, parameter :: cube_xstart = -0.25_R8*pi
+  real(kind=r8), public, parameter :: cube_xend   =  0.25_R8*pi
+  real(kind=r8), public, parameter :: cube_ystart = -0.25_R8*pi
+  real(kind=r8), public, parameter :: cube_yend   =  0.25_R8*pi
 
 
   type, public :: face_t
@@ -221,7 +221,7 @@ contains
   subroutine metric_atomic(elem,gll_points,alpha)
     use element_mod,    only: element_t
     use dimensions_mod, only: np
-    use physconst,      only: ra
+    use dynconst,       only: ra
 
     type (element_t), intent(inout) :: elem
     real(r8),         intent(in)    :: alpha
@@ -420,8 +420,8 @@ contains
           DE(2,1)=sum(elem%D(i,j,2,:)*E(:,1))
           DE(2,2)=sum(elem%D(i,j,2,:)*E(:,2))
 
-      lamStar1=1/(eig(1)**(hypervis_scaling/4.0_r8)) *(real(rearth**2.0_r8, r8))
-      lamStar2=1/(eig(2)**(hypervis_scaling/4.0_r8)) *(real(rearth**2.0_r8, r8))
+      lamStar1=1/(eig(1)**(hypervis_scaling/4.0_r8)) *(rearth**2.0_r8)
+      lamStar2=1/(eig(2)**(hypervis_scaling/4.0_r8)) *(rearth**2.0_r8)
 
 !matrix (DE) * Lam^* * Lam , tensor HV when V is applied at each Laplace calculation
 !          DEL(1:2,1) = lamStar1*eig(1)*DE(1:2,1)
@@ -453,8 +453,8 @@ contains
 
 
     ! compute element length scales, based on SVDs, in km:
-    elem%dx_short = 1.0_r8/(max_svd*0.5_r8*dble(np-1)*real(ra, r8)*1000.0_r8)
-    elem%dx_long  = 1.0_r8/(min_svd*0.5_r8*dble(np-1)*real(ra, r8)*1000.0_r8)
+    elem%dx_short = 1.0_r8/(max_svd*0.5_r8*real(np-1, r8)*ra*1000.0_r8)
+    elem%dx_long  = 1.0_r8/(min_svd*0.5_r8*real(np-1, r8)*ra*1000.0_r8)
 
     ! optional noramlization:
     elem%D = elem%D * sqrt(alpha)
@@ -824,7 +824,7 @@ contains
   subroutine coreolis_init_atomic(elem)
     use element_mod,    only: element_t
     use dimensions_mod, only: np
-    use physconst,      only: omega
+    use dynconst,       only: omega
 
     type (element_t) :: elem
 
@@ -833,7 +833,7 @@ contains
     integer                  :: i,j
     real (kind=r8) :: lat,lon,rangle
 
-    rangle = rotate_grid * real(pi, r8) / 180._r8
+    rangle = rotate_grid * pi / 180._r8
     do j=1,np
        do i=1,np
              if ( rotate_grid /= 0) then

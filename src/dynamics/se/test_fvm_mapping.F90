@@ -1,7 +1,7 @@
 module test_fvm_mapping
   use shr_kind_mod,           only: r8=>shr_kind_r8
 !  use cam_history,            only: outfld
-  use physconst,              only: pi
+  use dynconst,               only: pi
 
  !SE dycore:
   use fvm_control_volume_mod, only: fvm_struct
@@ -598,7 +598,6 @@ contains
 
 
   SUBROUTINE regrot(pxreg,pyreg,pxrot,pyrot,pxcen,pycen,kcall)
-    use physconst, only: pi
 !
 !----------------------------------------------------------------------
 !
@@ -693,7 +692,6 @@ contains
     END SUBROUTINE regrot
 
   SUBROUTINE turnwi(puarg,pvarg,pures,pvres,pxreg,pyreg,pxrot,pyrot,pxcen,pycen,kcall)
-    use physconst, only: pi
     !
     !-----------------------------------------------------------------------
     !
@@ -808,7 +806,7 @@ contains
     END SUBROUTINE turnwi
 
   SUBROUTINE Rossby_Haurwitz (lon, lat,u_wind, v_wind)
-    use physconst, only: rearth
+    use dynconst, only: rearth
 !-----------------------------------------------------------------------
 !     input parameters
 !-----------------------------------------------------------------------

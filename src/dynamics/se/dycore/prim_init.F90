@@ -50,7 +50,7 @@ contains
     use spacecurve_mod,         only: genspacepart
     use dof_mod,                only: global_dof, CreateUniqueIndex, SetElemOffset
     use params_mod,             only: SFCURVE
-    use physconst,              only: pi
+    use dynconst,               only: pi
     use reduction_mod,          only: red_min, red_max, red_max_int, red_flops
     use reduction_mod,          only: red_sum, red_sum_int, initreductionbuffer
     use shr_reprosum_mod,       only: repro_sum => shr_reprosum_calc
@@ -284,7 +284,7 @@ contains
         aratio(ie,1) = sum(elem(ie)%mp(:,:)*elem(ie)%metdet(:,:))
       end do
       call repro_sum(aratio, area, nelemd, nelemd, 1, commid=par%comm)
-      area(1) = 4.0_r8*real(pi, r8)/area(1)  ! ratio correction
+      area(1) = 4.0_r8*pi/area(1)  ! ratio correction
       deallocate(aratio)
       if (par%masterproc) then
         write(iulog,'(2a,f20.17)') subname, "re-initializing cube elements: area correction=", area(1)

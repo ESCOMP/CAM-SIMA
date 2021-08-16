@@ -1,7 +1,7 @@
 module coordinate_systems_mod
   use shr_kind_mod,     only: r8=>shr_kind_r8
   use cam_abortutils,   only: endrun
-  use physconst,        only: pi
+  use dynconst,         only: pi
 
 ! WARNING:  When using this class be sure that you know if the
 ! cubic coordinates are on the unit cube or the [-\pi/4,\pi/4] cube
@@ -290,7 +290,7 @@ contains
     if ( abs(abs(sphere%lat)-PI/2)  >= DIST_THRESHOLD ) then
        sphere%lon=ATAN2(cart%y,cart%x)
        if (sphere%lon<0) then
-          sphere%lon=sphere%lon + 2*real(pi, r8)
+          sphere%lon=sphere%lon + 2._r8*pi
        end if
     end if
 
@@ -565,7 +565,7 @@ contains
     lat = sphere%lat
     lon = sphere%lon
 
-    twopi = 2.0_r8 * real(pi, r8)
+    twopi = 2.0_r8 * pi
     pi2   = pi * 0.5_r8
     pi3   = pi * 1.5_r8
     pi4   = pi * 0.25_r8
@@ -573,14 +573,14 @@ contains
     select case (face_no)
     case  (1)
        xp = lon
-       if (real(pi, r8) < lon) xp = lon - twopi !if lon in [0,2\pi]
+       if (pi < lon) xp = lon - twopi !if lon in [0,2\pi]
        yp = atan(tan(lat)/cos(xp))
     case  (2)
        xp = lon - pi2
        yp = atan(tan(lat)/cos(xp))
     case  (3)
-       xp = lon - real(pi, r8)
-       if (lon < 0) xp = lon + real(pi, r8)  !if lon in [0,2\pi]
+       xp = lon - pi
+       if (lon < 0) xp = lon + pi  !if lon in [0,2\pi]
        yp = atan(tan(lat)/cos(xp))
     case  (4)
        xp = lon - pi3

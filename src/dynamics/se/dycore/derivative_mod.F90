@@ -1,10 +1,10 @@
 module derivative_mod
-  use shr_kind_mod,       only: r8=>shr_kind_r8
-  use cam_abortutils,     only: endrun, check_allocate
+  use shr_kind_mod,   only: r8=>shr_kind_r8
+  use cam_abortutils, only: endrun, check_allocate
   use dimensions_mod, only : np, nc, npdg, nelemd, nlev
   use quadrature_mod, only : quadrature_t, gauss, gausslobatto,legendre, jacobi
   ! needed for spherical differential operators:
-  use physconst, only: ra
+  use dynconst,    only: ra
   use element_mod, only : element_t
   use control_mod, only : hypervis_scaling, hypervis_power
   use perf_mod, only : t_startf, t_stopf
@@ -1043,15 +1043,15 @@ end do
 
     do j=1,np
        do l=1,np
-          dsdx00=0.0d0
-          dsdy00=0.0d0
+          dsdx00=0.0_r8
+          dsdy00=0.0_r8
 !DIR$ UNROLL(NP)
           do i=1,np
              dsdx00 = dsdx00 + deriv%Dvv(i,l  )*s(i,j  )
              dsdy00 = dsdy00 + deriv%Dvv(i,l  )*s(j  ,i)
           end do
-          v1(l  ,j  ) = dsdx00*real(ra, r8)
-          v2(j  ,l  ) = dsdy00*real(ra, r8)
+          v1(l  ,j  ) = dsdx00*ra
+          v2(j  ,l  ) = dsdy00*ra
        end do
     end do
     ! convert covarient to latlon
@@ -1111,9 +1111,9 @@ end do
 !DIR$ UNROLL(NP)
           do j=1,np
              ! phi(n)_y  sum over second index, 1st index fixed at m
-             dscontra(m,n,1)=dscontra(m,n,1)-(elem%mp(m,j)*s(m,j)*deriv%Dvv(n,j) )*real(ra, r8)
+             dscontra(m,n,1)=dscontra(m,n,1)-(elem%mp(m,j)*s(m,j)*deriv%Dvv(n,j) )*ra
              ! phi(m)_x  sum over first index, second index fixed at n
-             dscontra(m,n,2)=dscontra(m,n,2)+(elem%mp(j,n)*s(j,n)*deriv%Dvv(m,j) )*real(ra, r8)
+             dscontra(m,n,2)=dscontra(m,n,2)+(elem%mp(j,n)*s(j,n)*deriv%Dvv(m,j) )*ra
           enddo
        enddo
     enddo
@@ -1175,12 +1175,12 @@ end do
              dscontra(m,n,1)=dscontra(m,n,1)-(&
                   (elem%mp(j,n)*elem%metinv(m,n,1,1)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) ) +&
                   (elem%mp(m,j)*elem%metinv(m,n,2,1)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) ) &
-                  ) *real(ra, r8)
+                  ) *ra
 
              dscontra(m,n,2)=dscontra(m,n,2)-(&
                   (elem%mp(j,n)*elem%metinv(m,n,1,2)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) ) +&
                   (elem%mp(m,j)*elem%metinv(m,n,2,2)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) ) &
-                  ) *real(ra, r8)
+                  ) *ra
           enddo
        enddo
     enddo
@@ -1228,9 +1228,9 @@ end do
 !DIR$ UNROLL(NP)
           do j=1,np
              ! phi(m)_x  sum over first index, second index fixed at n
-             dscov(m,n,1)=dscov(m,n,1)-(elem%mp(j,n)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) )*real(ra, r8)
+             dscov(m,n,1)=dscov(m,n,1)-(elem%mp(j,n)*elem%metdet(m,n)*s(j,n)*deriv%Dvv(m,j) )*ra
              ! phi(n)_y  sum over second index, 1st index fixed at m
-             dscov(m,n,2)=dscov(m,n,2)-(elem%mp(m,j)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) )*real(ra, r8)
+             dscov(m,n,2)=dscov(m,n,2)-(elem%mp(m,j)*elem%metdet(m,n)*s(m,j)*deriv%Dvv(n,j) )*ra
           enddo
        enddo
     enddo
@@ -1311,15 +1311,15 @@ end do
 
     do j=1,np
        do l=1,np
-          dsdx00=0.0d0
-          dsdy00=0.0d0
+          dsdx00=0.0_r8
+          dsdy00=0.0_r8
 !DIR$ UNROLL(NP)
           do i=1,np
              dsdx00 = dsdx00 + deriv%Dvv(i,l  )*s(i,j  )
              dsdy00 = dsdy00 + deriv%Dvv(i,l  )*s(j  ,i)
           end do
-          v2(l  ,j  ) = -dsdx00*real(ra, r8)
-          v1(j  ,l  ) =  dsdy00*real(ra, r8)
+          v2(l  ,j  ) = -dsdx00*ra
+          v1(j  ,l  ) =  dsdy00*ra
        end do
     end do
     ! convert contra -> latlon *and* divide by jacobian
@@ -1379,7 +1379,7 @@ end do
           do j=1,np
              div(m,n)=div(m,n)-(elem%spheremp(j,n)*vtemp(j,n,1)*deriv%Dvv(m,j) &
                               +elem%spheremp(m,j)*vtemp(m,j,2)*deriv%Dvv(n,j)) &
-                              * real(ra, r8)
+                              * ra
           enddo
 
        end do
@@ -1418,22 +1418,22 @@ end do
     result=0
     j=1
     do i=1,np
-       result(i,j)=result(i,j)-deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*real(ra, r8)
+       result(i,j)=result(i,j)-deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*ra
     enddo
 
     j=np
     do i=1,np
-       result(i,j)=result(i,j)+deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*real(ra, r8)
+       result(i,j)=result(i,j)+deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ucontra(i,j,2)*ra
     enddo
 
     i=1
     do j=1,np
-       result(i,j)=result(i,j)-deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*real(ra, r8)
+       result(i,j)=result(i,j)-deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*ra
     enddo
 
     i=np
     do j=1,np
-       result(i,j)=result(i,j)+deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*real(ra, r8)
+       result(i,j)=result(i,j)+deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ucontra(i,j,1)*ra
     enddo
   end function element_boundary_integral
 
@@ -1483,13 +1483,13 @@ end do
        j=1
        pstar=p(i,j)
        if (ucontra(i,j,2)>0) pstar=pedges(i,0)
-       flux = -pstar*ucontra(i,j,2)*( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*real(ra, r8))
+       flux = -pstar*ucontra(i,j,2)*( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ra)
        result(i,j)=result(i,j)+flux
 
        j=np
        pstar=p(i,j)
        if (ucontra(i,j,2)<0) pstar=pedges(i,np+1)
-       flux = pstar*ucontra(i,j,2)* ( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*real(ra, r8))
+       flux = pstar*ucontra(i,j,2)* ( deriv%Mvv_twt(i,i)*elem%metdet(i,j)*ra)
        result(i,j)=result(i,j)+flux
     enddo
 
@@ -1497,13 +1497,13 @@ end do
        i=1
        pstar=p(i,j)
        if (ucontra(i,j,1)>0) pstar=pedges(0,j)
-       flux = -pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*real(ra, r8))
+       flux = -pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ra)
        result(i,j)=result(i,j)+flux
 
        i=np
        pstar=p(i,j)
        if (ucontra(i,j,1)<0) pstar=pedges(np+1,j)
-       flux = pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*real(ra, r8))
+       flux = pstar*ucontra(i,j,1)* ( deriv%Mvv_twt(j,j)*elem%metdet(i,j)*ra)
        result(i,j)=result(i,j)+flux
     end do
 
@@ -1542,8 +1542,8 @@ end do
     do j=1,np
        do l=1,np
 
-          dudy00=0.0d0
-          dvdx00=0.0d0
+          dudy00=0.0_r8
+          dvdx00=0.0_r8
 
 !DIR$ UNROLL(NP)
           do i=1,np
@@ -1558,7 +1558,7 @@ end do
 
     do j=1,np
        do i=1,np
-          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*real(ra, r8))
+          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*ra)
        end do
     end do
 
@@ -1598,8 +1598,8 @@ end do
 
       do j=1,np
          do l=1,np
-            dudy00=0.0d0
-            dvdx00=0.0d0
+            dudy00=0.0_r8
+            dvdx00=0.0_r8
 !DIR$ UNROLL(NP)
             do i=1,np
                dvdx00 = dvdx00 + deriv%Dvv_diag(i,l)*vco(i,j ,2)
@@ -1612,7 +1612,7 @@ end do
 
       do j=1,np
          do i=1,np
-          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*real(ra, r8))
+          vort(i,j)=(vort(i,j)-vtemp(i,j))*(elem%rmetdet(i,j)*ra)
          end do
       end do
 
@@ -1652,8 +1652,8 @@ end do
     ! compute d/dx and d/dy
     do j=1,np
        do l=1,np
-          dudx00=0.0d0
-          dvdy00=0.0d0
+          dudx00=0.0_r8
+          dvdy00=0.0_r8
 !DIR$ UNROLL(NP)
           do i=1,np
              dudx00 = dudx00 + deriv%Dvv(i,l  )*gv(i,j  ,1)
@@ -1666,7 +1666,7 @@ end do
 
     do j=1,np
        do i=1,np
-          div(i,j)=(div(i,j)+vvtemp(i,j))*(elem%rmetdet(i,j)*real(ra, r8))
+          div(i,j)=(div(i,j)+vvtemp(i,j))*(elem%rmetdet(i,j)*ra)
        end do
     end do
 
@@ -1799,8 +1799,8 @@ end do
       do n=1,np
         do m=1,np
           ! add in correction so we dont damp rigid rotation
-          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(real(ra**2, r8))
-          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(real(ra**2, r8))
+          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(ra**2)
+          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(ra**2)
         enddo
       enddo
     end if
@@ -1846,8 +1846,8 @@ end do
 
     if (undamprrcart) then
       ! add in correction so we dont damp rigid rotation
-      laplace(:,:,1)=laplace(:,:,1) + 2*elem%spheremp(:,:)*v(:,:,1)*(real(ra**2, r8))
-      laplace(:,:,2)=laplace(:,:,2) + 2*elem%spheremp(:,:)*v(:,:,2)*(real(ra**2, r8))
+      laplace(:,:,1)=laplace(:,:,1) + 2*elem%spheremp(:,:)*v(:,:,1)*(ra**2)
+      laplace(:,:,2)=laplace(:,:,2) + 2*elem%spheremp(:,:)*v(:,:,2)*(ra**2)
     end if
 
   end function vlaplace_sphere_wk_cartesian
@@ -1897,8 +1897,8 @@ end do
       do n=1,np
         do m=1,np
           ! add in correction so we dont damp rigid rotation
-          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(real(ra**2, r8))
-          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(real(ra**2, r8))
+          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(ra**2)
+          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(ra**2)
         enddo
       enddo
     end if
@@ -2095,10 +2095,10 @@ end do
     flux_l(:,:) = MATMUL(boundary_interp_matrix(:,1,:),lr)
     flux_r(:,:) = MATMUL(boundary_interp_matrix(:,2,:),lr)
 
-    fluxes(:,:,1) = -flux_b(:,:)*real(ra, r8)
-    fluxes(:,:,2) =  flux_r(:,:)*real(ra, r8)
-    fluxes(:,:,3) =  flux_t(:,:)*real(ra, r8)
-    fluxes(:,:,4) = -flux_l(:,:)*real(ra, r8)
+    fluxes(:,:,1) = -flux_b(:,:)*ra
+    fluxes(:,:,2) =  flux_r(:,:)*ra
+    fluxes(:,:,3) =  flux_t(:,:)*ra
+    fluxes(:,:,4) = -flux_l(:,:)*ra
 
   end subroutine subcell_div_fluxes
 
