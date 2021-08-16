@@ -807,7 +807,7 @@ class ConfigCAM:
         phys_desc = ["A semicolon-separated list of physics suite definition "
                      "file (SDF) names.",
                      "To specify the Kessler and Held-Suarez suites as ",
-                     "run time options, use '--physics-suites kessler;hs94'."]
+                     "run time options, use '--physics-suites kessler;held_suarez_1994'."]
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites, is_nml_attr=True)
 
