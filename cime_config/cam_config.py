@@ -970,14 +970,14 @@ class ConfigCAM:
         >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         SystemExit: 2
-        >>> vlist(ConfigCAM.parse_config_opts("--phys kessler"))
-        [('dyn', ''), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--phys kessler --dyn se"))
-        [('dyn', 'se'), ('physics_suites', 'kessler')]
-        >>> ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
-        [('analystic_ic', True), ('dyn', 'se'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--phys kessler;musica"))
-        [('dyn', ''), ('physics_suites', 'kessler;musica')]
+        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler"))
+        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se"))
+        [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic"))
+        [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler;musica"))
+        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
         >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         SystemExit: 2
