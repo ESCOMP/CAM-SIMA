@@ -139,7 +139,7 @@ class BuildCacheCAM:
 
     >>> BuildCacheCAM(BAD_BUILD_CACHE) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    ValueError: ERROR: Unknown section tag, 'test' 
+    ValueError: ERROR: Unknown section tag, 'test'
 
     3.  Check that the proper error is generated when build_cache has an invalid registry tag:
 
@@ -483,7 +483,7 @@ if __name__ == "__main__":
     NONE_CONFIG = None
     KIND_PHYS = "REAL64"
     PREPROC_DEFS = "UNSET"
-    TEST_CHANGE = "TEST" 
+    TEST_CHANGE = "TEST"
 
     # Create "SourceMods directory:
     os.mkdir(TEST_SOURCE_MODS_DIR)
@@ -552,11 +552,13 @@ if __name__ == "__main__":
     BUILD_CACHE_CAM = BuildCacheCAM(BUILD_CACHE)
 
     # Run doctests:
-    doctest.testmod()
+    TEST_SUCCESS = doctest.testmod()[0]
 
     # Remove testing directories:
     shutil.rmtree(TEST_SOURCE_MODS_DIR)
 
+    # Exit script with error code matching number of failed tests:
+    sys.exit(TEST_SUCCESS)
+
 #############
 # End of file
-

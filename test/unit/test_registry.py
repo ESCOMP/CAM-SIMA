@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #-----------------------------------------------------------------------
 # Description:  Contains unit tests for testing CAM registry validation
 #               and code generation

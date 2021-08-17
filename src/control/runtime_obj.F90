@@ -1,0 +1,94 @@
+module runtime_obj
+
+   use shr_kind_mod, only: CS => SHR_KIND_CS
+
+   implicit none
+   private
+
+   character(len=*), public, parameter :: unset_str = 'UNSET'
+   integer,          public, parameter :: unset_int = huge(1)
+
+   ! Public interfaces and data
+
+   type, public :: runtime_options
+      character(len=CS), private            :: phys_suite = unset_str
+      character(len=16), private            :: waccmx_opt = unset_str
+      ! use_gw_front: Frontogenesis
+      logical,           private :: use_gw_front = .false.
+      ! use_gw_front_igw: Frontogenesis to inertial spectrum.
+      logical,           private :: use_gw_front_igw = .false.
+   contains
+      procedure, public :: physics_suite
+      procedure, public :: waccmx_on
+      procedure, public :: waccmx_option
+      procedure, public :: gw_front
+      procedure, public :: gw_front_igw
+   end type runtime_options
+
+   type(runtime_options), public, protected :: cam_runtime_opts
+
+   public :: cam_set_runtime_opts
+
+   ! Private data
+   logical :: runtime_configured = .false.
+
+CONTAINS
+
+   character(len=CS) function physics_suite(self)
+      class(runtime_options), intent(in) :: self
+
+      physics_suite = trim(self%phys_suite)
+   end function physics_suite
+
+   logical function waccmx_on(self)
+      class(runtime_options), intent(in) :: self
+
+      waccmx_on = trim(self%waccmx_opt) /= unset_str
+
+   end function waccmx_on
+
+   character(len=16) function waccmx_option(self)
+      class(runtime_options), intent(in) :: self
+
+      waccmx_option = trim(self%waccmx_opt)
+
+   end function waccmx_option
+
+   logical function gw_front(self)
+      class(runtime_options), intent(in) :: self
+
+      gw_front = self%use_gw_front
+
+   end function gw_front
+
+   logical function gw_front_igw(self)
+      class(runtime_options), intent(in) :: self
+
+      gw_front_igw = self%use_gw_front_igw
+
+   end function gw_front_igw
+
+   subroutine cam_set_runtime_opts(phys_suite, waccmx_opt,                    &
+        gw_front, gw_front_igw)
+      use cam_abortutils, only: endrun
+      ! Initialize the CAM runtime object
+      character(len=CS), intent(in) :: phys_suite
+      character(len=16), intent(in) :: waccmx_opt
+      logical,           intent(in) :: gw_front
+      logical,           intent(in) :: gw_front_igw
+
+      if (runtime_configured) then
+         ! We might need more action to reset this so do not allow it now
+         call endrun("CAM runtime DDT already configured")
+      end if
+
+      cam_runtime_opts%phys_suite = trim(phys_suite)
+      cam_runtime_opts%waccmx_opt = trim(waccmx_opt)
+      cam_runtime_opts%use_gw_front = gw_front
+      cam_runtime_opts%use_gw_front_igw = gw_front_igw
+
+      runtime_configured = .true.
+
+   end subroutine cam_set_runtime_opts
+
+end module runtime_obj

@@ -58,5 +58,5 @@
   standard_name = physics_state_due_to_dynamics
   long_name = Physics state variables updated by dynamical core
   units = None
-  ddt_type = physics_state
+  type = physics_state
   dimensions = ()
