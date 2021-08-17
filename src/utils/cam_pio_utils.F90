@@ -565,7 +565,6 @@ contains
 
       ! Local variables
       logical                                        :: found
-      integer                                        :: i
       integer(PIO_OFFSET_KIND),  pointer             :: dof(:)
       type(iodesc_list),         pointer             :: iodesc_p
       character(len=errormsg_str_len)                :: errormsg

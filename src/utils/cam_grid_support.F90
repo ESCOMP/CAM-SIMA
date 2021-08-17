@@ -2200,7 +2200,6 @@ contains
       type(file_desc_t),                  intent(inout) :: File ! PIO file
 
       ! Local variables
-      character(len=120)          :: errormsg
       integer                     :: attrtype
       integer(imap)               :: attrlen
       integer                     :: ierr
@@ -2258,7 +2257,6 @@ contains
       type(file_desc_t),                   intent(inout) :: File ! PIO file
 
       ! Local variables
-      character(len=120)                  :: errormsg
       integer                             :: attrtype
       integer(imap)                       :: attrlen
       integer                             :: ierr
@@ -2525,7 +2523,6 @@ contains
       type(file_desc_t),                  intent(inout) :: File
 
       ! Local variables
-      character(len=120)          :: errormsg
       integer                     :: ierr
       character(len=*), parameter :: subname = 'write_cam_grid_val_0d_int'
 
@@ -2562,7 +2559,6 @@ contains
       type(file_desc_t),                  intent(inout) :: File
 
       ! Local variables
-      character(len=120)          :: errormsg
       integer                     :: ierr
       type(io_desc_t),  pointer   :: iodesc
       character(len=*), parameter :: subname = 'write_cam_grid_val_1d_int'
@@ -2605,7 +2601,6 @@ contains
       type(file_desc_t),                 intent(inout) :: File
 
       ! Local variables
-      character(len=120)               :: errormsg
       integer                          :: ierr
       type(io_desc_t), pointer         :: iodesc
       character(len=*), parameter :: subname = 'write_cam_grid_val_1d_int'
@@ -3122,7 +3117,7 @@ contains
       integer,                   intent(out)   :: dimids(:)
 
       ! Local vaariables
-      integer                           :: dsize, ierr
+      integer                           :: ierr
       integer                           :: err_handling
       character(len=max_hcoordname_len) :: dimname1, dimname2
       character(len=*), parameter       :: subname = 'CAM_GRID_FIND_DIMIDS'
@@ -4036,9 +4031,6 @@ contains
    end subroutine cam_grid_patch_get_decomp
 
    subroutine cam_grid_patch_compact(this, collected_output)
-      use spmd_utils,  only: mpicom
-      use mpi,         only: mpi_sum, mpi_integer
-      use shr_mpi_mod, only: shr_mpi_chkerr
 
       ! Dummy arguments
       class(cam_grid_patch_t)               :: this

@@ -397,7 +397,10 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     # Import needed CCPP-framework scripts:
     try:
         from ccpp_capgen import capgen
+        #pylint: disable=redefined-outer-name
+        # pylint change because of doctest import below
         from metadata_table import find_scheme_names
+        #pylint: enable=redefined-outer-name
         from parse_tools import read_xml_file
         ##XXgoldyXX: See note below about when these imports can be removed
         from ccpp_datafile import DatatableReport
@@ -626,6 +629,7 @@ if __name__ == "__main__":
 
     # Import modules needed for testing:
     import doctest
+    import inspect
 
     # Create fake buildcache object for testing:
     #++++++++++++++++++++++++++++++++++++++++++
@@ -737,10 +741,35 @@ if __name__ == "__main__":
     # Set logger to fatal, to avoid log messages:
     _LOGGER.setLevel(logging.FATAL)
 
+    # Create doctest parsing object:
+    DOCPARSE = doctest.DocTestParser()
+
+    # Create doctest runner object:
+    DOC_RUNNER = doctest.DocTestRunner()
+
+    # Parse doc_tests:
+    GEN_PHYS_TESTS = DOCPARSE.get_doctest(inspect.getdoc(generate_physics_suites), globals(), generate_physics_suites, None, None)
+    GEN_REG_TESTS  = DOCPARSE.get_doctest(inspect.getdoc(generate_registry), globals(), generate_registry, None, None)
+    GEN_INIT_TESTS = DOCPARSE.get_doctest(inspect.getdoc(generate_init_routines), globals(), generate_init_routines, None, None)
+
+    #Note:  Due to a bug in the "summarize" command, as soon as a doctest failure occurs
+    #       it should not be called again.
+
     # Run doctests in a specific order (to avoid import issues):
-    doctest.run_docstring_examples(generate_physics_suites, globals())
-    doctest.run_docstring_examples(generate_registry, globals())
-    doctest.run_docstring_examples(generate_init_routines, globals())
+
+    #generate_physics_suites:
+    DOC_RUNNER.run(GEN_PHYS_TESTS)
+    NUM_FAILS, _ = DOC_RUNNER.summarize()
+
+    #generate_registry:
+    DOC_RUNNER.run(GEN_REG_TESTS)
+    if NUM_FAILS == 0:
+        NUM_FAILS, _ = DOC_RUNNER.summarize()
+
+    #generate_init_routines:
+    DOC_RUNNER.run(GEN_INIT_TESTS)
+    if NUM_FAILS == 0:
+        NUM_FAILS, _ = DOC_RUNNER.summarize()
 
     # Add CCPP framework external to path:
     sys.path.append(os.path.join(os.pardir, "ccpp_framework", "scripts"))
@@ -751,11 +780,19 @@ if __name__ == "__main__":
     #pylint: enable=unused-import
 
     # Run additional doctests:
-    doctest.run_docstring_examples(_find_metadata_files, globals())
+
+    #find_metadata_files:
+    METADATA_TESTS = DOCPARSE.get_doctest(inspect.getdoc(_find_metadata_files), globals(), _find_metadata_files, None, None)
+    DOC_RUNNER.run(METADATA_TESTS)
+    if NUM_FAILS == 0:
+        NUM_FAILS, _ = DOC_RUNNER.summarize()
 
     # Remove testing directories:
     shutil.rmtree(TEST_BLDROOT)
     shutil.rmtree(TEST_SOURCE_MODS_DIR)
+
+    # Exit script with number of failures as the error code:
+    sys.exit(NUM_FAILS)
 
 #############
 # End of file

@@ -18,6 +18,7 @@ module cam_comp
    use cam_control_mod, only: cam_ctrl_init, cam_ctrl_set_orbit, cam_ctrl_set_physics_type
    use cam_control_mod, only: caseid, ctitle
    use runtime_opts,    only: read_namelist
+   use runtime_obj,     only: cam_runtime_opts
    use time_manager,    only: timemgr_init, get_step_size
    use time_manager,    only: get_nstep, is_first_step, is_first_restart_step
 
@@ -170,7 +171,7 @@ CONTAINS
 
       if (initial_run_in) then
 
-         call dyn_init(dyn_in, dyn_out)
+         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
          ! Allocate and setup surface exchange data
          call atm2hub_alloc(cam_out)
@@ -190,13 +191,13 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
       end if
 
-      call phys_init(phys_state, phys_tend, cam_out)
+      call phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
 !!XXgoldyXX: ^ need to import this
 
-      call stepon_init(dyn_in, dyn_out)
+      call stepon_init(cam_runtime_opts, dyn_in, dyn_out)
 
       ! if (single_column) then
       !    call scm_intht()
@@ -232,7 +233,8 @@ CONTAINS
       !----------------------------------------------------------
       call t_barrierf('sync_stepon_run1', mpicom)
       call t_startf('stepon_run1')
-      call stepon_run1(dtime_phys, phys_state, phys_tend, dyn_in, dyn_out)
+      call stepon_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
+           dyn_in, dyn_out)
       call t_stopf('stepon_run1')
 
       !----------------------------------------------------------
@@ -247,7 +249,8 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run1', mpicom)
       call t_startf('phys_run1')
-      call phys_run1(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
+      call phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
+           cam_in, cam_out)
       call t_stopf('phys_run1')
 
    end subroutine cam_run1
@@ -279,7 +282,8 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run2', mpicom)
       call t_startf('phys_run2')
-      call phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
+      call phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
+           cam_in, cam_out)
       call t_stopf('phys_run2')
 
       !
@@ -287,7 +291,7 @@ CONTAINS
       !
       call t_barrierf('sync_stepon_run2', mpicom)
       call t_startf('stepon_run2')
-      call stepon_run2(phys_state, phys_tend, dyn_in, dyn_out)
+      call stepon_run2(cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
       call t_stopf('stepon_run2')
 
       !
@@ -322,7 +326,8 @@ CONTAINS
       !
       call t_barrierf('sync_stepon_run3', mpicom)
       call t_startf('stepon_run3')
-      call stepon_run3(dtime_phys, cam_out, phys_state, dyn_in, dyn_out)
+      call stepon_run3(dtime_phys, cam_runtime_opts, cam_out, phys_state,     &
+           dyn_in, dyn_out)
       call t_stopf ('stepon_run3')
 
    end subroutine cam_run3
@@ -392,10 +397,6 @@ CONTAINS
 !      call t_stopf  ('cam_run4_wrapup')
 !!XXgoldyXX: ^ need to import this
 
-!!XXgoldyXX: v need to import this
-!      call qneg_print_summary(is_last_step())
-!!XXgoldyXX: ^ need to import this
-
       call shr_sys_flush(iulog)
 
    end subroutine cam_run4
@@ -429,8 +430,8 @@ CONTAINS
       integer                  :: nstep   ! Current timestep number.
       !-----------------------------------------------------------------------
 
-      call phys_final(phys_state, phys_tend)
-      call stepon_final(dyn_in, dyn_out)
+      call phys_final(cam_runtime_opts, phys_state, phys_tend)
+      call stepon_final(cam_runtime_opts, dyn_in, dyn_out)
 !      call ionosphere_final()
 
       if (initial_run) then

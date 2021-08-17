@@ -21,18 +21,22 @@ contains
 
    subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
 
-      use cam_logfile,         only: cam_logfile_readnl
-      use cam_initfiles,       only: cam_initfiles_readnl
-      use constituents,        only: cnst_readnl
+      use spmd_utils,                only: mpicom, masterproc, masterprocid
+      use cam_abortutils,            only: endrun
+      use cam_logfile,               only: cam_logfile_readnl
+      use cam_initfiles,             only: cam_initfiles_readnl
+      use constituents,              only: cnst_readnl
+      use cam_ccpp_scheme_namelists, only: cam_read_ccpp_scheme_namelists
+      use runtime_obj,               only: cam_set_runtime_opts, unset_str
+      use cam_ccpp_cap,              only: ccpp_physics_suite_schemes
 
 !      use physics_grid,        only: physics_grid_readnl
 
 !      use cam_history,         only: history_readnl
-!      use check_energy,        only: check_energy_readnl
 
 !      use scamMod,             only: scam_readnl
       use physconst,           only: physconst_readnl
-      use phys_comp,           only: phys_readnl
+      use phys_comp,           only: phys_readnl, phys_suite_name
       use vert_coord,          only: vert_coord_readnl
       use ref_pres,            only: ref_pres_readnl
 !      use phys_debug_util,     only: phys_debug_readnl
@@ -45,7 +49,6 @@ contains
 
       use dyn_comp,            only: dyn_readnl
       !use ionosphere_interface,only: ionosphere_readnl
-!      use qneg_module,         only: qneg_readnl
 
       !---------------------------Arguments-----------------------------------
 
@@ -55,10 +58,21 @@ contains
       real(r8),         intent(in) :: scmlon
 
       !---------------------------Local variables-----------------------------
-      character(len=*), parameter ::  subname = "read_namelist"
+      character(len=16)              :: waccmx_opt
+      character(len=512)             :: errmsg
+      character(len=64), allocatable :: schemes(:)
+      integer                        :: errflg
+      logical                        :: use_gw_front
+      logical                        :: use_gw_front_igw
+
+      character(len=*), parameter    ::  subname = "read_namelist"
+
+      ! Initialize system-wide runtime configuration variables
+      waccmx_opt = unset_str
+      use_gw_front = .false.
+      use_gw_front_igw = .false.
 
       !-----------------------------------------------------------------------
-
       ! Call subroutines for modules to read their own namelist.
       ! In some cases namelist default values may depend on settings from
       ! other modules, so there may be an order dependence in the following
@@ -69,6 +83,8 @@ contains
       !            by the physconst_readnl method.
       ! Modules that read their own namelist are responsible for making sure
       ! all processes receive the values.
+      ! Note that namelists for physics schemes are read by
+      !    cam_read_ccpp_scheme_namelists
 
       call cam_logfile_readnl(nlfilename)
 !      call physics_grid_readnl(nlfilename)
@@ -76,7 +92,7 @@ contains
       call cam_initfiles_readnl(nlfilename)
       call cnst_readnl(nlfilename)
 !      call history_readnl(nlfilename)
-      call phys_readnl(nlfilename)
+      call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)
       call ref_pres_readnl(nlfilename)
 !      call phys_debug_readnl(nlfilename)
@@ -87,7 +103,21 @@ contains
 !      call nudging_readnl(nlfilename)
 
       call dyn_readnl(nlfilename)
-!      call qneg_readnl(nlfilename)
+
+      ! Read the namelists for active physics schemes
+      errflg = 0
+      call ccpp_physics_suite_schemes(phys_suite_name, schemes, errmsg, errflg)
+      if (errflg /= 0) then
+         call endrun(subname//"Error: "//trim(errmsg),                        &
+              file=__FILE__, line=__LINE__-3)
+      end if
+      call cam_read_ccpp_scheme_namelists(nlfilename, schemes,                &
+           mpicom, masterprocid, masterproc, waccmx_opt,                      &
+           use_gw_front, use_gw_front_igw)
+
+      ! Finally, set the system-wide runtime configuration object
+      call cam_set_runtime_opts(phys_suite_name, waccmx_opt,                  &
+           use_gw_front, use_gw_front_igw)
 
    end subroutine read_namelist
 

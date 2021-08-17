@@ -57,7 +57,7 @@
 [ wind ]
   standard_name = model_wind
   units = None
-  ddt_type = model_wind
+  type = model_wind
   dimensions = ()
 [ccpp-table-properties]
   name = physics_types_ddt2
@@ -69,5 +69,5 @@
   standard_name = physics_state_due_to_dynamics
   long_name = Physics state variables updated by dynamical core
   units = None
-  ddt_type = physics_state
+  type = physics_state
   dimensions = ()

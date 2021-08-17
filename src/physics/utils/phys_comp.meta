@@ -1,8 +1,8 @@
 [ccpp-table-properties]
-  name = phys_run1
+  name = phys_run2
   type = host
 [ccpp-arg-table]
-  name = phys_run1
+  name = phys_run2
   type = host
 [ col_start ]
   standard_name = horizontal_loop_begin

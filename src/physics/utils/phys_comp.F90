@@ -12,11 +12,13 @@ module phys_comp
    public :: phys_run2
    public :: phys_final
 
+   ! Public module data
+   ! suite_name: Suite we are running
+   character(len=SHR_KIND_CS), public, protected :: phys_suite_name = ''
+
    ! Private module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
-   ! suite_name: Suite we are running
-   character(len=SHR_KIND_CS)              :: suite_name = ''
    character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
    character(len=SHR_KIND_CL)              :: cam_physics_mesh = 'cam_physics_mesh'
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_before ='before'
@@ -38,6 +40,7 @@ CONTAINS
       use cam_logfile,     only: iulog
       use cam_abortutils,  only: endrun
       use cam_initfiles,   only: unset_path_str
+      use cam_ccpp_cap,    only: ccpp_physics_suite_list
 
       ! filepath for file containing namelist input
       character(len=*), intent(in) :: nlfilename
@@ -56,6 +59,12 @@ CONTAINS
       cam_take_snapshot_before = unset_path_str
       cam_physics_mesh         = unset_path_str
       ncdata_check             = unset_path_str
+
+      !!XXgoldyXX: To do: Move setting of <phys_suite_name> to namelist
+      !!XXgoldyXX: At that point, we can check that <phys_suite_name> is in
+      !!XXgoldyXX:    <suite_names>
+      call ccpp_physics_suite_list(suite_names)
+      phys_suite_name = suite_names(1)
 
       ! Read namelist
       if (masterproc) then
@@ -101,25 +110,25 @@ CONTAINS
 
    end subroutine phys_readnl
 
-   subroutine phys_init(phys_state, phys_tend, cam_out)
-      use pio,               only: file_desc_t
-      use cam_abortutils,    only: endrun
-      use physics_types,     only: physics_state, physics_tend
-      use camsrfexch,        only: cam_out_t
-      use physics_grid,      only: columns_on_task
-      use vert_coord,        only: pver, pverp
-      use physconst,         only: physconst_init
-      use dynconst,          only: dynconst_init
-      use physics_types,     only: allocate_physics_types_fields
-      use constituents,      only: pcnst
-      use cam_ccpp_cap,      only: cam_ccpp_physics_initialize
-      use cam_ccpp_cap,      only: ccpp_physics_suite_list
-      use cam_ccpp_cap,      only: ccpp_physics_suite_part_list
+   subroutine phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
+      use pio,            only: file_desc_t
+      use cam_abortutils, only: endrun
+      use runtime_obj,    only: runtime_options
+      use physics_types,  only: physics_state, physics_tend
+      use camsrfexch,     only: cam_out_t
+      use physics_grid,   only: columns_on_task
+      use vert_coord,     only: pver, pverp
+      use physconst,      only: physconst_init
+      use physics_types,  only: allocate_physics_types_fields
+      use constituents,   only: pcnst
+      use cam_ccpp_cap,   only: cam_ccpp_physics_initialize
+      use cam_ccpp_cap,   only: ccpp_physics_suite_part_list
 
       ! Dummy arguments
-      type(physics_state), intent(inout) :: phys_state
-      type(physics_tend),  intent(inout) :: phys_tend
-      type(cam_out_t),     intent(inout) :: cam_out
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
+      type(cam_out_t),       intent(inout) :: cam_out
 
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
@@ -131,39 +140,44 @@ CONTAINS
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
-      call ccpp_physics_suite_list(suite_names)
-      suite_name = suite_names(1)
-      call cam_ccpp_physics_initialize(suite_name, dtime_phys, errmsg, errflg)
+      call cam_ccpp_physics_initialize(phys_suite_name, dtime_phys,           &
+           errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
       end if
-      call ccpp_physics_suite_part_list(suite_name, suite_parts, errmsg, errflg)
+      call ccpp_physics_suite_part_list(phys_suite_name, suite_parts,         &
+           errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_suite_part_list: '//trim(errmsg))
       end if
 
    end subroutine phys_init
 
-   !> \section arg_table_phys_run1  Argument Table
-   !! \htmlinclude arg_table_phys_run1.html
-   !!
-   subroutine phys_run1(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
+   subroutine phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
+        cam_in, cam_out)
       use cam_abortutils, only: endrun
+      use runtime_obj,    only: runtime_options
       use physics_types,  only: physics_state, physics_tend
       use camsrfexch,     only: cam_in_t, cam_out_t
 
       ! Dummy arguments
-      real(kind_phys),     intent(in)    :: dtime_phys
-      type(physics_state), intent(inout) :: phys_state
-      type(physics_tend),  intent(inout) :: phys_tend
-      type(cam_in_t),      intent(inout) :: cam_in
-      type(cam_out_t),     intent(inout) :: cam_out
+      real(kind_phys),       intent(in)    :: dtime_phys
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
+      type(cam_in_t),        intent(inout) :: cam_in
+      type(cam_out_t),       intent(inout) :: cam_out
 
    end subroutine phys_run1
 
-   subroutine phys_run2(dtime_phys, phys_state, phys_tend, cam_in, cam_out)
+   !> \section arg_table_phys_run2  Argument Table
+   !! \htmlinclude arg_table_phys_run2.html
+   !!
+   subroutine phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
+        cam_in, cam_out)
       use pio,            only: file_desc_t
       use cam_abortutils, only: endrun
+      use runtime_obj,    only: runtime_options
       use physics_types,  only: physics_state, physics_tend
       use physics_grid,   only: columns_on_task
       use camsrfexch,     only: cam_in_t, cam_out_t
@@ -178,11 +192,12 @@ CONTAINS
       use physics_inputs, only: physics_check_data
 
       ! Dummy arguments
-      type(physics_state), intent(inout) :: phys_state
-      real(kind_phys),     intent(in)    :: dtime_phys
-      type(physics_tend),  intent(inout) :: phys_tend
-      type(cam_out_t),     intent(inout) :: cam_out
-      type(cam_in_t),      intent(inout) :: cam_in
+      real(kind_phys),       intent(in)    :: dtime_phys
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
+      type(cam_out_t),       intent(inout) :: cam_out
+      type(cam_in_t),        intent(inout) :: cam_in
       ! Local variables
       type(file_desc_t), pointer :: ncdata
       character(len=512) :: errmsg
@@ -211,7 +226,7 @@ CONTAINS
            read_initialized_variables=use_init_variables)
 
       ! Initialize the physics time step
-      call cam_ccpp_physics_timestep_initial(suite_name, dtime_phys,          &
+      call cam_ccpp_physics_timestep_initial(phys_suite_name, dtime_phys,     &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
@@ -223,7 +238,7 @@ CONTAINS
 
       ! Run CCPP suite
       do part_ind = 1, size(suite_parts, 1)
-         call cam_ccpp_physics_run(suite_name, suite_parts(part_ind),         &
+         call cam_ccpp_physics_run(phys_suite_name, suite_parts(part_ind),    &
               col_start, col_end, dtime_phys, errmsg, errflg)
          if (errflg /= 0) then
             call endrun('cam_ccpp_physics_run: '//trim(errmsg))
@@ -231,7 +246,7 @@ CONTAINS
       end do
 
       ! Finalize the time step
-      call cam_ccpp_physics_timestep_final(suite_name, dtime_phys,            &
+      call cam_ccpp_physics_timestep_final(phys_suite_name, dtime_phys,       &
            errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
@@ -245,15 +260,17 @@ CONTAINS
 
    end subroutine phys_run2
 
-   subroutine phys_final(phys_state, phys_tend)
+   subroutine phys_final(cam_runtime_opts, phys_state, phys_tend)
       use cam_abortutils, only: endrun
+      use runtime_obj,    only: runtime_options
       use physics_types,  only: physics_state, physics_tend
       use camsrfexch,     only: cam_in_t, cam_out_t
       use cam_ccpp_cap,   only: cam_ccpp_physics_finalize
 
       ! Dummy arguments
-      type(physics_state), intent(inout) :: phys_state
-      type(physics_tend),  intent(inout) :: phys_tend
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
       ! Local variables
       real(kind_phys)    :: dtime_phys = 0.0_kind_phys ! Not used
       character(len=512) :: errmsg
@@ -261,7 +278,8 @@ CONTAINS
 
       errflg = 0
 
-      call cam_ccpp_physics_finalize(suite_name, dtime_phys, errmsg, errflg)
+      call cam_ccpp_physics_finalize(phys_suite_name, dtime_phys,             &
+           errmsg, errflg)
       if (errflg /= 0) then
          call endrun('cam_ccpp_physics_finalize: '//trim(errmsg))
       end if

@@ -77,7 +77,12 @@ class ConfigGen:
     'test'
 
     >>> ConfigGen("test", "test object description").desc
-    'test object description'
+    '# test object description'
+
+    >>> print(ConfigGen("test", ["test", "object", "description"]).desc)
+    # test
+    #    object
+    #    description
 
     >>> ConfigGen("test", "test object description", is_nml_attr=True).is_nml_attr
     True
@@ -88,9 +93,13 @@ class ConfigGen:
     Traceback (most recent call last):
     CamConfigTypeError: ERROR:  Configuration variable name '5' must be a string, not <type 'int'>
 
-    >>> ConfigGen("test", {5,}).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> ConfigGen("test", (5,)).desc #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, not <type 'tuple'>
+    CamConfigTypeError: ERROR:
+
+    >>> ConfigGen("test", ["test", ("object", "description")]).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not [<class 'str'>, <class 'tuple'>]
 
     """
 
@@ -100,16 +109,34 @@ class ConfigGen:
         if not isinstance(name, str):
             emsg = "ERROR:  Configuration variable name '{}' must be a string, not {}"
             raise CamConfigTypeError(emsg.format(name, type(name)))
+        # end if
 
-        # Check that "desc" is a string
-        if not isinstance(desc, str):
+        # Check that "desc" is a string or a list of strings
+        desc_ok = isinstance(desc, str)
+        if (not desc_ok) and isinstance(desc, list):
+            desc_ok = all(isinstance(x, str) for x in desc)
+        # end if
+        if not desc_ok:
             emsg = ("ERROR:  Configuration variable, '{}', "
-                    "must have a string-type description, not {}")
-            raise CamConfigTypeError(emsg.format(name, type(desc)))
+                    "must have a string-type description, or a list of "
+                    "string-type descriptions, not {}")
+            if isinstance(desc, str):
+                derr = type(desc)
+            elif isinstance(desc, list):
+                derr = [type(x) for x in desc]
+            else:
+                derr = "{} ({})".format(type(desc), desc)
+            # end if
+            raise CamConfigTypeError(emsg.format(name, derr))
+        # end if
 
         # Add name, description, and namelist attribute logical to object
         self.__name = name
-        self.__desc = desc
+        if isinstance(desc, str):
+            self.__desc = "# {}".format(desc)
+        elif isinstance(desc, list):
+            self.__desc = "# " + "\n#    ".join(desc)
+        # end if
         self.__is_nml_attr = is_nml_attr
 
     #++++++++++++++++++++++++
@@ -823,13 +850,13 @@ class ConfigCAM:
 
         else:
             # Add number of latitudes in grid to configure object
-            nlat_desc = "Number of unique latitude points in rectangular lat/lon" \
-                        " grid.\nSet to 1 (one) for unstructured grids."
+            nlat_desc = ["Number of unique latitude points in rectangular lat/lon grid.",
+                         "Set to 1 (one) for unstructured grids."]
             self.create_config("nlat", nlat_desc, case_ny)
 
             # Add number of longitudes in grid to configure object
-            nlon_desc = "Number of unique longitude points in rectangular lat/lon" \
-                        " grid.\nTotal number of columns for unstructured grids."
+            nlon_desc = ["Number of unique longitude points in rectangular lat/lon grid.",
+                         "Total number of columns for unstructured grids."]
             self.create_config("nlon", nlon_desc, case_nx)
 
         #---------------------------------------
@@ -865,20 +892,20 @@ class ConfigCAM:
         ocn_valid_vals = ["docn", "dom", "som", "socn",
                           "aquaplanet", "pop", "mom"]
 
-        ocn_desc = "\n\
-        The ocean model being used.  Valid values include prognostic\n\
-        ocean models (pop or mom), data ocean models (docn or dom),\n\
-        a stub ocean (socn), and an aqua planet ocean (aquaplanet).\n\
-        This doesn't impact how the case is built, only how\n\
-        attributes are matched when searching for namelist defaults."
+        ocn_desc = ["The ocean model being used.",
+                    "Valid values include prognostic ocean models (POP or MOM),",
+                    "data ocean models (DOCN or DOM), a stub ocean (SOCN), ",
+                    "and an aqua planet ocean (aquaplanet).",
+                    "This does not impact how the case is built, only how",
+                    "attributes are matched when searching for namelist defaults."]
 
         self.create_config("ocn", ocn_desc, comp_ocn,
                            ocn_valid_vals, is_nml_attr=True)
 
-        phys_desc = """\n\
-        A semi-colon separated list of physics Suite Definition\n\
-        File (SDF) names. To specify the Kessler and Held-Suarez\n\
-        suites as run time options, use '--physics-suites kessler;rhs94'."""
+        phys_desc = ["A semicolon-separated list of physics suite definition "
+                     "file (SDF) names.",
+                     "To specify the Kessler and Held-Suarez suites as ",
+                     "run time options, use '--physics-suites kessler;held_suarez_1994'."]
 
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites)
@@ -890,10 +917,10 @@ class ConfigCAM:
         kind_valid_vals = ["REAL32","REAL64"]
 
         #dycore kind:
-        self.create_config("dyn_kind", 
+        self.create_config("dyn_kind",
                            "Fortran kind used in dycore for type real.",
                            user_config_opts.dyn_kind, kind_valid_vals)
- 
+
         #physics kind:
         self.create_config("phys_kind",
                            "Fortran kind used in physics for type real.",
@@ -943,15 +970,15 @@ class ConfigCAM:
         >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         SystemExit: 2
-        >>> ConfigCAM.parse_config_opts("--physics-suites kessler")
-        Namespace(analytic_ic=False, dyn='', physics_suites='kessler')
-        >>> ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
-        Namespace(analytic_ic=False, dyn='se', physics_suites='kessler')
+        >>> vlist(ConfigCAM.parse_config_opts("--phys kessler"))
+        [('dyn', ''), ('physics_suites', 'kessler')]
+        >>> vlist(ConfigCAM.parse_config_opts("--phys kessler --dyn se"))
+        [('dyn', 'se'), ('physics_suites', 'kessler')]
         >>> ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
-        Namespace(analytic_ic=True, dyn='se', physics_suites='kessler')
-        >>> ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
-        Namespace(analytic_ic=False, dyn='', physics_suites='kessler;musica')
-        >>> ConfigCAM.parse_config_opts("--physics-suites kessler musica", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+        [('analystic_ic', True), ('dyn', 'se'), ('physics_suites', 'kessler')]
+        >>> vlist(ConfigCAM.parse_config_opts("--phys kessler;musica"))
+        [('dyn', ''), ('physics_suites', 'kessler;musica')]
+        >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         SystemExit: 2
         """
@@ -1048,7 +1075,7 @@ class ConfigCAM:
             raise  CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
 
         # Print variable to logger
-        case_log.debug("#{}".format(obj.desc))
+        case_log.debug("{}".format(obj.desc))
         case_log.debug("{} = {}".format(obj.name, obj.value))
 
     #++++++++++++++++++++++++
@@ -1352,6 +1379,12 @@ if __name__ == "__main__":
 
             return val
 
+
+    def vlist(nspace):
+        """Convert a namespace into an ordered list view"""
+        vargs = vars(nspace)
+        return [(x, vargs[x]) for x in sorted(vargs)]
+
     #-------------------------------------------
     # Create new "Config_CAM" object for testing
     #-------------------------------------------
@@ -1366,7 +1399,10 @@ if __name__ == "__main__":
     FCONFIG = ConfigCAM(FCASE, LOGGER)
 
     # Run doctests on this file's python objects
-    doctest.testmod()
+    TEST_SUCCESS = doctest.testmod()[0]
+
+    # Exit script with error code matching number of failed tests:
+    sys.exit(TEST_SUCCESS)
 
 #############
 # End of file

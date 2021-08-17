@@ -6,7 +6,7 @@ module cam_initfiles
    !
    !---------------------------------------------------------------------------
 
-   use shr_kind_mod,     only: r8=>shr_kind_r8, cl=>shr_kind_cl
+   use shr_kind_mod,     only: r8=>shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
    use spmd_utils,       only: masterproc
    use cam_control_mod,  only: initial_run, restart_run, branch_run
    use cam_control_mod,  only: caseid, brnch_retain_casename
@@ -33,7 +33,7 @@ module cam_initfiles
 
    ! Namelist inputs
    ! unset_path_str: string representing an unset path
-   character(len=cl), public, protected :: unset_path_str = 'unset_path_str'
+   character(len=cs), public, protected :: unset_path_str = 'unset_path_str'
    ! ncdata: full pathname for initial dataset
    character(len=cl), public, protected :: ncdata = 'ncdata'
    ! bnd_topo: full pathname for topography dataset

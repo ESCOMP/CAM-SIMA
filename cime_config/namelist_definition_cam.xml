@@ -614,7 +614,7 @@
     <group>physics_nl</group>
     <desc>
       Controls processing of comparison between physics outputs and data from `{{ hilight }}ncdata_check{{ closehilight }}`.
-      Threshold over which differences are counted in the physics check process. 
+      Threshold over which differences are counted in the physics check process.
       Default: 0
     </desc>
     <values>
@@ -3722,7 +3722,7 @@
     </values>
   </entry>
   <entry id="unset_path_str">
-    <type>char*32</type>
+    <type>char*80</type>
     <category>initial_conditions</category>
     <group>cam_initfiles_nl</group>
     <desc>

@@ -23,7 +23,6 @@ module atm_comp_nuopc
   use shr_const_mod       , only : shr_const_pi
   use shr_orb_mod         , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
   use cam_instance        , only : cam_instance_init, inst_suffix, inst_index
-  use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_run4, cam_final
   !use radiation           , only : radiation_nextsw_cday
   use camsrfexch          , only : cam_out_t, cam_in_t
   use cam_logfile         , only : cam_set_log_unit, iulog
@@ -300,7 +299,8 @@ contains
   !===============================================================================
   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
 
-    use ESMF, only : ESMF_VMGet
+    use ESMF,     only: ESMF_VMGet
+    use cam_comp, only: cam_init
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -735,6 +735,8 @@ contains
 
   !===============================================================================
   subroutine DataInitialize(gcomp, rc)
+    use cam_comp, only: cam_run1
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
@@ -950,7 +952,8 @@ contains
   !===============================================================================
   subroutine ModelAdvance(gcomp, rc)
 
-    use ESMF, only : ESMF_GridCompGet, esmf_vmget, esmf_vm
+    use ESMF,     only: ESMF_GridCompGet, esmf_vmget, esmf_vm
+    use cam_comp, only: cam_run2, cam_run3, cam_run4
 
     ! Run CAM
 
@@ -1353,16 +1356,18 @@ contains
 
   end subroutine ModelSetRunClock
 
-  !===============================================================================
+  !==========================================================================
   subroutine ModelFinalize(gcomp, rc)
+    use cam_comp, only: cam_final
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
-    integer :: shrlogunit            ! original log unit
-    character(*), parameter :: F00   = "('(atm_comp_nuopc) ',8a)"
-    character(*), parameter :: F91   = "('(atm_comp_nuopc) ',73('-'))"
-    character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
+    integer                     :: shrlogunit ! original log unit
+    character(*),     parameter :: F00   = "('(atm_comp_nuopc) ',8a)"
+    character(*),     parameter :: F91   = "('(atm_comp_nuopc) ',73('-'))"
+    character(len=*), parameter :: subname=trim(modName)//':(ModelFinalize) '
     !-------------------------------------------------------------------------------
 
     !--------------------------------
@@ -1374,13 +1379,36 @@ contains
     call shr_file_getLogUnit (shrlogunit)
     call shr_file_setLogUnit (iulog)
 
+    ! Unpack import state
+    if (mediator_present) then
+       call t_startf('CAM_import')
+       call State_GetScalar(importState, flds_scalar_index_nextsw_cday,       &
+            nextsw_cday, flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call State_diagnose(importState, string=subname//':IS', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) then
+          return
+       end if
+
+       call import_fields(gcomp, cam_in, rc=rc)
+       if (ChkErr(rc, __LINE__, u_FILE_u)) then
+          return
+       end if
+       call t_stopf('CAM_import')
+    end if
+
+    call cam_final(cam_out, cam_in)
+
+!CAMDEN TODO: export output state? Needed for finalize?
+
     if (masterproc) then
        write(iulog,F91)
        write(iulog,F00) 'CAM: end of main integration loop'
        write(iulog,F91)
     end if
 
-    call shr_file_setLogUnit (shrlogunit)
+    call shr_file_setLogUnit(shrlogunit)
 
   end subroutine ModelFinalize
 
