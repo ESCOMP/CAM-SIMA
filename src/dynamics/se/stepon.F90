@@ -5,6 +5,7 @@ use dyn_comp,       only: dyn_import_t, dyn_export_t
 use physics_types,  only: physics_state, physics_tend
 use spmd_utils,     only: iam, mpicom
 use perf_mod,       only: t_startf, t_stopf, t_barrierf
+use runtime_obj,    only: runtime_options
 
 !SE dycore:
 use parallel_mod,   only: par
@@ -24,17 +25,18 @@ public stepon_final
 contains
 !=========================================================================================
 
-subroutine stepon_init(dyn_in, dyn_out)
+subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
 
    ! Dummy arguments
-   type(dyn_import_t), intent(in) :: dyn_in  ! Dynamics import container
-   type(dyn_export_t), intent(in) :: dyn_out ! Dynamics export container
+   type(runtime_options), intent(in) :: cam_runtime_opts ! Runtime settings object
+   type(dyn_import_t),    intent(in) :: dyn_in           ! Dynamics import container
+   type(dyn_export_t),    intent(in) :: dyn_out          ! Dynamics export container
 
 end subroutine stepon_init
 
 !=========================================================================================
 
-subroutine stepon_run1(dtime_out, phys_state, phys_tend, dyn_in, dyn_out)
+subroutine stepon_run1(dtime_out, cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
 
    use time_manager,   only: get_step_size
    use cam_abortutils, only: endrun
@@ -44,11 +46,12 @@ subroutine stepon_run1(dtime_out, phys_state, phys_tend, dyn_in, dyn_out)
    use time_mod,       only: tstep                  ! dynamics timestep
 
    ! Dummy arguments
-   real(r8),            intent(out)   :: dtime_out  ! Time-step (s)
-   type(physics_state), intent(inout) :: phys_state ! Physics state object
-   type(physics_tend),  intent(inout) :: phys_tend  ! Physics tendency object
-   type(dyn_import_t),  intent(inout) :: dyn_in     ! Dynamics import container
-   type(dyn_export_t),  intent(inout) :: dyn_out    ! Dynamics export container
+   real(r8),              intent(out)   :: dtime_out        ! Time-step (s)
+   type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
+   type(physics_state),   intent(inout) :: phys_state       ! Physics state object
+   type(physics_tend),    intent(inout) :: phys_tend        ! Physics tendency object
+   type(dyn_import_t),    intent(inout) :: dyn_in           ! Dynamics import container
+   type(dyn_export_t),    intent(inout) :: dyn_out          ! Dynamics export container
    !----------------------------------------------------------------------------
 
    !Extract model time step in seconds from ESMF time manager:
@@ -64,14 +67,14 @@ subroutine stepon_run1(dtime_out, phys_state, phys_tend, dyn_in, dyn_out)
    call t_barrierf('sync_d_p_coupling', mpicom)
    call t_startf('d_p_coupling')
    ! Move data into phys_state structure.
-   call d_p_coupling(phys_state, phys_tend, dyn_out)
+   call d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    call t_stopf('d_p_coupling')
 
 end subroutine stepon_run1
 
 !=========================================================================================
 
-subroutine stepon_run2(phys_state, phys_tend, dyn_in, dyn_out)
+subroutine stepon_run2(cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
 
    !SE/CAM interface:
    use dp_coupling,      only: p_d_coupling
@@ -83,10 +86,11 @@ subroutine stepon_run2(phys_state, phys_tend, dyn_in, dyn_out)
    use prim_advance_mod, only: calc_tot_energy_dynamics
 
    ! Dummy arguments
-   type(physics_state), intent(inout) :: phys_state ! Physics state object
-   type(physics_tend),  intent(inout) :: phys_tend  ! Physics tendency object
-   type(dyn_import_t),  intent(inout) :: dyn_in     ! Dynamics import container
-   type(dyn_export_t),  intent(inout) :: dyn_out    ! Dynamics export container
+   type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
+   type(physics_state),   intent(inout) :: phys_state       ! Physics state object
+   type(physics_tend),    intent(inout) :: phys_tend        ! Physics tendency object
+   type(dyn_import_t),    intent(inout) :: dyn_in           ! Dynamics import container
+   type(dyn_export_t),    intent(inout) :: dyn_out          ! Dynamics export container
 
    ! Local variables
    integer :: tl_f, tl_fQdp
@@ -100,7 +104,7 @@ subroutine stepon_run2(phys_state, phys_tend, dyn_in, dyn_out)
    call t_barrierf('sync_p_d_coupling', mpicom)
    call t_startf('p_d_coupling')
    ! copy from phys structures -> dynamics structures
-   call p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_fQdp)
+   call p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, tl_fQdp)
    call t_stopf('p_d_coupling')
 
    if (iam < par%nprocs) then
@@ -111,7 +115,7 @@ end subroutine stepon_run2
 
 !=========================================================================================
 
-subroutine stepon_run3(dtime, cam_out, phys_state, dyn_in, dyn_out)
+subroutine stepon_run3(dtime, cam_runtime_opts, cam_out, phys_state, dyn_in, dyn_out)
 
    use camsrfexch,     only: cam_out_t
 
@@ -125,11 +129,12 @@ subroutine stepon_run3(dtime, cam_out, phys_state, dyn_in, dyn_out)
    use control_mod,    only: qsplit
 
    ! Dummy arguments
-   real(r8),            intent(in)    :: dtime      ! Time-step
-   type(cam_out_t),     intent(inout) :: cam_out    ! Output from CAM to surface
-   type(physics_state), intent(inout) :: phys_state ! Physics state object
-   type(dyn_import_t),  intent(inout) :: dyn_in     ! Dynamics import container
-   type(dyn_export_t),  intent(inout) :: dyn_out    ! Dynamics export container
+   real(r8),              intent(in)    :: dtime            ! Time-step
+   type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
+   type(cam_out_t),       intent(inout) :: cam_out          ! Output from CAM to surface
+   type(physics_state),   intent(inout) :: phys_state       ! Physics state object
+   type(dyn_import_t),    intent(inout) :: dyn_in           ! Dynamics import container
+   type(dyn_export_t),    intent(inout) :: dyn_out          ! Dynamics export container
 
    ! Local variables
    integer :: tl_f, tl_fQdp
@@ -161,11 +166,12 @@ end subroutine stepon_run3
 
 !=========================================================================================
 
-subroutine stepon_final(dyn_in, dyn_out)
+subroutine stepon_final(cam_runtime_opts, dyn_in, dyn_out)
 
    ! Dummy arguments
-   type(dyn_import_t), intent(inout) :: dyn_in  ! Dynamics import container
-   type(dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
+   type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
+   type(dyn_import_t),    intent(inout) :: dyn_in           ! Dynamics import container
+   type(dyn_export_t),    intent(inout) :: dyn_out          ! Dynamics export container
 
 end subroutine stepon_final
 

@@ -12,7 +12,6 @@ use constituents,           only: pcnst
 use vert_coord,             only: pver
 use cam_control_mod,        only: initial_run, simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
-!use phys_control,           only: use_gw_front, use_gw_front_igw, waccmx_is
 use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
 
 use cam_grid_support,       only: cam_grid_id, cam_grid_get_gcid, &
@@ -572,7 +571,8 @@ end subroutine dyn_readnl
 
 !=========================================================================================
 
-subroutine dyn_init(dyn_in, dyn_out)
+subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+   use runtime_obj,        only: runtime_options
    use dyn_grid,           only: elem, fvm
    use cam_pio_utils,      only: clean_iodesc_list
    use physconst,          only: thermodynamic_active_species_num, thermodynamic_active_species_idx
@@ -601,8 +601,9 @@ subroutine dyn_init(dyn_in, dyn_out)
    use control_mod,        only: vert_remap_uvTq_alg, vert_remap_tracer_alg
 
    ! Dummy arguments:
-   type(dyn_import_t), intent(out) :: dyn_in
-   type(dyn_export_t), intent(out) :: dyn_out
+   type(runtime_options), intent(in)  :: cam_runtime_opts
+   type(dyn_import_t),    intent(out) :: dyn_in
+   type(dyn_export_t),    intent(out) :: dyn_out
 
    ! Local variables
    integer             :: ithr, nets, nete, ie, k, kmol_end
@@ -873,7 +874,8 @@ subroutine dyn_init(dyn_in, dyn_out)
       call prim_init2(elem, fvm, hybrid, nets, nete, TimeLevel, hvcoord)
       !$OMP END PARALLEL
 
-!      if (use_gw_front .or. use_gw_front_igw) call gws_init(elem)
+!Uncomment once gravity waves are enabled -JN:
+!      if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) call gws_init(elem)
    end if  ! iam < par%nprocs
 
 !Remove/replace after CAMDEN history output is enabled -JN:
@@ -966,12 +968,13 @@ subroutine dyn_init(dyn_in, dyn_out)
    end if
 
    ! constituent indices for waccm-x
-!   if ( waccmx_is('ionosphere') .or. waccmx_is('neutral') ) then
-!      call cnst_get_ind('O',  ixo)
-!      call cnst_get_ind('O2', ixo2)
-!      call cnst_get_ind('H',  ixh)
-!      call cnst_get_ind('H2', ixh2)
-!   end if
+!  if ( cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
+!       cam_runtime_opts%waccmx_option() == 'neutral' ) then
+!     call cnst_get_ind('O',  ixo)
+!     call cnst_get_ind('O2', ixo2)
+!     call cnst_get_ind('H',  ixh)
+!     call cnst_get_ind('H2', ixh2)
+!  end if
 
    call test_mapping_addfld
 

@@ -14,6 +14,7 @@ use spmd_utils,     only: iam
 use dyn_grid,       only: TimeLevel, edgebuf
 use dyn_comp,       only: dyn_export_t, dyn_import_t
 
+use runtime_obj,    only: runtime_options
 use physics_types,  only: physics_state, physics_tend
 use physics_types,  only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled
 use physics_grid,   only: pcols => columns_on_task, get_dyn_col_p
@@ -45,7 +46,7 @@ real(r8), allocatable :: q_prev(:,:,:) ! Previous Q for computing tendencies
 CONTAINS
 !=========================================================================================
 
-subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
+subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! Convert the dynamics output state into the physics input state.
    ! Note that all pressures and tracer mixing ratios coming from the dycore are based on
@@ -54,7 +55,6 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    use physics_types,          only: pdel
 !   use gravity_waves_sources,  only: gws_src_fnct
    use dyn_comp,               only: frontgf_idx, frontga_idx
-!   use phys_control,           only: use_gw_front, use_gw_front_igw
    use hycoef,                 only: hyai, ps0
    use test_fvm_mapping,       only: test_mapping_overwrite_dyn_state, test_mapping_output_phys_state
 
@@ -64,9 +64,10 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    use control_mod,            only: qsplit
 
    ! arguments
-   type(dyn_export_t),  intent(inout)  :: dyn_out     ! dynamics export
-   type(physics_state), intent(inout)  :: phys_state
-   type(physics_tend ), intent(inout)  :: phys_tend
+   type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
+   type(dyn_export_t),    intent(inout) :: dyn_out          ! dynamics export
+   type(physics_state),   intent(inout) :: phys_state
+   type(physics_tend ),   intent(inout) :: phys_tend
 
 
    ! LOCAL VARIABLES
@@ -84,10 +85,10 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    real(r8),  allocatable :: omega_tmp(:,:,:)    ! temp array to hold omega
 
    ! Frontogenesis
-   !real (kind=r8),  allocatable :: frontgf(:,:,:)      ! temp arrays to hold frontogenesis
-   !real (kind=r8),  allocatable :: frontga(:,:,:)      ! function (frontgf) and angle (frontga)
-   !real (kind=r8),  allocatable :: frontgf_phys(:,:,:)
-   !real (kind=r8),  allocatable :: frontga_phys(:,:,:)
+   real (kind=r8),  allocatable :: frontgf(:,:,:)     ! temp arrays to hold frontogenesis
+   real (kind=r8),  allocatable :: frontga(:,:,:)     ! function (frontgf) and angle (frontga)
+   real (kind=r8),  allocatable :: frontgf_phys(:,:)
+   real (kind=r8),  allocatable :: frontga_phys(:,:)
 
    integer              :: ncols,ierr
    integer              :: blk_ind(1), m, m_cnst
@@ -152,9 +153,9 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    call check_allocate(ierr, subname, 'omega_tmp(nphys_pts,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-!Remove once a gravity wave parameterization is available -JN
-#if 0
-   if (use_gw_front .or. use_gw_front_igw) then
+   if (cam_runtime_opts%gw_front() .or. &
+       cam_runtime_opts%gw_front_igw()) then
+
       allocate(frontgf(nphys_pts,pver,nelemd), stat=ierr)
       call check_allocate(ierr, subname, 'frontgf(nphys_pts,pver,nelemd)', &
                           file=__FILE__, line=__LINE__)
@@ -163,15 +164,17 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
       call check_allocate(ierr, subname, 'frontga(nphys_pts,pver,nelemd)', &
                           file=__FILE__, line=__LINE__)
    end if
-#endif
 
    if (iam < par%nprocs) then
-!Remove once a gravity wave parameterization is available -JN
-#if 0
-      if (use_gw_front .or. use_gw_front_igw) then
-         call gws_src_fnct(elem, tl_f, tl_qdp_np0, frontgf, frontga, nphys)
+
+      ! Gravity Waves
+      if (cam_runtime_opts%gw_front() .or. &
+          cam_runtime_opts%gw_front_igw()) then
+
+         !Un-comment once gravity wave parameterization is available -JN:
+         !call gws_src_fnct(elem, tl_f, tl_qdp_np0, frontgf, frontga, nphys)
+
       end if
-#endif
 
       if (fv_nphys > 0) then
          call test_mapping_overwrite_dyn_state(elem,dyn_out%fvm)
@@ -233,13 +236,13 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
       phis_tmp(:,:)    = 0._r8
       q_tmp(:,:,:,:)   = 0._r8
 
-!Remove once a gravity wave parameterization is available -JN
-#if 0
-      if (use_gw_front .or. use_gw_front_igw) then
+      if (cam_runtime_opts%gw_front() .or. &
+          cam_runtime_opts%gw_front_igw()) then
+
          frontgf(:,:,:) = 0._r8
          frontga(:,:,:) = 0._r8
+
       end if
-#endif
 
    endif ! iam < par%nprocs
 
@@ -256,18 +259,15 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    q_prev = 0.0_r8
 
    call t_startf('dpcopy')
-!Remove once a gravity wave parameterization is available -JN
-#if 0
-   if (use_gw_front .or. use_gw_front_igw) then
-      allocate(frontgf_phys(pcols, pver, begchunk:endchunk), stat=ierr)
-      call check_allocate(ierr, subname, 'frontgf_phys(pcols, pver, begchunk:endchunk)', &
+   if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) then
+      allocate(frontgf_phys(pcols, pver), stat=ierr)
+      call check_allocate(ierr, subname, 'frontgf_phys(pcols, pver)', &
                           file=__FILE__, line=__LINE__)
 
-      allocate(frontga_phys(pcols, pver, begchunk:endchunk), stat=ierr)
-      call check_allocate(ierr, subname, 'frontga_phys(pcols, pver, begchunk:endchunk)', &
+      allocate(frontga_phys(pcols, pver), stat=ierr)
+      call check_allocate(ierr, subname, 'frontga_phys(pcols, pver)', &
                           file=__FILE__, line=__LINE__)
    end if
-#endif
    !$omp parallel do num_threads(max_num_threads) private (icol, ie, blk_ind, ilyr, m)
    do icol = 1, pcols
       call get_dyn_col_p(icol, ie, blk_ind)
@@ -280,13 +280,10 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
          phys_state%v(icol, ilyr)     = real(uv_tmp(blk_ind(1), 2, ilyr, ie), kind_phys)
          phys_state%omega(icol, ilyr) = real(omega_tmp(blk_ind(1), ilyr, ie), kind_phys)
 
-!Remove once a gravity wave parameterization is available -JN
-#if 0
-         if (use_gw_front .or. use_gw_front_igw) then
-            frontgf_phys(icol, ilyr, lchnk) = frontgf(blk_ind(1), ilyr, ie)
-            frontga_phys(icol, ilyr, lchnk) = frontga(blk_ind(1), ilyr, ie)
+         if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) then
+            frontgf_phys(icol, ilyr) = frontgf(blk_ind(1), ilyr, ie)
+            frontga_phys(icol, ilyr) = frontga(blk_ind(1), ilyr, ie)
          end if
-#endif
       end do
 
       do m = 1, pcnst
@@ -302,26 +299,24 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    phys_tend%dudt(:,:) = 0._kind_phys
    phys_tend%dvdt(:,:) = 0._kind_phys
 
-!Remove once a gravity wave parameterization is available -JN
-#if 0
-   if (use_gw_front .or. use_gw_front_igw) then
+   if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) then
       !$omp parallel do num_threads(max_num_threads) private (lchnk, ncols, icol, ilyr, pbuf_chnk, pbuf_frontgf, pbuf_frontga)
-      do lchnk = begchunk, endchunk
-         ncols = get_ncols_p(lchnk)
-         pbuf_chnk => pbuf_get_chunk(pbuf2d, lchnk)
-         call pbuf_get_field(pbuf_chnk, frontgf_idx, pbuf_frontgf)
-         call pbuf_get_field(pbuf_chnk, frontga_idx, pbuf_frontga)
-         do icol = 1, ncols
-            do ilyr = 1, pver
-               pbuf_frontgf(icol, ilyr) = frontgf_phys(icol, ilyr, lchnk)
-               pbuf_frontga(icol, ilyr) = frontga_phys(icol, ilyr, lchnk)
-            end do
-         end do
-      end do
+!Un-comment once pbuf replacement variables are available -JN:
+!      do lchnk = begchunk, endchunk
+!         ncols = get_ncols_p(lchnk)
+!         pbuf_chnk => pbuf_get_chunk(pbuf2d, lchnk)
+!         call pbuf_get_field(pbuf_chnk, frontgf_idx, pbuf_frontgf)
+!         call pbuf_get_field(pbuf_chnk, frontga_idx, pbuf_frontga)
+!         do icol = 1, ncols
+!            do ilyr = 1, pver
+!               pbuf_frontgf(icol, ilyr) = frontgf_phys(icol, ilyr, lchnk)
+!               pbuf_frontga(icol, ilyr) = frontga_phys(icol, ilyr, lchnk)
+!            end do
+!         end do
+!      end do
       deallocate(frontgf_phys)
       deallocate(frontga_phys)
    end if
-#endif
 
    call t_stopf('dpcopy')
 
@@ -344,14 +339,14 @@ subroutine d_p_coupling(phys_state, phys_tend, dyn_out)
    ! ps, pdel, and q in phys_state are all dry at this point.  After return from derived_phys_dry
    ! ps and pdel include water vapor only, and the 'wet' constituents have been converted to wet mmr.
    call t_startf('derived_phys')
-   call derived_phys_dry(phys_state, phys_tend)
+   call derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call t_stopf('derived_phys')
 
 end subroutine d_p_coupling
 
 !=========================================================================================
 
-subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
+subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
 
    use physics_types,    only: pdel, pdeldry
 
@@ -365,11 +360,12 @@ subroutine p_d_coupling(phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
    use fvm_mapping,      only: phys2dyn_forcings_fvm
 
    ! arguments
-   type(physics_state), intent(inout)  :: phys_state
-   type(physics_tend),  intent(inout)  :: phys_tend
-   integer,             intent(in)     :: tl_qdp, tl_f
-   type(dyn_import_t),  intent(inout)  :: dyn_in
-   type(hybrid_t)                      :: hybrid
+   type(runtime_options), intent(in)     :: cam_runtime_opts ! Runtime settings object
+   type(physics_state),   intent(inout)  :: phys_state
+   type(physics_tend),    intent(inout)  :: phys_tend
+   integer,               intent(in)     :: tl_qdp, tl_f
+   type(dyn_import_t),    intent(inout)  :: dyn_in
+   type(hybrid_t)                        :: hybrid
 
    ! LOCAL VARIABLES
    integer                  :: ic , ncols       ! index
@@ -609,7 +605,7 @@ end subroutine p_d_coupling
 
 !=========================================================================================
 
-subroutine derived_phys_dry(phys_state, phys_tend)
+subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
    ! The ps, pdel, and q components of phys_state are all dry on input.
    ! On output the psdry and pdeldry components are initialized; ps and pdel are
@@ -624,7 +620,6 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    use physics_types,  only: exner, zi, zm, lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa, rairv, physconst_update
    use shr_const_mod,  only: shr_const_rwv
-!   use phys_control,   only: waccmx_is
    use geopotential_t, only: geopotential_t_run
 !   use check_energy,   only: check_energy_timestep_init
    use hycoef,         only: hyai, ps0
@@ -634,8 +629,9 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    use dyn_comp,       only: ixo, ixo2, ixh, ixh2
 
    ! arguments
-   type(physics_state), intent(inout) :: phys_state
-   type(physics_tend ), intent(inout) :: phys_tend
+   type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
+   type(physics_state),   intent(inout) :: phys_state
+   type(physics_tend ),   intent(inout) :: phys_tend
 
    ! local variables
    real(r8) :: zvirv(pcols,pver)    ! Local zvir array pointer
@@ -758,80 +754,77 @@ subroutine derived_phys_dry(phys_state, phys_tend)
    end do
 #endif
 
-!Remove once WACCMX is enabled in CAMDEN:
-#if 0
-      !------------------------------------------------------------
-      ! Ensure O2 + O + H (N2) mmr greater than one.
-      ! Check for unusually large H2 values and set to lower value.
-      !------------------------------------------------------------
-       if ( waccmx_is('ionosphere') .or. waccmx_is('neutral') ) then
+   !------------------------------------------------------------
+   ! Ensure O2 + O + H (N2) mmr greater than one.
+   ! Check for unusually large H2 values and set to lower value.
+   !------------------------------------------------------------
+   if (cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
+       cam_runtime_opts%waccmx_option() == 'neutral')  then
 
-          do i=1,ncol
-             do k=1,pver
+      do i=1,pcols
+         do k=1,pver
 
-                if (phys_state(lchnk)%q(i,k,ixo) < mmrMin) phys_state(lchnk)%q(i,k,ixo) = mmrMin
-                if (phys_state(lchnk)%q(i,k,ixo2) < mmrMin) phys_state(lchnk)%q(i,k,ixo2) = mmrMin
+            if (phys_state%q(i,k,ixo) < mmrMin) phys_state%q(i,k,ixo) = mmrMin
+            if (phys_state%q(i,k,ixo2) < mmrMin) phys_state%q(i,k,ixo2) = mmrMin
 
-                mmrSum_O_O2_H = phys_state(lchnk)%q(i,k,ixo)+phys_state(lchnk)%q(i,k,ixo2)+phys_state(lchnk)%q(i,k,ixh)
+            mmrSum_O_O2_H = phys_state%q(i,k,ixo)+phys_state%q(i,k,ixo2)+phys_state%q(i,k,ixh)
 
-                if ((1._r8-mmrMin-mmrSum_O_O2_H) < 0._r8) then
+            if ((1._r8-mmrMin-mmrSum_O_O2_H) < 0._r8) then
 
-                   phys_state(lchnk)%q(i,k,ixo) = phys_state(lchnk)%q(i,k,ixo) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
+               phys_state%q(i,k,ixo) = phys_state%q(i,k,ixo) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
-                   phys_state(lchnk)%q(i,k,ixo2) = phys_state(lchnk)%q(i,k,ixo2) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
+               phys_state%q(i,k,ixo2) = phys_state%q(i,k,ixo2) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
-                   phys_state(lchnk)%q(i,k,ixh) = phys_state(lchnk)%q(i,k,ixh) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
+               phys_state%q(i,k,ixh) = phys_state%q(i,k,ixh) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
-                endif
+            endif
 
-                if(phys_state(lchnk)%q(i,k,ixh2) .gt. 6.e-5_r8) then
-                   phys_state(lchnk)%q(i,k,ixh2) = 6.e-5_r8
-                endif
+            if(phys_state%q(i,k,ixh2) .gt. 6.e-5_r8) then
+               phys_state%q(i,k,ixh2) = 6.e-5_r8
+            endif
 
-             end do
-          end do
-       endif
-
-      !-----------------------------------------------------------------------------
-      ! Call physconst_update to compute cpairv, rairv, mbarv, and cappav as
-      ! constituent dependent variables.
-      ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
-      ! Fill local zvirv variable; calculated for WACCM-X.
-      !-----------------------------------------------------------------------------
-      if ( waccmx_is('ionosphere') .or. waccmx_is('neutral') ) then
-        call physconst_update(phys_state(lchnk)%q, phys_state(lchnk)%t, lchnk, ncol)
-        zvirv(:,:) = shr_const_rwv / rairv(:,:,lchnk) -1._r8
-      else
-        zvirv(:,:) = zvir
-      endif
-!Remove once WACCMX is enabled in CAMDEN:
-#else
-    zvirv(:,:) = zvir
-#endif
-
-      !NOTE:  Should geopotential be done in CCPP physics suite? -JN:
-
-      ! Compute initial geopotential heights - based on full pressure
-      !call geopotential_t (phys_state%lnpint, phys_state%lnpmid  , phys_state%pint  , &
-      !   phys_state%pmid  , phys_state%pdel    , phys_state%rpdel , &
-      !   phys_state%t     , phys_state%q(:,:,ix_qv), rairv,  gravit,  zvirv       , &
-      !   phys_state%zi    , phys_state%zm      , ncol                )
-
-      call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
-                          pverp, 1, lnpint, pint, pmid, pdel, &
-                          rpdel, phys_state%t,  phys_state%q(:,:,ix_qv), &
-                          rairv, gravit, zvirv, zi, zm, pcols, &
-                          errflg, errmsg)
-
-      !NOTE:  Should dry static energy be done in CCPP physics suite? -JN:
-
-      ! Compute initial dry static energy, include surface geopotential
-      do k = 1, pver
-         do i = 1, pcols
-            phys_state%s(i,k) = cpair*phys_state%t(i,k) &
-               + gravit*zm(i,k) + phys_state%phis(i)
          end do
       end do
+   endif
+
+   !-----------------------------------------------------------------------------
+   ! Call physconst_update to compute cpairv, rairv, mbarv, and cappav as
+   ! constituent dependent variables.
+   ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
+   ! Fill local zvirv variable; calculated for WACCM-X.
+   !-----------------------------------------------------------------------------
+   if (cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
+       cam_runtime_opts%waccmx_option() == 'neutral')  then
+
+      call physconst_update(phys_state%q, phys_state%t, pcols)
+      zvirv(:,:) = shr_const_rwv / rairv(:,:) -1._r8
+   else
+      zvirv(:,:) = zvir
+   endif
+
+   !NOTE:  Should geopotential be done in CCPP physics suite? -JN:
+
+   ! Compute initial geopotential heights - based on full pressure
+   !call geopotential_t (phys_state%lnpint, phys_state%lnpmid  , phys_state%pint  , &
+   !   phys_state%pmid  , phys_state%pdel    , phys_state%rpdel , &
+   !   phys_state%t     , phys_state%q(:,:,ix_qv), rairv,  gravit,  zvirv       , &
+   !   phys_state%zi    , phys_state%zm      , ncol                )
+
+   call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
+                           pverp, 1, lnpint, pint, pmid, pdel, &
+                           rpdel, phys_state%t,  phys_state%q(:,:,ix_qv), &
+                           rairv, gravit, zvirv, zi, zm, pcols, &
+                           errflg, errmsg)
+
+   !NOTE:  Should dry static energy be done in CCPP physics suite? -JN:
+
+   ! Compute initial dry static energy, include surface geopotential
+   do k = 1, pver
+      do i = 1, pcols
+         phys_state%s(i,k) = cpair*phys_state%t(i,k) &
+            + gravit*zm(i,k) + phys_state%phis(i)
+      end do
+   end do
 
 !Remove once constituents (and QNEG) are enabled in CAMDEN:
 #if 0
