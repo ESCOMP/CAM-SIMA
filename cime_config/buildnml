@@ -61,8 +61,8 @@ def nml_attr_set(config):
     set namelist defaults.
     """
 
-    #Create new namelist attribute dictionary:
-    cam_nml_attr_dict = dict()
+    #Create new (empty) namelist attribute dictionary:
+    cam_nml_attr_dict = {}
 
     if config:
         #Loop over all CAM configuration settings in config dictionary:
@@ -98,7 +98,6 @@ def buildnml(case, caseroot, compname):
     # End if
     srcroot             = case.get_value("SRCROOT")
     rundir              = case.get_value("RUNDIR")
-    din_loc_root        = case.get_value("DIN_LOC_ROOT")
     atm_ncpl            = case.get_value("ATM_NCPL")
     cam_namelist_opts   = case.get_value("CAM_NAMELIST_OPTS")
     cam_nml_use_case    = case.get_value("CAM_NML_USE_CASE")

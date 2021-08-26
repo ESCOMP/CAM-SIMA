@@ -306,11 +306,11 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Set "new" physics_suites value with one physics suite:
         self.test_config_cam.set_value("physics_suites", "kessler")
 
-        #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        #Create (empty) namelist attribute dictionary:
+        cam_nml_attr_dict = {}
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
             test_fil.write('physics_suite = "adiabatic"\n')
 
@@ -343,7 +343,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
             test_fil.write('physics_suite = "adiabatic"\n')
 
@@ -377,7 +377,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         ermsg += "in CAM_CONFIG_OPTS."
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
 
         #Expect "CamConfigValError":
@@ -412,7 +412,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         ermsg += "Only one 'physics_suite' line is allowed."
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
             test_fil.write('physics_suite = "adiabatic"\n')
             test_fil.write('physics_suite = "kessler"\n')
@@ -449,7 +449,7 @@ class CamConfigTestRoutine(unittest.TestCase):
 
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
             test_fil.write('physics_suite  "adiabatic"\n')
 
@@ -484,7 +484,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         ermsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
             test_fil.write('physics_suite == "adiabatic"\n')
 
@@ -522,7 +522,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         ermsg += "listed in CAM_CONFIG_OPTS"
 
         #Create namelist file:
-        with open("test.txt", "w") as test_fil:
+        with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
             test_fil.write('physics_suite = "cam6"\n')
 
