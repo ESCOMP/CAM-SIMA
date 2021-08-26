@@ -42,7 +42,7 @@ use cam_abortutils,         only: endrun, check_allocate
 
 !SE dycore:
 use dimensions_mod,         only: globaluniquecols, nelem, nelemd, nelemdmax, &
-                                  ne, np, npsq, fv_nphys, nlev, nc, ntrac
+                                  ne, np, npsq, fv_nphys, nlev, nlevp, nc, ntrac
 use element_mod,            only: element_t
 use fvm_control_volume_mod, only: fvm_struct
 use hybvcoord_mod,          only: hvcoord_t
@@ -97,13 +97,6 @@ logical,                    public :: se_write_gll_corners = .false.
 ! Name of horizontal grid dimension in initial file.
 character(len=6) :: ini_grid_hdim_name = ' '
 
-type block_global_data
-   integer :: UniquePtOffset  ! global index of first column in element
-   integer :: NumUniqueP      ! number of unique columns in element
-   integer :: LocalID         ! local index of element in a task
-   integer :: Owner           ! task id of element owner
-end type block_global_data
-
 type(physics_column_t), allocatable :: local_dyn_columns(:)
 
 ! number of global dynamics columns. Set by SE dycore init.
@@ -126,17 +119,17 @@ subroutine model_grid_init()
    ! decomposition based on the dynamics (SE) grid.
 
    use mpi,                 only: mpi_max
-   use vert_coord,          only: vert_coord_init, pver, pverp
+   use vert_coord,          only: vert_coord_init, pver
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
    use physconst,           only: thermodynamic_active_species_num
    use dynconst,            only: dynconst_init
    use ref_pres,            only: ref_pres_init
    use time_manager,        only: get_nstep, get_step_size
-   use dp_mapping,          only: dp_init, dp_write, nphys_pts
-   use native_mapping,      only: do_native_mapping, create_native_mapping_files
    use cam_grid_support,    only: hclen=>max_hcoordname_len
    use physics_grid,        only: phys_grid_init
+   use dp_mapping,          only: dp_init, dp_write, nphys_pts
+   use native_mapping,      only: do_native_mapping, create_native_mapping_files
 
    !SE dycore:
    use parallel_mod,        only: par
@@ -178,7 +171,8 @@ subroutine model_grid_init()
    ! Set vertical coordinate information not provided by namelist:
    call vert_coord_init(1, pver)
 
-   ! Initialize SE-dycore specific variables:
+   ! Initialize SE-dycore specific variables,
+   ! note that this must be done before "nlev" can be used:
    call dimensions_mod_init()
 
    ! Initialize total number of physics points per spectral element:
@@ -202,32 +196,32 @@ subroutine model_grid_init()
 
    !Allocate SE dycore "hvcoord" structure:
    !+++++++
-   allocate(hvcoord%hyai(pverp), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%hyai(pverp)', &
+   allocate(hvcoord%hyai(nlevp), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%hyai(nlevp)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(hvcoord%hyam(pver), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%hyam(pver)', &
+   allocate(hvcoord%hyam(nlev), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%hyam(nlev)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(hvcoord%hybi(pverp), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%hybi(pverp)', &
+   allocate(hvcoord%hybi(nlevp), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%hybi(nlevp)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(hvcoord%hybm(pver), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%hybm(pver)', &
+   allocate(hvcoord%hybm(nlev), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%hybm(nlev)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(hvcoord%hybd(pver), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%hybd(pver)', &
+   allocate(hvcoord%hybd(nlev), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%hybd(nlev)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(hvcoord%etam(pver), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%etam(pver)', &
+   allocate(hvcoord%etam(nlev), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%etam(nlev)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(hvcoord%etai(pverp), stat=ierr)
-   call check_allocate(ierr, subname, 'hvcoord%etai(pverp)', &
+   allocate(hvcoord%etai(nlevp), stat=ierr)
+   call check_allocate(ierr, subname, 'hvcoord%etai(nlevp)', &
                        file=__FILE__, line=__LINE__)
 
    !+++++++

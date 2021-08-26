@@ -58,7 +58,7 @@ contains
     init = .false.
     if ( .not. allocated( adv_tendxyz ) ) then
       init = .true.
-      allocate( adv_tendxyz(nx,nx,nlev,pcnst,nets:nete) )
+      allocate( adv_tendxyz(nx,nx,nlev,pcnst,nets:nete), stat=iret )
       call check_allocate(iret, subname, 'adv_tendxyz(nx,nx,nlev,pcnst,nets:nete)', &
                           file=__FILE__, line=__LINE__)
 

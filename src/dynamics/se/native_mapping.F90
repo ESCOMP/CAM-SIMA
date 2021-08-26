@@ -28,7 +28,6 @@ contains
 subroutine native_mapping_readnl(NLFileName)
 
    use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-   use shr_file_mod,   only: shr_file_getunit, shr_file_freeunit
 
    character(len=*), intent(in) :: NLFileName
 
@@ -49,8 +48,7 @@ subroutine native_mapping_readnl(NLFileName)
    if(masterproc) then
       exist=.true.
       write(iulog,*) sub//': Check for native_mapping_nl namelist in ',trim(nlfilename)
-      unitn = shr_file_getunit()
-      open( unitn, file=trim(nlfilename), status='old' )
+      open( newunit=unitn, file=trim(nlfilename), status='old' )
 
       call find_group_name(unitn, 'native_mapping_nl', status=ierr)
       if(ierr/=0) then
@@ -65,7 +63,6 @@ subroutine native_mapping_readnl(NLFileName)
          if(len_trim(native_mapping_outgrids(1))==0) exist=.false.
       end if
       close(unitn)
-      call shr_file_freeunit(unitn)
    end if
 
    call mpi_bcast(exist, 1, mpi_logical, mstrid, mpicom, ierr)
@@ -544,7 +541,7 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        ierr = pio_put_var(ogfile, areaB_id, areaB)
        deallocate(areaB)
 
-       allocate(grid_imask(ncol))
+       allocate(grid_imask(ncol), stat=ierr)
        call check_allocate(ierr, subname, 'grid_imask(ncol)', &
                            file=__FILE__, line=__LINE__)
 

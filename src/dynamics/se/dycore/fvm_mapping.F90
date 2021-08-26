@@ -702,7 +702,7 @@ contains
     !         OF REGULAR SE IF nc>0
     !
     ioff=1
-    dx = 2.0_r8/dble(fv_nphys)
+    dx = 2.0_r8/real(fv_nphys, r8)
     do j=1,fv_nphys
       do i=1,fv_nphys
         interpdata%interp_xy(ioff)%x = -1_r8+(i-0.5_r8)*dx
@@ -782,9 +782,9 @@ contains
     gll_points(3) =  sqrt(1.0_r8/5.0_r8)
     gll_points(4) =  1.0_r8
 
-    dx = 2_r8/dble(nc)
+    dx = 2_r8/real(nc, r8)
     do k=1-nc,2*nc
-      nc_points(k) = -1.0_r8+dx*0.5_r8+dble(k-1)*dx
+      nc_points(k) = -1.0_r8+dx*0.5_r8+real(k-1, r8)*dx
     end do
     !
     ! find fvm point surrounding gll points for simple limiter

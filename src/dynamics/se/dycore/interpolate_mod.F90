@@ -1041,13 +1041,13 @@ contains
     ! The only time we can skip this statement is if ie=1, but then
     ! the statement has no effect, so lets never skip it:
     !    if (x1 > dx ) then
-    x1 = x1 - dble(ie-1)*dx
+    x1 = x1 - real(ie-1, r8)*dx
     !    endif
 
     x1 = 2.0_r8*(x1/dx)-1.0_r8
 
     !    if (x2 > dx ) then    ! removed MT 1/2009, see above
-    x2 = x2 - dble(je-1)*dx
+    x2 = x2 - real(je-1, r8)*dx
     !    endif
 
     x2 = 2.0_r8*(x2/dx)-1.0_r8

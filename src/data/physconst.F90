@@ -3,6 +3,7 @@ module physconst
 ! Physical constants.  Use csm_share values whenever available.
 
    use ccpp_kinds,   only: kind_phys
+   use shr_kind_mod, only: r8 => shr_kind_r8
 
    use shr_const_mod,  only: shr_const_g,       shr_const_stebol
    use shr_const_mod,  only: shr_const_tkfrz,   shr_const_mwdair
@@ -43,10 +44,12 @@ module physconst
 
    public :: get_dp                  ! pressure level thickness from dry dp and dry mixing ratios
    public :: get_pmid_from_dp        ! full level pressure from dp (approximation depends on dycore)
+   public :: get_ps                  ! surface pressure
    public :: get_thermal_energy      ! thermal energy quantity = dp*cp*T
    public :: get_virtual_temp        ! virtual temperature
    public :: get_cp                  ! (generalized) heat capacity
    public :: get_cp_dry              ! (generalized) heat capacity for dry air
+   public :: get_sum_species         ! sum of thermodynamically active species: dp_dry*sum_species=dp
    public :: get_gz_given_dp_Tv_Rdry ! geopotential (with dp,dry R and Tv as input)
    public :: get_R_dry               ! (generalized) dry air gas constant
    public :: get_kappa_dry           ! (generalized) dry kappa = R_dry/cp_dry
@@ -70,7 +73,7 @@ module physconst
    real(kind_phys), public, parameter :: cday        = real(shr_const_cday, kind_phys)
    ! specific heat of fresh h2o (J/K/kg)
    real(kind_phys), public, parameter :: cpliq       = real(shr_const_cpfw, kind_phys)
-   ! specific heat of ice (J/K/kg)
+   !  specific heat of ice (J/K/kg)
    real(kind_phys), public, parameter :: cpice       = real(shr_const_cpice, kind_phys)
    ! Von Karman constant
    real(kind_phys), public, parameter :: karman      = real(shr_const_karman, kind_phys)
@@ -177,8 +180,8 @@ module physconst
    ! NOTE:  These routines may be replaced once constituents are enabled in the CCPP-framework
    !
    integer, parameter :: num_names_max = 30
-   character(len=6)   :: dry_air_species(num_names_max)
-   character(len=6)   :: water_species_in_air(num_names_max)
+   character(len=80)  :: dry_air_species(num_names_max)
+   character(len=80)  :: water_species_in_air(num_names_max)
 
    integer, protected, public      :: dry_air_species_num
    integer, protected, public      :: water_species_in_air_num
@@ -254,6 +257,17 @@ CONTAINS
       logical :: newg, newsday, newmwh2o, newcpwv
       logical :: newmwdry, newcpair, newrearth, newtmelt, newomega
 
+      ! Kind-converstion variables, to ensure that MPI broadcast
+      ! works as expected:
+      real(r8) :: gravit_r8
+      real(r8) :: sday_r8
+      real(r8) :: mwh2o_r8
+      real(r8) :: cpwv_r8
+      real(r8) :: mwdry_r8
+      real(r8) :: cpair_r8
+      real(r8) :: rearth_r8
+      real(r8) :: tmelt_r8
+      real(r8) :: omega_r8
 
       ! Physical constants needing to be reset (ie. for aqua planet experiments)
       namelist /physconst_nl/  gravit, sday, mwh2o, cpwv, mwdry, cpair,       &
@@ -275,17 +289,55 @@ CONTAINS
          close(unitn)
       end if
 
+      ! Copy namelist variables into "r8" temporary variables
+      ! for broadcasting:
+      gravit_r8 = real(gravit, r8)
+      sday_r8   = real(sday, r8)
+      mwh2o_r8  = real(mwh2o, r8)
+      cpwv_r8   = real(cpwv, r8)
+      mwdry_r8  = real(mwdry, r8)
+      cpair_r8  = real(cpair, r8)
+      rearth_r8 = real(rearth, r8)
+      tmelt_r8  = real(tmelt, r8)
+      omega_r8  = real(omega, r8)
+
       ! Broadcast namelist variables
       if (npes > 1) then
-         call mpi_bcast(gravit, 1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(sday,   1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(mwh2o,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(cpwv,   1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(mwdry,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(cpair,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(rearth, 1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(tmelt,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(omega,  1, mpi_real8, masterprocid, mpicom, ierr)
+
+         ! Copy namelist variables into "r8" temporary variables
+         ! for broadcasting:
+         gravit_r8 = real(gravit, r8)
+         sday_r8   = real(sday, r8)
+         mwh2o_r8  = real(mwh2o, r8)
+         cpwv_r8   = real(cpwv, r8)
+         mwdry_r8  = real(mwdry, r8)
+         cpair_r8  = real(cpair, r8)
+         rearth_r8 = real(rearth, r8)
+         tmelt_r8  = real(tmelt, r8)
+         omega_r8  = real(omega, r8)
+
+         ! Broadcast to other PEs:
+         call mpi_bcast(gravit_r8, 1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(sday_r8,   1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(mwh2o_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(cpwv_r8,   1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(mwdry_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(cpair_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(rearth_r8, 1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(tmelt_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(omega_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
+
+         ! Convert broadcasted variables back to "kind_phys":
+         gravit = real(gravit_r8, kind_phys)
+         sday   = real(sday_r8, kind_phys)
+         mwh2o  = real(mwh2o_r8, kind_phys)
+         cpwv   = real(cpwv_r8, kind_phys)
+         mwdry  = real(mwdry_r8, kind_phys)
+         cpair  = real(cpair_r8, kind_phys)
+         rearth = real(rearth_r8, kind_phys)
+         tmelt  = real(tmelt_r8, kind_phys)
+         omega  = real(omega_r8, kind_phys)
+
       end if
 
       newg     =  gravit /= real(shr_const_g, kind_phys)
@@ -383,7 +435,8 @@ CONTAINS
      dry_air_species_num   = 0
      water_species_in_air_num = 0
      do i = 1, num_names_max
-        if ((LEN_TRIM(dry_air_species(i)) > 0) .and. (TRIM(dry_air_species(i)) /= 'N2')) then
+        if ((LEN_TRIM(dry_air_species(i)) > 0) .and. &
+            (TRIM(dry_air_species(i)) /= 'mass_mixing_ratio_N2')) then
            dry_air_species_num = dry_air_species_num + 1
         end if
         if (.not. LEN(TRIM(water_species_in_air(i)))==0) then
@@ -597,7 +650,7 @@ CONTAINS
        ! last major species in dry_air_species is derived from the others and constants associated with it
        ! are initialized here
       !
-       if (TRIM(dry_air_species(dry_air_species_num+1))=='N2') then
+       if (TRIM(dry_air_species(dry_air_species_num+1))=='N2_mixing_ratio_wrt_dry_air') then
 !         call cnst_get_ind('N' ,ix, abort=.false.)
           ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -646,7 +699,7 @@ CONTAINS
        !
        ! O
        !
-       case('O')
+       case('O_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('O' ,ix, abort=.false.)
          ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -669,7 +722,7 @@ CONTAINS
        !
        ! O2
        !
-       case('O2')
+       case('O2_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('O2' ,ix, abort=.false.)
          ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -692,7 +745,7 @@ CONTAINS
        !
        ! H
        !
-       case('H')
+       case('H_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('H' ,ix, abort=.false.)
          ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -751,7 +804,7 @@ CONTAINS
          !
          ! Q
          !
-       case('Q')
+       case('specific_humidity')
 !         call cnst_get_ind('Q' ,ix, abort=.false.)
          ix = ix_qv !This should be removed once constituents are enabled -JN.
          if (ix<1) then
@@ -769,7 +822,7 @@ CONTAINS
          !
          ! CLDLIQ
          !
-       case('CLDLIQ')
+       case('cloud_liquid_water_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('CLDLIQ' ,ix, abort=.false.)
          ix = ix_cld_liq !This should be removed once constituents are enabled -JN.
          if (ix<1) then
@@ -784,7 +837,7 @@ CONTAINS
          !
          ! CLDICE
          !
-       case('CLDICE')
+       case('cloud_ice_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('CLDICE' ,ix, abort=.false.)
          ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -799,7 +852,7 @@ CONTAINS
          !
          ! RAINQM
          !
-       case('RAINQM')
+       case('rain_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('RAINQM' ,ix, abort=.false.)
          ix = ix_rain !This should be removed once constituents are enabled -JN.
          if (ix<1) then
@@ -814,7 +867,7 @@ CONTAINS
          !
          ! SNOWQM
          !
-       case('SNOWQM')
+       case('snow_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('SNOWQM' ,ix, abort=.false.)
          ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -829,7 +882,7 @@ CONTAINS
          !
          ! GRAUQM
          !
-       case('GRAUQM')
+       case('graupel_mixing_ratio_wrt_dry_air')
 !         call cnst_get_ind('GRAUQM' ,ix, abort=.false.)
          ix = -1 !Model should die if it gets here, until constituents are enabled -JN.
          if (ix<1) then
@@ -1425,6 +1478,44 @@ cpv = 0._kind_phys
    !
    !****************************************************************************************************************
    !
+   ! get pressure from dry pressure and thermodynamic active species (e.g., forms of water: water vapor, cldliq, etc.)
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_ps(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,active_species_idx,dp_dry,ps,ptop)
+     integer,  intent(in)          :: i0,i1,j0,j1,k0,k1,ntrac
+     real(kind_phys), intent(in)   :: tracer_mass(i0:i1,j0:j1,k0:k1,1:ntrac) ! Tracer array
+     real(kind_phys), intent(in)   :: dp_dry(i0:i1,j0:j1,k0:k1)              ! dry pressure level thickness
+     real(kind_phys), intent(out)  :: ps(i0:i1,j0:j1)                        ! surface pressure
+     real(kind_phys), intent(in)   :: ptop
+     integer,  intent(in)          :: active_species_idx(:)
+
+     integer                       :: i,j,k,m_cnst,nq
+     real(kind_phys)               :: dp(i0:i1,j0:j1,k0:k1) ! dry pressure level thickness
+
+     dp = dp_dry
+     do nq=dry_air_species_num+1,thermodynamic_active_species_num
+       m_cnst = active_species_idx(nq)
+       do k=k0,k1
+         do j=j0,j1
+           do i = i0,i1
+             dp(i,j,k) = dp(i,j,k) + tracer_mass(i,j,k,m_cnst)
+           end do
+         end do
+       end do
+     end do
+     ps = ptop
+     do k=k0,k1
+       do j=j0,j1
+         do i = i0,i1
+           ps(i,j) = ps(i,j)+dp(i,j,k)
+         end do
+       end do
+     end do
+   end subroutine get_ps
+   !
+   !****************************************************************************************************************
+   !
    ! Compute dry air heat capacity under constant pressure
    !
    !****************************************************************************************************************
@@ -1916,5 +2007,37 @@ cpv = 0._kind_phys
        deallocate(R_dry,cp_dry)
      end if
    end subroutine get_kappa_dry
+  !
+   !****************************************************************************************************************
+   !
+   ! Compute sum of thermodynamically active species
+   !
+   ! tracer is in units of dry mixing ratio unless optional argument dp_dry is present in which case tracer is
+   ! in units of "mass" (=m*dp)
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_sum_species(i0,i1,j0,j1,k0,k1,ntrac,tracer,active_species_idx,sum_species,dp_dry)
+     integer,  intent(in)                  :: i0,i1,j0,j1,k0,k1,ntrac
+     real(kind_phys), intent(in)           :: tracer(i0:i1,j0:j1,k0:k1,1:ntrac)   ! tracer array
+     integer,  intent(in)                  :: active_species_idx(:)               ! index for thermodynamic active tracers
+     real(kind_phys), optional, intent(in) :: dp_dry(i0:i1,j0:j1,k0:k1)           ! dry pressure level thickness is present
+                                                                                  ! then tracer is in units of mass
+     real(kind_phys), intent(out)          :: sum_species(i0:i1,j0:j1,k0:k1)      ! sum species
+
+     real(kind_phys) :: factor(i0:i1,j0:j1,k0:k1)
+     integer         :: nq,itrac
+
+     if (present(dp_dry)) then
+       factor = 1.0_r8/dp_dry(:,:,:)
+     else
+       factor = 1.0_r8
+     endif
+     sum_species = 1.0_r8 !all dry air species sum to 1
+     do nq=dry_air_species_num+1,thermodynamic_active_species_num
+       itrac = active_species_idx(nq)
+       sum_species(:,:,:) = sum_species(:,:,:) + tracer(:,:,:,itrac)*factor(:,:,:)
+     end do
+   end subroutine get_sum_species
 
 end module physconst

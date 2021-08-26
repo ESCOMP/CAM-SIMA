@@ -17,8 +17,10 @@ module dyn_thermo
    ! get_cp
    ! get_cp_dry
    ! get_kappa_dry
+   ! get_ps
    ! get_dp
    ! get_dp_ref
+   ! get_sum_species
    ! get_molecular_diff_coef
    ! get_molecular_diff_coef_reference
    ! get_rho_dry
@@ -238,6 +240,54 @@ CONTAINS
    !
    !****************************************************************************************************************
    !
+   ! get pressure from dry pressure and thermodynamic active species (e.g., forms of water: water vapor, cldliq, etc.)
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_ps(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,active_species_idx,dp_dry,ps,ptop)
+
+      use physconst, only: get_ps_phys=>get_ps
+
+      !Subroutine (dummy) arguments:
+
+      integer,  intent(in)         :: i0,i1,j0,j1,k0,k1,ntrac
+      real(kind_dyn), intent(in)   :: tracer_mass(i0:i1,j0:j1,k0:k1,1:ntrac) ! Tracer array
+      real(kind_dyn), intent(in)   :: dp_dry(i0:i1,j0:j1,k0:k1)              ! dry pressure level thickness
+      real(kind_dyn), intent(out)  :: ps(i0:i1,j0:j1)                        ! surface pressure
+      real(kind_dyn), intent(in)   :: ptop
+      integer,  intent(in)         :: active_species_idx(:)
+
+#ifndef DYN_PHYS_KIND_DIFF
+
+      !The dynamics and physics kind is the same, so just call the physics
+      !routine directly:
+      call get_ps_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,active_species_idx,dp_dry,ps,ptop)
+
+#else
+
+      !Declare local variables:
+      real(kind_phys) :: tracer_mass_phys(i0:i1,j0:j1,k0:k1,1:ntrac) ! Tracer array
+      real(kind_phys) :: dp_dry_phys(i0:i1,j0:j1,k0:k1)              ! dry pressure level thickness
+      real(kind_phys) :: ps_phys(i0:i1,j0:j1)                        ! surface pressure
+      real(kind_phys) :: ptop_phys
+
+      !Set local variables:
+      tracer_mass_phys = real(tracer_mass, kind_phys)
+      dp_dry_phys      = real(dp_dry, kind_phys)
+      ptop_phys        = real(ptop, kind_phys)
+
+      !Call physics routine using local vriables with matching kinds:
+      call get_ps_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass_phys,active_species_idx,dp_dry_phys,ps_phys,ptop_phys)
+
+      !Set output variables back to dynamics kind:
+      ps = real(ps_phys, kind_dyn)
+
+#endif
+
+   end subroutine get_ps
+   !
+   !****************************************************************************************************************
+   !
    ! Compute pressure level thickness from dry pressure and thermodynamic active
    ! species mixing ratios
    !
@@ -278,13 +328,13 @@ CONTAINS
       real(kind_phys), allocatable :: ps(:,:)
       real(kind_phys), allocatable :: ptop
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
-      dp_dry_phys = real(dp_dry, kind_phys)
-
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_dp (dyn)'
+
+      !Set local variables:
+      tracer_phys = real(tracer, kind_phys)
+      dp_dry_phys = real(dp_dry, kind_phys)
 
       if (present(ptop)) then
          allocate(ptop_phys, stat=iret)
@@ -375,6 +425,75 @@ CONTAINS
 #endif
 
    end subroutine get_dp_ref
+   !
+   !****************************************************************************************************************
+   !
+   ! Compute sum of thermodynamically active species
+   !
+   ! tracer is in units of dry mixing ratio unless optional argument dp_dry is present in which case tracer is
+   ! in units of "mass" (=m*dp)
+   !
+   !****************************************************************************************************************
+   !
+   subroutine get_sum_species(i0,i1,j0,j1,k0,k1,ntrac,tracer,active_species_idx,sum_species,dp_dry)
+
+      use physconst, only: get_sum_species_phys=>get_sum_species
+
+      !Subroutine (dummy) arguments:
+
+      integer,  intent(in)                 :: i0,i1,j0,j1,k0,k1,ntrac
+      real(kind_dyn), intent(in)           :: tracer(i0:i1,j0:j1,k0:k1,1:ntrac)   ! tracer array
+      integer,  intent(in)                 :: active_species_idx(:)               ! index for thermodynamic active tracers
+      real(kind_dyn), optional, intent(in) :: dp_dry(i0:i1,j0:j1,k0:k1)           ! dry pressure level thickness is present
+                                                                                  ! then tracer is in units of mass
+      real(kind_dyn), intent(out)          :: sum_species(i0:i1,j0:j1,k0:k1)      ! sum species
+
+#ifndef DYN_PHYS_KIND_DIFF
+
+      !The dynamics and physics kind is the same, so just call the physics
+      !routine directly:
+      call get_sum_species_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,active_species_idx,sum_species, &
+                                dp_dry=dp_dry)
+
+#else
+
+      !Declare local variables:
+      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac) ! tracer array
+      real(kind_phys) :: sum_species_phys(i0:i1,j0:j1,k0:k1)    ! sum species
+      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)        ! dry pressure level thickness is present
+
+      !check_allocate variables:
+      integer :: iret !allocate status integer
+      character(len=*), parameter :: subname = 'get_sum_species (dyn)'
+
+      !Set local variables:
+      tracer_phys = real(tracer, kind_phys)
+
+      if (present(dp_dry)) then
+         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set optional local variable:
+         dp_dry_phys = real(dp_dry, kind_phys)
+      end if
+
+      !Call physics routine using local vriables with matching kinds:
+      call get_sum_species_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,active_species_idx,sum_species_phys, &
+                                dp_dry=dp_dry_phys)
+
+      !Set output variables back to dynamics kind:
+      sum_species = real(sum_species_phys, kind_dyn)
+
+      !Deallocate variables:
+      if (allocated(dp_dry_phys)) then
+         deallocate(dp_dry_phys)
+      end if
+
+#endif
+
+   end subroutine get_sum_species
    !
    !*************************************************************************************************************************
    !

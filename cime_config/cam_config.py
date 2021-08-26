@@ -478,7 +478,7 @@ class ConfigString(ConfigGen):
     #++++++++++++++++++++++++
 
     # Create properties needed to return given value and valid values
-    #     without underscores
+    # without underscores
     @property
     def value(self):
         """Return the value of this config object"""
@@ -542,6 +542,143 @@ class ConfigString(ConfigGen):
         self.__value = val
 
 ###############################################################################
+
+class ConfigList(ConfigGen):
+
+    """
+    Configuration class used to store list-based
+    CAM configuration options.
+
+    Inputs to initalize class are:
+    name                   -> Name of new CAM configure option
+    desc                   -> Text description of CAM configure option
+    list_vals              -> List values for CAM configure option
+    valid_type (optional)  -> Specify valid type for CAM configure option list values.
+                              Currently accepts "int" for integer and "str" for string.
+
+    Doctests:
+
+    1. Check that ConfigList works properly with no valid_type:
+
+    >>> ConfigList("test", "test object description", [1,2,3]).value
+    [1, 2, 3]
+
+    2. Check that ConfigList works with a correct valid type provided:
+    >>> ConfigList("test", "test object description", ["x", "y", "z"], valid_type="str").value
+    ['x', 'y', 'z']
+
+    3. Check that ConfigList With a non-string passed to "valid_type" fails with the correct error:
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type=5).value #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR: valid_type entry for variable 'test' must be a string,  not type '<class 'int'>'.
+
+    4. Check that ConfigList with a non-recognized "valid_type" option fails with the correct error:
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="foo").value #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigValError: ERROR: 'foo' is not a recognized option for 'valid_type'. Please use either 'int' or 'str'.
+
+    5.  Check that ConfigList with list entries that don't match the valid_type entry fails with the correct error:
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="str").value #doctest:  +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigValError: ERROR: List entry, '1', provided for variable, 'test', is not a string, but instead is type '<class 'int'>'.
+    """
+
+    def __init__(self, name, desc, val, valid_type=None):
+
+        # Add generic attributes
+        ConfigGen.__init__(self, name, desc, is_nml_attr=None)
+
+        # Check if valid_type is not None
+        if valid_type is not None:
+            # If not None, make sure valid_type is a string:
+            if not isinstance(valid_type, str):
+                emsg = "ERROR: valid_type entry for variable '{}' must be a string, "
+                emsg += " not type '{}'."
+                raise CamConfigTypeError(emsg.format(name, type(valid_type)))
+            # End if
+        # End if
+
+        # If ok, then add valid_type to object
+        self.__valid_type = valid_type
+
+        # Next, check that provided list entry types are "valid" based on the
+        # valid type provided:
+        if self.__valid_type is not None:
+            self.__check_value(val)
+
+        # If everything is ok, then add provided value to object
+        self.__value = val
+
+    #++++++++++++++++++++++++
+
+    # Create properties needed to return given value and valid values
+    # without underscores
+    @property
+    def value(self):
+        """Return the value of this config object"""
+        return self.__value
+
+    @property
+    def valid_type(self):
+        """Return the valid type of this config object"""
+        return self.__valid_type
+
+    #++++++++++++++++++++++++
+
+    def __check_value(self, val):
+
+        """
+        Check if the entries in the provided
+        list (val) are of the correct type as
+        specified by the "valid_type" entry.
+        """
+
+        # Extract valid type (valid_type) from object
+        valid_type = self.valid_type
+
+        if valid_type == "str":
+            #All list entries should be strings:
+            for list_entry in val:
+                if not isinstance(list_entry, str):
+                    emsg = "ERROR: List entry, '{}', provided for variable, '{}'"
+                    emsg += ", is not a string, but instead is type '{}'."
+                    raise CamConfigValError(emsg.format(list_entry, self.name,
+                                                        type(list_entry)))
+
+        elif valid_type == "int":
+            #All list entries should be integers:
+            for list_entry in val:
+                if not isinstance(list_entry, int):
+                    emsg = "ERROR: List entry, '{}', provided for variable, '{}'"
+                    emsg += ", is not an integer, but instead is type '{}'."
+                    raise CamConfigValError(emsg.format(list_entry, self.name,
+                                                        type(list_entry)))
+        else:
+            #Invalid option given for "valid_type", so raise error:
+            emsg = "ERROR: '{}' is not a recognized option for 'valid_type'."
+            emsg += " Please use either 'int' or 'str'."
+            raise CamConfigValError(emsg.format(valid_type))
+
+    #++++++++++++++++++++++++
+
+    def set_value(self, val):
+
+        """
+        Set configure object's value to the one provided.
+        """
+
+        # First, check that the provided value is valid
+        if self.__valid_type is not None:
+            self.__check_value(val)
+
+        # If ok, then set object's value to one provided
+        self.__value = val
+
+
+###############################################################################
 # MAIN CAM CONFIGURE OBJECT
 ###############################################################################
 
@@ -568,17 +705,22 @@ class ConfigCAM:
     >>> FCONFIG.get_value("test_str")
     'test_val'
 
+    With a given list value:
+    >>> FCONFIG.create_config("test_list", "test object description", [1, 2])
+    >>> FCONFIG.get_value("test_list")
+    [1, 2]
+
     2.  Check that the same configure object can't be created twice:
 
     >>> FCONFIG.create_config("test_int", "test object description", 5) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CamConfigValError: ERROR:  The CAM config variable, 'test_int', already exists!  Any new config variable must be given a different name
 
-    3.  Check that a configure object's given value must be either a string or integer:
+    3.  Check that a configure object's given value must be either a string, integer or list:
 
-    >>> FCONFIG.create_config("test_list", "test_object_description", [5]) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> FCONFIG.create_config("test_dict", "test_object_description", {"x": "y"}) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_list', must be either an integer or a string, not <type 'list'>
+    CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_dict', must be either an integer or a string, not <type 'list'>
 
     """
 
@@ -607,7 +749,7 @@ class ConfigCAM:
         self.__atm_name = case.get_value("COMP_ATM")
 
         # Save CPP definitions as a list:
-        self.__cppdefs = case.get_value("CAM_CPPDEFS").split()
+        self.__cppdefs = [x for x in case.get_value("CAM_CPPDEFS").split() if x]
 
         # If only "UNSET" is present in the list, then convert to
         # empty list:
@@ -698,10 +840,10 @@ class ConfigCAM:
         hgrid_desc = "Horizontal grid specifier."
 
         # dynamics package source directories meta-data
-        dyn_dirs_desc = "Comma-seperated list of local directories containing" \
+        dyn_dirs_desc = "Comma-separated list of local directories containing" \
                         " dynamics package source code.\n" \
                         "These directories are assumed to be located under" \
-                        " src/dynamics, with a backslah ('/') indicating directory hierarchy."
+                        " src/dynamics, with a slash ('/') indicating directory hierarchy."
 
         # Create regex expressions to search for the different dynamics grids
         eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dycore
@@ -730,7 +872,8 @@ class ConfigCAM:
                                se_grid_re, is_nml_attr=True)
 
             # Source code directories
-            self.create_config("dyn_src_dirs", dyn_dirs_desc, "se,se/dycore")
+            self.create_config("dyn_src_dirs", dyn_dirs_desc, ["se",os.path.join("se","dycore")],
+                               valid_list_type="str")
 
             # Add SE namelist groups to nmlgen list
             self.__nml_groups.append("air_composition_nl")
@@ -789,7 +932,8 @@ class ConfigCAM:
                                None, is_nml_attr=True)
 
             # Source code directories
-            self.create_config("dyn_src_dirs", dyn_dirs_desc, "none")
+            self.create_config("dyn_src_dirs", dyn_dirs_desc, ["none"],
+                               valid_list_type="str")
 
         else:
             emsg = "ERROR: The specified CAM horizontal grid, '{}', "
@@ -849,6 +993,11 @@ class ConfigCAM:
             self.add_cppdef("NP", csnp_val)
 
         else:
+            # Additional dyn value checks are not required,
+            # as the "dyn_valid_vals" list in the "create_config" call
+            # prevents non-supported dycores from being used, and all
+            # dycores are lat/lon-based.
+
             # Add number of latitudes in grid to configure object
             nlat_desc = ["Number of unique latitude points in rectangular lat/lon grid.",
                          "Set to 1 (one) for unstructured grids."]
@@ -928,7 +1077,7 @@ class ConfigCAM:
 
         # Set phys->dyn kind conversion CPPdef if kinds are different:
         if self.get_value("dyn_kind") != self.get_value("phys_kind"):
-             self.add_cppdef("DYN_PHYS_KIND_DIFF")
+            self.add_cppdef("DYN_PHYS_KIND_DIFF")
 
         #--------------------------------------------------------
         # Print CAM configure settings and values to debug logger
@@ -1024,8 +1173,8 @@ class ConfigCAM:
         # end if
         return pargs
 
-    def create_config(self, name, desc, val,
-                      valid_vals=None, is_nml_attr=False):
+    def create_config(self, name, desc, val, valid_vals=None,
+                      valid_list_type=None, is_nml_attr=False):
 
         """
         Create new CAM "configure" object, and add it
@@ -1043,10 +1192,14 @@ class ConfigCAM:
             conf_obj = ConfigString(name, desc, val,
                                     valid_vals, is_nml_attr=is_nml_attr)
 
+        elif isinstance(val, list):
+            # If list, then call list configure object
+            conf_obj = ConfigList(name, desc, val,
+                                  valid_type=valid_list_type)
         else:
-            # If neither an integer or a string, then throw an error
+            # If not an integer, string, or a list, then throw an error
             emsg = ("ERROR:  The input value for new CAM config variable, '{}', "
-                    "must be either an integer or a string, not {}")
+                    "must be an integer, string, or list, not {}")
             raise CamConfigTypeError(emsg.format(name, type(val)))
 
         # Next, check that object name isn't already in the config list
@@ -1134,13 +1287,47 @@ class ConfigCAM:
 
         """
         Add a CPP definition value to be used during the
-        building of the model.
+        building of the model.  An error is thrown if
+        the CPP macro has already been defined.
+
+        Check that add_cppdef works properly:
+        >>> FCONFIG.add_cppdef("TEST"); FCONFIG.cpp_defs
+        ['-DTEST_CPPDEF', '-DNEW_TEST=5', '-DTEST']
+
+        Check that add_cppdef works properly with provided value:
+        >>> FCONFIG.add_cppdef("COOL_VAR", 100); FCONFIG.cpp_defs
+        ['-DTEST_CPPDEF', '-DNEW_TEST=5', '-DTEST', '-DCOOL_VAR=100']
+
+        Check that a duplicate cppdef creates an error:
+        >>> FCONFIG.add_cppdef("TEST_CPPDEF") # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        CamConfigValError: ERROR: CPP definition 'TEST_CPPDEF' has already been set
+
+        Check that a duplicate cppdef creates an error even if an equals sign
+        is present in the stored copy but not the passed variable:
+        >>> FCONFIG.add_cppdef("NEW_TEST") # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        CamConfigValError: ERROR: CPP definition 'NEW_TEST' has already been set
         """
+
+        #Create string to check if CPP definition is already present:
+        check_str = r"-D"+cppname.upper()
+
+        #Check if CPP definition name already exists in CPP string list.
+        #This is done because a CPP definition should only be set once,
+        #in order to avoid variable overwriting or other un-expected
+        #compiler behaviors:
+        if any([re.match(check_str+r"($|=)", cppdef.strip()) for cppdef in self.__cppdefs]):
+            #If match is found, then raise an error:
+            emsg = "ERROR: CPP definition '{}' has already been set"
+            raise CamConfigValError(emsg.format(cppname.upper()))
 
         # Check if input value is a logical:
         if value is None:
             # Create CPP flag string with no equals sign:
-            cpp_str = "-D{}".format(cppname.upper())
+            cpp_str = check_str
         else:
             # Create CPP definition flag string:
             cpp_str = "-D{}={}".format(cppname.upper(), value)
@@ -1255,7 +1442,7 @@ class ConfigCAM:
 
     #++++++++++++++++++++++++
 
-    def ccpp_phys_set(config, cam_nml_attr_dict, user_nl_file):
+    def ccpp_phys_set(self, cam_nml_attr_dict, user_nl_file):
 
         """
         Determine if a user has specified which
@@ -1266,7 +1453,7 @@ class ConfigCAM:
         """
 
         #Extract physics suite list:
-        phys_suites = config.get_value('physics_suites').split(';')
+        phys_suites = self.get_value('physics_suites').split(';')
 
         if len(phys_suites) > 1:
             #If more than one physics suite is listed,
@@ -1280,12 +1467,12 @@ class ConfigCAM:
                 #Break out "physics_suite" lines:
                 phys_suite_lines = \
                     [[x.strip() for x in line.split('=')] \
-                    for line in nl_user_lines if line[0] != "!" and 'physics_suite' in line]
+                    for line in nl_user_lines if line.lstrip()[0] != "!" and 'physics_suite' in line]
 
                 #If there is no "physics_suite" line, then throw an error:
                 if not phys_suite_lines:
                     emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
-                    emsg += "This is required if more than one suite is listed\n" 
+                    emsg += "This is required if more than one suite is listed\n"
                     emsg += "in CAM_CONFIG_OPTS."
                     raise CamConfigValError(emsg)
 
@@ -1303,7 +1490,8 @@ class ConfigCAM:
                     #If there is only one string entry, then it means the equals (=) sign was never found:
                     emsg = "No equals (=) sign was found with the 'physics_suite' variable."
                     raise CamConfigValError(emsg)
-                elif len(phys_suite_list) > 2:
+
+                if len(phys_suite_list) > 2:
                     #If there is more than two entries, it means there were two or more equals signs:
                     emsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
                     raise CamConfigValError(emsg)
@@ -1313,9 +1501,9 @@ class ConfigCAM:
 
                 #Check that physics suite specified is actually in config list:
                 if phys_suite_val not in phys_suites:
-                    emsg  = "physics_suite specified in user_nl_cam doesn't match any suites\n"
+                    emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
                     emsg += "listed in CAM_CONFIG_OPTS"
-                    raise CamConfigValError(emsg)
+                    raise CamConfigValError(emsg.format(phys_suite_val))
 
         else:
             #If only a single physics suite is listed, then just use that one:
@@ -1362,7 +1550,7 @@ if __name__ == "__main__":
                 "CASEROOT" : "/another/made-up/path",
                 "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
                 "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
-                "CAM_CPPDEFS" : "UNSET",
+                "CAM_CPPDEFS" : "-DTEST_CPPDEF -DNEW_TEST=5",
                 "NTHRDS_ATM" : 1,
                 "RUN_STARTDATE" : "101"
                 }

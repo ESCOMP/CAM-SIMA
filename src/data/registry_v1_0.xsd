@@ -94,17 +94,17 @@
 
   <!-- attributes -->
 
-  <xs:attribute name="access"        type="access_type"/>
-  <xs:attribute name="allocatable"   type="allocation_type"/>
-  <xs:attribute name="dycore"        type="dycore_type"/>
-  <xs:attribute name="extends"       type="fortran_id_type"/>
-  <xs:attribute name="kind"          type="fortran_id_type"/>
-  <xs:attribute name="local_name"    type="fortran_id_type"/>
-  <xs:attribute name="name"          type="fortran_id_type"/>
-  <xs:attribute name="standard_name" type="standard_name_type"/>
-  <xs:attribute name="type"          type="fortran_id_type"/>
-  <xs:attribute name="units"         type="units_type"/>
-  <xs:attribute name="version"       type="version_type"/>
+  <xs:attribute name="access"                  type="access_type"/>
+  <xs:attribute name="allocatable"             type="allocation_type"/>
+  <xs:attribute name="dycore"                  type="dycore_type"/>
+  <xs:attribute name="extends"                 type="fortran_id_type"/>
+  <xs:attribute name="kind"                    type="fortran_id_type"/>
+  <xs:attribute name="local_name"              type="fortran_id_type"/>
+  <xs:attribute name="name"                    type="fortran_id_type"/>
+  <xs:attribute name="standard_name"           type="standard_name_type"/>
+  <xs:attribute name="type"                    type="fortran_id_type"/>
+  <xs:attribute name="units"                   type="units_type"/>
+  <xs:attribute name="version"                 type="version_type"/>
 
   <!-- definition of simple types -->
 
@@ -139,6 +139,8 @@
     <xs:attribute name="index_pos"     type="standard_name_type"
                   use="required"/>
     <xs:attribute ref="units"          use="optional"/>
+    <xs:attribute name="phys_timestep_init_zero" use="optional"
+                  type="xs:boolean" default="false"/>
   </xs:complexType>
 
   <xs:complexType name="variable_type">
@@ -155,6 +157,8 @@
     <xs:attribute ref="kind"          use="optional" default=""/>
     <xs:attribute ref="allocatable"   use="optional" default="none"/>
     <xs:attribute ref="access"        use="optional" default="public"/>
+    <xs:attribute name="phys_timestep_init_zero" use="optional"
+                  type="xs:boolean" default="false"/>
   </xs:complexType>
 
   <xs:complexType name="array_type">
@@ -172,6 +176,8 @@
     <xs:attribute ref="kind"          use="optional" default=""/>
     <xs:attribute ref="allocatable"   use="optional" default="none"/>
     <xs:attribute ref="access"        use="optional" default="public"/>
+<!--    <xs:attribute name="phys_timestep_init_zero" use="optional"
+                  type="xs:boolean" default="false"/> -->
   </xs:complexType>
 
   <xs:complexType name="data_type">
@@ -193,6 +199,8 @@
     <xs:attribute name="bindC"   use="optional" type="xs:boolean"
                   default="false"/>
     <xs:attribute ref="extends"  use="optional" default=""/>
+<!--    <xs:attribute name="phys_timestep_init_zero" use="optional"
+                  type="xs:boolean" default="false"/> -->
   </xs:complexType>
 
   <xs:complexType name="use_type">

@@ -113,7 +113,7 @@ CONTAINS
     use spmd_utils,     only: mpicom, iam, npes
     use mpi,            only: MPI_COMM_NULL, MPI_MAX_PROCESSOR_NAME
     use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_BAND
-    use dimensions_mod, only: nlev, qsize_d, ntrac_d
+    use dimensions_mod, only: nlev, qsize_d, ntrac
 
     integer, intent(in) :: npes_homme
 
@@ -148,7 +148,7 @@ CONTAINS
     PartitionForNodes = .TRUE.
 
     ! Initialize number of SE dycore variables used in repro_sum:
-    nrepro_vars = MAX(10, nlev*qsize_d, nlev*ntrac_d)
+    nrepro_vars = MAX(10, nlev*qsize_d, nlev*ntrac)
 
     ! Allocate repro_sum variable:
     allocate(global_shared_sum(nrepro_vars), stat=iret)

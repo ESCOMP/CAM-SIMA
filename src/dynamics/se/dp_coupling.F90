@@ -52,7 +52,6 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    ! Note that all pressures and tracer mixing ratios coming from the dycore are based on
    ! dry air mass.
 
-   use physics_types,          only: pdel
 !   use gravity_waves_sources,  only: gws_src_fnct
    use dyn_comp,               only: frontgf_idx, frontga_idx
    use hycoef,                 only: hyai, ps0
@@ -274,7 +273,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
       phys_state%ps(icol)   = real(ps_tmp(blk_ind(1), ie), kind_phys)
       phys_state%phis(icol) = real(phis_tmp(blk_ind(1), ie), kind_phys)
       do ilyr = 1, pver
-         pdel(icol, ilyr) = real(dp3d_tmp(blk_ind(1), ilyr, ie), kind_phys)
+         phys_state%pdel(icol, ilyr)  = real(dp3d_tmp(blk_ind(1), ilyr, ie), kind_phys)
          phys_state%t(icol, ilyr)     = real(T_tmp(blk_ind(1), ilyr, ie), kind_phys)
          phys_state%u(icol, ilyr)     = real(uv_tmp(blk_ind(1), 1, ilyr, ie), kind_phys)
          phys_state%v(icol, ilyr)     = real(uv_tmp(blk_ind(1), 2, ilyr, ie), kind_phys)
@@ -292,12 +291,6 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          end do
       end do
    end do
-
-   ! Re-set physics tendencies to zero:
-   ! Is there a better solution here? -JN
-   phys_tend%dTdt(:,:) = 0._kind_phys
-   phys_tend%dudt(:,:) = 0._kind_phys
-   phys_tend%dvdt(:,:) = 0._kind_phys
 
    if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) then
       !$omp parallel do num_threads(max_num_threads) private (lchnk, ncols, icol, ilyr, pbuf_chnk, pbuf_frontgf, pbuf_frontga)
@@ -322,7 +315,6 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! Save the tracer fields input to physics package for calculating tendencies
    ! The mixing ratios are all dry at this point.
-!   q_prev(1:ncols,1:pver,:) = phys_state(lchnk)%q(1:ncols,1:pver,1:pcnst)
    q_prev(1:pcols,1:pver,:) = real(phys_state%q(1:pcols,1:pver,1:3), r8)
 
    call test_mapping_output_phys_state(phys_state,dyn_out%fvm)
@@ -347,8 +339,6 @@ end subroutine d_p_coupling
 !=========================================================================================
 
 subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, tl_qdp)
-
-   use physics_types,    only: pdel, pdeldry
 
    ! Convert the physics output state into the dynamics input state.
    use test_fvm_mapping, only: test_mapping_overwrite_tendencies
@@ -448,7 +438,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    do ilyr = 1, pver
       do icol=1, pcols
          !Apply adjustment only to water vapor:
-         factor = pdel(icol,ilyr)/pdeldry(icol,ilyr)
+         factor = phys_state%pdel(icol,ilyr)/phys_state%pdeldry(icol,ilyr)
          phys_state%q(icol,ilyr,ix_qv) = factor*phys_state%q(icol,ilyr,ix_qv)
          phys_state%q(icol,ilyr,ix_cld_liq) = factor*phys_state%q(icol,ilyr,ix_cld_liq)
          phys_state%q(icol,ilyr,ix_rain) = factor*phys_state%q(icol,ilyr,ix_rain)
@@ -468,7 +458,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
            dyn_in%fvm)
 
       do ilyr = 1, pver
-         dp_phys(blk_ind(1),ilyr,ie)  = real(pdeldry(icol,ilyr), r8)
+         dp_phys(blk_ind(1),ilyr,ie)  = real(phys_state%pdeldry(icol,ilyr), r8)
          T_tmp(blk_ind(1),ilyr,ie)    = real(phys_tend%dtdt(icol,ilyr), r8)
          uv_tmp(blk_ind(1),1,ilyr,ie) = real(phys_tend%dudt(icol,ilyr), r8)
          uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt(icol,ilyr), r8)
@@ -614,9 +604,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Finally compute energy and water column integrals of the physics input state.
 
 !   use constituents,   only: qmin
-   use physics_types,  only: psdry, pint, lnpint, pintdry, lnpintdry
-   use physics_types,  only: pdel, rpdel, pdeldry, rpdeldry
-   use physics_types,  only: pmid, lnpmid, pmiddry, lnpmiddry
    use physics_types,  only: exner, zi, zm, lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa, rairv, physconst_update
    use shr_const_mod,  only: shr_const_rwv
@@ -658,31 +645,31 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    !$omp parallel do num_threads(horz_num_threads) private (i)
    do i = 1, pcols
       ! Set model-top values:
-      psdry(i)     = real(hyai(1)*ps0, kind_phys) + sum(pdel(i,:))
-      pintdry(i,1) = real(hyai(1)*ps0, kind_phys)
+      phys_state%psdry(i)     = real(hyai(1)*ps0, kind_phys) + sum(phys_state%pdel(i,:))
+      phys_state%pintdry(i,1) = real(hyai(1)*ps0, kind_phys)
    end do
 
    ! Calculate (natural) logarithm:
-   call shr_vmath_log(pintdry(1:pcols,1), &
-                      lnpintdry(1:pcols,1), pcols)
+   call shr_vmath_log(phys_state%pintdry(1:pcols,1), &
+                      phys_state%lnpintdry(1:pcols,1), pcols)
 
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
    do k = 1, nlev
       do i = 1, pcols
          ! Calculate dry pressure variables for rest of column:
-         pintdry(i,k+1) = pintdry(i,k) + pdel(i,k)
-         pdeldry(i,k)   = pdel(i,k)
-         rpdeldry(i,k)  = 1._kind_phys/pdeldry(i,k)
-         pmiddry(i,k)   = 0.5_kind_phys*(pintdry(i,k+1) + &
-                                         pintdry(i,k))
+         phys_state%pintdry(i,k+1) = phys_state%pintdry(i,k) + phys_state%pdel(i,k)
+         phys_state%pdeldry(i,k)   = phys_state%pdel(i,k)
+         phys_state%rpdeldry(i,k)  = 1._kind_phys/phys_state%pdeldry(i,k)
+         phys_state%pmiddry(i,k)   = 0.5_kind_phys*(phys_state%pintdry(i,k+1) + &
+                                                    phys_state%pintdry(i,k))
       end do
 
       ! Calculate (natural) logarithms:
-      call shr_vmath_log(pintdry(1:pcols,k+1),&
-                         lnpintdry(1:pcols,k+1), pcols)
+      call shr_vmath_log(phys_state%pintdry(1:pcols,k+1),&
+                         phys_state%lnpintdry(1:pcols,k+1), pcols)
 
-      call shr_vmath_log(pmiddry(1:pcols,k), &
-                         lnpmiddry(1:pcols,k), pcols)
+      call shr_vmath_log(phys_state%pmiddry(1:pcols,k), &
+                         phys_state%lnpmiddry(1:pcols,k), pcols)
    end do
 
    ! wet pressure variables (should be removed from physics!)
@@ -693,7 +680,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
          ! to be consistent with total energy formula in physic's check_energy module only
          ! include water vapor in in moist dp
          factor_array(i,k) = 1._kind_phys+phys_state%q(i,k,ix_qv)
-         pdel(i,k) = pdeldry(i,k)*factor_array(i,k)
+         phys_state%pdel(i,k) = phys_state%pdeldry(i,k)*factor_array(i,k)
       end do
    end do
 
@@ -702,29 +689,29 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    !$omp parallel do num_threads(horz_num_threads) private (i)
    do i=1, pcols
       ! Set model-top values assuming zero moisture:
-      phys_state%ps(i) = pintdry(i,1)
-      pint(i,1)        = pintdry(i,1)
+      phys_state%ps(i)     = phys_state%pintdry(i,1)
+      phys_state%pint(i,1) = phys_state%pintdry(i,1)
    end do
 
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
    do k = 1, nlev
       do i=1, pcols
          ! Calculate wet (total) pressure variables for rest of column:
-         pint(i,k+1)      =  pint(i,k) + pdel(i,k)
-         pmid(i,k)        = (pint(i,k+1) + pint(i,k))/2._kind_phys
-         phys_state%ps(i) =  phys_state%ps(i) + pdel(i,k)
+         phys_state%pint(i,k+1) = phys_state%pint(i,k) + phys_state%pdel(i,k)
+         phys_state%pmid(i,k)   = (phys_state%pint(i,k+1) + phys_state%pint(i,k))/2._kind_phys
+         phys_state%ps(i)       =  phys_state%ps(i) + phys_state%pdel(i,k)
       end do
       ! Calculate (natural) logarithms:
-      call shr_vmath_log(pint(1:pcols,k), lnpint(1:pcols,k), pcols)
-      call shr_vmath_log(pmid(1:pcols,k), lnpmid(1:pcols,k), pcols)
+      call shr_vmath_log(phys_state%pint(1:pcols,k), phys_state%lnpint(1:pcols,k), pcols)
+      call shr_vmath_log(phys_state%pmid(1:pcols,k), phys_state%lnpmid(1:pcols,k), pcols)
    end do
-   call shr_vmath_log(pint(1:pcols,pverp),lnpint(1:pcols,pverp),pcols)
+   call shr_vmath_log(phys_state%pint(1:pcols,pverp),phys_state%lnpint(1:pcols,pverp),pcols)
 
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
    do k = 1, nlev
       do i = 1, pcols
-         rpdel(i,k) = 1._kind_phys/pdel(i,k)
-         exner(i,k) = (pint(i,pver+1)/pmid(i,k))**cappa
+         phys_state%rpdel(i,k) = 1._kind_phys/phys_state%pdel(i,k)
+         exner(i,k) = (phys_state%pint(i,pver+1)/phys_state%pmid(i,k))**cappa
       end do
    end do
 
@@ -802,17 +789,11 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       zvirv(:,:) = zvir
    endif
 
-   !NOTE:  Should geopotential be done in CCPP physics suite? -JN:
-
-   ! Compute initial geopotential heights - based on full pressure
-   !call geopotential_t (phys_state%lnpint, phys_state%lnpmid  , phys_state%pint  , &
-   !   phys_state%pmid  , phys_state%pdel    , phys_state%rpdel , &
-   !   phys_state%t     , phys_state%q(:,:,ix_qv), rairv,  gravit,  zvirv       , &
-   !   phys_state%zi    , phys_state%zm      , ncol                )
-
+   !Call geopotential_t CCPP scheme:
    call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
-                           pverp, 1, lnpint, pint, pmid, pdel, &
-                           rpdel, phys_state%t,  phys_state%q(:,:,ix_qv), &
+                           pverp, 1, phys_state%lnpint, phys_state%pint, &
+                           phys_state%pmid, phys_state%pdel, &
+                           phys_state%rpdel, phys_state%t,  phys_state%q(:,:,ix_qv), &
                            rairv, gravit, zvirv, zi, zm, pcols, &
                            errflg, errmsg)
 

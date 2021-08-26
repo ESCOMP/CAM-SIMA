@@ -335,8 +335,8 @@ contains
       global_shared_buf(ie,2) = elem(ie)%dx_short
     enddo
     call wrap_repro_sum(nvars=2, comm=hybrid%par%comm)
-    avg_area     = global_shared_sum(1)/dble(nelem)
-    avg_min_dx   = global_shared_sum(2)/dble(nelem)
+    avg_area     = global_shared_sum(1)/real(nelem, r8)
+    avg_min_dx   = global_shared_sum(2)/real(nelem, r8)
 
     min_area     = ParallelMin(min_area,hybrid)
     max_area     = ParallelMax(max_area,hybrid)
@@ -390,12 +390,12 @@ contains
         ! viscosity in namelist specified for regions with a resolution
         ! equivilant to a uniform grid with ne=fine_ne
         if (np /= 4 ) call endrun('ERROR: setting fine_ne only supported with NP=4')
-        max_unif_dx = (111.28_r8*30)/dble(fine_ne)   ! in km
+        max_unif_dx = (111.28_r8*30)/real(fine_ne, r8)   ! in km
       endif
 
       !
       ! note: if L = eigenvalue of metinv, then associated length scale (km) is
-      ! dx = 1.0_r8/( sqrt(L)*0.5_r8*dble(np-1)*ra*1000.0_r8)
+      ! dx = 1.0_r8/( sqrt(L)*0.5_r8*real(np-1, r8)*ra*1000.0_r8)
       !
       !       for viscosity *tensor*, we take at each point:
       !            nu1 = nu*(dx1/max_unif_dx)**3.2      dx1 associated with eigenvalue 1
@@ -443,7 +443,7 @@ contains
       min_hypervis = ParallelMin(min_hypervis, hybrid)
       max_hypervis = ParallelMax(max_hypervis, hybrid)
       call wrap_repro_sum(nvars=1, comm=hybrid%par%comm)
-      avg_hypervis = global_shared_sum(1)/dble(nelem)
+      avg_hypervis = global_shared_sum(1)/real(nelem, r8)
 
       normDinv_hypervis = ParallelMax(normDinv_hypervis, hybrid)
 
@@ -1113,7 +1113,7 @@ contains
             write(iulog,'(a,2e9.2,a,2f9.2)') "Value at min/max grid spacing: ",nu_min,nu_max,&
                  " Max/min grid spacing (km) = ",max_min_dx,min_min_dx
           end if
-          nu = nu_min*(2.0_r8*rearth/(3.0_r8*max_min_dx*1000.0_r8))**hypervis_scaling/(rearth**4)
+          nu = nu_min*(2.0_r8*rearth/(3.0_r8*max_min_dx*1000.0_r8))**hypervis_scaling/(rearth**4._r8)
           if (hybrid%masterthread) &
                write(iulog,'(a,a,a,e9.3)') "Nu_tensor",TRIM(str)," = ",nu
         else if (hypervis_power/=0) then

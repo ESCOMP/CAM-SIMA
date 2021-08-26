@@ -104,19 +104,17 @@ def _build_cam():
         # End for
 
         # Add dynamics source code directories:
-        for direc in config.get_value("dyn_src_dirs").split(","):
-            dyn_dir = os.path.join(atm_root, "src", "dynamics")
-            for subdir in direc.split("/"):
-                dyn_dir = os.path.join(dyn_dir, subdir)
+        for direc in config.get_value("dyn_src_dirs"):
+            dyn_dir = os.path.join(atm_root, "src", "dynamics", direc)
+            if dyn_dir not in paths:
                 #Add to list of filepaths if not already present:
-                if dyn_dir not in paths:
-                    paths.append(dyn_dir)
+                paths.append(dyn_dir)
 
         # Add analytical IC source code directories:
         paths.append(os.path.join(atm_root, "src", "dynamics", "tests")) #Required due to namelist call.
         if dycore != "none":
             paths.append(os.path.join(atm_root, "src", "dynamics", "tests",
-                         "initial_conditions"))
+                                      "initial_conditions"))
 
         # If using the CMEPS/NUOPC coupler, then add additional path:
         if case.get_value("COMP_INTERFACE") == "nuopc":

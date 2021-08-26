@@ -646,7 +646,7 @@ contains
     integer :: nbuf
     integer :: ierr
 
-    character(len=*), parameter :: subname = ''
+    character(len=*), parameter :: subname = 'initEdgeBuffer_i8 (SE)'
 
     ! sanity check for threading
     if (omp_get_num_threads()>1) then

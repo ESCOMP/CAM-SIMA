@@ -518,7 +518,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         cam_nml_attr_dict = dict()
 
         #Set error message:
-        ermsg  = "physics_suite specified in user_nl_cam doesn't match any suites\n" 
+        ermsg  = "physics_suite specified in user_nl_cam, 'cam6', doesn't match any suites\n"
         ermsg += "listed in CAM_CONFIG_OPTS"
 
         #Create namelist file:

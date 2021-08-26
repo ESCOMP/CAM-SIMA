@@ -179,6 +179,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use runtime_obj,    only: runtime_options
       use physics_types,  only: physics_state, physics_tend
+      use physics_types,  only: physics_types_tstep_init
       use physics_grid,   only: columns_on_task
       use camsrfexch,     only: cam_in_t, cam_out_t
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
@@ -224,6 +225,9 @@ CONTAINS
 
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
+
+      ! Initialize host model variables that must be done each time step:
+      call physics_types_tstep_init()
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(phys_suite_name, dtime_phys,     &

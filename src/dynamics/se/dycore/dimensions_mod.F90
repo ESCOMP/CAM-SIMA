@@ -32,9 +32,7 @@ module dimensions_mod
   integer           , public :: fv_nphys  !physics-grid resolution - the "MAX" is so that the code compiles with NC=0
 
   integer, public, protected :: qsize_d   !SE tracer dimension size
-  integer, public, protected :: ntrac_d   !FVM tracer dimension size
-
-  integer, public            :: ntrac = 0 !ntrac is set in dyn_comp
+  integer, public, protected :: ntrac = 0 !FVM tracer dimension size
   integer, public            :: qsize = 0 !qsize is set in dyn_comp
   !
   ! hyperviscosity is applied on approximate pressure levels
@@ -85,7 +83,7 @@ module dimensions_mod
 
   integer, public :: npdg = 0  ! dg degree for hybrid cg/dg element  0=disabled
 
-  integer, public, protected :: npsq
+  integer, public, parameter :: npsq = np*np
   integer, public, protected :: nlev
   integer, public, protected :: nlevp
 
@@ -133,67 +131,66 @@ contains
      if (fv_nphys > 0) then
         ! Use CSLAM for tracer advection
         qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
-        ntrac_d = pcnst
+        ntrac = pcnst
      else
         ! Use GLL for tracer advection
         qsize_d = pcnst
-        ntrac_d = 0 ! No fvm tracers if CSLAM is off
+        ntrac = 0 ! No fvm tracers if CSLAM is off
      end if
 
      ! Set grid dimension variables:
 
-     npsq  = np*np
      nlev  = pver
      nlevp = pverp
 
      ! Allocate vertically-dimensioned variables:
 
-     allocate(irecons_tracer_lev(pver), stat=iret)
-     call check_allocate(iret, subname, 'irecons_tracer_lev(pver)', &
+     allocate(irecons_tracer_lev(nlev), stat=iret)
+     call check_allocate(iret, subname, 'irecons_tracer_lev(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(nu_scale_top(pver), stat=iret)
-     call check_allocate(iret, subname, 'nu_scale_top(pver)', &
+     allocate(nu_scale_top(nlev), stat=iret)
+     call check_allocate(iret, subname, 'nu_scale_top(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(nu_lev(pver), stat=iret)
-     call check_allocate(iret, subname, 'nu_lev(pver)', &
+     allocate(nu_lev(nlev), stat=iret)
+     call check_allocate(iret, subname, 'nu_lev(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(otau(pver), stat=iret)
-     call check_allocate(iret, subname, 'otau(pver)', &
+     allocate(otau(nlev), stat=iret)
+     call check_allocate(iret, subname, 'otau(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(nu_div_lev(pver), stat=iret)
-     call check_allocate(iret, subname, 'nu_div_lev(pver)', &
+     allocate(nu_div_lev(nlev), stat=iret)
+     call check_allocate(iret, subname, 'nu_div_lev(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(kmvis_ref(pver), stat=iret)
-     call check_allocate(iret, subname, 'kmvis_ref(pver)', &
+     allocate(kmvis_ref(nlev), stat=iret)
+     call check_allocate(iret, subname, 'kmvis_ref(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(kmcnd_ref(pver), stat=iret)
-     call check_allocate(iret, subname, 'kmcnd_ref(pver)', &
+     allocate(kmcnd_ref(nlev), stat=iret)
+     call check_allocate(iret, subname, 'kmcnd_ref(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(rho_ref(pver), stat=iret)
-     call check_allocate(iret, subname, 'rho_ref(pver)', &
+     allocate(rho_ref(nlev), stat=iret)
+     call check_allocate(iret, subname, 'rho_ref(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(km_sponge_factor(pver), stat=iret)
-     call check_allocate(iret, subname, 'km_sponge_factor(pver)', &
+     allocate(km_sponge_factor(nlev), stat=iret)
+     call check_allocate(iret, subname, 'km_sponge_factor(nlev)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(kmvisi_ref(pverp), stat=iret)
-     call check_allocate(iret, subname, 'kmvisi_ref(pverp)', &
+     allocate(kmvisi_ref(nlevp), stat=iret)
+     call check_allocate(iret, subname, 'kmvisi_ref(nlevp)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(kmcndi_ref(pverp), stat=iret)
-     call check_allocate(iret, subname, 'kmcndi_ref(pverp)', &
+     allocate(kmcndi_ref(nlevp), stat=iret)
+     call check_allocate(iret, subname, 'kmcndi_ref(nlevp)', &
                          file=__FILE__, line=__LINE__)
 
-     allocate(rhoi_ref(pverp), stat=iret)
-     call check_allocate(iret, subname, 'rhoi_ref(pverp)', &
+     allocate(rhoi_ref(nlevp), stat=iret)
+     call check_allocate(iret, subname, 'rhoi_ref(nlevp)', &
                          file=__FILE__, line=__LINE__)
 
   end subroutine dimensions_mod_init

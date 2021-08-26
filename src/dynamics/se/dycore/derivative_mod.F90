@@ -1,13 +1,13 @@
 module derivative_mod
   use shr_kind_mod,   only: r8=>shr_kind_r8
   use cam_abortutils, only: endrun, check_allocate
-  use dimensions_mod, only : np, nc, npdg, nelemd, nlev
-  use quadrature_mod, only : quadrature_t, gauss, gausslobatto,legendre, jacobi
+  use dimensions_mod, only: np, nc, npdg, nelemd, nlev
+  use quadrature_mod, only: quadrature_t, gauss, gausslobatto,legendre, jacobi
   ! needed for spherical differential operators:
   use dynconst,    only: ra
-  use element_mod, only : element_t
-  use control_mod, only : hypervis_scaling, hypervis_power
-  use perf_mod, only : t_startf, t_stopf
+  use element_mod, only: element_t
+  use control_mod, only: hypervis_scaling, hypervis_power
+  use perf_mod,    only: t_startf, t_stopf
 
 implicit none
 private
@@ -937,7 +937,7 @@ end do
 
        ! compute phys grid cell edges on [-1,1]
        do i=1,nphys+1
-          dx = 2d0/nphys
+          dx = 2.0_r8/nphys
           phys_edges(i)=-1 + (i-1)*dx
        enddo
 
@@ -1783,8 +1783,12 @@ end do
     real(kind=r8), intent(out)     :: laplace(np,np,2)
 
     real(kind=r8) :: vor(np,np),div(np,np)
+    real(kind=r8) :: ra_sq
 
     integer :: n,m
+
+    !Inverse of Earth radius squared:
+    ra_sq = ra**2.0_r8
 
     call divergence_sphere(v,deriv,elem,div)
     call vorticity_sphere(v,deriv,elem,vor)
@@ -1799,8 +1803,8 @@ end do
       do n=1,np
         do m=1,np
           ! add in correction so we dont damp rigid rotation
-          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(ra**2)
-          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(ra**2)
+          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*ra_sq
+          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*ra_sq
         enddo
       enddo
     end if
@@ -1826,7 +1830,10 @@ end do
     integer component
     real(kind=r8) :: dum_cart(np,np,3)
     real(kind=r8) :: dum_cart2(np,np)
+    real(kind=r8) :: ra_sq
 
+    !Inverse of Earth radius squared:
+    ra_sq = ra**2.0_r8
 
     ! latlon -> cartesian
     do component=1,3
@@ -1846,8 +1853,8 @@ end do
 
     if (undamprrcart) then
       ! add in correction so we dont damp rigid rotation
-      laplace(:,:,1)=laplace(:,:,1) + 2*elem%spheremp(:,:)*v(:,:,1)*(ra**2)
-      laplace(:,:,2)=laplace(:,:,2) + 2*elem%spheremp(:,:)*v(:,:,2)*(ra**2)
+      laplace(:,:,1)=laplace(:,:,1) + 2*elem%spheremp(:,:)*v(:,:,1)*ra_sq
+      laplace(:,:,2)=laplace(:,:,2) + 2*elem%spheremp(:,:)*v(:,:,2)*ra_sq
     end if
 
   end function vlaplace_sphere_wk_cartesian
@@ -1878,6 +1885,10 @@ end do
     integer i,j,l,m,n
     real(kind=r8) :: vor(np,np),div(np,np)
     real(kind=r8) :: v1,v2,div1,div2,vor1,vor2,phi_x,phi_y
+    real(kind=r8) :: ra_sq
+
+    !Inverse of Earth radius squared:
+    ra_sq = ra**2.0_r8
 
     call divergence_sphere(v,deriv,elem,div)
     call vorticity_sphere(v,deriv,elem,vor)
@@ -1897,8 +1908,8 @@ end do
       do n=1,np
         do m=1,np
           ! add in correction so we dont damp rigid rotation
-          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*(ra**2)
-          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*(ra**2)
+          laplace(m,n,1)=laplace(m,n,1) + 2*elem%spheremp(m,n)*v(m,n,1)*ra_sq
+          laplace(m,n,2)=laplace(m,n,2) + 2*elem%spheremp(m,n)*v(m,n,2)*ra_sq
         enddo
       enddo
     end if

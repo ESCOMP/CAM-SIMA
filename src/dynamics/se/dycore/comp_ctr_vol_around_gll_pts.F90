@@ -1370,7 +1370,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     ! MNL: dx and dy are no longer part of element_t
     !      but they are easily computed for the
     !      uniform case
-    dx = pi/(2.0d0*dble(ne))
+    dx = pi/(2.0_r8*real(ne, r8))
     dy = dx
 
     ! intialize local element dual grid, local element areas
@@ -2318,13 +2318,13 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
       if(hybrid%masterthread) then
         write(*,'(a,i2,a,2e23.15)') "cube face:",face," : SURFACE FV =",&
-             6_r8*psum/(4_r8 * pi), &
-             6_r8*psum/(4_r8 * pi)-1
+             6._r8*psum/(4._r8 * pi), &
+             6._r8*psum/(4._r8 * pi)-1
       end if
     end do
 
     if(hybrid%masterthread) then
-      write(iulog, *) "SURFACE FV (total)= ", ptot/(4_r8 * pi)
+      write(iulog, *) "SURFACE FV (total)= ", ptot/(4._r8 * pi)
     end if
 
   end subroutine VerifVolumes

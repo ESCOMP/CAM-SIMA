@@ -738,7 +738,7 @@ subroutine init_flux_orient(flux_orient,ifct,nc,nhc,cubeboundary,faceno)
   !
   ! halo of flux_orient will be filled through boundary exchange
   !
-  flux_orient (1,1:nc,1:nc) = dble(faceno)
+  flux_orient (1,1:nc,1:nc) = real(faceno, r8)
   flux_orient (2,:,:) = 0.0_r8
   ifct(:,:) = 1
   if (cubeboundary>0) then
@@ -1204,7 +1204,7 @@ subroutine get_equispace_weights(dx, x, w,ns)
      do j=1,ns
         do k=1,ns
            if (k.ne.j) then
-              w(j)=w(j)*(x-dble(k-1)*dx)/(dble(j-1)*dx-dble(k-1)*dx)
+              w(j)=w(j)*(x-real(k-1, r8)*dx)/(real(j-1, r8)*dx-real(k-1, r8)*dx)
            end if
         end do
      end do

@@ -140,7 +140,8 @@ class VarBase:
     def __init__(self, elem_node, local_name, dimensions, known_types,
                  type_default, units_default="", kind_default='',
                  protected=False, index_name='', local_index_name='',
-                 local_index_name_str='', alloc_default='none'):
+                 local_index_name_str='', alloc_default='none',
+                 tstep_init_default=False):
         self.__local_name = local_name
         self.__dimensions = dimensions
         self.__units = elem_node.get('units', default=units_default)
@@ -157,6 +158,8 @@ class VarBase:
         self.__local_index_name = local_index_name
         self.__local_index_name_str = local_index_name_str
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
+        self.__tstep_init = elem_node.get("phys_timestep_init_zero",
+                                          default=tstep_init_default)
         if self.__allocatable == "none":
             self.__allocatable = ""
         # end if
@@ -188,6 +191,11 @@ class VarBase:
         # end if
         # pylint: enable=bad-continuation
 
+        if self.__tstep_init == "true":
+            self.__tstep_init = True
+        elif self.__tstep_init == "false":
+            self.__tstep_init = False
+
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
         outfile.write('[ {} ]\n'.format(self.local_name))
@@ -207,7 +215,8 @@ class VarBase:
         outfile.write('  {} = {}\n'.format('dimensions',
                                            self.dimension_string))
 
-    def write_initial_value(self, outfile, indent, init_var, ddt_str):
+    def write_initial_value(self, outfile, indent, init_var, ddt_str,
+                            tstep_init=False):
         """Write the code for the initial value of this variable
         and/or one of its array elements."""
         #Check if variable has associated array index
@@ -240,11 +249,18 @@ class VarBase:
                 init_val = ''
             # end if
         # end if
-        if init_val:
+        #Time-step initialization, which is always zero:
+        if tstep_init:
+            if self.kind:
+                outfile.write("{} = 0._{}".format(var_name, self.kind), indent)
+            else:
+                #Assume variable is an integer:
+                outfile.write("{} = 0".format(var_name), indent)
+            # end if
+        elif init_val:
             outfile.write("if ({}) then".format(init_var), indent)
             outfile.write("{} = {}".format(var_name, init_val), indent+1)
             outfile.write("end if", indent)
-            # end if
         # end if
 
     @property
@@ -340,13 +356,19 @@ class VarBase:
         """Return True iff this variable is a derived type"""
         return self.__type.ddt
 
+    @property
+    def tstep_init(self):
+        """Return True if variable will be set to zero every physics timestep."""
+        return self.__tstep_init
+
 ###############################################################################
 class ArrayElement(VarBase):
 ###############################################################################
     """Documented array element of a registry Variable"""
 
     def __init__(self, elem_node, parent_name, dimensions, known_types,
-                 parent_type, parent_kind, parent_units, parent_alloc, vdict):
+                 parent_type, parent_kind, parent_units, parent_alloc,
+                 parent_tstep_init, vdict):
         """Initialize the Arary Element information by identifying its
         metadata properties
         """
@@ -401,7 +423,8 @@ class ArrayElement(VarBase):
                                            index_name=index_name,
                                            local_index_name=local_index_name,
                                            local_index_name_str=local_index_name_str,
-                                           alloc_default=parent_alloc)
+                                           alloc_default=parent_alloc,
+                                           tstep_init_default=parent_tstep_init)
 
     @property
     def index_string(self):
@@ -438,7 +461,7 @@ class Variable(VarBase):
 
     __VAR_ATTRIBUTES = ["access", "allocatable", "dycore", "extends",
                         "kind", "local_name", "name", "standard_name",
-                        "type", "units", "version"]
+                        "type", "units", "version", "phys_timestep_init_zero"]
 
     def __init__(self, var_node, known_types, vdict, logger):
         # pylint: disable=too-many-locals
@@ -526,7 +549,7 @@ class Variable(VarBase):
                                                   my_dimensions, known_types,
                                                   ttype, self.kind,
                                                   self.units, allocatable,
-                                                  vdict))
+                                                  self.tstep_init, vdict))
 
             # end if (all other processing done above)
         # end for
@@ -642,7 +665,6 @@ class Variable(VarBase):
         <init_var> is a string to use to write initialization test code.
         <reall_var> is a string to use to write reallocate test code.
         <ddt_str> is a prefix string (e.g., state%).
-        <known_types> is a TypeRegistry.
         """
         # Be careful about dimensions, scalars have none, not '()'
         if self.dimensions:
@@ -698,6 +720,61 @@ class Variable(VarBase):
                                                  init_var, ddt_str)
                     # end if
                 # end for
+            # end if
+
+    def write_tstep_init_routine(self, outfile, indent,
+                                 ddt_str, init_val=False):
+        """
+        Write the code to iniitialize this variable to zero at the
+        start of each physics timestep.
+
+        <ddt_str> is a prefix string (e.g., state%).
+        <init_val> is an optional variable that forces the writing
+                   of the variable initiliazation code even if not
+                   directly specified in the registry itself.
+        """
+
+        # Be careful about dimensions, scalars have none, not '()'
+        if self.dimensions:
+            dimension_string = self.dimension_string
+        else:
+            dimension_string = ''
+        # end if
+        my_ddt = self.is_ddt
+        if my_ddt: # This is a DDT object, allocate entries
+
+            subi = indent
+            sub_ddt_str = '{}{}%'.format(ddt_str, self.local_name)
+            if dimension_string:
+                emsg = "Arrays of DDT objects not implemented"
+                raise ParseInternalError(emsg)
+            # end if
+            for var in my_ddt.variable_list():
+                var.write_tstep_init_routine(outfile, subi, sub_ddt_str,
+                                             init_val=self.tstep_init)
+        else:
+
+            # Do nothing if a parameter
+            if self.allocatable == "parameter":
+                return
+
+            # Check if variable should be initialized:
+            if init_val or self.tstep_init:
+                # Set variables needed for writing source code
+                if self.long_name:
+                    comment = ' ! ' + self.local_name + ": " + self.long_name
+                else:
+                    comment = (' ! ' + self.local_name + ": " +
+                               convert_to_long_name(self.standard_name))
+
+                # Write source code
+                outfile.write("", 0)
+                outfile.write(comment, indent)
+
+                # Initialize the variable:
+                self.write_initial_value(outfile, indent, "", ddt_str,
+                                         tstep_init=True)
+
             # end if
 
     @classmethod
@@ -1180,16 +1257,24 @@ class File:
             outfile.write('!! public interfaces', 0)
             outfile.write('public :: {}'.format(self.allocate_routine_name()),
                           1)
+            outfile.write('public :: {}'.format(self.tstep_init_routine_name()),
+                          1)
             # end of module header
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
             self.write_allocate_routine(outfile)
+            self.write_tstep_init_routine(outfile)
+
         # end with
 
     def allocate_routine_name(self):
         """Return the name of the allocate routine for this module"""
         return 'allocate_{}_fields'.format(self.name)
+
+    def tstep_init_routine_name(self):
+        """Return the name of the physics timestep init routine for this module"""
+        return "{}_tstep_init".format(self.name)
 
     def write_allocate_routine(self, outfile):
         """Write a subroutine to allocate all the data in this module"""
@@ -1239,6 +1324,24 @@ class File:
         for var in self.__var_dict.variable_list():
             var.write_allocate_routine(outfile, 2, init_var, reall_var, '')
         # end for
+        outfile.write('end subroutine {}'.format(subname), 1)
+
+    def write_tstep_init_routine(self, outfile):
+        """
+        Write a subroutine to initialize registered variables
+        to zero at the beginning of each physics timestep.
+        """
+        subname = self.tstep_init_routine_name()
+        outfile.write('', 0)
+        outfile.write('subroutine {}()'.format(subname), 1)
+        outfile.write('', 0)
+        outfile.write('!! Local variables', 2)
+        subn_str = 'character(len=*), parameter :: subname = "{}"'
+        outfile.write(subn_str.format(subname), 2)
+        for var in self.__var_dict.variable_list():
+            var.write_tstep_init_routine(outfile, 2, '')
+        # end for
+        outfile.write('', 0)
         outfile.write('end subroutine {}'.format(subname), 1)
 
     @property
@@ -1291,7 +1394,7 @@ def parse_command_line(args, description):
                         help="Dycore (EUL, FV, FV3, MPAS, SE, none)")
     parser.add_argument("--config", type=str, required=True,
                         metavar='CONFIG (required)',
-                        help=("Comma-separated onfig items "
+                        help=("Comma-separated config items "
                               "(e.g., gravity_waves=True)"))
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Directory where output files will be written")
@@ -1562,9 +1665,10 @@ def main():
     else:
         loglevel = logging.INFO
     # end if
+
     retcode, files = gen_registry(args.registry_file, args.dycore.lower(),
-                                  args.config, outdir, args.source_mods,
-                                  args.source_root, args.indent,
+                                  args.config, outdir, args.indent,
+                                  args.source_mods, args.source_root,
                                   loglevel=loglevel)
     return retcode, files
 

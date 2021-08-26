@@ -9,7 +9,6 @@ use spmd_utils,             only: iam, masterproc
 !                                  cnst_read_iv, qmin, cnst_type, tottnam,        &
 !                                  cnst_is_a_water_species
 use constituents,           only: pcnst
-use vert_coord,             only: pver
 use cam_control_mod,        only: initial_run, simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
 use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
@@ -102,10 +101,10 @@ subroutine dyn_readnl(NLFileName)
    use mpi,            only: mpi_real8, mpi_integer, mpi_character, mpi_logical
    use physconst,      only: thermodynamic_active_species_num
    use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-   use shr_file_mod,   only: shr_file_getunit, shr_file_freeunit
    use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
    use native_mapping, only: native_mapping_readnl
+   use vert_coord,     only: pver
 
    !SE dycore:
    use namelist_mod,   only: homme_set_defaults, homme_postprocess_namelist
@@ -243,8 +242,7 @@ subroutine dyn_readnl(NLFileName)
    call MPI_barrier(mpicom, ierr)
    if (masterproc) then
       write(iulog, *) "dyn_readnl: reading dyn_se_nl namelist..."
-      unitn = shr_file_getunit()
-      open( unitn, file=trim(NLFileName), status='old' )
+      open( newunit=unitn, file=trim(NLFileName), status='old' )
       call find_group_name(unitn, 'dyn_se_nl', status=ierr)
       if (ierr == 0) then
          read(unitn, dyn_se_nl, iostat=ierr)
@@ -253,7 +251,6 @@ subroutine dyn_readnl(NLFileName)
          end if
       end if
       close(unitn)
-      call shr_file_freeunit(unitn)
    end if
 
    ! Broadcast namelist values to all PEs
@@ -307,11 +304,12 @@ subroutine dyn_readnl(NLFileName)
    ! If se_npes is set to negative one, then make it match host model:
    if (se_npes == -1) then
       se_npes = npes
-   else
-      ! Check that se_npes is a positive integer:
-      if (se_npes <= 0) then
-         call endrun('dyn_readnl: ERROR: se_npes must either be > 0 or exactly -1')
-      end if
+   else if (se_npes <= 0) then
+      ! se_npes is not a positive integer:
+      call endrun('dyn_readnl: ERROR: se_npes must either be > 0 or exactly -1')
+   else if (se_npes > npes) then
+      ! se_npes is too large:
+      call endrun('dyn_readnl: ERROR: se_npes must be <= number of atmosphere pes (npes)')
    end if
 
    ! Initialize the SE structure that holds the MPI decomposition information
@@ -382,11 +380,9 @@ subroutine dyn_readnl(NLFileName)
    if (fv_nphys > 0) then
       ! Use CSLAM for tracer advection
       qsize = thermodynamic_active_species_num ! number tracers advected by GLL
-      ntrac = pcnst                            ! number tracers advected by CSLAM
    else
       ! Use GLL for tracer advection
       qsize = pcnst
-      ntrac = 0
    end if
 
    if (rsplit < 1) then
@@ -597,7 +593,6 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use time_mod,           only: time_at
    use control_mod,        only: runtype, raytau0, raykrange, rayk0, molecular_diff, nu_top
    use test_fvm_mapping,   only: test_mapping_addfld
-   !use phys_control,       only: phys_getopts
    use control_mod,        only: vert_remap_uvTq_alg, vert_remap_tracer_alg
 
    ! Dummy arguments:
@@ -968,13 +963,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    end if
 
    ! constituent indices for waccm-x
-!  if ( cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
-!       cam_runtime_opts%waccmx_option() == 'neutral' ) then
-!     call cnst_get_ind('O',  ixo)
-!     call cnst_get_ind('O2', ixo2)
-!     call cnst_get_ind('H',  ixh)
-!     call cnst_get_ind('H2', ixh2)
-!  end if
+  if ( cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
+       cam_runtime_opts%waccmx_option() == 'neutral' ) then
+     call cnst_get_ind('O',  ixo)
+     call cnst_get_ind('O2', ixo2)
+     call cnst_get_ind('H',  ixh)
+     call cnst_get_ind('H2', ixh2)
+  end if
 
    call test_mapping_addfld
 

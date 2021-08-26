@@ -13,7 +13,7 @@ module fvm_control_volume_mod
   use shr_kind_mod,           only: r8=>shr_kind_r8
   use coordinate_systems_mod, only: spherical_polar_t
   use element_mod,            only: element_t
-  use dimensions_mod,         only: nc, nhe, nlev, ntrac_d, qsize_d,ne, np, nhr, ns, nhc
+  use dimensions_mod,         only: nc, nhe, nlev, ntrac, qsize_d,ne, np, nhr, ns, nhc
   use dimensions_mod,         only: fv_nphys, nhe_phys, nhr_phys, ns_phys, nhc_phys,fv_nphys
   use dimensions_mod,         only: irecons_tracer
   use cam_abortutils,         only: endrun, check_allocate
@@ -368,14 +368,14 @@ contains
                           'fvm(ie)%Dinv_physgrid(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,2,2)', &
                           file=__FILE__, line=__LINE__)
 
-      allocate(fvm(ie)%fc(nc,nc,nlev,max(ntrac_d,qsize_d)), stat=iret)
+      allocate(fvm(ie)%fc(nc,nc,nlev,max(ntrac,qsize_d)), stat=iret)
       call check_allocate(iret, subname, &
-                          'fvm(ie)%fc(nc,nc,nlev,max(ntrac_d,qsize_d))', &
+                          'fvm(ie)%fc(nc,nc,nlev,max(ntrac,qsize_d))', &
                           file=__FILE__, line=__LINE__)
 
-      allocate(fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac_d,qsize_d)), stat=iret)
+      allocate(fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac,qsize_d)), stat=iret)
       call check_allocate(iret, subname, &
-                          'fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac_d,qsize_d))', &
+                          'fvm(ie)%fc_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,max(ntrac,qsize_d))', &
                           file=__FILE__, line=__LINE__)
 
       allocate(fvm(ie)%ft(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev), stat=iret)
@@ -420,9 +420,9 @@ contains
   do ie=1,nelemd
 
      !fvm tracer mixing ratio:
-     allocate(fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac_d), stat=iret)
+     allocate(fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac), stat=iret)
      call check_allocate(iret, subname, &
-                         'fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac_d)', &
+                         'fvm(ie)%c(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac)', &
                          file=__FILE__, line=__LINE__)
 
      allocate(fvm(ie)%se_flux(1-nhe:nc+nhe,1-nhe:nc+nhe,4,nlev), stat=iret)

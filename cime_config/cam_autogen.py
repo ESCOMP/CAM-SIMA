@@ -469,9 +469,9 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
 
     # Convert preproc defs to string:
     if preproc_defs:
-      preproc_cache_str = ', '.join(preproc_defs)
+        preproc_cache_str = ', '.join(preproc_defs)
     else:
-      preproc_cache_str = 'UNSET'
+        preproc_cache_str = 'UNSET'
 
     if os.path.exists(genccpp_dir):
         do_gen_ccpp = force or build_cache.ccpp_mismatch(sdfs, scheme_files,

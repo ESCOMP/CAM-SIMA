@@ -1,7 +1,7 @@
 module prim_state_mod
   use shr_kind_mod,     only: r8=>shr_kind_r8
   use cam_logfile,      only: iulog
-  use dimensions_mod,   only: nlev, np, nc, qsize_d, ntrac_d
+  use dimensions_mod,   only: nlev, np, nc, qsize_d, ntrac
   use parallel_mod,     only: ordered
   use hybrid_mod,       only: hybrid_t
   use time_mod,         only: timelevel_t, TimeLevel_Qdp, time_at
@@ -65,7 +65,7 @@ CONTAINS
 
     !Allocate tracer-dimensioned variables:
     !-------------
-    vmax = 11+2*max(qsize_d,ntrac_d)
+    vmax = 11+2*max(qsize_d,ntrac)
     allocate(varname(vmax), stat=iret)
     call check_allocate(iret, subname, 'varname(vmax)', &
                         file=__FILE__, line=__LINE__)

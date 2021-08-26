@@ -4,6 +4,7 @@ module element_mod
   use coordinate_systems_mod, only: spherical_polar_t, cartesian2D_t, cartesian3D_t, distance
   use edgetype_mod,           only: edgedescriptor_t
   use gridgraph_mod,          only: gridvertex_t
+  use dimensions_mod,         only: np, npsq
   use cam_abortutils,         only: endrun, check_allocate
 
   implicit none
@@ -21,12 +22,13 @@ module element_mod
     ! vertically-lagrangian code advects dp3d instead of ps
     ! tracers Q, Qdp always use 2 level time scheme
 
-    real(kind=r8), allocatable :: v(:,:,:,:,:)     ! velocity
-    real(kind=r8), allocatable :: T(:,:,:,:)       ! temperature
-    real(kind=r8), allocatable :: dp3d(:,:,:,:)    ! dry delta p on levels
-    real(kind=r8), allocatable :: psdry(:,:)       ! dry surface pressure
-    real(kind=r8), allocatable :: phis(:,:)        ! surface geopotential (prescribed)
-    real(kind=r8), allocatable :: Qdp(:,:,:,:,:)   ! Tracer mass
+    real(kind=r8), allocatable :: v(:,:,:,:,:)    ! velocity
+    real(kind=r8), allocatable :: T(:,:,:,:)      ! temperature
+    real(kind=r8), allocatable :: dp3d(:,:,:,:)   ! dry delta p on levels
+    real(kind=r8), allocatable :: Qdp(:,:,:,:,:)  ! Tracer mass
+
+    real(kind=r8) :: psdry(np,np)  ! dry surface pressure
+    real(kind=r8) :: phis(np,np)   ! surface geopotential (prescribed)
 
   end type elem_state_t
 
@@ -65,14 +67,16 @@ module element_mod
     real(kind=r8), allocatable :: dvdt_met(:,:,:)             ! rate of change of meridional component of prescribed meteorology winds
     real(kind=r8), allocatable :: T_met(:,:,:)                ! prescribed meteorology temperature
     real(kind=r8), allocatable :: dTdt_met(:,:,:)             ! rate of change of prescribed meteorology temperature
-    real(kind=r8), allocatable :: ps_met(:,:)                 ! surface pressure of prescribed meteorology
-    real(kind=r8), allocatable :: dpsdt_met(:,:)              ! rate of change of surface pressure of prescribed meteorology
     real(kind=r8), allocatable :: nudge_factor(:,:,:)         ! nudging factor (prescribed)
     real(kind=r8), allocatable :: Utnd(:,:)                   ! accumulated U tendency due to nudging towards prescribed met
     real(kind=r8), allocatable :: Vtnd(:,:)                   ! accumulated V tendency due to nudging towards prescribed met
     real(kind=r8), allocatable :: Ttnd(:,:)                   ! accumulated T tendency due to nudging towards prescribed met
 
     real(kind=r8), allocatable :: pecnd(:,:,:)                ! pressure perturbation from condensate
+
+    real(kind=r8) :: ps_met(np,np)     ! surface pressure of prescribed meteorology
+    real(kind=r8) :: dpsdt_met(np,np)  ! rate of change of surface pressure of prescribed meteorology
+
 
   end type derived_state_t
 
@@ -94,7 +98,8 @@ module element_mod
 ! ============= DATA-STRUCTURES COMMON TO ALL SOLVERS ================
 
   type, public :: index_t
-     integer, allocatable :: ia(:),ja(:)
+     integer :: ia(npsq)
+     integer :: ja(npsq)
      integer :: is,ie
      integer :: NumUniquePts
      integer :: UniquePtOffset
@@ -106,25 +111,25 @@ module element_mod
      integer :: GlobalId
 
      ! Coordinate values of element points
-     type(spherical_polar_t), allocatable :: spherep(:,:)             ! Spherical coords of GLL points
+     type(spherical_polar_t) :: spherep(np,np)        ! Spherical coords of GLL points
 
      ! Equ-angular gnomonic projection coordinates
-     type(cartesian2D_t), allocatable    :: cartp(:,:)                ! gnomonic coords of GLL points
-     type(cartesian2D_t)                 :: corners(4)                ! gnomonic coords of element corners
-     real(kind=r8)                       :: u2qmap(4,2)               ! bilinear map from ref element to quad in cubedsphere coordinates
+     type(cartesian2D_t) :: cartp(np,np)              ! gnomonic coords of GLL points
+     type(cartesian2D_t) :: corners(4)                ! gnomonic coords of element corners
+     real(kind=r8)       :: u2qmap(4,2)               ! bilinear map from ref element to quad in cubedsphere coordinates
                                                                       ! SHOULD BE REMOVED
      ! 3D cartesian coordinates
      type(cartesian3D_t)                 :: corners3D(4)
 
      ! Element diagnostics
-     real(kind=r8)              :: area                               ! Area of element
-     real(kind=r8)              :: normDinv                           ! some type of norm of Dinv used for CFL
-     real(kind=r8)              :: dx_short                           ! short length scale in km
-     real(kind=r8)              :: dx_long                            ! long length scale in km
+     real(kind=r8) :: area                            ! Area of element
+     real(kind=r8) :: normDinv                        ! some type of norm of Dinv used for CFL
+     real(kind=r8) :: dx_short                        ! short length scale in km
+     real(kind=r8) :: dx_long                         ! long length scale in km
 
-     real(kind=r8), allocatable :: variable_hyperviscosity(:,:)       ! hyperviscosity based on above
-     real(kind=r8)              :: hv_courant                         ! hyperviscosity courant number
-     real(kind=r8), allocatable :: tensorVisc(:,:,:,:)                !og, matrix V for tensor viscosity
+     real(kind=r8) :: variable_hyperviscosity(np,np)  ! hyperviscosity based on above
+     real(kind=r8) :: hv_courant                      ! hyperviscosity courant number
+     real(kind=r8) :: tensorVisc(np,np,2,2)           !og, matrix V for tensor viscosity
 
      ! Edge connectivity information
 !     integer :: node_numbers(4)
@@ -137,12 +142,12 @@ module element_mod
 
      type(derived_state_t)   :: derived
      ! Metric terms
-     real(kind=r8), allocatable :: met(:,:,:,:)               ! metric tensor on velocity and pressure grid
-     real(kind=r8), allocatable :: metinv(:,:,:,:)            ! metric tensor on velocity and pressure grid
-     real(kind=r8), allocatable :: metdet(:,:)                ! g = SQRT(det(g_ij)) on velocity and pressure grid
-     real(kind=r8), allocatable :: rmetdet(:,:)               ! 1/metdet on velocity pressure grid
-     real(kind=r8), allocatable :: D(:,:,:,:)                 ! Map covariant field on cube to vector field on the sphere
-     real(kind=r8), allocatable :: Dinv(:,:,:,:)              ! Map vector field on the sphere to covariant v on cube
+     real(kind=r8) :: met(np,np,2,2)     ! metric tensor on velocity and pressure grid
+     real(kind=r8) :: metinv(np,np,2,2)  ! metric tensor on velocity and pressure grid
+     real(kind=r8) :: metdet(np,np)      ! g = SQRT(det(g_ij)) on velocity and pressure grid
+     real(kind=r8) :: rmetdet(np,np)     ! 1/metdet on velocity pressure grid
+     real(kind=r8) :: D(np,np,2,2)       ! Map covariant field on cube to vector field on the sphere
+     real(kind=r8) :: Dinv(np,np,2,2)    ! Map vector field on the sphere to covariant v on cube
 
 
      ! Mass flux across the sides of each sub-element.
@@ -183,21 +188,21 @@ module element_mod
 
      ! Convert vector fields from spherical to rectangular components
      ! The transpose of this operation is its pseudoinverse.
-     real(kind=r8), allocatable :: vec_sphere2cart(:,:,:,:)
+     real(kind=r8) :: vec_sphere2cart(np,np,3,2)
 
      ! Mass matrix terms for an element on a cube face
-     real(kind=r8), allocatable :: mp(:,:)     ! mass matrix on v and p grid
-     real(kind=r8), allocatable :: rmp(:,:)    ! inverse mass matrix on v and p grid
+     real(kind=r8) :: mp(np,np)   ! mass matrix on v and p grid
+     real(kind=r8) :: rmp(np,np)  ! inverse mass matrix on v and p grid
 
      ! Mass matrix terms for an element on the sphere
      ! This mass matrix is used when solving the equations in weak form
      ! with the natural (surface area of the sphere) inner product
-     real(kind=r8), allocatable :: spheremp(:,:)     ! mass matrix on v and p grid
-     real(kind=r8), allocatable :: rspheremp(:,:)    ! inverse mass matrix on v and p grid
+     real(kind=r8) :: spheremp(np,np)   ! mass matrix on v and p grid
+     real(kind=r8) :: rspheremp(np,np)  ! inverse mass matrix on v and p grid
 
-     integer(i8), allocatable   :: gdofP(:,:)        ! global degree of freedom (P-grid)
+     integer(i8) :: gdofP(np,np)        ! global degree of freedom (P-grid)
 
-     real(kind=r8), allocatable :: fcor(:,:)         ! Coriolis term
+     real(kind=r8) :: fcor(np,np)       ! Coriolis term
 
      type(index_t)          :: idxP
      type(index_t), pointer :: idxV
@@ -224,8 +229,6 @@ contains
 !==============================================================================
 
   subroutine PrintElem(arr)
-
-    use dimensions_mod, only: np
 
     real(kind=r8) :: arr(:,:)
     integer :: i,j
@@ -414,7 +417,7 @@ contains
 
     ! Allocate the SE element arrays using the pre-calculated SE dimensions
 
-    use dimensions_mod, only: np, nc, npsq, nlev, nlevp, qsize_d, ntrac_d
+    use dimensions_mod, only: nc, nlev, nlevp, qsize_d, ntrac
 
     !Dummy arguments:
     type(element_t), intent(inout) :: elem(:)
@@ -429,26 +432,6 @@ contains
     num = size(elem)
 
     do i=1,num
-
-      !Coordinate values of element points:
-      allocate(elem(i)%spherep(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%spherep(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Gnomonic coords of GLL points:
-      allocate(elem(i)%cartp(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%cartp(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Variable Hyperviscosity:
-      allocate(elem(i)%variable_hyperviscosity(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%variable_hyperviscosity(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !og, matrix V for tensor viscosity:
-      allocate(elem(i)%tensorVisc(np,np,2,2), stat=iret)
-      call check_allocate(iret, subname, 'elem%tensorVisc(np,np,2,2)', &
-                          file=__FILE__, line=__LINE__)
 
       !Allocate "state" variables:
       !--------------------------
@@ -466,16 +449,6 @@ contains
       ! dry delta p on levels
       allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret)
       call check_allocate(iret, subname, 'elem%state%dp3d(np,np,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! dry surface pressure
-      allocate(elem(i)%state%psdry(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%state%psdry(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! surface geopotential (prescribed)
-      allocate(elem(i)%state%phis(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%state%phis(np,np)', &
                           file=__FILE__, line=__LINE__)
 
       ! Tracer mass
@@ -539,8 +512,8 @@ contains
                           file=__FILE__, line=__LINE__)
 
       ! total tracer mass for diagnostics
-      allocate(elem(i)%derived%mass(max(qsize_d,ntrac_d)+9), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%mass(max(qsize_d,ntrac_d)+9)', &
+      allocate(elem(i)%derived%mass(max(qsize_d,ntrac)+9), stat=iret)
+      call check_allocate(iret, subname, 'elem%derived%mass(max(qsize_d,ntrac)+9)', &
                           file=__FILE__, line=__LINE__)
 
       ! tracer forcing
@@ -598,16 +571,6 @@ contains
       call check_allocate(iret, subname, 'elem%derived%dTdt_met(np,np,nlev)', &
                           file=__FILE__, line=__LINE__)
 
-      ! surface pressure of prescribed meteorology
-      allocate(elem(i)%derived%ps_met(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%ps_met(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! rate of change of surface pressure of prescribed meteorology
-      allocate(elem(i)%derived%dpsdt_met(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%dpsdt_met(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
       ! nudging factor (prescribed)
       allocate(elem(i)%derived%nudge_factor(np,np,nlev), stat=iret)
       call check_allocate(iret, subname, 'elem%derived%nudge_factor(np,np,nlev)', &
@@ -635,93 +598,10 @@ contains
 
       !----------------------------
 
-      !Allocate "Metric terms":
-      !-----------------------
-
-      ! metric tensor on velocity and pressure grid
-      allocate(elem(i)%met(np,np,2,2), stat=iret)
-      call check_allocate(iret, subname, 'elem%met(np,np,2,2)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! metric tensor on velocity and pressure grid
-      allocate(elem(i)%metinv(np,np,2,2), stat=iret)
-      call check_allocate(iret, subname, 'elem%metinv(np,np,2,2)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! g = SQRT(det(g_ij)) on velocity and pressure grid
-      allocate(elem(i)%metdet(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%metdet(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! 1/metdet on velocity pressure grid
-      allocate(elem(i)%rmetdet(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%rmetdet(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! Map covariant field on cube to vector field on the sphere
-      allocate(elem(i)%D(np,np,2,2), stat=iret)
-      call check_allocate(iret, subname, 'elem%D(np,np,2,2)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! Map vector field on the sphere to covariant v on cube
-      allocate(elem(i)%Dinv(np,np,2,2), stat=iret)
-      call check_allocate(iret, subname, 'elem%Dinv(np,np,2,2)', &
-                          file=__FILE__, line=__LINE__)
-
-      !-----------------------
-
       !First Coordinate:
       allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret)
       call check_allocate(iret, subname, 'elem%sub_elem_mass_flux(nc,nc,4,nlev)', &
                           file=__FILE__, line=__LINE__)
-
-      !Spherical -> rectangular converter:
-      allocate(elem(i)%vec_sphere2cart(np,np,3,2), stat=iret)
-      call check_allocate(iret, subname, 'elem%vec_sphere2cart(np,np,3,2)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Mass matrix on v and p grid:
-      allocate(elem(i)%mp(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%mp(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Inverse mass matrix on v and p grid:
-      allocate(elem(i)%rmp(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%rmp(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Mass matrix on v and p grid:
-      allocate(elem(i)%spheremp(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%spheremp(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Inverse mass matrix on v and p grid:
-      allocate(elem(i)%rspheremp(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%rspheremp(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Global degree of freedom (P-grid):
-      allocate(elem(i)%gdofP(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%gdofP(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Coriolis term:
-      allocate(elem(i)%fcor(np,np), stat=iret)
-      call check_allocate(iret, subname, 'elem%fcor(np,np)', &
-                          file=__FILE__, line=__LINE__)
-
-      !Index terms:
-      !-----------
-
-      allocate(elem(i)%idxP%ia(npsq), stat=iret)
-      call check_allocate(iret, subname, 'elem%idxP%ia(npsq)', &
-                          file=__FILE__, line=__LINE__)
-
-      allocate(elem(i)%idxP%ja(npsq), stat=iret)
-      call check_allocate(iret, subname, 'elem%idxP%ja(npsq)', &
-                          file=__FILE__, line=__LINE__)
-
-      !-----------
 
     end do
 

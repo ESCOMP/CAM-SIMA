@@ -42,7 +42,6 @@ CONTAINS
 
     use mpi,            only: MPI_CHARACTER, MPI_LOGICAL
     use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-    use shr_file_mod,   only: shr_file_getunit, shr_file_freeunit
     use spmd_utils,     only: masterproc, masterprocid, mpicom
     use shr_string_mod, only: shr_string_toLower
 
@@ -61,8 +60,7 @@ CONTAINS
     namelist /analytic_ic_nl/ analytic_ic_type
 
     if (masterproc) then
-      unitn = shr_file_getunit()
-      open(unitn, file=trim(nlfile), status='old')
+      open(newunit=unitn, file=trim(nlfile), status='old')
       call find_group_name(unitn, 'analytic_ic_nl', status=ierr)
       if (ierr == 0) then
         nl_not_found = .false.
@@ -77,7 +75,6 @@ CONTAINS
         nl_not_found = .true.
       end if
       close(unitn)
-      call shr_file_freeunit(unitn)
 
       analytic_ic_type = shr_string_toLower(analytic_ic_type)
     end if

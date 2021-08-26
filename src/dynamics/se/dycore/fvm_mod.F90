@@ -302,7 +302,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use control_mod,            only: rsplit
     use dimensions_mod,         only: qsize, qsize_d
     use dimensions_mod,         only: fvm_supercycling, fvm_supercycling_jet
-    use dimensions_mod,         only: nc,nhe, nhc, nlev,ntrac, ntrac_d,ns, nhr
+    use dimensions_mod,         only: nc,nhe, nhc, nlev,ntrac, ntrac,ns, nhr
     use dimensions_mod,         only: large_Courant_incr
     use dimensions_mod,         only: kmin_jet,kmax_jet
     
@@ -330,8 +330,6 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       !
       if (kmin_jet>kmax_jet) &
            call endrun("PARAMETER ERROR for fvm: kmin_jet must be < kmax_jet")
-      if (ntrac>ntrac_d) &
-           call endrun("PARAMETER ERROR for fvm: ntrac > ntrac_d")
 
       if (qsize>0.and.mod(rsplit,fvm_supercycling).ne.0) then
         if (par%masterproc) then
@@ -358,8 +356,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         end if
         call endrun("PARAMETER ERROR for fvm: large_courant_incr requires fvm_supercycling=fvm_supercycling_jet")        
       endif
-      
-      if (par%masterproc) then 
+
+      if (par%masterproc) then
         write(iulog,*) "                                            "
         write(iulog,*) "Done Tracer transport scheme information    "
         write(iulog,*) "                                            "
@@ -367,16 +365,16 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
 
 
       if (par%masterproc) write(iulog,*) "fvm resolution is nc*nc in each element: nc = ",nc
-      if (par%masterproc) write(iulog,*)'ntrac,ntrac_d=',ntrac,ntrac_d      
-      if (par%masterproc) write(iulog,*)'qsize,qsize_d=',qsize,qsize_d          
-    
+      if (par%masterproc) write(iulog,*)'ntrac=',ntrac
+      if (par%masterproc) write(iulog,*)'qsize,qsize_d=',qsize,qsize_d
+
       if (nc.ne.3) then
-        if (par%masterproc) then 
+        if (par%masterproc) then
           write(iulog,*) "Only nc==3 is supported for CSLAM"
         endif
         call endrun("PARAMETER ERRROR for fvm: only nc=3 supported for CSLAM")
       end if
-      
+
       if (par%masterproc) then
         write(iulog,*) "  "
         if (ns==1) then
@@ -454,7 +452,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
   subroutine fvm_init2(elem,fvm,hybrid,nets,nete)
     use fvm_control_volume_mod, only: fvm_mesh,fvm_set_cubeboundary
     use bndry_mod,              only: compute_ghost_corner_orientation
-    use dimensions_mod,         only: nlev, nc, nhc, nhe, ntrac, ntrac_d, np
+    use dimensions_mod,         only: nlev, nc, nhc, nhe, ntrac, np
     use dimensions_mod,         only: nhc_phys, fv_nphys
     use dimensions_mod,         only: fvm_supercycling, fvm_supercycling_jet
     use dimensions_mod,         only: kmin_jet,kmax_jet
@@ -530,7 +528,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use control_mod     ,       only: neast, nwest, seast, swest
     use fvm_analytic_mod,       only: compute_reconstruct_matrix
     use dimensions_mod  ,       only: fv_nphys
-    use dimensions_mod,         only: nlev, nc, nhe, nlev, ntrac, ntrac_d,nhc
+    use dimensions_mod,         only: nlev, nc, nhe, nlev, ntrac, nhc
     use coordinate_systems_mod, only: cartesian2D_t,cartesian3D_t
     use coordinate_systems_mod, only: cubedsphere2cart, cart2cubedsphere
     implicit none
@@ -721,9 +719,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
              ! convert to element normalized coordinates
              !
              fvm(ie)%norm_elem_coord(1,i,j) =(tmpgnom%x-elem(ie)%corners(1)%x)/&
-                  (0.5_r8*dble(nc)*fvm(ie)%dalpha)-1.0_r8
+                  (0.5_r8*real(nc, r8)*fvm(ie)%dalpha)-1.0_r8
              fvm(ie)%norm_elem_coord(2,i,j) =(tmpgnom%y-elem(ie)%corners(1)%y)/&
-                  (0.5_r8*dble(nc)*fvm(ie)%dalpha)-1.0_r8
+                  (0.5_r8*real(nc, r8)*fvm(ie)%dalpha)-1.0_r8
            else
              fvm(ie)%norm_elem_coord(1,i,j) = 1D9
              fvm(ie)%norm_elem_coord(2,i,j) = 1D9
@@ -740,7 +738,6 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use control_mod, only : neast, nwest, seast, swest
     use coordinate_systems_mod, only : cubedsphere2cart, cart2cubedsphere
     use dimensions_mod, only: fv_nphys, nhe_phys,nhc_phys
-    use dimensions_mod, only: ntrac_d
     use cube_mod       ,only: dmap
     use control_mod    ,only: cubed_sphere_map
     use fvm_analytic_mod, only: compute_reconstruct_matrix
@@ -929,12 +926,12 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
               ! convert to element normalized coordinates
               !
               fvm(ie)%norm_elem_coord_physgrid(1,i,j) =(tmpgnom%x-elem(ie)%corners(1)%x)/&
-                   (0.5_r8*dble(fv_nphys)*fvm(ie)%dalpha_physgrid)-1.0_r8
+                   (0.5_r8*real(fv_nphys, r8)*fvm(ie)%dalpha_physgrid)-1.0_r8
               fvm(ie)%norm_elem_coord_physgrid(2,i,j) =(tmpgnom%y-elem(ie)%corners(1)%y)/&
-                   (0.5_r8*dble(fv_nphys)*fvm(ie)%dalpha_physgrid)-1.0_r8
+                   (0.5_r8*real(fv_nphys, r8)*fvm(ie)%dalpha_physgrid)-1.0_r8
             else
-              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1D9
-              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1D9
+              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1E9_r8
             end if
           end do
         end do

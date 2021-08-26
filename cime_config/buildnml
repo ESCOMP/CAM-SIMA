@@ -288,7 +288,7 @@ def buildnml(case, caseroot, compname):
         nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
                              skip_default_for_groups=\
                              filter(lambda group: group !='vert_coord_nl',
-                             config.nml_groups))
+                                    config.nml_groups))
 
         #--------------------------------------------
         # Set "nlev" namelist attribute to equal pver

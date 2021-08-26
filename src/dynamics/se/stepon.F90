@@ -61,6 +61,9 @@ subroutine stepon_run1(dtime_out, cam_runtime_opts, phys_state, phys_tend, dyn_i
    if (iam < par%nprocs) then
       if (tstep <= 0)      call endrun('stepon_run1: bad tstep')
       if (dtime_out <= 0)  call endrun('stepon_run1: bad dtime')
+
+      ! write diagnostic fields on gll grid and initial file
+      call diag_dynvar_ic(dyn_out%elem, dyn_out%fvm)
    end if
 
    ! Synchronize all PEs and then transfer dynamics variables to physics:
@@ -177,15 +180,13 @@ end subroutine stepon_final
 
 !=========================================================================================
 
-!Remove once "outfld" is enabled in CAMDEN -JN:
-#if 0
-
 subroutine diag_dynvar_ic(elem, fvm)
    !use constituents,           only: cnst_type, cnst_name
-   use cam_history,            only: write_inithist, outfld, hist_fld_active, fieldname_len
+   !use cam_history,            only: write_inithist, outfld, hist_fld_active, fieldname_len
    use dyn_grid,               only: TimeLevel
-   !use physconst,              only: get_sum_species, get_ps,thermodynamic_active_species_idx
-   !use physconst,              only: thermodynamic_active_species_idx_dycore,get_dp_ref
+   use physconst,              only: thermodynamic_active_species_idx
+   use physconst,              only: thermodynamic_active_species_idx_dycore
+   use dyn_thermo,             only: get_sum_species, get_ps, get_dp_ref
    use hycoef,                 only: hyai, hybi, ps0
    use cam_abortutils,         only: endrun, check_allocate
 
@@ -195,7 +196,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    use hybrid_mod,             only: config_thread_region, get_loop_ranges
    use hybrid_mod,             only: hybrid_t
    use dimensions_mod,         only: np, npsq, nc, nhc, fv_nphys, qsize, ntrac, nlev
-   !use dimensions_mod,         only: cnst_name_gll
+   use dimensions_mod,         only: cnst_name_gll
    use element_mod,            only: element_t
    use fvm_control_volume_mod, only: fvm_struct
    use fvm_mapping,            only: fvm2dyn
@@ -208,7 +209,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    integer              :: ie, i, j, k, m, m_cnst, nq
    integer              :: tl_f, tl_qdp
    integer              :: iret
-   character(len=fieldname_len) :: tfname
+   !character(len=fieldname_len) :: tfname !Uncomment once 'fieldname_len' or an equivalent is available -JN
 
    type(hybrid_t)        :: hybrid
    integer               :: nets, nete
@@ -266,6 +267,9 @@ subroutine diag_dynvar_ic(elem, fvm)
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #endif
 
+!Remove once "outfld" is enabled in CAMDEN -JN:
+#if 0
+
    if (hist_fld_active('U_gll') .or. hist_fld_active('V_gll')) then
       do ie = 1, nelemd
          do j = 1, np
@@ -314,7 +318,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    end if
 
    if (hist_fld_active('PS_gll')) then
-     allocate(fld_2d(np,np))
+     allocate(fld_2d(np,np), stat=iret)
      call check_allocate(iret, subname, 'fld_2d(np, np)', &
                        file=__FILE__, line=__LINE__)
 
@@ -337,13 +341,16 @@ subroutine diag_dynvar_ic(elem, fvm)
       end do
    end if
 
-   if (write_inithist()) then
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#if 0
-     allocate(fld_2d(np,np))
+!Remove once history output is available in CAMDEN -JN:
+#endif
+
+   !if (write_inithist()) then !Un-comment once history output is available -JN
+   if (.false.) then            !Remove once history output is available -JN
+     allocate(fld_2d(np,np), stat=iret)
      call check_allocate(iret, subname, 'fld_2d(np, np)', &
                        file=__FILE__, line=__LINE__)
 
+     do ie = 1, nelemd
        call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
             thermodynamic_active_species_idx_dycore,elem(ie)%state%dp3d(:,:,:,tl_f),fld_2d,hyai(1)*ps0)
        do j = 1, np
@@ -351,20 +358,21 @@ subroutine diag_dynvar_ic(elem, fvm)
            ftmp(i+(j-1)*np,1,1) = fld_2d(i,j)
          end do
        end do
-       call outfld('PS&IC', ftmp(:,1,1), npsq, ie)
+!       call outfld('PS&IC', ftmp(:,1,1), npsq, ie)
      end do
      deallocate(fld_2d)
-      if (fv_nphys < 1) then
-         allocate(factor_array(np,np,nlev), stat=iret)
-         call check_allocate(iret, subname, 'factor_array(np,np,nlev)', &
-                             file=__FILE__, line=__LINE__)
-      end if
-#endif
+     if (fv_nphys < 1) then
+        allocate(factor_array(np,np,nlev), stat=iret)
+        call check_allocate(iret, subname, 'factor_array(np,np,nlev)', &
+                            file=__FILE__, line=__LINE__)
+     end if
 
-      do ie = 1, nelemd
-         call outfld('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   (/npsq,nlev/)), npsq, ie)
-         call outfld('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), (/npsq,nlev/)), npsq, ie)
-         call outfld('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), (/npsq,nlev/)), npsq, ie)
+     do ie = 1, nelemd
+
+         !Un-comment once history output is available -JN:
+         !call outfld('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   (/npsq,nlev/)), npsq, ie)
+         !call outfld('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), (/npsq,nlev/)), npsq, ie)
+         !call outfld('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), (/npsq,nlev/)), npsq, ie)
 
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #if 0
@@ -384,11 +392,10 @@ subroutine diag_dynvar_ic(elem, fvm)
                end if
             end do
          end if
+!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #endif
       end do
 
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#if 0
       if (fv_nphys > 0) then
          !JMD $OMP PARALLEL NUM_THREADS(horz_num_threads), DEFAULT(SHARED), PRIVATE(hybrid,nets,nete,n)
          !JMD        hybrid = config_thread_region(par,'horizontal')
@@ -414,6 +421,10 @@ subroutine diag_dynvar_ic(elem, fvm)
                              file=__FILE__, line=__LINE__)
 
          llimiter = .true.
+
+!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
+#if 0
+
          do ie = nets, nete
            call get_sum_species(1,nc,1,nc,1,nlev,ntrac,fvm(ie)%c(1:nc,1:nc,:,:),thermodynamic_active_species_idx,factor_array)
            factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
@@ -435,21 +446,19 @@ subroutine diag_dynvar_ic(elem, fvm)
             end do
          end do
 
+!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
+#endif
+
          deallocate(fld_fvm)
          deallocate(fld_gll)
          deallocate(llimiter)
       end if
       deallocate(factor_array)
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#endif
    end if  ! if (write_inithist)
 
    deallocate(ftmp)
 
 end subroutine diag_dynvar_ic
-
-!Remove once "outfld" is enabled in CAMDEN -JN:
-#endif
 
 !=========================================================================================
 
