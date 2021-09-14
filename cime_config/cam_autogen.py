@@ -9,6 +9,7 @@ and physics suites chosen by the user.
 # Import needed python libraries/modules
 ########################################
 
+# Python library imports
 import sys
 import os
 import logging
@@ -397,6 +398,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     # Import needed CCPP-framework scripts:
     try:
         from ccpp_capgen import capgen
+        from framework_env import CCPPFrameworkEnv
         #pylint: disable=redefined-outer-name
         # pylint change because of doctest import below
         from metadata_table import find_scheme_names
@@ -453,6 +455,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
     # Figure out if we need to generate new physics code
     genccpp_dir = os.path.join(bldroot, "ccpp")
     kind_phys = 'REAL64'
+    kind_types = ["kind_phys={}".format(kind_phys)]
 
     # Set location of CCPP "capfiles.txt" file:
     cap_output_file = os.path.join(genccpp_dir, "ccpp_datatable.xml")
@@ -476,8 +479,8 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
         do_gen_ccpp = True
     # End if
     if do_gen_ccpp:
-        gen_hostcap = True
         gen_docfiles = False
+        use_error_obj = False
 
         # print extra info to bldlog if DEBUG is TRUE
         _LOGGER.debug("Calling capgen: ")
@@ -486,13 +489,22 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
         _LOGGER.debug("   suite definition files: %s", ', '.join(sdfs))
         _LOGGER.debug("   preproc defs: %s", ', '.join(preproc_defs))
         _LOGGER.debug("   output directory: '%s'", genccpp_dir)
-        _LOGGER.debug("   kind_phys: '%s'", kind_phys)
+        for kind_type in kind_types:
+            name, type = [x.strip() for x in kind_type.split('=')]
+            _LOGGER.debug("   %s: '%s'", name, type)
+        # end for
 
         # generate CCPP caps
-        force_overwrite = False
-        capgen(host_files, scheme_files, sdfs, cap_output_file,
-               preproc_defs, gen_hostcap, gen_docfiles, genccpp_dir,
-               host_name, kind_phys, force_overwrite, _LOGGER)
+        run_env = CCPPFrameworkEnv(_LOGGER, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdfs,
+                                   preproc_directives=preproc_defs,
+                                   generate_docfiles=gen_docfiles,
+                                   host_name=host_name, kind_types=kind_types,
+                                   use_error_obj=use_error_obj,
+                                   force_overwrite=False,
+                                   output_root=genccpp_dir,
+                                   ccpp_datafile=cap_output_file)
+        capgen(run_env)
 
         # save build details in the build cache
         build_cache.update_ccpp(sdfs, scheme_files, preproc_defs, kind_phys)
