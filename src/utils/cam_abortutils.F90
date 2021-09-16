@@ -27,6 +27,8 @@ module cam_abortutils
    type(open_file_pointer), pointer :: open_files_tail => NULL()
    type(open_file_pointer), pointer :: open_files_pool => NULL()
 
+   private :: active_file_ptr
+
 CONTAINS
 
    subroutine check_allocate(errcode, subname, fieldname, file, line)
@@ -95,6 +97,21 @@ CONTAINS
       end if
    end subroutine cam_register_open_file
 
+   logical function active_file_ptr(of_ptr)
+      ! Return .true. iff <of_ptr> is associated and its <file_desc> member
+      !    is also associated
+      ! Dummy argument
+      type(open_file_pointer), pointer, intent(in) :: of_ptr
+
+      active_file_ptr = .false.
+      if (associated(of_ptr)) then
+         if (associated(of_ptr%file_desc)) then
+            active_file_ptr = .true.
+         end if
+      end if
+
+   end function active_file_ptr
+
    subroutine cam_register_close_file(file, log_shutdown_in)
       ! Dummy arguments
       type(file_desc_t), target,   intent(in) :: file
@@ -114,7 +131,7 @@ CONTAINS
       end if
       ! Look to see if we have this file
       of_ptr => open_files_head
-      do while (associated(of_ptr) .and. associated(of_ptr%file_desc))
+      do while (active_file_ptr(of_ptr))
          if (file%fh == of_ptr%file_desc%fh) then
             ! Remove this file from the list
             if (associated(of_prev)) then
