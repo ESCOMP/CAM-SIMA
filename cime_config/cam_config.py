@@ -15,6 +15,8 @@ import sys
 import argparse
 import os.path
 
+from collections import OrderedDict
+
 #-----------------------------------
 # Import CAM-specific python modules
 #-----------------------------------
@@ -806,7 +808,7 @@ class ConfigList(ConfigGen):
         valid_type = self.valid_type
 
         # Create empty dictionary to store errors:
-        bad_val_types = {}
+        bad_val_types = OrderedDict()
 
         if valid_type == "str":
             #All list entries should be strings:
