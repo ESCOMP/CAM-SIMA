@@ -6,7 +6,7 @@ module dynconst
    use physconst,    only: phys_pi=>pi
 
    implicit none
-   public
+   private
 
    !Physical constants:
 
@@ -16,27 +16,30 @@ module dynconst
    !never change:
 
    !circle's circumference/diameter [unitless]
-   real(kind_dyn), parameter :: pi = real(phys_pi, kind_dyn)
-
+   real(kind_dyn), parameter, public :: pi = real(phys_pi, kind_dyn)
 
    ! radius of earth [m]
-   real(kind_dyn), protected :: rearth
+   real(kind_dyn), protected, public :: rearth
    ! reciprocal of earth's radius [1/m]
-   real(kind_dyn), protected :: ra
+   real(kind_dyn), protected, public :: ra
    ! earth's rotation rate [rad/sec]
-   real(kind_dyn), protected :: omega
+   real(kind_dyn), protected, public :: omega
    ! gravitational acceleration [m/s**2]
-   real(kind_dyn), protected :: gravit
+   real(kind_dyn), protected, public :: gravit
    ! specific heat of dry air [J/K/kg]
-   real(kind_dyn), protected :: cpair
+   real(kind_dyn), protected, public :: cpair
    ! Dry air gas constant [J/K/kg]
-   real(kind_dyn), protected :: rair
+   real(kind_dyn), protected, public :: rair
    ! reference temperature [K]
-   real(kind_dyn), protected :: tref
+   real(kind_dyn), protected, public :: tref
    ! reference lapse rate [K/m]
-   real(kind_dyn), protected :: lapse_rate
+   real(kind_dyn), protected, public :: lapse_rate
    ! R/Cp
-   real(kind_dyn), protected :: cappa
+   real(kind_dyn), protected, public :: cappa
+
+
+   !Public routines:
+   public :: dynconst_init
 
 !==============================================================================
 CONTAINS

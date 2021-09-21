@@ -312,7 +312,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Create namelist file:
         with open("test.txt", "w", encoding='UTF-8') as test_fil:
             test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite = "adiabatic"\n')
+            test_fil.write('physics_suite = "kessler"\n')
 
         #Run ccpp_phys_set config method:
         self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
@@ -340,7 +340,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        cam_nml_attr_dict = {}
 
         #Create namelist file:
         with open("test.txt", "w", encoding='UTF-8') as test_fil:
@@ -369,7 +369,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        cam_nml_attr_dict = {}
 
         #Set error message:
         ermsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
@@ -392,9 +392,9 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Remove text file:
         os.remove("test.txt")
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check "ccpp_phys_set" missing equals-sign error-handling
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check "ccpp_phys_set" multiple namelist entries error-handling
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_config_ccpp_phys_set_two_phys(self):
 
@@ -405,7 +405,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        cam_nml_attr_dict = {}
 
         #Set error message:
         ermsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
@@ -442,7 +442,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        cam_nml_attr_dict = {}
 
         #Set error message:
         ermsg = "No equals (=) sign was found with the 'physics_suite' variable."
@@ -478,7 +478,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        cam_nml_attr_dict = {}
 
         #Set error message:
         ermsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
@@ -515,7 +515,7 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Create namelist attribute dictionary:
-        cam_nml_attr_dict = dict()
+        cam_nml_attr_dict = {}
 
         #Set error message:
         ermsg  = "physics_suite specified in user_nl_cam, 'cam6', doesn't match any suites\n"

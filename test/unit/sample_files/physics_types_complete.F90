@@ -191,7 +191,7 @@ CONTAINS
     character(len=*), parameter :: subname = "physics_types_complete_tstep_init"
 
     ! standard_var: Standard non ddt variable
-    standard_var = 0
+    standard_var = 0.0
 
     ! latitude: Latitude
     phys_state%latitude = 0._kind_phys

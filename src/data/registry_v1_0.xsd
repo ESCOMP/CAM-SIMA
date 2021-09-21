@@ -176,8 +176,6 @@
     <xs:attribute ref="kind"          use="optional" default=""/>
     <xs:attribute ref="allocatable"   use="optional" default="none"/>
     <xs:attribute ref="access"        use="optional" default="public"/>
-<!--    <xs:attribute name="phys_timestep_init_zero" use="optional"
-                  type="xs:boolean" default="false"/> -->
   </xs:complexType>
 
   <xs:complexType name="data_type">
@@ -199,8 +197,6 @@
     <xs:attribute name="bindC"   use="optional" type="xs:boolean"
                   default="false"/>
     <xs:attribute ref="extends"  use="optional" default=""/>
-<!--    <xs:attribute name="phys_timestep_init_zero" use="optional"
-                  type="xs:boolean" default="false"/> -->
   </xs:complexType>
 
   <xs:complexType name="use_type">

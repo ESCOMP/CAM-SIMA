@@ -10,25 +10,25 @@ module dyn_thermo
    use cam_abortutils, only: check_allocate
 
    implicit none
-   public
+   private
 
-   !Subroutines contained in this module are:
-   !
-   ! get_cp
-   ! get_cp_dry
-   ! get_kappa_dry
-   ! get_ps
-   ! get_dp
-   ! get_dp_ref
-   ! get_sum_species
-   ! get_molecular_diff_coef
-   ! get_molecular_diff_coef_reference
-   ! get_rho_dry
-   ! get_gz_given_dp_Tv_Rdry
-   ! get_virtual_temp
-   ! get_R_dry
-   ! get_exner
-   ! get_thermal_energy
+   !Public subroutines contained in this module are:
+
+   public :: get_cp
+   public :: get_cp_dry
+   public :: get_kappa_dry
+   public :: get_ps
+   public :: get_dp
+   public :: get_dp_ref
+   public :: get_sum_species
+   public :: get_molecular_diff_coef
+   public :: get_molecular_diff_coef_reference
+   public :: get_rho_dry
+   public :: get_gz_given_dp_Tv_Rdry
+   public :: get_virtual_temp
+   public :: get_R_dry
+   public :: get_exner
+   public :: get_thermal_energy
 
 !==============================================================================
 CONTAINS
@@ -59,52 +59,70 @@ CONTAINS
       !
       integer, optional, intent(in)  :: active_species_idx_dycore(:)
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_cp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,inv_cp,cp, &
-                       dp_dry=dp_dry, &
-                       active_species_idx_dycore=active_species_idx_dycore)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0:k1,ntrac)
-      real(kind_phys) :: cp_phys(i0:i1,j0:j1,k0:k1)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: cp_phys(:,:,:)
       real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_cp (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(dp_dry)) then
-         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_cp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,inv_cp,cp, &
+                          dp_dry=dp_dry, &
+                          active_species_idx_dycore=active_species_idx_dycore)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,k0:k1,ntrac), stat=iret)
          call check_allocate(iret, subname, &
-                             'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             'tracer_phys(i0:i1,j0:j1,k0:k1,ntrac)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         dp_dry_phys = real(dp_dry, kind_phys)
-      end if
+         allocate(cp_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'cp_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_cp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,inv_cp,cp_phys, &
-                       dp_dry=dp_dry_phys, &
-                       active_species_idx_dycore=active_species_idx_dycore)
 
-      !Set output variables back to dynamics kind:
-      cp = real(cp_phys, kind_dyn)
+         !Set local input variables:
+         tracer_phys = real(tracer, kind_phys)
 
-      !Deallocate variables:
-      if (allocated(dp_dry_phys)) then
-         deallocate(dp_dry_phys)
-      end if
+         !Allocate and set optional variables:
+         if (present(dp_dry)) then
+            allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                                file=__FILE__, line=__LINE__)
 
-#endif
+            !Set optional local variable:
+            dp_dry_phys = real(dp_dry, kind_phys)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_cp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,inv_cp,cp_phys, &
+                          dp_dry=dp_dry_phys, &
+                          active_species_idx_dycore=active_species_idx_dycore)
+
+         !Set output variables back to dynamics kind:
+         cp = real(cp_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(cp_phys)
+
+         if (allocated(dp_dry_phys)) then
+            deallocate(dp_dry_phys)
+         end if
+
+
+      end if !kind check
 
    end subroutine get_cp
    !
@@ -126,50 +144,67 @@ CONTAINS
       real(kind_dyn), optional, intent(in) :: fact(i0:i1,j0:j1,k0_trac:k1_trac)
       real(kind_dyn), intent(out)          :: cp_dry(i0:i1,j0:j1,k0:k1) ! dry pressure level thickness
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_cp_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer,active_species_idx,&
-                           cp_dry, fact=fact)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac)
-      real(kind_phys) :: cp_dry_phys(i0:i1,j0:j1,k0:k1)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: cp_dry_phys(:,:,:)
       real(kind_phys), allocatable :: fact_phys(:,:,:)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_cp_dry (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(fact)) then
-         allocate(fact_phys(i0:i1,j0:j1,k0_trac:k1_trac), stat=iret)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_cp_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer,active_species_idx,&
+                              cp_dry, fact=fact)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac), stat=iret)
          call check_allocate(iret, subname, &
-                             'fact_phys(i0:i1,j0:j1,k0_trac:k1_trac)', &
+                             'tracer_phys(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         fact_phys = real(fact, kind_phys)
-      end if
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_cp_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer_phys,active_species_idx,&
-                           cp_dry_phys, fact=fact_phys)
+         allocate(cp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'cp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Set output variables back to dynamics kind:
-      cp_dry = real(cp_dry_phys, kind_dyn)
 
-      !Deallocate variables:
-      if (allocated(fact_phys)) then
-         deallocate(fact_phys)
-      end if
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
 
-#endif
+         if (present(fact)) then
+            allocate(fact_phys(i0:i1,j0:j1,k0_trac:k1_trac), stat=iret)
+            call check_allocate(iret, subname, &
+                                'fact_phys(i0:i1,j0:j1,k0_trac:k1_trac)', &
+                               file=__FILE__, line=__LINE__)
+
+            !Set optional local variable:
+            fact_phys = real(fact, kind_phys)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_cp_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer_phys,active_species_idx,&
+                              cp_dry_phys, fact=fact_phys)
+
+         !Set output variables back to dynamics kind:
+         cp_dry = real(cp_dry_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(cp_dry_phys)
+
+         if (allocated(fact_phys)) then
+           deallocate(fact_phys)
+        end if
+
+      end if !kind check
 
    end subroutine get_cp_dry
    !
@@ -191,50 +226,66 @@ CONTAINS
       real(kind_dyn), intent(out)          :: kappa_dry(i0:i1,j0:j1,k0:k1)       !kappa dry
       real(kind_dyn), optional, intent(in) :: fact(i0:i1,j0:j1,nlev)             !factor for converting tracer to dry mixing ratio
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_kappa_dry_phys(i0,i1,j0,j1,k0,k1,nlev,ntrac,tracer,active_species_idx,kappa_dry,&
-                              fact=fact)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,nlev,1:ntrac)
-      real(kind_phys) :: kappa_dry_phys(i0:i1,j0:j1,k0:k1)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: kappa_dry_phys(:,:,:)
       real(kind_phys), allocatable :: fact_phys(:,:,:)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_kappa_dry (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(fact)) then
-         allocate(fact_phys(i0:i1,j0:j1,nlev), stat=iret)
+
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_kappa_dry_phys(i0,i1,j0,j1,k0,k1,nlev,ntrac,tracer,active_species_idx,kappa_dry,&
+                                 fact=fact)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,nlev,1:ntrac), stat=iret)
          call check_allocate(iret, subname, &
-                             'fact_phys(i0:i1,j0:j1,nlev)', &
+                             'tracer_phys(i0:i1,j0:j1,nlev,1:ntrac)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         fact_phys = real(fact, kind_phys)
-      end if
+         allocate(kappa_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'kappa_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_kappa_dry_phys(i0,i1,j0,j1,k0,k1,nlev,ntrac,tracer_phys,active_species_idx,&
-                              kappa_dry_phys, fact=fact_phys)
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
 
-      !Set output variables back to dynamics kind:
-      kappa_dry = real(kaapa_dry_phys, kind_dyn)
+         if (present(fact)) then
+            allocate(fact_phys(i0:i1,j0:j1,nlev), stat=iret)
+            call check_allocate(iret, subname, &
+                                'fact_phys(i0:i1,j0:j1,nlev)', &
+                                file=__FILE__, line=__LINE__)
 
-      !Deallocate variables:
-      if (allocated(fact_phys)) then
-         deallocate(fact_phys)
-      end if
+            !Set optional local variable:
+            fact_phys = real(fact, kind_phys)
+         end if
 
-#endif
+         !Call physics routine using local vriables with matching kinds:
+         call get_kappa_dry_phys(i0,i1,j0,j1,k0,k1,nlev,ntrac,tracer_phys,active_species_idx,&
+                                 kappa_dry_phys, fact=fact_phys)
+
+         !Set output variables back to dynamics kind:
+         kappa_dry = real(kappa_dry_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(kappa_dry_phys)
+
+         if (allocated(fact_phys)) then
+            deallocate(fact_phys)
+         end if
+
+      end if !kind check
 
    end subroutine get_kappa_dry
    !
@@ -257,32 +308,59 @@ CONTAINS
       real(kind_dyn), intent(in)   :: ptop
       integer,  intent(in)         :: active_species_idx(:)
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_ps_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,active_species_idx,dp_dry,ps,ptop)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_mass_phys(i0:i1,j0:j1,k0:k1,1:ntrac) ! Tracer array
-      real(kind_phys) :: dp_dry_phys(i0:i1,j0:j1,k0:k1)              ! dry pressure level thickness
-      real(kind_phys) :: ps_phys(i0:i1,j0:j1)                        ! surface pressure
+      real(kind_phys), allocatable :: tracer_mass_phys(:,:,:,:) ! Tracer array
+      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)        ! dry pressure level thickness
+      real(kind_phys), allocatable :: ps_phys(:,:)              ! surface pressure
+
       real(kind_phys) :: ptop_phys
 
-      !Set local variables:
-      tracer_mass_phys = real(tracer_mass, kind_phys)
-      dp_dry_phys      = real(dp_dry, kind_phys)
-      ptop_phys        = real(ptop, kind_phys)
+      !check_allocate variables:
+      integer :: iret !allocate status integer
+      character(len=*), parameter :: subname = 'get_ps (dyn)'
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_ps_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass_phys,active_species_idx,dp_dry_phys,ps_phys,ptop_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      !Set output variables back to dynamics kind:
-      ps = real(ps_phys, kind_dyn)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_ps_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,active_species_idx,dp_dry,ps,ptop)
 
-#endif
+      else
+
+         !Allocate local variables:
+         allocate(tracer_mass_phys(i0:i1,j0:j1,k0:k1,1:ntrac), stat=iret)
+         call check_allocate(iret, subname, &
+                             'tracer_mass_phys(i0:i1,j0:j1,k0:k1,1:ntrac)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(ps_phys(i0:i1,j0:j1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'ps_phys(i0:i1,j0:j1)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set local variables:
+         tracer_mass_phys = real(tracer_mass, kind_phys)
+         dp_dry_phys      = real(dp_dry, kind_phys)
+         ptop_phys        = real(ptop, kind_phys)
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_ps_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass_phys,active_species_idx,dp_dry_phys,ps_phys,ptop_phys)
+
+         !Set output variables back to dynamics kind:
+         ps = real(ps_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_mass_phys)
+         deallocate(dp_dry_phys)
+         deallocate(ps_phys)
+
+      end if !kind check
 
    end subroutine get_ps
    !
@@ -313,64 +391,85 @@ CONTAINS
                                                                         !                   must be present)
       real(kind_dyn), optional,intent(in)  :: ptop                      ! pressure at model top
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_dp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,mixing_ratio,active_species_idx,dp_dry,dp,ps,ptop)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac)
-      real(kind_phys) :: dp_dry_phys(i0:i1,j0:j1,k0:k1)
-      real(kind_phys) :: dp_phys(i0:i1,j0:j1,k0:k1)
-      real(kind_phys), allocatable :: ps(:,:)
-      real(kind_phys), allocatable :: ptop
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
+      real(kind_phys), allocatable :: dp_phys(:,:,:)
+      real(kind_phys), allocatable :: ps_phys(:,:)
+      real(kind_phys), allocatable :: ptop_phys
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_dp (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
-      dp_dry_phys = real(dp_dry, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(ptop)) then
-         allocate(ptop_phys, stat=iret)
-         call check_allocate(iret, subname, 'ptop', &
-                             file=__FILE__, line=__LINE__)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_dp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,mixing_ratio,active_species_idx,dp_dry,dp,ps,ptop)
 
-         !Set optional local variable:
-         ptop_phys = real(ptop, kind_phys)
-      end if
+      else
 
-      if (present(ps)) then
-         allocate(ps(i0:i1,j0:j1), stat=iret)
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac), stat=iret)
          call check_allocate(iret, subname, &
-                             'ps(i0:i1,j0:j1)', &
+                             'tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac)', &
                              file=__FILE__, line=__LINE__)
-      end if
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_dp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,mixing_ratio,&
-                       active_species_idx,dp_dry_phys,dp_phys,ps_phys,ptop_phys)
+         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(dp_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
+         dp_dry_phys = real(dp_dry, kind_phys)
+
+         if (present(ptop)) then
+            allocate(ptop_phys, stat=iret)
+            call check_allocate(iret, subname, 'ptop_phys', &
+                                file=__FILE__, line=__LINE__)
+
+            !Set optional local variable:
+            ptop_phys = real(ptop, kind_phys)
+         end if
+
+         if (present(ps)) then
+            allocate(ps_phys(i0:i1,j0:j1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'ps_phys(i0:i1,j0:j1)', &
+                                file=__FILE__, line=__LINE__)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_dp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,mixing_ratio,&
+                          active_species_idx,dp_dry_phys,dp_phys,ps_phys,ptop_phys)
 
 
-      !Set output variables back to dynamics kind:
-      dp = real(dp_phys, kind_dyn)
+         !Set output variables back to dynamics kind:
+         dp = real(dp_phys, kind_dyn)
 
-      if (present(ps)) then
-         ps = real(ps_phys, kind_dyn)
-         deallocate(ps_phys)
-      end if
+         if (present(ps)) then
+            ps = real(ps_phys, kind_dyn)
+            deallocate(ps_phys)
+         end if
 
-      !Deallocate variables:
-      if (allocated(ptop_phys)) then
-         deallocate(ptop_phys)
-      end if
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(dp_dry_phys)
+         deallocate(dp_phys)
 
-#endif
+         if (allocated(ptop_phys)) then
+            deallocate(ptop_phys)
+         end if
+
+      end if !kind check
 
    end subroutine get_dp
    !
@@ -392,37 +491,76 @@ CONTAINS
       real(kind_dyn), intent(out)  :: dp_ref(i0:i1,j0:j1,k0:k1)
       real(kind_dyn), intent(out)  :: ps_ref(i0:i1,j0:j1)
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_dp_ref_phys(hyai, hybi, ps0, i0,i1,j0,j1,k0,k1,phis,dp_ref,ps_ref)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: hyai_phys(k0:k1+1)
-      real(kind_phys) :: hybi_phys(k0:k1+1)
+      real(kind_phys), allocatable :: hyai_phys(:)
+      real(kind_phys), allocatable :: hybi_phys(:)
+      real(kind_phys), allocatable :: phis_phys(:,:)
+      real(kind_phys), allocatable :: dp_ref_phys(:,:,:)
+      real(kind_phys), allocatable :: ps_ref_phys(:,:)
+
       real(kind_phys) :: ps0_phys
-      real(kind_phys) :: phis_phys(i0:i1,j0:j1)
-      real(kind_phys) :: dp_ref_phys(i0:i1,j0:j1,k0:k1)
-      real(kind_phys) :: ps_ref_phys(i0:i1,j0:j1)
 
-      !Set local variables:
-      hyai_phys = real(hyai, kind_phys)
-      hybi_phys = real(hybi, kind_phys)
-      ps0_phys  = real(ps0, kind_phys)
-      phis_phys = real(phis, kind_phys)
+      !check_allocate variables:
+      integer :: iret !allocate status integer
+      character(len=*), parameter :: subname = 'get_dp_ref (dyn)'
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_dp_ref_phys(hyai_phys, hybi_phys, ps0_phys, i0,i1,j0,j1,k0,&
-                           k1, phis_phys, dp_ref_phys, ps_ref_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      !Set output variables back to dynamics kind:
-      dp_ref = real(dp_ref_phys, kind_dyn)
-      ps_ref = real(ps_ref_phys, kind_dyn)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_dp_ref_phys(hyai, hybi, ps0, i0,i1,j0,j1,k0,k1,phis,dp_ref,ps_ref)
 
-#endif
+      else
+
+         !Allocate local variables:
+         allocate(hyai_phys(k0:k1+1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'hyai_phys(k0:k1+1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(hybi_phys(k0:k1+1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'hybi_phys(k0:k1+1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(phis_phys(i0:i1,j0:j1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'phis_phys(i0:i1,j0:j1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(dp_ref_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_ref_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(ps_ref_phys(i0:i1,j0:j1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'ps_ref_phys(i0:i1,j0:j1)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set local variables:
+         hyai_phys = real(hyai, kind_phys)
+         hybi_phys = real(hybi, kind_phys)
+         ps0_phys  = real(ps0, kind_phys)
+         phis_phys = real(phis, kind_phys)
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_dp_ref_phys(hyai_phys, hybi_phys, ps0_phys, i0,i1,j0,j1,k0,&
+                              k1, phis_phys, dp_ref_phys, ps_ref_phys)
+
+         !Set output variables back to dynamics kind:
+         dp_ref = real(dp_ref_phys, kind_dyn)
+         ps_ref = real(ps_ref_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(hyai_phys)
+         deallocate(hybi_phys)
+         deallocate(phis_phys)
+         deallocate(dp_ref_phys)
+         deallocate(ps_ref_phys)
+
+      end if !kind check
 
    end subroutine get_dp_ref
    !
@@ -448,50 +586,65 @@ CONTAINS
                                                                                   ! then tracer is in units of mass
       real(kind_dyn), intent(out)          :: sum_species(i0:i1,j0:j1,k0:k1)      ! sum species
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_sum_species_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,active_species_idx,sum_species, &
-                                dp_dry=dp_dry)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac) ! tracer array
-      real(kind_phys) :: sum_species_phys(i0:i1,j0:j1,k0:k1)    ! sum species
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)      ! tracer array
+      real(kind_phys), allocatable :: sum_species_phys(:,:,:)   ! sum species
       real(kind_phys), allocatable :: dp_dry_phys(:,:,:)        ! dry pressure level thickness is present
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_sum_species (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(dp_dry)) then
-         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_sum_species_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,active_species_idx,sum_species, &
+                                   dp_dry=dp_dry)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac), stat=iret)
          call check_allocate(iret, subname, &
-                             'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             'tracer_phys(i0:i1,j0:j1,k0:k1,1:ntrac)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         dp_dry_phys = real(dp_dry, kind_phys)
-      end if
+         allocate(sum_species_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'sum_species_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_sum_species_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,active_species_idx,sum_species_phys, &
-                                dp_dry=dp_dry_phys)
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
 
-      !Set output variables back to dynamics kind:
-      sum_species = real(sum_species_phys, kind_dyn)
+         if (present(dp_dry)) then
+            allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                                file=__FILE__, line=__LINE__)
 
-      !Deallocate variables:
-      if (allocated(dp_dry_phys)) then
-         deallocate(dp_dry_phys)
-      end if
+            !Set optional local variable:
+            dp_dry_phys = real(dp_dry, kind_phys)
+         end if
 
-#endif
+         !Call physics routine using local vriables with matching kinds:
+         call get_sum_species_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,active_species_idx,sum_species_phys, &
+                                   dp_dry=dp_dry_phys)
+
+         !Set output variables back to dynamics kind:
+         sum_species = real(sum_species_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(sum_species_phys)
+
+         if (allocated(dp_dry_phys)) then
+            deallocate(dp_dry_phys)
+         end if
+
+      end if !kind check
 
    end subroutine get_sum_species
    !
@@ -522,25 +675,12 @@ CONTAINS
                                                                               ! fact converts to dry mixing ratio: tracer/fact
       real(kind_dyn), intent(in), optional :: mbarv_in(i0:i1,j0:j1,1:k1)       ! composition dependent atmosphere mean mass
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_molecular_diff_coef_phys(i0,i1,j0,j1,k1,nlev,temp,get_at_interfaces, &
-                                        sponge_factor,kmvis,kmcnd,ntrac, &
-                                        tracer, &
-                                        fact=fact, &
-                                        active_species_idx_dycore=active_species_idx_dycore, &
-                                        mbarv_in=mbarv_in)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: temp_phys(i0:i1,j0:j1,nlev)
-      real(kind_phys) :: sponge_factor_phys(1:k1)
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,nlev,1:ntrac)
-      real(kind_phys) :: kmvis_phys(i0:i1,j0:j1,1:k1+get_at_interfaces)
-      real(kind_phys) :: kmcnd_phys(i0:i1,j0:j1,1:k1+get_at_interfaces)
+      real(kind_phys), allocatable :: temp_phys(:,:,:)
+      real(kind_phys), allocatable :: sponge_factor_phys(:)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: kmvis_phys(:,:,:)
+      real(kind_phys), allocatable :: kmcnd_phys(:,:,:)
       real(kind_phys), allocatable :: fact_phys(:,:,:)
       real(kind_phys), allocatable :: mbarv_in_phys(:,:,:)
 
@@ -548,52 +688,97 @@ CONTAINS
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_molecular_diff_coef (dyn)'
 
-      !Set local variables:
-      temp_phys          = real(temp, kind_phys)
-      tracer_phys        = real(tracer, kind_phys)
-      sponge_factor_phys = real(sponge_factor, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(fact)) then
-         allocate(fact_phys(i0:i1,j0:j1,k1), stat=iret)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_molecular_diff_coef_phys(i0,i1,j0,j1,k1,nlev,temp,get_at_interfaces, &
+                                           sponge_factor,kmvis,kmcnd,ntrac, &
+                                           tracer, &
+                                           fact=fact, &
+                                           active_species_idx_dycore=active_species_idx_dycore, &
+                                           mbarv_in=mbarv_in)
+
+      else
+
+         !Allocate local variables:
+         allocate(temp_phys(i0:i1,j0:j1,nlev), stat=iret)
          call check_allocate(iret, subname, &
-                             'fact_phys(i0:i1,j0:j1,k1)', &
+                             'temp_phys(i0:i1,j0:j1,nlev)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         fact_phys = real(fact, kind_phys)
-      end if
-      if (present(mbarv_in)) then
-         allocate(mbarv_in_phys(i0:i1,j0:j1,1:k1), stat=iret)
+         allocate(sponge_factor_phys(1:k1), stat=iret)
          call check_allocate(iret, subname, &
-                             'mbarv_in_phys(i0:i1,j0:j1,1:k1)', &
+                             'sponge_factor_phys(1:k1)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         mbarv_in_phys = real(mbarv_in, kind_phys)
-      end if
+         allocate(tracer_phys(i0:i1,j0:j1,nlev,1:ntrac), stat=iret)
+         call check_allocate(iret, subname, &
+                             'tracer_phys(i0:i1,j0:j1,nlev,1:ntrac)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_molecular_diff_coef_phys(i0,i1,j0,j1,k1,nlev,temp_phys,get_at_interfaces, &
-                                        sponge_factor_phys,kmvis_phys,kmcnd_phys,ntrac, &
-                                        tracer_phys, &
-                                        fact=fact_phys, &
-                                        active_species_idx_dycore=active_species_idx_dycore,&
-                                        mbarv_in=mbarv_in_phys)
+         allocate(kmvis_phys(i0:i1,j0:j1,1:k1+get_at_interfaces), stat=iret)
+         call check_allocate(iret, subname, &
+                             'kmvis_phys(i0:i1,j0:j1,1:k1+get_at_interfaces)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Set output variables back to dynamics kind:
-      kmvis = real(kmvis_phys, kind_dyn)
-      kmcnd = real(kmcnd_phys, kind_dyn)
+         allocate(kmcnd_phys(i0:i1,j0:j1,1:k1+get_at_interfaces), stat=iret)
+         call check_allocate(iret, subname, &
+                             'kmcnd_phys(i0:i1,j0:j1,1:k1+get_at_interfaces)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Deallocate variables:
-      if (allocated(fact_phys)) then
-         deallocate(fact_phys)
-      end if
+         !Set local variables:
+         temp_phys          = real(temp, kind_phys)
+         tracer_phys        = real(tracer, kind_phys)
+         sponge_factor_phys = real(sponge_factor, kind_phys)
 
-      if (allocated(mbarv_in_phys)) then
-         deallocate(mbarv_in_phys)
-      end if
+         if (present(fact)) then
+            allocate(fact_phys(i0:i1,j0:j1,k1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'fact_phys(i0:i1,j0:j1,k1)', &
+                                file=__FILE__, line=__LINE__)
 
-#endif
+            !Set optional local variable:
+            fact_phys = real(fact, kind_phys)
+         end if
+         if (present(mbarv_in)) then
+            allocate(mbarv_in_phys(i0:i1,j0:j1,1:k1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'mbarv_in_phys(i0:i1,j0:j1,1:k1)', &
+                                file=__FILE__, line=__LINE__)
+
+            !Set optional local variable:
+            mbarv_in_phys = real(mbarv_in, kind_phys)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_molecular_diff_coef_phys(i0,i1,j0,j1,k1,nlev,temp_phys,get_at_interfaces, &
+                                           sponge_factor_phys,kmvis_phys,kmcnd_phys,ntrac, &
+                                           tracer_phys, &
+                                           fact=fact_phys, &
+                                           active_species_idx_dycore=active_species_idx_dycore,&
+                                           mbarv_in=mbarv_in_phys)
+
+         !Set output variables back to dynamics kind:
+         kmvis = real(kmvis_phys, kind_dyn)
+         kmcnd = real(kmcnd_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(temp_phys)
+         deallocate(sponge_factor_phys)
+         deallocate(tracer_phys)
+         deallocate(kmvis_phys)
+         deallocate(kmcnd_phys)
+
+         if (allocated(fact_phys)) then
+            deallocate(fact_phys)
+         end if
+         if (allocated(mbarv_in_phys)) then
+            deallocate(mbarv_in_phys)
+         end if
+
+      end if !kind check
 
    end subroutine get_molecular_diff_coef
    !
@@ -617,41 +802,80 @@ CONTAINS
       real(kind_dyn), intent(out) :: kmcnd_ref(k0:k1)     !reference thermal conductivity coefficient
       real(kind_dyn), intent(out) :: rho_ref(k0:k1)       !reference density
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_molecular_diff_coef_reference_phys(k0,k1,tref,press,&
-                                                  sponge_factor,&
-                                                  kmvis_ref,kmcnd_ref,rho_ref)
-
-#else
-
       !Declare local variables:
+      real(kind_phys), allocatable :: press_phys(:)
+      real(kind_phys), allocatable :: sponge_factor_phys(:)
+      real(kind_phys), allocatable :: kmvis_ref_phys(:)
+      real(kind_phys), allocatable :: kmcnd_ref_phys(:)
+      real(kind_phys), allocatable :: rho_ref_phys(:)
+
       real(kind_phys) :: tref_phys
-      real(kind_phys) :: press_phys(k0:k1)
-      real(kind_phys) :: sponge_factor_phys(k0:k1)
-      real(kind_phys) :: kmvis_ref_phys(k0:k1)
-      real(kind_phys) :: kmcnd_ref_phys(k0:k1)
-      real(kind_phys) :: rho_ref_phys(k0:k1)
 
-      !Set local variables:
-      tref_phys          = real(tref, kind_phys)
-      press_phys         = real(press, kind_phys)
-      sponge_factor_phys = real(sponge_factor, kind_phys)
+      !check_allocate variables:
+      integer :: iret !allocate status integer
+      character(len=*), parameter :: subname = 'get_molecular_diff_coef_reference (dyn)'
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_molecular_diff_coef_reference_phys(k0,k1,tref_phys,press_phys,&
-                                                  sponge_factor_phys,&
-                                                  kmvis_ref_phys,kmcnd_ref_phys,&
-                                                  rho_ref_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      !Set output variables back to dynamics kind:
-      tref          = real(tref_phys, kind_dyn)
-      press         = real(press_phys, kind_dyn)
-      sponge_factor = real(sponge_factor_phys, kind_dyn)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_molecular_diff_coef_reference_phys(k0,k1,tref,press,&
+                                                     sponge_factor,&
+                                                     kmvis_ref,kmcnd_ref,rho_ref)
 
-#endif
+      else
+
+         !Allocate local variables:
+         allocate(press_phys(k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'press_phys(k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(sponge_factor_phys(k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'sponge_factor_phys(k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(kmvis_ref_phys(k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'kmvis_ref_phys(k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(kmcnd_ref_phys(k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'kmcnd_ref_phys(k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(rho_ref_phys(k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'rho_ref_phys(k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set local variables:
+         tref_phys          = real(tref, kind_phys)
+         press_phys         = real(press, kind_phys)
+         sponge_factor_phys = real(sponge_factor, kind_phys)
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_molecular_diff_coef_reference_phys(k0,k1,tref_phys,press_phys,&
+                                                     sponge_factor_phys,&
+                                                     kmvis_ref_phys,kmcnd_ref_phys,&
+                                                     rho_ref_phys)
+
+         !Set output variables back to dynamics kind:
+         kmvis_ref = real(kmvis_ref_phys, kind_dyn)
+         kmcnd_ref = real(kmcnd_ref_phys, kind_dyn)
+         rho_ref   = real(rho_ref_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(press_phys)
+         deallocate(sponge_factor_phys)
+         deallocate(kmvis_ref_phys)
+         deallocate(kmcnd_ref_phys)
+         deallocate(rho_ref_phys)
+
+      end if !kind check
 
    end subroutine get_molecular_diff_coef_reference
    !
@@ -685,94 +909,117 @@ CONTAINS
       real(kind_phys),optional,intent(out)  :: pint_out(i0:i1,j0:j1,1:k1+1)
       real(kind_phys),optional,intent(out)  :: pmid_out(i0:i1,j0:j1,1:k1)
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_rho_dry_phys(i0,i1,j0,j1,k1,nlev,ntrac,tracer,temp,ptop, &
-                            dp_dry,tracer_mass, &
-                            rho_dry=rho_dry, &
-                            rhoi_dry=rhoi_dry, &
-                            active_species_idx_dycore=active_species_idx_dycore, &
-                            pint_out=pint_out, &
-                            pmid_out=pmid_out)
-
-#else
-
       !Declare local variables:
-      real(kind_phys)              :: tracer_phys(i0:i1,j0:j1,nlev,ntrac)
-      real(kind_phys)              :: temp_phys(i0:i1,j0:j1,1:nlev)
-      real(kind_phys)              :: ptop_phys
-      real(kind_phys)              :: dp_dry_phys(i0:i1,j0:j1,nlev)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: temp_phys(:,:,:)
+      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
       real(kind_phys), allocatable :: rho_dry_phys(:,:,:)
       real(kind_phys), allocatable :: rhoi_dry_phys(:,:,:)
       real(kind_phys), allocatable :: pint_out_phys(:,:,:)
       real(kind_phys), allocatable :: pmid_out_phys(:,:,:)
 
+      real(kind_phys) :: ptop_phys
+
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_rho_dry (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
-      temp_phys   = real(temp, kind_phys)
-      ptop_phys   = real(ptop, kind_phys)
-      dp_dry_phys = real(dp_dry, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(rho_dry)) then
-         allocate(rho_dry_phys(i0:i1,j0:j1,1:k1), stat=iret)
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_rho_dry_phys(i0,i1,j0,j1,k1,nlev,ntrac,tracer,temp,ptop, &
+                               dp_dry,tracer_mass, &
+                               rho_dry=rho_dry, &
+                               rhoi_dry=rhoi_dry, &
+                               active_species_idx_dycore=active_species_idx_dycore, &
+                               pint_out=pint_out, &
+                               pmid_out=pmid_out)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,nlev,ntrac), stat=iret)
          call check_allocate(iret, subname, &
-                             'rho_dry_phys(i0:i1,j0:j1,1:k1)', &
+                             'tracer_phys(i0:i1,j0:j1,nlev,ntrac)', &
                              file=__FILE__, line=__LINE__)
-      end if
-      if (present(rhoi_dry)) then
-         allocate(rhoi_dry_phys(i0:i1,j0:j1,1:k1+1), stat=iret)
+
+         allocate(temp_phys(i0:i1,j0:j1,1:nlev), stat=iret)
          call check_allocate(iret, subname, &
-                             'rhoi_dry_phys(i0:i1,j0:j1,1:k1+1)', &
+                             'temp_phys(i0:i1,j0:j1,1:nlev)', &
                              file=__FILE__, line=__LINE__)
 
-      end if
-      if (present(pint_out)) then
-         allocate(pint_out_phys(i0:i1,j0:j1,1:k1+1), stat=iret)
+         allocate(dp_dry_phys(i0:i1,j0:j1,nlev), stat=iret)
          call check_allocate(iret, subname, &
-                             'pint_out_phys(i0:i1,j0:j1,1:k1+1)', &
+                             'dp_dry_phys(i0:i1,j0:j1,nlev)', &
                              file=__FILE__, line=__LINE__)
-      end if
-      if (present(pmid_out)) then
-         allocate(pmid_out_phys(i0:i1,j0:j1,1:k1), stat=iret)
-         call check_allocate(iret, subname, &
-                             'pmid_out_phys(i0:i1,j0:j1,1:k1)', &
-                             file=__FILE__, line=__LINE__)
-      end if
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_rho_dry_phys(i0,i1,j0,j1,k1,nlev,ntrac,tracer_phys,temp_phys, &
-                            ptop_phys, dp_dry_phys,tracer_mass, &
-                            rho_dry=rho_dry_phys, &
-                            rhoi_dry=rhoi_dry_phys, &
-                            active_species_idx_dycore=active_species_idx_dycore, &
-                            pint_out=pint_out_phys, &
-                            pmid_out=pmid_out_phys)
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
+         temp_phys   = real(temp, kind_phys)
+         ptop_phys   = real(ptop, kind_phys)
+         dp_dry_phys = real(dp_dry, kind_phys)
 
-      !Set output variables back to dynamics kind:
-      if (present(rho_dry)) then
-         rho_dry = real(rho_dry_phys, kind_dyn)
-         deallocate(rho_dry_phys)
-      end if
-      if (present(rhoi_dry)) then
-         rhoi_dry = real(rhoi_dry_phys, kind_dyn)
-         deallocate(rhoi_dry_phys)
-      end if
-      if (present(pint_out)) then
-         pint_out = real(pint_out_phys, kind_dyn)
-         deallocate(pint_out_phys)
-      end if
-      if (present(pmid_out)) then
-         pmid_out = real(pmid_out_phys, kind_dyn)
-         deallocate(pmid_out_phys)
-      end if
+         if (present(rho_dry)) then
+            allocate(rho_dry_phys(i0:i1,j0:j1,1:k1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'rho_dry_phys(i0:i1,j0:j1,1:k1)', &
+                                file=__FILE__, line=__LINE__)
+         end if
+         if (present(rhoi_dry)) then
+            allocate(rhoi_dry_phys(i0:i1,j0:j1,1:k1+1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'rhoi_dry_phys(i0:i1,j0:j1,1:k1+1)', &
+                                file=__FILE__, line=__LINE__)
 
-#endif
+         end if
+         if (present(pint_out)) then
+            allocate(pint_out_phys(i0:i1,j0:j1,1:k1+1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'pint_out_phys(i0:i1,j0:j1,1:k1+1)', &
+                                file=__FILE__, line=__LINE__)
+         end if
+         if (present(pmid_out)) then
+            allocate(pmid_out_phys(i0:i1,j0:j1,1:k1), stat=iret)
+            call check_allocate(iret, subname, &
+                                'pmid_out_phys(i0:i1,j0:j1,1:k1)', &
+                                file=__FILE__, line=__LINE__)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_rho_dry_phys(i0,i1,j0,j1,k1,nlev,ntrac,tracer_phys,temp_phys, &
+                               ptop_phys, dp_dry_phys,tracer_mass, &
+                               rho_dry=rho_dry_phys, &
+                               rhoi_dry=rhoi_dry_phys, &
+                               active_species_idx_dycore=active_species_idx_dycore, &
+                               pint_out=pint_out_phys, &
+                               pmid_out=pmid_out_phys)
+
+         !Set output variables back to dynamics kind:
+         if (present(rho_dry)) then
+            rho_dry = real(rho_dry_phys, kind_dyn)
+            deallocate(rho_dry_phys)
+         end if
+         if (present(rhoi_dry)) then
+            rhoi_dry = real(rhoi_dry_phys, kind_dyn)
+            deallocate(rhoi_dry_phys)
+         end if
+         if (present(pint_out)) then
+            pint_out = real(pint_out_phys, kind_dyn)
+            deallocate(pint_out_phys)
+         end if
+         if (present(pmid_out)) then
+            pmid_out = real(pmid_out_phys, kind_dyn)
+            deallocate(pmid_out_phys)
+         end if
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(temp_phys)
+         deallocate(dp_dry_phys)
+
+      end if !kind check
 
    end subroutine get_rho_dry
    !
@@ -796,64 +1043,91 @@ CONTAINS
       real(kind_dyn), intent(out)           :: gz(i0:i1,j0:j1,nlev)    ! geopotential
       real(kind_dyn), optional, intent(out) :: pmid(i0:i1,j0:j1,nlev)  ! mid-level pressure
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_gz_given_dp_Tv_Rdry_phys(i0,i1,j0,j1,nlev,dp,T_v,R_dry,phis,ptop,gz,&
-                                        pmid=pmid)
-
-#else
-
       !Declare local variables:
-      real(kind_phys) :: dp_phys(i0:i1,j0:j1,nlev)
-      real(kind_phys) :: T_v_phys(i0:i1,j0:j1,nlev)
-      real(kind_phys) :: R_dry_phys(i0:i1,j0:j1,nlev)
-      real(kind_phys) :: phis_phys(i0:i1,j0:j1)
+      real(kind_phys), allocatable :: dp_phys(:,:,:)
+      real(kind_phys), allocatable :: T_v_phys(:,:,:)
+      real(kind_phys), allocatable :: R_dry_phys(:,:,:)
+      real(kind_phys), allocatable :: phis_phys(:,:)
+      real(kind_phys), allocatable :: gz_phys(:,:,:)
+      real(kind_phys), allocatable :: pmid_phys(:,:,:)
+
       real(kind_phys) :: ptop_phys
-      real(kind_phys) :: gz_phys(i0:i1,j0:j1,nlev)
-      real(kind_phys), allocatable :: pmid_phys(:,:,nlev)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_gz_given_dp_Tv_Rdry (dyn)'
 
-      !Set local variables:
-      dp_phys    = real(dp, kind_phys)
-      T_v_phys   = real(T_v, kind_phys)
-      R_dry_phys = real(R_dry, kind_phys)
-      phis_phys  = real(phis, kind_phys)
-      ptop_phys  = real(ptop, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(pmid)) then
-         !Allocate variable if optional argument is present:
-         allocate(pmid_phys(i0:i1,j0:j1,nlev), stat=iret)
-         call check_allocate(iret, subname, 'pmid_phys(i0:i1,j0:j1,nlev)', &
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_gz_given_dp_Tv_Rdry_phys(i0,i1,j0,j1,nlev,dp,T_v,R_dry,phis,ptop,gz,&
+                                           pmid=pmid)
+
+      else
+
+         !Allocate local variables:
+         allocate(dp_phys(i0:i1,j0:j1,nlev), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_phys(i0:i1,j0:j1,nlev)', &
                              file=__FILE__, line=__LINE__)
-      end if
 
-      !Call physics routine using local vriables with matching kinds:
-      if (present(pmid)) then
+         allocate(T_v_phys(i0:i1,j0:j1,nlev), stat=iret)
+         call check_allocate(iret, subname, &
+                             'T_v_phys(i0:i1,j0:j1,nlev)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(R_dry_phys(i0:i1,j0:j1,nlev), stat=iret)
+         call check_allocate(iret, subname, &
+                             'R_dry_phys(i0:i1,j0:j1,nlev)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(phis_phys(i0:i1,j0:j1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'phis_phys(i0:i1,j0:j1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(gz_phys(i0:i1,j0:j1,nlev), stat=iret)
+         call check_allocate(iret, subname, &
+                             'gz_phys(i0:i1,j0:j1,nlev)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set local variables:
+         dp_phys    = real(dp, kind_phys)
+         T_v_phys   = real(T_v, kind_phys)
+         R_dry_phys = real(R_dry, kind_phys)
+         phis_phys  = real(phis, kind_phys)
+         ptop_phys  = real(ptop, kind_phys)
+
+         if (present(pmid)) then
+            !Allocate variable if optional argument is present:
+            allocate(pmid_phys(i0:i1,j0:j1,nlev), stat=iret)
+            call check_allocate(iret, subname, 'pmid_phys(i0:i1,j0:j1,nlev)', &
+                                file=__FILE__, line=__LINE__)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
          call get_gz_given_dp_Tv_Rdry_phys(i0,i1,j0,j1,nlev,dp_phys,T_v_phys, &
                                            R_dry_phys,phis_phys,ptop_phys,gz_phys, &
                                            pmid=pmid_phys)
 
-         pmid = real(pmid_phys, kind_dyn)
+         !Set output variables back to dynamics kind:
+         gz = real(gz_phys, kind_dyn)
 
-      else
-         call get_gz_given_dp_Tv_Rdry_phys(i0,i1,j0,j1,nlev,dp_phys,T_v_phys, &
-                                           R_dry_phys,phis_phys,ptop_phys,gz_phys)
-      end if
+         if (present(pmid)) then
+            pmid = real(pmid_phys, kind_dyn)
+            deallocate(pmid_phys)
+         end if
 
-      !Set output variables back to dynamics kind:
-      gz = real(gz_phys, kind_dyn)
+         !Deallocate variables:
+         deallocate(dp_phys)
+         deallocate(T_v_phys)
+         deallocate(R_dry_phys)
+         deallocate(phis_phys)
+         deallocate(gz_phys)
 
-      if (present(pmid)) then
-         pmid = real(pmid_phys, kind_dyn)
-         deallocate(pmid_phys)
-      end if
-
-#endif
+      end if !kind check
 
    end subroutine
    !
@@ -889,18 +1163,9 @@ CONTAINS
       !
       integer, optional,  intent(in) :: active_species_idx_dycore(:)
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_virtual_temp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,T_v, &
-                                 temp=temp,dp_dry=dp_dry,sum_q=sum_q, &
-                                 active_species_idx_dycore=active_species_idx_dycore)
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0:k1,ntrac)
-      real(kind_phys) :: T_v_phys(i0:i1,j0:j1,k0:k1)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: T_v_phys(:,:,:)
       real(kind_phys), allocatable :: temp_phys(:,:,:)
       real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
       real(kind_phys), allocatable :: sum_q_phys(:,:,:)
@@ -909,59 +1174,83 @@ CONTAINS
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_virtual_temp (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(temp)) then
-         !Allocate variable if optional argument is present:
-         allocate(temp_phys(i0:i1,j0:j1,k0:k1), stat=iret)
-         call check_allocate(iret, subname, 'temp_phys(i0:i1,j0:j1,k0:k1)', &
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_virtual_temp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer,T_v, &
+                                    temp=temp,dp_dry=dp_dry,sum_q=sum_q, &
+                                    active_species_idx_dycore=active_species_idx_dycore)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,k0:k1,ntrac), stat=iret)
+         call check_allocate(iret, subname, &
+                             'tracer_phys(i0:i1,j0:j1,k0:k1,ntrac)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         temp_phys = real(temp, kind_phys)
-      end if
-
-      if (present(dp_dry)) then
-         !Allocate variable if optional argument is present:
-         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
-         call check_allocate(iret, subname, 'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+         allocate(T_v_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'T_v_phys(i0:i1,j0:j1,k0:k1)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         dp_dry_phys = real(dp_dry, kind_phys)
-      end if
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
 
-      if (present(sum_q)) then
-         !Allocate variable if optional argument is present:
-         allocate(sum_q_phys(i0:i1,j0:j1,k0:k1), stat=iret)
-         call check_allocate(iret, subname, 'sum_q_phys(i0:i1,j0:j1,k0:k1)', &
-                             file=__FILE__, line=__LINE__)
-      end if
+         if (present(temp)) then
+            !Allocate variable if optional argument is present:
+            allocate(temp_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+            call check_allocate(iret, subname, 'temp_phys(i0:i1,j0:j1,k0:k1)', &
+                                file=__FILE__, line=__LINE__)
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_virtual_temp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,T_v_phys, &
-                                 temp=temp_phys,dp_dry=dp_dry_phys,sum_q=sum_q_phys, &
-                                 active_species_idx_dycore=active_species_idx_dycore)
+            !Set optional local variable:
+            temp_phys = real(temp, kind_phys)
+         end if
 
-      !Set output variables back to dynamics kind:
-      T_v = real(T_v_phys, kind_dyn)
+         if (present(dp_dry)) then
+            !Allocate variable if optional argument is present:
+            allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+            call check_allocate(iret, subname, 'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                                file=__FILE__, line=__LINE__)
 
-      if (present(sum_q)) then
-         sum_q = real(sum_q_phys, kind_dyn)
-         deallocate(sum_q_phys)
-      end if
+            !Set optional local variable:
+            dp_dry_phys = real(dp_dry, kind_phys)
+         end if
 
-      !Deallocate variables:
-      if (allocated(temp_phys)) then
-         deallocate(temp_phys)
-      end if
+         if (present(sum_q)) then
+            !Allocate variable if optional argument is present:
+            allocate(sum_q_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+            call check_allocate(iret, subname, 'sum_q_phys(i0:i1,j0:j1,k0:k1)', &
+                                file=__FILE__, line=__LINE__)
+         end if
 
-      if (allocated(dp_dry_phys)) then
-         deallocate(dp_dry_phys)
-      end if
+         !Call physics routine using local vriables with matching kinds:
+         call get_virtual_temp_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_phys,T_v_phys, &
+                                    temp=temp_phys,dp_dry=dp_dry_phys,sum_q=sum_q_phys, &
+                                    active_species_idx_dycore=active_species_idx_dycore)
 
-#endif
+         !Set output variables back to dynamics kind:
+         T_v = real(T_v_phys, kind_dyn)
+
+         if (present(sum_q)) then
+            sum_q = real(sum_q_phys, kind_dyn)
+            deallocate(sum_q_phys)
+         end if
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(T_v_phys)
+
+         if (allocated(temp_phys)) then
+            deallocate(temp_phys)
+         end if
+         if (allocated(dp_dry_phys)) then
+            deallocate(dp_dry_phys)
+         end if
+
+      end if !kind check
 
    end subroutine get_virtual_temp
    !
@@ -982,49 +1271,65 @@ CONTAINS
       real(kind_dyn), intent(out)          :: R_dry(i0:i1,j0:j1,k0:k1)                    !dry air R
       real(kind_dyn), optional, intent(in) :: fact(i0:i1,j0:j1,k0_trac:k1_trac)           !factor for converting tracer to dry mixing ratio
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_R_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer,active_species_idx_dycore,R_dry, &
-                          fact=fact)
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac)
-      real(kind_phys) :: R_dry_phys(i0:i1,j0:j1,k0:k1)
-      real(kind_phys), allocatable :: fact_phys(i0:i1,j0:j1,k0_trac:k1_trac)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: R_dry_phys(:,:,:)
+      real(kind_phys), allocatable :: fact_phys(:,:,:)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_R_dry (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(fact)) then
-         !Allocate variable if optional argument is present:
-         allocate(fact_phys(i0:i1,j0:j1,k0_trac:k1_trac), stat=iret)
-         call check_allocate(iret, subname, 'fact_phys(i0:i1,j0:j1,k0_trac:k1_trac)', &
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_R_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer,active_species_idx_dycore,R_dry, &
+                             fact=fact)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac), stat=iret)
+         call check_allocate(iret, subname, &
+                             'tracer_phys(i0:i1,j0:j1,k0_trac:k1_trac,1:ntrac)', &
                              file=__FILE__, line=__LINE__)
 
-         !Set optional local variable:
-         fact_phys = real(fact, kind_phys)
-      end if
+         allocate(R_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'R_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_R_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer_phys, &
-                          active_species_idx_dycore,R_dry_phys,fact=fact_phys)
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
 
-      !Set output variables back to dynamics kind:
-      R_dry = real(R_dry_phys, kind_dyn)
+         if (present(fact)) then
+            !Allocate variable if optional argument is present:
+            allocate(fact_phys(i0:i1,j0:j1,k0_trac:k1_trac), stat=iret)
+            call check_allocate(iret, subname, 'fact_phys(i0:i1,j0:j1,k0_trac:k1_trac)', &
+                                file=__FILE__, line=__LINE__)
 
-      !Deallocate variables:
-      if (allocated(fact_phys)) then
-         deallocate(fact_phys)
-      end if
+            !Set optional local variable:
+            fact_phys = real(fact, kind_phys)
+         end if
 
-#endif
+         !Call physics routine using local vriables with matching kinds:
+         call get_R_dry_phys(i0,i1,j0,j1,k0,k1,k0_trac,k1_trac,ntrac,tracer_phys, &
+                             active_species_idx_dycore,R_dry_phys,fact=fact_phys)
+
+         !Set output variables back to dynamics kind:
+         R_dry = real(R_dry_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(R_dry_phys)
+
+         if (allocated(fact_phys)) then
+            deallocate(fact_phys)
+         end if
+
+      end if !kind check
 
    end subroutine get_R_dry
    !
@@ -1052,54 +1357,78 @@ CONTAINS
       real(kind_dyn), intent(out)  :: exner(i0:i1,j0:j1,nlev)
       real(kind_dyn), optional, intent(out) :: poverp0(i0:i1,j0:j1,nlev)  ! for efficiency when a routine needs this variable
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_exner_phys(i0,i1,j0,j1,nlev,ntrac,tracer,mixing_ratio,active_species_idx,&
-                         dp_dry,ptop,p00,inv_exner,exner,poverp0=poverp0)
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_phys(i0:i1,j0:j1,nlev,1:ntrac)
-      real(kind_phys) :: dp_dry_phys(i0:i1,j0:j1,nlev)
+      real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
+      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
+      real(kind_phys), allocatable :: exner_phys(:,:,:)
+      real(kind_phys), allocatable :: poverp0_phys(:,:,:)
+
       real(kind_phys) :: ptop_phys
       real(kind_phys) :: p00_phys
-      real(kind_phys) :: exner_phys(i0:i1,j0:j1,nlev)
-      real(kind_phys), allocatable :: poverp0_phys(:,:,:)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
       character(len=*), parameter :: subname = 'get_exner (dyn)'
 
-      !Set local variables:
-      tracer_phys = real(tracer, kind_phys)
-      dp_dry_phys = real(dp_dry, kind_phys)
-      ptop_phys   = real(ptop, kind_phys)
-      p00_phys    = real(p00, kind_phys)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      if (present(poverp0)) then
-         !Allocate variable if optional argument is present:
-         allocate(poverp0_phys(i0:i1,j0:j1,nlev), stat=iret)
-         call check_allocate(iret, subname, 'poverp0_phys(i0:i1,j0:j1,nlev)', &
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_exner_phys(i0,i1,j0,j1,nlev,ntrac,tracer,mixing_ratio,active_species_idx,&
+                             dp_dry,ptop,p00,inv_exner,exner,poverp0=poverp0)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_phys(i0:i1,j0:j1,nlev,1:ntrac), stat=iret)
+         call check_allocate(iret, subname, &
+                             'tracer_phys(i0:i1,j0:j1,nlev,1:ntrac)', &
                              file=__FILE__, line=__LINE__)
-      end if
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_exner(i0,i1,j0,j1,nlev,ntrac,tracer_phys,mixing_ratio,active_species_idx,&
-                     dp_dry_phys,ptop_phys,p00_phys,inv_exner,exner_phys, &
-                     poverp0=poverp0_phys)
+         allocate(dp_dry_phys(i0:i1,j0:j1,nlev), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_dry_phys(i0:i1,j0:j1,nlev)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Set optional output variables back to dynamics kind:
-      if (present(poverp0)) then
-         poverp0 = real(poverp0_phys, kind_dyn)
-         deallocate(poverp0_phys)
-      end if
+         allocate(exner_phys(i0:i1,j0:j1,nlev), stat=iret)
+         call check_allocate(iret, subname, &
+                             'exner_phys(i0:i1,j0:j1,nlev)', &
+                             file=__FILE__, line=__LINE__)
 
-      !Set output variables back to dynamics kind:
-      exner = real(exner_phys, kind_dyn)
+         !Set local variables:
+         tracer_phys = real(tracer, kind_phys)
+         dp_dry_phys = real(dp_dry, kind_phys)
+         ptop_phys   = real(ptop, kind_phys)
+         p00_phys    = real(p00, kind_phys)
 
-#endif
+         if (present(poverp0)) then
+            !Allocate variable if optional argument is present:
+            allocate(poverp0_phys(i0:i1,j0:j1,nlev), stat=iret)
+            call check_allocate(iret, subname, 'poverp0_phys(i0:i1,j0:j1,nlev)', &
+                                file=__FILE__, line=__LINE__)
+         end if
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_exner_phys(i0,i1,j0,j1,nlev,ntrac,tracer_phys,mixing_ratio,active_species_idx,&
+                             dp_dry_phys,ptop_phys,p00_phys,inv_exner,exner_phys, &
+                             poverp0=poverp0_phys)
+
+         !Set optional output variables back to dynamics kind:
+         if (present(poverp0)) then
+            poverp0 = real(poverp0_phys, kind_dyn)
+            deallocate(poverp0_phys)
+         end if
+
+         !Deallocate variables:
+         deallocate(tracer_phys)
+         deallocate(dp_dry_phys)
+         deallocate(exner_phys)
+
+         !Set output variables back to dynamics kind:
+         exner = real(exner_phys, kind_dyn)
+
+      end if !kind check
 
    end subroutine get_exner
    !
@@ -1130,33 +1459,67 @@ CONTAINS
       !
       integer, optional, dimension(:), intent(in) :: active_species_idx_dycore
 
-#ifndef DYN_PHYS_KIND_DIFF
-
-      !The dynamics and physics kind is the same, so just call the physics
-      !routine directly:
-      call get_thermal_energy_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,temp,dp_dry,thermal_energy,&
-                                   active_species_idx_dycore=active_species_idx_dycore)
-#else
-
       !Declare local variables:
-      real(kind_phys) :: tracer_mass_phys(i0:i1,j0:j1,k0:k1,ntrac)
-      real(kind_phys) :: temp_phys(i0:i1,j0:j1,k0:k1)
-      real(kind_phys) :: dp_dry_phys(i0:i1,j0:j1,k0:k1)
-      real(kind_phys) :: thermal_energy_phys(i0:i1,j0:j1,k0:k1)
+      real(kind_phys), allocatable :: tracer_mass_phys(:,:,:,:)
+      real(kind_phys), allocatable :: temp_phys(:,:,:)
+      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
+      real(kind_phys), allocatable :: thermal_energy_phys(:,:,:)
 
-      !Set local variables:
-      tracer_mass_phys    = real(tracer_mass, kind_phys)
-      temp_phys           = real(temp, kind_phys)
-      dp_dry_phys         = real(dp_dry_phys, kind_phys)
+      !check_allocate variables:
+      integer :: iret !allocate status integer
+      character(len=*), parameter :: subname = 'get_thermal_energy (dyn)'
 
-      !Call physics routine using local vriables with matching kinds:
-      call get_thermal_energy_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass_phys,temp_phys,&
-                                   dp_dry_phys,thermal_energy_phys,&
-                                   active_species_idx_dycore=active_species_idx_dycore)
+      !Check if kinds are different:
+      if (kind_phys == kind_dyn) then
 
-      !Set output variables back to dynamics kind:
-      thermal_energy = real(thermal_energy_phys, kind_dyn)
-#endif
+         !The dynamics and physics kind is the same, so just call the physics
+         !routine directly:
+         call get_thermal_energy_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass,temp,dp_dry,thermal_energy,&
+                                      active_species_idx_dycore=active_species_idx_dycore)
+
+      else
+
+         !Allocate local variables:
+         allocate(tracer_mass_phys(i0:i1,j0:j1,k0:k1,1:ntrac), stat=iret)
+         call check_allocate(iret, subname, &
+                             'tracer_mass_phys(i0:i1,j0:j1,nlev,1:ntrac)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(temp_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'temp_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(dp_dry_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'dp_dry_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         allocate(thermal_energy_phys(i0:i1,j0:j1,k0:k1), stat=iret)
+         call check_allocate(iret, subname, &
+                             'thermal_energy_phys(i0:i1,j0:j1,k0:k1)', &
+                             file=__FILE__, line=__LINE__)
+
+         !Set local variables:
+         tracer_mass_phys    = real(tracer_mass, kind_phys)
+         temp_phys           = real(temp, kind_phys)
+         dp_dry_phys         = real(dp_dry_phys, kind_phys)
+
+         !Call physics routine using local vriables with matching kinds:
+         call get_thermal_energy_phys(i0,i1,j0,j1,k0,k1,ntrac,tracer_mass_phys,temp_phys,&
+                                      dp_dry_phys,thermal_energy_phys,&
+                                      active_species_idx_dycore=active_species_idx_dycore)
+
+         !Set output variables back to dynamics kind:
+         thermal_energy = real(thermal_energy_phys, kind_dyn)
+
+         !Deallocate variables:
+         deallocate(tracer_mass_phys)
+         deallocate(temp_phys)
+         deallocate(dp_dry_phys)
+         deallocate(thermal_energy_phys)
+
+      end if !kind check
 
    end subroutine get_thermal_energy
 

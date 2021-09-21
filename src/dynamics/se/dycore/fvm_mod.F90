@@ -930,8 +930,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
               fvm(ie)%norm_elem_coord_physgrid(2,i,j) =(tmpgnom%y-elem(ie)%corners(1)%y)/&
                    (0.5_r8*real(fv_nphys, r8)*fvm(ie)%dalpha_physgrid)-1.0_r8
             else
-              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1E9_r8
-              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1.E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1.E9_r8
             end if
           end do
         end do
@@ -945,15 +945,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
             x1 = fvm(ie)%norm_elem_coord_physgrid(1,i,j)
             x2 = fvm(ie)%norm_elem_coord_physgrid(2,i,j)
             call Dmap(D(i,j,:,:),x1,x2,elem(ie)%corners3D,cubed_sphere_map,elem(ie)%corners,elem(ie)%u2qmap,elem(ie)%facenum)
-            detD = D(i,j,1,1)*D(i,j,2,2) - D(i,j,1,2)*D(i,j,2,1)      
-            
+            detD = D(i,j,1,1)*D(i,j,2,2) - D(i,j,1,2)*D(i,j,2,1)
+
             fvm(ie)%Dinv_physgrid(i,j,1,1) =  D(i,j,2,2)/detD
             fvm(ie)%Dinv_physgrid(i,j,1,2) = -D(i,j,1,2)/detD
             fvm(ie)%Dinv_physgrid(i,j,2,1) = -D(i,j,2,1)/detD
             fvm(ie)%Dinv_physgrid(i,j,2,2) =  D(i,j,1,1)/detD
           end do
         end do
-      end do            
+      end do
     end if
 
   end subroutine fvm_pg_init

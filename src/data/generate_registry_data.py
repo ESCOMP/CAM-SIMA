@@ -191,11 +191,6 @@ class VarBase:
         # end if
         # pylint: enable=bad-continuation
 
-        if self.__tstep_init == "true":
-            self.__tstep_init = True
-        elif self.__tstep_init == "false":
-            self.__tstep_init = False
-
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
         outfile.write('[ {} ]\n'.format(self.local_name))
@@ -245,17 +240,41 @@ class VarBase:
                 init_val = 'HUGE(1)'
             elif self.var_type.lower() == 'character':
                 init_val = '""'
+            elif self.var_type.lower() == 'complex':
+                init_val = '(nan, nan)'
             else:
                 init_val = ''
             # end if
         # end if
-        #Time-step initialization, which is always zero:
+        #Time-step initialization, which is always zero for numerical quantities,
+        #empty strings for characters, and "false" for logical quantities:
         if tstep_init:
-            if self.kind:
-                outfile.write("{} = 0._{}".format(var_name, self.kind), indent)
+            if self.var_type.lower() == 'real':
+                if self.kind:
+                    outfile.write('{} = 0._{}'.format(var_name, self.kind), indent)
+                else:
+                    outfile.write('{} = 0.0'.format(var_name), indent)
+            elif self.var_type.lower() == 'integer':
+                if self.kind:
+                    outfile.write('{} = 0_{}'.format(var_name, self.kind), indent)
+                else:
+                    outfile.write('{} = 0'.format(var_name), indent)
+            elif self.var_type.lower() == 'character':
+                if self.kind:
+                    outfile.write('{} = {}_""'.format(var_name, self.kind), indent)
+                else:
+                    outfile.write('{} = ""'.format(var_name), indent)
+            elif self.var_type.lower() == 'complex':
+                if self.kind:
+                    outfile.write('{} = (0._{}, 0._{})'.format(var_name, self.kind, self.kind), indent)
+                else:
+                    outfile.write('{} = (0.0, 0.0)'.format(var_name), indent)
+            elif self.var_type.lower() == 'logical':
+                outfile.write('{} = .false.'.format(var_name), indent)
             else:
-                #Assume variable is an integer:
-                outfile.write("{} = 0".format(var_name), indent)
+                emsg = 'Variable "{}" is of type "{}", which is not a supported type\n'
+                emsg += 'for use with "phys_timestep_init_zero".'
+                raise TypeError(emsg.format(var_name, self.var_type))
             # end if
         elif init_val:
             outfile.write("if ({}) then".format(init_var), indent)
@@ -741,7 +760,7 @@ class Variable(VarBase):
             dimension_string = ''
         # end if
         my_ddt = self.is_ddt
-        if my_ddt: # This is a DDT object, allocate entries
+        if my_ddt: # This is a DDT object, initalize individual entries
 
             subi = indent
             sub_ddt_str = '{}{}%'.format(ddt_str, self.local_name)

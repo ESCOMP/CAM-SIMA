@@ -576,7 +576,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use dynconst,           only: cpair
    use dyn_thermo,         only: get_molecular_diff_coef_reference
    !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
-   !use gravity_waves_sources, only: gws_init
+   use gravity_waves_sources, only: gws_init
 
    use physics_types,  only: ix_qv, ix_cld_liq !Use until constituents are fully-enabled -JN
 
@@ -869,8 +869,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call prim_init2(elem, fvm, hybrid, nets, nete, TimeLevel, hvcoord)
       !$OMP END PARALLEL
 
-!Uncomment once gravity waves are enabled -JN:
-!      if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) call gws_init(elem)
+      if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) call gws_init(elem)
    end if  ! iam < par%nprocs
 
 !Remove/replace after CAMDEN history output is enabled -JN:

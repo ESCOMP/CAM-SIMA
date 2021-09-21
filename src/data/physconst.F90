@@ -259,15 +259,15 @@ CONTAINS
 
       ! Kind-converstion variables, to ensure that MPI broadcast
       ! works as expected:
-      real(r8) :: gravit_r8
-      real(r8) :: sday_r8
-      real(r8) :: mwh2o_r8
-      real(r8) :: cpwv_r8
-      real(r8) :: mwdry_r8
-      real(r8) :: cpair_r8
-      real(r8) :: rearth_r8
-      real(r8) :: tmelt_r8
-      real(r8) :: omega_r8
+      real(r8) :: gravit_bcast
+      real(r8) :: sday_bcast
+      real(r8) :: mwh2o_bcast
+      real(r8) :: cpwv_bcast
+      real(r8) :: mwdry_bcast
+      real(r8) :: cpair_bcast
+      real(r8) :: rearth_bcast
+      real(r8) :: tmelt_bcast
+      real(r8) :: omega_bcast
 
       ! Physical constants needing to be reset (ie. for aqua planet experiments)
       namelist /physconst_nl/  gravit, sday, mwh2o, cpwv, mwdry, cpair,       &
@@ -289,54 +289,42 @@ CONTAINS
          close(unitn)
       end if
 
-      ! Copy namelist variables into "r8" temporary variables
-      ! for broadcasting:
-      gravit_r8 = real(gravit, r8)
-      sday_r8   = real(sday, r8)
-      mwh2o_r8  = real(mwh2o, r8)
-      cpwv_r8   = real(cpwv, r8)
-      mwdry_r8  = real(mwdry, r8)
-      cpair_r8  = real(cpair, r8)
-      rearth_r8 = real(rearth, r8)
-      tmelt_r8  = real(tmelt, r8)
-      omega_r8  = real(omega, r8)
-
       ! Broadcast namelist variables
       if (npes > 1) then
 
-         ! Copy namelist variables into "r8" temporary variables
+         ! Copy namelist variables into "bcast" temporary variables
          ! for broadcasting:
-         gravit_r8 = real(gravit, r8)
-         sday_r8   = real(sday, r8)
-         mwh2o_r8  = real(mwh2o, r8)
-         cpwv_r8   = real(cpwv, r8)
-         mwdry_r8  = real(mwdry, r8)
-         cpair_r8  = real(cpair, r8)
-         rearth_r8 = real(rearth, r8)
-         tmelt_r8  = real(tmelt, r8)
-         omega_r8  = real(omega, r8)
+         gravit_bcast = real(gravit, r8)
+         sday_bcast   = real(sday, r8)
+         mwh2o_bcast  = real(mwh2o, r8)
+         cpwv_bcast   = real(cpwv, r8)
+         mwdry_bcast  = real(mwdry, r8)
+         cpair_bcast  = real(cpair, r8)
+         rearth_bcast = real(rearth, r8)
+         tmelt_bcast  = real(tmelt, r8)
+         omega_bcast  = real(omega, r8)
 
          ! Broadcast to other PEs:
-         call mpi_bcast(gravit_r8, 1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(sday_r8,   1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(mwh2o_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(cpwv_r8,   1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(mwdry_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(cpair_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(rearth_r8, 1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(tmelt_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(omega_r8,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(gravit_bcast, 1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(sday_bcast,   1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(mwh2o_bcast,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(cpwv_bcast,   1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(mwdry_bcast,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(cpair_bcast,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(rearth_bcast, 1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(tmelt_bcast,  1, mpi_real8, masterprocid, mpicom, ierr)
+         call mpi_bcast(omega_bcast,  1, mpi_real8, masterprocid, mpicom, ierr)
 
          ! Convert broadcasted variables back to "kind_phys":
-         gravit = real(gravit_r8, kind_phys)
-         sday   = real(sday_r8, kind_phys)
-         mwh2o  = real(mwh2o_r8, kind_phys)
-         cpwv   = real(cpwv_r8, kind_phys)
-         mwdry  = real(mwdry_r8, kind_phys)
-         cpair  = real(cpair_r8, kind_phys)
-         rearth = real(rearth_r8, kind_phys)
-         tmelt  = real(tmelt_r8, kind_phys)
-         omega  = real(omega_r8, kind_phys)
+         gravit = real(gravit_bcast, kind_phys)
+         sday   = real(sday_bcast, kind_phys)
+         mwh2o  = real(mwh2o_bcast, kind_phys)
+         cpwv   = real(cpwv_bcast, kind_phys)
+         mwdry  = real(mwdry_bcast, kind_phys)
+         cpair  = real(cpair_bcast, kind_phys)
+         rearth = real(rearth_bcast, kind_phys)
+         tmelt  = real(tmelt_bcast, kind_phys)
+         omega  = real(omega_bcast, kind_phys)
 
       end if
 

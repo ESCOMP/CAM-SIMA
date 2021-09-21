@@ -156,7 +156,7 @@ contains
     ! Compute first half of the roots by "polynomial deflation".
     ! ============================================================
 
-    dth = pi/(2._r8*real(n+2, r8))
+    dth = pi/(2._r8*real(n+1, r8))
 
     nh  = (n+1)/2
 
