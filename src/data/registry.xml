@@ -291,13 +291,14 @@
       <initial_value dycore="SE,FV">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
+      <data>air_temperature</data>
+      <data>x_wind</data>
+      <data>y_wind</data>
+      <data>lagrangian_tendency_of_air_pressure</data>
+      <data>constituent_mixing_ratio</data>
+      <!--dycore specific entries -->
       <data dycore="SE">surface_pressure_of_dry_air</data>
       <data dycore="SE">geopotential_at_surface</data>
-      <data dycore="SE">air_temperature</data>
-      <data dycore="SE">x_wind</data>
-      <data dycore="SE">y_wind</data>
-      <data dycore="SE">lagrangian_tendency_of_air_pressure</data>
-      <data dycore="SE">constituent_mixing_ratio</data>
       <data dycore="SE">pressure_thickness_of_dry_air</data>
       <data dycore="SE">frontogenesis_function</data>
       <data dycore="SE">frontogenesis_angle</data>
