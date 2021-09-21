@@ -119,7 +119,7 @@ class TypeRegistry(dict):
 
     def known_ddt_names(self):
         """Return a list of the known DDT types in this registry"""
-        ddt_names = list()
+        ddt_names = []
         for key in self:
             ddt = self[key].ddt
             if ddt:
@@ -152,7 +152,7 @@ class VarBase:
         self.__long_name = ''
         self.__initial_value = ''
         self.__ic_names = None
-        self.__elements = list()
+        self.__elements = []
         self.__protected = protected
         self.__index_name = index_name
         self.__local_index_name = local_index_name
@@ -184,12 +184,10 @@ class VarBase:
 
             # end if (just ignore other tags)
         # end for
-        # pylint: disable=bad-continuation
         if ((not self.initial_value) and
             (self.allocatable == VarBase.__pointer_type_str)):
             self.__initial_value = VarBase.__pointer_def_init
         # end if
-        # pylint: enable=bad-continuation
 
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
@@ -406,9 +404,9 @@ class ArrayElement(VarBase):
         local_index_name = var.local_name
         # Find the location of this element's index
         found = False
-        my_dimensions = list()
-        my_index = list()
-        my_local_index = list()
+        my_dimensions = []
+        my_index = []
+        my_local_index = []
         for dim_ind, dim in enumerate(dimensions):
             if dimensions[dim_ind] == pos:
                 found = True
@@ -502,12 +500,12 @@ class Variable(VarBase):
         else:
             protected = False
         # end if
-        my_dimensions = list()
+        my_dimensions = []
         self.__def_dims_str = ""
         for attrib in var_node:
             if attrib.tag == 'dimensions':
                 my_dimensions = [x.strip() for x in attrib.text.split(' ') if x]
-                def_dims = list() # Dims used for variable declarations
+                def_dims = [] # Dims used for variable declarations
                 for dim in my_dimensions:
                     if dim.count(':') > 1:
                         emsg = "Illegal dimension string, '{},' in '{}'"
@@ -517,7 +515,7 @@ class Variable(VarBase):
                     if allocatable in ("", "parameter", "target"):
                         # We need to find a local variable for every dimension
                         dimstrs = [x.strip() for x in dim.split(':')]
-                        ldimstrs = list()
+                        ldimstrs = []
                         for ddim in dimstrs:
                             lname = Variable.constant_dimension(ddim)
                             if not lname:
@@ -827,7 +825,7 @@ class VarDict(OrderedDict):
         self.__name = name
         self.__type = ttype
         self.__logger = logger
-        self.__standard_names = list()
+        self.__standard_names = []
         self.__dimensions = set() # All known dimensions for this dictionary
 
     @property
@@ -992,7 +990,7 @@ class DDT:
         """
         self.__type = ddt_node.get('type')
         self.__logger = logger
-        self.__data = list()
+        self.__data = []
         extends = ddt_node.get('extends', default=None)
         if extends is None:
             self.__extends = None
@@ -1149,7 +1147,7 @@ class File:
         self.__type = file_node.get('type')
         self.__known_types = known_types
         self.__ddts = OrderedDict()
-        self.__use_statements = list()
+        self.__use_statements = []
         self.__generate_code = gen_code
         self.__file_path = file_path
         for obj in file_node:
@@ -1231,7 +1229,7 @@ class File:
         with FortranWriter(ofilename, "w", file_desc,
                            self.name, indent=indent) as outfile:
             # Use statements (if any)
-            module_list = list() # tuple of (module, type)
+            module_list = [] # tuple of (module, type)
             for var in self.__var_dict.variable_list():
                 mod = var.module
                 if mod and (mod.lower() != self.name.lower()):
@@ -1438,7 +1436,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
     registry File object.
     """
     known_ddts = known_types.known_ddt_names()
-    mfiles = list()
+    mfiles = []
     if os.path.exists(file_path):
         meta_tables = parse_metadata_file(file_path, known_ddts, logger)
         logger.info("Parsing metadata_file, '{}'".format(file_path))
@@ -1486,7 +1484,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
             vnode_str += '>'
             dims = var.get_dimensions()
             if dims:
-                vdims = list()
+                vdims = []
                 for dim in dims:
                     if dim[0:18] == 'ccpp_constant_one:':
                         vdims.append(dim[18:])
@@ -1532,7 +1530,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     Traceback (most recent call last):
     CCPPError: Unknown registry object type, 'variable'
     """
-    files = list()
+    files = []
     known_types = TypeRegistry()
     for section in registry:
         sec_name = section.get('name')

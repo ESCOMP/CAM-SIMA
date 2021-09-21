@@ -123,7 +123,7 @@ def _build_cam():
         # End if
 
         # Write Filepath text file
-        with open(filepath_src, "w") as filepath:
+        with open(filepath_src, "w", encoding='utf-8') as filepath:
             filepath.write("\n".join(paths))
             filepath.write("\n")
         # End with

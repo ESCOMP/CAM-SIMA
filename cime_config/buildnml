@@ -98,7 +98,6 @@ def buildnml(case, caseroot, compname):
     # End if
     srcroot             = case.get_value("SRCROOT")
     rundir              = case.get_value("RUNDIR")
-    atm_ncpl            = case.get_value("ATM_NCPL")
     cam_namelist_opts   = case.get_value("CAM_NAMELIST_OPTS")
     cam_nml_use_case    = case.get_value("CAM_NML_USE_CASE")
     debug               = case.get_value("DEBUG")
