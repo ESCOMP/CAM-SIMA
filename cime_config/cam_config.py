@@ -75,34 +75,103 @@ def _check_integer_val(name, val, valid_vals=None):
     tuple -> If a tuple, then there must be only two values, which define
              a possible range of values, e.g. (min, max). If only one value
              is provided, then only a minimum (or maximum) value will be
-             enforced, depending on if the tuple is (x,) or (,x).
+             enforced, depending on if the tuple is (x, None) or (None ,x).
+
+    Doctests:
+
+    Please note that "successful" validation tests are done in the ConfigInteger doctests.
+
+    1.  Check that using a non-integer value throws an error:
+    >>> _check_integer_val("test", 5.0, valid_vals=None) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR: Value being checked in 'check_integer_val' must be an integer type, not '<class 'float'>'.
+
+    2.  Check that using a valid_vals option that is not a list or tuple throws an error:
+    >>> _check_integer_val("test", 5, valid_vals="test_vals") #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR: Valid values for integers must by provided as either a tuple or a list, not '<class 'str'>'.
+
+    3.  Check that using non-integer values inside the valid_vals list or tuple throws an error:
+    >>> _check_integer_val("test", 5, valid_vals=[1,2,5,"test_val"]) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR:  Valid value, 'test_val', for variable 'test', must be either None or an integer.  Currently it is '<class 'str'>'.
+
+    4.  Check that using a tuple with only one entry throws an error:
+    >>> _check_integer_val("test", 5, valid_vals=(1,)) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '1' elements.
+
+    5.  Check that using a tuple with more than two entries throws an error:
+    >>> _check_integer_val("test", 5, valid_vals=(1,2,5)) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '3' elements.
+
+    6.  Check that using a tuple with only Nones throws an error:
+    >>> _check_integer_val("test", 5, valid_vals=(None,None)) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigValError: ERROR: Valid values tuple for variable, 'test', must contain at least one integer.
+
+    7.  Check that an integer less than the tuple min is "invalid":
+    >>> _check_integer_val("test", 5, valid_vals=(6,None))
+    "ERROR: Value, '5', provided for variable, 'test', is less than minimum valid value, '6'"
+
+    8.  Check that an integer greater than the tuple max is "invalid":
+    >>> _check_integer_val("test", 5, valid_vals=(None,4))
+    "ERROR:  Value, '5', provided for variable, 'test', is greater than max valid value, '4'"
+
+    9.  Check that an integer outside min/max tuple range is "invalid":
+    >>> _check_integer_val("test", 5, valid_vals=(10,13))
+    "ERROR:  Value, '5', provided for variable, 'test', is outside valid value range, '(10, 13)'"
+
+    10. Check that an integer not included in the list is "invalid":
+    >>> _check_integer_val("test", 5, valid_vals=[1,2,3,4])
+    "ERROR:  Value, '5', provided for variable, 'test', does not match any of the valid values: '[1, 2, 3, 4]'"
+
     """
 
     # Make sure that provided value is an integer:
     if not isinstance(val, int):
-        emsg = "ERROR: Value being checked in 'check_integer_val'"
-        emsg += "must be an integer type, not '{}'"
+        emsg = "ERROR: Value being checked in 'check_integer_val' "
+        emsg += "must be an integer type, not '{}'."
         raise CamConfigTypeError(emsg.format(type(val)))
     # End if
 
     # Only check the given value if valid_vals is not "None"
     if valid_vals is not None:
+
         # Check if valid values is a tuple
         if isinstance(valid_vals, tuple):
+
+            # Check that all tuple elements are integers:
+            for valid_val in valid_vals:
+                if valid_val is not None and not isinstance(valid_val, int):
+                    emsg = ("ERROR:  Valid value, '{}', for variable '{}', must be "
+                            "either None or an integer.  Currently it is '{}'.")
+                    raise CamConfigTypeError(emsg.format(valid_val, name, type(valid_val)))
+                # End if
+            # End for
+
             # Check that length of valid values tuple is 2
             if len(valid_vals) != 2:
                 emsg = ("ERROR: Valid values tuple for variable, "
-                        "'{}', must have two elements, not '{}' elements")
+                        "'{}', must have two elements, not '{}' elements.")
                 raise CamConfigValError(emsg.format(name,
                                                     len(valid_vals)))
             # End if
+
             if valid_vals[0] is None:
                 # If first valid value is "None", then just check that
                 # given value is less than second valid value, and
                 # that second value is an integer
                 if valid_vals[1] is None:
                     emsg = "ERROR: Valid values tuple for variable, '{}', "
-                    emsg += "must contain at least one integer"
+                    emsg += "must contain at least one integer."
                     raise CamConfigValError(emsg.format(name))
                 # End if
                 if val > valid_vals[1]:
@@ -128,7 +197,18 @@ def _check_integer_val(name, val, valid_vals=None):
                     return emsg.format(val, name, valid_vals)
                 # End if
             # End if
+
         elif isinstance(valid_vals, list):
+
+            # Check that all tuple elements are integers:
+            for valid_val in valid_vals:
+                if valid_val is not None and not isinstance(valid_val, int):
+                    emsg = ("ERROR:  Valid value, '{}', for variable '{}', must be "
+                            "either None or an integer.  Currently it is '{}'.")
+                    raise CamConfigTypeError(emsg.format(valid_val, name, type(valid_val)))
+                # End if
+            # End for
+
             # If valid_vals is a list, then just check that the given value
             # matches one of the valid values in the list
             if not val in valid_vals:
@@ -136,10 +216,11 @@ def _check_integer_val(name, val, valid_vals=None):
                 emsg += "does not match any of the valid values: '{}'"
                 return emsg.format(val, name, valid_vals)
             # End if
+
         else:
             # valid_vals is neither a list nor a tuple, so throw an error:
             emsg = "ERROR: Valid values for integers must by provided as "
-            emsg = "either a tuple or a list, not '{}'."
+            emsg += "either a tuple or a list, not '{}'."
             raise CamConfigTypeError(emsg.format(type(valid_vals)))
 
         # End if
@@ -162,12 +243,42 @@ def _check_string_val(name, val, valid_vals=None):
 
     regex -> If a compiled regular expression, then check that the provided
              value is matched by the regular expression.
+
+    Doctests:
+
+    Please note that "successful" validation tests are done in the ConfigString doctests.
+
+    1.  Check that using a non-string value throws an error:
+    >>> _check_string_val("test", [5], valid_vals=None) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR: Value being checked in 'check_string_val' must be a string type, not '<class 'list'>'.
+
+    2.  Check that using a valid_vals option that is not None, a list, or a regex throws an error:
+    >>> _check_string_val("test", "test_val", valid_vals=5) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR: Valid values for strings must by provided as either a regular expression or a list, not '<class 'int'>'.
+
+    3.  Check that using non-string values inside the valid_vals list throws an error:
+    >>> _check_string_val("test", "1", valid_vals=["1","2","5",6]) #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigTypeError: ERROR:  Valid value, '6', for variable 'test', must be a string.  Currently it is '<class 'int'>'.
+
+    9.  Check that a string that doesn't match the provided regex is "invalid":
+    >>> _check_string_val("test", "test_val", valid_vals=re.compile(r"foo"))
+    "ERROR:  Value, 'test_val', provided for variable, 'test', does not match the valid regular expression."
+
+    10. Check that a string not included in the list is "invalid":
+    >>> _check_string_val("test", "test_val", valid_vals=["1","2","3","4"])
+    "ERROR:  Value, 'test_val', provided for variable, 'test', does not match any of the valid values: '['1', '2', '3', '4']'"
     """
 
-    # Make sure that provided value is an integer:
+    # Make sure that provided value is a string:
     if not isinstance(val, str):
-        emsg = "ERROR: Value being checked in 'check_string_val'"
-        emsg += "must be a string type, not '{}'"
+        emsg = "ERROR: Value being checked in 'check_string_val' "
+        emsg += "must be a string type, not '{}'."
         raise CamConfigTypeError(emsg.format(type(val)))
     # End if
 
@@ -177,6 +288,16 @@ def _check_string_val(name, val, valid_vals=None):
         # If a list, then check that the given value
         # matches one of the valid values in the list
         if isinstance(valid_vals, list):
+
+            # Check that all list elements are strings:
+            for valid_val in valid_vals:
+                if not isinstance(valid_val, str):
+                    emsg = ("ERROR:  Valid value, '{}', for variable '{}', must be "
+                            "a string.  Currently it is '{}'.")
+                    raise CamConfigTypeError(emsg.format(valid_val, name, type(valid_val)))
+                # End if
+            # End for
+
             if not val in valid_vals:
                 emsg = "ERROR:  Value, '{}', provided for variable, '{}', "
                 emsg += "does not match any of the valid values: '{}'"
@@ -194,8 +315,8 @@ def _check_string_val(name, val, valid_vals=None):
         else:
             # valid_vals is neither a list nor a regex, so throw an error:
             emsg = "ERROR: Valid values for strings must by provided as "
-            emsg = "either a regular expression or a list, not '{}'"
-            return emsg.format(type(valid_vals))
+            emsg += "either a regular expression or a list, not '{}'."
+            raise CamConfigTypeError(emsg.format(type(valid_vals)))
 
         # End if
     # End if
@@ -203,11 +324,14 @@ def _check_string_val(name, val, valid_vals=None):
     # Return nothing if value is valid
     return None
 
+# Helper function to better generalize config value checking:
+_TYPE_CHECK_FUNCTIONS = {"int" : _check_integer_val, "str" : _check_string_val}
+
 ###############################################################################
 # CAM configure option classes
 ###############################################################################
 
-class ConfigGen:
+class ConfigGen(object):
 
     """
     Generic configuration class used to
@@ -344,54 +468,6 @@ class ConfigInteger(ConfigGen):
     >>> ConfigInteger("test", "test object description", 5, [4, 5, 6], is_nml_attr=True).is_nml_attr
     True
 
-    2.  Check that valid_vals must be None, a tuple, or a list:
-
-    >>> ConfigInteger("test", "test object description", 5, "valid_vals").valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  The valid values for variable, 'test', must either be None, a list, or a tuple, not <type 'str'>
-
-    3.  Check that elements in list/tuple must be type None or integer:
-
-    >>> ConfigInteger("test", "Test object description", 5, (1, 5.0)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  Valid value for variable, 'test', must be either None or an integer.  Currently it is <type 'float'>
-
-    4.  Evaluate if the "check_value" method works properly:
-
-    With tuple length < 2:
-    >>> ConfigInteger("test", "Test object description", 5, (1,)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: Error:  Valid values tuple for variable, 'test', must have two elements, not '1' elements
-
-    With tuple length > 2:
-    >>> ConfigInteger("test", "Test object description", 5, (1, 2, 10)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: Error:  Valid values tuple for variable, 'test', must have two elements, not '3' elements
-
-    With tuple full of Nones:
-    >>> ConfigInteger("test", "Test object description", 5, (None, None)).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: Error:  Valid values tuple for variable, 'test', must contain at least one integer
-
-    With given value less than valid minimum:
-    >>> ConfigInteger("test", "Test object description", 5, (6, None)).value #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: Error:  Value, '5', provided for variable, 'test', is less than minimum valid value, '6'
-
-    With given value more than valid maximum:
-    >>> ConfigInteger("test", "Test object description", 5, (None, 4)).value #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: Error:  Value, '5', provided for variable, 'test', is greater than max valid value, '4'
-
-    With given value outside valid range:
-    >>> ConfigInteger("test", "Test object description", 5, (1, 4)).value #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: Error:  Value, '5', provided for variable, 'test', is outside valid value range, '(1, 4)'
-
-    With given value not present in valid value list:
-    >>> ConfigInteger("test,", "Test object description", 5, [3, 4, 6]).value #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: ERROR:  Value, '5', provided for variable, 'test', does not match any of the valid values: '[3, 4, 6]'
     """
 
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
@@ -399,31 +475,13 @@ class ConfigInteger(ConfigGen):
         # Add generic attributes
         super(ConfigInteger, self).__init__(name, desc, is_nml_attr=is_nml_attr)
 
-        # Check that "valid_vals" is either "None", a list, or a tuple
-        if valid_vals is not None:
-            if not isinstance(valid_vals, (list, tuple)):
-                emsg = ("ERROR:  The valid values for variable, '{}', "
-                        "must either be None, a list, or a tuple, not {}")
-                raise CamConfigTypeError(emsg.format(name, type(valid_vals)))
-            # End if
-
-            # If list or tuple, check that all entries are either
-            #   "None" or integers
-            for valid_val in valid_vals:
-                if valid_val is not None and not isinstance(valid_val, int):
-                    emsg = ("ERROR:  Valid value for variable, '{}', must be "
-                            "either None or an integer.  Currently it is {}")
-                    raise CamConfigTypeError(emsg.format(name,
-                                                         type(valid_val)))
-                # End if
-            # End for
-        # End if
-
-        # If ok, then add valid_vals to object
+        # Add valid_vals to object
         self.__valid_vals = valid_vals
 
-        # Next, check that provided value is "valid" based on the
-        #    valid values list or tuple
+        # Check that provided value is "valid" based on the
+        # valid values list or tuple.  Note that this function
+        # also checks valid_vals itself to ensure that it is
+        # of the correct type and format.
         self.__check_value(val)
 
         # If everything is ok, then add provided value to object
@@ -519,30 +577,6 @@ class ConfigString(ConfigGen):
     >>> ConfigString("test", "test_object description", "test_val", re.compile(r"test_val"), is_nml_attr=True).is_nml_attr
     True
 
-    2. Check that valid_vals must be either None, a list, or a regular expression:
-
-    >>> ConfigString("test", "test object description", "test_val", "test_valid_vals").valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  The valid values for variable, 'test', must either be None, a list, or a regex object, not <type 'str'>
-
-    3. Check that if valid_vals is a list, all elements must be strings:
-
-    >>> ConfigString("test", "test object description", "test_val", ["test_val", 5]).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  All valid value list options for variable, 'test', must be strings.
-
-    4.  Evaluate if the "check_value" method works properly:
-
-    With given value not present in valid value list:
-    >>> ConfigString("test", "test object description", "test_val", ["real_val", "other_val"]).valid_vals #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: ERROR:  Value, 'test_val', provided for variable, 'test', does not match any of the valid values: '['real_val', 'other_val']'
-
-    With given value not matching the valid regular expression:
-    >>> ConfigString("test", "test object description", "test_val", re.compile(r"real_val")).value #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    CamConfigValError: ERROR:  Value, 'test_val', provided for variable, 'test', does not match the valid regular expression
-
     """
 
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
@@ -550,30 +584,14 @@ class ConfigString(ConfigGen):
         # Add generic attributes
         super(ConfigString, self).__init__(name, desc, is_nml_attr=is_nml_attr)
 
-        # Check if Valid_vals is not None
-        if valid_vals is not None:
-            # If not None, check if valid_vals is either a list or a
-            #     regular expression (regex) object
-            if not isinstance(valid_vals, (list, REGEX_TYPE)):
-                emsg = "ERROR:  The valid values for variable, '{}', must "
-                emsg += "either be None, a list, or a regex object, not {}"
-                raise CamConfigTypeError(emsg.format(name, type(valid_vals)))
-            # End if
-            if isinstance(valid_vals, list):
-                # If list, check that every entry is a string
-                if not all(isinstance(n, str) for n in valid_vals):
-                    emsg = "ERROR:  All valid value list options for "
-                    emsg += "variable, '{}', must be strings."
-                    raise CamConfigTypeError(emsg.format(name))
-                # End if
-            # End if
-        # End if
-
         # If ok, then add valid_vals to object
         self.__valid_vals = valid_vals
 
         # Next, check that provided value is "valid" based on the
-        #     valid values list or regular expression
+        # valid values list or regular expression. Note that this
+        # function also checks valid_vals itself to ensure that it
+        # is of the correct type and format.
+
         self.__check_value(val)
 
         # If everything is ok, then add provided value to object
@@ -691,25 +709,11 @@ class ConfigList(ConfigGen):
     ...
     CamConfigValError: ERROR: valid values can only be used if valid_type is 'int' or 'str', not 'None'.
 
-    7.  Check that ConfigList with a "valid_vals" type that doesn't match "valid_type='int'" fails with the correct error:
-    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="int", valid_vals={'a':1}).value #doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    CamConfigTypeError: ERROR: the valid values provided must be either in the form of a list
-    or a tuple in order to be used with integer elements, not '<class 'dict'>'.
-
-    8.  Check that ConfigList with a "valid_vals" type that doesn't match "valid_type='str'" fails with the correct error:
-    >>> ConfigList("test", "test object description", ["a", "b", "c"], valid_type="str", valid_vals={'a':1}).value #doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    CamConfigTypeError: ERROR: the valid values provided must be either in the form of a list
-    or a regular expression in order to be used with string elements, not '<class 'dict'>'.
-
-    9.  check that ConfigList with a list that matches the "valid_vals" entry works as expected:
+    7.  check that ConfigList with a list that matches the "valid_vals" entry works as expected:
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="int", valid_vals=(0,5)).value
     [1, 2, 3]
 
-    10. check that ConfigList with a list that does not mach the "valid_vals" entry fails wit hthe correct error:
+    8. check that ConfigList with a list that does not mach the "valid_vals" entry fails with the correct error:
     >>> ConfigList("test", "test object description", ["1", "b", "c"], valid_type="str", valid_vals=["1","2","3"]).value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
@@ -734,34 +738,16 @@ class ConfigList(ConfigGen):
             # End if
         # End if
 
+        # Check that the valid values option is only being used with a valid type:
+        if valid_vals is not None and valid_type not in ["int", "str"]:
+            # Currently valid values can only be used with strings or integers,
+            # so throw an error:
+            emsg = "ERROR: valid values can only be used if valid_type is 'int' or 'str', not '{}'."
+            raise CamConfigValError(emsg.format(valid_type))
+
         # If ok, then add valid_type and valid_vals to object
         self.__valid_type = valid_type
         self.__valid_vals = valid_vals
-
-        #Check that the valid values option can be used with the valid type:
-        if self.__valid_vals is not None:
-            # If only integers are allowed ,then make sure valid vals is
-            # either a list or a tuple:
-            if valid_type == "int":
-                if not isinstance(valid_vals, list) and not isinstance(valid_vals, tuple):
-                    emsg = "ERROR: the valid values provided must be either in the form of a list"
-                    emsg += "\nor a tuple in order to be used with integer elements, not '{}'."
-                    raise CamConfigTypeError(emsg.format(type(valid_vals)))
-                # End if
-
-            # If only strings are allowed ,then make sure valid vals is
-            # either a list or a regular expression:
-            elif valid_type == "str":
-                if not isinstance(valid_vals, list) and not isinstance(valid_vals, REGEX_TYPE):
-                    emsg = "ERROR: the valid values provided must be either in the form of a list"
-                    emsg += "\nor a regular expression in order to be used with string elements, not '{}'."
-                    raise CamConfigTypeError(emsg.format(type(valid_vals)))
-                # End if
-            else:
-                # Currently valid values can only be used with strings or integers,
-                # so throw an error:
-                emsg = "ERROR: valid values can only be used if valid_type is 'int' or 'str', not '{}'."
-                raise CamConfigValError(emsg.format(valid_type))
 
         # Next, check that provided list entry types and values are "valid"
         # based on the valid type and valid values provided:
@@ -810,42 +796,42 @@ class ConfigList(ConfigGen):
         # Create empty dictionary to store errors:
         bad_val_types = OrderedDict()
 
+        good_type = "??"
         if valid_type == "str":
             #All list entries should be strings:
+            good_type = "string"
             for list_entry in val:
                 if not isinstance(list_entry, str):
                     bad_val_types[str(list_entry)] = str(type(list_entry))
-
-            #If bad values dictionary is non-empty, then raise error:
-            if bad_val_types:
-                emsg = "ERROR: The following list entries, provided for variable,"
-                emsg += " '{}', are not strings, but instead are:\n".format(self.name)
-                for key_str, type_str in bad_val_types.items():
-                    emsg += "'{}': type='{}'\n".format(key_str, type_str)
-                raise CamConfigValError(emsg)
-            # End if
-
+                # end if
+            # end for
         elif valid_type == "int":
             #All list entries should be integers:
+            good_type = "int"
             for list_entry in val:
                 if not isinstance(list_entry, int):
                     bad_val_types[str(list_entry)] = str(type(list_entry))
-
-            #If bad values dictionary is non-empty, then raise error:
-            if bad_val_types:
-                emsg = "ERROR: The following list entries, provided for variable,"
-                emsg += " '{}', are not integers, but instead are:\n".format(self.name)
-                for key_str, type_str in bad_val_types.items():
-                    emsg += "'{}': type='{}'\n".format(key_str, type_str)
-                raise CamConfigValError(emsg)
-            # End if
-
+                # end if
+            # end for
         else:
             #Invalid option given for "valid_type", so raise error:
             emsg = "ERROR: '{}' is not a recognized option for 'valid_type'."
             emsg += " Please use either 'int' or 'str'."
             raise CamConfigValError(emsg.format(valid_type))
-
+        # End if
+        #If bad values dictionary is non-empty, then raise error:
+        if bad_val_types:
+            if len(bad_val_types) > 1:
+                emsg = "ERROR: The following list entries, provided for variable,"
+                emsg += " '{}', are not {}s, but instead are:\n".format(self.name, good_type)
+            else:
+                emsg = "ERROR: The following list entry, provided for variable,"
+                emsg += " '{}', is not a {}, but instead is: ".format(self.name, good_type)
+            # end if
+            for key_str, type_str in bad_val_types.items():
+                emsg += "'{}': type='{}'\n".format(key_str, type_str)
+            # end for
+            raise CamConfigValError(emsg)
         # End if
 
     #++++++++++++++++++++++++
@@ -862,36 +848,28 @@ class ConfigList(ConfigGen):
         bad_val_msgs = []
 
         # Check if valid type is string or integer
-        if self.valid_type == "int":
+        if self.valid_type in _TYPE_CHECK_FUNCTIONS:
             for val in list_vals:
-                #Check if integer value in list is valid
-                bad_val_msg = _check_integer_val(self.name, val,
-                                                 valid_vals=self.valid_vals)
-
+                #Check if integer or string value in list is valid
+                bad_val_msg = _TYPE_CHECK_FUNCTIONS[self.valid_type](self.name, val,
+                                                                     valid_vals=self.valid_vals)
                 # If return value is not None, then add
                 # to bad value list
                 if bad_val_msg:
                     bad_val_msgs.append(bad_val_msg)
                 # End if
-
-        elif self.valid_type == "str":
-            for val in list_vals:
-                # Check if string value in list is valid
-                bad_val_msg = _check_string_val(self.name, val,
-                                                valid_vals=self.valid_vals)
-
-                # If return value is not None, then add
-                # to bad value list
-                if bad_val_msg:
-                    bad_val_msgs.append(bad_val_msg)
-                # End if
-        # End if
+            # end for
+        else:
+            emsg = "Internal Error: Bad valid_type, '{}'"
+            raise CamConfigTypeError(emsg.format(self.valid_type))
+        # end if
 
         # If bad values are present, then raise an error
         if bad_val_msgs:
             emsg = "The following errors were found for a list-type config variable:\n"
             emsg += "\n\n".join(bad_val_msgs)
             raise CamConfigValError(emsg)
+        # End if
 
     #++++++++++++++++++++++++
 
@@ -1257,8 +1235,8 @@ class ConfigCAM:
         else:
             analy_ic_val = 0 #Don't use Analytic ICs
 
-        analy_ic_desc = ["Switch to turn on analytic initial conditions for the dynamics state:",
-                         "0 => no",
+        analy_ic_desc = ["Switch to turn on analytic initial conditions for the dynamics state: ",
+                         "0 => no ",
                          "1 => yes."]
 
         self.create_config("analytic_ic", analy_ic_desc,
@@ -1694,60 +1672,69 @@ class ConfigCAM:
         with open(user_nl_file, 'r') as nl_file:
             #Read lines in file:
             nl_user_lines = nl_file.readlines()
+        #End with
 
-            #Break out "physics_suite" lines:
-            phys_suite_lines = []
-            for line in nl_user_lines:
-                #Must check if line.lstrip is non-empty first,
-                #Otherwise blank spaces in user_nl_cam will
-                #cause problems:
-                if line.lstrip():
-                    if line.lstrip()[0] != '!' and 'physics_suite' in line:
-                        phys_suite_lines.append([x.strip() for x in line.split('=')])
+        #Break out "physics_suite" lines:
+        phys_suite_lines = []
+        for line in nl_user_lines:
+            #Must check if line.lstrip is non-empty first,
+            #Otherwise blank spaces in user_nl_cam will
+            #cause problems:
+            if line.lstrip():
+                if line.lstrip()[0] != '!' and 'physics_suite' in line:
+                    phys_suite_lines.append([x.strip() for x in line.split('=')])
+                #End if
+            #End if
+        #End for
 
-            if not phys_suite_lines:
-                #If there is no "physics_suite" line,
-                #then check if there is only one physics suite option:
-                if len(phys_suites) == 1:
-                    #If so, then just use the only possible suite option:
-                    phys_suite_val = phys_suites[0]
-                else:
-                    #If more than one option, then raise an error:
-                    emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
-                    emsg += "This is required if more than one suite is listed\n"
-                    emsg += "in CAM_CONFIG_OPTS."
-                    raise CamConfigValError(emsg)
+        if not phys_suite_lines:
+            #If there is no "physics_suite" line,
+            #then check if there is only one physics suite option:
+            if len(phys_suites) == 1:
+                #If so, then just use the only possible suite option:
+                phys_suite_val = phys_suites[0]
             else:
+                #If more than one option, then raise an error:
+                emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
+                emsg += "This is required if more than one suite is listed\n"
+                emsg += "in CAM_CONFIG_OPTS."
+                raise CamConfigValError(emsg)
+            #End if
+        else:
 
-                #If there is more than one "physics_suite" entry, then throw an error:
-                if len(phys_suite_lines) > 1:
-                    emsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
-                    emsg += "Only one 'physics_suite' line is allowed."
-                    raise CamConfigValError(emsg)
+            #If there is more than one "physics_suite" entry, then throw an error:
+            if len(phys_suite_lines) > 1:
+                emsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
+                emsg += "Only one 'physics_suite' line is allowed."
+                raise CamConfigValError(emsg)
+            #End if
 
-                #The split string list exists inside another, otherwise empty list, so extract
-                #from empty list:
-                phys_suite_list = phys_suite_lines[0]
+            #The split string list exists inside another, otherwise empty list, so extract
+            #from empty list:
+            phys_suite_list = phys_suite_lines[0]
 
-                if len(phys_suite_list) == 1:
-                    #If there is only one string entry, then it means the equals (=) sign was never found:
-                    emsg = "No equals (=) sign was found with the 'physics_suite' variable."
-                    raise CamConfigValError(emsg)
+            if len(phys_suite_list) == 1:
+                #If there is only one string entry, then it means the equals (=) sign was never found:
+                emsg = "No equals (=) sign was found with the 'physics_suite' variable."
+                raise CamConfigValError(emsg)
+            #End if
 
-                if len(phys_suite_list) > 2:
-                    #If there is more than two entries, it means there were two or more equals signs:
-                    emsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
-                    raise CamConfigValError(emsg)
+            if len(phys_suite_list) > 2:
+                #If there is more than two entries, it means there were two or more equals signs:
+                emsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
+                raise CamConfigValError(emsg)
+            #End if
 
-                #Remove quotation marks around physics_suite entry, if any:
-                phys_suite_val = phys_suite_list[1].strip(''' "' ''')
+            #Remove quotation marks around physics_suite entry, if any:
+            phys_suite_val = phys_suite_list[1].strip(''' "' ''')
 
-                #Check that physics suite specified is actually in config list:
-                if phys_suite_val not in phys_suites:
-                    emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
-                    emsg += "listed in CAM_CONFIG_OPTS"
-                    raise CamConfigValError(emsg.format(phys_suite_val))
-
+            #Check that physics suite specified is actually in config list:
+            if phys_suite_val not in phys_suites:
+                emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
+                emsg += "listed in CAM_CONFIG_OPTS"
+                raise CamConfigValError(emsg.format(phys_suite_val))
+            #End if
+        #End if (phys_suite_lines check).
 
         #Add new namelist attribute to dictionary:
         cam_nml_attr_dict["phys_suite"] = phys_suite_val

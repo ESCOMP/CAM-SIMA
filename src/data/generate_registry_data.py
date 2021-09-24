@@ -235,9 +235,9 @@ class VarBase:
             if self.var_type.lower() == 'real':
                 init_val = 'nan'
             elif self.var_type.lower() == 'integer':
-                init_val = 'HUGE(1)'
+                init_val = 'unset_int'
             elif self.var_type.lower() == 'character':
-                init_val = '""'
+                init_val = 'unset_str'
             elif self.var_type.lower() == 'complex':
                 init_val = '(nan, nan)'
             else:
@@ -1229,7 +1229,7 @@ class File:
         with FortranWriter(ofilename, "w", file_desc,
                            self.name, indent=indent) as outfile:
             # Use statements (if any)
-            module_list = [] # tuple of (module, type)
+            module_list = [] # elements are a tuple, (module, type)
             for var in self.__var_dict.variable_list():
                 mod = var.module
                 if mod and (mod.lower() != self.name.lower()):

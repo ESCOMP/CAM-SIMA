@@ -72,10 +72,6 @@ end type dyn_export_t
 ! Namelist
 logical, public, protected :: write_restart_unstruct
 
-! Frontogenesis indices
-integer, public    :: frontgf_idx      = -1
-integer, public    :: frontga_idx      = -1
-
 ! constituent indices for waccm-x dry air properties
 integer, public, protected :: &
    ixo  = -1, &
