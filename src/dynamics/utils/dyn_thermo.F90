@@ -383,20 +383,20 @@ CONTAINS
       integer,  intent(in)  :: i0,i1,j0,j1,k0,k1,ntrac                   ! array bounds
       real(kind_dyn), intent(in)  :: tracer(i0:i1,j0:j1,k0:k1,1:ntrac)   !tracers; quantity specified by mixing_ratio arg
       integer,  intent(in)  :: mixing_ratio                              ! 1 => tracer is dry mixing ratio
-                                                                        ! 2 => tracer is mass (q*dp)
+                                                                         ! 2 => tracer is mass (q*dp)
       integer,  intent(in)  :: active_species_idx(:)                     ! index for thermodynamic species in tracer array
       real(kind_dyn), intent(in)  :: dp_dry(i0:i1,j0:j1,k0:k1)           ! dry pressure level thickness
       real(kind_dyn), intent(out) :: dp(i0:i1,j0:j1,k0:k1)               ! pressure level thickness
       real(kind_dyn), optional,intent(out) :: ps(:,:)                    ! surface pressure (if ps present then ptop
-                                                                        !                   must be present)
-      real(kind_dyn), optional,intent(in)  :: ptop                      ! pressure at model top
+                                                                         !                   must be present)
+      real(kind_dyn), optional,intent(in)  :: ptop                       ! pressure at model top
 
       !Declare local variables:
       real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
       real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
       real(kind_phys), allocatable :: dp_phys(:,:,:)
       real(kind_phys), allocatable :: ps_phys(:,:)
-      real(kind_phys), allocatable :: ptop_phys
+      real(kind_phys), allocatable :: ptop_phys  !Allocatable in order to indicate "presence" to get_dp_phys subroutine.
 
       !check_allocate variables:
       integer :: iret !allocate status integer

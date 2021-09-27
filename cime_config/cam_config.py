@@ -97,7 +97,8 @@ def _check_integer_val(name, val, valid_vals=None):
     >>> _check_integer_val("test", 5, valid_vals=[1,2,5,"test_val"]) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR:  Valid value, 'test_val', for variable 'test', must be either None or an integer.  Currently it is '<class 'str'>'.
+    CamConfigTypeError: ERROR:  Valid value, 'test_val', for variable 'test', must be an integer.  Currently it is '<class 'str'>'.
+    <BLANKLINE>
 
     4.  Check that using a tuple with only one entry throws an error:
     >>> _check_integer_val("test", 5, valid_vals=(1,)) #doctest: +ELLIPSIS
@@ -148,14 +149,18 @@ def _check_integer_val(name, val, valid_vals=None):
         # Check if valid values is a tuple
         if isinstance(valid_vals, tuple):
 
-            # Check that all tuple elements are integers:
+            # Check that all tuple elements are either None or integers
+            emsg = ""
             for valid_val in valid_vals:
                 if valid_val is not None and not isinstance(valid_val, int):
-                    emsg = ("ERROR:  Valid value, '{}', for variable '{}', must be "
-                            "either None or an integer.  Currently it is '{}'.")
-                    raise CamConfigTypeError(emsg.format(valid_val, name, type(valid_val)))
+                    emsg += "ERROR:  Valid value, '{}', for variable '{}', must be "
+                    emsg += "either None or an integer.  Currently it is '{}'.\n"
+                    emsg = emsg.format(valid_val, name, type(valid_val))
                 # End if
             # End for
+            if emsg:
+                raise CamConfigTypeError(emsg)
+            # end if
 
             # Check that length of valid values tuple is 2
             if len(valid_vals) != 2:
@@ -200,14 +205,19 @@ def _check_integer_val(name, val, valid_vals=None):
 
         elif isinstance(valid_vals, list):
 
-            # Check that all tuple elements are integers:
+            # Check that all list elements are integers
+            emsg = ""
             for valid_val in valid_vals:
-                if valid_val is not None and not isinstance(valid_val, int):
-                    emsg = ("ERROR:  Valid value, '{}', for variable '{}', must be "
-                            "either None or an integer.  Currently it is '{}'.")
-                    raise CamConfigTypeError(emsg.format(valid_val, name, type(valid_val)))
+                if not isinstance(valid_val, int):
+                    emsg += "ERROR:  Valid value, '{}', for variable '{}', "
+                    emsg += "must be an integer.  Currently it is '{}'.\n"
+                    emsg = emsg.format(valid_val, name, type(valid_val))
                 # End if
             # End for
+            if emsg:
+                raise CamConfigTypeError(emsg)
+            # end if
+
 
             # If valid_vals is a list, then just check that the given value
             # matches one of the valid values in the list

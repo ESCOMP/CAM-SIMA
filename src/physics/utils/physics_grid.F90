@@ -46,6 +46,10 @@ module physics_grid
    public :: local_index_p  ! local column index of a physics column
    public :: get_grid_dims  ! return grid dimensions
 
+   ! Private subroutines
+   private :: check_phys_input !Checks that physics grid is initialized and that
+                               !provided physics column index is valid.
+
    ! The identifier for the physics grid
    integer, parameter, public          :: phys_decomp = 100
 
