@@ -34,7 +34,7 @@ PY3 = sys.version_info[0] > 2
 if PY3:
     __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
 else:
-    __FILE_OPEN = (lambda x: open(x, 'r'))
+    __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
 # End if
 
 #Check for all necessary directories:
@@ -378,7 +378,7 @@ class WriteInitTest(unittest.TestCase):
         # Check return message:
         amsg = "Test failure: retmsg={}".format(retmsg)
         self.assertEqual(retmsg,
-                         "Required CCPPP physics variables missing from host model.",
+                         "Required CCPP physics variables missing from host model.",
                          msg=amsg)
 
         # Make sure no output file was created:
@@ -476,8 +476,6 @@ class WriteInitTest(unittest.TestCase):
         host_files = [model_host, out_meta]
 
         # Setup write_init_files inputs:
-        check_init_in = os.path.join(_INIT_SAMPLES_DIR, "phys_vars_init_check_simple.F90")
-        phys_input_in = os.path.join(_INIT_SAMPLES_DIR, "physics_inputs_simple.F90")
         check_init_out = os.path.join(_TMP_DIR, "phys_vars_init_check_no_horiz.F90")
         phys_input_out = os.path.join(_TMP_DIR, "physics_inputs_no_horiz.F90")
 
@@ -499,10 +497,10 @@ class WriteInitTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
-                                                     cap_datafile, logger,
-                                                     phys_check_filename="phys_vars_init_check_no_horiz.F90",
-                                                     phys_input_filename="physics_inputs_no_horiz.F90")
+            _ = write_init.write_init_files(files, _TMP_DIR, 3,
+                                            cap_datafile, logger,
+                                            phys_check_filename="phys_vars_init_check_no_horiz.F90",
+                                            phys_input_filename="physics_inputs_no_horiz.F90")
 
         # Check exception message
         emsg = "Variable 'air_pressure_at_sea_level' needs at least one registered dimension" \

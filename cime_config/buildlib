@@ -94,7 +94,6 @@ def _build_cam():
                  os.path.join(atm_root, "src", "control"),
                  os.path.join(atm_root, "src", "cpl",
                               case.get_value("COMP_INTERFACE")),
-                 os.path.join(atm_root, "src", "dynamics", dycore),
                  os.path.join(atm_root, "src", "dynamics", "utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
                  os.path.join(atm_root, "src", "utils")]
@@ -103,12 +102,28 @@ def _build_cam():
                 paths.append(path)
             # End if
         # End for
-        #If using the CMEPS/NUOPC coupler, then add additional path:
+
+        # Add dynamics source code directories:
+        for direc in config.get_value("dyn_src_dirs"):
+            dyn_dir = os.path.join(atm_root, "src", "dynamics", direc)
+            if dyn_dir not in paths:
+                #Add to list of filepaths if not already present:
+                paths.append(dyn_dir)
+
+        # Add analytical IC source code directories:
+        paths.append(os.path.join(atm_root, "src", "dynamics", "tests")) #Required due to namelist call.
+        if dycore != "none":
+            paths.append(os.path.join(atm_root, "src", "dynamics", "tests",
+                                      "initial_conditions"))
+
+        # If using the CMEPS/NUOPC coupler, then add additional path:
         if case.get_value("COMP_INTERFACE") == "nuopc":
             paths.append(os.path.join(__CIMEROOT, "src", "drivers",
                                       "nuopc", "nuopc_cap_share"))
         # End if
-        with open(filepath_src, "w") as filepath:
+
+        # Write Filepath text file
+        with open(filepath_src, "w", encoding='utf-8') as filepath:
             filepath.write("\n".join(paths))
             filepath.write("\n")
         # End with
@@ -131,6 +146,10 @@ def _build_cam():
         cmd = "{} complib -j {} MODEL=cam COMPLIB={} -f {} {} " \
             .format(gmake, gmake_j, complib, makefile,
                     get_standard_makefile_args(case))
+
+        # Add C Pre-Processor (CPP) definitions, if present:
+        if config.cpp_defs:
+            cmd += " USER_CPPDEFS='{}'".format(' '.join(config.cpp_defs))
 
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)

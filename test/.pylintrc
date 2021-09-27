@@ -54,7 +54,11 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=import-error, too-many-statements, too-many-lines, too-many-locals, bad-whitespace
+
+#Note:  If python 3.5 is ever dropped as a testing option
+#       then 'consider-using-f-string' should be re-enabled -JN
+
+disable=import-error, too-many-statements, too-many-lines, too-many-locals, bad-whitespace, consider-using-f-string
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -411,7 +415,7 @@ max-locals=40
 max-parents=7
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods=20
+max-public-methods=25
 
 # Maximum number of return / yield for function / method body
 max-returns=6

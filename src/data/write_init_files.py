@@ -147,7 +147,7 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
 
             #Add error-message to logger, and return with non-zero retmsg:
             logger.error(emsg)
-            retmsg = "Required CCPPP physics variables missing from host model."
+            retmsg = "Required CCPP physics variables missing from host model."
             return retmsg
         # end if
     # end if
@@ -272,9 +272,6 @@ def write_init_files(files, outdir, indent, cap_datafile, logger,
         #Write physics_check_data subroutine:
         write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str)
 
-        #End module:
-        #outfile.write("\nend module {}".format(phys_input_fname_str), 0)
-    # end if
     #--------------------------------------
 
     #Return retmsg:

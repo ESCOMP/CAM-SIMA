@@ -69,6 +69,7 @@ module physics_types_complete
 
 !! public interfaces
   public :: allocate_physics_types_complete_fields
+  public :: physics_types_complete_tstep_init
 
 CONTAINS
 
@@ -183,5 +184,30 @@ CONTAINS
       phys_state%pver = 0
     end if
   end subroutine allocate_physics_types_complete_fields
+
+  subroutine physics_types_complete_tstep_init()
+
+    !! Local variables
+    character(len=*), parameter :: subname = "physics_types_complete_tstep_init"
+
+    ! standard_var: Standard non ddt variable
+    standard_var = 0.0
+
+    ! latitude: Latitude
+    phys_state%latitude = 0._kind_phys
+
+    ! longitude: Longitude
+    phys_state%longitude = 0._kind_phys
+
+    ! q: Constituent mixing ratio
+    phys_state%q = 0._kind_phys
+
+    ! ncol: Number of horizontal columns
+    phys_state%ncol = 0
+
+    ! pver: Number of vertical layers
+    phys_state%pver = 0
+
+  end subroutine physics_types_complete_tstep_init
 
 end module physics_types_complete

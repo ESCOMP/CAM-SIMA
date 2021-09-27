@@ -208,19 +208,30 @@ CONTAINS
 
    subroutine cam_initfiles_open()
       use ioFileMod,    only: cam_get_file
+      use string_utils, only: to_str
 
       ! Open the initial conditions and topography files.
       ! ncdata_loc: filepath of initial file on local disk
-      character(len=256) :: ncdata_loc
+      character(len=cl) :: ncdata_loc
       ! bnd_topo_loc: filepath of topo file on local disk
-      character(len=256) :: bnd_topo_loc
+      character(len=cl) :: bnd_topo_loc
+
+      integer :: iret
+
+      character(len=*), parameter :: subname = 'cam_initfiles_open'
+
       !-----------------------------------------------------------------------
 
       ! Open initial dataset
 
       if (initial_run) then
          call cam_get_file(ncdata, ncdata_loc)
-         allocate(fh_ini)
+         allocate(fh_ini, stat=iret)
+         if (iret /= 0) then
+            call endrun(subname//': allocate fh_ini failed with stat: '//&
+                        to_str(iret))
+         end if
+
          call cam_pio_openfile(fh_ini, ncdata_loc, pio_nowrite)
       else
          fh_ini => fh_restart
@@ -229,7 +240,12 @@ CONTAINS
       ! Open topography dataset if used.
       if (trim(bnd_topo) /= trim(unset_path_str)) then
          if ((trim(bnd_topo) /= 'bnd_topo') .and. (len_trim(bnd_topo) > 0)) then
-            allocate(fh_topo)
+            allocate(fh_topo, stat=iret)
+            if (iret /= 0) then
+               call endrun(subname//': allocate fh_topo failed with stat: '//&
+                           to_str(iret))
+            end if
+
             call cam_get_file(bnd_topo, bnd_topo_loc)
             call cam_pio_openfile(fh_topo, bnd_topo_loc, pio_nowrite)
          else

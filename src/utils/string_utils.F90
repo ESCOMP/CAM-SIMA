@@ -10,6 +10,7 @@ module string_utils
 
    public :: to_upper         ! Convert character string to upper case
    public :: to_lower         ! Convert character string to lower case
+   public :: strlist_get_ind  ! find string in a list of strings and return its index
    public :: increment_string ! increments a string
    public :: last_sig_char    ! Position of last significant character in string
    public :: to_str           ! convert integer to left justified string
@@ -19,6 +20,53 @@ module string_utils
    integer, parameter :: upper_to_lower = iachar("a") - iachar("A")
 
 CONTAINS
+
+   !=========================================================================================
+
+   subroutine strlist_get_ind(strlist, str, ind, abort)
+
+   ! Get the index of a given string in a list of strings.  Optional abort argument
+   ! allows returning control to caller when the string is not found.  Default
+   ! behavior is to call endrun when string is not found.
+
+   use cam_logfile,    only: iulog
+   use cam_abortutils, only: endrun
+
+   ! Arguments
+   character(len=*),  intent(in)  :: strlist(:) ! list of strings
+   character(len=*),  intent(in)  :: str        ! string to search for
+   integer,           intent(out) :: ind        ! index of str in strlist
+   logical, optional, intent(in)  :: abort      ! flag controlling abort
+
+   ! Local variables
+   integer :: m
+   logical :: abort_on_error
+   character(len=*), parameter :: sub='strlist_get_ind'
+   !----------------------------------------------------------------------------
+
+   ! Find string in list
+   do m = 1, size(strlist)
+      if (str == strlist(m)) then
+         ind  = m
+         return
+      end if
+   end do
+
+   ! String not found
+   abort_on_error = .true.
+   if (present(abort)) abort_on_error = abort
+
+   if (abort_on_error) then
+      write(iulog, *) sub//': FATAL: string:', trim(str), ' not found in list:', strlist(:)
+      call endrun(sub//': FATAL: string not found')
+   end if
+
+   ! error return
+   ind = -1
+
+   end subroutine strlist_get_ind
+
+   !=========================================================================================
 
    integer function increment_string(str, increment)
       !-----------------------------------------------------------------------

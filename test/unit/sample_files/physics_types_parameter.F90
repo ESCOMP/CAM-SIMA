@@ -36,6 +36,7 @@ module physics_types_parameter
 
 !! public interfaces
   public :: allocate_physics_types_parameter_fields
+  public :: physics_types_parameter_tstep_init
 
 CONTAINS
 
@@ -93,5 +94,12 @@ CONTAINS
       longitude = nan
     end if
   end subroutine allocate_physics_types_parameter_fields
+
+  subroutine physics_types_parameter_tstep_init()
+
+    !! Local variables
+    character(len=*), parameter :: subname = "physics_types_parameter_tstep_init"
+
+  end subroutine physics_types_parameter_tstep_init
 
 end module physics_types_parameter

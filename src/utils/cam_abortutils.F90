@@ -104,6 +104,7 @@ CONTAINS
       type(open_file_pointer), pointer :: of_prev
       character(len=msg_len)           :: log_shutdown
       character(len=*),  parameter     :: subname = 'cam_register_close_file'
+      logical                          :: file_loop_var
 
       nullify(of_prev)
       ! Are we going to log shutdown events?
@@ -114,7 +115,16 @@ CONTAINS
       end if
       ! Look to see if we have this file
       of_ptr => open_files_head
-      do while (associated(of_ptr) .and. associated(of_ptr%file_desc))
+
+      !Set while-loop control variable
+      file_loop_var = .false.
+      if (associated(of_ptr)) then
+          if(associated(of_ptr%file_desc)) then
+             file_loop_var = .true.
+          end if
+      end if
+
+      do while (file_loop_var)
          if (file%fh == of_ptr%file_desc%fh) then
             ! Remove this file from the list
             if (associated(of_prev)) then
@@ -139,6 +149,15 @@ CONTAINS
             of_prev => of_ptr
             of_ptr => of_ptr%next
          end if
+         !Check if loop needs to continue
+         if (.not.associated(of_ptr)) then
+            file_loop_var = .false.
+         else
+            if(.not.associated(of_ptr%file_desc)) then
+               file_loop_var = .false.
+            end if
+         end if
+
       end do
    end subroutine cam_register_close_file
 

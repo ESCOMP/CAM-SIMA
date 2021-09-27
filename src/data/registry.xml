@@ -11,6 +11,8 @@
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
+    <use module="runtime_obj" reference="unset_str"/>
+    <use module="runtime_obj" reference="unset_int"/>
     <!-- Constituent indices -->
     <variable local_name="ix_qv"
               standard_name="index_of_water_vapor_specific_humidity"
@@ -67,7 +69,7 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>v state_v</ic_file_input_names>
     </variable>
-    <variable local_name="s" standard_name="dry_static_energy"
+    <variable local_name="dse" standard_name="dry_static_energy"
               units="J kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -119,6 +121,20 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>rpdeldry state_rpdeldry</ic_file_input_names>
+    </variable>
+    <variable local_name="frontgf"
+              standard_name="frontogenesis_function"
+              units="K m-1 s-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>frontgf pbuf_frontgf</ic_file_input_names>
+    </variable>
+    <variable local_name="frontga"
+              standard_name="frontogenesis_angle"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>frontga pbuf_frontga</ic_file_input_names>
     </variable>
     <!-- State helper values -->
     <variable local_name="lnpmid" standard_name="ln_of_air_pressure"
@@ -270,19 +286,39 @@
       <long_name>flag indicating if vertical coordinate is lagrangian</long_name>
       <initial_value>.false.</initial_value>
     </variable>
+    <variable local_name="dycore_gz_log_calc"
+              standard_name="dycore_calculates_geopotential_using_logarithms"
+              units="flag" type="logical" access="protected">
+      <initial_value>.false.</initial_value>
+      <initial_value dycore="SE,FV">.true.</initial_value>
+    </variable>
     <ddt type="physics_state">
-      <data dycore="FV,EUL">surface_air_pressure</data>
-      <data dycore="SE">surface_pressure_of_dry_air</data>
-      <data>geopotential_at_surface</data>
       <data>air_temperature</data>
+      <data>dry_static_energy</data>
       <data>x_wind</data>
       <data>y_wind</data>
       <data>lagrangian_tendency_of_air_pressure</data>
-      <data dycore="EUL,FV">air_pressure</data>
-      <data dycore="SE">air_pressure_of_dry_air</data>
-      <data dycore="EUL,FV">pressure_thickness</data>
-      <data dycore="SE">pressure_thickness_of_dry_air</data>
       <data>constituent_mixing_ratio</data>
+      <data>pressure_thickness</data>
+      <data>pressure_thickness_of_dry_air</data>
+      <data>reciprocal_of_pressure_thickness</data>
+      <data>reciprocal_of_pressure_thickness_of_dry_air</data>
+      <data>air_pressure</data>
+      <data>air_pressure_of_dry_air</data>
+      <data>ln_of_air_pressure</data>
+      <data>ln_of_air_pressure_of_dry_air</data>
+      <data>air_pressure_at_interface</data>
+      <data>air_pressure_of_dry_air_at_interface</data>
+      <data>ln_of_air_pressure_at_interface</data>
+      <data>ln_of_air_pressure_of_dry_air_at_interface</data>
+      <data>surface_air_pressure</data>
+      <data>surface_pressure_of_dry_air</data>
+      <data>geopotential_at_surface</data>
+      <data>geopotential_height</data>
+      <data>geopotential_height_at_interface</data>
+      <data>inverse_exner_function_wrt_surface_pressure</data>
+      <data>frontogenesis_function</data>
+      <data>frontogenesis_angle</data>
     </ddt>
     <ddt type="physics_tend">
       <data>total_tendency_of_air_temperature</data>
@@ -296,7 +332,7 @@
     </variable>
     <variable local_name="phys_tend"
               standard_name="total_tendency_of_physics"
-              units="None" type="physics_tend">
+              units="None" type="physics_tend" phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
   </file>

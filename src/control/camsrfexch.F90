@@ -9,6 +9,7 @@ module camsrfexch
    use constituents,    only: pcnst
    use shr_infnan_mod,  only: posinf => shr_infnan_posinf, assignment(=)
    use cam_abortutils,  only: endrun
+   use string_utils,    only: to_str
    use cam_logfile,     only: iulog
    use physics_grid,    only: phys_grid_initialized
    use srf_field_check, only: active_Sl_ram1, active_Sl_fv, active_Sl_soilw
@@ -60,20 +61,20 @@ CONTAINS
 
       ! LOCAL VARIABLES:
       integer                     :: ierror  ! Error code
-      character(len=*), parameter :: sub = 'hub2atm_alloc'
+      character(len=*), parameter :: subname = 'hub2atm_alloc'
       !-----------------------------------------------------------------------
 
       if ( .not. phys_grid_initialized ) then
-         call endrun(sub//": phys_grid_init not called yet")
+         call endrun(subname//": phys_grid_init not called yet")
       end if
       if (associated(cam_in)) then
          deallocate(cam_in)
          nullify(cam_in)
       end if
-      allocate (cam_in, stat=ierror)
+      allocate(cam_in, stat=ierror)
       if ( ierror /= 0 )then
-         write(iulog,*) sub//': Allocation error: ', ierror
-         call endrun(sub//': allocation error')
+         call endrun(subname//': allocate cam_in failed with stat: '//&
+                     to_str(ierror))
       end if
 
       cam_in%ncol = 0
@@ -92,20 +93,21 @@ CONTAINS
 
       ! LOCAL VARIABLES:
       integer :: ierror       ! Error code
-      character(len=*), parameter :: sub = 'atm2hub_alloc'
+      character(len=*), parameter :: subname = 'atm2hub_alloc'
       !-----------------------------------------------------------------------
 
       if (.not. phys_grid_initialized) then
-         call endrun(sub//": phys_grid_init not called yet")
+         call endrun(subname//": phys_grid_init not called yet")
       end if
       if (associated(cam_out)) then
          deallocate(cam_out)
          nullify(cam_out)
       end if
-      allocate (cam_out, stat=ierror)
+      allocate(cam_out, stat=ierror)
       if ( ierror /= 0 )then
-         write(iulog,*) sub//': Allocation error: ', ierror
-         call endrun(sub//': allocation error: cam_out')
+         call endrun(subname//': allocate cam_out failed with stat: '//&
+                     to_str(ierror))
+
       end if
 
    end subroutine atm2hub_alloc

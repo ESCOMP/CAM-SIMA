@@ -137,6 +137,7 @@ CONTAINS
 
       errflg = 0
       call physconst_init(columns_on_task, pver, pverp)
+
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
       call cam_ccpp_physics_initialize(phys_suite_name, dtime_phys,           &
@@ -178,6 +179,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use runtime_obj,    only: runtime_options
       use physics_types,  only: physics_state, physics_tend
+      use physics_types,  only: physics_types_tstep_init
       use physics_grid,   only: columns_on_task
       use camsrfexch,     only: cam_in_t, cam_out_t
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
@@ -224,6 +226,9 @@ CONTAINS
       call physics_read_data(ncdata, suite_names, data_frame,                 &
            read_initialized_variables=use_init_variables)
 
+      ! Initialize host model variables that must be done each time step:
+      call physics_types_tstep_init()
+
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(phys_suite_name, dtime_phys,     &
            errmsg, errflg)
@@ -234,6 +239,7 @@ CONTAINS
       ! Threading vars
       col_start = 1
       col_end = columns_on_task
+
       ! Run CCPP suite
       do part_ind = 1, size(suite_parts, 1)
          call cam_ccpp_physics_run(phys_suite_name, suite_parts(part_ind),    &
