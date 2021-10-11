@@ -15,7 +15,7 @@ module cam_comp
    use shr_sys_mod,     only: shr_sys_flush
 
    use spmd_utils,      only: masterproc, mpicom
-   use cam_control_mod, only: cam_ctrl_init, cam_ctrl_set_orbit
+   use cam_control_mod, only: cam_ctrl_init, cam_ctrl_set_orbit, cam_ctrl_set_physics_type
    use cam_control_mod, only: caseid, ctitle
    use runtime_opts,    only: read_namelist
    use runtime_obj,     only: cam_runtime_opts
@@ -79,6 +79,7 @@ CONTAINS
       use cam_instance,         only: inst_suffix
 !      use history_defaults,     only: initialize_iop_history
       use stepon,               only: stepon_init
+      use physconst,            only: composition_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -146,11 +147,17 @@ CONTAINS
       filein = "atm_in" // trim(inst_suffix)
       call read_namelist(filein, single_column, scmlat, scmlon)
 
+      ! Determine if physics is "simple", which needs to be known by some dycores:
+      call cam_ctrl_set_physics_type()
+
       ! Open initial or restart file, and topo file if specified.
       call cam_initfiles_open()
 
       ! Initialize model grids and decompositions
       call model_grid_init()
+
+      ! Initialize composition-dependent constants:
+      call composition_init()
 
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
@@ -294,10 +301,6 @@ CONTAINS
 !      call ionosphere_run2( phys_state, dyn_in)
 !      call t_stopf ('ionosphere_run2')
 
-      if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf('cam_run2_memusage')
-         call t_stopf('cam_run2_memusage')
-      end if
    end subroutine cam_run2
 
    !
@@ -327,10 +330,6 @@ CONTAINS
            dyn_in, dyn_out)
       call t_stopf ('stepon_run3')
 
-      if (is_first_step() .or. is_first_restart_step()) then
-         call t_startf('cam_run3_memusage')
-         call t_stopf('cam_run3_memusage')
-      end if
    end subroutine cam_run3
 
    !

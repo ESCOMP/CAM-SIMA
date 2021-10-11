@@ -470,9 +470,15 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
             #the host model files list for use by CCPP's capgen:
             host_files.append(reg_file.file_path)
 
+    # Convert preproc defs to string:
+    if preproc_defs:
+        preproc_cache_str = ', '.join(preproc_defs)
+    else:
+        preproc_cache_str = 'UNSET'
+
     if os.path.exists(genccpp_dir):
         do_gen_ccpp = force or build_cache.ccpp_mismatch(sdfs, scheme_files,
-                                                         preproc_defs,
+                                                         preproc_cache_str,
                                                          kind_phys)
     else:
         os.makedirs(genccpp_dir)
@@ -487,7 +493,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
         _LOGGER.debug("   host files: %s", ", ".join(host_files))
         _LOGGER.debug("   scheme files: %s", ', '.join(scheme_files))
         _LOGGER.debug("   suite definition files: %s", ', '.join(sdfs))
-        _LOGGER.debug("   preproc defs: %s", ', '.join(preproc_defs))
+        _LOGGER.debug("   preproc defs: %s", preproc_cache_str)
         _LOGGER.debug("   output directory: '%s'", genccpp_dir)
         for kind_type in kind_types:
             name, type = [x.strip() for x in kind_type.split('=')]
@@ -507,7 +513,7 @@ def generate_physics_suites(ccpp_scripts_path, build_cache, preproc_defs, host_n
         capgen(run_env)
 
         # save build details in the build cache
-        build_cache.update_ccpp(sdfs, scheme_files, preproc_defs, kind_phys)
+        build_cache.update_ccpp(sdfs, scheme_files, preproc_cache_str, kind_phys)
         ##XXgoldyXX: v Temporary fix: Copy CCPP Framework source code into
         ##XXgoldyXX: v   generated code directory
         request = DatatableReport("utility_files")

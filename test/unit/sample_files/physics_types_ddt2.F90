@@ -59,6 +59,7 @@ module physics_types_ddt2
 
 !! public interfaces
   public :: allocate_physics_types_ddt2_fields
+  public :: physics_types_ddt2_tstep_init
 
 CONTAINS
 
@@ -144,5 +145,12 @@ CONTAINS
       phys_state%pver = 0
     end if
   end subroutine allocate_physics_types_ddt2_fields
+
+  subroutine physics_types_ddt2_tstep_init()
+
+    !! Local variables
+    character(len=*), parameter :: subname = "physics_types_ddt2_tstep_init"
+
+  end subroutine physics_types_ddt2_tstep_init
 
 end module physics_types_ddt2
