@@ -395,7 +395,7 @@ class ArrayElement(VarBase):
                                         ', '.join(dimensions)))
         # end if
         local_name = '{}({})'.format(parent_name, self.index_string)
-        super(ArrayElement, self).__init__(elem_node, local_name, my_dimensions,
+        VarBase.__init__(self, elem_node, local_name, my_dimensions,
                                            known_types, parent_type,
                                            units_default=parent_units,
                                            kind_default=parent_kind,
@@ -516,7 +516,7 @@ class Variable(VarBase):
             # end if
         # end for
         # Initialize the base class
-        super(Variable, self).__init__(var_node, local_name,
+        VarBase.__init__(self, var_node, local_name,
                                        my_dimensions, known_types, ttype,
                                        protected=protected)
 
@@ -552,7 +552,7 @@ class Variable(VarBase):
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
         if self.access != "private":
-            super(Variable, self).write_metadata(outfile)
+            VarBase.write_metadata(self, outfile)
             if (self.allocatable == "parameter") or self.protected:
                 outfile.write('  protected = True\n')
             # end if
