@@ -17,6 +17,7 @@ export PYTHONPATH="${CIMEDIR}:${CCPPDIR}:$PYTHONPATH"
 
 pylintcmd="pylint --rcfile=${CURRDIR}/.pylintrc"
 
+${pylintcmd} ${CAMROOT}/cime_config/cam_config_classes.py
 ${pylintcmd} ${CAMROOT}/cime_config/cam_config.py
 ${pylintcmd} ${CAMROOT}/cime_config/cam_autogen.py
 ${pylintcmd} ${CAMROOT}/cime_config/cam_build_cache.py

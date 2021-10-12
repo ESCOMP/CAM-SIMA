@@ -52,6 +52,8 @@ if [ ! -d "cime_config" ]; then
   exit 1
 fi
 
+#CAM config classes doctests:
+${PYTHON} cime_config/cam_config_classes.py
 # CAM config doctests:
 run_doctest cime_config/cam_config.py
 # CAM autogen doctests:
