@@ -2,6 +2,8 @@
 ccpp_framework
 chem_proc
 cime
+share
+libraries
 components
 manage_externals.log
 src/physics/carma/base
