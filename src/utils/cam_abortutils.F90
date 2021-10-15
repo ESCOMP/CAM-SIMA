@@ -42,10 +42,10 @@ CONTAINS
       character(len=max_chars) :: abort_msg
       real(r8)                 :: mem_val, mem_hw_val
 
-      ! Get memory values
-      call shr_mem_getusage(mem_hw_val, mem_val)
-
       if (errcode /= 0) then
+         ! Get memory values
+         call shr_mem_getusage(mem_hw_val, mem_val)
+
          ! Write error message with memory stats
          write(abort_msg, '(4a,i0,a,f10.2,a,f10.2,a)') &
               trim(subname), ": Allocate of '",  &
@@ -81,12 +81,14 @@ CONTAINS
       if (associated(open_files_pool)) then
          of_new => open_files_pool
          of_new%file_desc = file
+         of_new%file_name = file_name
          allocate(open_files_pool%next)
          open_files_pool%next => open_files_pool
       else
          allocate(of_new)
          allocate(of_new%file_desc)
          of_new%file_desc = file
+         of_new%file_name = file_name
          open_files_pool => of_new
       end if
       open_files_tail => of_new
@@ -135,8 +137,8 @@ CONTAINS
             ! Log closure?
             ! Note, no masterproc control because this could be any PE
             if (len_trim(log_shutdown) > 0) then
-               write(iulog, '(a,": ",a," of ")') subname, log_shutdown, &
-                    trim(of_ptr%file_name)
+               write(iulog, '(a,": ",a," of ",a)') subname, &
+                    trim(log_shutdown), trim(of_ptr%file_name)
                call shr_sys_flush(iulog)
             end if
             ! Push this object on to free pool
@@ -193,14 +195,30 @@ CONTAINS
       ! Local variables
       character(len=max_chars)               :: abort_msg
       type(open_file_pointer), pointer       :: of_ptr
+      logical                                :: keep_loop
 
       ! First, close all open PIO files
       of_ptr => open_files_head
-      do while (associated(of_ptr))
+
+      !Check if needed pointers are associated:
+      keep_loop = .false.
+      if (associated(of_ptr)) then
+         if (associated(of_ptr%file_desc)) then
+            keep_loop = .true.
+         end if
+      end if
+
+      do while (keep_loop)
          call pio_closefile(of_ptr%file_desc)
          call cam_register_close_file(of_ptr%file_desc,                       &
               log_shutdown_in="Emergency close")
          of_ptr => of_ptr%next
+         !End loop if new pointers aren't associated:
+         if (.not. associated(of_ptr)) then
+            keep_loop = .false.
+         else if (.not. associated(of_ptr%file_desc)) then
+            keep_loop = .false.
+         end if
       end do
 
       call endrun(message, file, line)
