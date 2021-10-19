@@ -275,7 +275,7 @@
               allocatable="pointer">
       <long_name>Change in x wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>dTdt tend_dudt</ic_file_input_names>
+      <ic_file_input_names>dudt tend_dudt</ic_file_input_names>
     </variable>
     <variable local_name="dvdt_total"
               standard_name="tendency_of_y_wind_due_to_model_physics"
@@ -283,7 +283,7 @@
               allocatable="pointer">
       <long_name>Change in y wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>dTdt tend_dvdt</ic_file_input_names>
+      <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="lagrangian_vertical_coordinate"
