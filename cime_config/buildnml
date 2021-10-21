@@ -19,6 +19,7 @@ sys.path.append(_LIBDIR)
 from standard_script_setup          import *
 from CIME.XML.standard_module_setup import *
 from CIME.buildnml                  import create_namelist_infile, parse_input
+from CIME.utils                     import check_minimum_python_version
 from CIME.case                      import Case
 from CIME.utils                     import expect
 from CIME.nmlgen                    import NamelistGenerator
@@ -31,6 +32,8 @@ sys.path.append(_CIME_CONFIG_PATH)
 
 # Import CAM's configure structure:
 from cam_config import ConfigCAM
+
+check_minimum_python_version(3, 7)
 
 # Open CIME case log:
 _LOGGER = logging.getLogger(__name__)
