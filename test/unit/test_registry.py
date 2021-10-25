@@ -47,6 +47,7 @@ sys.path.append(__REGISTRY_DIR)
 # pylint: disable=wrong-import-position
 from generate_registry_data import gen_registry
 from generate_registry_data import metadata_file_to_files, TypeRegistry
+from framework_env import CCPPFrameworkEnv
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -1152,11 +1153,14 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         infilename = os.path.join(_SAMPLE_FILES_DIR,
                                   "phys_types_dup_section.meta")
+        # Create fake CCPPFrameworkEnv object to contain the logger
+        run_env = CCPPFrameworkEnv(logging.getLogger("badmf"), host_files='',
+                                   scheme_files='', suites='')
 
         # Run test
         with self.assertRaises(ValueError) as verr:
             metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},
-                                   logging.getLogger("badmf"))
+                                   run_env)
         # Check exception message
         emsg = "module, 'physics_types_simple', table already contains "
         emsg += "'physics_types_simple', at {}:36".format(infilename)
@@ -1169,10 +1173,14 @@ class RegistryTest(unittest.TestCase):
         table_name = "phys_types_no_table.meta"
         infilename = os.path.join(_SAMPLE_FILES_DIR, table_name)
 
+        # Create fake CCPPFrameworkEnv object to contain the logger
+        run_env = CCPPFrameworkEnv(logging.getLogger("badmf"), host_files='',
+                                   scheme_files='', suites='')
+        
         # Run test
         with self.assertRaises(ValueError) as verr:
             metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},
-                                   logging.getLogger("badmf"))
+                                   run_env)
         # Check exception message
         emsg = "Missing metadata section ([ccpp-arg-table]) for physics_types_simple"
         self.assertEqual(emsg, str(verr.exception).split('\n')[0])
