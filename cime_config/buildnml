@@ -19,7 +19,6 @@ sys.path.append(_LIBDIR)
 from standard_script_setup          import *
 from CIME.XML.standard_module_setup import *
 from CIME.buildnml                  import create_namelist_infile, parse_input
-from CIME.utils                     import check_minimum_python_version
 from CIME.case                      import Case
 from CIME.utils                     import expect
 from CIME.nmlgen                    import NamelistGenerator
