@@ -33,8 +33,6 @@ sys.path.append(_CIME_CONFIG_PATH)
 # Import CAM's configure structure:
 from cam_config import ConfigCAM
 
-check_minimum_python_version(3, 7)
-
 # Open CIME case log:
 _LOGGER = logging.getLogger(__name__)
 
