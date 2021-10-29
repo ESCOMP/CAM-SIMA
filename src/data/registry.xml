@@ -337,7 +337,8 @@
     </variable>
     <variable local_name="phys_tend"
               standard_name="tendency_due_to_model_physics"
-              units="None" type="physics_tend">
+              units="None" type="physics_tend"
+              phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
   </file>

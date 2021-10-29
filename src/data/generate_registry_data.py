@@ -1439,9 +1439,9 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
     known_ddts = known_types.known_ddt_names()
     mfiles = []
     if os.path.exists(file_path):
-        meta_tables = parse_metadata_file(file_path, known_ddts, run_env)
         if run_env.logger:
             run_env.logger.info("Parsing metadata_file, '{}'".format(file_path))
+        meta_tables = parse_metadata_file(file_path, known_ddts, run_env)
         # end if
     else:
         emsg = "Metadata file, '{}', does not exist"
@@ -1535,6 +1535,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     """
     files = []
     known_types = TypeRegistry()
+    logger.debug('hi')
     # Create a fake CCPPFrameworkEnv object to contain the logger
     run_env = CCPPFrameworkEnv(logger, host_files='',
                                scheme_files='', suites='')
