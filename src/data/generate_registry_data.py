@@ -28,6 +28,7 @@ if __SPINSCRIPTS not in sys.path:
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
+from framework_env import CCPPFrameworkEnv
 from parse_tools import validate_xml_file, read_xml_file
 from parse_tools import find_schema_file, find_schema_version
 from parse_tools import init_log, CCPPError, ParseInternalError
@@ -433,7 +434,7 @@ class ArrayElement(VarBase):
                                         ', '.join(dimensions)))
         # end if
         local_name = '{}({})'.format(parent_name, self.index_string)
-        super(ArrayElement, self).__init__(elem_node, local_name, my_dimensions,
+        super().__init__(elem_node, local_name, my_dimensions,
                                            known_types, parent_type,
                                            units_default=parent_units,
                                            kind_default=parent_kind,
@@ -555,7 +556,7 @@ class Variable(VarBase):
             # end if
         # end for
         # Initialize the base class
-        super(Variable, self).__init__(var_node, local_name,
+        super().__init__(var_node, local_name,
                                        my_dimensions, known_types, ttype,
                                        protected=protected)
 
@@ -591,7 +592,7 @@ class Variable(VarBase):
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
         if self.access != "private":
-            super(Variable, self).write_metadata(outfile)
+            super().write_metadata(outfile)
             if (self.allocatable == "parameter") or self.protected:
                 outfile.write('  protected = True\n')
             # end if
@@ -1430,7 +1431,7 @@ def parse_command_line(args, description):
     return pargs
 
 ###############################################################################
-def metadata_file_to_files(file_path, known_types, dycore, config, logger):
+def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
 ###############################################################################
     """Read the metadata file at <relative_file_path> and convert it to a
     registry File object.
@@ -1438,8 +1439,10 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
     known_ddts = known_types.known_ddt_names()
     mfiles = []
     if os.path.exists(file_path):
-        meta_tables = parse_metadata_file(file_path, known_ddts, logger)
-        logger.info("Parsing metadata_file, '{}'".format(file_path))
+        if run_env.logger:
+            run_env.logger.info("Parsing metadata_file, '{}'".format(file_path))
+        # end if
+        meta_tables = parse_metadata_file(file_path, known_ddts, run_env)
     else:
         emsg = "Metadata file, '{}', does not exist"
         raise CCPPError(emsg.format(file_path))
@@ -1455,7 +1458,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
         section = '<file name="{}" type="{}"></file>'.format(hname, htype)
         sect_xml = ET.fromstring(section)
         mfile = File(sect_xml, known_types, dycore, config,
-                     logger, gen_code=False, file_path=file_path)
+                     run_env.logger, gen_code=False, file_path=file_path)
         # Add variables
         # Note, we only support one section per table for host variables
         sections = mtable.sections()
@@ -1497,7 +1500,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
             # end if
             vnode_str += '\n</variable>'
             var_node = ET.fromstring(vnode_str)
-            mfile.add_variable(var_node, logger)
+            mfile.add_variable(var_node, run_env.logger)
         # end for
         if htype == 'ddt':
             # We defined the variables, now create the DDT for them.
@@ -1509,8 +1512,8 @@ def metadata_file_to_files(file_path, known_types, dycore, config, logger):
             vnode_str += '\n</ddt>'
             var_node = ET.fromstring(vnode_str)
             new_ddt = DDT(var_node, known_types, mfile.var_dict,
-                          dycore, config, logger)
-            mfile.add_ddt(new_ddt, logger=logger)
+                          dycore, config, run_env.logger)
+            mfile.add_ddt(new_ddt, logger=run_env.logger)
         # end if
         mfiles.append(mfile)
     # end for
@@ -1532,6 +1535,9 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     """
     files = []
     known_types = TypeRegistry()
+    # Create a fake CCPPFrameworkEnv object to contain the logger
+    run_env = CCPPFrameworkEnv(logger, host_files='',
+                               scheme_files='', suites='')
     for section in registry:
         sec_name = section.get('name')
         if sec_name:
@@ -1567,7 +1573,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
                 # end if
             # end if
             meta_files = metadata_file_to_files(file_path, known_types,
-                                                dycore, config, logger)
+                                                dycore, config, run_env)
             files.extend(meta_files)
         else:
             emsg = "Unknown registry object type, '{}'"

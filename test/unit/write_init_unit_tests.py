@@ -62,6 +62,7 @@ sys.path.append(__REGISTRY_DIR)
 
 # pylint: disable=wrong-import-position
 from ccpp_capgen import capgen
+from framework_env import CCPPFrameworkEnv
 from generate_registry_data import gen_registry
 import write_init_files as write_init
 # pylint: enable=wrong-import-position
@@ -142,8 +143,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -210,8 +220,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -278,8 +297,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -345,8 +373,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         # Note: "assertLogs" method doesn't exist in python 2:
@@ -427,8 +464,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -492,8 +538,18 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+
+        capgen(run_env)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -555,8 +611,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ["kind_phys={REAL64}"]
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -617,8 +682,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Run test
         with self.assertRaises(ValueError) as verr:
@@ -680,8 +754,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         # Note: "assertLogs" method doesn't exist in python 2:
@@ -760,8 +843,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -828,8 +920,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -896,8 +997,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -964,8 +1074,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -1032,8 +1151,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Generate physics initialization files:
         retmsg = write_init.write_init_files(files, _TMP_DIR, 3,
@@ -1103,8 +1231,17 @@ class WriteInitTest(unittest.TestCase):
                                       error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        capgen(host_files, scheme_files, sdf, cap_datafile,'',
-               False, False, _TMP_DIR, 'cam', 'REAL64', True, logger)
+        kind_types=['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        capgen(run_env)
 
         # Run test
         with self.assertRaises(ValueError) as verr:

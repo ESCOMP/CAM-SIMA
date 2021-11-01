@@ -28,7 +28,7 @@ from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
 #pylint: enable=wrong-import-position
 
-check_minimum_python_version(2, 7)
+check_minimum_python_version(3, 6)
 stop_buffering_output()
 
 _LOGGER = logging.getLogger(__name__)

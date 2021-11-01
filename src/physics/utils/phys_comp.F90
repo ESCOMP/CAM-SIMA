@@ -133,21 +133,21 @@ CONTAINS
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       character(len=512)         :: errmsg
-      integer                    :: errflg
+      integer                    :: errcode
 
-      errflg = 0
+      errcode = 0
       call physconst_init(columns_on_task, pver, pverp)
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)
       call cam_ccpp_physics_initialize(phys_suite_name, dtime_phys,           &
-           errmsg, errflg)
-      if (errflg /= 0) then
+           errmsg, errcode)
+      if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
       end if
       call ccpp_physics_suite_part_list(phys_suite_name, suite_parts,         &
-           errmsg, errflg)
-      if (errflg /= 0) then
+           errmsg, errcode)
+      if (errcode /= 0) then
          call endrun('cam_ccpp_suite_part_list: '//trim(errmsg))
       end if
 
@@ -202,14 +202,14 @@ CONTAINS
       ! Local variables
       type(file_desc_t), pointer :: ncdata
       character(len=512) :: errmsg
-      integer            :: errflg
+      integer            :: errcode
       integer                            :: part_ind
       integer                            :: col_start
       integer                            :: col_end
       integer                            :: data_frame
       logical                            :: use_init_variables
 
-      errflg = 0
+      errcode = 0
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
@@ -231,8 +231,8 @@ CONTAINS
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(phys_suite_name, dtime_phys,     &
-           errmsg, errflg)
-      if (errflg /= 0) then
+           errmsg, errcode)
+      if (errcode /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
       end if
 
@@ -243,16 +243,16 @@ CONTAINS
       ! Run CCPP suite
       do part_ind = 1, size(suite_parts, 1)
          call cam_ccpp_physics_run(phys_suite_name, suite_parts(part_ind),    &
-              col_start, col_end, dtime_phys, errmsg, errflg)
-         if (errflg /= 0) then
+              col_start, col_end, dtime_phys, errmsg, errcode)
+         if (errcode /= 0) then
             call endrun('cam_ccpp_physics_run: '//trim(errmsg))
          end if
       end do
 
       ! Finalize the time step
       call cam_ccpp_physics_timestep_final(phys_suite_name, dtime_phys,       &
-           errmsg, errflg)
-      if (errflg /= 0) then
+           errmsg, errcode)
+      if (errcode /= 0) then
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
       end if
 
@@ -278,13 +278,13 @@ CONTAINS
       ! Local variables
       real(kind_phys)    :: dtime_phys = 0.0_kind_phys ! Not used
       character(len=512) :: errmsg
-      integer            :: errflg
+      integer            :: errcode
 
-      errflg = 0
+      errcode = 0
 
       call cam_ccpp_physics_finalize(phys_suite_name, dtime_phys,             &
-           errmsg, errflg)
-      if (errflg /= 0) then
+           errmsg, errcode)
+      if (errcode /= 0) then
          call endrun('cam_ccpp_physics_finalize: '//trim(errmsg))
       end if
       deallocate(suite_names)

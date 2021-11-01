@@ -261,24 +261,29 @@
       <ic_file_input_names>tw_cur state_tw_cur</ic_file_input_names>
     </variable>
     <!-- State tendencies -->
-    <variable local_name="dTdt" standard_name="total_tendency_of_air_temperature"
+    <variable local_name="dTdt_total"
+              standard_name="tendency_of_air_temperature_due_to_model_physics"
               units="K s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Change in temperature from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dTdt tend_dtdt</ic_file_input_names>
     </variable>
-    <variable local_name="dudt" standard_name="total_tendency_of_x_wind"
+    <variable local_name="dudt_total"
+              standard_name="tendency_of_x_wind_due_to_model_physics"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Change in x wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dudt tend_dudt</ic_file_input_names>
     </variable>
-    <variable local_name="dvdt" standard_name="total_tendency_of_y_wind"
+    <variable local_name="dvdt_total"
+              standard_name="tendency_of_y_wind_due_to_model_physics"
               units="m s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <long_name>Change in y wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="lagrangian_vertical_coordinate"
@@ -321,9 +326,9 @@
       <data>frontogenesis_angle</data>
     </ddt>
     <ddt type="physics_tend">
-      <data>total_tendency_of_air_temperature</data>
-      <data>total_tendency_of_x_wind</data>
-      <data>total_tendency_of_y_wind</data>
+      <data>tendency_of_air_temperature_due_to_model_physics</data>
+      <data>tendency_of_x_wind_due_to_model_physics</data>
+      <data>tendency_of_y_wind_due_to_model_physics</data>
     </ddt>
     <variable local_name="phys_state"
               standard_name="physics_state_due_to_dynamics"
@@ -331,8 +336,9 @@
       <long_name>Physics state variables updated by dynamical core</long_name>
     </variable>
     <variable local_name="phys_tend"
-              standard_name="total_tendency_of_physics"
-              units="None" type="physics_tend" phys_timestep_init_zero="true">
+              standard_name="tendency_due_to_model_physics"
+              units="None" type="physics_tend"
+              phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
   </file>
