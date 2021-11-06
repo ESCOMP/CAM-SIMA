@@ -783,7 +783,7 @@ class ConfigCAM:
 
     #++++++++++++++++++++++++
 
-    def ccpp_phys_set(self, cam_nml_attr_dict, user_nl_file):
+    def ccpp_phys_set(self, cam_nml_attr_dict, phys_nl_pg_dict):
 
         """
         Find the physics suite to run.
@@ -797,83 +797,68 @@ class ConfigCAM:
         specify a suite or that they did specify a
         suite and that it matches the available suite.
 
+        Inputs:
+
+        cam_nml_attr_dict -> Dictionary of ParamGen (XML)
+                             attribute values.
+
+        phys_nl_pg_dict -> ParamGen data dictionary for
+                           the "physics_nl" namelist group
         """
 
-        #Extract physics suite list:
+        #Extract physics suites list:
         phys_suites = self.get_value('physics_suites').split(';')
 
-        #Check the "user_nl_cam" file to see if user
-        #specified a particular suite to use for this
-        #simulation:
-        with open(user_nl_file, 'r') as nl_file:
-            #Read lines in file:
-            nl_user_lines = nl_file.readlines()
-        #End with
+        #Determine current value of "physics_suite" namelist variable:
+        phys_nl_val = phys_nl_pg_dict['physics_suite']['values'].strip()
 
-        #Break out "physics_suite" lines:
-        phys_suite_lines = []
-        for line in nl_user_lines:
-            #Must check if line.lstrip is non-empty first,
-            #Otherwise blank spaces in user_nl_cam will
-            #cause problems:
-            if line.lstrip():
-                if line.lstrip()[0] != '!' and 'physics_suite' in line:
-                    phys_suite_lines.append([x.strip() for x in line.split('=')])
-                #End if
-            #End if
-        #End for
+        #Check if only one physics suite is listed:
+        if len(phys_suites) == 1:
+            #Check if "physics_suite" has been set by the user:
+            if phys_nl_val != 'UNSET':
+                #If so, then check that user-provided suite matches
+                #suite in physics_suites config list:
+                if phys_nl_val == phys_suites[0].strip():
+                    #If so, then set attribute to phys_suites value:
+                    cam_nml_attr_dict["phys_suite"] = phys_suites[0].strip()
+                else:
+                    #If not, then throw an error:
+                    emsg  = "physics_suite specified in user_nl_cam, '{}', does not\n"
+                    emsg += "match the suite listed in CAM_CONFIG_OPTS: '{}'"
+                    raise CamConfigValError(emsg.format(user_nl_pg_dict['physics_suite'],
+                                                        phys_suites[0]))
 
-        if not phys_suite_lines:
-            #If there is no "physics_suite" line,
-            #then check if there is only one physics suite option:
-            if len(phys_suites) == 1:
-                #If so, then just use the only possible suite option:
-                phys_suite_val = phys_suites[0]
             else:
-                #If more than one option, then raise an error:
-                emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
-                emsg += "This is required if more than one suite is listed\n"
-                emsg += "in CAM_CONFIG_OPTS."
-                raise CamConfigValError(emsg)
-            #End if
+                #If not, then just set the attribute and nl value to phys_suites value:
+                phys_nl_pg_dict['physics_suite']['values'] = phys_suites[0].strip()
+                cam_nml_attr_dict["phys_suite"] = phys_suites[0].strip()
+
         else:
+            #Check if "physics_suite" has been set by the user:
+            if phys_nl_val != 'UNSET':
+                #If so, then check if user-provided value is present in the
+                #physics_suites config list:
+                match_found = False
+                for phys_suite in phys_suites:
+                    if phys_nl_val == phys_suite.strip():
+                        #If a match is found, then set attribute and leave loop:
+                        cam_nml_attr_dict["phys_suite"] = phys_suite.strip()
+                        match_found = True
+                        break
 
-            #If there is more than one "physics_suite" entry, then throw an error:
-            if len(phys_suite_lines) > 1:
-                emsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
-                emsg += "Only one 'physics_suite' line is allowed."
-                raise CamConfigValError(emsg)
-            #End if
+                #Check that a match was found, if not, then throw an error:
+                if not match_found:
+                    emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
+                    emsg += "listed in CAM_CONFIG_OPTS: '{}'"
+                    raise CamConfigValError(emsg.format(phys_nl_val,
+                                                        self.get_value('physics_suites')))
 
-            #The split string list exists inside another, otherwise empty list, so extract
-            #from empty list:
-            phys_suite_list = phys_suite_lines[0]
-
-            if len(phys_suite_list) == 1:
-                #If there is only one string entry, then it means the equals (=) sign was never found:
-                emsg = "No equals (=) sign was found with the 'physics_suite' variable."
-                raise CamConfigValError(emsg)
-            #End if
-
-            if len(phys_suite_list) > 2:
-                #If there is more than two entries, it means there were two or more equals signs:
-                emsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
-                raise CamConfigValError(emsg)
-            #End if
-
-            #Remove quotation marks around physics_suite entry, if any:
-            phys_suite_val = phys_suite_list[1].strip(''' "' ''')
-
-            #Check that physics suite specified is actually in config list:
-            if phys_suite_val not in phys_suites:
-                emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
-                emsg += "listed in CAM_CONFIG_OPTS"
-                raise CamConfigValError(emsg.format(phys_suite_val))
-            #End if
-        #End if (phys_suite_lines check).
-
-        #Add new namelist attribute to dictionary:
-        cam_nml_attr_dict["phys_suite"] = phys_suite_val
+            else:
+                #If not, then throw an error, because one needs to be specified:
+                emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
+                emsg += "This is required because more than one suite is listed\n"
+                emsg += "in CAM_CONFIG_OPTS: '{}'"
+                raise CamConfigValError(emsg.format(self.get_value('physics_suites')))
 
 
 ###############################################################################

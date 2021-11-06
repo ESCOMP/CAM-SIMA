@@ -2,6 +2,7 @@ module phys_comp
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
+   use runtime_obj,  only: unset_str
 
    implicit none
    private
@@ -14,15 +15,15 @@ module phys_comp
 
    ! Public module data
    ! suite_name: Suite we are running
-   character(len=SHR_KIND_CS), public, protected :: phys_suite_name = ''
+   character(len=SHR_KIND_CS), public, protected :: phys_suite_name = unset_str
 
    ! Private module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
-   character(len=SHR_KIND_CL)              :: ncdata_check = 'ncdata_check'
-   character(len=SHR_KIND_CL)              :: cam_physics_mesh = 'cam_physics_mesh'
-   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before ='before'
-   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = 'after'
+   character(len=SHR_KIND_CL)              :: ncdata_check = unset_str
+   character(len=SHR_KIND_CL)              :: cam_physics_mesh = unset_str
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_before = unset_str
+   character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = unset_str
    real(kind_phys)                         :: min_difference = HUGE(1.0_kind_phys)
    real(kind_phys)                         :: min_relative_value = HUGE(1.0_kind_phys)
 
@@ -46,25 +47,23 @@ CONTAINS
       character(len=*), intent(in) :: nlfilename
 
       ! Local variables
-      integer :: unitn, ierr
+      character(len=SHR_KIND_CS)  :: physics_suite
+
+      integer                     :: unitn, ierr, i
       character(len=*), parameter :: subname = 'phys_readnl'
 
       namelist /physics_nl/ ncdata_check, min_difference, min_relative_value,&
-         cam_take_snapshot_before, cam_take_snapshot_after, cam_physics_mesh
+         cam_take_snapshot_before, cam_take_snapshot_after, cam_physics_mesh,&
+         physics_suite
 
       ! Initialize namelist variables to invalid values
-      min_relative_value       = HUGE(1.0_kind_phys)
       min_difference           = HUGE(1.0_kind_phys)
+      min_relative_value       = HUGE(1.0_kind_phys)
       cam_take_snapshot_after  = unset_path_str
       cam_take_snapshot_before = unset_path_str
       cam_physics_mesh         = unset_path_str
       ncdata_check             = unset_path_str
-
-      !!XXgoldyXX: To do: Move setting of <phys_suite_name> to namelist
-      !!XXgoldyXX: At that point, we can check that <phys_suite_name> is in
-      !!XXgoldyXX:    <suite_names>
-      call ccpp_physics_suite_list(suite_names)
-      phys_suite_name = suite_names(1)
+      physics_suite            = unset_str
 
       ! Read namelist
       if (masterproc) then
@@ -92,6 +91,22 @@ CONTAINS
          mpicom, ierr)
       call mpi_bcast(cam_take_snapshot_after, len(cam_take_snapshot_after),&
         mpi_character, masterprocid, mpicom, ierr)
+      call mpi_bcast(physics_suite, len(physics_suite),&
+        mpi_character, masterprocid, mpicom, ierr)
+
+      ! Check that the listed physics suite is actually present
+      ! in the CCPP physics suite list:
+      call ccpp_physics_suite_list(suite_names)
+      do i = 1, size(suite_names)
+         if (trim(physics_suite) == trim(suite_names(i))) then
+            phys_suite_name = trim(physics_suite)
+         end if
+      end do
+
+      ! If no match is found, then end run here:
+      if (phys_suite_name == unset_str) then
+         call endrun(subname//": Physics suite '"//trim(physics_suite)//"' not found.")
+      end if
 
       ! Print out namelist variables
       if (masterproc) then
@@ -106,6 +121,7 @@ CONTAINS
          else
             write(iulog,*) '  Physics data check will not be performed'
          end if
+         write(iulog, *) ' CCPP Physics suite chosen: ', phys_suite_name
       end if
 
    end subroutine phys_readnl
