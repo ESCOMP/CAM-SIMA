@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
-  <file name="physics_types_simple" type="module">
+  <file name="physics_types_scalar_var" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <variable local_name="theta" standard_name="potential_temperature"
               units="K" type="real" kind="kind_phys"  allocatable="pointer">

@@ -100,10 +100,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
         # Run test
-        retcode, files = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
         # Check return code
         amsg = "Test failure: retcode={}".format(retcode)
         self.assertEqual(retcode, 0, msg=amsg)
@@ -116,10 +116,10 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False),
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
                         msg=amsg)
 
     def test_good_ddt_registry(self):
@@ -142,10 +142,10 @@ class RegistryTest(unittest.TestCase):
             out_meta = os.path.join(_TMP_DIR, out_meta_name)
             remove_files([out_source, out_meta])
             # Run dycore
-            retcode, files = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
-                                          _SRC_MOD_DIR, _CAM_ROOT,
-                                          loglevel=logging.ERROR,
-                                          error_on_no_validate=True)
+            retcode, files, _ = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
+                                             _SRC_MOD_DIR, _CAM_ROOT,
+                                             loglevel=logging.ERROR,
+                                             error_on_no_validate=True)
             # Check return code
             amsg = "Test failure for dycore = {}, retcode={}".format(dycore,
                                                                      retcode)
@@ -165,11 +165,11 @@ class RegistryTest(unittest.TestCase):
             amsg = "{} does not exist".format(out_source)
             self.assertTrue(os.path.exists(out_source), msg=amsg)
             # For each output file, make sure it matches input file
-            amsg = "{} does not match {}".format(in_meta, out_meta)
-            self.assertTrue(filecmp.cmp(in_meta, out_meta,
+            amsg = "{} does not match {}".format(out_meta, in_meta)
+            self.assertTrue(filecmp.cmp(out_meta, in_meta,
                                         shallow=False), msg=amsg)
-            amsg = "{} does not match {}".format(in_source, out_source)
-            self.assertTrue(filecmp.cmp(in_source, out_source,
+            amsg = "{} does not match {}".format(out_source, in_source)
+            self.assertTrue(filecmp.cmp(out_source, in_source,
                                         shallow=False), msg=amsg)
         # End for
 
@@ -191,10 +191,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
         # Check return code
         amsg = "Test failure: retcode={}".format(retcode)
         self.assertEqual(retcode, 0, msg=amsg)
@@ -206,11 +206,11 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source,
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source,
                                     shallow=False), msg=amsg)
 
     def test_good_array(self):
@@ -231,10 +231,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
         # Check return code
         amsg = "Test failure: retcode={}".format(retcode)
         self.assertEqual(retcode, 0, msg=amsg)
@@ -246,11 +246,11 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source,
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source,
                                     shallow=False), msg=amsg)
 
     def test_good_metadata_file_registry(self):
@@ -269,10 +269,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
         # generate registry
-        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
         # Check return code
         amsg = "Test failure for SE dycore, retcode={}".format(retcode)
         self.assertEqual(retcode, 0, msg=amsg)
@@ -284,11 +284,11 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source,
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source,
                                     shallow=False), msg=amsg)
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
@@ -323,10 +323,10 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, tmp_src_dir)
 
         # Generate registry
-        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _TMP_DIR,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _TMP_DIR,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
         # Check return code
         amsg = "Test failure for SE dycore, retcode={}".format(retcode)
         self.assertEqual(retcode, 0, msg=amsg)
@@ -338,11 +338,11 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source,
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source,
                                     shallow=False), msg=amsg)
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
@@ -380,10 +380,10 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, source_mod_file)
 
         # Generate registry
-        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
-                                      tmp_src_dir, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                         tmp_src_dir, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
 
         # Check return code
         amsg = "Test failure for SE dycore, retcode={}".format(retcode)
@@ -396,11 +396,11 @@ class RegistryTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta,
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source,
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source,
                                     shallow=False), msg=amsg)
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
@@ -430,10 +430,10 @@ class RegistryTest(unittest.TestCase):
         remove_files([out_source, out_meta])
 
         # Run test
-        retcode, files = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
 
                 # Check return code
         amsg = "Test failure: retcode={}".format(retcode)
@@ -449,10 +449,10 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False),
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
                         msg=amsg)
 
         # Check that the metadata file has the correct number of variables
@@ -538,10 +538,10 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode, files = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        retcode, files, _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
         # Check return code
         amsg = "Test failure: retcode={}".format(retcode)
         self.assertEqual(retcode, 0, msg=amsg)
@@ -552,10 +552,10 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_meta))
         self.assertTrue(os.path.exists(out_source))
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(in_meta, out_meta)
-        self.assertTrue(filecmp.cmp(in_meta, out_meta, shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(in_source, out_source)
-        self.assertTrue(filecmp.cmp(in_source, out_source, shallow=False),
+        amsg = "{} does not match {}".format(out_meta, in_meta)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
+        amsg = "{} does not match {}".format(out_source, in_source)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
                         msg=amsg)
 
     def test_bad_registry_version(self):
@@ -1176,7 +1176,7 @@ class RegistryTest(unittest.TestCase):
         # Create fake CCPPFrameworkEnv object to contain the logger
         run_env = CCPPFrameworkEnv(logging.getLogger("badmf"), host_files='',
                                    scheme_files='', suites='')
-        
+
         # Run test
         with self.assertRaises(ValueError) as verr:
             metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},

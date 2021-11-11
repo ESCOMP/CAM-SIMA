@@ -1588,15 +1588,6 @@ class ConfigCAM:
         data_path = os.path.join(self.__atm_root, "src", "data")
         data_search = [source_mods_dir, data_path]
 
-        # Append CCPP-framework to python path:
-        spin_scripts_path = os.path.join(self.__atm_root, "ccpp_framework", "scripts")
-
-        # Check that CCPP-framework scripts directory exists:
-        if not os.path.isdir(spin_scripts_path):
-            emsg = ("ERROR: ccpp_framework/scripts directory doesn't exist! "
-                    "Has 'checkout_externals' been run?")
-            raise CamConfigValError(emsg)
-
         # Extract atm model config settings:
         dyn = self.get_value("dyn")
         phys_suites = self.get_value("physics_suites")
@@ -1610,10 +1601,10 @@ class ConfigCAM:
         #---------------------------------------------------------
         # Create the physics derived data types using the registry
         #---------------------------------------------------------
-        reg_dir, force_ccpp, reg_files = generate_registry(data_search,
-                                                           build_cache, self.__atm_root,
-                                                           self.__bldroot, source_mods_dir,
-                                                           dyn, gen_fort_indent)
+        retvals = generate_registry(data_search, build_cache, self.__atm_root,
+                                    self.__bldroot, source_mods_dir,
+                                    dyn, gen_fort_indent)
+        reg_dir, force_ccpp, reg_files, ic_names = retvals
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -1622,13 +1613,14 @@ class ConfigCAM:
         #---------------------------------------------------------
         # Call SPIN (CCPP Framework) to generate glue code
         #---------------------------------------------------------
-        phys_dirs, force_init, cap_datafile = \
-                               generate_physics_suites(spin_scripts_path,
-                                                       build_cache, self.__cppdefs,
-                                                       self.__atm_name, phys_suites,
-                                                       self.__atm_root, self.__bldroot,
-                                                       reg_dir, reg_files,
-                                                       source_mods_dir, force_ccpp)
+        retvals = generate_physics_suites(build_cache, self.__cppdefs,
+                                          self.__atm_name, phys_suites,
+                                          self.__atm_root, self.__bldroot,
+                                          reg_dir, reg_files, source_mods_dir,
+                                          force_ccpp)
+        phys_dirs, force_init, cap_datafile, nl_groups, capgen_db = retvals
+        # Add in the namelist groups from schemes
+        self.__nml_groups.extend(nl_groups)
 
         #Convert physics directory list into a string:
         phys_dirs_str = ';'.join(phys_dirs)
@@ -1640,11 +1632,10 @@ class ConfigCAM:
         #---------------------------------------------------------
         # Create host model variable initialization routines
         #---------------------------------------------------------
-        init_dir = generate_init_routines(spin_scripts_path, data_search,
-                                          build_cache, self.__bldroot,
-                                          reg_files, force_ccpp,
-                                          force_init, gen_fort_indent,
-                                          cap_datafile)
+        init_dir = generate_init_routines(build_cache, self.__bldroot,
+                                          force_ccpp, force_init,
+                                          source_mods_dir, gen_fort_indent,
+                                          capgen_db, ic_names)
 
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initilazation code."

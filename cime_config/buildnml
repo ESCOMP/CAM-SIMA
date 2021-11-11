@@ -301,7 +301,6 @@ def buildnml(case, caseroot, compname):
         #-------------------------------------------------
 
         # Initalize vert_coord_nl defaults:
-
         skip_groups = _get_namelist_groups(nmlgen,
                                            skip_groups=config.nml_groups)
         skip_def_groups = filter(lambda group: group !='vert_coord_nl',

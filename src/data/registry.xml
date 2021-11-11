@@ -3,8 +3,12 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAMDEN Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
+  <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
-  <file name="physics_types_simple" type="module">
+  <file name="physics_types_bad_vertdim" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <variable local_name="ncol" standard_name="horizontal_dimension"
               units="count" type="integer" access="protected">

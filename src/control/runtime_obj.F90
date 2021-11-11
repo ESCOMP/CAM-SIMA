@@ -10,6 +10,9 @@ module runtime_obj
 
    ! Public interfaces and data
 
+   !> \section arg_table_runtime_options  Argument Table
+   !! \htmlinclude arg_table_runtime_options.html
+   !!
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str
       character(len=16), private            :: waccmx_opt = unset_str

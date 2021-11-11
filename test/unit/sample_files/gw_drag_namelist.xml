@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet type="text/xsl" href="namelist_definition.xsl"?>
+
+<entry_id_pg version="2.0">
+
+<!-- Each namelist variable is defined in an <entry> element.  The
+     content of the element is the documentation of how the variable is
+     used.  Other aspects of the variable's definition are expressed as
+     attributes of the <entry> element.  Note that it is an XML requirement
+     that the attribute values are enclosed in quotes.  The attributes are:
+
+     id
+          The variable's name.  *** N.B. *** The name must be lower case.
+          The module convert all namelist variable names to lower case
+          since Fortran is case insensitive.
+
+     type
+          An abbreviation of the fortran declaration for the variable.
+	  Valid declarations are:
+
+          char*n
+	  integer
+	  logical
+	  real
+
+	  Any of these types may be followed by a comma separated list of
+	  integers enclosed in parenthesis to indicate an array.
+
+	  The current namelist validation code only distinquishes between
+	  string and non-string types.
+
+     input_pathname
+          Only include this attribute to indicate that the variable
+          contains the pathname of an input dataset that resides in the
+          CCSM inputdata directory tree.  Note that the variables
+          containing the names of restart files that are used in branch
+          runs don't reside in the inputdata tree and should not be given
+          this attribute.
+
+	  The recognized values are "abs" to indicate that an absolute
+          pathname is required, or "rel:var_name" to indicate that the
+          pathname is relative and that the namelist variable "var_name"
+          contains the absolute root directory.
+
+     category
+          A category assigned for organizing the documentation.
+
+     group
+          The namelist group that the variable is declared in.
+
+     valid_values
+          This is an optional attribute that is mainly useful for variables
+          that have only a small number of allowed values.
+                                                                        -->
+<!-- Rayleigh Friction Parameterization -->
+
+  <entry id="pgwv">
+    <type>integer</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_spectrum_dimension</standard_name>
+    <units>1</units>
+    <desc>
+      Gravity wave spectrum dimension (wave numbers are from -pgwv to pgwv).
+    </desc>
+    <values>
+      <value>32</value>
+      <value waccmx="1">18</value>
+    </values>
+  </entry>
+  <entry id="gw_dc">
+    <type>real</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_width_of_speed_bins</standard_name>
+    <units>m s-1</units>
+    <desc>
+      Width of speed bins (delta c) for gravity wave spectrum (reference wave
+      speeds are from -pgwv*dc to pgwv*dc).
+      Default: 2.5
+    </desc>
+    <values>
+      <value>2.5D0</value>
+    </values>
+  </entry>
+  <entry id="tau_0_ubc">
+    <type>logical</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_zero_stress_at_top_of_model</standard_name>
+    <units>flag</units>
+    <desc>
+      Force the stress due to gravity waves to be zero at the top of the model.
+      In the low-top model, this helps to conserve momentum and produce a QBO.
+      Default: UNKNOWN.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="bnd_rdggm">
+    <type>char*256</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_boundary_dataset_for_meso_gamma_ridges</standard_name>
+    <units>1</units>
+    <desc>
+      Full pathname of boundary dataset for meso-gamma ridges.
+      Default: UNKNOWN.
+    </desc>
+    <values>
+      <value hgrid="0.9x1.25">$DIN_LOC_ROOT/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw006_Nrs002_Co008_Fi001_ZR_c160505.nc</value>
+      <value hgrid="1.9x2.5">$DIN_LOC_ROOT/atm/cam/topo/fv_1.9x2.5_nc3000_Nsw084_Nrs016_Co120_Fi001_ZR_061116.nc</value>
+    </values>
+  </entry>
+  <entry id="gw_farr1">
+    <type>real(2)</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_fake_array1</standard_name>
+    <units>m s-1</units>
+    <desc>
+      Fake array of real values
+      Default: 2.5
+    </desc>
+    <values>
+      <value>2.5D0</value>
+    </values>
+  </entry>
+  <entry id="gw_fake2">
+    <type>integer(3,2)</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_fake2d_array</standard_name>
+    <units>1</units>
+    <desc>
+      Fake 2D array
+    </desc>
+    <values>
+      <value>32</value>
+    </values>
+  </entry>
+  <entry id="gw_fchar3">
+    <type>char*256(7)</type>
+    <category>gw_drag</category>
+    <group>gw_drag_nl</group>
+    <standard_name>gravity_wave_fake_char_array</standard_name>
+    <units>1</units>
+    <desc>
+      Fake!
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+</entry_id_pg>

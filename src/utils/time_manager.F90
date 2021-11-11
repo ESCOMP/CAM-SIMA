@@ -11,7 +11,7 @@ module time_manager
    use ESMF,           only: ESMF_TimeIntervalGet, ESMF_TimeIntervalSet
    use ESMF,           only: ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet
    use ESMF,           only: ESMF_ClockAdvance
-   use ESMF,           only: operator(.GT.), operator(.GE.), operator(.LE.)
+   use ESMF,           only: operator(>), operator(>=), operator(<=)
    use ESMF,           only: operator(+),  operator(-)
    use shr_kind_mod,   only: r8 => shr_kind_r8, SHR_KIND_CS
    use shr_cal_mod,    only: shr_cal_noleap, shr_cal_gregorian

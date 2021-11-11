@@ -23,7 +23,7 @@ contains
 
       use spmd_utils,                only: mpicom, masterproc, masterprocid
       use cam_abortutils,            only: endrun
-      use cam_logfile,               only: cam_logfile_readnl
+      use cam_logfile,               only: cam_logfile_readnl, iulog
       use cam_initfiles,             only: cam_initfiles_readnl
       use constituents,              only: cnst_readnl
       use cam_ccpp_scheme_namelists, only: cam_read_ccpp_scheme_namelists
@@ -112,8 +112,10 @@ contains
               file=__FILE__, line=__LINE__-3)
       end if
       call cam_read_ccpp_scheme_namelists(nlfilename, schemes,                &
-           mpicom, masterprocid, masterproc, waccmx_opt,                      &
-           use_gw_front, use_gw_front_igw)
+           mpicom, masterprocid, masterproc, iulog)
+
+      ! XXgoldyXX: Need to figure out how to grab gravity-wave (and other)
+      !            scheme variables if and only if they are compiled in.
 
       ! Finally, set the system-wide runtime configuration object
       call cam_set_runtime_opts(phys_suite_name, waccmx_opt,                  &

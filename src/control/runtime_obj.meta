@@ -1,0 +1,6 @@
+[ccpp-table-properties]
+  name = runtime_options
+  type = ddt
+[ccpp-arg-table]
+  name = runtime_options
+  type = ddt

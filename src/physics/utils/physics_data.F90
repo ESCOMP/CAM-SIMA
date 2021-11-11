@@ -247,7 +247,7 @@ CONTAINS
 
       !Initialize output variables
       ierr = 0
-      allocate(buffer(size(current_value)), stat=ierr) 
+      allocate(buffer(size(current_value)), stat=ierr)
       call check_allocate(ierr, subname, 'buffer')
       diff_count = 0
       diff = 0._kind_phys
@@ -315,7 +315,7 @@ CONTAINS
       character(len=*),  intent(in)    :: stdname
       real(kind_phys),   intent(in)    :: min_difference
       real(kind_phys),   intent(in)    :: min_relative_value
-      logical,           intent(inout) :: is_first 
+      logical,           intent(inout) :: is_first
 
       !Local variables:
       logical                          :: var_found = .true.
@@ -389,7 +389,7 @@ CONTAINS
          end if
       end if
       deallocate(buffer)
- 
+
    end subroutine check_field_3d
 
    subroutine write_check_field_entry(stdname, diff_count, max_diff, is_first)
@@ -415,7 +415,7 @@ CONTAINS
          write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a)"
          write(iulog, fmt_str) 'Variable', '# Diffs', 'Max Diff'
          write(iulog, fmt_str) '--------', '-------', '--------'
-      end if      
+      end if
 
       if (slen > indent_level) then
          write(iulog, '(a)') trim(stdname)

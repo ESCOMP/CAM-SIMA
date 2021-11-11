@@ -5,10 +5,13 @@ module constituents
 
    public :: cnst_readnl
 
-   integer, protected, public :: pcnst = 0
    ! Namelist variable
    ! readtrace: Obtain initial tracer data from IC file if .true.
    logical, public, protected :: readtrace = .true.
+
+   !> \section arg_table_constituents  Argument Table
+   !! \htmlinclude constituents.html
+   integer, public, protected :: pcnst = 0
 
 CONTAINS
 

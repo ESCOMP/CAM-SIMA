@@ -24,15 +24,18 @@ module spmd_utils
 !-----------------------------------------------------------------------
    public spmd_init
 
+   ! processor name for this task
+   character, allocatable         :: proc_name(:)
+   ! the value of iam which is assigned the masterproc duties
+   integer,   parameter           :: DEFAULT_MASTERPROC = 0
+
+   !> \section arg_table_spmd_utils  Argument Table
+   !! \htmlinclude spmd_utils.html
    integer, public, protected     :: mpicom = MPI_COMM_NULL
    logical, public, protected     :: masterproc = .false.
    integer, public, protected     :: masterprocid = -1
    integer, public, protected     :: iam = -1
    integer, public, protected     :: npes = -1
-   ! processor name for this task
-   character, allocatable         :: proc_name(:)
-   ! the value of iam which is assigned the masterproc duties
-   integer,   parameter           :: DEFAULT_MASTERPROC = 0
 
 !========================================================================
 CONTAINS
