@@ -41,20 +41,13 @@ from fortran_tools import FortranWriter
 # pylint: enable=wrong-import-position
 
 ###############################################################################
-def convert_to_long_name(standard_name):
-###############################################################################
-    """Convert <standard_name> to an easier-to-read string
-    NB: While this is similar to the CCPP conversion, they do not have to
-        have the same form or functionality"""
-    return standard_name[0].upper() + re.sub("_", " ", standard_name[1:])
-
-###############################################################################
-def write_ccpp_table_header(name, outfile):
+def write_ccpp_table_header(name, outfile, indent):
 ###############################################################################
     """Write the standard Fortran comment block for a CCPP header
     (module, type, scheme)."""
-    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name), 0)
-    outfile.write(r"!! \htmlinclude {}.html".format(name), 0)
+    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name),
+                  indent)
+    outfile.write(r"!! \htmlinclude {}.html".format(name), indent)
 
 ###############################################################################
 def parse_command_line(args, description):
@@ -102,6 +95,13 @@ class NLVar:
 ###############################################################################
     """Class to hold information about a namelist variable entry"""
 
+    __kind_errstr = "Conflicting kind arguments, '{}' and '{}'"
+
+    __tspec = r"[ ]*([a-z]+)[ ]*"
+    __clenspec = r"(?:[*][ ]*([0-9]+))?[ ]*"
+    __aspec = r"[ ]*(?:[(][ ]*([0-9]+)[ ]*[)])?"
+    __type_re = re.compile(__tspec + __clenspec + __aspec)
+
     def __init__(self, var_xml):
         """Collect namelist variable information from <var_xml> element"""
         self.__var_name = var_xml.get("id")
@@ -111,10 +111,28 @@ class NLVar:
         self.__long_name = None
         self.__units = None
         self.__kind = None
+        self.__array_len = None
+        self.__valid = True # speculation to be confirmed
+        self.__kind_err = ""
         for element in var_xml:
             elem_type = element.tag
             if elem_type == "type":
-                self.__type = element.text
+                typ, knd, alen = self._parse_xml_type(element.text)
+                self.__type = typ
+                if self.__kind and knd:
+                    # Can't have a character <type> and a <kind> tag
+                    self.__valid = False
+                    self.__kind_err = self.__kind_errstr.format(self.__kind,
+                                                                knd)
+                else:
+                    self.__kind = knd
+                # end if
+                self.__arraylen = alen
+                if self.var_type == "character":
+                    # character arguments at least require a length
+                    self.__valid &= self.kind is not None
+                    self.__kind_err = "No length argument for character type"
+                # end if
             elif elem_type == "group":
                 self.__group = element.text
             elif elem_type == "standard_name":
@@ -124,14 +142,40 @@ class NLVar:
             elif elem_type == "units":
                 self.__units = element.text
             elif elem_type == "kind":
-                self.__kind = element.text
+                if self.kind:
+                    # Someone already set the kind, probably a char*nnn type
+                    self.__valid = False
+                    self.__kind_err = self.__kind_errstr.format(self.__kind,
+                                                                element.text)
+                else:
+                    self.__kind = element.text
+                # end if
             # end if (ignore unused tag types)
         # end for
+        self.__valid &= ((self.var_type is not None) and
+                         (self.group is not None) and
+                         (self.standard_name is not None) and
+                         (self.units is not None))
+
+    def _parse_xml_type(self, type_str):
+        """Parse a namelist XML type description, <type_str>, and return
+           the Fortran type, a character length argument (if the type is
+           char, otherwise None), and an array length (or none).
+        """
+        var_type = None
+        kind = None
+        array_len = None
+        match = self.__type_re.match(type_str)
+        if match:
+            var_type = match.group(1)
+            kind = match.group(2)
+            array_len = match.group(3)
+        # end if (no else, None will show as invalid)
+        return var_type, kind, array_len
 
     def is_valid(self):
         """Return True if this NLVar object contains all required fields."""
-        return (self.var_type and self.group and
-                self.standard_name and self.units)
+        return self.__valid
 
     def missing(self):
         """Return a list of the missing required properties of this
@@ -158,6 +202,9 @@ class NLVar:
         else:
             suff = ""
         # end if
+        if self.__kind_err:
+            missing_props.append(self.__kind_err)
+        # end if
         return ", ".join(missing_props) + suff
 
     def write_metadata_entry(self, file):
@@ -176,6 +223,13 @@ class NLVar:
         # end if
         file.write(f"  type = {self.var_type}{kind_suff}\n")
         file.write(f"  units = {self.units}\n")
+
+    def write_decl(self, file, indent, intent=None):
+        """Write a Fortran declaration of this variable to <file> at
+           indent level, <indent>.
+        If <intent> is not None, use that as a variable intent in the
+           declaration.
+        """
 
     @property
     def var_name(self):
