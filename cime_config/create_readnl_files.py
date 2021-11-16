@@ -41,6 +41,23 @@ from fortran_tools import FortranWriter
 # pylint: enable=wrong-import-position
 
 ###############################################################################
+def is_int(token):
+###############################################################################
+    """Return True if <token> is an integer"""
+    isint = False
+    if token:
+        try:
+            ival = int(token)
+            isint = True
+        except ValueError:
+            isint = False
+        # end try
+    else:
+        isint = False
+    # end if
+    return isint
+
+###############################################################################
 def write_ccpp_table_header(name, outfile, indent):
 ###############################################################################
     """Write the standard Fortran comment block for a CCPP header
@@ -95,12 +112,19 @@ class NLVar:
 ###############################################################################
     """Class to hold information about a namelist variable entry"""
 
+    # For validity error messages
     __kind_errstr = "Conflicting kind arguments, '{}' and '{}'"
+    __kind_badkind = "Illegal kind, '{}', for type, '{}'"
+    __nl_types = ['integer', 'logical', 'real', 'character']
 
+    # Parse any valid XML <type> text
     __tspec = r"[ ]*([a-z]+)[ ]*"
     __clenspec = r"(?:[*][ ]*([0-9]+))?[ ]*"
     __aspec = r"[ ]*(?:[(][ ]*([0-9]+)[ ]*[)])?"
     __type_re = re.compile(__tspec + __clenspec + __aspec)
+
+    # Formatting parameters
+    __type_strlen = 20 # Crude but no loop through variables necessary
 
     def __init__(self, var_xml):
         """Collect namelist variable information from <var_xml> element"""
@@ -119,13 +143,16 @@ class NLVar:
             if elem_type == "type":
                 typ, knd, alen = self._parse_xml_type(element.text)
                 self.__type = typ
-                if self.__kind and knd:
+                if (typ == "character") and self.__kind and knd:
                     # Can't have a character <type> and a <kind> tag
                     self.__valid = False
                     self.__kind_err = self.__kind_errstr.format(self.__kind,
                                                                 knd)
-                else:
+                elif typ == "character":
                     self.__kind = knd
+                else:
+                    # Only character can have a "kind" in the type tag
+                    self.__kind_err = self.__kind_badkind.format(knd, typ)
                 # end if
                 self.__arraylen = alen
                 if self.var_type == "character":
@@ -152,10 +179,16 @@ class NLVar:
                 # end if
             # end if (ignore unused tag types)
         # end for
+        # Default kind for real variables
+        if (not self.kind) and (self.var_type == "real"):
+            self.__kind = "kind_phys"
+        # end if
+        # Final validity check
         self.__valid &= ((self.var_type is not None) and
                          (self.group is not None) and
                          (self.standard_name is not None) and
                          (self.units is not None))
+        self.__valid &= self.var_type in self.__nl_types
 
     def _parse_xml_type(self, type_str):
         """Parse a namelist XML type description, <type_str>, and return
@@ -168,7 +201,17 @@ class NLVar:
         match = self.__type_re.match(type_str)
         if match:
             var_type = match.group(1)
+            if var_type == 'char':
+                var_type = 'character'
+            # end if
             kind = match.group(2)
+            if kind:
+                if var_type == 'character':
+                    kind = 'len='+kind
+                else:
+                    kind = None # This should trigger an error
+                # end if
+            # end if
             array_len = match.group(3)
         # end if (no else, None will show as invalid)
         return var_type, kind, array_len
@@ -205,6 +248,9 @@ class NLVar:
         if self.__kind_err:
             missing_props.append(self.__kind_err)
         # end if
+        if self.var_type not in self.__nl_types:
+            missing_props.append(f"Unknown variable type, '{self.var_type}'")
+        # end if
         return ", ".join(missing_props) + suff
 
     def write_metadata_entry(self, file):
@@ -230,6 +276,39 @@ class NLVar:
         If <intent> is not None, use that as a variable intent in the
            declaration.
         """
+        if self.kind:
+            type_str = f"{self.var_type}({self.kind})"
+        else:
+            type_str = f"{self.var_type}"
+        # end if
+        pad1 = " "*(self.__type_strlen - len(type_str))
+        if intent:
+            comma = ','
+            intent_str = f"intent({intent})" + " "*(5 - len(intent))
+        else:
+            comma = ''
+            intent_str = ''
+        # end if
+        if self.array_len:
+            var_str = f"{self.var_name}({self.array_len})"
+        else:
+            var_str = f"{self.var_name}"
+        # end if
+        if self.var_type == "integer":
+            init_str = " = -HUGE(1)"
+        elif self.var_type == "logical":
+            init_str = " = .false."
+        elif self.var_type == "real":
+            if self.kind:
+                init_str = f" = -HUGE(1.0_{self.kind})"
+            else:
+                init_str = " = -HUGE(1.0)"
+            # end if
+        elif self.var_type == "character":
+            init_str = " = UNSET"
+        # end if
+        decl = f"{type_str}{comma}{pad1}{intent_str} :: {var_str}{init_str}"
+        file.write(decl, indent)
 
     @property
     def var_name(self):
@@ -265,6 +344,11 @@ class NLVar:
     def kind(self):
         """Return the kind of this NLVar object"""
         return self.__kind
+
+    @property
+    def array_len(self):
+        """Return the array length (if any) for this NLVar object"""
+        return self.__array_len
 
 ###############################################################################
 def process_xml_file(nlxml, basename, outdir, nlfile_arg, mpicom_arg,
@@ -312,6 +396,9 @@ def process_xml_file(nlxml, basename, outdir, nlfile_arg, mpicom_arg,
             mfile.write("[ccpp-table-properties]\n")
             mfile.write(f"  name = {basename}\n")
             mfile.write("  type = module\n")
+            mfile.write("[ccpp-arg-table]\n")
+            mfile.write(f"  name  = {basename}\n")
+            mfile.write("  type  = module\n")
             for var in nlvars:
                 var.write_metadata_entry(mfile)
             # end for
@@ -326,12 +413,32 @@ def process_xml_file(nlxml, basename, outdir, nlfile_arg, mpicom_arg,
             scheme = basename
         # end if
         file_desc = f"Module to read namelist variables for {scheme}"
+        # Collect all the kinds used in the file
+        file_kinds = set()
+        for var in nlvars:
+            kind = var.kind
+            if kind and (not is_int(kind)):
+                file_kinds.add(kind)
+            # end if
+        # end for
+        # We need a standard name for the namelist reading function
+        func_name = f"autogen_{scheme}_readnl"
         with FortranWriter(fortfile_name, "w", file_desc,
                            basename, indent=indent) as outfile:
-            # More boilerplate
-            outfile.write("", 0)
+            # Write out any kinds needed
+            for kind in sorted(file_kinds):
+                outfile.write(f"use ccpp_kinds, only: {kind}", 1)
+            # end if
+            # Boilerplate
             outfile.write_preamble()
-
+            # Declare the namelist reading function
+            outfile.write(f"public :: {func_name}", 1)
+            outfile.write("", 0)
+            # Write out module variable declarations
+            write_ccpp_table_header(basename, outfile, 1)
+            for var in nlvars:
+                var.write_decl(outfile, 1)
+            # end if
             # end of module header
             outfile.end_module_header()
             outfile.write("", 0)
