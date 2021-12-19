@@ -1849,7 +1849,7 @@ def write_phys_check_subroutine(outfile, fort_data, phys_check_fname_str):
     outfile.write("return", 3)
     outfile.write("end if", 2)
     outfile.write("!Open check file:", 2)
-    outfile.write("call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found, log_info=.false.)", 2)
+    outfile.write("call cam_get_file(file_name, ncdata_check_loc, allow_fail=.true., lexist=file_found, log_info=.false.)", 2)
     outfile.write("if (.not. file_found) then", 2)
     outfile.write("write(iulog,*) 'WARNING: Check file '//file_name//' not found. Model will run, but physics check data will not be printed'", 3)
     outfile.write("return", 3)

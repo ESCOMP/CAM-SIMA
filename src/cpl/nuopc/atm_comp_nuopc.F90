@@ -42,7 +42,9 @@ module atm_comp_nuopc
    use NUOPC_Model,       only: model_label_SetRunClock    => label_SetRunClock
    use NUOPC_Model,       only: model_label_Finalize       => label_Finalize
    use NUOPC_Model,       only: NUOPC_ModelGet
-   use shr_kind_mod,      only: r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
+   use shr_kind_mod,      only: r8=>shr_kind_r8, i8=>shr_kind_i8
+   use shr_kind_mod,      only: CX=>shr_kind_cx, CL=>shr_kind_cl
+   use shr_kind_mod,      only: CS=>shr_kind_cs
    use shr_sys_mod,       only: shr_sys_abort
    use shr_file_mod,      only: shr_file_getlogunit, shr_file_setlogunit
    use shr_cal_mod,       only: shr_cal_noleap, shr_cal_gregorian, shr_cal_ymd2date
@@ -93,7 +95,6 @@ module atm_comp_nuopc
    private :: cam_orbital_init
    private :: cam_orbital_update
    private :: cam_set_mesh_for_single_column
-   private :: cam_pio_checkerr
 
    !--------------------------------------------------------------------------
    ! Private module data
@@ -111,7 +112,7 @@ module atm_comp_nuopc
    type(cam_in_t),   pointer    :: cam_in  => NULL()
    type(cam_out_t),  pointer    :: cam_out => NULL()
 
-   character(len=256)          :: rsfilename_spec_cam ! Filename specifier for restart surface file
+   character(len=CL)           :: rsfilename_spec_cam ! Filename specifier for restart surface file
    character(len=*), parameter :: modName =  "(atm_comp_nuopc)"
    character(len=*), parameter :: u_FILE_u = __FILE__
 
@@ -156,8 +157,7 @@ CONTAINS
       call NUOPC_CompDerive(gcomp, model_routine_SS, rc=rc)
       if (ChkErr(rc, __LINE__, u_FILE_u)) return
 
-      ! switching to IPD version v03
-
+      ! switching to Initialize Phase Definition (IPD)
       call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE,          &
            userRoutine=InitializeP0, phase=0, rc=rc)
       if (ChkErr(rc, __LINE__, u_FILE_u)) return
@@ -345,7 +345,8 @@ CONTAINS
    !==========================================================================
    subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
 
-      use cam_comp, only: cam_init
+      use string_utils, only: to_str
+      use cam_comp,     only: cam_init
 
       ! Dummy arguments
       type(ESMF_GridComp)  :: gcomp
@@ -416,11 +417,12 @@ CONTAINS
       character(CS)           :: inst_suffix
       integer                 :: lmpicom
       logical                 :: isPresent
-      character(len=512)      :: diro
-      character(len=512)      :: logfile
+      character(len=CX)       :: diro
+      character(len=CX)       :: logfile
       integer                 :: compid      ! component id
       integer                 :: localPet, localPeCount
       integer                 :: nthrds
+      integer                 :: astat
       logical                 :: initial_run ! startup mode which only requires a minimal initial file
       logical                 :: restart_run ! continue a previous run; requires a restart file
       logical                 :: branch_run  ! branch from a previous run; requires a restart file
@@ -689,7 +691,11 @@ CONTAINS
 
             ! generate the dof
             lsize = columns_on_task
-            allocate(dof(lsize))
+            allocate(dof(lsize), stat=astat)
+            if (astat /= 0) then
+               write(tempc1, *) 'Allocate ERROR for dof, '//to_str(astat)
+               call shr_sys_abort(subname//trim(tempc1))
+            end if
             do n = 1, lsize
                dof(n) = global_index_p(n)
             end do
@@ -724,8 +730,22 @@ CONTAINS
                rc = ESMF_FAILURE
                return
             end if
-            allocate(ownedElemCoords(spatialDim*numOwnedElements))
-            allocate(lonMesh(lsize), latMesh(lsize))
+            allocate(ownedElemCoords(spatialDim*numOwnedElements), stat=astat)
+            if (astat /= 0) then
+               write(tempc1, *) 'Allocate ERROR for ownedElemCoords, ',       &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(tempc1))
+            end if
+            allocate(lonMesh(lsize), stat=astat)
+            if (astat /= 0) then
+               write(tempc1, *) 'Allocate ERROR for lonMesh ', to_str(astat)
+               call shr_sys_abort(subname//trim(tempc1))
+            end if
+            allocate(latMesh(lsize), stat=astat)
+            if (astat /= 0) then
+               write(tempc1, *) 'Allocate ERROR for latMesh ', to_str(astat)
+               call shr_sys_abort(subname//trim(tempc1))
+            end if
             call ESMF_MeshGet(Emesh, ownedElemCoords=ownedElemCoords)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
             do n = 1,lsize
@@ -741,9 +761,17 @@ CONTAINS
             end do
 
             ! obtain internally generated cam lats and lons
-            allocate(lon(lsize))
+            allocate(lon(lsize), stat=astat)
+            if (astat /= 0) then
+               write(tempc1, *) 'Allocate ERROR for lon ', to_str(astat)
+               call shr_sys_abort(subname//trim(tempc1))
+            end if
             lon(:) = 0._r8
-            allocate(lat(lsize))
+            allocate(lat(lsize), stat=astat)
+            if (astat /= 0) then
+               write(tempc1, *) 'Allocate ERROR for lat ', to_str(astat)
+               call shr_sys_abort(subname//trim(tempc1))
+            end if
             lat(:) = 0._r8
             n = 0
             ! latitudes and longitudes returned in radians
@@ -826,7 +854,8 @@ CONTAINS
 
    !==========================================================================
    subroutine DataInitialize(gcomp, rc)
-      use cam_comp, only: cam_run1
+      use string_utils, only: to_str
+      use cam_comp,     only: cam_run1
 
       ! Dummy arguments
       type(ESMF_GridComp)  :: gcomp
@@ -838,19 +867,19 @@ CONTAINS
       type(ESMF_Time)                    :: currTime      ! Current time
       type(ESMF_TimeInterval)            :: timeStep
       type(ESMF_Field)                   :: field
-      character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-      character(ESMF_MAXSTR)             :: fieldName
+      character(len=ESMF_MAXSTR), allocatable :: fieldNameList(:)
+      character(len=ESMF_MAXSTR)         :: fieldName
       integer                            :: n, fieldCount
+      integer                            :: astat
       integer                            :: shrlogunit    ! original log unit
       integer(ESMF_KIND_I8)              :: stepno        ! time step
       integer                            :: dtime         ! time step increment (sec)
       integer                            :: atm_cpl_dt    ! driver atm coupling time step
       integer                            :: nstep         ! CAM nstep
-      real(r8)                           :: caldayp1      ! CAM calendar day for for next cam time step
       real(r8)                           :: nextsw_cday   ! calendar of next atm shortwave
       logical                            :: importDone    ! true => import data is valid
       logical                            :: atCorrectTime ! true => field is at correct time
-      character(CL)                      :: cvalue
+      character(len=CL)                  :: cvalue
       character(len=*),parameter         :: subname=trim(modName)//':(DataInitialize) '
       !-----------------------------------------------------------------------
 
@@ -896,7 +925,12 @@ CONTAINS
          call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
          if (ChkErr(rc, __LINE__, u_FILE_u)) return
 
-         allocate(fieldNameList(fieldCount))
+         allocate(fieldNameList(fieldCount), stat=astat)
+         if (astat /= 0) then
+            write(fieldname, *) 'Allocate ERROR for fieldNameList ',          &
+                 to_str(astat)
+            call shr_sys_abort(subname//trim(fieldname))
+         end if
          call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
          if (ChkErr(rc, __LINE__, u_FILE_u)) return
          importDone = .true.
@@ -971,6 +1005,8 @@ CONTAINS
          end if
 
          !CAMDEN TODO Remove once radiation has been fully implemented. -JN
+         ! Also note that this will need to be refactored to reflect the
+         !    recent CAM changes.
 #if 0
          ! Compute time of next radiation computation, like in run method for exact restart
          dtime = get_step_size()
@@ -1001,7 +1037,12 @@ CONTAINS
          call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
          if (ChkErr(rc, __LINE__, u_FILE_u)) return
 
-         allocate(fieldNameList(fieldCount))
+         allocate(fieldNameList(fieldCount), stat=astat)
+         if (astat /= 0) then
+            write(fieldname, *) 'Allocate ERROR for fieldNameList ',          &
+                 to_str(astat)
+            call shr_sys_abort(subname//trim(fieldname))
+         end if
          call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
          if (ChkErr(rc, __LINE__, u_FILE_u)) return
 
@@ -1479,7 +1520,7 @@ CONTAINS
 
    !==========================================================================
    subroutine ModelFinalize(gcomp, rc)
-      use cam_comp, only: cam_final
+      use cam_comp,  only: cam_final
 
       ! Dummy arguments
       type(ESMF_GridComp)  :: gcomp
@@ -1489,8 +1530,8 @@ CONTAINS
       integer              :: shrlogunit  ! original log unit
       real(r8)             :: nextsw_cday ! calendar of next atm shortwave
       type(ESMF_State)     :: importState
-      character(*),     parameter :: F00   = "('(atm_comp_nuopc) ',8a)"
-      character(*),     parameter :: F91   = "('(atm_comp_nuopc) ',73('-'))"
+      character(len=*), parameter :: F00   = "('(atm_comp_nuopc) ',8a)"
+      character(len=*), parameter :: F91   = "('(atm_comp_nuopc) ',73('-'))"
       character(len=*), parameter :: subname=trim(modName)//':(ModelFinalize) '
       !------------------------------------------------------------------------
 
@@ -1708,6 +1749,8 @@ CONTAINS
 
    !==========================================================================
    subroutine cam_read_srfrest(gcomp, clock, rc)
+      use string_utils, only: to_str
+      use ioFileMod,    only: cam_get_file
 
       ! Dummy arguments
       type(ESMF_GridComp)             :: gcomp
@@ -1723,6 +1766,7 @@ CONTAINS
       type(file_desc_t)                  :: file
       type(io_desc_t), pointer           :: iodesc
       integer                            :: fieldCount
+      integer                            :: astat
       character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
       type(var_desc_t)                   :: varid
       real(r8), pointer                  :: fldptr(:)
@@ -1733,8 +1777,8 @@ CONTAINS
       integer                            :: mon_spec      ! Current month
       integer                            :: day_spec      ! Current day
       integer                            :: sec_spec      ! Current time of day (sec)
-      character(len=256)                 :: fname_srf_cam ! surface restart filename
-      character(len=256)                 :: pname_srf_cam ! surface restart full pathname
+      character(len=CL)                  :: fname_srf_cam ! surface restart filename
+      character(len=CL)                  :: pname_srf_cam ! surface restart full pathname
       character(len=PIO_MAX_NAME)        :: varname
       integer                            :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
       integer                            :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
@@ -1743,6 +1787,8 @@ CONTAINS
       character(len=8)                   :: cvalue
       integer                            :: nloop
       character(len=4)                   :: prefix
+      character(len=*), parameter        :: subname = "(cam_read_srfrest) "
+
       !-----------------------------------------------------------------------
 
       rc = ESMF_SUCCESS
@@ -1766,13 +1812,11 @@ CONTAINS
            case=cam_initfiles_get_caseid(), yr_spec=yr_spec,                  &
            mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
       pname_srf_cam = trim(cam_initfiles_get_restdir())//fname_srf_cam
-      !Un-comment when File I/O is fully enabled in CAMDEN -JN:
-      !call getfil(pname_srf_cam, fname_srf_cam)
+      call cam_get_file(pname_srf_cam, fname_srf_cam)
 
       ! ------------------------------
       ! Open restart file
       ! ------------------------------
-
       call cam_pio_openfile(File, fname_srf_cam, 0)
       call cam_pio_newdecomp(iodesc, (/num_global_phys_cols/), dof, pio_double)
       call pio_seterrorhandling(File, pio_bcast_error, oldmethod=err_handling)
@@ -1780,20 +1824,29 @@ CONTAINS
       ! ------------------------------
       ! Read in import and export fields
       ! ------------------------------
-
-      do nloop = 1,2
+      do nloop = 1, 2
          if (nloop == 1) then
             prefix = 'x2a_' ! import fields
             call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            allocate(fieldnameList(fieldCount))
+            allocate(fieldnameList(fieldCount), stat=astat)
+            if (astat /= 0) then
+               write(varname, *) 'Allocate ERROR for fieldNameList ',         &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(varname))
+            end if
             call ESMF_StateGet(importState, itemNameList=fieldnameList, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
          else
             prefix = 'a2x_' ! export fields
             call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            allocate(fieldnameList(fieldCount))
+            allocate(fieldnameList(fieldCount), stat=astat)
+            if (astat /= 0) then
+               write(varname, *) 'Allocate ERROR for fieldNameList ',         &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(varname))
+            end if
             call ESMF_StateGet(exportState, itemNameList=fieldnameList, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
          end if
@@ -1849,7 +1902,11 @@ CONTAINS
                   lsize = size(fldptr2d, dim=2)
                end if
 
-               allocate(tmpptr(lsize))
+               allocate(tmpptr(lsize), stat=astat)
+               if (astat /= 0) then
+                  write(varname, *) 'Allocate ERROR for tmpptr ', to_str(astat)
+                  call shr_sys_abort(subname//trim(varname))
+               end if
                do n = 1, ungriddedUBound(1)
                   write(cvalue,'(i0)') n
                   varname = trim(prefix)//trim(fieldnameList(nf))//trim(cvalue)
@@ -1891,6 +1948,7 @@ CONTAINS
    !=========================================================================
    subroutine cam_write_srfrest(gcomp, yr_spec, mon_spec, day_spec,           &
         sec_spec, rc)
+      use string_utils, only: to_str
 
       ! Dummy Arguments
       type(ESMF_GridComp)  :: gcomp
@@ -1908,18 +1966,20 @@ CONTAINS
       integer                             :: dimid(1), nf, n
       type(file_desc_t)                   :: file
       type(io_desc_t),        pointer     :: iodesc
+      integer                             :: astat
       integer                             :: fieldCount
       character(ESMF_MAXSTR), allocatable :: fieldnameList(:)
       type(var_desc_t)                    :: varid
       real(r8),               pointer     :: fldptr1d(:)
       real(r8),               pointer     :: fldptr2d(:,:)
       character(len=PIO_MAX_NAME)         :: varname
-      character(len=256)                  :: fname_srf_cam      ! surface restart filename
+      character(len=CL)                   :: fname_srf_cam      ! surface restart filename
       character(len=8)                    :: cvalue
       integer                             :: nloop
       character(len=4)                    :: prefix
       integer                             :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
       integer                             :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
+      character(len=*), parameter        :: subname = "(cam_write_srfrest) "
       !-----------------------------------------------------------------------
 
       rc = ESMF_SUCCESS
@@ -1960,14 +2020,24 @@ CONTAINS
             prefix = 'x2a_' ! import fields
             call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            allocate(fieldNameList(fieldCount))
+            allocate(fieldNameList(fieldCount), stat=astat)
+            if (astat /= 0) then
+               write(fname_srf_cam, *) 'Allocate ERROR for fieldNameList ',   &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(fname_srf_cam))
+            end if
             call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
          else
             prefix = 'a2x_' ! export fields
             call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            allocate(fieldNameList(fieldCount))
+            allocate(fieldNameList(fieldCount), stat=astat)
+            if (astat /= 0) then
+               write(fname_srf_cam, *) 'Allocate ERROR for fieldNameList ',   &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(fname_srf_cam))
+            end if
             call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
          end if
@@ -2033,14 +2103,24 @@ CONTAINS
             prefix = 'x2a_' ! import fields
             call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            allocate(fieldNameList(fieldCount))
+            allocate(fieldNameList(fieldCount), stat=astat)
+            if (astat /= 0) then
+               write(fname_srf_cam, *) 'Allocate ERROR for fieldNameList ',   &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(fname_srf_cam))
+            end if
             call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
          else
             prefix = 'a2x_' ! export fields
             call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            allocate(fieldNameList(fieldCount))
+            allocate(fieldNameList(fieldCount), stat=astat)
+            if (astat /= 0) then
+               write(fname_srf_cam, *) 'Allocate ERROR for fieldNameList ',   &
+                    to_str(astat)
+               call shr_sys_abort(subname//trim(fname_srf_cam))
+            end if
             call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
          end if
@@ -2211,7 +2291,7 @@ CONTAINS
       integer                :: maxIndex(2)
       real(r8)               :: mincornerCoord(2)
       real(r8)               :: maxcornerCoord(2)
-      character(len=*), parameter :: subname= ' (lnd_set_mesh_for_single_column) '
+      character(len=*), parameter :: subname= ' (cam_set_mesh_for_single_column) '
       !-----------------------------------------------------------------------
 
       rc = ESMF_SUCCESS
@@ -2236,21 +2316,5 @@ CONTAINS
       if (ChkErr(rc, __LINE__, u_FILE_u)) return
 
    end subroutine cam_set_mesh_for_single_column
-
-   !============================================================================
-   subroutine cam_pio_checkerr(ierror, description)
-      use pio, only: PIO_NOERR
-
-      ! Dummy arguments
-      integer,          intent(in) :: ierror
-      character(len=*), intent(in) :: description
-      ! Local variable
-      character(len=512) :: errmsg
-
-      if (ierror /= PIO_NOERR) then
-         write(errmsg,'(6a)') 'ERROR ', trim(description)
-         call shr_sys_abort(trim(errmsg), ierror)
-      end if
-   end subroutine cam_pio_checkerr
 
 end module atm_comp_nuopc

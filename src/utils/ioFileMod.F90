@@ -31,45 +31,45 @@ module ioFileMod
 CONTAINS
 !=======================================================================
 
-   subroutine cam_get_file(fulpath, locfn, iflag, lexist, log_info)
+   subroutine cam_get_file(full_path, file_out, allow_fail, lexist, log_info)
 
       ! --------------------------------------------------------------------
       ! Determine whether file is on local disk.
       ! . first check current working directory
-      ! . next check full pathname[fulpath] on disk
-      ! . by default, abort if file not found.  Setting optional iflag arg
-      !   to 1 overrides this behavior, and in that case the optional lexist
-      !   arg is used to return status of whether the file was found or not.
-      ! fulpath is the full pathname on local disk
-      ! locfn is the local file name if found in working directory,
-      !       otherwise it is set to <fulpath>.
+      ! . next check full pathname[full_path] on disk
+      ! . by default, abort if file not found.
+      ! Setting optional allow_fail to .true. overrides this behavior,
+      ! . and in that case the optional lexist
+      ! . arg is used to return status of whether the file was found or not.
+      ! full_path is the full pathname on local disk
+      ! file_out is the local file name if found in working directory,
+      !       otherwise it is set to <full_path>.
       ! --------------------------------------------------------------------
 
       ! Dummy arguments
-      character(len=*),  intent(in)  :: fulpath
-      character(len=*),  intent(out) :: locfn
-      integer, optional, intent(in)  :: iflag  ! abort unless iflag=1
+      character(len=*),  intent(in)  :: full_path
+      character(len=*),  intent(out) :: file_out
+      logical, optional, intent(in)  :: allow_fail ! abort unless .true.
       logical, optional, intent(out) :: lexist ! .true. if the file is found
       logical, optional, intent(in)  :: log_info ! if .false. don't print info
 
       ! ------------------------ local variables ---------------------------
       integer            :: i               ! loop index
-      integer            :: klen            ! length of fulpath character string
-      integer            :: maxlen          ! length of locfn input variable
-      logical            :: lexist_in       ! true if local file exists
+      integer            :: klen            ! num chars in full_path string
+      integer            :: maxlen          ! length of file_out input variable
+      logical            :: lexist_in       ! .true. if local file exists
       logical            :: abort_on_failure
-      character(len=192) :: errmsg
+      character(len=CL)  :: errmsg
       logical            :: log_information
       character(len=*), parameter :: subname = 'cam_get_file'
       ! --------------------------------------------------------------------
 
-      abort_on_failure = .true.
-      if (present(iflag)) then
-         if (iflag==1) then
-            abort_on_failure = .false.
-         end if
+      if (present(allow_fail)) then
+         abort_on_failure = .not. allow_fail
+      else
+         abort_on_failure = .true.
       end if
-      maxlen = len(locfn)
+      maxlen = len(file_out)
       if (present(log_info)) then
          log_information = log_info
       else
@@ -78,18 +78,18 @@ CONTAINS
 
       ! first check if file is in current working directory.
       ! get local file name from full name: start at end. look for first "/"
-      klen = len_trim(fulpath)
-      i = index(fulpath, '/', back=.true.)
+      klen = len_trim(full_path)
+      i = index(full_path, '/', back=.true.)
 
       if ((klen-i) > maxlen) then
          write(errmsg, '(2a,i0,a,i0)') subname,                               &
               ': local filename variable is too short for path length',       &
               klen-i, ' > ', maxlen
          if (abort_on_failure) then
-            call endrun(errmsg)
+            call endrun(trim(errmsg))
          else
             if (masterproc) then
-               write(iulog, *) errmsg
+               write(iulog, *) trim(errmsg)
                if (present(lexist)) then
                   lexist = .false.
                end if
@@ -98,21 +98,21 @@ CONTAINS
          end if
       end if
 
-      locfn = fulpath(i+1:klen)
-      if (len_trim(locfn) == 0) then
+      file_out = full_path(i+1:klen)
+      if (len_trim(file_out) == 0) then
          call endrun (subname//': local filename has zero length')
       else if (masterproc .and. log_information) then
          write(iulog, *) subname//': attempting to find local file ',         &
-              trim(locfn)
+              trim(file_out)
       end if
 
-      inquire(file=locfn, exist=lexist_in)
+      inquire(file=file_out, exist=lexist_in)
       if (present(lexist)) then
          lexist = lexist_in
       end if
       if (lexist_in) then
          if (masterproc .and. log_information) then
-            write(iulog, *) subname//': using ', trim(locfn),                 &
+            write(iulog, *) subname//': using ', trim(file_out),              &
                  ' in current working directory'
          end if
          return
@@ -137,23 +137,23 @@ CONTAINS
          end if
       end if
 
-      locfn = trim(fulpath)
-      inquire(file=locfn, exist=lexist_in)
+      file_out = trim(full_path)
+      inquire(file=file_out, exist=lexist_in)
       if (present(lexist)) then
          lexist = lexist_in
       end if
       if (lexist_in) then
          if (masterproc .and. log_information) then
-            write(iulog, *) subname, ': using ', trim(fulpath)
+            write(iulog, *) subname, ': using ', trim(full_path)
          end if
          return
       else
          if (masterproc) then
             write(iulog, *) subname, ': all tries to get file have been ',    &
-                 'unsuccessful: ',trim(fulpath)
+                 'unsuccessful: ',trim(full_path)
          end if
          if (abort_on_failure) then
-            call endrun (subname//': FAILED to get '//trim(fulpath))
+            call endrun (subname//': FAILED to get '//trim(full_path))
          end if
       end if
 
@@ -161,15 +161,15 @@ CONTAINS
 
    !=======================================================================
 
-   subroutine cam_open_file (locfn, iun, form, status)
+   subroutine cam_open_file (file_path, iun, form, status)
 
       !-----------------------------------------------------------------------
-      ! open file locfn in unformatted or formatted form on unit iun
+      ! open file file_path in unformatted or formatted form on unit iun
       ! form = 'u' for unformatted, 'f' for formatted
       !-----------------------------------------------------------------------
 
       ! Dummy arguments
-      character(len=*),           intent(in)  :: locfn  !file name
+      character(len=*),           intent(in)  :: file_path  !file name
       integer,                    intent(out) :: iun    !fortran unit number
       character(len=1),           intent(in)  :: form   !file format
       character(len=*), optional, intent(in)  :: status !file status
@@ -181,7 +181,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'cam_open_file'
       ! --------------------------------------------------------------------
 
-      if (len_trim(locfn) == 0) then
+      if (len_trim(file_path) == 0) then
          call endrun(subname//': local filename has zero length')
       end if
       if (form=='u' .or. form=='U') then
@@ -194,18 +194,18 @@ CONTAINS
       else
          st = "unknown"
       end if
-      open(newunit=iun, file=locfn, status=st, form=ft, iostat=ioe)
+      open(newunit=iun, file=file_path, status=st, form=ft, iostat=ioe)
       if (ioe /= 0) then
          write(errmsg, '(3a,2(a,i0))') subname, ": failed to open file '",    &
-              trim(locfn), "' on unit ", iun, " ierr = ", ioe
+              trim(file_path), "' on unit ", iun, " ierr = ", ioe
          if(masterproc) then
-            write(iulog, *) errmsg
+            write(iulog, *) trim(errmsg)
          end if
-         call endrun(errmsg)
+         call endrun(trim(errmsg))
       else
          if(masterproc) then
             write(iulog, '(4a,i0)') subname, ": Successfully opened file '",  &
-                 trim(locfn), "' on unit = ", iun
+                 trim(file_path), "' on unit = ", iun
          end if
       end if
 

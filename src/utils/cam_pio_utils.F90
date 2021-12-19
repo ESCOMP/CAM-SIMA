@@ -107,8 +107,13 @@ module cam_pio_utils
       module procedure dump_field_6d_d
    end interface cam_pio_dump_field
 
-contains
+   private :: use_scam_limits
+   private :: find_iodesc
+   private :: find_dump_filename
 
+CONTAINS
+
+   !===========================================================================
    ! use_scam_limits is a private interface used to gather information about
    !    single-column usage and limits for use by the cam_pio_get_var interfaces
    ! This still only works for lat/lon dycores
@@ -179,6 +184,7 @@ contains
 
    end function use_scam_limits
 
+   !===========================================================================
    ! calc_permutation: Calculate a permutation array if filedims and arraydims
    !                   are in a different order
    !    E.g.: If filedims is  (lon, lat, lev, time) and
@@ -230,6 +236,7 @@ contains
 
    end subroutine calc_permutation_int
 
+   !===========================================================================
    subroutine calc_permutation_char(filedims, arraydims, perm, isperm)
       use cam_abortutils,   only: endrun
 
@@ -278,6 +285,8 @@ contains
 
    end subroutine calc_permutation_char
 
+   !===========================================================================
+   !===========================================================================
    subroutine permute_array_int(array, perm)
 
       ! Dummy arguments
@@ -298,6 +307,7 @@ contains
       deallocate(temp)
    end subroutine permute_array_int
 
+   !===========================================================================
    subroutine permute_array_r8(array, perm)
 
       ! Dummy arguments
@@ -318,9 +328,10 @@ contains
       deallocate(temp)
    end subroutine permute_array_r8
 
+   !===========================================================================
    subroutine cam_pio_handle_error(ierr, errorstr)
-      use cam_abortutils,   only: endrun
-      use pio,          only: pio_noerr
+      use cam_abortutils, only: endrun
+      use pio,            only: pio_noerr
 
       ! Dummy arguments
       integer,          intent(in)  :: ierr
@@ -336,6 +347,7 @@ contains
 
    end subroutine cam_pio_handle_error
 
+   !===========================================================================
    !-----------------------------------------------------------------------
    !
    ! cam_pio_var_info: Retrieve variable properties
@@ -407,6 +419,7 @@ contains
 
    end subroutine cam_pio_var_info
 
+   !===========================================================================
    subroutine cam_pio_find_var_single(ncid, varname, varid, found)
       use pio,            only: pio_inq_varid, pio_noerr
       use pio,            only: PIO_seterrorhandling, PIO_BCAST_ERROR
@@ -431,6 +444,7 @@ contains
 
    end subroutine cam_pio_find_var_single
 
+   !===========================================================================
    subroutine cam_pio_find_var_array(ncid, var_names, found_name, varid, found)
       use pio,           only: file_desc_t, var_desc_t
       use pio,           only: PIO_inq_varid, PIO_NOERR
@@ -473,6 +487,7 @@ contains
 
    end subroutine cam_pio_find_var_array
 
+   !===========================================================================
    !-----------------------------------------------------------------------
    !
    ! cam_pio_check_var: Make sure var exists and retrieve properties
@@ -522,6 +537,7 @@ contains
 
    end subroutine cam_pio_check_var
 
+   !===========================================================================
    subroutine init_pio_subsystem()
       use shr_pio_mod,   only: shr_pio_getiosys, shr_pio_getiotype
       use cam_instance, only: atm_id
@@ -530,13 +546,14 @@ contains
       pio_iotype =  shr_pio_getiotype(atm_id)
 
       if (masterproc) then
-         write(iulog,*)' '
-         write(iulog,*)'Initialize PIO subsystem:'
-         write(iulog,*)'  iotype  = ', pio_iotype
+         write(iulog,*) ' '
+         write(iulog,*) 'Initialize PIO subsystem:'
+         write(iulog,*) '  iotype  = ', pio_iotype
       end if
 
    end subroutine init_pio_subsystem
 
+   !===========================================================================
    ! cam_pio_get_decomp: retrieve or create a PIO decomposition for the field
    !                     described by ldims and dtype where dims is the field's
    !                     local shape.
@@ -610,6 +627,7 @@ contains
 
    end subroutine cam_pio_get_decomp
 
+   !===========================================================================
    subroutine cam_pio_newdecomp(iodesc, dims, dof, dtype)
       use pio,         only: pio_initdecomp, PIO_OFFSET_KIND, pio_iotype_pnetcdf
       use pio,         only: io_desc_t, PIO_REARR_SUBSET, PIO_REARR_BOX
@@ -648,6 +666,7 @@ contains
 
    end subroutine cam_pio_newdecomp
 
+   !===========================================================================
    subroutine find_iodesc(ldimlens, fdimlens, dtype, map, iodesc_p, found, perm)
       use cam_abortutils,    only: endrun
       use cam_map_utils,     only: cam_filemap_t
@@ -734,7 +753,7 @@ contains
 
    end subroutine find_iodesc
 
-
+   !===========================================================================
    ! cam_pio_def_dim: Define a NetCDF dimension using the PIO interface
    subroutine cam_pio_def_dim(File, name, size, dimid, existOK)
       use cam_abortutils, only: endrun
@@ -798,6 +817,7 @@ contains
 
    end subroutine cam_pio_def_dim
 
+   !===========================================================================
    ! cam_pio_def_var_0d: Define a NetCDF variable using the PIO interface
    subroutine cam_pio_def_var_0d(File, name, dtype, vardesc, existOK)
       use pio,            only: file_desc_t, var_desc_t
@@ -815,6 +835,7 @@ contains
       call cam_pio_def_var(File, trim(name), dtype, dimids, vardesc, existOK)
    end subroutine cam_pio_def_var_0d
 
+   !===========================================================================
    ! cam_pio_def_var_md: Define a NetCDF variable using the PIO interface
    subroutine cam_pio_def_var_md(File, name, dtype, dimids, vardesc, existOK)
       use cam_abortutils, only: endrun
@@ -868,6 +889,7 @@ contains
 
    end subroutine cam_pio_def_var_md
 
+   !===========================================================================
    subroutine cam_pio_get_var_2d_r8(varname, File, field, start, kount, found)
       use cam_abortutils, only: endrun
       use pio,            only: file_desc_t, var_desc_t, pio_get_var
@@ -893,7 +915,7 @@ contains
       logical                          :: exists
       character(len=PIO_MAX_NAME)      :: filedims(4)
 
-      if ( (present(start) .and. (.not. present(kount))) .or.                   &
+      if ( (present(start) .and. (.not. present(kount))) .or.                 &
            (present(kount) .and. (.not. present(start)))) then
          call endrun(trim(subname)//': start and kount must both be present')
       end if
@@ -936,6 +958,7 @@ contains
 
    end subroutine cam_pio_get_var_2d_r8
 
+   !===========================================================================
    subroutine cam_pio_get_var_2d_r8_perm(varname, File, arraydims, field,      &
         start, kount, found)
       use cam_abortutils, only: endrun
@@ -1016,6 +1039,7 @@ contains
 
    end subroutine cam_pio_get_var_2d_r8_perm
 
+   !===========================================================================
    subroutine cam_pio_get_var_3d_r8(varname, File, field, start, kount, found)
       use cam_abortutils, only: endrun
       use pio,            only: file_desc_t, var_desc_t, pio_get_var
@@ -1087,6 +1111,7 @@ contains
 
    end subroutine cam_pio_get_var_3d_r8
 
+   !===========================================================================
    subroutine cam_pio_get_var_3d_r8_perm(varname, File, arraydims, field,     &
         start, kount, found)
       use cam_abortutils, only: endrun
@@ -1172,6 +1197,7 @@ contains
 
    end subroutine cam_pio_get_var_3d_r8_perm
 
+   !===========================================================================
    ! clean_iodesc_list: Deallocate all entries in the iodesc list
    subroutine clean_iodesc_list()
       use pio, only: pio_freedecomp
@@ -1199,6 +1225,7 @@ contains
       end if
    end subroutine clean_iodesc_list
 
+   !===========================================================================
    subroutine cam_pio_createfile(file, fname, mode_in)
       use pio,            only : pio_createfile, file_desc_t, pio_noerr
       use pio,            only: pio_64bit_offset, pio_iotask_rank, pio_clobber
@@ -1229,6 +1256,7 @@ contains
 
    end subroutine cam_pio_createfile
 
+   !===========================================================================
    subroutine cam_pio_openfile(file, fname, mode, log_info)
       use pio,           only: pio_openfile, file_desc_t
       use pio,           only: pio_noerr, pio_iotask_rank
@@ -1259,6 +1287,7 @@ contains
 
    end subroutine cam_pio_openfile
 
+   !===========================================================================
    subroutine cam_pio_closefile(file)
 
       use pio, only: pio_closefile, file_desc_t
@@ -1271,6 +1300,7 @@ contains
 
    end subroutine cam_pio_closefile
 
+   !===========================================================================
    logical function cam_pio_fileexists(fname)
       use pio,            only: pio_openfile, file_desc_t, pio_noerr
       use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR
@@ -1298,6 +1328,7 @@ contains
 
    end function cam_pio_fileexists
 
+   !===========================================================================
    integer function cam_pio_set_fill(File, fillmode, old_mode) result(ierr)
 
 #ifdef PIO2
@@ -1329,6 +1360,7 @@ contains
 #endif
    end function cam_pio_set_fill
 
+   !===========================================================================
    integer function inq_var_fill_i4(File, vdesc, fillvalue, no_fill) result(ierr)
 #ifdef PIO2
       use pio, only: pio_inq_var_fill
@@ -1350,6 +1382,7 @@ contains
 
    end function inq_var_fill_i4
 
+   !===========================================================================
    integer function inq_var_fill_r4(File, vdesc, fillvalue, no_fill) result(ierr)
 #ifdef PIO2
       use pio, only: pio_inq_var_fill
@@ -1371,7 +1404,9 @@ contains
 
    end function inq_var_fill_r4
 
-   integer function inq_var_fill_r8(File, vdesc, fillvalue, no_fill) result(ierr)
+   !===========================================================================
+   integer function inq_var_fill_r8(File, vdesc, fillvalue, no_fill)          &
+        result(ierr)
 #ifdef PIO2
       use pio, only: pio_inq_var_fill
 #endif
@@ -1392,6 +1427,7 @@ contains
 
    end function inq_var_fill_r8
 
+   !===========================================================================
    subroutine find_dump_filename(fieldname, filename)
 
       ! Dummy arguments
@@ -1410,6 +1446,7 @@ contains
       end do
    end subroutine find_dump_filename
 
+   !===========================================================================
    subroutine dump_field_2d_d(fieldname, dim1b, dim1e, dim2b, dim2e, field,   &
         compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
@@ -1526,6 +1563,7 @@ contains
       call cam_pio_closefile(file)
    end subroutine dump_field_2d_d
 
+   !===========================================================================
    subroutine dump_field_3d_d(fieldname, dim1b, dim1e, dim2b, dim2e,          &
         dim3b, dim3e, field, compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
@@ -1648,6 +1686,7 @@ contains
       call cam_pio_closefile(file)
    end subroutine dump_field_3d_d
 
+   !===========================================================================
    subroutine dump_field_4d_d(fieldname, dim1b, dim1e, dim2b, dim2e,          &
         dim3b, dim3e, dim4b, dim4e, field, compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
@@ -1781,6 +1820,7 @@ contains
       call cam_pio_closefile(file)
    end subroutine dump_field_4d_d
 
+   !===========================================================================
    subroutine dump_field_6d_d(fieldname, dimbs, dimes, field,                 &
         compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
