@@ -7055,8 +7055,11 @@
     <type>char*256</type>
     <category>build</category>
     <group>physics_nl</group>
-    <desc>
+    <desc>ESMF mesh file for CAM physics for use in regridding operations.
     </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
   </entry>
   <entry id="oplus_adiff_limiter">
     <type>real</type>

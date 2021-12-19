@@ -114,7 +114,7 @@ CONTAINS
 
       this%filename = trim(filepath)
 
-      call cam_get_file(filepath, filen, iflag=0)
+      call cam_get_file(filepath, filen, allow_fail=.false.)
       call cam_pio_openfile(fileid, filen, PIO_NOWRITE)
 
       call pio_seterrorhandling(fileid, PIO_BCAST_ERROR, oldmethod=err_handling)

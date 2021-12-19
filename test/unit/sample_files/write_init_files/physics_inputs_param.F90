@@ -248,7 +248,7 @@ CONTAINS
          return
       end if
       !Open check file:
-      call cam_get_file(file_name, ncdata_check_loc, iflag=1, lexist=file_found,                  &
+      call cam_get_file(file_name, ncdata_check_loc, allow_fail=.true., lexist=file_found,        &
            log_info=.false.)
       if (.not. file_found) then
          write(iulog,*)                                                                           &

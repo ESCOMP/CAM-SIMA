@@ -22,14 +22,13 @@ module cam_initfiles
 
    ! Public methods
 
-   public :: &
-        cam_initfiles_readnl,      &! read namelist
-        cam_initfiles_open,        &! open initial and topo files
-        initial_file_get_id,       &! returns filehandle for initial file
-        topo_file_get_id,          &! returns filehandle for topo file
-        cam_initfiles_get_caseid,  &! return caseid from initial restart file
-        cam_initfiles_get_restdir, &! return caseid from initial restart file
-        cam_initfiles_close         ! close initial and topo files
+   public :: cam_initfiles_readnl      ! Read namelist
+   public :: cam_initfiles_open        ! Open initial and topo files
+   public :: initial_file_get_id       ! Returns filehandle for initial file
+   public :: topo_file_get_id          ! Returns filehandle for topo file
+   public :: cam_initfiles_get_caseid  ! Return caseid from initial restart file
+   public :: cam_initfiles_get_restdir ! Return dir for initial restart file
+   public :: cam_initfiles_close       ! Close initial and topo files
 
    ! Namelist inputs
    ! unset_path_str: string representing an unset path

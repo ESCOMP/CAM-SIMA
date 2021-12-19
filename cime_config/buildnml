@@ -81,6 +81,24 @@ def nml_attr_set(config):
     #Return namelist attribute dictionary:
     return cam_nml_attr_dict
 
+def _get_namelist_groups(nmlgen, skip_groups=None):
+    """Return all groups in <nmlgen> except those from <skip_groups>"""
+    all_groups = set()
+    for child in nmlgen._definition.tree.getroot():
+        for item in child:
+            if item.tag == 'group':
+                all_groups.add(item.text)
+            # end if
+        # end for
+    # end for
+    if skip_groups:
+        if not isinstance(skip_groups, set):
+            skip_groups = set(skip_groups)
+        # end if
+        all_groups -= skip_groups
+    # end if
+    return sorted(all_groups)
+
 #################
 #PRIMARY FUNCTION
 #################
@@ -283,10 +301,14 @@ def buildnml(case, caseroot, compname):
         #-------------------------------------------------
 
         # Initalize vert_coord_nl defaults:
+
+        skip_groups = _get_namelist_groups(nmlgen,
+                                           skip_groups=config.nml_groups)
+        skip_def_groups = filter(lambda group: group !='vert_coord_nl',
+                                 config.nml_groups)
         nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
-                             skip_default_for_groups=\
-                             filter(lambda group: group !='vert_coord_nl',
-                                    config.nml_groups))
+                             skip_groups=skip_groups,
+                             skip_default_for_groups=skip_def_groups)
 
         #--------------------------------------------
         # Set "nlev" namelist attribute to equal pver
@@ -299,7 +321,8 @@ def buildnml(case, caseroot, compname):
         #---------------------------------
 
         # Initalize namelist defaults in used namelist groups:
-        nmlgen.init_defaults(namelist_infile_list, cam_nml_dict)
+        nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
+                             skip_groups=skip_groups)
 
         #--------------------------
         # Write out namelist groups:
