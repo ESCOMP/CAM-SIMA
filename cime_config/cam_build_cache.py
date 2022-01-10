@@ -297,7 +297,7 @@ class BuildCacheCAM:
         # end for
         self.__host_files = {}
         for hfile in host_files:
-            new_entry = FileStatus(sfile, 'host')
+            new_entry = FileStatus(hfile, 'host')
             self.__host_files[new_entry.key] = new_entry
         # end for
         self.__xml_files = {}

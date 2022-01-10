@@ -29,12 +29,16 @@ sys.path.append(_CCPP_FRAMEWORK_DIR)
 sys.path.append(_REG_GEN_DIR)
 
 # Import needed registry and other src/data scripts:
-try:
-    from generate_registry_data import gen_registry
-    from write_init_files import write_init_files
-except ImportError as ierr:
-    emsg = "ERROR: Cannot find generate_registry_data in '{}'\n{}"
-    raise CamAutoGenError(emsg.format(data_search, ierr))
+from generate_registry_data import gen_registry
+from write_init_files import write_init_files
+
+###############################################################################
+
+class CamAutoGenError(ValueError):
+    """Class used to handle CAM config errors
+    (e.g., log user errors without backtrace)"""
+
+###############################################################################
 
 # Import needed CCPP-framework scripts:
 try:
@@ -49,9 +53,9 @@ try:
     ##XXgoldyXX: See note below about when these imports can be removed
     from ccpp_datafile import DatatableReport
     from ccpp_datafile import datatable_report
-except ImportError as ierr:
-    emsg = "ERROR: Cannot find CCPP-framework routines in '{}'\n{}"
-    raise CamAutoGenError(emsg.format(ccpp_scripts_path, ierr))
+except CamAutoGenError as ierr:
+    _EMSG = "ERROR: Cannot find CCPP-framework routines in '{}'\n{}"
+    raise ImportError(_EMSG.format(_CCPP_FRAMEWORK_DIR, ierr))
 #pylint: enable=wrong-import-position
 # Cleanup python path
 sys.path.remove(_CCPP_FRAMEWORK_DIR)
@@ -59,12 +63,6 @@ sys.path.remove(_REG_GEN_DIR)
 
 # Acquire python logger:
 _LOGGER = logging.getLogger(__name__)
-
-###############################################################################
-
-class CamAutoGenError(ValueError):
-    """Class used to handle CAM config errors
-    (e.g., log user errors without backtrace)"""
 
 ###############################################################################
 def _find_file(filename, search_dirs):
