@@ -120,7 +120,6 @@ def buildnml(case, caseroot, compname):
     rundir              = case.get_value("RUNDIR")
     cam_namelist_opts   = case.get_value("CAM_NAMELIST_OPTS")
     cam_nml_use_case    = case.get_value("CAM_NML_USE_CASE")
-    debug               = case.get_value("DEBUG")
     ninst_atm           = case.get_value("NINST_ATM")
     run_type            = case.get_value("RUN_TYPE")
     run_startdate       = case.get_value("RUN_STARTDATE")
@@ -263,11 +262,6 @@ def buildnml(case, caseroot, compname):
                 _LOGGER.info("%s is being used for cam_branch_file",
                              cam_branch_file)
             # End if
-
-        # Set "debug_output" namelist variable to 2 if DEBUG is true:
-        if debug:
-            infile_lines.append(" debug_output = 2")
-        # End if
 
         # Determine location and name of "user_nl_cam" files:
         user_nl_file = os.path.join(caseroot, "user_nl_cam" + inst_string)

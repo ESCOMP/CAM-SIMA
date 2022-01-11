@@ -442,6 +442,7 @@
     </desc>
     <values>
       <value>0</value>
+      <value debug="1">2</value>
     </values>
   </entry>
 

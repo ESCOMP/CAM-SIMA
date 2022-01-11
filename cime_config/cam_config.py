@@ -94,7 +94,8 @@ class ConfigCAM:
         comp_ocn = case.get_value("COMP_OCN")               # CESM ocean component
         exeroot = case.get_value("EXEROOT")                 # Model executable path
         nthrds = case.get_value("NTHRDS_ATM")               # Number of model OpenMP threads
-        start_date = case.get_value("RUN_STARTDATE")        # Model simulation starte date
+        start_date = case.get_value("RUN_STARTDATE")        # Model simulation start date
+        debug_case = case.get_value("DEBUG")                # Case debug flag
 
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
@@ -167,6 +168,18 @@ class ConfigCAM:
 
         self.create_config("ic_ymd", "Start date of model run.",
                            start_date_cam, is_nml_attr=True)
+
+        #----------------------------------------------------
+        # Set CAM debug flag (needed for namelist generation)
+        #----------------------------------------------------
+
+        #Please note that the boolean debug_case is converted to
+        #an integer in order to match other namelist XML attribute
+        #logicals.
+
+        self.create_config("debug",
+                           "Flag to check if debug mode is enabled.",
+                           int(debug_case), is_nml_attr=True)
 
         #------------------------
         # Set CAM physics columns
