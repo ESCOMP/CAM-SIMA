@@ -242,20 +242,15 @@ class AtmInParamGen(ParamGen):
         #a fortran boolean, integer, or real. This done using the following regular expressions:
         #--------------------------------------------------------------------------------------
 
-        #Integer and real (including scientific notation) regular expression string:
-        regex_num_string = r"(^[+-]?\.\d+)($|[de][+-]?\d+$)|^[+-]?\d+\.?(\d+|($|[de][+-]?\d+$))($|[de][+-]?\d+$)"
-
-        #Compile regular expression for numbers, ignoring case for the "d" and "e" notations:
-        re_num_check = re.compile(regex_num_string, flags=re.I)
-
-        #compile regular expressiong for booleans, ignoring case:
-        re_bool_check = re.compile(r"^(\.true\.|\.false\.)$", flags=re.I)
-
         # Make sure ParamGen object has been reduced:
         if not self.reduced:
             emsg = "ParamGen object for atm_in must be reduced before being "
             emsg += "written to file. Please check CAM's buildnml script."
             raise SystemError(emsg)
+
+        #Create sets for string evaluation below:
+        num_bool_set = {"integer", "real", "logical"} #types that don't need quotes
+        quote_set = {"'", '"'}                        #single and double quotes
 
         # Write Fortran namelist file:
         with open(os.path.join(output_path), 'w') as atm_in_fil:
@@ -265,27 +260,32 @@ class AtmInParamGen(ParamGen):
 
                 # Write all variables within that group:
                 for var in self._data[nml_group]:
+                    #Extract variable value(s):
                     val = self._data[nml_group][var]["values"].strip()
+
+                    #If no value is set then move to the next variable:
                     if val==None:
                         continue
 
-                    #Check if value matches fortran number or boolean:
-                    is_num  = re_num_check.match(val)
-                    is_bool = re_bool_check.match(val)
+                    #Extract variable type:
+                    var_type = self._data[nml_group][var]["type"].strip()
 
                     #Check if variable value is a number or boolean:
-                    if is_num or is_bool:
+                    if var_type in num_bool_set:
                         #If so, then write value as-is:
                         atm_in_fil.write("    {} = {}\n".format(var, val))
-                    else:
-                        #Value is a string, so check if there is a starting quote:
-                        if val[0] == "'" or val[0] == '"':
-                            #If so, then assume value is already wrapped in quotes,
-                            #so write value as-is:
+                    elif "char*" in var_type:
+                        #Value is a string, so check if is already inside quotes:
+                        if val[0] in quote_set and val[-1] == val[0]:
+                            #If so, then write string value as-is:
                             atm_in_fil.write("    {} = {}\n".format(var, val))
                         else:
                             #If not, then write string with added quotes:
                             atm_in_fil.write("    {} = '{}'\n".format(var, val))
+                    else:
+                        #This is an un-recognized type option, so raise an error:
+                        emsg = f"Namelist type '{var_type}' for variable '{var}' is un-recognized"
+                        raise CamConfigValError(emsg)
 
                 # Add space for next namelist group:
                 atm_in_fil.write('/\n\n')
