@@ -254,12 +254,13 @@ class AtmInParamGen(ParamGen):
 
         # Write Fortran namelist file:
         with open(os.path.join(output_path), 'w') as atm_in_fil:
-            for nml_group in self._data:
+            #Loop through namelist groups in alphabetical order:
+            for nml_group in sorted(self._data):
                 # Write namelist group:
                 atm_in_fil.write("&"+nml_group+"\n")
 
-                # Write all variables within that group:
-                for var in self._data[nml_group]:
+                # Write all variables within that group (sorted alphabetically):
+                for var in sorted(self._data[nml_group]):
                     #Extract variable value(s):
                     val = self._data[nml_group][var]["values"].strip()
 
@@ -268,7 +269,11 @@ class AtmInParamGen(ParamGen):
                         continue
 
                     #Extract variable type:
-                    var_type = self._data[nml_group][var]["type"].strip()
+                    if "type" in self._data[nml_group][var]:
+                        var_type = self._data[nml_group][var]["type"].strip()
+                    else:
+                        emsg = f"Namelist entry '{var}' is missing required 'type' element."
+                        raise CamConfigValError(emsg)
 
                     #Check if variable value is a number or boolean:
                     if var_type in num_bool_set:
@@ -284,7 +289,8 @@ class AtmInParamGen(ParamGen):
                             atm_in_fil.write("    {} = '{}'\n".format(var, val))
                     else:
                         #This is an un-recognized type option, so raise an error:
-                        emsg = f"Namelist type '{var_type}' for variable '{var}' is un-recognized"
+                        emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
+                        emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
                         raise CamConfigValError(emsg)
 
                 # Add space for next namelist group:
