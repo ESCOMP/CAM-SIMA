@@ -674,8 +674,6 @@ class WriteInitTest(unittest.TestCase):
                                         phys_check_filename=vic_name,
                                         phys_input_filename=pi_name)
 
-        # Check exception message
-
         # For each output file, make sure it matches input file
         amsg = "{} does not match {}".format(check_init_out, check_init_in)
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
