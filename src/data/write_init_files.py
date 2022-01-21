@@ -138,6 +138,14 @@ def write_init_files(cap_database, ic_names, outdir,
         # Add boilerplate code:
         outfile.write_preamble()
 
+        # Include pre-formatted preamble content
+        # Note: Must be before write_ic_params because it defines
+        #       parameters used by that code
+        for filename in _PHYS_VARS_PREAMBLE_INCS:
+            filepath, _ = file_find_func(filename, source_paths)
+            outfile.include(filepath)
+        # end for
+
         # Write public parameters:
         retvals = write_ic_params(outfile, host_vars, ic_names)
         stdname_list, ic_names, ic_max_len, stdname_max_len = retvals
@@ -145,12 +153,6 @@ def write_init_files(cap_database, ic_names, outdir,
         # Write initial condition arrays:
         write_ic_arrays(outfile, stdname_list, ic_names,
                         ic_max_len, stdname_max_len, host_vars)
-
-        # Include pre-formatted preamble content
-        for filename in _PHYS_VARS_PREAMBLE_INCS:
-            filepath, _ = file_find_func(filename, source_paths)
-            outfile.include(filepath)
-        # end for
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -365,15 +367,6 @@ def write_ic_params(outfile, host_vars, ic_names):
     # end if
     outfile.write(f"integer, public, parameter :: ic_name_len = {max_loclen}",
                   1)
-
-    outfile.blank_line()
-
-    #Add parameters for initialized_vars options:
-    outfile.write("!Parameterized initialized_vars options - order matters", 1)
-    outfile.write("integer, public, parameter ::  UNINITIALIZED = 0", 1)
-    outfile.write("integer, public, parameter ::    INITIALIZED = 1", 1)
-    outfile.write("integer, public, parameter ::          PARAM = 2", 1)
-    outfile.write("integer, public, parameter :: READ_FROM_FILE = 3", 1)
 
     outfile.blank_line()
 

@@ -21,6 +21,17 @@ module phys_vars_init_check_ddt
    implicit none
    private
 
+!! public interfaces
+   public :: mark_as_initialized
+   public :: mark_as_read_from_file
+   public :: is_initialized
+   public :: is_read_from_file
+
+!! Parameterized initialized_vars options - order matters
+   integer, public, parameter ::  UNINITIALIZED = 0
+   integer, public, parameter ::    INITIALIZED = 1
+   integer, public, parameter ::          PARAM = 2
+   integer, public, parameter :: READ_FROM_FILE = 3
    !Total number of physics-related variables:
    integer, public, parameter :: phys_var_num = 2
 
@@ -29,12 +40,6 @@ module phys_vars_init_check_ddt
 
    !Max length of input (IC) file variable names:
    integer, public, parameter :: ic_name_len = 5
-
-   !Parameterized initialized_vars options - order matters
-   integer, public, parameter ::  UNINITIALIZED = 0
-   integer, public, parameter ::    INITIALIZED = 1
-   integer, public, parameter ::          PARAM = 2
-   integer, public, parameter :: READ_FROM_FILE = 3
 
    ! Physics-related input variable standard names:
    character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
@@ -56,11 +61,6 @@ module phys_vars_init_check_ddt
       UNINITIALIZED, &
       UNINITIALIZED /)
 
-!! public interfaces
-   public :: mark_as_initialized
-   public :: mark_as_read_from_file
-   public :: is_initialized
-   public :: is_read_from_file
 
 CONTAINS
 

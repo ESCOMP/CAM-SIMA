@@ -236,7 +236,9 @@ class BuildCacheCAM:
                             new_entry = new_entry_from_xml(item)
                             self.__scheme_nl_metadata.append(new_entry)
                         elif item.tag == 'scheme_namelist_groups':
-                            self.__scheme_nl_groups = item.text.strip()
+                            group_list = [x for x in
+                                          item.text.strip().split(' ') if x]
+                            self.__scheme_nl_groups = group_list
                         elif item.tag == 'preproc_defs':
                             self.__preproc_defs = item.text.strip()
                         elif item.tag == 'kind_type':
