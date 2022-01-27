@@ -39,10 +39,21 @@ module cam_ccpp_scheme_namelists_double_def
 CONTAINS
 
    subroutine set_active_schemes(active_schemes_in)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
 
+      ! Dummy argument
       character(len=*), intent(in) :: active_schemes_in(:)
+      ! Local variables
+      integer,                    :: istat
+      character(len=*), parameter :: subname = 'set_active_schemes'
 
-      allocate(active_schemes(size(active_schemes_in)))
+      allocate(active_schemes(size(active_schemes_in)), stat=istat)
+      if (istat /= 0) then
+         call                                                                                     &
+              endrun(subname//': allocate active_schemes('//to_str(size(active_schemes_in))//     &
+              ' failed with stat: '//to_str(istat))
+      end if
       active_schemes(:) = active_schemes_in(:)
 
    end subroutine set_active_schemes

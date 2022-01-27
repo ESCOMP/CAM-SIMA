@@ -57,7 +57,7 @@ run_doctest cime_config/cam_config.py
 run_doctest cime_config/cam_autogen.py
 # CAM build cache doctests:
 run_doctest cime_config/cam_build_cache.py
-# create_readnl_files doctests:
+# Namelist reader generator doctests:
 run_doctest cime_config/create_readnl_files.py
 # Registry generator doctests:
 run_doctest src/data/generate_registry_data.py

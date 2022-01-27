@@ -473,9 +473,8 @@ class BuildCacheCAM:
         True
 
         """
-        mismatch = False
-        mismatch |= ((not self.__preproc_defs) or
-                     (self.__preproc_defs != preproc_defs))
+        mismatch = ((not self.__preproc_defs) or
+                    (self.__preproc_defs != preproc_defs))
         if not mismatch:
             my_kind_defs = set(self.__kind_types.keys())
             test_kdefs = {z[0] : z[1] for z in

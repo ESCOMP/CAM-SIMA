@@ -124,7 +124,9 @@ CONTAINS
 
                   select case (trim(phys_var_stdnames(name_idx)))
                      case ('potential_temperature')
-                        call endrun('Cannot read theta from file'//', ')
+                        call                                                                      &
+                             endrun('Cannot read theta from file'//                               &
+                             ', theta is a protected variable')
 
                      case ('air_pressure_at_sea_level')
                         call read_field(file, 'air_pressure_at_sea_level',                        &

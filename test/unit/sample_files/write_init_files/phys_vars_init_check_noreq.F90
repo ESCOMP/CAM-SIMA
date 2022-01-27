@@ -143,7 +143,7 @@ CONTAINS
       is_initialized = .false.
       found = .false.
 
-      ! Check if variable is initialize (PARAM, INITIALIZED, or READ_FROM_FILE:
+      ! Check if variable is initialized (PARAM, INITIALIZED, or READ_FROM_FILE)
       do stdnam_idx = 1, phys_var_num
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
             is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)

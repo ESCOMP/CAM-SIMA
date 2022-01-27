@@ -132,7 +132,9 @@ CONTAINS
                              input_var_names(:,name_idx), timestep, slp)
 
                      case ('gravitational_acceleration')
-                        call endrun('Cannot read g from file'//', g has no horizontal dimension')
+                        call                                                                      &
+                             endrun('Cannot read g from file'//                                   &
+                             ', g has no horizontal dimension; g is a protected variable')
 
                   end select !read variables
                end select !special indices

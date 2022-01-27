@@ -17,7 +17,8 @@
 !
 module gw_drag_namelist
 
-   use ccpp_kinds, only: kind_phys
+   use ccpp_kinds,  only: kind_phys
+   use runtime_obj, only: unset_str, unset_int
 
    implicit none
    private
@@ -26,17 +27,17 @@ module gw_drag_namelist
 
    !> \section arg_table_gw_drag_namelist  Argument Table
    !! \htmlinclude gw_drag_namelist.html
-   integer, public, protected :: pgwv = -HUGE(1)
+   integer, public, protected :: pgwv = unset_int
    real(kind_phys), public, protected :: gw_dc = -HUGE(1.0_kind_phys)
    logical, public, protected :: tau_0_ubc = .false.
-   character(len=256), public, protected :: bnd_rdggm = 'UNSET'
+   character(len=256), public, protected :: bnd_rdggm = unset_str
    integer, parameter   :: cam_nl_autogen1_dimension = 2
    real(kind_phys), public, protected :: gw_farr1(2) = -HUGE(1.0_kind_phys)
    integer, parameter   :: cam_nl_autogen2_dimension = 3
    integer, parameter   :: cam_nl_autogen3_dimension = 2
-   integer, public, protected :: gw_fake2(3, 2) = -HUGE(1)
+   integer, public, protected :: gw_fake2(3, 2) = unset_int
    integer, parameter   :: cam_nl_autogen4_dimension = 7
-   character(len=256), public, protected :: gw_fchar3(7) = 'UNSET'
+   character(len=256), public, protected :: gw_fchar3(7) = unset_str
 
 CONTAINS
 
@@ -65,7 +66,7 @@ CONTAINS
          if (ierr == 0) then
             read(nl_unit, gw_drag_nl, iostat=ierr)
             if (ierr /= 0) then
-               call endrun(subname//':: {errmsg}')
+               call endrun(subname//':: ERROR reading namelist, gw_drag_nl')
             end if
          else
             call endrun(subname//':: ERROR: Did not find namelist group, gw_drag_nl.')

@@ -16,7 +16,9 @@ from fortran_tools import FortranWriter
 from var_props import is_horizontal_dimension, is_vertical_dimension
 
 # Exclude these standard names from init processing
-_EXCLUDED_STDNAMES = ['suite_name', 'suite_part']
+_EXCLUDED_STDNAMES = set(['suite_name', 'suite_part'])
+# Variable input types
+_INPUT_TYPES = set(['in', 'inout'])
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -142,7 +144,7 @@ def write_init_files(cap_database, ic_names, outdir,
         # Note: Must be before write_ic_params because it defines
         #       parameters used by that code
         for filename in _PHYS_VARS_PREAMBLE_INCS:
-            filepath, _ = file_find_func(filename, source_paths)
+            filepath = file_find_func(filename, source_paths)
             outfile.include(filepath)
         # end for
 
@@ -160,7 +162,7 @@ def write_init_files(cap_database, ic_names, outdir,
 
         # Include pre-formatted body content
         for filename in _PHYS_VARS_BODY_INCS:
-            filepath, _ = file_find_func(filename, source_paths)
+            filepath = file_find_func(filename, source_paths)
             outfile.include(filepath)
         # end for
 
@@ -262,7 +264,7 @@ def gather_ccpp_req_vars(cap_database):
     Generate a list of host-model variables required by the CCPP physics
        suites potentially being used in this model run.
     <cap_database> is the database object returned by capgen.
-    It is an error is any physics suite variable is not accessible in
+    It is an error if any physics suite variable is not accessible in
        the host model.
     Return several values:
     - A list of host model variables
@@ -285,7 +287,7 @@ def gather_ccpp_req_vars(cap_database):
         for cvar in cap_database.call_list(phase).variable_list():
             stdname = cvar.get_prop_value('standard_name')
             intent = cvar.get_prop_value('intent')
-            if ((intent in ['in', 'inout']) and
+            if ((intent in _INPUT_TYPES) and
                 (stdname not in req_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 # We need to work with the host model version of this variable
@@ -385,8 +387,8 @@ def write_ic_arrays(outfile, stdname_list, ic_name_dict,
 
     #Create variable name array string lists:
     num_input_vars = len(host_vars)
-    stdname_strs = list()
-    ic_name_strs = list()
+    stdname_strs = []
+    ic_name_strs = []
 
     #Create fake name and fake name list with proper lengths:
     fake_ic_name = " "*ic_max_len
@@ -445,7 +447,7 @@ def write_ic_arrays(outfile, stdname_list, ic_name_dict,
 
     outfile.blank_line()
 
-    #Write starting declaration of IC fiel input names array:
+    #Write starting declaration of IC field input names array:
     outfile.write("!Array storing all registered IC file input names for each variable:", 1)
     vartype = f"character(len={ic_max_len}), public, protected"
     varname = f"input_var_names({max_ic_num}, phys_var_num)"
@@ -473,7 +475,7 @@ def write_ic_arrays(outfile, stdname_list, ic_name_dict,
     # end if
     outfile.write(declare_str, 1)
 
-    # For each required variable, write set array value to ".false."
+    # For each required variable, set array value to ".false."
     #    unless the variable is protected:
     arr_suffix = ', &'
     for var_num, hvar in enumerate(host_vars):
@@ -730,8 +732,13 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         levnm, call_read_field, reason = get_dimension_info(hvar)
         if hvar.get_prop_value('protected'):
             call_read_field = False
-        # end if
-
+            if reason:
+                suff = "; "
+            else:
+                suff = ""
+            # end if
+            lvar = hvar.get_prop_value('local_name')
+            reason += f"{suff}{lvar} is a protected variable"
         # Set "read_field" call string:
         if call_read_field:
             # Replace vertical dimension with local name

@@ -19,7 +19,7 @@ import sys
 import logging
 
 # Find and include the ccpp-framework scripts directory
-# Assume we are in <CAMROOT>/src/data and SPIN is in <CAMROOT>/ccpp_framework
+# Assume we are in <CAMROOT>/cime_config and SPIN is in <CAMROOT>/ccpp_framework
 _CURRDIR = os.path.abspath(os.path.dirname(__file__))
 _CAMROOT = os.path.abspath(os.path.join(_CURRDIR, os.pardir))
 _SPINSCRIPTS = os.path.join(_CAMROOT, "ccpp_framework", 'scripts')
@@ -40,17 +40,39 @@ from fortran_tools import FortranWriter
 ###############################################################################
 def is_int(token):
 ###############################################################################
-    """Return True if <token> is an integer"""
+    """Return True if <token> is an integer.
+       <token> should be a string or None.
+
+    1. Test that a good string returns True
+    >>> is_int("33")
+    True
+
+    2. Test that None returns False
+    >>> is_int(None)
+    False
+
+    3. Test that a non-integer string returns False
+    >>> is_int("hi mom")
+    False
+    >>> is_int("3.14159")
+    False
+
+    4. Test that bad input is caught
+    >>> is_int(3.14159) #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    parse_source.ParseInternalError: <token> should be a string or None, not '<class 'float'>'
+    """
     isint = False
-    if token:
+    if isinstance(token, str):
         try:
             ival = int(token)
             isint = True
         except ValueError:
             isint = False
         # end try
-    else:
-        isint = False
+    elif token is not None:
+        emsg = f"<token> should be a string or None, not '{type(token)}'"
+        raise ParseInternalError(emsg)
     # end if
     return isint
 
@@ -228,8 +250,7 @@ class NLVar:
             self.__kind = "kind_phys"
         # end if
         # Final validity check
-        self.__valid &= ((self.var_type is not None) and
-                         (self.group is not None) and
+        self.__valid &= ((self.group is not None) and
                          (self.standard_name is not None) and
                          (self.units is not None))
         self.__valid &= self.var_type in self.__nl_types
@@ -259,8 +280,8 @@ class NLVar:
         ('real', None, '2,2')
         >>> NLVar._parse_xml_type("char*256(19)", "foo")
         ('character', 'len=256', '19')
-        >>> NLVar._parse_xml_type("char*256", "foo")
-        ('character', 'len=256', None)
+        >>> NLVar._parse_xml_type("char*256(3,7)", "foo")
+        ('character', 'len=256', '3,7')
 
         # Bad doctest examples
         >>> NLVar._parse_xml_type("char", "foo")
@@ -269,6 +290,8 @@ class NLVar:
         ('ERROR', "Illegal kind, '256', for type, 'integer' of 'foo'", None)
         >>> NLVar._parse_xml_type("real*256", "foo")
         ('ERROR', "Illegal kind, '256', for type, 'real' of 'foo'", None)
+        >>> NLVar._parse_xml_type("char*len", "foo")
+        ('ERROR', "Bad 'char' type for 'foo', must specify length", None)
         """
         var_type = None
         kind = None
@@ -329,7 +352,7 @@ class NLVar:
     def missing(self):
         """Return a list of the missing required properties of this
         NLVar object."""
-        missing_props = list()
+        missing_props = []
         if not self.var_type:
             missing_props.append("variable type")
         # end if
@@ -342,6 +365,12 @@ class NLVar:
         if not self.units:
             missing_props.append("units")
         # end if
+        if self.__kind_err:
+            missing_props.append(self.__kind_err)
+        # end if
+        if self.var_type not in self.__nl_types:
+            missing_props.append(f"Unknown variable type, '{self.var_type}'")
+        # end if
         if len(missing_props) > 2:
             suff = f", and {missing_props[-1]}"
             missing_props = missing_props[0:-1]
@@ -350,12 +379,6 @@ class NLVar:
             missing_props = missing_props[0:-1]
         else:
             suff = ""
-        # end if
-        if self.__kind_err:
-            missing_props.append(self.__kind_err)
-        # end if
-        if self.var_type not in self.__nl_types:
-            missing_props.append(f"Unknown variable type, '{self.var_type}'")
         # end if
         return ", ".join(missing_props) + suff
 
@@ -418,7 +441,7 @@ class NLVar:
         # end if
         var_str = f"{self.var_name}{array_str}"
         if self.var_type == "integer":
-            init_str = " = -HUGE(1)"
+            init_str = " = unset_int"
         elif self.var_type == "logical":
             init_str = " = .false."
         elif self.var_type == "real":
@@ -428,7 +451,7 @@ class NLVar:
                 init_str = " = -HUGE(1.0)"
             # end if
         elif self.var_type == "character":
-            init_str = " = 'UNSET'"
+            init_str = " = unset_str"
         # end if
         decl = f"{type_str}{comma}{pad1}{intent_str} :: {var_str}{init_str}"
         file.write(decl, indent)
@@ -549,14 +572,13 @@ class SchemeNamelistInfo:
                 if logger:
                     logger.debug("Looking for namelist schema in '%s'", spath)
                 # end if
-#                schema_file = os.path.join(spath, "entry_id_namelist.xsd")
                 schema_file = os.path.join(spath, "entry_id_pg.xsd")
                 if os.path.isfile(schema_file):
                     break
                 # end if
                 schema_file = None
             # end for
-            if schema_file is None:
+            if not schema_file:
                 if schema_paths:
                     sstr = f"[{', '.join(schema_paths)}]"
                     raise ParseInternalError(f"No schema file found in {sstr}")
@@ -630,13 +652,14 @@ class SchemeNamelistInfo:
                            self.nlread_module, indent=indent) as ofile:
             # Write out any kinds needed
             for kind in sorted(file_kinds):
-                ofile.write(f"use ccpp_kinds, only: {kind}", 1)
+                ofile.write(f"use ccpp_kinds,  only: {kind}", 1)
             # end if
+            ofile.write("use runtime_obj, only: unset_str, unset_int", 1)
             # Boilerplate
             ofile.write_preamble()
             # Declare the namelist reading function
             ofile.write(f"public :: {self.nlread_func}", 1)
-            ofile.write("", 0)
+            ofile.blank_line()
             # Write out module variable declarations
             write_ccpp_table_header(self.nlread_module, ofile, 1)
             for var in nlvars:
@@ -646,7 +669,7 @@ class SchemeNamelistInfo:
             # end for
             # end of module header
             ofile.end_module_header()
-            ofile.write("", 0)
+            ofile.blank_line()
             # Write out the definition of the namelist reading function
             nl_args = ["nl_unit", "mpicomm", "mpiroot", "mpi_isroot"]
             if log_info:
@@ -661,7 +684,7 @@ class SchemeNamelistInfo:
             spc = ' '*(len("cam_abortutils") - len("shr_nl_mod"))
             ofile.write(f"use shr_nl_mod, {spc}only: shr_nl_find_group_name", 2)
             ofile.write("use cam_abortutils, only: endrun", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.comment("Dummy arguments", 2)
             comm_type = mpi_obj.mpi_commtype()
             spc = " "*(len(comm_type) - len("integer"))
@@ -672,20 +695,20 @@ class SchemeNamelistInfo:
             if log_info:
                 ofile.write(f"integer,{spc} intent(in) :: logunit", 2)
             # end if
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.comment("Local variables", 2)
             ofile.write("integer                     :: ierr", 2)
             substr = "character(len=*), parameter :: subname = '{}'"
             ofile.write(substr.format(self.nlread_func), 2)
             # Declare the namelists
-            ofile.write("", 0)
+            ofile.blank_line()
             for grpname in self.group_names():
                 grpvars = ", ".join([v.var_name for v in
                                      self.__groups[grpname]])
                 ofile.write(f"namelist /{grpname}/ {grpvars}", 2)
             # end for
             for grpname in self.group_names():
-                ofile.write("", 0)
+                ofile.blank_line()
                 # For each group, read and process the namelist
                 ofile.comment("Read the namelist on the root task", 2)
                 ofile.write("if (mpi_isroot) then", 2)
@@ -697,7 +720,7 @@ class SchemeNamelistInfo:
                 ofile.write(f"read(nl_unit, {grpname}, iostat=ierr)", 4)
                 ofile.write("if (ierr /= 0) then", 4)
                 errmsg = f"ERROR reading namelist, {grpname}"
-                ofile.write("call endrun(subname//':: {errmsg}')", 5)
+                ofile.write(f"call endrun(subname//':: {errmsg}')", 5)
                 ofile.write("end if", 4)
                 ofile.write("else", 3)
                 emsg = f"ERROR: Did not find namelist group, {grpname}."
@@ -741,7 +764,7 @@ class SchemeNamelistInfo:
                     args = ", ".join(arglist)
                     ofile.write(f"call mpi_bcast({args})", 2)
                 # end for
-                ofile.write("", 0)
+                ofile.blank_line()
             # end for
             ofile.write(f"end subroutine {self.nlread_func}", 1)
         # end with
@@ -757,11 +780,11 @@ class SchemeNamelistInfo:
              MPI Fortran statements.
           <logger> is a Python logger.
         """
-        nlvars = list()
+        nlvars = []
         logger.info("Reading CAM physics namelist definition file, '%s'",
                     self.namelist_def_file)
         if not self.errors:
-            errors = list()
+            errors = []
             # Throw exception on error (should be validated XML)
             _, nlxml = read_xml_file(self.namelist_def_file)
             for element in nlxml:
@@ -909,6 +932,9 @@ class NamelistFiles:
         else:
             loglevel = logging.INFO
         # end if
+        if logger:
+            logger.setLevel(loglevel)
+        # end if
         self.__scheme_read_file = None
         self.__nlfile_arg = "nlfile"
         self.__active_schemes_arg = "active_schemes"
@@ -920,7 +946,7 @@ class NamelistFiles:
                                          formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument("--namelist-file-arg", type=str, action='append',
-                            metavar="scheme:namelist_file", default=list(),
+                            metavar="scheme:namelist_file", default=[],
                             help="""A colon-separated pair of a scheme name and
 an XML namelist definition filename""")
         parser.add_argument("--output-dir", type=str, default=None,
@@ -985,7 +1011,7 @@ an XML namelist definition filename""")
             # Declare the namelist reading function
             ofile.comment("Public interface", 1)
             ofile.write(f"public :: {self.namelist_read_subname}", 1)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.comment("Private interfaces", 1)
             ofile.write(f"private :: {set_active_schemes}", 1)
             ofile.write(f"private :: {is_scheme_active}", 1)
@@ -996,28 +1022,42 @@ an XML namelist definition filename""")
                         1)
             # end of module header
             ofile.end_module_header()
-            ofile.write("", 0)
+            ofile.blank_line()
             # set_active_schemes
             ofile.write(f"subroutine {set_active_schemes}(active_schemes_in)",
                         1)
-            ofile.write("", 0)
+            ofile.write("use cam_abortutils, only: endrun", 2)
+            ofile.write("use string_utils,   only: to_str", 2)
+            ofile.blank_line()
+            ofile.comment("Dummy argument", 2)
             ofile.write("character(len=*), intent(in) :: active_schemes_in(:)",
                         2)
-            ofile.write("", 0)
-            ofile.write("allocate(active_schemes(size(active_schemes_in)))", 2)
+            ofile.comment("Local variables", 2)
+            ofile.write("integer,                    :: istat", 2)
+            ofile.write(f"character(len=*), parameter :: subname = " +        \
+                        f"'{set_active_schemes}'", 2)
+            ofile.blank_line()
+            ofile.write("allocate(active_schemes(size(active_schemes_in))," + \
+                        " stat=istat)", 2)
+            ofile.write("if (istat /= 0) then", 2)
+            ofile.write("call endrun(subname//" +                             \
+                        "': allocate active_schemes('//" +                    \
+                        "to_str(size(active_schemes_in))//" +                 \
+                        "' failed with stat: '//to_str(istat))", 3)
+            ofile.write("end if", 2)
             ofile.write("active_schemes(:) = active_schemes_in(:)", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"end subroutine {set_active_schemes}", 1)
             # namelist read subroutine
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"logical function {is_scheme_active}(scheme_name)", 1)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.comment("Dummy argument", 2)
             ofile.write("character(len=*), intent(in) :: scheme_name",
                         2)
             ofile.comment("Local variable", 2)
             ofile.write("integer :: index", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"{is_scheme_active} = .false.", 2)
             ofile.write("do index = 1, size(active_schemes)", 2)
             ofile.write("if (trim(scheme_name) == "                           \
@@ -1026,14 +1066,14 @@ an XML namelist definition filename""")
             ofile.write("exit", 4)
             ofile.write("end if", 3)
             ofile.write("end do", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"end function {is_scheme_active}", 1)
             # Clear active schemes routine
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"subroutine {clear_active_schemes}()", 1)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write("deallocate(active_schemes)", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"end subroutine {clear_active_schemes}", 1)
             # Main namelist reading module
             # Standard arguments
@@ -1046,7 +1086,7 @@ an XML namelist definition filename""")
             # Host-level namelist parameters
             #XXgoldyXX: Need a process for this
             args = ", ".join(arglist)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"subroutine {self.namelist_read_subname}({args})", 1)
             schemes = self.schemes()
             if schemes:
@@ -1061,7 +1101,7 @@ an XML namelist definition filename""")
                 spc = " "*(maxmod - len(mod_name))
                 ofile.write(f"use {mod_name},{spc} only: {func_name}", 2)
             # end for
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.comment("Dummy arguments", 2)
             char_input = "character(len=*), intent(in)   "
             int_input = "integer,          intent(in)   "
@@ -1074,10 +1114,10 @@ an XML namelist definition filename""")
             if self.log_values():
                 ofile.write(f"{int_input} :: {self.logunit_arg}", 2)
             # end if
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.comment("Local variable", 2)
             ofile.write("integer :: nl_unit", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"call {set_active_schemes}(active_schemes)", 2)
             open_args = f"newunit=nl_unit, file=trim({self.nlfile_arg})"
             ofile.write(f"open({open_args}, status='old')", 2)
@@ -1094,10 +1134,10 @@ an XML namelist definition filename""")
                 ofile.write(f"call {func_name}({nlargs})", 3)
                 ofile.write("end if", 2)
             # end for
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write("close(nl_unit)", 2)
             ofile.write(f"call {clear_active_schemes}()", 2)
-            ofile.write("", 0)
+            ofile.blank_line()
             ofile.write(f"end subroutine {self.namelist_read_subname}", 1)
         # end with
 
@@ -1215,7 +1255,7 @@ an XML namelist definition filename""")
 
     @property
     def mpi_is_root_arg(self):
-        """Return the dummy argument name for the logical for determing if
+        """Return the dummy argument name for the logical for determining if
            this is the task to use for reading the namelist and logging
            the values.
         """

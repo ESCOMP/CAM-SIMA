@@ -53,9 +53,9 @@ try:
     ##XXgoldyXX: See note below about when these imports can be removed
     from ccpp_datafile import DatatableReport
     from ccpp_datafile import datatable_report
-except CamAutoGenError as ierr:
+except ImportError as ierr:
     _EMSG = "ERROR: Cannot find CCPP-framework routines in '{}'\n{}"
-    raise ImportError(_EMSG.format(_CCPP_FRAMEWORK_DIR, ierr))
+    raise CamAutoGenError(_EMSG.format(_CCPP_FRAMEWORK_DIR, ierr))
 #pylint: enable=wrong-import-position
 # Cleanup python path
 sys.path.remove(_CCPP_FRAMEWORK_DIR)
@@ -72,16 +72,14 @@ def _find_file(filename, search_dirs):
     Return the first match (full path, match dir) or None, None
     """
     match_file = None
-    match_path = None
     for sdir in search_dirs:
         test_path = os.path.join(sdir, filename)
         if os.path.exists(test_path):
-            match_path = sdir
             match_file = test_path
             break
         # End if
     # End for
-    return match_file, match_path
+    return match_file
 
 ###############################################################################
 def _update_file(filename, source_path, bld_dir):
@@ -257,9 +255,9 @@ def _find_metadata_files(source_dirs, scheme_finder):
     /glade/work/nusbaume/SE_projects/new_cam_sandbox/CAMDEN/test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
     """
 
-    meta_files = dict()
-    missing_source_files = list()
-    bad_xml_sources = list()
+    meta_files = {}
+    missing_source_files = []
+    bad_xml_sources = []
 
     for direc in source_dirs:
         for root, _, files in os.walk(direc):
@@ -301,9 +299,13 @@ def _find_metadata_files(source_dirs, scheme_finder):
         emsg += "\n".join(missing_source_files)
     # end if
     if bad_xml_sources:
-        ess = "s" if (len(bad_xml_sources) > 1) else ""
-        emsg += f"ERROR: These XML file{ess} were associated with more than " \
-                "one scheme"
+        if (len(bad_xml_sources) > 1):
+            emsg += "ERROR: These XML files were associated with more than " \
+                    "one scheme"
+        else:
+            emsg += "ERROR: This XML file was associated with more than " \
+                    "one scheme"
+        # end if
         emsg += "\n".join(bad_xml_sources)
     # end if
     if emsg:
@@ -370,7 +372,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     """
 
     # Find the registry file. Try SourceMods first.
-    registry_file, _ = _find_file("registry.xml", data_search)
+    registry_file = _find_file("registry.xml", data_search)
     if not registry_file:
         emsg = "ERROR: Unable to find CAM registry, registry.xml, in [{}]"
         raise CamAutoGenError(emsg.format(', '.join(data_search)))
@@ -443,7 +445,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     Traceback (most recent call last):
     CamAutoGenError: ERROR: Unable to find SDF for suite 'missing'
 
-    2.  Check that the correct error is raised when an SDF's metadata file cannot be found:
+    2.  Check that the correct error is raised when a scheme's metadata file cannot be found:
 
     >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad",        \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
@@ -476,7 +478,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     scheme_files = list()
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
-        sdf_path, _ = _find_file(f"suite_{sdf}.xml", source_search)
+        sdf_path = _find_file(f"suite_{sdf}.xml", source_search)
         if not sdf_path:
             emsg = "ERROR: Unable to find SDF for suite '{}'"
             raise CamAutoGenError(emsg.format(sdf))
@@ -535,7 +537,6 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         do_gen_ccpp = True
     # End if
 
-    # genccpp_dir is always created above, do not need to check here
     create_nl_file = os.path.join(_CIME_CONFIG_DIR, "create_readnl_files.py")
     if xml_files:
         do_gen_nl = force or build_cache.xml_nl_mismatch(create_nl_file,

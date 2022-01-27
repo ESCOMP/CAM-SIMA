@@ -219,7 +219,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
         comp_lmsgs = cmp_log.output
         amsg = "Test failure: Number of log output messages, " \
                f"{len(comp_lmsgs)} does not match what is expected, " \
-               "{len(lmsgs)}."
+               f"{len(lmsgs)}."
         self.assertEqual(len(comp_lmsgs), len(lmsgs), msg=amsg)
         for index, lmsg in enumerate(lmsgs):
             comp_lmsg = comp_lmsgs[index]

@@ -17,7 +17,8 @@
 !
 module rayleigh_friction_namelist
 
-   use ccpp_kinds, only: kind_phys
+   use ccpp_kinds,  only: kind_phys
+   use runtime_obj, only: unset_str, unset_int
 
    implicit none
    private
@@ -26,7 +27,7 @@ module rayleigh_friction_namelist
 
    !> \section arg_table_rayleigh_friction_namelist  Argument Table
    !! \htmlinclude rayleigh_friction_namelist.html
-   integer, public, protected :: rayk0 = -HUGE(1)
+   integer, public, protected :: rayk0 = unset_int
    real(kind_phys), public, protected :: raykrange = -HUGE(1.0_kind_phys)
    real(kind_phys), public, protected :: raytau0 = -HUGE(1.0_kind_phys)
 
@@ -57,7 +58,7 @@ CONTAINS
          if (ierr == 0) then
             read(nl_unit, rayleigh_friction_nl, iostat=ierr)
             if (ierr /= 0) then
-               call endrun(subname//':: {errmsg}')
+               call endrun(subname//':: ERROR reading namelist, rayleigh_friction_nl')
             end if
          else
             call endrun(subname//':: ERROR: Did not find namelist group, rayleigh_friction_nl.')
