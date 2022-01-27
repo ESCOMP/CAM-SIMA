@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet type="text/xsl" href="namelist_definition.xsl"?>
+
+<entry_id_pg version="2.0">
+
+<!-- Test namelist XML file to test different types
+                                                                        -->
+<!-- Kumquat Parameterization -->
+
+  <entry id="pgwv">
+    <type>integer</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_spectrum_dimension</standard_name>
+    <units>1</units>
+    <desc>
+      kumquat spectrum dimension (wave numbers are from -pgwv to pgwv).
+    </desc>
+    <values>
+      <value>32</value>
+      <value waccmx="1">18</value>
+    </values>
+  </entry>
+  <entry id="kq_dc">
+    <type>real</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_width_of_speed_bins</standard_name>
+    <units>m s-1</units>
+    <desc>
+      Width of speed bins (delta c) for kumquat spectrum (reference wave
+      speeds are from -pgwv*dc to pgwv*dc).
+      Default: 2.5
+    </desc>
+    <values>
+      <value>2.5D0</value>
+    </values>
+  </entry>
+  <entry id="tau_0_ubc">
+    <type>logical</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_zero_stress_at_top_of_model</standard_name>
+    <units>flag</units>
+    <desc>
+      Force the stress due to kumquats to be zero at the top of the model.
+      In the low-top model, this helps to conserve momentum and produce a QBO.
+      Default: UNKNOWN.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="bnd_rdggm">
+    <type>char*256</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_boundary_dataset_for_meso_gamma_ridges</standard_name>
+    <units>1</units>
+    <desc>
+      Full pathname of boundary dataset for meso-gamma ridges.
+      Default: UNKNOWN.
+    </desc>
+    <values>
+      <value hgrid="0.9x1.25">$DIN_LOC_ROOT/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw006_Nrs002_Co008_Fi001_ZR_c160505.nc</value>
+      <value hgrid="1.9x2.5">$DIN_LOC_ROOT/atm/cam/topo/fv_1.9x2.5_nc3000_Nsw084_Nrs016_Co120_Fi001_ZR_061116.nc</value>
+    </values>
+  </entry>
+  <entry id="kq_farr1">
+    <type>real(2)</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_fake_array1</standard_name>
+    <units>m s-1</units>
+    <desc>
+      Fake array of real values
+      Default: 2.5
+    </desc>
+    <values>
+      <value>2.5D0</value>
+    </values>
+  </entry>
+  <entry id="kq_fake2">
+    <type>integer(3,2)</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_fake2d_array</standard_name>
+    <units>1</units>
+    <desc>
+      Fake 2D array
+    </desc>
+    <values>
+      <value>32</value>
+    </values>
+  </entry>
+  <entry id="kq_fchar3">
+    <type>char*256(7)</type>
+    <category>kumquat</category>
+    <group>kumquat_nl</group>
+    <standard_name>kumquat_fake_char_array</standard_name>
+    <units>1</units>
+    <desc>
+      Fake!
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+</entry_id_pg>

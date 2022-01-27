@@ -180,7 +180,28 @@ class NLVar:
     __type_strlen = 20 # Crude but no loop through variables necessary
 
     def __init__(self, var_xml):
-        """Collect namelist variable information from <var_xml> element"""
+        """Collect namelist variable information from <var_xml> element
+        >>> NLVar(_TEST_GOOD_XML_ENTRY).is_valid()
+        True
+        >>> NLVar(_TEST_NO_STDNAME_ENTRY).is_valid()
+        False
+        >>> NLVar(_TEST_NO_STDNAME_ENTRY).missing()
+        'standard_name'
+        >>> NLVar(_TEST_NO_GROUP_ENTRY).is_valid()
+        False
+        >>> NLVar(_TEST_NO_GROUP_ENTRY).missing()
+        'group'
+        >>> NLVar(_TEST_NO_UNITS_ENTRY).is_valid()
+        False
+        >>> NLVar(_TEST_NO_UNITS_ENTRY).missing()
+        'units'
+        >>> NLVar(_TEST_BAD_CHAR_ENTRY).is_valid()
+        False
+        >>> NLVar(_TEST_BAD_CHAR_ENTRY).missing()
+        "Bad 'char' type for 'spotted', must specify length"
+        >>> NLVar(_TEST_BAD_TYPE_ENTRY).missing()
+        "Unknown variable type, 'orange'"
+        """
         self.__var_name = var_xml.get("id")
         self.__type = None
         self.__group = None
@@ -368,7 +389,8 @@ class NLVar:
         if self.__kind_err:
             missing_props.append(self.__kind_err)
         # end if
-        if self.var_type not in self.__nl_types:
+        if ((self.var_type not in self.__nl_types) and
+            (self.var_type != "ERROR")):
             missing_props.append(f"Unknown variable type, '{self.var_type}'")
         # end if
         if len(missing_props) > 2:
@@ -1304,5 +1326,34 @@ if __name__ == "__main__":
     import doctest
     import sys
 # pylint: disable=ungrouped-imports
+    _TEST_GOOD_XML_ENTRY = ET.fromstring("""<entry id="green">
+    <type>integer</type><category>banana</category><group>banana_nl</group>
+    <standard_name>banana_index</standard_name><units>1</units>
+    <desc>Variable to specify banana</desc>
+    <values><value>2</value></values></entry>""")
+    _TEST_NO_STDNAME_ENTRY = ET.fromstring("""<entry id="spotted">
+    <type>integer</type><category>banana</category><group>banana_nl</group>
+    <units>1</units><desc>Variable to specify banana</desc>
+    <values><value>2</value></values></entry>""")
+    _TEST_NO_GROUP_ENTRY = ET.fromstring("""<entry id="brown">
+    <type>integer</type><category>banana</category>
+    <standard_name>banana_index</standard_name><units>1</units>
+    <desc>Variable to specify banana</desc>
+    <values><value>2</value></values></entry>""")
+    _TEST_NO_UNITS_ENTRY = ET.fromstring("""<entry id="black">
+    <type>integer</type><category>banana</category><group>banana_nl</group>
+    <standard_name>banana_index</standard_name>
+    <desc>Variable to specify banana</desc>
+    <values><value>2</value></values></entry>""")
+    _TEST_BAD_CHAR_ENTRY = ET.fromstring("""<entry id="spotted">
+    <type>char</type><category>banana</category><group>banana_nl</group>
+    <standard_name>banana_index</standard_name><units>1</units>
+    <desc>Variable to specify banana</desc>
+    <values><value>2</value></values></entry>""")
+    _TEST_BAD_TYPE_ENTRY = ET.fromstring("""<entry id="mushy">
+    <type>orange</type><category>banana</category><group>banana_nl</group>
+    <standard_name>banana_index</standard_name><units>1</units>
+    <desc>Variable to specify banana</desc>
+    <values><value>2</value></values></entry>""")
     fail, _ = doctest.testmod()
     sys.exit(fail)

@@ -103,7 +103,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
         """
 
         # Setup runtime inputs:
-        scheme_name = "rayleigh_friction"
+        scheme_name = "banana"
         out_source_name = scheme_name + "_namelist"
         xml_file = os.path.join(_XML_SAMPLES_DIR, out_source_name + ".xml")
 
@@ -162,7 +162,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
         """
 
         # Setup runtime inputs:
-        scheme_names = ["rayleigh_friction", "gw_drag"]
+        scheme_names = ["banana", "kumquat"]
         out_source_names = [x + "_namelist" for x in scheme_names]
         xml_files = [os.path.join(_XML_SAMPLES_DIR, x + ".xml")
                      for x in out_source_names]
@@ -204,18 +204,18 @@ class CreateReadnlFilesTest(unittest.TestCase):
         # Check logger
         lmsgs = [("INFO:test_double_namelist_def:Reading CAM physics "      \
                   "namelist definition file, ",
-                  "test/unit/sample_files/rayleigh_friction_namelist.xml'"),
+                  "test/unit/sample_files/banana_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
-                  "unit/tmp/namelist_files/rayleigh_friction_namelist.meta"),
+                  "unit/tmp/namelist_files/banana_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
-                  "unit/tmp/namelist_files/rayleigh_friction_namelist.F90"),
+                  "unit/tmp/namelist_files/banana_namelist.F90"),
                  ("INFO:test_double_namelist_def:Reading CAM physics "     \
                   "namelist definition file, ",
-                  "test/unit/sample_files/gw_drag_namelist.xml'"),
+                  "test/unit/sample_files/kumquat_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
-                  "test/unit/tmp/namelist_files/gw_drag_namelist.meta"),
+                  "test/unit/tmp/namelist_files/kumquat_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
-                  "test/unit/tmp/namelist_files/gw_drag_namelist.F90")]
+                  "test/unit/tmp/namelist_files/kumquat_namelist.F90")]
         comp_lmsgs = cmp_log.output
         amsg = "Test failure: Number of log output messages, " \
                f"{len(comp_lmsgs)} does not match what is expected, " \
@@ -324,6 +324,88 @@ class CreateReadnlFilesTest(unittest.TestCase):
 
         # Cleanup
         logger.removeHandler(stream_handler)
+
+    def test_bad_namelist_def(self):
+        """
+        Test that the 'gen_namelist_files' function
+        raises an appropriate exception if bad entries are found.
+        """
+
+        # Setup runtime inputs:
+        scheme_name = "rotten"
+        out_source_name = scheme_name + "_namelist"
+        xml_file = os.path.join(_XML_SAMPLES_DIR, out_source_name + ".xml")
+
+        # Create local logger:
+        logger = logging.getLogger("test_bad_namelist_def")
+
+        # Expected output files
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        reader_mod = "cam_ccpp_scheme_namelists_bad_def"
+        reader_source = os.path.join(_TMP_DIR, reader_mod + ".F90")
+
+        # Clear all temporary output files:
+        remove_files([out_source, out_meta, reader_source])
+
+        # Create the namelist object
+        args = ['--namelist-file-arg', "{}:{}".format(scheme_name, xml_file),
+                '--namelist-read-mod', reader_mod]
+        with self.assertRaises(NamelistError) as nerr:
+            with self.assertLogs("test_bad_namelist_def",
+                                 level='ERROR') as cmp_log:
+                namelist_obj = gen_namelist_files(args, _TMP_DIR, logger)
+            # end with
+        # end with
+
+        # Check exception:
+        start = "Errors processing "
+        amsg = f"Test failure: bad exception message, '{nerr.exception}'"
+        self.assertEqual(start, str(nerr.exception)[0:len(start)], msg=amsg)
+        nerrs = str(nerr.exception).split('\n')[1:]
+        expected = ["rotten_name is missing Unknown variable type, 'johnny'",
+                    "nostdname is missing standard_name",
+                    "nounits is missing units",
+                    "badchar is missing Bad 'char' type for 'badchar', " +    \
+                    "must specify length"]
+        amsg = "Test failure: bad exception message, " + \
+               f"Found {len(nerrs)} errors, should have been {len(expected)}."
+        self.assertEqual(len(nerrs), len(expected), msg=amsg)
+        if len(nerrs) == len(expected):
+            for index, nexcp in enumerate(nerrs):
+                amsg = "Test failure: bad exception message, " + \
+                       f"Found '{nexcp}', should have been '{expected[index]}'"
+                self.assertEqual(nexcp, expected[index], msg=amsg)
+            # end for
+        # end if
+
+        # Check log
+        log_msgs = cmp_log.output
+        amsg = "Test failure: bad log message, should be a list, not a " +    \
+               f"'{type(log_msgs)}'"
+        self.assertTrue(isinstance(log_msgs, list), msg=amsg)
+        amsg = "Test failure: bad log message, should have two entries, " +   \
+               f"found {len(log_msgs)}"
+        self.assertEqual(len(log_msgs), 2, msg=amsg)
+        log_msgs = log_msgs[1].split('\n')[1:]
+        amsg = "Test failure: bad log message, Found " + \
+               f"{len(log_msgs)+1} errors, should have been {len(expected)+1}."
+        self.assertEqual(len(log_msgs)+1, len(expected)+1, msg=amsg)
+        if len(log_msgs) == len(expected):
+            for index, msg in enumerate(log_msgs):
+                amsg = "Test failure: bad log message, " + \
+                       f"Found '{msg}', should have been '{expected[index]}'"
+                self.assertEqual(msg, expected[index], msg=amsg)
+            # end for
+        # end if
+
+        # Make sure none of the output files were created:
+        amsg = f"{out_source} should not exist"
+        self.assertFalse(os.path.exists(out_source), msg=amsg)
+        amsg = f"{out_meta} should not exist"
+        self.assertFalse(os.path.exists(out_meta), msg=amsg)
+        amsg = f"{reader_source} should not exist"
+        self.assertFalse(os.path.exists(reader_source), msg=amsg)
 
 ##########
 

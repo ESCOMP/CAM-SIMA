@@ -83,8 +83,8 @@ CONTAINS
 
    subroutine cam_read_ccpp_scheme_namelists(nlfile, active_schemes, mpi_comm, mpi_root,          &
         mpi_isroot, logunit)
-      use rayleigh_friction_namelist, only: autogen_rayleigh_friction_readnl
-      use gw_drag_namelist,           only: autogen_gw_drag_readnl
+      use banana_namelist,  only: autogen_banana_readnl
+      use kumquat_namelist, only: autogen_kumquat_readnl
 
       ! Dummy arguments
       character(len=*), intent(in)    :: nlfile
@@ -99,11 +99,11 @@ CONTAINS
 
       call set_active_schemes(active_schemes)
       open(newunit=nl_unit, file=trim(nlfile), status='old')
-      if (is_scheme_active('rayleigh_friction')) then
-         call autogen_rayleigh_friction_readnl(nl_unit, mpi_comm, mpi_root, mpi_isroot, logunit)
+      if (is_scheme_active('banana')) then
+         call autogen_banana_readnl(nl_unit, mpi_comm, mpi_root, mpi_isroot, logunit)
       end if
-      if (is_scheme_active('gw_drag')) then
-         call autogen_gw_drag_readnl(nl_unit, mpi_comm, mpi_root, mpi_isroot, logunit)
+      if (is_scheme_active('kumquat')) then
+         call autogen_kumquat_readnl(nl_unit, mpi_comm, mpi_root, mpi_isroot, logunit)
       end if
 
       close(nl_unit)
