@@ -53,7 +53,7 @@ if [ ! -d "cime_config" ]; then
 fi
 
 #CAM config classes doctests:
-${PYTHON} cime_config/cam_config_classes.py
+run_doctest cime_config/cam_config_classes.py
 # CAM config doctests:
 run_doctest cime_config/cam_config.py
 # CAM autogen doctests:
@@ -64,6 +64,8 @@ run_doctest cime_config/cam_build_cache.py
 run_doctest cime_config/create_readnl_files.py
 # Registry generator doctests:
 run_doctest src/data/generate_registry_data.py
+# ParamGen atm_in namelist writer doctests:
+run_doctest cime_config/
 # CAM config unit tests:
 run_unittest test/unit/cam_config_unit_tests.py
 # Registry generator unit tests:
@@ -72,6 +74,8 @@ run_unittest test/unit/test_registry.py
 run_unittest test/unit/create_readnl_files_tests.py
 # Physics variable init (phys_init) generator unit tests:
 run_unittest test/unit/write_init_unit_tests.py
+# ParamGen atm_in namelist writer unit tests:
+run_unittest test/unit/test_atm_in_paramgen.py
 
 # Report
 if [ ${NUMERRORS} -gt 0 ]; then

@@ -913,7 +913,8 @@ if __name__ == "__main__":
                 "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
                 "CAM_CPPDEFS" : "-DTEST_CPPDEF -DNEW_TEST=5",
                 "NTHRDS_ATM" : 1,
-                "RUN_STARTDATE" : "101"
+                "RUN_STARTDATE" : "101",
+                "DEBUG" : False
                 }
 
         def get_value(self, key):

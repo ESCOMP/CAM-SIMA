@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Another made-up XML namelist file for testing -->
+
+  <entry id="laser_beam">
+    <type>logical</type>
+    <category>sci_fi</category>
+    <!-- same group -->
+    <group>bird_sounds_nl</group>
+    <desc>
+      Does it go "pew-pew"?
+    </desc>
+    <values>
+      <value>.FALSE.</value>
+      <value spaceship="x-wing">.TRUE.</value>
+    </values>
+  </entry>
+
+  <entry id="warp_drive">
+    <type>integer</type>
+    <category>sci_fi</category>
+    <group>sci_fi_sounds_nl</group>
+    <desc>
+        What are you doing with the
+        warp drive?
+    </desc>
+    <values>
+      <value>0</value>
+      <value warp_ten="1">1</value>
+      <value giving_her_all_shes_got="1">1000000</value>
+    </values>
+  </entry>
+
+</entry_id_pg>

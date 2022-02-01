@@ -37,7 +37,7 @@ sys.path.append(CAM_CONF_DIR)
 # pylint: disable=wrong-import-position
 from cam_autogen import CamAutoGenError
 from cam_config import ConfigCAM
-from cam_config import CamConfigTypeError, CamConfigValError
+from cam_config_classes import CamConfigTypeError, CamConfigValError
 # pylint: enable=wrong-import-position
 
 #++++++++++++++++++++++++++++++++++++++++++
@@ -68,7 +68,8 @@ class FakeCase:
             "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
-            "RUN_STARTDATE" : "101"
+            "RUN_STARTDATE" : "101",
+            "DEBUG" : False
             }
 
     def get_value(self, key):

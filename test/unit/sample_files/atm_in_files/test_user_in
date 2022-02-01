@@ -1,0 +1,13 @@
+&bird_sounds_nl
+    duck_quack = .true.
+    turkey_leg = 22.7
+/
+
+&fairy_tales
+    straw_into_gold = "Rapunzel"
+/
+
+&scary_stories
+    monkey_paw = 0
+/
+
