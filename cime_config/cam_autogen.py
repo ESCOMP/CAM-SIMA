@@ -245,18 +245,17 @@ def _find_metadata_files(source_dirs, scheme_finder):
     >>> _find_metadata_files([TEST_SOURCE_MODS_DIR], find_scheme_names) #doctest: +ELLIPSIS
     {'temp_adjust': ('.../SourceMods/temp_adjust.meta', '.../SourceMods/temp_adjust.F90', None)}
 
-    2.  Check that the function throws the correct error if no fortran file is found:
+    2.  Check that the function throws the correct error if no Fortran file is found:
 
     >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
                              find_scheme_names) #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    ...
-    CamAutoGenError: ERROR: No fortran files were found for the following meta files:
-    ...test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
+    CamAutoGenError: ERROR: No Fortran files were found for the following meta files:
+    ...test/unit/sample_files/write_init_files/../phys_types_dup_section.meta
     ...test/unit/sample_files/write_init_files/../phys_types_no_table.meta
     ...test/unit/sample_files/write_init_files/../ref_pres.meta
-    ...test/unit/sample_files/write_init_files/../phys_types_dup_section.meta
+    ...test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
     """
 
     meta_files = {}
@@ -298,9 +297,9 @@ def _find_metadata_files(source_dirs, scheme_finder):
     emsg = ""
     if missing_source_files:
         ess = "s" if (len(missing_source_files) > 1) else ""
-        emsg += "ERROR: No fortran files were found for the following "      \
+        emsg += "ERROR: No Fortran files were found for the following "      \
                 f"meta file{ess}:\n"
-        emsg += "\n".join(missing_source_files)
+        emsg += "\n".join(sorted(missing_source_files))
     # end if
     if bad_xml_sources:
         if (len(bad_xml_sources) > 1):
