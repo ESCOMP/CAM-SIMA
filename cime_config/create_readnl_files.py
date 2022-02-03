@@ -352,6 +352,10 @@ class NLVar:
         ((10,), ('cam_nl_autogen1_dimension',))
         >>> NLVar._parse_array_desc("15,3", "bar")
         ((15, 3), ('cam_nl_autogen2_dimension', 'cam_nl_autogen3_dimension'))
+        >>> NLVar._parse_array_desc("15,,3", "foobar")
+        Traceback (most recent call last):
+        ...
+        parse_source.ParseInternalError: Invalid array argument, '15,,3', for foobar
         """
         if alen:
             try:
@@ -948,14 +952,14 @@ class NamelistFiles:
         else:
             self.__outdir = args.output_dir
         # end if
-        if args.debug:
-            loglevel = logging.DEBUG
-        elif args.quiet:
-            loglevel = logging.ERROR
-        else:
-            loglevel = logging.INFO
-        # end if
         if logger:
+            if args.debug:
+                loglevel = logging.DEBUG
+            elif args.quiet:
+                loglevel = logging.ERROR
+            else:
+                loglevel = logging.INFO
+            # end if
             logger.setLevel(loglevel)
         # end if
         self.__scheme_read_file = None
@@ -1049,25 +1053,21 @@ an XML namelist definition filename""")
             # set_active_schemes
             ofile.write(f"subroutine {set_active_schemes}(active_schemes_in)",
                         1)
-            ofile.write("use cam_abortutils, only: endrun", 2)
+            ofile.write("use cam_abortutils, only: check_allocate", 2)
             ofile.write("use string_utils,   only: to_str", 2)
             ofile.blank_line()
             ofile.comment("Dummy argument", 2)
             ofile.write("character(len=*), intent(in) :: active_schemes_in(:)",
                         2)
             ofile.comment("Local variables", 2)
-            ofile.write("integer,                    :: istat", 2)
+            ofile.write("integer                     :: istat", 2)
             ofile.write(f"character(len=*), parameter :: subname = " +        \
                         f"'{set_active_schemes}'", 2)
             ofile.blank_line()
             ofile.write("allocate(active_schemes(size(active_schemes_in))," + \
                         " stat=istat)", 2)
-            ofile.write("if (istat /= 0) then", 2)
-            ofile.write("call endrun(subname//" +                             \
-                        "': allocate active_schemes('//" +                    \
-                        "to_str(size(active_schemes_in))//" +                 \
-                        "' failed with stat: '//to_str(istat))", 3)
-            ofile.write("end if", 2)
+            ofile.write("call check_allocate(istat, subname, " +              \
+                        "'active_schemes', file=__FILE__, line=__LINE__)", 2)
             ofile.write("active_schemes(:) = active_schemes_in(:)", 2)
             ofile.blank_line()
             ofile.write(f"end subroutine {set_active_schemes}", 1)
@@ -1356,5 +1356,6 @@ if __name__ == "__main__":
     <standard_name>banana_index</standard_name><units>1</units>
     <desc>Variable to specify banana</desc>
     <values><value>2</value></values></entry>""")
-    fail, _ = doctest.testmod()
+    OPTIONS = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
+    fail, _ = doctest.testmod(optionflags=OPTIONS)
     sys.exit(fail)
