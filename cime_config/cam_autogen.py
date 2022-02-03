@@ -248,7 +248,7 @@ def _find_metadata_files(source_dirs, scheme_finder):
     2.  Check that the function throws the correct error if no fortran file is found:
 
     >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
-                             find_scheme_names) #doctest: +ELLIPSIS
+                             find_scheme_names) #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     ...
