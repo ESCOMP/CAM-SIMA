@@ -82,38 +82,38 @@ def _check_integer_val(name, val, valid_vals=None):
     Please note that "successful" validation tests are done in the ConfigInteger doctests.
 
     1.  Check that using a non-integer value throws an error:
-    >>> _check_integer_val("test", 5.0, valid_vals=None) #doctest: +ELLIPSIS
+    >>> _check_integer_val("test", 5.0, valid_vals=None)
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR: Value being checked in 'check_integer_val' must be an integer type, not '<class 'float'>'.
 
     2.  Check that using a valid_vals option that is not a list or tuple throws an error:
-    >>> _check_integer_val("test", 5, valid_vals="test_vals") #doctest: +ELLIPSIS
+    >>> _check_integer_val("test", 5, valid_vals="test_vals")
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR: Valid values for integers must by provided as either a tuple or a list, not '<class 'str'>'.
 
     3.  Check that using non-integer values inside the valid_vals list or tuple throws an error:
-    >>> _check_integer_val("test", 5, valid_vals=[1,2,5,"test_val"]) #doctest: +ELLIPSIS
+    >>> _check_integer_val("test", 5, valid_vals=[1,2,5,"test_val"])
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR:  Valid value, 'test_val', for variable 'test', must be an integer.  Currently it is '<class 'str'>'.
     <BLANKLINE>
 
     4.  Check that using a tuple with only one entry throws an error:
-    >>> _check_integer_val("test", 5, valid_vals=(1,)) #doctest: +ELLIPSIS
+    >>> _check_integer_val("test", 5, valid_vals=(1,))
     Traceback (most recent call last):
     ...
     CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '1' elements.
 
     5.  Check that using a tuple with more than two entries throws an error:
-    >>> _check_integer_val("test", 5, valid_vals=(1,2,5)) #doctest: +ELLIPSIS
+    >>> _check_integer_val("test", 5, valid_vals=(1,2,5))
     Traceback (most recent call last):
     ...
     CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '3' elements.
 
     6.  Check that using a tuple with only Nones throws an error:
-    >>> _check_integer_val("test", 5, valid_vals=(None,None)) #doctest: +ELLIPSIS
+    >>> _check_integer_val("test", 5, valid_vals=(None,None))
     Traceback (most recent call last):
     ...
     CamConfigValError: ERROR: Valid values tuple for variable, 'test', must contain at least one integer.
@@ -259,19 +259,19 @@ def _check_string_val(name, val, valid_vals=None):
     Please note that "successful" validation tests are done in the ConfigString doctests.
 
     1.  Check that using a non-string value throws an error:
-    >>> _check_string_val("test", [5], valid_vals=None) #doctest: +ELLIPSIS
+    >>> _check_string_val("test", [5], valid_vals=None)
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR: Value being checked in 'check_string_val' must be a string type, not '<class 'list'>'.
 
     2.  Check that using a valid_vals option that is not None, a list, or a regex throws an error:
-    >>> _check_string_val("test", "test_val", valid_vals=5) #doctest: +ELLIPSIS
+    >>> _check_string_val("test", "test_val", valid_vals=5)
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR: Valid values for strings must by provided as either a regular expression or a list, not '<class 'int'>'.
 
     3.  Check that using non-string values inside the valid_vals list throws an error:
-    >>> _check_string_val("test", "1", valid_vals=["1","2","5",6]) #doctest: +ELLIPSIS
+    >>> _check_string_val("test", "1", valid_vals=["1","2","5",6])
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR:  Valid value, '6', for variable 'test', must be a string.  Currently it is '<class 'int'>'.
@@ -374,25 +374,28 @@ class ConfigGen(object):
 
     2.  Check that non-optional inputs must be strings:
 
-    >>> ConfigGen(5, "test_object_description").name #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> ConfigGen(5, "test_object_description").name
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  Configuration variable name '5' must be a string, not <type 'int'>
+    ...
+    CamConfigTypeError: ERROR:  Configuration variable name, '5', must be a string, not <class 'int'>
 
-    >>> ConfigGen("test", (5,)).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> ConfigGen("test", (5,)).desc
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:
+    ...
+    CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not <class 'tuple'> ((5,))
 
-    >>> ConfigGen("test", ["test", ("object", "description")]).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> ConfigGen("test", ["test", ("object", "description")]).desc
     Traceback (most recent call last):
+    ...
     CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not [<class 'str'>, <class 'tuple'>]
 
     """
 
     def __init__(self, name, desc, is_nml_attr=False):
 
-            # Check that "name" is a string
+        # Check that "name" is a string
         if not isinstance(name, str):
-            emsg = "ERROR:  Configuration variable name '{}' must be a string, not {}"
+            emsg = "ERROR:  Configuration variable name, '{}', must be a string, not {}"
             raise CamConfigTypeError(emsg.format(name, type(name)))
         # end if
 
@@ -483,7 +486,7 @@ class ConfigInteger(ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         # Add generic attributes
-        super(ConfigInteger, self).__init__(name, desc, is_nml_attr=is_nml_attr)
+        super().__init__(name, desc, is_nml_attr=is_nml_attr)
 
         # Add valid_vals to object
         self.__valid_vals = valid_vals
@@ -592,7 +595,7 @@ class ConfigString(ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         # Add generic attributes
-        super(ConfigString, self).__init__(name, desc, is_nml_attr=is_nml_attr)
+        super().__init__(name, desc, is_nml_attr=is_nml_attr)
 
         # If ok, then add valid_vals to object
         self.__valid_vals = valid_vals
@@ -692,19 +695,19 @@ class ConfigList(ConfigGen):
 
 
     3. Check that ConfigList With a non-string passed to "valid_type" fails with the correct error:
-    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type=5).value #doctest: +ELLIPSIS
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type=5).value
     Traceback (most recent call last):
     ...
     CamConfigTypeError: ERROR: valid_type entry for variable 'test' must be a string,  not type '<class 'int'>'.
 
     4. Check that ConfigList with a non-recognized "valid_type" option fails with the correct error:
-    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="foo").value #doctest: +ELLIPSIS
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="foo").value
     Traceback (most recent call last):
     ...
     CamConfigValError: ERROR: 'foo' is not a recognized option for 'valid_type'. Please use either 'int' or 'str'.
 
     5.  Check that ConfigList with list entries that don't match the valid_type entry fails with the correct error:
-    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="str").value #doctest: +ELLIPSIS
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="str").value
     Traceback (most recent call last):
     ...
     CamConfigValError: ERROR: The following list entries, provided for variable, 'test', are not strings, but instead are:
@@ -714,7 +717,7 @@ class ConfigList(ConfigGen):
     <BLANKLINE>
 
     6.  Check that ConfigList with "valid_vals" but no "valid_type" fails with the correct error:
-    >>> ConfigList("test", "test object description", [1, 2, 3], valid_vals=[1,2,3,4,5]).value #doctest: +ELLIPSIS
+    >>> ConfigList("test", "test object description", [1, 2, 3], valid_vals=[1,2,3,4,5]).value
     Traceback (most recent call last):
     ...
     CamConfigValError: ERROR: valid values can only be used if valid_type is 'int' or 'str', not 'None'.
@@ -724,7 +727,7 @@ class ConfigList(ConfigGen):
     [1, 2, 3]
 
     8. check that ConfigList with a list that does not mach the "valid_vals" entry fails with the correct error:
-    >>> ConfigList("test", "test object description", ["1", "b", "c"], valid_type="str", valid_vals=["1","2","3"]).value #doctest: +ELLIPSIS
+    >>> ConfigList("test", "test object description", ["1", "b", "c"], valid_type="str", valid_vals=["1","2","3"]).value
     Traceback (most recent call last):
     ...
     CamConfigValError: The following errors were found for a list-type config variable:
@@ -736,7 +739,7 @@ class ConfigList(ConfigGen):
     def __init__(self, name, desc, val, valid_type=None, valid_vals=None):
 
         # Add generic attributes
-        super(ConfigList, self).__init__(name, desc, is_nml_attr=False)
+        super().__init__(name, desc, is_nml_attr=False)
 
         # Check if valid_type is not None
         if valid_type is not None:
@@ -931,15 +934,17 @@ class ConfigCAM:
 
     2.  Check that the same configure object can't be created twice:
 
-    >>> FCONFIG.create_config("test_int", "test object description", 5) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> FCONFIG.create_config("test_int", "test object description", 5)
     Traceback (most recent call last):
+      ...
     CamConfigValError: ERROR:  The CAM config variable, 'test_int', already exists!  Any new config variable must be given a different name
 
     3.  Check that a configure object's given value must be either a string, integer or list:
 
-    >>> FCONFIG.create_config("test_dict", "test_object_description", {"x": "y"}) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> FCONFIG.create_config("test_dict", "test_object_description", {"x": "y"})
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_dict', must be either an integer or a string, not <type 'list'>
+    ...
+    CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_dict', must be an integer, string, or list, not <class 'dict'>
 
     """
 
@@ -1327,10 +1332,10 @@ class ConfigCAM:
     @classmethod
     def parse_config_opts(cls, config_opts, test_mode=False):
         """Parse <config_opts> and return the results
-        >>> ConfigCAM.parse_config_opts("", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> ConfigCAM.parse_config_opts("", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
-        >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
         >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler"))
@@ -1341,7 +1346,7 @@ class ConfigCAM:
         [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
         >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler;musica"))
         [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
-        >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
         """
@@ -1815,7 +1820,8 @@ if __name__ == "__main__":
     FCONFIG = ConfigCAM(FCASE, LOGGER)
 
     # Run doctests on this file's python objects
-    TEST_SUCCESS = doctest.testmod()[0]
+    OPTIONS = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
+    TEST_SUCCESS = doctest.testmod(optionflags=OPTIONS)[0]
 
     # Exit script with error code matching number of failed tests:
     sys.exit(TEST_SUCCESS)

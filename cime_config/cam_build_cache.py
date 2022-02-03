@@ -131,31 +131,35 @@ class BuildCacheCAM:
 
     1.  Check that the proper error is generated when wrong file is input:
 
-    >>> BuildCacheCAM(TEST_SCHEME) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> BuildCacheCAM(TEST_SCHEME)
     Traceback (most recent call last):
-    CCPPError: read_xml_file: Cannot read ...temp_adjust_scalar.meta, syntax error: line 1, column 0
+    ...
+    parse_source.CCPPError: read_xml_file: Cannot read ...temp_adjust_scalar.meta, syntax error: line 1, column 0
 
     2.  Check that the proper error is generated when build_cache has an invalid tag:
 
-    >>> BuildCacheCAM(BAD_BUILD_CACHE) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> BuildCacheCAM(BAD_BUILD_CACHE)
     Traceback (most recent call last):
+    ...
     ValueError: ERROR: Unknown section tag, 'test'
 
     3.  Check that the proper error is generated when build_cache has an invalid registry tag:
 
-    >>> BuildCacheCAM(BAD_BUILD_CACHE_REG) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> BuildCacheCAM(BAD_BUILD_CACHE_REG)
     Traceback (most recent call last):
+    ...
     ValueError: ERROR: Unknown registry tag, 'test'
 
     4.  Check that the proper error is generated when build_cache has an invalid ccpp tag:
 
-    >>> BuildCacheCAM(BAD_BUILD_CACHE_CCPP) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> BuildCacheCAM(BAD_BUILD_CACHE_CCPP)
     Traceback (most recent call last):
-    ValueError: ERROR: Unknown ccpp tag, 'test'
+    ...
+    ValueError: ERROR: Unknown CCPP tag, 'test'
 
     5.  Check that parsing works (no errors) when input is valid:
 
-    >>> BuildCacheCAM(BUILD_CACHE)._BuildCacheCAM__dycore #doctest: +ELLIPSIS
+    >>> BuildCacheCAM(BUILD_CACHE)._BuildCacheCAM__dycore
     'none'
 
     """
@@ -391,27 +395,27 @@ class BuildCacheCAM:
 
         1.  Check that the function returns False when there are no changes:
 
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG)
         False
 
         2.  Check that the function returns True when the dycore has changed:
 
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], SE_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], SE_DYCORE, NONE_CONFIG)
         True
 
         3.  Check that the function returns True when the registry has been updated:
 
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [TEST_SDF], NULL_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [TEST_SDF], NULL_DYCORE, NONE_CONFIG)
         True
 
         4.  Check that the function returns True when the gen_reg_file has been updated:
 
-        >>> BUILD_CACHE_CAM.registry_mismatch(TEST_SDF, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.registry_mismatch(TEST_SDF, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG)
         True
 
         5.  Check that the function returns True when config changes:
 
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, TEST_CHANGE) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, TEST_CHANGE)
         True
 
         """
@@ -449,27 +453,27 @@ class BuildCacheCAM:
 
         1.  Check that the function returns False when no changes were made:
 
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], PREPROC_DEFS, KIND_PHYS) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], PREPROC_DEFS, KIND_PHYS)
         False
 
         2.  Check that the function returns True when the preproc_defs changes:
 
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], TEST_CHANGE, KIND_PHYS) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], TEST_CHANGE, KIND_PHYS)
         True
 
         3.  Check that the function returns True when kind_phys changes:
 
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], PREPROC_DEFS, KPHYS_CHANGE) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], PREPROC_DEFS, KPHYS_CHANGE)
         True
 
         4. Check that the function returns True when an SDF changes:
 
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([REGISTRY_FILE], [TEST_SCHEME], [], PREPROC_DEFS, KIND_PHYS) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([REGISTRY_FILE], [TEST_SCHEME], [], PREPROC_DEFS, KIND_PHYS)
         True
 
         5.  Check that the function returns True when a scheme changes:
 
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [REGISTRY_FILE], [], PREPROC_DEFS, KIND_PHYS) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [REGISTRY_FILE], [], PREPROC_DEFS, KIND_PHYS)
         True
 
         """
@@ -574,12 +578,12 @@ class BuildCacheCAM:
 
         1.  Check that the function returns False when nothing has changed:
 
-        >>> BUILD_CACHE_CAM.init_write_mismatch(REGISTRY_FILE) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.init_write_mismatch(REGISTRY_FILE)
         False
 
         2.  Check that the function returns True when the file has changed:
 
-        >>> BUILD_CACHE_CAM.init_write_mismatch(TEST_SDF) #doctest: +ELLIPSIS
+        >>> BUILD_CACHE_CAM.init_write_mismatch(TEST_SDF)
         True
 
         """
@@ -712,7 +716,8 @@ if __name__ == "__main__":
     BUILD_CACHE_CAM = BuildCacheCAM(BUILD_CACHE)
 
     # Run doctests:
-    TEST_SUCCESS = doctest.testmod()[0]
+    OPTIONS = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
+    TEST_SUCCESS = doctest.testmod(optionflags=OPTIONS)[0]
 
     # Remove testing directories:
     shutil.rmtree(TEST_SOURCE_MODS_DIR)

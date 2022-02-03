@@ -58,8 +58,9 @@ def is_int(token):
     False
 
     4. Test that bad input is caught
-    >>> is_int(3.14159) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> is_int(3.14159) #doctest: +ELLIPSIS
     Traceback (most recent call last):
+    ...
     parse_source.ParseInternalError: <token> should be a string or None, not '<class 'float'>'
     """
     isint = False

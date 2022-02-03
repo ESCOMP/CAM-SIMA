@@ -16,7 +16,8 @@ run_doctest() {
     ${PYTHON} ${1}
     res=$?
   else
-    ${PYTHON} -m doctest ${1}
+    dt_opts=" --option NORMALIZE_WHITESPACE --option ELLIPSIS"
+    ${PYTHON} -m doctest ${dt_opts} ${1}
     res=$?
   fi
   if [ $res -ne 0 ]; then

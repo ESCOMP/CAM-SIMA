@@ -248,11 +248,15 @@ def _find_metadata_files(source_dirs, scheme_finder):
     2.  Check that the function throws the correct error if no fortran file is found:
 
     >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
-                             find_scheme_names) #doctest: +IGNORE_EXCEPTION_DETAIL
+                             find_scheme_names) #doctest: +ELLIPSIS
     Traceback (most recent call last):
+    ...
+    ...
     CamAutoGenError: ERROR: No fortran files were found for the following meta files:
-    /glade/work/nusbaume/SE_projects/new_cam_sandbox/CAMDEN/test/unit/sample_files/write_init_files/../ref_pres.meta
-    /glade/work/nusbaume/SE_projects/new_cam_sandbox/CAMDEN/test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
+    ...test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
+    ...test/unit/sample_files/write_init_files/../phys_types_no_table.meta
+    ...test/unit/sample_files/write_init_files/../ref_pres.meta
+    ...test/unit/sample_files/write_init_files/../phys_types_dup_section.meta
     """
 
     meta_files = {}
@@ -358,10 +362,11 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
 
     >>> generate_registry(["/bad/path"], TestBuildCache, TEST_ATM_ROOT,       \
                           TEST_BLDROOT, TEST_SOURCE_MODS_DIR, 'se',           \
-                          TEST_FORT_INDENT) #doctest: +IGNORE_EXCEPTION_DETAIL
+                          TEST_FORT_INDENT) #doctest: +ELLIPSIS
     Traceback (most recent call last):
-    CamAutoGenError: "ERROR: Unable to find CAM registry, registry.xml, in '['/bad/path']'
-
+    ...
+    ...
+    CamAutoGenError: ERROR: Unable to find CAM registry, registry.xml, in [/bad/path]
 
     2. Check that generate_registry works properly a good path is given:
 
@@ -441,8 +446,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "missing",    \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
-                                False) #doctest: +IGNORE_EXCEPTION_DETAIL
+                                False) #doctest: +ELLIPSIS
     Traceback (most recent call last):
+    ...
     CamAutoGenError: ERROR: Unable to find SDF for suite 'missing'
 
     2.  Check that the correct error is raised when a scheme's metadata file cannot be found:
@@ -450,8 +456,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad",        \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
-                                False) #doctest: +IGNORE_EXCEPTION_DETAIL
+                                False) #doctest: +ELLIPSIS
     Traceback (most recent call last):
+    ...
     CamAutoGenError: ERROR: No metadata file found for physics scheme 'bad_scheme'
 
     3. Check that generate_physics_suites works properly when good inputs are provided:
