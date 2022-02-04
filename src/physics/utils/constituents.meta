@@ -1,0 +1,13 @@
+[ccpp-table-properties]
+  name = constituents
+  type = module
+
+[ccpp-arg-table]
+  name  = constituents
+  type  = module
+[ pcnst ]
+  standard_name = number_of_constituents
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True

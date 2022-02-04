@@ -13,7 +13,7 @@
       <scheme file_path="$TEST_SOURCE_MODS_DIR/temp_adjust_scalar.meta" hash="ca48290fa714873cb0e6cf04968c65d508d6f5dd" />
       TAG3
       <preproc_defs>UNSET</preproc_defs>
-      <kind_phys>REAL64</kind_phys>
+      <kind_type>kind_phys=REAL64</kind_type>
    </CCPP>
 </CAMBuildCache>
 

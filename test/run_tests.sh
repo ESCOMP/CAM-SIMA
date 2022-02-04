@@ -16,7 +16,8 @@ run_doctest() {
     ${PYTHON} ${1}
     res=$?
   else
-    ${PYTHON} -m doctest ${1}
+    dt_opts=" --option NORMALIZE_WHITESPACE --option ELLIPSIS"
+    ${PYTHON} -m doctest ${dt_opts} ${1}
     res=$?
   fi
   if [ $res -ne 0 ]; then
@@ -57,12 +58,16 @@ run_doctest cime_config/cam_config.py
 run_doctest cime_config/cam_autogen.py
 # CAM build cache doctests:
 run_doctest cime_config/cam_build_cache.py
+# Namelist reader generator doctests:
+run_doctest cime_config/create_readnl_files.py
 # Registry generator doctests:
 run_doctest src/data/generate_registry_data.py
 # CAM config unit tests:
 run_unittest test/unit/cam_config_unit_tests.py
 # Registry generator unit tests:
 run_unittest test/unit/test_registry.py
+# Namelist reader autogeneration unit tests
+run_unittest test/unit/create_readnl_files_tests.py
 # Physics variable init (phys_init) generator unit tests:
 run_unittest test/unit/write_init_unit_tests.py
 

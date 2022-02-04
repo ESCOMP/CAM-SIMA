@@ -1596,6 +1596,59 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     return files
 
 ###############################################################################
+def _grab_initial_value(var_node):
+###############################################################################
+    """Helper function for _create_ic_name_list to retrieve the standard name
+          and ic_names for the variable or array element, <var_node>."""
+    stdname = None
+    ic_names = None
+    for attrib in var_node:
+        if attrib.tag == 'ic_file_input_names':
+            stdname = var_node.get('standard_name')
+            ic_names = [x.strip() for x in attrib.text.split(' ') if x]
+        # end if (ignore other tags for ic_names)
+    # end for
+    return stdname, ic_names
+
+###############################################################################
+def _create_ic_name_dict(registry):
+###############################################################################
+    """ Build a dictionary of IC-names (key = standard_name)
+        These come either from an entry in the registry or from the
+           variable's local name
+        If this property is ever included in CCPP metadata, this
+           section can be replaced by accessing the new metadata
+           property and this routine will no longer be needed.
+        This function returns a dictionary containing only the variables
+           from the registry which have the initial_value property.
+    """
+    ic_name_dict = {}
+    for section in registry:
+        if section.tag == 'file':
+            for obj in section:
+                if obj.tag == 'variable':
+                    stdname, ic_names = _grab_initial_value(obj)
+                    # Skip duplicate check (done elsewhere for registry)
+                    if stdname:
+                        ic_name_dict[stdname] = ic_names
+                    # end if
+                elif obj.tag == 'array':
+                    for subobj in obj:
+                        if subobj.tag == 'element':
+                            stdname, ic_names = _grab_initial_value(subobj)
+                            # Skip duplicate check (see above)
+                            if stdname:
+                                ic_name_dict[stdname] = ic_names
+                            # end if
+                        # end if
+                    # end for
+                # end if (ignore other node types)
+            # end for
+        # end if (ignore other node types)
+    # end for
+    return ic_name_dict
+
+###############################################################################
 def gen_registry(registry_file, dycore, config, outdir, indent,
                  src_mod, src_root, loglevel=None, logger=None,
                  schema_paths=None, error_on_no_validate=False):
@@ -1662,6 +1715,8 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         # end if
         logger.error(emsg)
         retcode = 1
+        files = None
+        ic_names = None
     else:
         library_name = registry.get('name')
         emsg = "Parsing registry, {}".format(library_name)
@@ -1669,9 +1724,11 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         reg_dir = os.path.dirname(registry_file)
         files = write_registry_files(registry, dycore, config, outdir, src_mod,
                                      src_root, reg_dir, indent, logger)
+        # See comment in _create_ic_name_dict
+        ic_names = _create_ic_name_dict(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files
+    return retcode, files, ic_names
 
 def main():
     """Function to execute when module called as a script"""
@@ -1689,11 +1746,10 @@ def main():
         loglevel = logging.INFO
     # end if
 
-    retcode, files = gen_registry(args.registry_file, args.dycore.lower(),
-                                  args.config, outdir, args.indent,
-                                  args.source_mods, args.source_root,
-                                  loglevel=loglevel)
-    return retcode, files
+    retvals = gen_registry(args.registry_file, args.dycore.lower(),
+                           args.config, outdir, args.indent, args.source_mods,
+                           args.source_root, loglevel=loglevel)
+    return retvals
 
 ###############################################################################
 if __name__ == "__main__":

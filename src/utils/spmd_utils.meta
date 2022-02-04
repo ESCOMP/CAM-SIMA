@@ -1,0 +1,25 @@
+[ccpp-table-properties]
+  name = spmd_utils
+  type = module
+
+[ccpp-arg-table]
+  name  = spmd_utils
+  type  = module
+[ mpicom ]
+  standard_name = mpi_communicator
+  units = None
+  type = integer
+  dimensions = ()
+  protected = True
+[ masterprocid ]
+  standard_name = mpi_root
+  units = None
+  type = integer
+  dimensions = ()
+  protected = True
+[ masterproc ]
+  standard_name = flag_for_mpi_root
+  units = flag
+  type = logical
+  dimensions = ()
+  protected = True

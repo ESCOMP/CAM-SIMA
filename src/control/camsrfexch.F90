@@ -35,6 +35,9 @@ module camsrfexch
    ! This is the data that is sent from the atmosphere to the surface models
    !---------------------------------------------------------------------------
 
+   !> \section arg_table_cam_out_t  Argument Table
+   !! \htmlinclude arg_table_cam_out_t.html
+   !!
    type cam_out_t
       integer  :: ncol                ! number of columns in chunk
    end type cam_out_t
@@ -43,6 +46,9 @@ module camsrfexch
    ! This is the merged state of and flux from sea-ice, land and ocean surfaces
    !---------------------------------------------------------------------------
 
+   !> \section arg_table_cam_in_t  Argument Table
+   !! \htmlinclude arg_table_cam_in_t.html
+   !!
    type cam_in_t
       integer  :: ncol                    ! number of active columns
    end type cam_in_t

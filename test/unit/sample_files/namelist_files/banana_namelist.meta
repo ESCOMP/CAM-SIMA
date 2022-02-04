@@ -1,0 +1,24 @@
+[ccpp-table-properties]
+  name = banana_namelist
+  type = module
+[ccpp-arg-table]
+  name  = banana_namelist
+  type  = module
+[ rayk0 ]
+  standard_name = banana_center_vertical_index
+  type = integer
+  units = 1
+  dimensions = ()
+  protected = True
+[ raykrange ]
+  standard_name = banana_profile_width
+  type = real | kind = kind_phys
+  units = 1
+  dimensions = ()
+  protected = True
+[ raytau0 ]
+  standard_name = banana_decay_time
+  type = real | kind = kind_phys
+  units = days
+  dimensions = ()
+  protected = True

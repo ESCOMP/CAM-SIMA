@@ -35,6 +35,7 @@ sys.path.append(CAM_CONF_DIR)
 
 #Import CAM configure objects:
 # pylint: disable=wrong-import-position
+from cam_autogen import CamAutoGenError
 from cam_config import ConfigCAM
 from cam_config import CamConfigTypeError, CamConfigValError
 # pylint: enable=wrong-import-position
@@ -276,10 +277,12 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Set error message:
-        ermsg = "ERROR: ccpp_framework/scripts directory doesn't exist! Has 'checkout_externals' been run?"
+        ermsg = "ERROR: Unable to find CAM registry, registry.xml, in " +     \
+            "[/another/made-up/path/SourceMods/src.cam, " +                   \
+            "/a/third/made-up/path/src/data]"
 
         #Expect "CamConfigValError":
-        with self.assertRaises(CamConfigValError) as valerr:
+        with self.assertRaises(CamAutoGenError) as valerr:
             #Run "generate_cam_src" method, which should fail
             #due to the case paths being "fake":
             self.test_config_cam.generate_cam_src(0)

@@ -1,0 +1,64 @@
+[ccpp-table-properties]
+  name = kumquat_namelist
+  type = module
+[ccpp-arg-table]
+  name  = kumquat_namelist
+  type  = module
+[ pgwv ]
+  standard_name = kumquat_spectrum_dimension
+  type = integer
+  units = 1
+  dimensions = ()
+  protected = True
+[ kq_dc ]
+  standard_name = kumquat_width_of_speed_bins
+  type = real | kind = kind_phys
+  units = m s-1
+  dimensions = ()
+  protected = True
+[ tau_0_ubc ]
+  standard_name = kumquat_zero_stress_at_top_of_model
+  type = logical
+  units = flag
+  dimensions = ()
+  protected = True
+[ bnd_rdggm ]
+  standard_name = kumquat_boundary_dataset_for_meso_gamma_ridges
+  type = character | kind = len=256
+  units = 1
+  dimensions = ()
+  protected = True
+[ cam_nl_autogen1_dimension ]
+  standard_name = cam_nl_autogen1_dimension
+  type = integer | units = 1
+  dimensions = ()
+[ kq_farr1 ]
+  standard_name = kumquat_fake_array1
+  type = real | kind = kind_phys
+  units = m s-1
+  dimensions = (cam_nl_autogen1_dimension)
+  protected = True
+[ cam_nl_autogen2_dimension ]
+  standard_name = cam_nl_autogen2_dimension
+  type = integer | units = 1
+  dimensions = ()
+[ cam_nl_autogen3_dimension ]
+  standard_name = cam_nl_autogen3_dimension
+  type = integer | units = 1
+  dimensions = ()
+[ kq_fake2 ]
+  standard_name = kumquat_fake2d_array
+  type = integer
+  units = 1
+  dimensions = (cam_nl_autogen2_dimension, cam_nl_autogen3_dimension)
+  protected = True
+[ cam_nl_autogen4_dimension ]
+  standard_name = cam_nl_autogen4_dimension
+  type = integer | units = 1
+  dimensions = ()
+[ kq_fchar3 ]
+  standard_name = kumquat_fake_char_array
+  type = character | kind = len=256
+  units = 1
+  dimensions = (cam_nl_autogen4_dimension)
+  protected = True
