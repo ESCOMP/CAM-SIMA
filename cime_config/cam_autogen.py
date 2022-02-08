@@ -500,7 +500,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 
     2.  Check that the correct error is raised when a scheme's metadata file cannot be found:
 
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad",        \
+    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad_suite",        \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
                                 False) #doctest: +ELLIPSIS
@@ -510,7 +510,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 
     3. Check that generate_physics_suites works properly when good inputs are provided:
 
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "simple",     \
+    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "simple_suite",     \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
                                 False) #doctest: +ELLIPSIS
@@ -555,7 +555,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     scheme_files = []
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
-        sdf_path = suite_name_path_dict[sdf]
+        sdf_path = suite_name_path_dict.get(sdf)
         if not sdf_path:
             emsg = "ERROR: Unable to find SDF for suite '{}'"
             raise CamAutoGenError(emsg.format(sdf))
@@ -820,7 +820,7 @@ if __name__ == "__main__":
             # actual generation routines when performing doctests:
             return False
 
-        def xml_nl_mismatch(self, xml_files):
+        def xml_nl_mismatch(self, create_nl_file, xml_files):
             # Always return False, in order to avoid running the
             # actual generation routines when performing doctests:
             return False

@@ -66,15 +66,15 @@ class ConfigCAM:
 
     >>> FCONFIG.create_config("test_int", "test object description", 5)
     Traceback (most recent call last):
-      ...
-    CamConfigValError: ERROR:  The CAM config variable, 'test_int', already exists!  Any new config variable must be given a different name
+    ...
+    cam_config_classes.CamConfigValError: ERROR:  The CAM config variable, 'test_int', already exists!  Any new config variable must be given a different name
 
     3.  Check that a configure object's given value must be either a string, integer or list:
 
     >>> FCONFIG.create_config("test_dict", "test_object_description", {"x": "y"})
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_dict', must be an integer, string, or list, not <class 'dict'>
+    cam_config_classes.CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_dict', must be an integer, string, or list, not <class 'dict'>
 
     """
 
