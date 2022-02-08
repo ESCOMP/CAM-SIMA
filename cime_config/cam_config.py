@@ -838,7 +838,7 @@ class ConfigCAM:
                     #If not, then throw an error:
                     emsg  = "physics_suite specified in user_nl_cam, '{}', does not\n"
                     emsg += "match the suite listed in CAM_CONFIG_OPTS: '{}'"
-                    raise CamConfigValError(emsg.format(user_nl_pg_dict['physics_suite'],
+                    raise CamConfigValError(emsg.format(phys_nl_val,
                                                         phys_suites[0]))
 
             else:
