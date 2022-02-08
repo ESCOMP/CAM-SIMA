@@ -604,6 +604,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         preproc_cache_str = 'UNSET'
     # end if
 
+    # Initialize namelist generation logical:
+    do_gen_nl = False
+
     if os.path.exists(genccpp_dir):
         do_gen_ccpp = force or build_cache.ccpp_mismatch(sdfs, scheme_files,
                                                          host_files,
@@ -612,14 +615,13 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     else:
         os.makedirs(genccpp_dir)
         do_gen_ccpp = True
+        do_gen_nl   = True
     # End if
 
     create_nl_file = os.path.join(_CIME_CONFIG_DIR, "create_readnl_files.py")
-    if xml_files:
+    if not do_gen_nl:
         do_gen_nl = force or build_cache.xml_nl_mismatch(create_nl_file,
                                                          xml_files)
-    else:
-        do_gen_nl = False
     # end if
     if do_gen_nl:
         args = []

@@ -371,8 +371,10 @@ class BuildCacheCAM:
             new_xml_entry(ccpp, 'scheme_namelist_meta_file', sfile,
                           FileStatus.sha1sum(sfile))
         # end for
-        scheme_nlgroups = ET.SubElement(ccpp, 'scheme_namelist_groups')
-        scheme_nlgroups.text = " ".join(self.__scheme_nl_groups)
+        if self.__scheme_nl_groups:
+            scheme_nlgroups = ET.SubElement(ccpp, 'scheme_namelist_groups')
+            scheme_nlgroups.text = " ".join(self.__scheme_nl_groups)
+        #end if
         new_xml_entry(ccpp, 'create_nl_file',
                       self.__create_nl_file.file_path,
                       self.__create_nl_file.file_hash)
