@@ -13,9 +13,6 @@ import os
 import os.path
 import sys
 from collections import OrderedDict
-#CAM specific config error:
-from cam_config_classes import CamConfigValError
-from cam_config_classes import CamConfigTypeError
 
 #----------------
 # Import ParamGen
@@ -31,9 +28,15 @@ sys.path.append(os.path.join(_CIME_ROOT, "scripts", "lib", "CIME", "ParamGen"))
 from paramgen import ParamGen
 #pylint: enable=wrong-import-position
 
-#################
+################################################################
+
+class AtmInParamGenError(ValueError):
+    """Class used to handle atm_in ParamGen errors
+    (e.g., log user errors without backtrace)"""
+
+################################################################
 #HELPER FUNCTIONS
-#################
+################################################################
 
 def _is_nml_logical_true(varname, var_val):
 
@@ -90,21 +93,21 @@ def _is_nml_logical_true(varname, var_val):
     >>> _is_nml_logical_true("test", "this_wont_work") # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    cam_config_classes.CamConfigValError:...
+    atm_in_paramgen.AtmInParamGenError:...
     XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 'this_wont_work'
 
     12.  Check that a bad integer value returns the correct error:
     >>> _is_nml_logical_true("test", 3) # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
-    cam_config_classes.CamConfigValError:...
+    atm_in_paramgen.AtmInParamGenError:...
     XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 3
 
     13.  Check that a non-boolean, string or integer type returns an error:
     >>> _is_nml_logical_true("test", 13.03) # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    cam_config_classes.CamConfigTypeError:...
+    atm_in_paramgen.AtmInParamGenError:...
     XML namelist variable 'test' must have a value that is either a boolean, string, or integer, not float.
 
     """
@@ -121,7 +124,7 @@ def _is_nml_logical_true(varname, var_val):
         emsg = f"\nXML namelist logical variable, '{varname}'"
         emsg += ", must have a value of true, false, 1, or 0, not"
         emsg += f" '{var_val}'"
-        raise CamConfigValError(emsg)
+        raise AtmInParamGenError(emsg)
 
     if isinstance(var_val, int):
         if var_val == 1:
@@ -133,13 +136,13 @@ def _is_nml_logical_true(varname, var_val):
         emsg = f"\nXML namelist logical variable, '{varname}'"
         emsg += ", must have a value of true, false, 1, or 0, not"
         emsg += f" {var_val}"
-        raise CamConfigValError(emsg)
+        raise AtmInParamGenError(emsg)
 
     #Type is un-recognizeda, so raise an error:
     emsg = f"\nXML namelist variable '{varname}' must"
     emsg += " have a value that is either a boolean, string, or integer,"
     emsg += f" not {type(var_val).__name__}."
-    raise CamConfigTypeError(emsg)
+    raise AtmInParamGenError(emsg)
 
 ################################################################
 # MAIN "atm_in" ParamGen class
@@ -213,7 +216,7 @@ class AtmInParamGen(ParamGen):
             emsg += "Those entries and missing elements are:\n"
             for entry_id, missing_elems in missing_elems.items():
                 emsg += f"{entry_id} : {', '.join(missing_elems)}\n"
-            raise CamConfigValError(emsg)
+            raise AtmInParamGenError(emsg)
         #----------------
 
         #Initialize file->group/var set dictionary:
@@ -314,7 +317,7 @@ class AtmInParamGen(ParamGen):
             emsg += " be associated with only one namelist definition file."
             emsg += "\nInstead it is associated with the following files:\n"
             emsg += "\n".join(atm_pg_obj.nml_def_groups.keys())
-            raise CamConfigValError(emsg)
+            raise AtmInParamGenError(emsg)
 
         #Extract namelist definition file name:
         input_file = next(iter(atm_pg_obj.nml_def_groups))
@@ -336,7 +339,7 @@ class AtmInParamGen(ParamGen):
                 emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
                 emsg += " the following conflicting namelist groups:\n"
                 emsg += ", ".join(same_groups)
-                raise CamConfigValError(emsg)
+                raise AtmInParamGenError(emsg)
 
         #------------------------------------------------
 
@@ -353,7 +356,7 @@ class AtmInParamGen(ParamGen):
                 emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
                 emsg += " the following conflicting namelist variables:\n"
                 emsg += ", ".join(same_vars)
-                raise CamConfigValError(emsg)
+                raise AtmInParamGenError(emsg)
 
         #------------------------------------------------
 
@@ -413,7 +416,7 @@ class AtmInParamGen(ParamGen):
                                 #anywhere in a definition file:
                                 emsg = "Variable '{}' not found in any namelist definition files."
                                 emsg += " Please double-check '{}'."
-                                raise CamConfigValError(emsg.format(var_str, user_nl_file))
+                                raise AtmInParamGenError(emsg.format(var_str, user_nl_file))
 
                             #Add the namelist group if not already in data dict:
                             if not data_group in _data:
@@ -423,17 +426,17 @@ class AtmInParamGen(ParamGen):
                             if var_str in _data[data_group]:
                                 emsg = "Namelist variable '{}' set more than once in '{}'"
                                 emsg += "\nPlease set each variable only once."
-                                raise CamConfigValError(emsg.format(var_str, user_nl_file))
+                                raise AtmInParamGenError(emsg.format(var_str, user_nl_file))
 
                             #Enter the parameter in the dictionary:
                             _data[data_group][var_str] = {'values':val_str}
                         else:
                             emsg = "Cannot parse the following line in '{}' :\n'{}'"
-                            raise CamConfigValError(emsg.format(user_nl_file, line))
+                            raise AtmInParamGenError(emsg.format(user_nl_file, line))
 
             #Check if there is unclosed block:
             if within_comment_block:
-                raise CamConfigValError(f"Un-closed comment block!  Please check '{user_nl_file}'")
+                raise AtmInParamGenError(f"Un-closed comment block!  Please check '{user_nl_file}'")
 
         #Create new ParamGen object:
         pg_user = ParamGen(_data)
@@ -492,7 +495,7 @@ class AtmInParamGen(ParamGen):
                         var_type = self._data[nml_group][var]["type"].strip()
                     else:
                         emsg = f"Namelist entry '{var}' is missing required 'type' element."
-                        raise CamConfigValError(emsg)
+                        raise AtmInParamGenError(emsg)
 
                     #Check if variable value is a number or boolean:
                     if var_type in num_bool_set:
@@ -517,7 +520,7 @@ class AtmInParamGen(ParamGen):
                         #This is an un-recognized type option, so raise an error:
                         emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
                         emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
-                        raise CamConfigValError(emsg)
+                        raise AtmInParamGenError(emsg)
 
                 # Add space for next namelist group:
                 atm_in_fil.write('/\n\n')

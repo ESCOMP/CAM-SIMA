@@ -51,7 +51,7 @@ sys.path.append(_CIME_CONF_DIR)
 #Import CAM configure objects:
 # pylint: disable=wrong-import-position
 from atm_in_paramgen import AtmInParamGen
-from cam_config_classes import CamConfigValError
+from atm_in_paramgen import AtmInParamGenError
 # pylint: enable=wrong-import-position
 
 #################
@@ -304,7 +304,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         xml_test_fil = os.path.join(_SAMPLES_DIR, "test_missing_elems.xml")
 
         # Attempt to run ParamGen:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Check exception message
@@ -404,7 +404,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test.append_atm_in_pg(pg_ext)
 
         # Try to append the combined PG object to the third object:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_third.append_atm_in_pg(pg_test)
 
         # Check exception message:
@@ -438,7 +438,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_ext  = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append the extra PG object to the other:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test.append_atm_in_pg(pg_ext)
 
         # Check exception message:
@@ -471,7 +471,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_ext  = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append the extra PG object to the other:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test.append_atm_in_pg(pg_ext)
 
         # Check exception message:
@@ -552,7 +552,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Attempt to append user_nl_cam file:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test.append_user_nl_file(user_nl_fil)
 
         # Check exception message:
@@ -584,7 +584,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Attempt to append user_nl_cam file:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test.append_user_nl_file(user_nl_fil)
 
         # Check exception message:
@@ -617,7 +617,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Attempt to append user_nl_cam file:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test.append_user_nl_file(user_nl_fil)
 
         # Check exception message:
@@ -650,7 +650,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Attempt to append user_nl_cam file:
-        with self.assertRaises(CamConfigValError) as cerr:
+        with self.assertRaises(AtmInParamGenError) as cerr:
             pg_test.append_user_nl_file(user_nl_fil)
 
         # Check exception message:

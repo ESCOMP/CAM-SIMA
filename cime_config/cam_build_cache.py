@@ -346,10 +346,12 @@ class BuildCacheCAM:
             rgen_entry = ET.SubElement(registry, 'reg_gen_file')
             rgen_entry.text = rgen_file
         # end for
-        for stdname, ic_name in self.__ic_names.items():
-            ic_entry = ET.SubElement(registry, 'ic_name_entry')
-            ic_entry.set('standard_name', stdname)
-            ic_entry.text = ic_name
+        for stdname, ic_names in self.__ic_names.items():
+            for ic_name in ic_names:
+                ic_entry = ET.SubElement(registry, 'ic_name_entry')
+                ic_entry.set('standard_name', stdname)
+                ic_entry.text = ic_name
+            # end for
         # end for
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')
