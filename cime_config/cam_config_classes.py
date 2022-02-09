@@ -24,7 +24,7 @@ class CamConfigValError(ValueError):
     (e.g., log user errors without backtrace)"""
     # pylint: disable=useless-super-delegation
     def __init__(self, message):
-        super(CamConfigValError, self).__init__(message)
+        super().__init__(message)
     # pylint: enable=useless-super-delegation
 
 ###############################################################################
@@ -33,8 +33,8 @@ class CamConfigTypeError(TypeError):
     """Class used to handle CAM config type errors
     (e.g., log user errors without  backtrace)"""
     # pylint: disable=useless-super-delegation
-    def __init_(self, message):
-        super(CamConfigTypeError, self).__init__(message)
+    def __init__(self, message):
+        super().__init__(message)
     # pylint: enable=useless-super-delegation
 
 ###############################################################################
@@ -324,7 +324,7 @@ _TYPE_CHECK_FUNCTIONS = {"int" : _check_integer_val, "str" : _check_string_val}
 # Internal generic CAM configure class
 ###############################################################################
 
-class _ConfigGen(object):
+class _ConfigGen:
 
     """
     Generic configuration class used to
@@ -393,7 +393,7 @@ class _ConfigGen(object):
             elif isinstance(desc, list):
                 derr = [type(x) for x in desc]
             else:
-                derr = "{} ({})".format(type(desc), desc)
+                derr = f"{type(desc).__name__} ({desc})"
             # end if
             raise CamConfigTypeError(emsg.format(name, derr))
         # end if
@@ -401,7 +401,7 @@ class _ConfigGen(object):
         # Add name, description, and namelist attribute logical to object
         self.__name = name
         if isinstance(desc, str):
-            self.__desc = "# {}".format(desc)
+            self.__desc = f"# {desc}"
         elif isinstance(desc, list):
             self.__desc = "# " + "\n#    ".join(desc)
         # end if
@@ -468,7 +468,7 @@ class ConfigInteger(_ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         # Add generic attributes
-        super(ConfigInteger, self).__init__(name, desc, is_nml_attr=is_nml_attr)
+        super().__init__(name, desc, is_nml_attr=is_nml_attr)
 
         # Add valid_vals to object
         self.__valid_vals = valid_vals
@@ -577,7 +577,7 @@ class ConfigString(_ConfigGen):
     def __init__(self, name, desc, val, valid_vals=None, is_nml_attr=False):
 
         # Add generic attributes
-        super(ConfigString, self).__init__(name, desc, is_nml_attr=is_nml_attr)
+        super().__init__(name, desc, is_nml_attr=is_nml_attr)
 
         # If ok, then add valid_vals to object
         self.__valid_vals = valid_vals
@@ -721,7 +721,7 @@ class ConfigList(_ConfigGen):
     def __init__(self, name, desc, val, valid_type=None, valid_vals=None):
 
         # Add generic attributes
-        super(ConfigList, self).__init__(name, desc, is_nml_attr=False)
+        super().__init__(name, desc, is_nml_attr=False)
 
         # Check if valid_type is not None
         if valid_type is not None:
@@ -818,13 +818,13 @@ class ConfigList(_ConfigGen):
         if bad_val_types:
             if len(bad_val_types) > 1:
                 emsg = "ERROR: The following list entries, provided for variable,"
-                emsg += " '{}', are not {}s, but instead are:\n".format(self.name, good_type)
+                emsg += f" '{self.name}', are not {good_type}s, but instead are:\n"
             else:
                 emsg = "ERROR: The following list entry, provided for variable,"
-                emsg += " '{}', is not a {}, but instead is: ".format(self.name, good_type)
+                emsg += f" '{self.name}', is not a {good_type}, but instead is: "
             # end if
             for key_str, type_str in bad_val_types.items():
-                emsg += "'{}': type='{}'\n".format(key_str, type_str)
+                emsg += f"'{key_str}': type='{type_str}'\n"
             # end for
             raise CamConfigValError(emsg)
         # End if

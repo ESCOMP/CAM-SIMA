@@ -86,7 +86,7 @@ class TypeRegistry(dict):
 
     def __init__(self):
         """Initialize TypeRegistry object with intrinsic Fortran types"""
-        super(TypeRegistry, self).__init__()
+        super().__init__()
         self['character'] = TypeEntry('character', None)
         self['complex'] = TypeEntry('complex', None)
         self['integer'] = TypeEntry('integer', None)
@@ -192,22 +192,20 @@ class VarBase:
 
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
-        outfile.write('[ {} ]\n'.format(self.local_name))
-        outfile.write('  {} = {}\n'.format('standard_name', self.standard_name))
+        outfile.write(f'[ {self.local_name} ]\n')
+        outfile.write(f'  standard_name = {self.standard_name}\n')
         if self.long_name:
-            outfile.write('  {} = {}\n'.format('long_name', self.long_name))
+            outfile.write(f'  long_name = {self.long_name}\n')
         # end if
-        outfile.write('  {} = {}\n'.format('units', self.units))
+        outfile.write(f'  units = {self.units}\n')
         if self.is_ddt:
-            outfile.write('  {} = {}\n'.format('type', self.var_type))
+            outfile.write(f'  type = {self.var_type}\n')
         elif self.kind:
-            outfile.write('  {} = {} | {} = {}\n'.format('type', self.var_type,
-                                                         'kind', self.kind))
+            outfile.write(f'  type = {self.var_type} | kind = {self.kind}\n')
         else:
-            outfile.write('  {} = {}\n'.format('type', self.var_type))
+            outfile.write(f'  type = {self.var_type}\n')
         # end if
-        outfile.write('  {} = {}\n'.format('dimensions',
-                                           self.dimension_string))
+        outfile.write(f'  dimensions = {self.dimension_string}\n')
 
     def write_initial_value(self, outfile, indent, init_var, ddt_str,
                             tstep_init=False):
@@ -218,11 +216,11 @@ class VarBase:
         if self.local_index_name_str:
             #Then write variable with local index name:
             # pylint: disable=no-member
-            var_name = '{}{}'.format(ddt_str, self.local_index_name_str)
+            var_name = f'{ddt_str}{self.local_index_name_str}'
             # pylint: enable=no-member
         else:
             #Otherwise, use regular local variable name:
-            var_name = '{}{}'.format(ddt_str, self.local_name)
+            var_name = f'{ddt_str}{self.local_name}'
         if self.allocatable == VarBase.__pointer_type_str:
             if self.initial_value == VarBase.__pointer_def_init:
                 init_val = ''
@@ -250,34 +248,34 @@ class VarBase:
         if tstep_init:
             if self.var_type.lower() == 'real':
                 if self.kind:
-                    outfile.write('{} = 0._{}'.format(var_name, self.kind), indent)
+                    outfile.write(f'{var_name} = 0._{self.kind}', indent)
                 else:
-                    outfile.write('{} = 0.0'.format(var_name), indent)
+                    outfile.write(f'{var_name} = 0.0', indent)
             elif self.var_type.lower() == 'integer':
                 if self.kind:
-                    outfile.write('{} = 0_{}'.format(var_name, self.kind), indent)
+                    outfile.write(f'{var_name} = 0_{self.kind}', indent)
                 else:
-                    outfile.write('{} = 0'.format(var_name), indent)
+                    outfile.write(f'{var_name} = 0'.format(var_name), indent)
             elif self.var_type.lower() == 'character':
                 if self.kind:
-                    outfile.write('{} = {}_""'.format(var_name, self.kind), indent)
+                    outfile.write(f'{var_name} = {self.kind}_""', indent)
                 else:
-                    outfile.write('{} = ""'.format(var_name), indent)
+                    outfile.write(f'{var_name} = ""', indent)
             elif self.var_type.lower() == 'complex':
                 if self.kind:
-                    outfile.write('{} = (0._{}, 0._{})'.format(var_name, self.kind, self.kind), indent)
+                    outfile.write(f'{var_name} = (0._{self.kind}, 0._{self.kind})', indent)
                 else:
-                    outfile.write('{} = (0.0, 0.0)'.format(var_name), indent)
+                    outfile.write(f'{var_name} = (0.0, 0.0)', indent)
             elif self.var_type.lower() == 'logical':
-                outfile.write('{} = .false.'.format(var_name), indent)
+                outfile.write('{var_name} = .false.', indent)
             else:
                 emsg = 'Variable "{}" is of type "{}", which is not a supported type\n'
                 emsg += 'for use with "phys_timestep_init_zero".'
                 raise TypeError(emsg.format(var_name, self.var_type))
             # end if
         elif init_val:
-            outfile.write("if ({}) then".format(init_var), indent)
-            outfile.write("{} = {}".format(var_name, init_val), indent+1)
+            outfile.write(f"if ({init_var}) then", indent)
+            outfile.write(f"{var_name} = {init_val}", indent+1)
             outfile.write("end if", indent)
         # end if
 
@@ -427,13 +425,13 @@ class ArrayElement(VarBase):
             #with the correct index variable name:
             local_index_string = ','.join(my_local_index)
             local_index_name_str = \
-                '{}({})'.format(parent_name, local_index_string)
+                f'{parent_name}({local_index_string})'
         else:
             emsg = "Cannot find element dimension, '{}' in {}({})"
             raise CCPPError(emsg.format(index_name, parent_name,
                                         ', '.join(dimensions)))
         # end if
-        local_name = '{}({})'.format(parent_name, self.index_string)
+        local_name = f'{parent_name}({self.index_string})'
         super().__init__(elem_node, local_name, my_dimensions,
                                            known_types, parent_type,
                                            units_default=parent_units,
@@ -578,15 +576,15 @@ class Variable(VarBase):
         # end if
         # Maybe fix up type string
         if self.module:
-            self.__type_string = 'type({})'.format(self.var_type)
+            self.__type_string = f'type({self.var_type})'
         elif self.kind:
-            self.__type_string = '{}({})'.format(self.var_type, self.kind)
+            self.__type_string = f'{self.var_type}({self.kind})'
         else:
-            self.__type_string = '{}'.format(self.var_type)
+            self.__type_string = f'{self.var_type}'
         # end if
         if logger:
-            dmsg = 'Found registry Variable, {} ({})'
-            logger.debug(dmsg.format(self.local_name, self.standard_name))
+            dmsg = f'Found registry Variable, {self.local_name} ({self.standard_name})'
+            logger.debug(dmsg)
         # end if
 
     def write_metadata(self, outfile):
@@ -657,9 +655,9 @@ class Variable(VarBase):
         # Initial value
         if self.initial_value:
             if self.allocatable == "pointer":
-                init_str = " => {}".format(self.initial_value)
+                init_str = f" => {self.initial_value}"
             elif not (self.allocatable[0:11] == 'allocatable'):
-                init_str = " = {}".format(self.initial_value)
+                init_str = f" = {self.initial_value}"
             # end if (no else, do not initialize allocatable fields)
         else:
             init_str = ""
@@ -671,11 +669,9 @@ class Variable(VarBase):
                        convert_to_long_name(self.standard_name))
         # end if
         outfile.write(comment, indent)
-        outfile.write("{}{}{}{} :: {}{}{}".format(type_str, acc_str,
-                                                  all_str, pro_str,
-                                                  self.local_name,
-                                                  self.__def_dims_str,
-                                                  init_str), indent)
+        var_dec_str = f"{type_str}{acc_str}{all_str}{pro_str} :: "
+        var_dec_str += f"{self.local_name}{self.__def_dims_str}{init_str}"
+        outfile.write(var_dec_str, indent)
 
     def write_allocate_routine(self, outfile, indent,
                                init_var, reall_var, ddt_str):
@@ -693,7 +689,7 @@ class Variable(VarBase):
         my_ddt = self.is_ddt
         if my_ddt: # This is a DDT object, allocate entries
             subi = indent
-            sub_ddt_str = '{}{}%'.format(ddt_str, self.local_name)
+            sub_ddt_str = f'{ddt_str}{self.local_name}%'
             if dimension_string:
                 subi += 1
                 emsg = "Arrays of DDT objects not implemented"
@@ -704,7 +700,7 @@ class Variable(VarBase):
                                            init_var, reall_var, sub_ddt_str)
         else:
             # Do we need to allocate this variable?
-            lname = '{}{}'.format(ddt_str, self.local_name)
+            lname = f'{ddt_str}{self.local_name}'
             if self.allocatable == "pointer":
                 all_type = 'associated'
             elif self.allocatable == "allocatable":
@@ -713,21 +709,19 @@ class Variable(VarBase):
                 all_type = ''
             # end if
             if all_type:
-                outfile.write("if ({}({})) then".format(all_type, lname),
-                              indent)
-                outfile.write("if ({}) then".format(reall_var), indent+1)
-                outfile.write("deallocate({})".format(lname), indent+2)
+                outfile.write(f"if ({all_type}({lname})) then", indent)
+                outfile.write(f"if ({reall_var}) then", indent+1)
+                outfile.write(f"deallocate({lname})", indent+2)
                 if self.allocatable == "pointer":
-                    outfile.write("nullify({})".format(lname), indent+2)
+                    outfile.write(f"nullify({lname})".format(lname), indent+2)
                 # end if
                 outfile.write("else", indent+1)
-                emsg = 'subname//": {} is already {}'.format(lname, all_type)
+                emsg = f'subname//": {lname} is already {all_type}'
                 emsg += ', cannot allocate"'
-                outfile.write("call endrun({})".format(emsg), indent+2)
+                outfile.write(f"call endrun({emsg})", indent+2)
                 outfile.write("end if", indent+1)
                 outfile.write("end if", indent)
-                outfile.write("allocate({}{})".format(lname, dimension_string),
-                              indent)
+                outfile.write(f"allocate({lname}{dimension_string})", indent)
             # end if
             if self.allocatable != "parameter":
                 # Initialize the variable
@@ -762,7 +756,7 @@ class Variable(VarBase):
         if my_ddt: # This is a DDT object, initalize individual entries
 
             subi = indent
-            sub_ddt_str = '{}{}%'.format(ddt_str, self.local_name)
+            sub_ddt_str = f'{ddt_str}{self.local_name}%'
             if dimension_string:
                 emsg = "Arrays of DDT objects not implemented"
                 raise ParseInternalError(emsg)
@@ -822,7 +816,7 @@ class VarDict(OrderedDict):
 
     def __init__(self, name, ttype, logger):
         """Initialize a registry variable dictionary"""
-        super(VarDict, self).__init__()
+        super().__init__()
         self.__name = name
         self.__type = ttype
         self.__logger = logger
@@ -940,11 +934,11 @@ class VarDict(OrderedDict):
     def write_metadata(self, outfile):
         """Write out the variables in this dictionary as CCPP metadata"""
         outfile.write('[ccpp-table-properties]\n')
-        outfile.write('  name = {}\n'.format(self.name))
-        outfile.write('  type = {}\n'.format(self.module_type))
+        outfile.write(f'  name = {self.name}\n')
+        outfile.write(f'  type = {self.module_type}\n')
         outfile.write('[ccpp-arg-table]\n')
-        outfile.write('  name = {}\n'.format(self.name))
-        outfile.write('  type = {}\n'.format(self.module_type))
+        outfile.write(f'  name = {self.name}\n')
+        outfile.write(f'  type = {self.module_type}\n')
         for var in self.variable_list():
             var.write_metadata(outfile)
         # end if
@@ -1049,10 +1043,10 @@ class DDT:
     def write_metadata(self, outfile):
         """Write out this DDT as CCPP metadata"""
         outfile.write('[ccpp-table-properties]\n')
-        outfile.write('  name = {}\n'.format(self.ddt_type))
+        outfile.write(f'  name = {self.ddt_type}\n')
         outfile.write('  type = ddt\n')
         outfile.write('[ccpp-arg-table]\n')
-        outfile.write('  name = {}\n'.format(self.ddt_type))
+        outfile.write(f'  name = {self.ddt_type}\n')
         outfile.write('  type = ddt\n')
         for var in self.__data:
             var.write_metadata(outfile)
@@ -1072,18 +1066,18 @@ class DDT:
         # end if
         my_acc = 'private' if self.private else 'public'
         if self.extends:
-            acc_str = ', extends({})'.format(self.extends.type_type)
+            acc_str = f', extends({self.extends.type_type})'
         elif self.bindC:
             acc_str = ', bind(C)'
         elif my_acc != access:
-            acc_str = ', {}'.format(my_acc)
+            acc_str = f', {my_acc}'
         else:
             acc_str = ''
         # end if
         # Write the CCPP header
         write_ccpp_table_header(self.ddt_type, outfile)
         # Write the type definition
-        outfile.write("type{} :: {}".format(acc_str, self.ddt_type), indent)
+        outfile.write(f"type{acc_str} :: {self.ddt_type}", indent)
         maxtyp = max([len(x.type_string) for x in self.__data])
         maxacc = max([len(x.access) for x in self.__data
                       if x.access != 'private'])
@@ -1093,7 +1087,7 @@ class DDT:
                                  maxtyp=maxtyp, maxacc=maxacc,
                                  maxall=maxall, has_protect=False)
         # end if
-        outfile.write("end type {}".format(self.ddt_type), indent)
+        outfile.write(f"end type {self.ddt_type}", indent)
         outfile.write("", 0)
 
     @property
@@ -1189,7 +1183,7 @@ class File:
             logger.debug(dmsg)
         # end if
         if self.__known_types.known_type(newddt.ddt_type):
-            raise CCPPError('Duplicate DDT entry, {}'.format(newddt.ddt_type))
+            raise CCPPError(f'Duplicate DDT entry, {newddt.ddt_type}')
         # end if
         self.__ddts[newddt.ddt_type] = newddt
         self.__known_types.add_type(newddt.ddt_type,
@@ -1201,9 +1195,9 @@ class File:
 
     def write_metadata(self, outdir, logger):
         """Write out the variables in this file as CCPP metadata"""
-        ofilename = os.path.join(outdir, "{}.meta".format(self.name))
-        logger.info("Writing registry metadata file, {}".format(ofilename))
-        with open(ofilename, "w") as outfile:
+        ofilename = os.path.join(outdir, f"{self.name}.meta")
+        logger.info(f"Writing registry metadata file, {ofilename}")
+        with open(ofilename, "w", encoding='utf-8') as outfile:
             # Write DDTs defined in this file
             for ddt in self.__ddts.values():
                 ddt.write_metadata(outfile)
@@ -1224,9 +1218,9 @@ class File:
 
     def write_source(self, outdir, indent, logger):
         """Write out source code for the variables in this file"""
-        ofilename = os.path.join(outdir, "{}.F90".format(self.name))
-        logger.info("Writing registry source file, {}".format(ofilename))
-        file_desc = "Variables for registry source file, {}".format(self.name)
+        ofilename = os.path.join(outdir, f"{self.name}.F90")
+        logger.info(f"Writing registry source file, {ofilename}")
+        file_desc = f"Variables for registry source file, {self.name}"
         with FortranWriter(ofilename, "w", file_desc,
                            self.name, indent=indent) as outfile:
             # Use statements (if any)
@@ -1259,7 +1253,7 @@ class File:
                 mod = module[0]
                 mtype = module[1]
                 pad = ' '*(maxlen - len(mod))
-                outfile.write('use {},{} only: {}'.format(mod, pad, mtype), 1)
+                outfile.write(f'use {mod},{pad} only: {mtype}'.format(mod, pad, mtype), 1)
             # end for
             # More boilerplate
             outfile.write("", 0)
@@ -1273,10 +1267,8 @@ class File:
             # Write data management subroutine declarations
             outfile.write('', 0)
             outfile.write('!! public interfaces', 0)
-            outfile.write('public :: {}'.format(self.allocate_routine_name()),
-                          1)
-            outfile.write('public :: {}'.format(self.tstep_init_routine_name()),
-                          1)
+            outfile.write(f'public :: {self.allocate_routine_name()}', 1)
+            outfile.write(f'public :: {self.tstep_init_routine_name()}', 1)
             # end of module header
             outfile.end_module_header()
             outfile.write("", 0)
@@ -1288,11 +1280,11 @@ class File:
 
     def allocate_routine_name(self):
         """Return the name of the allocate routine for this module"""
-        return 'allocate_{}_fields'.format(self.name)
+        return f'allocate_{self.name}_fields'
 
     def tstep_init_routine_name(self):
         """Return the name of the physics timestep init routine for this module"""
-        return "{}_tstep_init".format(self.name)
+        return f"{self.name}_tstep_init"
 
     def write_allocate_routine(self, outfile):
         """Write a subroutine to allocate all the data in this module"""
@@ -1300,13 +1292,13 @@ class File:
         args = list(self.__var_dict.known_dimensions)
         args.sort(key=File.dim_sort_key) # Attempt at a consistent interface
         init_var = 'set_init_val'
-        args.append('{}_in'.format(init_var))
+        args.append(f'{init_var}_in')
         reall_var = 'reallocate'
-        args.append('{}_in'.format(reall_var))
-        outfile.write('subroutine {}({})'.format(subname, ', '.join(args)), 1)
+        args.append(f'{reall_var}_in')
+        outfile.write(f'subroutine {subname}({", ".join(args)})', 1)
         # Use statements
         nanmods = 'nan => shr_infnan_nan, assignment(=)'
-        outfile.write('use shr_infnan_mod,   only: {}'.format(nanmods), 2)
+        outfile.write(f'use shr_infnan_mod,   only: {nanmods}', 2)
         outfile.write('use cam_abortutils,   only: endrun', 2)
         # Dummy arguments
         outfile.write('!! Dummy arguments', 2)
@@ -1318,31 +1310,31 @@ class File:
                 typ = 'integer'
                 opt = ',           '
             # end if
-            outfile.write('{}{}intent(in) :: {}'.format(typ, opt, arg), 2)
+            outfile.write(f'{typ}{opt}intent(in) :: {arg}', 2)
         # end for
         outfile.write('', 0)
         outfile.write('!! Local variables', 2)
-        outfile.write('logical                     :: {}'.format(init_var), 2)
-        outfile.write('logical                     :: {}'.format(reall_var), 2)
-        subn_str = 'character(len=*), parameter :: subname = "{}"'
-        outfile.write(subn_str.format(subname), 2)
+        outfile.write(f'logical                     :: {init_var}', 2)
+        outfile.write(f'logical                     :: {reall_var}', 2)
+        subn_str = f'character(len=*), parameter :: subname = "{subname}"'
+        outfile.write(subn_str, 2)
         outfile.write('', 0)
         outfile.write('! Set optional argument values', 2)
-        outfile.write('if (present({}_in)) then'.format(init_var), 2)
-        outfile.write('{iv} = {iv}_in'.format(iv=init_var), 3)
+        outfile.write(f'if (present({init_var}_in)) then', 2)
+        outfile.write(f'{init_var} = {init_var}_in', 3)
         outfile.write('else', 2)
-        outfile.write('{} = .true.'.format(init_var), 3)
+        outfile.write(f'{init_var} = .true.', 3)
         outfile.write('end if', 2)
-        outfile.write('if (present({}_in)) then'.format(reall_var), 2)
-        outfile.write('{iv} = {iv}_in'.format(iv=reall_var), 3)
+        outfile.write(f'if (present({reall_var}_in)) then', 2)
+        outfile.write(f'{reall_var} = {reall_var}_in', 3)
         outfile.write('else', 2)
-        outfile.write('{} = .false.'.format(reall_var), 3)
+        outfile.write(f'{reall_var} = .false.', 3)
         outfile.write('end if', 2)
         outfile.write('', 0)
         for var in self.__var_dict.variable_list():
             var.write_allocate_routine(outfile, 2, init_var, reall_var, '')
         # end for
-        outfile.write('end subroutine {}'.format(subname), 1)
+        outfile.write(f'end subroutine {subname}', 1)
 
     def write_tstep_init_routine(self, outfile):
         """
@@ -1351,16 +1343,16 @@ class File:
         """
         subname = self.tstep_init_routine_name()
         outfile.write('', 0)
-        outfile.write('subroutine {}()'.format(subname), 1)
+        outfile.write(f'subroutine {subname}()', 1)
         outfile.write('', 0)
         outfile.write('!! Local variables', 2)
-        subn_str = 'character(len=*), parameter :: subname = "{}"'
-        outfile.write(subn_str.format(subname), 2)
+        subn_str = f'character(len=*), parameter :: subname = "{subname}"'
+        outfile.write(subn_str, 2)
         for var in self.__var_dict.variable_list():
             var.write_tstep_init_routine(outfile, 2, '')
         # end for
         outfile.write('', 0)
-        outfile.write('end subroutine {}'.format(subname), 1)
+        outfile.write(f'end subroutine {subname}', 1)
 
     @property
     def name(self):
@@ -1394,7 +1386,7 @@ class File:
 
     def __str__(self):
         """Return printable string for this File object"""
-        return "<Registry {} file: {}>".format(self.file_type, self.name)
+        return f"<Registry {self.file_type} file: {self.name}>"
 
 ###############################################################################
 def parse_command_line(args, description):
@@ -1440,22 +1432,22 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
     mfiles = []
     if os.path.exists(file_path):
         if run_env.logger:
-            run_env.logger.info("Parsing metadata_file, '{}'".format(file_path))
+            run_env.logger.info(f"Parsing metadata_file, '{file_path}'")
         # end if
         meta_tables = parse_metadata_file(file_path, known_ddts, run_env)
     else:
-        emsg = "Metadata file, '{}', does not exist"
-        raise CCPPError(emsg.format(file_path))
+        emsg = f"Metadata file, '{file_path}', does not exist"
+        raise CCPPError(emsg)
     # end if
     # Create a File object with no Variables
     for mtable in meta_tables:
         htype = mtable.table_type
         hname = mtable.table_name
         if htype not in ('host', 'module', 'ddt'):
-            emsg = "Metadata type, '{}' not supported."
-            raise CCPPError(emsg.format(htype))
+            emsg = f"Metadata type, '{htype}' not supported."
+            raise CCPPError(emsg)
         # end if
-        section = '<file name="{}" type="{}"></file>'.format(hname, htype)
+        section = f'<file name="{hname}" type="{htype}"></file>'
         sect_xml = ET.fromstring(section)
         mfile = File(sect_xml, known_types, dycore, config,
                      run_env.logger, gen_code=False, file_path=file_path)
@@ -1465,20 +1457,20 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
         if sections: # CCPP Framework will check for a single section
             mheader = sections[0]
         else:
-            emsg = "Missing metadata section ([ccpp-arg-table]) for {}"
-            raise CCPPError(emsg.format(hname))
+            emsg = f"Missing metadata section ([ccpp-arg-table]) for {hname}"
+            raise CCPPError(emsg)
         # end if
         for var in mheader.variable_list(loop_vars=False, consts=False):
             prop = var.get_prop_value('local_name')
-            vnode_str = '<variable local_name="{}"'.format(prop)
+            vnode_str = f'<variable local_name="{prop}"'
             prop = var.get_prop_value('standard_name')
-            vnode_str += '\n          standard_name="{}"'.format(prop)
+            vnode_str += f'\n          standard_name="{prop}"'
             prop = var.get_prop_value('units')
             typ = var.get_prop_value('type')
             kind = var.get_prop_value('kind')
-            vnode_str += '\n          units="{}" type="{}"'.format(prop, typ)
+            vnode_str += f'\n          units="{prop}" type="{typ}"'
             if kind and (typ != kind):
-                vnode_str += '\n          kind="{}"'.format(kind)
+                vnode_str += f'\n          kind="{kind}"'
             # end if
             if var.get_prop_value('protected'):
                 vnode_str += '\n          access="protected"'
@@ -1495,7 +1487,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
                         vdims.append(dim)
                     # end if
                 # end for
-                vnode_str += '\n  <dimensions>{}'.format(' '.join(vdims))
+                vnode_str += f'\n  <dimensions>{" ".join(vdims)}'
                 vnode_str += '</dimensions>'
             # end if
             vnode_str += '\n</variable>'
@@ -1504,10 +1496,10 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
         # end for
         if htype == 'ddt':
             # We defined the variables, now create the DDT for them.
-            vnode_str = '<ddt type="{}">'.format(hname)
+            vnode_str = f'<ddt type="{hname}">'
             for var in mheader.variable_list(loop_vars=False, consts=False):
                 prop = var.get_prop_value('standard_name')
-                vnode_str += '\n  <data>{}</data>'.format(prop)
+                vnode_str += f'\n  <data>{prop}</data>'
             # end for
             vnode_str += '\n</ddt>'
             var_node = ET.fromstring(vnode_str)
@@ -1541,8 +1533,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     for section in registry:
         sec_name = section.get('name')
         if sec_name:
-            logger.info("Parsing {}, {}, from registry".format(section.tag,
-                                                               sec_name))
+            logger.info(f"Parsing {section.tag}, {sec_name}, from registry")
         # end if
         if section.tag == 'file':
             files.append(File(section, known_types, dycore, config, logger))
@@ -1692,12 +1683,12 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         # end if
     # end for
     try:
-        emsg = "Invalid registry file, {}".format(registry_file)
+        emsg = f"Invalid registry file, {registry_file}"
         file_ok = validate_xml_file(registry_file, 'registry', version,
                                     logger, schema_path=schema_dir,
                                     error_on_noxmllint=error_on_no_validate)
     except CCPPError as ccpperr:
-        cemsg = "{}".format(ccpperr).split('\n')[0]
+        cemsg = f"{ccpperr}".split('\n', maxsplit=1)[0]
         if cemsg[0:12] == 'Execution of':
             xstart = cemsg.find("'")
             if xstart >= 0:
@@ -1719,7 +1710,7 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         ic_names = None
     else:
         library_name = registry.get('name')
-        emsg = "Parsing registry, {}".format(library_name)
+        emsg = f"Parsing registry, {library_name}"
         logger.debug(emsg)
         reg_dir = os.path.dirname(registry_file)
         files = write_registry_files(registry, dycore, config, outdir, src_mod,
@@ -1753,5 +1744,5 @@ def main():
 
 ###############################################################################
 if __name__ == "__main__":
-    __RETCODE, _FILES = main()
+    __RETCODE, _FILES, _IC_NAMES = main()
     sys.exit(__RETCODE)

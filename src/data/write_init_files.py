@@ -11,7 +11,7 @@ from collections import OrderedDict
 import os.path
 
 # CCPP Framework import statements
-from ccpp_state_machine import CCPP_STATE_MACH, RUN_PHASE_NAME
+from ccpp_state_machine import CCPP_STATE_MACH
 from fortran_tools import FortranWriter
 from var_props import is_horizontal_dimension, is_vertical_dimension
 
@@ -150,11 +150,11 @@ def write_init_files(cap_database, ic_names, outdir,
 
         # Write public parameters:
         retvals = write_ic_params(outfile, host_vars, ic_names)
-        stdname_list, ic_names, ic_max_len, stdname_max_len = retvals
+        ic_names, ic_max_len, stdname_max_len = retvals
 
         # Write initial condition arrays:
-        write_ic_arrays(outfile, stdname_list, ic_names,
-                        ic_max_len, stdname_max_len, host_vars)
+        write_ic_arrays(outfile, ic_names, ic_max_len,
+                        stdname_max_len, host_vars)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -183,10 +183,10 @@ def write_init_files(cap_database, ic_names, outdir,
     # end if
 
     # Log file creation:
-    logger.info("Writing initial conditions source file, {}".format(ofilename))
+    logger.info(f"Writing initial conditions source file, {ofilename}")
 
     # Open file using CCPP's FortranWriter:
-    file_desc = "Initial conditions source file, {}".format(phys_input_filename)
+    file_desc = f"Initial conditions source file, {phys_input_filename}"
     with FortranWriter(ofilename, "w", file_desc, phys_input_fname_str,
                        indent=indent) as outfile:
 
@@ -233,7 +233,7 @@ class CamInitWriteError(ValueError):
     (e.g., log user errors without backtrace)"""
     # pylint: disable=useless-super-delegation
     def __init__(self, message):
-        super(CamInitWriteError, self).__init__(message)
+        super().__init__(message)
     # pylint: enable=useless-super-delegation
 
 #################
@@ -250,7 +250,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict, missing_vars):
     """
     hvar = host_dict.find_variable(stdname)
     if hvar:
-        if (hvar.source.type != 'host'):
+        if hvar.source.type != 'host':
             var_dict[stdname] = hvar
         # end if (other variables not readable)
     else:
@@ -372,12 +372,12 @@ def write_ic_params(outfile, host_vars, ic_names):
 
     outfile.blank_line()
 
-    return stdname_list, ic_names, max_loclen, max_slen
+    return ic_names, max_loclen, max_slen
 
 ######
 
-def write_ic_arrays(outfile, stdname_list, ic_name_dict,
-                    ic_max_len, stdname_max_len, host_vars):
+def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
+                    stdname_max_len, host_vars):
 
     """
     Write initial condition arrays to store
@@ -442,7 +442,7 @@ def write_ic_arrays(outfile, stdname_list, ic_name_dict,
         if index == num_input_vars-1:
             suffix = " /)"
         # end if
-        outfile.write("{}{}".format(stdname_str, suffix), 2)
+        outfile.write(f"{stdname_str}{suffix}", 2)
     # end for
 
     outfile.blank_line()
@@ -463,7 +463,7 @@ def write_ic_arrays(outfile, stdname_list, ic_name_dict,
         if index == num_input_vars-1:
             suffix = f" /), (/{max_ic_num}, phys_var_num/))"
         # end if
-        outfile.write("{}{}".format(ic_name_str, suffix), 2)
+        outfile.write(f"{ic_name_str}{suffix}", 2)
     # end for
     outfile.blank_line()
 
@@ -974,7 +974,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         var_locname = hvar.call_string(host_dict)
 
         # Set "if-statement" call string:
-        call_string_key = "case ('{}')".format(var_stdname)
+        call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
         levnm, call_check_field, reason = get_dimension_info(hvar)

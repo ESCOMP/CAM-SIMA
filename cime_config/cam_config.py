@@ -109,7 +109,7 @@ class ConfigCAM:
         # If only "UNSET" is present in the list, then convert to
         # empty list:
         if len(self.__cppdefs) == 1 and "UNSET" in self.__cppdefs:
-            self.__cppdefs = list()
+            self.__cppdefs = []
 
         # The following translation is hard-wired for backwards compatibility
         # to support the differences between how the config_grids specifies the
@@ -142,14 +142,14 @@ class ConfigCAM:
         elif not user_dyn_opt:
             user_dyn_opt = None
         elif user_dyn_opt not in dyn_valid_vals:
-            emsg = "ERROR: '{}' is not a valid dycore,".format(user_dyn_opt)
-            emsg += "\n       Valid values: {}".format(dyn_valid_vals)
+            emsg = f"ERROR: '{user_dyn_opt}' is not a valid dycore,"
+            emsg += f"\n       Valid values: {dyn_valid_vals}"
             raise CamConfigValError(emsg)
         # End if (no else, dyn is valid
         #-----------------------------------------------
 
         # Create empty dictonary
-        self.__config_dict = dict()
+        self.__config_dict = {}
 
         # Create namelist group list, starting with default namelist groups
         self.__nml_groups = ['cam_initfiles_nl',
@@ -588,11 +588,11 @@ class ConfigCAM:
         if obj_name in self.config_dict:
             obj = self.config_dict[obj_name]
         else:
-            raise  CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
+            raise  CamConfigValError(f"ERROR:  Invalid configuration name, '{obj_name}'")
 
         # Print variable to logger
-        case_log.debug("{}".format(obj.desc))
-        case_log.debug("{} = {}".format(obj.name, obj.value))
+        case_log.debug(f"{obj.desc}")
+        case_log.debug(f"{obj.name} = {obj.value}")
 
     #++++++++++++++++++++++++
 
@@ -614,7 +614,7 @@ class ConfigCAM:
 
         # Also print CPP definitions, if any:
         if self.__cppdefs:
-            case_log.debug("\nCAM CPP Defs: {}".format(" ".join(self.__cppdefs)))
+            case_log.debug(f"\nCAM CPP Defs: {' '.join(self.__cppdefs)}")
 
         # Print additional separator (to help separate this output from
         #     additional CIME output)
@@ -632,7 +632,7 @@ class ConfigCAM:
         if obj_name in self.config_dict:
             obj = self.config_dict[obj_name]
         else:
-            raise CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
+            raise CamConfigValError(f"ERROR:  Invalid configuration name, '{obj_name}'")
 
         # Next, check that the given value is either an integer or a string
         if not isinstance(val, (int, str)):
@@ -682,7 +682,7 @@ class ConfigCAM:
         #This is done because a CPP definition should only be set once,
         #in order to avoid variable overwriting or other un-expected
         #compiler behaviors:
-        if any([re.match(check_str+r"($|=)", cppdef.strip()) for cppdef in self.__cppdefs]):
+        if any(re.match(check_str+r"($|=)", cppdef.strip()) for cppdef in self.__cppdefs):
             #If match is found, then raise an error:
             emsg = "ERROR: CPP definition '{}' has already been set"
             raise CamConfigValError(emsg.format(cppname.upper()))
@@ -693,7 +693,7 @@ class ConfigCAM:
             cpp_str = check_str
         else:
             # Create CPP definition flag string:
-            cpp_str = "{}={}".format(check_str, value)
+            cpp_str = f"{check_str}={value}"
 
         # Add string to CPP definition list:
         self.__cppdefs.append(cpp_str)
@@ -710,7 +710,7 @@ class ConfigCAM:
         if obj_name in self.config_dict:
             obj = self.config_dict[obj_name]
         else:
-            raise  CamConfigValError("ERROR:  Invalid configuration name, '{}'".format(obj_name))
+            raise  CamConfigValError(f"ERROR:  Invalid configuration name, '{obj_name}'")
 
         # If it does, then return the object's value
         return obj.value
@@ -766,7 +766,7 @@ class ConfigCAM:
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
                                           force_ccpp)
-        phys_dirs, force_init, cap_datafile, nl_groups, capgen_db = retvals
+        phys_dirs, force_init, _, nl_groups, capgen_db = retvals
         # Add in the namelist groups from schemes
         self.__nml_groups.extend(nl_groups)
 

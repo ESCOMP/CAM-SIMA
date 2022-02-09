@@ -53,7 +53,7 @@ def new_entry_from_xml(item):
         emsg = f"ERROR: No path for {item.tag} XML item"
         raise ValueError(emsg)
     else:
-        raise ValueError("ERROR: Invalid {} XML item".format(item.tag))
+        raise ValueError(f"ERROR: Invalid {item.tag} XML item")
     # end if
     return new_entry
 
@@ -346,12 +346,10 @@ class BuildCacheCAM:
             rgen_entry = ET.SubElement(registry, 'reg_gen_file')
             rgen_entry.text = rgen_file
         # end for
-        for stdname in self.__ic_names:
-            for ic_name in self.__ic_names[stdname]:
-                ic_entry = ET.SubElement(registry, 'ic_name_entry')
-                ic_entry.set('standard_name', stdname)
-                ic_entry.text = ic_name
-            # end for
+        for stdname, ic_name in self.__ic_names.items():
+            ic_entry = ET.SubElement(registry, 'ic_name_entry')
+            ic_entry.set('standard_name', stdname)
+            ic_entry.text = ic_name
         # end for
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')
@@ -380,9 +378,9 @@ class BuildCacheCAM:
                       self.__create_nl_file.file_hash)
         preproc = ET.SubElement(ccpp, 'preproc_defs')
         preproc.text = self.__preproc_defs
-        for kind_def in self.__kind_types:
+        for kind_def, kind_type in self.__kind_types.items():
             kind_type = ET.SubElement(ccpp, 'kind_type')
-            kind_type.text = f"{kind_def}={self.__kind_types[kind_def]}"
+            kind_type.text = f"{kind_def}={kind_type}"
         # end for
         new_cache_tree = ET.ElementTree(new_cache)
         new_cache_tree.write(self.__build_cache)
@@ -683,35 +681,35 @@ if __name__ == "__main__":
     TEST_SCHEME = os.path.join(TEST_SOURCE_MODS_DIR, "temp_adjust_scalar.meta")
 
     # Generate test build caches from template:
-    f1 = open(BUILD_CACHE, 'rt')
+    f1 = open(BUILD_CACHE, 'rt', encoding='utf-8')
     data = f1.read()
     data = data.replace("TAG1", "").replace("TAG2", "").replace("TAG3", "")
     f1.close()
-    f1 = open(BUILD_CACHE, 'w')
+    f1 = open(BUILD_CACHE, 'w', encoding='utf-8')
     f1.write(data)
     f1.close()
 
-    f1 = open(BAD_BUILD_CACHE, 'rt')
+    f1 = open(BAD_BUILD_CACHE, 'rt', encoding='utf-8')
     data = f1.read()
     data = data.replace("TAG1", "<test />").replace("TAG2", "").replace("TAG3", "")
     f1.close()
-    f1 = open(BAD_BUILD_CACHE, 'w')
+    f1 = open(BAD_BUILD_CACHE, 'w', encoding='utf-8')
     f1.write(data)
     f1.close()
 
-    f1 = open(BAD_BUILD_CACHE_REG, 'rt')
+    f1 = open(BAD_BUILD_CACHE_REG, 'rt', encoding='utf-8')
     data = f1.read()
     data = data.replace("TAG1", "").replace("TAG2", "<test />").replace("TAG3", "")
     f1.close()
-    f1 = open(BAD_BUILD_CACHE_REG, 'w')
+    f1 = open(BAD_BUILD_CACHE_REG, 'w', encoding='utf-8')
     f1.write(data)
     f1.close()
 
-    f1 = open(BAD_BUILD_CACHE_CCPP, 'rt')
+    f1 = open(BAD_BUILD_CACHE_CCPP, 'rt', encoding='utf-8')
     data = f1.read()
     data = data.replace("TAG1", "").replace("TAG2", "").replace("TAG3", "<test />")
     f1.close()
-    f1 = open(BAD_BUILD_CACHE_CCPP, 'w')
+    f1 = open(BAD_BUILD_CACHE_CCPP, 'w', encoding='utf-8')
     f1.write(data)
     f1.close()
 

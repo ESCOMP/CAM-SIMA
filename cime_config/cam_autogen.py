@@ -198,7 +198,7 @@ def _find_schemes_in_sdf(suite_part):
     NB: This function is recursive as schemes may be nested inside other
         suite objects (e.g., group, subcycle)
     """
-    scheme_list = list() # Attempt to retain ordering
+    scheme_list = [] # Attempt to retain ordering
     for section in suite_part:
         item_type = section.tag.lower()
         if item_type == 'scheme':
@@ -432,7 +432,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     registry_files = [registry_file]
     genreg_dir = os.path.join(bldroot, "cam_registry")
     # Create empty registry file objects list:
-    reg_files_list = list()
+    reg_files_list = []
     # Figure out if we need to generate new data source and metadata files
     gen_reg_file = os.path.join(_REG_GEN_DIR, "generate_registry_data.py")
     if os.path.exists(genreg_dir):
@@ -625,9 +625,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # end if
     if do_gen_nl:
         args = []
-        for scheme in xml_files:
+        for scheme, xml_file in xml_files.items():
             args.extend(["--namelist-file-arg",
-                         f"{scheme}:{xml_files[scheme]}"])
+                         f"{scheme}:{xml_file}"])
         # end for
         args.append("--namelist-read-mod")
         args.append("cam_ccpp_scheme_namelists")
@@ -875,7 +875,7 @@ if __name__ == "__main__":
     TEST_REG_DIR = os.path.join(TEST_BLDROOT, "cam_registry")
 
     # For generate_init_routines:
-    TEST_REGFILES = list()
+    TEST_REGFILES = []
     TEST_CAP_DATAFILE = os.path.join("test_bldroot", "ccpp", "capfiles.txt")
 
     # Create testing buildroot directory:

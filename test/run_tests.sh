@@ -79,7 +79,7 @@ run_unittest test/unit/test_atm_in_paramgen.py
 
 # Report
 if [ ${NUMERRORS} -gt 0 ]; then
-  echo "${NUMERRORS} out of ${NUMTESTS} tests FAILED"
+  echo "${NUMERRORS} out of ${NUMTESTS} test collections FAILED"
 else
-  echo "All ${NUMTESTS} tests PASSED!"
+  echo "All ${NUMTESTS} test collections PASSED!"
 fi

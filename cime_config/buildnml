@@ -50,8 +50,7 @@ class CamBuildnmlError(ValueError):
 # This simplifies the filename mangling for different cases.
 def _create_ic_filename(inst_string, i_or_r,
                         run_refcase, run_refdate, run_reftod):
-    return "{}.cam{}.{}.{}-{}.nc".format( \
-    run_refcase, inst_string, i_or_r, run_refdate, run_reftod)
+    return f"{run_refcase}.cam{inst_string}.{i_or_r}.{run_refdate}-{run_reftod}.nc"
 
 ##################
 
@@ -82,24 +81,6 @@ def nml_attr_set(config):
     # End if
     #Return namelist attribute dictionary:
     return cam_nml_attr_dict
-
-def _get_namelist_groups(nmlgen, skip_groups=None):
-    """Return all groups in <nmlgen> except those from <skip_groups>"""
-    all_groups = set()
-    for child in nmlgen._definition.tree.getroot():
-        for item in child:
-            if item.tag == 'group':
-                all_groups.add(item.text)
-            # end if
-        # end for
-    # end for
-    if skip_groups:
-        if not isinstance(skip_groups, set):
-            skip_groups = set(skip_groups)
-        # end if
-        all_groups -= skip_groups
-    # end if
-    return sorted(all_groups)
 
 #################
 #PRIMARY FUNCTION
@@ -162,7 +143,7 @@ def buildnml(case, caseroot, compname):
     # Determine directory for user modified namelist_definition_cam.xml:
     user_xml_dir = os.path.join(caseroot, "SourceMods", "src.cam")
     expect(os.path.isdir(user_xml_dir),
-           "user_xml_dir %s does not exist " %user_xml_dir)
+           f"user_xml_dir {user_xml_dir} does not exist ")
 
     # User definition *replaces* existing definition:
     user_definition = os.path.join(user_xml_dir, "namelist_definition_cam.xml")
@@ -180,7 +161,7 @@ def buildnml(case, caseroot, compname):
 
         # Check that the standard namelist file actually exists:
         expect(os.path.isfile(definition_file),
-               "Namelist XML file '{}' not found!".format(definition_file))
+               f"Namelist XML file '{definition_file}' not found!")
 
     # Create the ParamGen object:
     pg_atm = AtmInParamGen.from_namelist_xml(definition_file)

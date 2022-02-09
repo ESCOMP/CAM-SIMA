@@ -12,7 +12,6 @@ Fortran namelist file.
 import os
 import os.path
 import sys
-import re
 from collections import OrderedDict
 #CAM specific config error:
 from cam_config_classes import CamConfigValError
@@ -28,11 +27,123 @@ _CIME_ROOT = os.path.join(_CIME_CONF_DIR, os.pardir, "cime")
 if not os.path.exists(_CIME_ROOT):
     raise SystemExit("ERROR: Cannot find 'cime' directory.  Did you run checkout_externals?")
 sys.path.append(os.path.join(_CIME_ROOT, "scripts", "lib", "CIME", "ParamGen"))
+#pylint: disable=wrong-import-position
 from paramgen import ParamGen
+#pylint: enable=wrong-import-position
 
-##############################
+#################
+#HELPER FUNCTIONS
+#################
+
+def _is_nml_logical_true(varname, var_val):
+
+    """
+    Checks if a "logical" XML namelist value is true or
+    false.
+    ----------
+    varname -> The name of the variable being checked
+    var_val -> The value of the variable being checked
+
+    doctests:
+
+    1. Check that a True value returns true:
+    >>> _is_nml_logical_true("test", True)
+    True
+
+    2.  Check that a "true" value returns true:
+    >>> _is_nml_logical_true("test", "true")
+    True
+
+    3.  Check that a ".true." value returns true:
+    >>> _is_nml_logical_true("test", ".true.")
+    True
+
+    4.  Check that a "1" value returns true:
+    >>> _is_nml_logical_true("test", "1")
+    True
+
+    5.  Check that a 1 (integer) value returns true:
+    >>> _is_nml_logical_true("test", 1)
+    True
+
+    6.  Check that a False value returns false:
+    >>> _is_nml_logical_true("test", False)
+    False
+
+    7.  Check that a "FALSE" value returns false:
+    >>> _is_nml_logical_true("test", "FALSE")
+    False
+
+    8.  Check that a ".False." value returns false:
+    >>> _is_nml_logical_true("test", ".False.")
+    False
+
+    9.  Check that a "0" value returns false:
+    >>> _is_nml_logical_true("test", "0")
+    False
+
+    10.  Check that a 0 (integer) value returns false:
+    >>> _is_nml_logical_true("test", 0)
+    False
+
+    11.  Check that a bad string value returns the correct error:
+    >>> _is_nml_logical_true("test", "this_wont_work") # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    cam_config_classes.CamConfigValError:...
+    XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 'this_wont_work'
+
+    12.  Check that a bad integer value returns the correct error:
+    >>> _is_nml_logical_true("test", 3) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+        ...
+    cam_config_classes.CamConfigValError:...
+    XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 3
+
+    13.  Check that a non-boolean, string or integer type returns an error:
+    >>> _is_nml_logical_true("test", 13.03) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    cam_config_classes.CamConfigTypeError:...
+    XML namelist variable 'test' must have a value that is either a boolean, string, or integer, not float.
+
+    """
+
+    if isinstance(var_val, bool):
+        return var_val
+    if isinstance(var_val, str):
+        if var_val.lower() in {"true", ".true.", "1"}:
+            return True
+        if var_val.lower() in {"false", ".false.", "0"}:
+            return False
+
+        #Raise error if no match was found:
+        emsg = f"\nXML namelist logical variable, '{varname}'"
+        emsg += ", must have a value of true, false, 1, or 0, not"
+        emsg += f" '{var_val}'"
+        raise CamConfigValError(emsg)
+
+    if isinstance(var_val, int):
+        if var_val == 1:
+            return True
+        if var_val == 0:
+            return False
+
+        #Raise error if no match was found:
+        emsg = f"\nXML namelist logical variable, '{varname}'"
+        emsg += ", must have a value of true, false, 1, or 0, not"
+        emsg += f" {var_val}"
+        raise CamConfigValError(emsg)
+
+    #Type is un-recognizeda, so raise an error:
+    emsg = f"\nXML namelist variable '{varname}' must"
+    emsg += " have a value that is either a boolean, string, or integer,"
+    emsg += f" not {type(var_val).__name__}."
+    raise CamConfigTypeError(emsg)
+
+################################################################
 # MAIN "atm_in" ParamGen class
-##############################
+################################################################
 
 class AtmInParamGen(ParamGen):
     """
@@ -60,13 +171,17 @@ class AtmInParamGen(ParamGen):
         #Create namelist var/group dictionary,
         #which used by the "append_user_nl_file"
         #method:
-        self._var_group_dict = {}
+        self.var_group_dict = {}
 
         #Create empty dictionaries that will contain
         #the namelist definition file and the set
         #of all namelist groups and variables:
-        self._nml_def_groups = {}
-        self._nml_def_vars   = {}
+        self.nml_def_groups = {}
+        self.nml_def_vars   = {}
+
+        #Set variables needed for ParamGen "reduction":
+        self.__case = None
+        self.__atm_attr_dict = None
 
     ####
 
@@ -102,8 +217,8 @@ class AtmInParamGen(ParamGen):
         #----------------
 
         #Initialize file->group/var set dictionary:
-        atm_in_pg._nml_def_groups[nml_xml_file] = set()
-        atm_in_pg._nml_def_vars[nml_xml_file] = set()
+        atm_in_pg.nml_def_groups[nml_xml_file] = set()
+        atm_in_pg.nml_def_vars[nml_xml_file] = set()
 
         #Create namelist variable/group dictionary
         #and associated sets:
@@ -112,7 +227,7 @@ class AtmInParamGen(ParamGen):
             for var in atm_in_pg._data[nml_group]:
 
                 #Check if variable already exists in dictionary:
-                if var in atm_in_pg._var_group_dict:
+                if var in atm_in_pg.var_group_dict:
                     #No duplicate variables are allowed, even if
                     #in separate namelist groups, so raise an error.
                     #Please note that this error should always be
@@ -120,17 +235,17 @@ class AtmInParamGen(ParamGen):
                     #point something has gone seriously wrong:
                     emsg = f"Namelist entry id '{var}' exists"
                     emsg += f" in namelist group '{nml_group}'"
-                    emsg += f" and '{self.__var_group_dict[var]}'\n"
+                    emsg += f" and '{atm_in_pg.var_group_dict[var]}'\n"
                     emsg += "Namelist variables can belong to only one group."
                     raise SystemError(emsg)
-                else:
-                    #If not, then add variable and group to dictionary:
-                    atm_in_pg._var_group_dict[var] = nml_group
 
-                    #Add namelist groups and variables to their
-                    #respective sets:
-                    atm_in_pg._nml_def_groups[nml_xml_file].add(nml_group)
-                    atm_in_pg._nml_def_vars[nml_xml_file].add(var)
+                #If not, then add variable and group to dictionary:
+                atm_in_pg.var_group_dict[var] = nml_group
+
+                #Add namelist groups and variables to their
+                #respective sets:
+                atm_in_pg.nml_def_groups[nml_xml_file].add(nml_group)
+                atm_in_pg.nml_def_vars[nml_xml_file].add(var)
 
         #----------------
 
@@ -194,23 +309,23 @@ class AtmInParamGen(ParamGen):
 
         #Make sure there is only one XML file associated with
         #input PG object:
-        if len(atm_pg_obj._nml_def_groups.keys()) > 1:
+        if len(atm_pg_obj.nml_def_groups.keys()) > 1:
             emsg = "ParamGen object being appended to another must"
             emsg += " be associated with only one namelist definition file."
             emsg += "\nInstead it is associated with the following files:\n"
-            emsg += "\n".join(atm_pg_obj._nml_def_groups.keys())
+            emsg += "\n".join(atm_pg_obj.nml_def_groups.keys())
             raise CamConfigValError(emsg)
-        else:
-            #Extract namelist definition file name:
-            input_file = next(iter(atm_pg_obj._nml_def_groups))
+
+        #Extract namelist definition file name:
+        input_file = next(iter(atm_pg_obj.nml_def_groups))
 
         #Extract the group and variable sets from input PG object:
-        input_groups = atm_pg_obj._nml_def_groups[input_file]
-        input_vars   = atm_pg_obj._nml_def_vars[input_file]
+        input_groups = atm_pg_obj.nml_def_groups[input_file]
+        input_vars   = atm_pg_obj.nml_def_vars[input_file]
 
         #Check that there are no matching namelist groups:
         #------------------------------------------------
-        for nml_file, nml_groups in self._nml_def_groups.items():
+        for nml_file, nml_groups in self.nml_def_groups.items():
 
             #Determine if any namelist groups are the same
             #between the two objects:
@@ -227,7 +342,7 @@ class AtmInParamGen(ParamGen):
 
         #Check that there are no matching namelist variables:
         #------------------------------------------------
-        for nml_file, nml_vars in self._nml_def_vars.items():
+        for nml_file, nml_vars in self.nml_def_vars.items():
 
             #Determine if any namelist groups are the same
             #between the two objects:
@@ -243,8 +358,8 @@ class AtmInParamGen(ParamGen):
         #------------------------------------------------
 
         #Add input PG object dictionaries to this object's dicts:
-        self._nml_def_groups.update(atm_pg_obj._nml_def_groups)
-        self._nml_def_vars.update(atm_pg_obj._nml_def_vars)
+        self.nml_def_groups.update(atm_pg_obj.nml_def_groups)
+        self.nml_def_vars.update(atm_pg_obj.nml_def_vars)
 
         #Append input PG object to this object:
         self.append(atm_pg_obj)
@@ -261,7 +376,7 @@ class AtmInParamGen(ParamGen):
         """
 
         _data = OrderedDict()
-        with open(user_nl_file,'r') as user_file:
+        with open(user_nl_file,'r', encoding='utf-8') as user_file:
             within_comment_block = False
             for line in user_file:
                 if len(line)>1:
@@ -281,17 +396,17 @@ class AtmInParamGen(ParamGen):
                         line_j = ' '.join(line_s)
 
                         # now parse the line:
-                        if ("=" in line_j):
+                        if "=" in line_j:
                             line_ss   = line_j.split("=")
                             var_str   = (line_ss[0]).strip()  # the first element is the parameter name
                             val_str   = ' '.join(line_ss[1:]) # the rest is tha value string
                             if '!' in val_str:
-                                val_str = val_str.split("!")[0] # discard the comment in val str, if one exists
+                                val_str = val_str.split("!", maxsplit=1)[0] # discard the comment in val str, if one exists
 
                             #Check if variable already exists in group dictionary:
-                            if var_str in self._var_group_dict:
+                            if var_str in self.var_group_dict:
                                 #Extract namelist group list for variable:
-                                data_group = self._var_group_dict[var_str]
+                                data_group = self.var_group_dict[var_str]
 
                             else:
                                 #Raise error that namelist variable isn't listed in
@@ -357,7 +472,7 @@ class AtmInParamGen(ParamGen):
         quote_set = {"'", '"'}                        #single and double quotes
 
         # Write Fortran namelist file:
-        with open(os.path.join(output_path), 'w') as atm_in_fil:
+        with open(os.path.join(output_path), 'w', encoding='utf-8') as atm_in_fil:
             #Loop through namelist groups in alphabetical order:
             for nml_group in sorted(self._data):
                 # Write namelist group:
@@ -369,7 +484,7 @@ class AtmInParamGen(ParamGen):
                     val = self._data[nml_group][var]["values"].strip()
 
                     #If no value is set then move to the next variable:
-                    if val==None:
+                    if val is None:
                         continue
 
                     #Extract variable type:
@@ -383,21 +498,21 @@ class AtmInParamGen(ParamGen):
                     if var_type in num_bool_set:
                         if var_type == 'logical':
                             #If logical, then write the associated truth value:
-                            if self._is_nml_logical_true(var, val):
+                            if _is_nml_logical_true(var, val):
                                 atm_in_fil.write(f"    {var} = .true.\n")
                             else:
                                 atm_in_fil.write(f"    {var} = .false.\n")
                         else:
                             #If a number, then write value as-is:
-                            atm_in_fil.write("    {} = {}\n".format(var, val))
+                            atm_in_fil.write(f"    {var} = {val}\n")
                     elif "char*" in var_type:
                         #Value is a string, so check if is already inside quotes:
                         if val[0] in quote_set and val[-1] == val[0]:
                             #If so, then write string value as-is:
-                            atm_in_fil.write("    {} = {}\n".format(var, val))
+                            atm_in_fil.write(f"    {var} = {val}\n")
                         else:
                             #If not, then write string with added quotes:
-                            atm_in_fil.write("    {} = '{}'\n".format(var, val))
+                            atm_in_fil.write(f"    {var} = '{val}'\n")
                     else:
                         #This is an un-recognized type option, so raise an error:
                         emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
@@ -451,110 +566,6 @@ class AtmInParamGen(ParamGen):
 
         #Return value if found:
         return val
-
-    ####
-
-    def _is_nml_logical_true(self, varname, var_val):
-
-        """
-        Checks if a "logical" XML namelist value is true or
-        false.
-        ----------
-        varname -> The name of the variable being checked
-        var_val -> The value of the variable being checked
-
-        doctests:
-
-        1. Check that a True value returns true:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", True)
-        True
-
-        2.  Check that a "true" value returns true:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", "true")
-        True
-
-        3.  Check that a ".true." value returns true:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", ".true.")
-        True
-
-        4.  Check that a "1" value returns true:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", "1")
-        True
-
-        5.  Check that a 1 (integer) value returns true:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", 1)
-        True
-
-        6.  Check that a False value returns false:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", False)
-        False
-
-        7.  Check that a "FALSE" value returns false:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", "FALSE")
-        False
-
-        8.  Check that a ".False." value returns false:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", ".False.")
-        False
-
-        9.  Check that a "0" value returns false:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", "0")
-        False
-
-        10.  Check that a 0 (integer) value returns false:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", 0)
-        False
-
-        11.  Check that a bad string value returns the correct error:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", "this_wont_work") # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        cam_config_classes.CamConfigValError:...
-        XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 'this_wont_work'
-
-        12.  Check that a bad integer value returns the correct error:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", 3) # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        cam_config_classes.CamConfigValError:...
-        XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 3
-
-        13.  Check that a non-boolean, string or integer type returns an error:
-        >>> AtmInParamGen({})._is_nml_logical_true("test", 13.03) # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        cam_config_classes.CamConfigTypeError:...
-        XML namelist variable 'test' must have a value that is either a boolean, string, or integer, not float.
-
-        """
-
-        if isinstance(var_val, bool):
-            return var_val
-        elif isinstance(var_val, str):
-            if var_val.lower() in {"true", ".true.", "1"}:
-                return True
-            elif var_val.lower() in {"false", ".false.", "0"}:
-                return False
-            else:
-                emsg = f"\nXML namelist logical variable, '{varname}'"
-                emsg += ", must have a value of true, false, 1, or 0, not"
-                emsg += f" '{var_val}'"
-                raise CamConfigValError(emsg)
-        elif isinstance(var_val, int):
-            if var_val == 1:
-                return True
-            elif var_val == 0:
-                return False
-            else:
-                emsg = f"\nXML namelist logical variable, '{varname}'"
-                emsg += ", must have a value of true, false, 1, or 0, not"
-                emsg += f" {var_val}"
-                raise CamConfigValError(emsg)
-        else:
-            emsg = f"\nXML namelist variable '{varname}' must"
-            emsg += " have a value that is either a boolean, string, or integer,"
-            emsg += f" not {type(var_val).__name__}."
-            raise CamConfigTypeError(emsg)
 
 ############
 #End of file

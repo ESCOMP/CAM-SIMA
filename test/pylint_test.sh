@@ -25,3 +25,4 @@ ${pylintcmd} ${CAMROOT}/cime_config/buildlib
 ${pylintcmd} ${CAMROOT}/cime_config/buildnml
 ${pylintcmd} ${CAMROOT}/src/data/generate_registry_data.py
 ${pylintcmd} ${CAMROOT}/src/data/write_init_files.py
+${pylintcmd} ${CAMROOT}/cime_config/atm_in_paramgen.py
