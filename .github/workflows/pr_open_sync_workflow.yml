@@ -35,7 +35,9 @@ jobs:
         pip install pytest
     # Run "checkout_externals":
     - name: Checkout externals
-      run: manage_externals/checkout_externals --externals Externals_CAM.cfg ccpp-framework
+      run: |
+        manage_externals/checkout_externals --externals Externals_CAM.cfg ccpp-framework
+        manage_externals/checkout_externals --externals Externals.cfg cime
     # Run python unit and doctests:
     - name: python unit tests
       run: |
@@ -47,12 +49,20 @@ jobs:
         python cime_config/cam_autogen.py
         # CAM build cache doctests:
         python cime_config/cam_build_cache.py
+        # Namelist reader generator doctests:
+        python cime_config/create_readnl_files.py
         # Registry generator doctests:
         pytest src/data/generate_registry_data.py --doctest-modules
+        # ParamGen atm_in namelist writer doctests:
+        pytest cime_config/atm_in_paramgen.py --doctest-modules
         # Registry generator unit tests:
         python test/unit/test_registry.py
+        # Namelist reader autogeneration unit tests
+        python test/unit/create_readnl_files_tests.py
         # Physics variable init (phys_init) generator unit tests:
         python test/unit/write_init_unit_tests.py
+        # ParamGen atm_in namelist writer unit tests:
+        python test/unit/test_atm_in_paramgen.py
 
 #####
 
