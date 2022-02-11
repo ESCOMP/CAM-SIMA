@@ -57,4 +57,16 @@
     </values>
   </entry>
 
+  <entry id="marx_bros">
+      <type>char*256(4)</type>
+      <category>more_testing</category>
+      <group>famous_folk</group>
+      <desc>
+        They were in movies.
+      </desc>
+      <values>
+        <value>"Chico", "Harpo", "Groucho", "Zeppo"</value>
+      </values>
+  </entry>
+
 </entry_id_pg>

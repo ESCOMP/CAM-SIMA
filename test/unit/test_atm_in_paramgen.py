@@ -97,6 +97,7 @@ class FakeCase:
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
             "RUN_STARTDATE" : "101",
+            "DIN_LOC_ROOT" : "/NOT/HERE",
             "feel_lucky" : 1 #For testing
             }
 

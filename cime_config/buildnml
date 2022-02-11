@@ -7,6 +7,7 @@ import sys
 import os
 import shutil
 import logging
+import glob
 
 _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
@@ -136,35 +137,66 @@ def buildnml(case, caseroot, compname):
 
     cam_nml_dict = nml_attr_set(config)
 
-    #--------------------------
-    # Construct ParamGen object:
-    #--------------------------
+    #------------------------------------------------
+    # Extract dictionary of namelist definition files
+    #------------------------------------------------
 
-    # Determine directory for user modified namelist_definition_cam.xml:
+    xml_nml_fils = config.xml_nml_def_files
+
+    #--------------------------------------------------
+    # Check for namelist definition files in SourceMods
+    #--------------------------------------------------
+
+    # Check for SourceMods directory:
     user_xml_dir = os.path.join(caseroot, "SourceMods", "src.cam")
     expect(os.path.isdir(user_xml_dir),
            f"user_xml_dir {user_xml_dir} does not exist ")
 
-    # User definition *replaces* existing definition:
-    user_definition = os.path.join(user_xml_dir, "namelist_definition_cam.xml")
-    if os.path.isfile(user_definition):
-        # Print message to logger:
-        _LOGGER.info("     ...found namelist definition file in %s",
-                     user_xml_dir)
+    # Search for any possible host model namelist definition files:
+    nml_def_fils = glob.glob(os.path.join(user_xml_dir,
+                                          "namelist_definition_*.xml"))
 
-        # Set definition file:
-        definition_file = user_definition
-    else:
-        # If no user-defined file exists, then use standard file:
-        definition_file = os.path.join(_CIME_CONFIG_PATH,
-                                        "namelist_definition_cam.xml")
+    # Loop over all found files:
+    for nml_def_fil in nml_def_fils:
+        if os.path.basename(nml_def_fil) in xml_nml_fils:
+           # Print message to logger:
+            _LOGGER.info("     ...found namelist definition file %s in %s",
+                     os.path.basename(nml_def_fil), user_xml_dir)
+            # Replace file path with SourceMods path
+            xml_nml_fils[os.path.basename(nml_def_fil)] = nml_def_fil
 
-        # Check that the standard namelist file actually exists:
-        expect(os.path.isfile(definition_file),
-               f"Namelist XML file '{definition_file}' not found!")
 
-    # Create the ParamGen object:
-    pg_atm = AtmInParamGen.from_namelist_xml(definition_file)
+    # Now search for CCPP namelist definition files:
+    ccpp_nml_fils = glob.glob(os.path.join(user_xml_dir,
+                                          "*_namelist.xml"))
+
+    # Loop over all found files:
+    for ccpp_nml_fil in ccpp_nml_fils:
+        if os.path.basename(ccpp_nml_fil) in ccpp_nml_fils:
+            # Print message to logger:
+            _LOGGER.info("     ...found namelist definition file %s in %s",
+                     os.path.basename(ccpp_nml_fil), user_xml_dir)
+            # Replace file path with SourceMods path:
+            xml_nml_fils[os.path.basename(ccpp_nml_fil)] = ccpp_nml_fil
+
+    #--------------------------
+    # Construct ParamGen objects:
+    #--------------------------
+
+    pg_atm_list = []
+
+    for xml_fil in xml_nml_fils.values():
+        pg_obj = AtmInParamGen.from_namelist_xml(xml_fil)
+        pg_atm_list.append(pg_obj)
+
+    #--------------------------------------
+    # Combine all ParamGen objects together:
+    #---------------------------------------
+
+    pg_atm = pg_atm_list[0]
+
+    for pg_obj in pg_atm_list[1:]:
+        pg_atm.append_atm_in_pg(pg_obj)
 
     #------------------------
     # Loop over all instances:

@@ -14,6 +14,7 @@ import re
 import sys
 import argparse
 import os.path
+from collections import OrderedDict
 
 #-----------------------------------
 # Import CAM-specific python modules
@@ -151,13 +152,15 @@ class ConfigCAM:
         # Create empty dictonary
         self.__config_dict = {}
 
-        # Create namelist group list, starting with default namelist groups
-        self.__nml_groups = ['cam_initfiles_nl',
-                             'cam_logfile_nl',
-                             'physics_nl',
-                             'qneg_nl',
-                             'vert_coord_nl',
-                             'ref_pres_nl']
+        # Save local (cime_config) directory path:
+        cime_conf_path = os.path.dirname(os.path.abspath(__file__))
+
+        # Create empty XML namelist definition files dictionary:
+        self.__xml_nml_def_files = OrderedDict()
+
+        #Add the default host model namelist:
+        self.__xml_nml_def_files['namelist_definition_cam.xml'] = \
+            os.path.join(cime_conf_path, 'namelist_definition_cam.xml')
 
         #----------------------------------------------------
         # Set CAM start date (needed for namelist generation)
@@ -165,6 +168,11 @@ class ConfigCAM:
 
         # Remove dashes from CIME-provided start date:
         start_date_cam = start_date.replace('-','')
+
+        # Remove leading zeros:
+        while start_date_cam[0] == "0":
+            start_date_cam = start_date_cam[1:]
+        # End while
 
         self.create_config("ic_ymd", "Start date of model run.",
                            start_date_cam, is_nml_attr=True)
@@ -234,17 +242,33 @@ class ConfigCAM:
             # Dynamical core
             self.create_config("dyn", dyn_desc, "se",
                                dyn_valid_vals, is_nml_attr=True)
+
+            #Determine location of period (".") in atm_grid string:
+            dot_idx = atm_grid.find(".")
+
             # Horizontal grid
-            self.create_config("hgrid", hgrid_desc, atm_grid,
-                               se_grid_re, is_nml_attr=True)
+            if dot_idx == -1:
+                self.create_config("hgrid", hgrid_desc, atm_grid,
+                                   se_grid_re, is_nml_attr=True)
+            else:
+                self.create_config("hgrid", hgrid_desc, atm_grid[:dot_idx],
+                                   se_grid_re, is_nml_attr=True)
+            #End if
 
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["se",os.path.join("se","dycore")],
                                valid_list_type="str")
 
-            # Add SE namelist groups to nmlgen list
-            self.__nml_groups.append("air_composition_nl")
-            self.__nml_groups.append("dyn_se_nl")
+            # Set paths for the SE dycore and "air composition"
+            # namelist definition files:
+            se_dyn_nml_fil = os.path.join(cime_conf_path, os.pardir, "src",
+                                          "dynamics", "se", "namelist_definition_se_dycore.xml")
+            air_comp_nml_fil = os.path.join(cime_conf_path, os.pardir, "src",
+                                            "data", "namelist_definition_air_comp.xml")
+
+            #Add NML definition files to dictionary:
+            self.__xml_nml_def_files['namelist_definition_se_dycore.xml'] = se_dyn_nml_fil
+            self.__xml_nml_def_files['namelist_definition_air_comp.xml'] = air_comp_nml_fil
 
             # Add required CPP definitons:
             self.add_cppdef("_MPI")
@@ -384,8 +408,13 @@ class ConfigCAM:
             # Set "analytic_ic" to True (1):
             analy_ic_val = 1 #Use Analytic ICs
 
-            # Add analytic_ic to namelist group list:
-            self.__nml_groups.append("analytic_ic_nl")
+            #Add analytic IC namelist definition file to dictionary:
+            analy_ic_nml_fil = os.path.join(cime_conf_path, os.pardir, "src",
+                                            "dynamics", "tests",
+                                            "namelist_definition_analy_ic.xml")
+
+            #Add NML definition files to dictionary:
+            self.__xml_nml_def_files['namelist_definition_analy_ic.xml'] = analy_ic_nml_fil
 
             #Add new CPP definition:
             self.add_cppdef("ANALYTIC_IC")
@@ -459,9 +488,12 @@ class ConfigCAM:
         return self.__config_dict
 
     @property
-    def nml_groups(self):
-        """Return the namelist groups list of this object."""
-        return self.__nml_groups
+    def xml_nml_def_files(self):
+        """
+        Return a list of all XML namelist definition files
+        stored by this object.
+        """
+        return self.__xml_nml_def_files
 
     @property
     def cpp_defs(self):
@@ -766,9 +798,11 @@ class ConfigCAM:
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
                                           force_ccpp)
-        phys_dirs, force_init, _, nl_groups, capgen_db = retvals
-        # Add in the namelist groups from schemes
-        self.__nml_groups.extend(nl_groups)
+        phys_dirs, force_init, _, nml_fils, capgen_db = retvals
+
+        # Add namelist definition files to dictionary:
+        for nml_fil in nml_fils:
+            self.__xml_nml_def_files[os.path.basename(nml_fil)] = nml_fil
 
         #Convert physics directory list into a string:
         phys_dirs_str = ';'.join(phys_dirs)

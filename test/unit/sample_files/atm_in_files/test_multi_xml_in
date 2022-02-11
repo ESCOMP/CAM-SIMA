@@ -4,7 +4,11 @@
 /
 
 &fairy_tales
-    straw_into_gold = 'Rumpelstiltskin'
+    straw_into_gold = "Rumpelstiltskin"
+/
+
+&famous_folk
+    marx_bros = "Chico", "Harpo", "Groucho", "Zeppo"
 /
 
 &scary_stories
@@ -12,7 +16,20 @@
 /
 
 &sci_fi_sounds_nl
+    hal_hard_drive = "/NOT/HERE/I/CANT/LET/YOU/DO/THAT/DAVE"
     laser_beam = .true.
+    lets_ask_computer = 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0
     warp_drive = 0
 /
 

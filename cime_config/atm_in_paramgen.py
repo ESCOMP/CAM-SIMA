@@ -12,6 +12,7 @@ Fortran namelist file.
 import os
 import os.path
 import sys
+import re
 from collections import OrderedDict
 
 #----------------
@@ -385,6 +386,10 @@ class AtmInParamGen(ParamGen):
                 if len(line)>1:
                     line_s = line.split()
 
+                    #If line is empty then go to next line:
+                    if not line_s:
+                        continue
+
                     # check if within comment block.
                     if (not within_comment_block) and line.strip()[0:2] == "/*":
                         within_comment_block = True
@@ -438,12 +443,16 @@ class AtmInParamGen(ParamGen):
             if within_comment_block:
                 raise AtmInParamGenError(f"Un-closed comment block!  Please check '{user_nl_file}'")
 
-        #Create new ParamGen object:
-        pg_user = ParamGen(_data)
+        #End with
 
-        #Append new user_nl_cam object to main atm_in namelist object:
-        self.append(pg_user)
+        #Check if any user_nl_cam data is present:
+        if _data:
+            #If so, then create new ParamGen object:
+            pg_user = ParamGen(_data)
 
+            #Append new user_nl_cam object to main atm_in namelist object:
+            self.append(pg_user)
+        #End if
     ####
 
     def write(self, output_path):
@@ -455,24 +464,17 @@ class AtmInParamGen(ParamGen):
 
         """
 
-        #Compile regular expression to determine if variable value
-        #is a number or Fortran logical.
-
-        #All "values" stored in ParamGen are strings.  However, booleans and numbers
-        #(either integers or reals) shouldn't have wrapping quotes when written to the
-        #fortran namelist.  Thus the value needs to be evaluated to see if it is actually
-        #a fortran boolean, integer, or real. This done using the following regular expressions:
-        #--------------------------------------------------------------------------------------
-
         # Make sure ParamGen object has been reduced:
         if not self.reduced:
             emsg = "ParamGen object for atm_in must be reduced before being "
             emsg += "written to file. Please check CAM's buildnml script."
-            raise SystemError(emsg)
+            raise AtmInParamGenError(emsg)
+
+        #Create a regex value to check for an array type:
+        arr_type_regex = re.compile(r"[(][ ]*([0-9 ,]+)[ ]*[)]")
 
         #Create sets for string evaluation below:
-        num_bool_set = {"integer", "real", "logical"} #types that don't need quotes
-        quote_set = {"'", '"'}                        #single and double quotes
+        num_set = {"integer", "real"} #types that don't need special handling
 
         # Write Fortran namelist file:
         with open(os.path.join(output_path), 'w', encoding='utf-8') as atm_in_fil:
@@ -497,30 +499,96 @@ class AtmInParamGen(ParamGen):
                         emsg = f"Namelist entry '{var}' is missing required 'type' element."
                         raise AtmInParamGenError(emsg)
 
-                    #Check if variable value is a number or boolean:
-                    if var_type in num_bool_set:
+                    #Check if an array type:
+                    array_type = arr_type_regex.search(var_type)
+
+                    if array_type:
+                        #Grab all text before array regex match:
+                        var_type = var_type[:array_type.start()].strip()
+
+                        #Split the value into its array elements,
+                        #this assumes that a comma (,) is the element
+                        #delimiter:
+                        array_elems = val.split(",")
+
+                        #Write beginning of namelist entry:
+                        nml_str = f"    {var} = "
+
+                        #Check if variable type is a logical:
+                        if var_type == 'logical':
+                            #loop over array elements:
+                            for elem in array_elems:
+                                if _is_nml_logical_true(var, elem):
+                                    elem_str = ".true., "
+                                else:
+                                    elem_str = ".false., "
+                                #End if
+                                #Write to namelist string:
+                                nml_str += elem_str
+                             #End for
+                        #Check if it is a number:
+                        elif var_type in num_set:
+                            #loop over array elements:
+                            for elem in array_elems:
+                                #Write to namelist string:
+                                nml_str += f"{elem}, "
+                            #End for
+                        #check if it is a character:
+                        elif "char*" in var_type:
+                            #loop over array elements:
+                            for elem_with_space in array_elems:
+                                #Remove any extra white space:
+                                elem = elem_with_space.strip()
+
+                                #Remove all quotes in the string, as they
+                                #sometimes added by ParamGen during the "reduce" phase:
+                                elem = elem.replace("'", "")
+                                elem = elem.replace('"', "")
+
+                                #Add surrounding quotes:
+                                elem_str = f'"{elem}", '
+                                #Write to namelist entry string:
+                                nml_str += elem_str
+                            #End for
+                        else:
+                            #This is an un-recognized type option, so raise an error:
+                            emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
+                            emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
+                            raise AtmInParamGenError(emsg)
+                        #End if
+
+                        #There will always be a trailing comma and space (, ) so find it:
+                        last_comma_idx = nml_str.rfind(", ")
+
+                        #Write final string to file:
+                        atm_in_fil.write(nml_str[:last_comma_idx]+"\n")
+
+                    else:  #Not an array
+                        #Check if variable type is a logical:
                         if var_type == 'logical':
                             #If logical, then write the associated truth value:
                             if _is_nml_logical_true(var, val):
                                 atm_in_fil.write(f"    {var} = .true.\n")
                             else:
                                 atm_in_fil.write(f"    {var} = .false.\n")
-                        else:
+                            #End if
+                        elif var_type in num_set:
                             #If a number, then write value as-is:
                             atm_in_fil.write(f"    {var} = {val}\n")
-                    elif "char*" in var_type:
-                        #Value is a string, so check if is already inside quotes:
-                        if val[0] in quote_set and val[-1] == val[0]:
-                            #If so, then write string value as-is:
-                            atm_in_fil.write(f"    {var} = {val}\n")
+                        elif "char*" in var_type:
+                            #Remove all quotes in the string, as they
+                            #sometimes added by ParamGen during the "reduce" phase:
+                            val = val.replace("'", "")
+                            val = val.replace('"', "")
+                            #Add entry to atm_in file:
+                            atm_in_fil.write(f'    {var} = "{val}"\n')
                         else:
-                            #If not, then write string with added quotes:
-                            atm_in_fil.write(f"    {var} = '{val}'\n")
-                    else:
-                        #This is an un-recognized type option, so raise an error:
-                        emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
-                        emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
-                        raise AtmInParamGenError(emsg)
+                            #This is an un-recognized type option, so raise an error:
+                            emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
+                            emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
+                            raise AtmInParamGenError(emsg)
+                        #End if
+                    #End if (array type)
 
                 # Add space for next namelist group:
                 atm_in_fil.write('/\n\n')

@@ -22,8 +22,8 @@
     <category>sci_fi</category>
     <group>sci_fi_sounds_nl</group>
     <desc>
-        What are you doing with the
-        warp drive?
+       What are you doing with the
+       warp drive?
     </desc>
     <values>
       <value>0</value>
@@ -32,4 +32,40 @@
     </values>
   </entry>
 
+  <entry id="lets_ask_computer">
+    <type>integer(110)</type>
+    <category>sci_fi</category>
+    <group>sci_fi_sounds_nl</group>
+    <desc>
+       Computer!  Do something computery!
+    </desc>
+    <values>
+      <value>
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0,
+        0,1,0,1,0,0,1,0,1,0
+      </value>
+    </values>
+  </entry>
+
+  <entry id="hal_hard_drive">
+    <type>char*256</type>
+    <category>sci_fi</category>
+    <group>sci_fi_sounds_nl</group>
+    <desc>
+      HAL, where is your hard drive?
+    </desc>
+    <values>
+      <value>$DIN_LOC_ROOT/I/CANT/LET/YOU/DO/THAT/DAVE</value>
+    </values>
+  </entry>
 </entry_id_pg>

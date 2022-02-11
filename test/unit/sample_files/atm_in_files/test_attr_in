@@ -4,7 +4,11 @@
 /
 
 &fairy_tales
-    straw_into_gold = 'Rumpelstiltskin'
+    straw_into_gold = "Rumpelstiltskin"
+/
+
+&famous_folk
+    marx_bros = "Chico", "Harpo", "Groucho", "Zeppo"
 /
 
 &scary_stories

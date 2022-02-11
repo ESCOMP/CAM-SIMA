@@ -514,7 +514,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
                                 False) #doctest: +ELLIPSIS
-    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/ccpp_datatable.xml', [], None)
+    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/ccpp_datatable.xml', dict_values([]), None)
     """
 
     # Physics source gets copied into blddir
@@ -699,7 +699,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # End if
 
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file,       \
-        nl_groups, capgen_db
+        xml_files.values(), capgen_db
 
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
