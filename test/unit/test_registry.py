@@ -28,13 +28,7 @@ _SAMPLE_FILES_DIR = os.path.join(__TEST_DIR, "sample_files")
 _TMP_DIR = os.path.join(__TEST_DIR, "tmp")
 _SRC_MOD_DIR = os.path.join(_TMP_DIR, "SourceMods")
 
-# Find python version
-PY3 = sys.version_info[0] > 2
-if PY3:
-    __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
-else:
-    __FILE_OPEN = (lambda x: open(x, 'r'))
-# End if
+__FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
 
 if not os.path.exists(__REGISTRY_DIR):
     raise ImportError("Cannot find registry directory")

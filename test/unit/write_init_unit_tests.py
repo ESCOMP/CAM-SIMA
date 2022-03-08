@@ -30,13 +30,7 @@ _TMP_DIR = os.path.join(_PRE_TMP_DIR, "write_init_files")
 _SRC_MOD_DIR = os.path.join(_PRE_TMP_DIR, "SourceMods")
 _INC_SEARCH_DIRS = [_SRC_MOD_DIR, __REGISTRY_DIR]
 
-# Find python version
-PY3 = sys.version_info[0] > 2
-if PY3:
-    __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
-else:
-    __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
-# End if
+__FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
 
 #Check for all necessary directories:
 if not os.path.exists(__CCPP_DIR):

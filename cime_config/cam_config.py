@@ -87,6 +87,13 @@ class ConfigCAM:
         and associated dictionary.
         """
 
+        # Check if using python 3.7 or later.  If not,
+        # then end build here:
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 7):
+            emsg = "CAM requires python 3.7 or later, currently using python version"
+            emsg += f" {sys.version_info[0]}.{sys.version_info[1]}"
+            raise SystemError(emsg)
+
         # Read in needed case variables
         atm_grid = case.get_value("ATM_GRID")               # Atmosphere (CAM) grid
         cam_config_opts = case.get_value("CAM_CONFIG_OPTS") # CAM configuration options
@@ -527,31 +534,30 @@ class ConfigCAM:
         """
         cco_str = "CAM_CONFIG_OPTS"
 
-        #Don't allow abbreviations if using python 3.5 or greater:
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 5):
-            parser = argparse.ArgumentParser(description=cco_str,
-                                             prog="ConfigCAM",
-                                             epilog="Allowed values of "+cco_str)
-        else:
-            parser = argparse.ArgumentParser(description=cco_str,
-                                             prog="ConfigCAM", allow_abbrev=False,
-                                             epilog="Allowed values of "+cco_str)
+        #Create parser object:
+        parser = argparse.ArgumentParser(description=cco_str,
+                                         prog="ConfigCAM", allow_abbrev=False,
+                                         epilog="Allowed values of "+cco_str)
 
-
+        #Add argument options:
         parser.add_argument("--physics-suites", "-physics-suites", type=str,
                             required=True, metavar='<CCPP_SDFs>',
                             help="""Semicolon-separated list of Physics Suite
                                  Definition Files (SDFs)""")
+
         parser.add_argument("--dyn", "-dyn", metavar='<dycore>',
                             type=str, required=False, default="",
                             help="""Name of dycore""")
+
         parser.add_argument("--analytic_ic", "-analytic_ic",
                             action='store_true', required=False,
                             help="""Flag to turn on Analytic Initial
                                  Conditions (ICs).""")
+
         parser.add_argument("--dyn_kind", "-dyn_kind",
                             type=str, required=False, default="REAL64",
                             help="""Fortran kind used in dycore for type real.""")
+
         parser.add_argument("--phys_kind", "-phys_kind",
                             type=str, required=False, default="REAL64",
                             help="""Fortran kind used in physics for type real.""")

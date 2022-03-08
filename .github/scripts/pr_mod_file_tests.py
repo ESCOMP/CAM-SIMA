@@ -220,9 +220,9 @@ def _main_prog():
             print("+++++++++++++++++++++++++++++++++++++++++++++++")
 
             #Raise test failure exception:
-            fail_msg = "One or more files are below allowed pylint " \
-                       "score of {}.\nPlease see pylint message(s) " \
-                       "above for possible fixes."
+            fail_msg = "One or more files are below allowed pylint "
+            fail_msg += f"score of {pylev}.\nPlease see pylint message(s) "
+            fail_msg += "above for possible fixes."
             raise PrModTestFail(fail_msg)
         else:
             #All tests have passed, so exit normally:

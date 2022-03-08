@@ -101,7 +101,7 @@ def end_script(msg):
     """
     Prints message to screen, and then exits script.
     """
-    print("\n{}\n".format(msg))
+    print(f"\n{msg}\n")
     print("Issue closing check has completed successfully.")
     sys.exit(0)
 
@@ -173,7 +173,7 @@ def _main_prog():
         first_word = post_msg_word_list[0]
 
         #Print merged pr number to screen:
-        print("Merged PR: {}".format(first_word))
+        print(f"Merged PR: {first_word}")
 
         try:
             #Try assuming the word is just a number:
@@ -364,7 +364,7 @@ def _main_prog():
                         end_script(endmsg)
 
     #Print project name associated with merged PR:
-    print("merged PR project name: {}".format(proj_mod_name))
+    print(f"merged PR project name: {proj_mod_name}")
 
     #++++++++++++++++++++++++++++++++++++++++
     #Extract repo project "To do" card issues
@@ -467,7 +467,7 @@ def _main_prog():
             cam_issue = cam_repo.get_issue(number=issue_num)
             #Close issue:
             cam_issue.edit(state='closed')
-            print("Issue #{} has been closed.".format(issue_num))
+            print(f"Issue #{issue_num} has been closed.")
         else:
             #Extract card id from id dictionary:
             if issue_num in proj_issue_card_ids:
@@ -498,7 +498,7 @@ def _main_prog():
 
         #Close Pull Request:
         cam_pull.edit(state='closed')
-        print("Pull Request #{} has been closed.".format(pull_num))
+        print(f"Pull Request #{pull_num} has been closed.")
 
     #++++++++++
     #End script

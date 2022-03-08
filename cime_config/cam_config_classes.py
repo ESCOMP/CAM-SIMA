@@ -12,9 +12,6 @@ of the build system.
 import re
 from collections import OrderedDict
 
-# Determine regular rexpression type (for later usage in check_string_val)
-REGEX_TYPE = type(re.compile(r" "))
-
 ###############################################################################
 # Error-handling classes
 ###############################################################################
@@ -296,7 +293,7 @@ def _check_string_val(name, val, valid_vals=None):
                 emsg += "does not match any of the valid values: '{}'"
                 return emsg.format(val, name, valid_vals)
             # End if
-        elif isinstance(valid_vals, REGEX_TYPE):
+        elif isinstance(valid_vals, re.Pattern):
             # If a regular expression object, then check that
             # value is matched by the expression
             if valid_vals.match(val) is None:

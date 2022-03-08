@@ -161,13 +161,6 @@ class CamConfigTestRoutine(unittest.TestCase):
         is skipped.
         """
 
-        if sys.version_info[0] < 3:
-            raise unittest.SkipTest("This test doesn't work with Python 2")
-
-        if sys.version_info[1] < 4:
-            raise unittest.SkipTest("This test requires Python version 3.4 or later")
-
-
         #Create new logger for print_config test:
         print_log = logging.getLogger("print_config")
 
