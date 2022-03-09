@@ -57,10 +57,8 @@ sys.path.append(__REGISTRY_DIR)
 
 # pylint: disable=wrong-import-position
 from ccpp_capgen import capgen
-from ccpp_database_obj import CCPPDatabaseObj
 from framework_env import CCPPFrameworkEnv
 from generate_registry_data import gen_registry
-from parse_tools import CCPPError
 import write_init_files as write_init
 # pylint: enable=wrong-import-position
 
@@ -157,10 +155,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _ , files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types = ['kind_phys=REAL64']
@@ -184,20 +182,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return message:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
                                     shallow=False), msg=amsg)
 
@@ -239,10 +237,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types = ['kind_phys=REAL64']
@@ -266,20 +264,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return message:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
                                     shallow=False), msg=amsg)
 
@@ -349,20 +347,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return message:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
                                     shallow=False), msg=amsg)
 
@@ -406,10 +404,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types = ['kind_phys=REAL64']
@@ -432,17 +430,21 @@ class WriteInitTest(unittest.TestCase):
                                              phys_check_filename=vic_name,
                                              phys_input_filename=pi_name)
 
+        # Check return message
+        rmsg = ""
+        self.assertEqual(rmsg, retmsg)
+
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
                                     shallow=False), msg=amsg)
 
@@ -514,10 +516,10 @@ class WriteInitTest(unittest.TestCase):
                                         phys_input_filename=pi_name)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -589,10 +591,10 @@ class WriteInitTest(unittest.TestCase):
                                         phys_input_filename=pi_name)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -667,10 +669,10 @@ class WriteInitTest(unittest.TestCase):
         self.assertEqual(rmsg, retmsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -711,10 +713,10 @@ class WriteInitTest(unittest.TestCase):
         remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -737,20 +739,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return code:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
                                     shallow=False), msg=amsg)
 
@@ -819,20 +821,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return code:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -874,10 +876,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -900,20 +902,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return code:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -955,10 +957,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -981,20 +983,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return code:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -1036,10 +1038,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -1062,20 +1064,20 @@ class WriteInitTest(unittest.TestCase):
                                              phys_input_filename=pi_name)
 
         # Check return code:
-        amsg = "Test failure: retmsg={}".format(retmsg)
+        amsg = f"Test failure: retmsg={retmsg}"
         self.assertEqual(retmsg, '', msg=amsg)
 
         # Make sure each output file was created:
-        amsg = "{} does not exist".format(check_init_out)
+        amsg = f"{check_init_out} does not exist"
         self.assertTrue(os.path.exists(check_init_out), msg=amsg)
-        amsg = "{} does not exist".format(phys_input_out)
+        amsg = f"{phys_input_out} does not exist"
         self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
@@ -1120,10 +1122,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _ = gen_registry(filename, 'se', {}, _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -1150,10 +1152,10 @@ class WriteInitTest(unittest.TestCase):
         self.assertEqual(emsg, retmsg)
 
         # For each output file, make sure it matches input file
-        amsg = "{} does not match {}".format(check_init_out, check_init_in)
+        amsg = f"{check_init_out} does not match {check_init_in}"
         self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
                                     shallow=False), msg=amsg)
-        amsg = "{} does not match {}".format(phys_input_out, phys_input_in)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
