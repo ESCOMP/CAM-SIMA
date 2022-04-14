@@ -83,6 +83,37 @@ def nml_attr_set(config):
     #Return namelist attribute dictionary:
     return cam_nml_attr_dict
 
+##################
+
+def nml_file_dict_update(nml_fil_dict, nml_def_fils):
+
+    """
+    Updates a dictionary of namelist definition
+    files using a list of provided file paths.
+    ----------
+    nml_fil_dict -> Dictionary of nml definition files.
+                    It is assumed to be organized as
+                    {file name : file path}
+
+    nml_def_fils -> List of path-like variables associated
+                    with specific namelist definition files.
+
+    """
+
+    # Loop over all found files:
+    for nml_def_fil in nml_def_fils:
+         fil_name = os.path.basename(nml_def_fil)
+         if fil_name in nml_fil_dict:
+           fil_dir = os.path.dirname(os.path.abspath(nml_def_fil))
+           # Print message to logger:
+            _LOGGER.info("     ...found namelist definition file %s in %s",
+                     fil_base, fil_dir)
+            # Replace file path with SourceMods path
+            nml_fil_dict[fil_base] = nml_def_fil
+
+    # Return updated dictionary:
+    return nml_fil_dict
+
 #################
 #PRIMARY FUNCTION
 #################
@@ -141,7 +172,7 @@ def buildnml(case, caseroot, compname):
     # Extract dictionary of namelist definition files
     #------------------------------------------------
 
-    xml_nml_fils = config.xml_nml_def_files
+    xml_nml_dict = config.xml_nml_def_files
 
     #--------------------------------------------------
     # Check for namelist definition files in SourceMods
@@ -156,28 +187,15 @@ def buildnml(case, caseroot, compname):
     nml_def_fils = glob.glob(os.path.join(user_xml_dir,
                                           "namelist_definition_*.xml"))
 
-    # Loop over all found files:
-    for nml_def_fil in nml_def_fils:
-        if os.path.basename(nml_def_fil) in xml_nml_fils:
-           # Print message to logger:
-            _LOGGER.info("     ...found namelist definition file %s in %s",
-                     os.path.basename(nml_def_fil), user_xml_dir)
-            # Replace file path with SourceMods path
-            xml_nml_fils[os.path.basename(nml_def_fil)] = nml_def_fil
-
-
     # Now search for CCPP namelist definition files:
     ccpp_nml_fils = glob.glob(os.path.join(user_xml_dir,
                                           "*_namelist.xml"))
 
-    # Loop over all found files:
-    for ccpp_nml_fil in ccpp_nml_fils:
-        if os.path.basename(ccpp_nml_fil) in ccpp_nml_fils:
-            # Print message to logger:
-            _LOGGER.info("     ...found namelist definition file %s in %s",
-                     os.path.basename(ccpp_nml_fil), user_xml_dir)
-            # Replace file path with SourceMods path:
-            xml_nml_fils[os.path.basename(ccpp_nml_fil)] = ccpp_nml_fil
+    # Combine file lists:
+    nml_def_fils.append(ccpp_nml_fils)
+
+    # Update namelist definition file dict with new files:
+    xml_nml_dict = nml_file_dict_update(xml_nml_dict, nml_def_fils)
 
     #--------------------------
     # Construct ParamGen objects:
@@ -185,7 +203,7 @@ def buildnml(case, caseroot, compname):
 
     pg_atm_list = []
 
-    for xml_fil in xml_nml_fils.values():
+    for xml_fil in xml_nml_dict.values():
         pg_obj = AtmInParamGen.from_namelist_xml(xml_fil)
         pg_atm_list.append(pg_obj)
 
@@ -292,9 +310,6 @@ def buildnml(case, caseroot, compname):
         #--------------------------------
         create_namelist_infile(case, user_nl_file, namelist_infile,
                                "\n".join(infile_lines))
-
-        # Convert namelist input file to list:
-        #namelist_infile_list = [namelist_infile]
 
         #-------------------------------------------
         # Add user_nl_cam entries to ParamGen object:

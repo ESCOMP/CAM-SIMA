@@ -21,13 +21,28 @@ from collections import OrderedDict
 
 _CIME_CONF_DIR = os.path.abspath(os.path.dirname(__file__))
 _CIME_ROOT = os.path.join(_CIME_CONF_DIR, os.pardir, "cime")
+_PARAMGEN_ROOT = os.path.join(_CIME_ROOT, "scripts", "lib", "CIME", "ParamGen")
 
-if not os.path.exists(_CIME_ROOT):
-    raise SystemExit("ERROR: Cannot find 'cime' directory.  Did you run checkout_externals?")
-sys.path.append(os.path.join(_CIME_ROOT, "scripts", "lib", "CIME", "ParamGen"))
+if not os.path.exists(_PARAMGEN_ROOT):
+    _EMSG = f"ERROR: Cannot find '{_PARAMGEN_ROOT}' directory.  Did you run checkout_externals?"
+    raise SystemExit(_EMSG)
+#End if
+sys.path.append(_PARAMGEN_ROOT)
 #pylint: disable=wrong-import-position
 from paramgen import ParamGen
 #pylint: enable=wrong-import-position
+
+#Regular expression used by "remove_user_nl_comment" function:
+_QUOTE_REGEX = re.compile(r"\".*?\"|'.*?'")
+
+#Regular expression used by the "write" and "append_user_nl_file"
+#methods to determine if the variable is an array, and what
+#the dimensions of the array are:
+_ARRAY_TYPE_REGEX = re.compile(r"[(][ ]*([0-9 ,]+)[ ]*[)]")
+
+#Regular expression used to determine array indices in
+#"find_arr_indices" function:
+_ARR_INDEX_REGEX = re.compile(r"\((.+?)\)")
 
 ################################################################
 
@@ -104,7 +119,7 @@ def _is_nml_logical_true(varname, var_val):
     atm_in_paramgen.AtmInParamGenError:...
     XML namelist logical variable, 'test', must have a value of true, false, 1, or 0, not 3
 
-    13.  Check that a non-boolean, string or integer type returns an error:
+    13.  Check that an unsupported type returns an error:
     >>> _is_nml_logical_true("test", 13.03) # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
@@ -115,35 +130,268 @@ def _is_nml_logical_true(varname, var_val):
 
     if isinstance(var_val, bool):
         return var_val
+    #End if
     if isinstance(var_val, str):
         if var_val.lower() in {"true", ".true.", "1"}:
             return True
+        #End if
         if var_val.lower() in {"false", ".false.", "0"}:
             return False
+        #End if
 
         #Raise error if no match was found:
         emsg = f"\nXML namelist logical variable, '{varname}'"
         emsg += ", must have a value of true, false, 1, or 0, not"
         emsg += f" '{var_val}'"
         raise AtmInParamGenError(emsg)
+    #End if
 
     if isinstance(var_val, int):
         if var_val == 1:
             return True
+        #End if
         if var_val == 0:
             return False
+        #End if
 
         #Raise error if no match was found:
         emsg = f"\nXML namelist logical variable, '{varname}'"
         emsg += ", must have a value of true, false, 1, or 0, not"
         emsg += f" {var_val}"
         raise AtmInParamGenError(emsg)
+    #End if
 
     #Type is un-recognizeda, so raise an error:
     emsg = f"\nXML namelist variable '{varname}' must"
     emsg += " have a value that is either a boolean, string, or integer,"
     emsg += f" not {type(var_val).__name__}."
     raise AtmInParamGenError(emsg)
+
+#####
+
+def remove_user_nl_comment(user_string):
+
+    """
+    Searches a one-line input string for a comment delimiter,
+    and then returns the string with all text after the delimiter
+    removed.
+    ----------
+    user_string   -> String that will be searched and processed for comments
+
+    doctests:
+
+    1.  Check that a string with no comment delimiters returns full string:
+    >>> remove_user_nl_comment("bananas")
+    'bananas'
+
+    2.  Check that a string with no comments outside quotes returns full string:
+    >>> remove_user_nl_comment(" '!ban!anas!' ")
+    " '!ban!anas!' "
+
+    3.  Check that a string with no quotes but a comment returns string with no comment:
+    >>> remove_user_nl_comment("bananas !But not apples")
+    'bananas '
+
+    4.  Check that a string with quotes and a comment returns string sans comment:
+    >>> remove_user_nl_comment(" 'bananas' !But not apples")
+    " 'bananas' "
+
+    5.  Check that a string with a quoted comment and real comments returns proper string:
+    >>> remove_user_nl_comment(" '!ba!na!nas!' !But not apples")
+    " '!ba!na!nas!' "
+
+    6.  Check that a string with a quoted comment and a real comment with multiple delimiters
+        returns the proper string:
+    >>> remove_user_nl_comment(" '!bananas!' !But not! apples!")
+    " '!bananas!' "
+
+    7.  Check that a string with a quoted comment and a commented quote returns the proper string:
+    >>> remove_user_nl_comment(' "!bananas" !"But not apples" ')
+    ' "!bananas" '
+
+    8.  Check that a string with quotes inside quotes and multiple delimiters returns
+        the proper string:
+    >>> remove_user_nl_comment(''' "!bana'!'anas""other''fruit!" !But not '!Apples!' ''')
+    ' "!bana\\'!\\'anas""other\\'\\'fruit!" '
+
+    9.  Check that an array of strings returns the proper string:
+    >>> remove_user_nl_comment(" 'bananas', 'apples', 'kiwis' ")
+    " 'bananas', 'apples', 'kiwis' "
+
+    10. Check that an array of strings with a comment returns the proper string:
+    >>> remove_user_nl_comment(" 'bananas', 'apples', 'kiwis', !, and coconuts")
+    " 'bananas', 'apples', 'kiwis', "
+
+    11. Check that an array of of strings with comment delimiters and an actual comment
+        returns the proper string:
+    >>> remove_user_nl_comment(' , "!bananas", "app!les", "kiwis!", !And "Coconuts"!')
+    ' , "!bananas", "app!les", "kiwis!", '
+
+    12.  Check that a line with no comments or strings returns the proper string:
+    >>> remove_user_nl_comment('5')
+    '5'
+
+    13.  Check that a line with a comment  but no internal strings returns the proper string:
+    >>> remove_user_nl_comment(' .true. !And not .false.')
+    ' .true. '
+
+    14.  Check that an array of values with no comment returns the proper string:
+    >>> remove_user_nl_comment('13.0d0, 15.0d0, 1100.35d0')
+    '13.0d0, 15.0d0, 1100.35d0'
+
+    15.  Check that an array of  values with a comment returns the proper string:
+    >>> remove_user_nl_comment('13.0d0,! 15.0d0, 1100.35d0')
+    '13.0d0,'
+    """
+
+    #Create empty set for comment-delimiting indices:
+    comment_delim_indices = set()
+
+    #Search for all comment delimiters (currently just "!"):
+    for char_idx, char in enumerate(user_string):
+      if char == "!":
+         #Add character index to set:
+         comment_delim_indices.add(char_idx)
+      #End if
+    #End for
+
+    #If no comments are present, then return string as-is:
+    if not comment_delim_indices:
+        return user_string
+    #End if
+
+    #Next, check if any single or double quotes are present:
+    if not "'" in user_string and not '"' in user_string:
+        #If no quotes, then cut-off string at first delimiter:
+        return user_string[:sorted(comment_delim_indices)[0]]
+    #End if
+
+    #Create empty set for all character indices inside quotes:
+    quote_text_indices = set()
+
+    #Search for all text within quotes:
+    quoted_text_matches = _QUOTE_REGEX.finditer(user_string)
+
+    #Loop over all matches:
+    for quote_match in quoted_text_matches:
+        #Extract min/max indices of match:
+        index_span = quote_match.span(0)
+        #Add all indices to set:
+        for index in range(index_span[0], index_span[1]):
+            quote_text_indices.add(index)
+        #End for
+    #End for
+
+    #Find all comment delimiters outside of quotes:
+    non_quote_comment = comment_delim_indices.difference(quote_text_indices)
+
+    if not non_quote_comment:
+        #All comment delimiters are within quotes,
+        #so return string as-is:
+        return user_string
+    #End if
+
+    #Find first comment delimiter outside of quotes.
+    #Everything to the right of it is part of the comment:
+    return user_string[:sorted(non_quote_comment)[0]]
+
+#####
+
+def user_nl_str_to_int(string, var_name):
+
+    """
+    Checks if a string can be converted
+    into an integer, and if not reports
+    the relevant error.  This function
+    is only used in the "check_user_nl_var"
+    function below.
+    ----------
+    string   -> string to convert to integer.
+    var_name -> name of the array variable
+                associated with the string.
+
+    doctests:
+
+    1.  Check that a string with an integer can be
+        converted properly:
+    >>> user_nl_str_to_int("5", "banana")
+    5
+
+    2.  Check that a string with a non-integer can be
+        convergted properly:
+    >>> user_nl_str_to_int("a", "banana") # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:...
+    Invalid array index entry 'a' used for variable 'banana' in 'user_nl_cam'.
+
+    """
+
+    #Attempt the conversion of the string to an integer:
+    try:
+        integer_val = int(string)
+    except ValueError:
+        emsg = f"\nInvalid array index entry '{string}' "
+        emsg += f"used for variable '{var_name}' in 'user_nl_cam'."
+        raise AtmInParamGenError(emsg)
+    #End except
+
+    #Return relevant integer value:
+    return integer_val
+
+#####
+
+def check_dim_index(var_name, index_val, dim_size):
+
+    """
+    Checks that the user-specified index for the given
+    variables is within the dimension size limit as
+    specified in the namelist definition file.
+    ----------
+    var_name  -> Name of the array variable
+                 associated with the string.
+    index_val -> Index value provided by user
+    dim_size  -> Maximum variable dimension size.
+
+    doctests:
+
+    1.  Check that an in-bounds index value
+        returns nothing:
+    >>> check_dim_index("banana", 5, 15)
+
+    2.  Check that an index value that is
+        too small returns the proper error:
+    >>> check_dim_index("banana", 0, 15) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:...
+    Variable 'banana' has index 0 in 'user_nl_cam', which is less than one (1), the minimal index value allowed.
+
+    3.  Check that an index value that is
+        too large returns the proper error:
+    >>> check_dim_index("banana", 20, 15) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:...
+    Variable 'banana' has index 20 in 'user_nl_cam', which is greater than the max dimension size of 15
+
+    """
+
+    #Make sure index is greater than zero:
+    if index_val <= 0:
+        emsg = f"\nVariable '{var_name}' has index {index_val}"
+        emsg += " in 'user_nl_cam', which is less than one (1),"
+        emsg +=f" the minimal index value allowed."
+        raise AtmInParamGenError(emsg)
+    #End if
+
+    #Make sure index is not greater than max value:
+    if index_val > dim_size:
+        emsg = f"\nVariable '{var_name}' has index {index_val}"
+        emsg += " in 'user_nl_cam', which is greater than the"
+        emsg +=f" max dimension size of {dim_size}"
+        raise AtmInParamGenError(emsg)
+    #End if
 
 ################################################################
 # MAIN "atm_in" ParamGen class
@@ -172,20 +420,29 @@ class AtmInParamGen(ParamGen):
         #Initialize ParamGen directly:
         super().__init__(pg_data_dict)
 
-        #Create namelist var/group dictionary,
-        #which used by the "append_user_nl_file"
+        #Create a namelist var/group dictionary,
+        #which is used by the "append_user_nl_file"
         #method:
-        self.var_group_dict = {}
+        self.__var_group_dict = {}
 
         #Create empty dictionaries that will contain
-        #the namelist definition file and the set
+        #the namelist definition files and the set
         #of all namelist groups and variables:
-        self.nml_def_groups = {}
-        self.nml_def_vars   = {}
+        self.__nml_def_groups = {}
+        self.__nml_def_vars   = {}
 
         #Set variables needed for ParamGen "reduction":
         self.__case = None
         self.__atm_attr_dict = None
+
+        #Initialize data structure for duplicate array
+        #checking in user_nl_cam files.  This structure
+        #is organized like so:
+        # dict(var_name : list of sets)
+        # list size = number of array dimensions specified
+        # set contains the array indices specified for that
+        # dimension:
+        self.__set_index_vals = {}
 
     ####
 
@@ -200,10 +457,10 @@ class AtmInParamGen(ParamGen):
         """
 
         #Create ParamGen object using base class:
-        _pg_xml = ParamGen.from_xml_nml(nml_xml_file, no_duplicates=True)
+        pg_xml = ParamGen.from_xml_nml(nml_xml_file, no_duplicates=True)
 
         #Initialize new "atm_in" object:
-        atm_in_pg = AtmInParamGen(_pg_xml.data)
+        atm_in_pg = AtmInParamGen(pg_xml.data)
 
         #Check if the new ParamGen object has all of the required
         #namelist elements:
@@ -217,12 +474,14 @@ class AtmInParamGen(ParamGen):
             emsg += "Those entries and missing elements are:\n"
             for entry_id, missing_elems in missing_elems.items():
                 emsg += f"{entry_id} : {', '.join(missing_elems)}\n"
+            #End for
             raise AtmInParamGenError(emsg)
+        #End if
         #----------------
 
         #Initialize file->group/var set dictionary:
-        atm_in_pg.nml_def_groups[nml_xml_file] = set()
-        atm_in_pg.nml_def_vars[nml_xml_file] = set()
+        atm_in_pg.__nml_def_groups[nml_xml_file] = set()
+        atm_in_pg.__nml_def_vars[nml_xml_file] = set()
 
         #Create namelist variable/group dictionary
         #and associated sets:
@@ -231,7 +490,7 @@ class AtmInParamGen(ParamGen):
             for var in atm_in_pg._data[nml_group]:
 
                 #Check if variable already exists in dictionary:
-                if var in atm_in_pg.var_group_dict:
+                if var in atm_in_pg.__var_group_dict:
                     #No duplicate variables are allowed, even if
                     #in separate namelist groups, so raise an error.
                     #Please note that this error should always be
@@ -239,18 +498,20 @@ class AtmInParamGen(ParamGen):
                     #point something has gone seriously wrong:
                     emsg = f"Namelist entry id '{var}' exists"
                     emsg += f" in namelist group '{nml_group}'"
-                    emsg += f" and '{atm_in_pg.var_group_dict[var]}'\n"
+                    emsg += f" and '{atm_in_pg.__var_group_dict[var]}'\n"
                     emsg += "Namelist variables can belong to only one group."
                     raise SystemError(emsg)
+                #End if
 
                 #If not, then add variable and group to dictionary:
-                atm_in_pg.var_group_dict[var] = nml_group
+                atm_in_pg.__var_group_dict[var] = nml_group
 
                 #Add namelist groups and variables to their
                 #respective sets:
-                atm_in_pg.nml_def_groups[nml_xml_file].add(nml_group)
-                atm_in_pg.nml_def_vars[nml_xml_file].add(var)
-
+                atm_in_pg.__nml_def_groups[nml_xml_file].add(nml_group)
+                atm_in_pg.__nml_def_vars[nml_xml_file].add(var)
+            #End for
+        #End for
         #----------------
 
         #Return object:
@@ -310,63 +571,462 @@ class AtmInParamGen(ParamGen):
         atm_pg_obj -> An AtmInParamGen object
 
         """
+        #Loop over all XML files associated with input atm_pg object:
+        for input_file in atm_pg_obj.__nml_def_groups:
 
-        #Make sure there is only one XML file associated with
-        #input PG object:
-        if len(atm_pg_obj.nml_def_groups.keys()) > 1:
-            emsg = "ParamGen object being appended to another must"
-            emsg += " be associated with only one namelist definition file."
-            emsg += "\nInstead it is associated with the following files:\n"
-            emsg += "\n".join(atm_pg_obj.nml_def_groups.keys())
-            raise AtmInParamGenError(emsg)
+            #Extract the group and variable sets from input PG object:
+            input_groups = atm_pg_obj.__nml_def_groups[input_file]
+            input_vars   = atm_pg_obj.__nml_def_vars[input_file]
 
-        #Extract namelist definition file name:
-        input_file = next(iter(atm_pg_obj.nml_def_groups))
+            #Check that there are no matching namelist groups:
+            #------------------------------------------------
+            for nml_file, nml_groups in self.__nml_def_groups.items():
 
-        #Extract the group and variable sets from input PG object:
-        input_groups = atm_pg_obj.nml_def_groups[input_file]
-        input_vars   = atm_pg_obj.nml_def_vars[input_file]
+                #Determine if any namelist groups are the same
+                #between the two objects:
+                same_groups = nml_groups.intersection(input_groups)
 
-        #Check that there are no matching namelist groups:
-        #------------------------------------------------
-        for nml_file, nml_groups in self.nml_def_groups.items():
+                #If so, then raise an error (as all namelist groups must be unique):
+                if same_groups:
+                    emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
+                    emsg += " the following conflicting namelist groups:\n"
+                    emsg += ", ".join(same_groups)
+                    raise AtmInParamGenError(emsg)
+                #End if
+            #End for
 
-            #Determine if any namelist groups are the same
-            #between the two objects:
-            same_groups = nml_groups.intersection(input_groups)
+            #------------------------------------------------
 
-            #If so, then raise an error (as all namelist groups must be unique):
-            if same_groups:
-                emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
-                emsg += " the following conflicting namelist groups:\n"
-                emsg += ", ".join(same_groups)
-                raise AtmInParamGenError(emsg)
+            #Check that there are no matching namelist variables:
+            #------------------------------------------------
+            for nml_file, nml_vars in self.__nml_def_vars.items():
 
-        #------------------------------------------------
+                #Determine if any namelist groups are the same
+                #between the two objects:
+                same_vars = nml_vars.intersection(input_vars)
 
-        #Check that there are no matching namelist variables:
-        #------------------------------------------------
-        for nml_file, nml_vars in self.nml_def_vars.items():
+                #If so, then raise an error (as all namelist variable ids must be unique):
+                if same_vars:
+                    emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
+                    emsg += " the following conflicting namelist variables:\n"
+                    emsg += ", ".join(same_vars)
+                    raise AtmInParamGenError(emsg)
+                #End if
+            #End for
+            #------------------------------------------------
 
-            #Determine if any namelist groups are the same
-            #between the two objects:
-            same_vars = nml_vars.intersection(input_vars)
-
-            #If so, then raise an error (as all namelist variable ids must be unique):
-            if same_vars:
-                emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
-                emsg += " the following conflicting namelist variables:\n"
-                emsg += ", ".join(same_vars)
-                raise AtmInParamGenError(emsg)
-
-        #------------------------------------------------
+        #End for (input files used to create input atm_pb object)
 
         #Add input PG object dictionaries to this object's dicts:
-        self.nml_def_groups.update(atm_pg_obj.nml_def_groups)
-        self.nml_def_vars.update(atm_pg_obj.nml_def_vars)
+        self.__nml_def_groups.update(atm_pg_obj.__nml_def_groups)
+        self.__nml_def_vars.update(atm_pg_obj.__nml_def_vars)
+
+        #Also combine PG object var-group dictionary needed for
+        #appending "user_nl_cam":
+        self.__var_group_dict.update(atm_pg_obj.__var_group_dict)
 
         #Append input PG object to this object:
         self.append(atm_pg_obj)
+
+    ####
+
+    def check_user_nl_var(self, var_str):
+
+        """
+        Checks whether the variable string
+        is for a specific set of array
+        indices:
+        ----------
+        var_str  -> variable name string.
+
+        outputs:
+        ----------
+        is_array   -> Logical for whether variable
+                      is an array.
+        var_name   -> Name of variable
+                      (with array indices stripped).
+        arr_indxs  -> List of lists, with one list
+                      for each array dimension. Each
+                      dimension list contains all duplicated
+                      indices for that dimension.
+        data_group -> Namelist group for that particular
+                      variable.
+
+        """
+
+        #Iinitialize variable name:
+        var_name = var_str
+
+        #Initialize array index list:
+        arr_indxs = []
+
+        #Check for array syntax, i.e. parantheses:
+        array_syntax_match = _ARR_INDEX_REGEX.search(var_str)
+
+        #Extract variable name:
+        if array_syntax_match:
+            var_name = var_str[:array_syntax_match.start(0)]
+        else:
+            var_name = var_str
+        #End if
+
+        #Check that variable actually exists in ParamGen object:
+        if var_name in self.__var_group_dict:
+            #Extract namelist group list for variable:
+            data_group = self.__var_group_dict[var_name]
+
+        else:
+            #Raise error that namelist variable isn't listed in
+            #anywhere in a definition file:
+            emsg = f"Variable '{var_name}' not found in any namelist definition files."
+            emsg += " Please double-check 'user_nl_cam'."
+            raise AtmInParamGenError(emsg)
+        #End if
+
+        #Extract variable type from ParamGen Object:
+        var_type = self._data[data_group][var_name]["type"]
+
+        #Search for array dimension specifications in type:
+        array_type_dims = _ARRAY_TYPE_REGEX.search(var_type)
+
+        #Determine if variable is actually an array or not:
+        if array_type_dims:
+            is_array = True
+        else:
+            is_array = False
+        #End if
+
+        #Exit function here if no array indices were used in user_nl_cam file:
+        if not array_syntax_match:
+
+            #No parantheses used, so no indices need to be checked:
+            return is_array, var_name, arr_indxs, data_group
+        #End if
+
+        #If variable is not an array, but array indices are being
+        #used in user_nl_cam, then throw an error:
+        if not is_array:
+            emsg = f"Variable '{var_name}' is not an array, but array"
+            emsg += " dimensions are being specified in 'user_nl_cam'."
+            raise AtmInParamGenError(emsg)
+        #End if
+
+        #Extract array dimension information from variable type
+        #as listed in the associated namelist definition file:
+        #----------------------------------------------------
+
+        #Pull out dimensions string:
+        array_dim_text = array_type_dims.group(1)
+
+        #Split text by number of commas (which should indicate dimensions):
+        array_dims_list = array_dim_text.split(",")
+
+        #Extract total number of dimensions:
+        num_arr_dims = len(array_dims_list)
+
+        #Create new list of max dim size:
+        max_dim_sizes = []
+        for dim_size in array_dims_list:
+            max_dim_sizes.append(user_nl_str_to_int(dim_size, var_name))
+        #End for
+
+        #----------------------------------------------------
+
+        #Now extract all text inside variable quotes:
+        user_array_text = array_syntax_match.group(1)
+
+        #Split text by number of commas (which should indicate dimensions):
+        user_dim_text = user_array_text.split(",")
+
+        #Check that the user hasn't listed more dimensions
+        #than is acutally present in the variable:
+        if len(user_dim_text) > num_arr_dims:
+            #Set proper grammar:
+            if num_arr_dims == 1:
+                dim_err_str = "dimension."
+            else:
+                dim_err_str = "dimensions."
+            #End if
+            emsg = f"Variable '{var_name}' has {len(user_dim_text)}"
+            emsg += " dimensions used in 'user_nl_cam', but is defined"
+            emsg += f" to only have {num_arr_dims} "+dim_err_str
+            raise AtmInParamGenError(emsg)
+        #End if
+
+        #Loop over dimensions:
+        for dim_idx, array_index_text in enumerate(user_dim_text):
+            #Create new array list entry:
+            arr_indxs.append([])
+
+            #check for colons:
+            array_idx_bnds = array_index_text.split(":")
+
+            #Determine number of colons by number of list elements:
+            num_colons = len(array_idx_bnds) - 1
+
+            if num_colons == 0:
+                #No colons are present, so the text should only be a number:
+                index_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
+
+                #Check index value:
+                check_dim_index(var_name, index_val, max_dim_sizes[dim_idx])
+
+                #Add number to array index list:
+                arr_indxs[dim_idx].append(index_val)
+
+            elif num_colons == 1:
+                #One colon is present, so now check if there are specified index bounds:
+                if all(array_idx_bnds):
+
+                    #Both array bounds are specified:
+                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
+                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
+
+                    #Check index values:
+                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
+                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
+
+                    #Make sure first value is smaller than the second:
+                    if index_max_val < index_min_val:
+                        emsg = f"Bad indexing, min index value '{index_min_val}'"
+                        emsg += f" greater than max index value '{index_max_val}'"
+                        emsg += f" for variable '{var_name}' in 'user_nl_cam'."
+                        raise AtmInParamGenError(emsg)
+                    #End if
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in
+                                              range(index_min_val, index_max_val+1)])
+                elif array_idx_bnds[0]:
+
+                    #Only minimum array bound specified:
+                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
+
+                    #Check index value:
+                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in
+                                              range(index_min_val, max_dim_sizes[dim_idx]+1)])
+
+                elif array_idx_bnds[1]:
+
+                    #Only maximum array bounds specified:
+                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
+
+                    #Check index value:
+                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in range(1, index_max_val+1)])
+
+                else:
+
+                    #Only a single colon provided.  In this case provide a special index
+                    #that indicates that specific indices can still be provided, but that the
+                    #whole array dimension cannot be written again:
+                    arr_indxs[dim_idx].append(-1)
+
+                #End if (index bounds)
+
+            elif num_colons == 2:
+
+                #Two colons are present, which means a stride value should be present as
+                #the last numerical value.  If one is not present, then throw an error:
+                if not array_idx_bnds[2]:
+                    emsg = f"Two colons were provided for variable '{var_name}'"
+                    emsg += " in 'user_nl_cam', but no stride value was provided."
+                    emsg += "\nPlease provide either a stride value, or remove the"
+                    emsg += "extra colon."
+                    raise AtmInParamGenError(emsg)
+                #End if
+
+                if all(array_idx_bnds):
+
+                    #A min/max/stride value has been provided:
+                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
+                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
+                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
+
+                    #Check index values:
+                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
+                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
+                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
+
+                    #Make sure first value is smaller than the second:
+                    if index_max_val < index_min_val:
+                        emsg = f"Bad indexing, min index value '{index_min_val}'"
+                        emsg += f" greater than max index value '{index_max_val}'"
+                        emsg += f" for variable '{var_name}' in 'user_nl_cam'."
+                        raise AtmInParamGenError(emsg)
+                    #End if
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in
+                                              range(index_min_val, index_max_val+1, index_stride)])
+
+                elif array_idx_bnds[0]:
+
+                    #Only minimum array bound specified:
+                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
+                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
+
+                    #Check index value:
+                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
+                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in
+                                              range(index_min_val,
+                                                    max_dim_sizes[dim_idx]+1,
+                                                    index_stride)])
+
+                elif array_idx_bnds[1]:
+
+                    #Only maximum array bounds specified:
+                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
+                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
+
+                    #Check index value:
+                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
+                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in
+                                              range(1, index_max_val+1, index_stride)])
+
+                else:
+
+                    #Only a stride provided, so cover the entire array dimension
+                    #using the provided stride:
+
+                    #Extract and check stride values:
+                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
+                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
+
+                    #Add index range to array index list:
+                    arr_indxs[dim_idx].extend([idx for idx in
+                                             range(1,
+                                                   max_dim_sizes[dim_idx]+1,
+                                                   index_stride)])
+
+                #End if (index bounds)
+
+            else:
+
+                #Not sure what to do with three or more colons, so die here:
+                emsg = f"Variable '{var_name}' has {num_colons} colons (:) "
+                emsg += "listed in its dimension indexing in 'user_nl_cam'."
+                emsg += " Only up to two colons are supported."
+                raise AtmInParamGenError(emsg)
+
+            #End if (number of colons)
+        #End for (dimensions)
+
+        #Return relevant variables:
+        return is_array, var_name, arr_indxs, data_group
+
+    ####
+
+    def check_array_indices(self, var_name, arr_index_list):
+
+        """
+        Checks whether the list of array indices has already
+        been set for the given variable, and if so, raises
+        an error.
+        ----------
+        var_name       -> Name of array variable being modified.
+
+        arr_index_list -> A list of lists of array indices
+                          with the first list representing
+                          the dimensions, and the second list
+                          containing the array indices being
+                          set for that dimension.
+
+        """
+
+        #Initialize duplicated index flag,
+        #We won't know the answer one way or the other
+        #until either the end of the loop below, or
+        #until certain conditions are met, so for now
+        #initialize as "None":
+        is_arr_dupl = None
+
+        #Initialize "possible" array duplication flag:
+        possible_dupl = False
+
+        #Check if variable name exists in dictionary:
+        if not (var_name in self.__set_index_vals):
+            #Create a new entry with an empty list,
+            #it should then be filled out in the loop below:
+            self.__set_index_vals[var_name] = []
+
+            #Also set duplication to "False":
+            is_arr_dupl = False
+        #End if
+
+        #Loop over each separate dimension list:
+        for dim_indx, dim_arr_indxs in enumerate(arr_index_list):
+
+            #Initialize duplicated index list (for last dimension checked):
+            dup_indx_list = []
+
+            #Check if dimension index exists for variable dictionary:
+            if dim_indx == len(self.__set_index_vals[var_name]):
+                #Create a new set of array indices for the new dimensions:
+                self.__set_index_vals[var_name].append(set(dim_arr_indxs))
+
+                #Since a new dimension is being specified, this is not a duplicate:
+                is_arr_dupl = False
+            else:
+                #Loop over all array indices:
+                for arr_indx in dim_arr_indxs:
+                    #Check if array index has already been explicitly called:
+                    if arr_indx in self.__set_index_vals[var_name][dim_indx]:
+                        #Add array index to list of duplicated values:
+                        dup_indx_list.append(arr_indx)
+
+                        #This line is possibly a duplication,
+                        #but will need to finish the loop to be sure:
+                        possible_dupl = True
+                    #End if
+
+                    #Add index to "set index" set for variable:
+                    self.__set_index_vals[var_name][dim_indx].add(arr_indx)
+                #End for (array indices)
+
+                #If there were no duplicates at this dimension, then this entry
+                #is not a duplicate:
+                if not possible_dupl:
+                    is_arr_dupl = False
+                #End if
+
+            #End if (new dimension)
+        #End for (dimensions)
+
+        #If the duplication flag hasn't been set yet, then set it now:
+        if is_arr_dupl is None:
+            is_arr_dupl = possible_dupl
+        #End if
+
+        #Now raise an error if there is array duplication:
+        if is_arr_dupl:
+            if any(dup == -1 for dup in dup_indx_list):
+                #This is a special case where a non-bounded
+                #colon (:) was repeated twice, so write
+                #the error message accordingly:
+                emsg = f"Variable '{var_name}' has all values"
+                emsg += " being set multiple times for"
+                emsg += f" dimension {dim_indx+1}."
+            else:
+                emsg = f"Variable '{var_name}' has values"
+                emsg += " at the following indices being"
+                emsg += " set multiple times for dimension"
+                emsg += f" ({dim_indx+1}) :\n"
+                emsg += ", ".join(str(dup) for dup in dup_indx_list)
+            #End if
+            raise AtmInParamGenError(emsg)
+        #End if
 
     ####
 
@@ -375,74 +1035,159 @@ class AtmInParamGen(ParamGen):
         Reads in user_nl_cam files and converts
         them to the proper ParamGen syntax.
         ----------
-        user_nl_file -> path (str) to user_nl_cam file
+        user_nl_file -> Path (str) to user_nl_cam file.
 
         """
 
+        #Create ordered dictionary to store namelist groups,
+        #variables, and values from user_nl_XXX file:
         _data = OrderedDict()
+
+        #Initialize flag preventing duplicate namelist entries:
+        no_duplicates = True
+
+        #Initialize flag to mark whether a variable is an array:
+        is_array = False
+
+        #Initialize flag to mark whether the line is an array continuation line:
+        is_continue_line = False
+
+        #Open user_nl_cam file:
         with open(user_nl_file,'r', encoding='utf-8') as user_file:
-            within_comment_block = False
-            for line in user_file:
+            for line_num, line in enumerate(user_file):
                 if len(line)>1:
+                    #Split line into a list of words/characters:
                     line_s = line.split()
 
                     #If line is empty then go to next line:
                     if not line_s:
                         continue
+                    #End if
 
-                    # check if within comment block.
-                    if (not within_comment_block) and line.strip()[0:2] == "/*":
-                        within_comment_block = True
+                    #Check if a comment delimiter is somewhere in the string:
+                    if '!' in line:
+                        #Check if the entire line is a comment:
+                        if line_s[0][0] == "!":
+                            #Check if this comment is the duplicate keyword:
+                            if "allow_duplicate_namliest_entries" in line_s:
+                                #Next check if a user has set variable to True:
+                                for word in line_s:
+                                    if word.lower() == "true":
+                                        #Allow duplicate namelist entries:
+                                        no_duplicates = False
+                                        break
+                                    #End if
+                                #End for
+                            #End if
+                            #Continue to next line in file:
+                            continue
+                        #End if
+                        #Otherwise simply remove any part of the line that is commented out:
+                        line = remove_user_nl_comment(line)
+                    #End if
 
-                    if within_comment_block and line.strip()[-2:] == "*/":
-                        within_comment_block = False
-                        continue
+                    #Check ifthe first character on the line is a comma (,):
+                    if line.strip()[0] == ",":
+                        #Is this an array variable:
+                        if is_array:
+                            #Was a continuation line already provided:
+                            if is_continue_line:
+                                #Two commas were used in a row with a newline
+                                #in-between. Technically this is allowed,
+                                #but in practice it is VERY likely a mistake,
+                                #so raise an error here:
+                                emsg = f"Line number {line_num+1} in 'user_nl_cam'"
+                                emsg += " starts with a comma (,) but the"
+                                emsg += " previous line ended with a comma."
+                                emsg += "\nPlease remove one of the commas."
+                                raise AtmInParamGenError(emsg)
+                            #End if
 
-                    if not within_comment_block and line_s[0][0] != "!": # not a single comment line either
-
-                        #Join string elements back together:
-                        line_j = ' '.join(line_s)
-
-                        # now parse the line:
-                        if "=" in line_j:
-                            line_ss   = line_j.split("=")
-                            var_str   = (line_ss[0]).strip()  # the first element is the parameter name
-                            val_str   = ' '.join(line_ss[1:]) # the rest is tha value string
-                            if '!' in val_str:
-                                val_str = val_str.split("!", maxsplit=1)[0] # discard the comment in val str, if one exists
-
-                            #Check if variable already exists in group dictionary:
-                            if var_str in self.var_group_dict:
-                                #Extract namelist group list for variable:
-                                data_group = self.var_group_dict[var_str]
-
-                            else:
-                                #Raise error that namelist variable isn't listed in
-                                #anywhere in a definition file:
-                                emsg = "Variable '{}' not found in any namelist definition files."
-                                emsg += " Please double-check '{}'."
-                                raise AtmInParamGenError(emsg.format(var_str, user_nl_file))
-
-                            #Add the namelist group if not already in data dict:
-                            if not data_group in _data:
-                                _data[data_group] = {}
-
-                            #Check if variable already exists in data dictionary:
-                            if var_str in _data[data_group]:
-                                emsg = "Namelist variable '{}' set more than once in '{}'"
-                                emsg += "\nPlease set each variable only once."
-                                raise AtmInParamGenError(emsg.format(var_str, user_nl_file))
-
-                            #Enter the parameter in the dictionary:
-                            _data[data_group][var_str] = {'values':val_str}
+                            #If not, then set it to be a continuation line:
+                            is_continue_line = True
                         else:
-                            emsg = "Cannot parse the following line in '{}' :\n'{}'"
-                            raise AtmInParamGenError(emsg.format(user_nl_file, line))
+                            #The previous variable is not an array, so throw an error:
+                            emsg  = f"Line number {line_num+1} in 'user_nl_cam'"
+                            emsg += " starts with a comma (,) but the"
+                            emsg += " associated namelist variable is not an array."
+                            raise AtmInParamGenError(emsg)
+                        #End if
+                    #End if
 
-            #Check if there is unclosed block:
-            if within_comment_block:
-                raise AtmInParamGenError(f"Un-closed comment block!  Please check '{user_nl_file}'")
+                    #Now parse the line:
+                    if "=" in line and (line.strip()[0] != "=") and not (is_array and is_continue_line):
+                        line_ss   = line.split("=")       # Split line into before/after equals sign
+                        var_str   = (line_ss[0]).strip()  # the first element is the variable name
 
+                        #Check if this variable is an array, and if so,
+                        #then return what the variable name is, what indices (if any)
+                        #are being specified, and what namelist (data) group it belongs to:
+                        is_array, var_name, arr_indxs, data_group = self.check_user_nl_var(var_str)
+
+                        #Are there array indices specified:
+                        if arr_indxs:
+
+                            if no_duplicates:
+                                #Check if any duplicate array indices are present:
+                                self.check_array_indices(var_name, arr_indxs)
+                            #End if
+
+                            #ParamGen will think this is a "new" parameter variable, so we need
+                            #to add a type in order for the "write" method to work properly.  The
+                            #type can be copied directly from the original variable using "var_name":
+                            var_type = self._data[data_group][var_name]["type"]
+                        else:
+                            #Variable doesn't need a type specified:
+                            var_type = None
+                        #End if (array indices)
+
+                        #Extract value string:
+                        val_str   = ' '.join(line_ss[1:]) # the rest is tha value string
+
+                        #Check if value string ends in array continuation:
+                        if is_array:
+                            #Check if the string ends in a comma (,):
+                            if val_str.strip()[-1] == ",":
+                                #If so, then make "array_continue_line" fully true:
+                                is_continue_line = True
+                            #End if
+                        #End if
+
+                        #Add the namelist group if not already in data dict:
+                        if not data_group in _data:
+                            _data[data_group] = {}
+                        #End if
+
+                        #Check if variable already exists in data dictionary:
+                        if var_str in _data[data_group] and no_duplicates:
+                            emsg = "Namelist variable '{}' set more than once in '{}'"
+                            emsg += "\nPlease set each variable only once."
+                            raise AtmInParamGenError(emsg.format(var_str, user_nl_file))
+                        #End if
+
+                        #Enter the parameter in the dictionary:
+                        if var_type:
+                            _data[data_group][var_str] = {'values':val_str, 'type':var_type}
+                        else:
+                            _data[data_group][var_str] = {'values':val_str}
+                        #end if
+                    elif (is_array and is_continue_line):
+                        #This is an array continuation line, so append the line to previous
+                        #variable's value as-is:
+                        _data[data_group][var_str]['values'] += line
+
+                        #Check if the line does NOT end in a comma (,):
+                        if not line.strip()[-1] == ",":
+                            #Notify loop to check the next line for a comma:
+                            is_continue_line = False
+                        #End if
+
+                    else:
+                        emsg = "Cannot parse the following line in '{}' :\n'{}'"
+                        raise AtmInParamGenError(emsg.format(user_nl_file, line))
+                    #End if ("=" sign check)
+                #End if (len(line) > 1)
+            #End for
         #End with
 
         #Check if any user_nl_cam data is present:
@@ -469,9 +1214,7 @@ class AtmInParamGen(ParamGen):
             emsg = "ParamGen object for atm_in must be reduced before being "
             emsg += "written to file. Please check CAM's buildnml script."
             raise AtmInParamGenError(emsg)
-
-        #Create a regex value to check for an array type:
-        arr_type_regex = re.compile(r"[(][ ]*([0-9 ,]+)[ ]*[)]")
+        #End if
 
         #Create sets for string evaluation below:
         num_set = {"integer", "real"} #types that don't need special handling
@@ -491,6 +1234,7 @@ class AtmInParamGen(ParamGen):
                     #If no value is set then move to the next variable:
                     if val is None:
                         continue
+                    #End if
 
                     #Extract variable type:
                     if "type" in self._data[nml_group][var]:
@@ -498,9 +1242,10 @@ class AtmInParamGen(ParamGen):
                     else:
                         emsg = f"Namelist entry '{var}' is missing required 'type' element."
                         raise AtmInParamGenError(emsg)
+                    #End if
 
                     #Check if an array type:
-                    array_type = arr_type_regex.search(var_type)
+                    array_type = _ARRAY_TYPE_REGEX.search(var_type)
 
                     if array_type:
                         #Grab all text before array regex match:
@@ -540,7 +1285,7 @@ class AtmInParamGen(ParamGen):
                                 #Remove any extra white space:
                                 elem = elem_with_space.strip()
 
-                                #Remove all quotes in the string, as they
+                                #Remove all quotes in the string, as they are
                                 #sometimes added by ParamGen during the "reduce" phase:
                                 elem = elem.replace("'", "")
                                 elem = elem.replace('"', "")
@@ -634,6 +1379,8 @@ class AtmInParamGen(ParamGen):
             else:
                 #Assume the XML attribute/guard is an empty string:
                 val = ""
+            #End if
+        #End if
 
         #Return value if found:
         return val

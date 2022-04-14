@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- A third made-up XML namelist file for testing -->
+
+  <entry id="space_station">
+    <type>char*128</type>
+    <category>sci_fi</category>
+    <group>space_stations</group>
+    <desc>
+      Which station is this?
+    </desc>
+    <values>
+      <value>skylab</value>
+      <value international="true">iss</value>
+      <value imperial="true">deathstar</value>
+      <value delta_quad="true">ds9</value>
+      <value last_one_vanished="true">bablyon5</value>
+    </values>
+  </entry>
+
+</entry_id_pg>
