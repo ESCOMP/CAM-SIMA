@@ -107,9 +107,9 @@ def nml_file_dict_update(nml_fil_dict, nml_def_fils):
             fil_dir = os.path.dirname(os.path.abspath(nml_def_fil))
             # Print message to logger:
             _LOGGER.info("     ...found namelist definition file %s in %s",
-                      fil_base, fil_dir)
+                      fil_name, fil_dir)
             # Replace file path with SourceMods path
-            nml_fil_dict[fil_base] = nml_def_fil
+            nml_fil_dict[fil_name] = nml_def_fil
         #End if
     #End fof
 
