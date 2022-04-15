@@ -87,43 +87,50 @@ def get_atm_hgrid(atm_grid_str):
     mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dycore (not totally sure about this pattern)
 
     # Check if specified grid matches any of the pre-defined grid options.
-    #   If so, then add both the horizontal grid and dynamical core
-    #   to the configure object
+    #   If so, then add both the horizontal grid regex and dynamical core
+    #   to the configure object:
+
     if fv_grid_re.match(atm_grid_str) is not None:
 
         #Finite Volume (FV) dycore:
         return "fv", fv_grid_re
+    #End if
 
-    elif se_grid_re.match(atm_grid_str) is not None:
+    if se_grid_re.match(atm_grid_str) is not None:
 
         #Spectral Element (SE) dycore:
         return "se", se_grid_re
+    #End if
 
-    elif fv3_grid_re.match(atm_grid_str) is not None:
+    if fv3_grid_re.match(atm_grid_str) is not None:
 
         #Finite Volume Cubed-Sphere (FV3) dycore:
         return "fv3", fv3_grid_re
+    #End if
 
-    elif mpas_grid_re.match(atm_grid_str) is not None:
+    if mpas_grid_re.match(atm_grid_str) is not None:
 
         #Model for Prediction Across Scales (MPAS) dycore:
         return "mpas", mpas_grid_re
+    #End if
 
-    elif eul_grid_re.match(atm_grid_str) is not None:
+    if eul_grid_re.match(atm_grid_str) is not None:
 
         #Eulerian Spectral (eul) dycore:
         return "eul", eul_grid_re
+    #End if
 
-    elif atm_grid_str == "null":
+    if atm_grid_str == "null":
 
         #Null dycore:
         return "none", None
-
-    else:
-        emsg = "ERROR: The specified CAM horizontal grid, '{}', "
-        emsg += "does not match any known format."
-        raise CamConfigValError(emsg.format(atm_grid_str))
     #End if
+
+    #If one has made it here, then the horizontal grid is not recognized,
+    #so throw an error:
+    emsg = "ERROR: The specified CAM horizontal grid, '{}', "
+    emsg += "does not match any known format."
+    raise CamConfigValError(emsg.format(atm_grid_str))
 
 ###############################################################################
 # MAIN CAM CONFIGURE OBJECT

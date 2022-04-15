@@ -110,9 +110,10 @@ class FakeCase:
         """
 
         if key in self.conf_opts:
-          val = self.conf_opts[key]
+            val = self.conf_opts[key]
         else:
-          val = None
+            val = None
+        #End if
 
         return val
 
@@ -661,7 +662,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("duck_quack = 1 \n")
             nl_file.write(", .false.")
         # End with
@@ -704,7 +705,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros = 'mario', 'luigi',\n")
             nl_file.write(", 'wario', 'karl'")
         # End with
@@ -747,7 +748,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("duck_quack(5:6) = .true.")
         # End with
 
@@ -786,7 +787,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(5,8) = .true.")
         # End with
 
@@ -828,7 +829,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(4:1) = 'Gummo'")
         # End with
 
@@ -850,7 +851,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         #Try again with a stride index:
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(4:1:2) = 'Gummo'")
         # End with
 
@@ -890,7 +891,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(2::) = 'Gummo'")
         # End with
 
@@ -932,7 +933,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(1:2:3:4) = 'Gummo'")
         # End with
 
@@ -974,7 +975,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(:) = 'Gummo'\n")
             nl_file.write("marx_bros(:) = 'Groucho'")
         # End with
@@ -1021,7 +1022,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test.append_atm_in_pg(pg_ext)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w") as nl_file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
             nl_file.write("marx_bros(:) = 'Gummo'\n")
             nl_file.write("marx_bros(4) = 'Groucho'\n\n")
             nl_file.write("lets_ask_computer(:) = 2\n")
@@ -1053,51 +1054,51 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
     def test_user_nl_arr_index_range_dupl(self):
 
-       """
-       check that a user_nl_cam file with a
-       namelist variable that has an array
-       index range (e.g. min:max) that covers
-       a previous index range for that same
-       variable fails with the appropriate error
-       """
+        """
+        check that a user_nl_cam file with a
+        namelist variable that has an array
+        index range (e.g. min:max) that covers
+        a previous index range for that same
+        variable fails with the appropriate error
+        """
 
-       # Get XML file paths:
-       xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
-       extra_xml_fil = os.path.join(_SAMPLES_DIR, "test_extra_nml_def.xml")
+        # Get XML file paths:
+        xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
+        extra_xml_fil = os.path.join(_SAMPLES_DIR, "test_extra_nml_def.xml")
 
-       # Create the ParamGen objects:
-       pg_test  = AtmInParamGen.from_namelist_xml(xml_test_fil)
-       pg_ext   = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        # Create the ParamGen objects:
+        pg_test  = AtmInParamGen.from_namelist_xml(xml_test_fil)
+        pg_ext   = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
-       # Append the PG objects together:
-       pg_test.append_atm_in_pg(pg_ext)
+        # Append the PG objects together:
+        pg_test.append_atm_in_pg(pg_ext)
 
-       # Create temporary user_nl_cam file:
-       with open("user_nl_tmp", "w") as nl_file:
-           nl_file.write('marx_bros = "Gummo"\n')
-           nl_file.write('marx_bros(2:) = "Groucho"\n')
-           nl_file.write('marx_bros(1) = "Karl"\n')
-           nl_file.write('lets_ask_computer = 2\n')
-           nl_file.write('lets_ask_computer(5:20) = 3\n')
-           nl_file.write('lets_ask_computer(4) = 4\n')
-           nl_file.write("lets_ask_computer(:11) = 5 !Should fail here")
-       # End with
+        # Create temporary user_nl_cam file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+            nl_file.write('marx_bros = "Gummo"\n')
+            nl_file.write('marx_bros(2:) = "Groucho"\n')
+            nl_file.write('marx_bros(1) = "Karl"\n')
+            nl_file.write('lets_ask_computer = 2\n')
+            nl_file.write('lets_ask_computer(5:20) = 3\n')
+            nl_file.write('lets_ask_computer(4) = 4\n')
+            nl_file.write("lets_ask_computer(:11) = 5 !Should fail here")
+        # End with
 
-       # Attempt to append user_nl_cam file:
-       with self.assertRaises(AtmInParamGenError) as cerr:
-           pg_test.append_user_nl_file("user_nl_tmp")
-       # End with
+        # Attempt to append user_nl_cam file:
+        with self.assertRaises(AtmInParamGenError) as cerr:
+            pg_test.append_user_nl_file("user_nl_tmp")
+        # End with
 
-       # Check exception message:
-       emsg = "Variable 'lets_ask_computer' has values"
-       emsg += " at the following indices being"
-       emsg += " set multiple times for dimension"
-       emsg += " (1) :\n"
-       emsg += "4, 5, 6, 7, 8, 9, 10, 11"
-       self.assertEqual(emsg, str(cerr.exception))
+        # Check exception message:
+        emsg = "Variable 'lets_ask_computer' has values"
+        emsg += " at the following indices being"
+        emsg += " set multiple times for dimension"
+        emsg += " (1) :\n"
+        emsg += "4, 5, 6, 7, 8, 9, 10, 11"
+        self.assertEqual(emsg, str(cerr.exception))
 
-       #Remove temporary user_nl_cam file
-       os.remove("user_nl_tmp")
+        #Remove temporary user_nl_cam file
+        os.remove("user_nl_tmp")
 
 #################################################
 #Run unit tests if this script is called directly

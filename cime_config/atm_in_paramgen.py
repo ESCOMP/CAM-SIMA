@@ -254,10 +254,10 @@ def remove_user_nl_comment(user_string):
 
     #Search for all comment delimiters (currently just "!"):
     for char_idx, char in enumerate(user_string):
-      if char == "!":
-         #Add character index to set:
-         comment_delim_indices.add(char_idx)
-      #End if
+        if char == "!":
+            #Add character index to set:
+            comment_delim_indices.add(char_idx)
+         #End if
     #End for
 
     #If no comments are present, then return string as-is:
@@ -335,10 +335,10 @@ def user_nl_str_to_int(string, var_name):
     #Attempt the conversion of the string to an integer:
     try:
         integer_val = int(string)
-    except ValueError:
+    except ValueError as verr:
         emsg = f"\nInvalid array index entry '{string}' "
         emsg += f"used for variable '{var_name}' in 'user_nl_cam'."
-        raise AtmInParamGenError(emsg)
+        raise AtmInParamGenError(emsg) from verr
     #End except
 
     #Return relevant integer value:
@@ -386,7 +386,7 @@ def check_dim_index(var_name, index_val, dim_size):
     if index_val <= 0:
         emsg = f"\nVariable '{var_name}' has index {index_val}"
         emsg += " in 'user_nl_cam', which is less than one (1),"
-        emsg +=f" the minimal index value allowed."
+        emsg += " the minimal index value allowed."
         raise AtmInParamGenError(emsg)
     #End if
 
@@ -461,28 +461,32 @@ def _get_nml_value_str(var_name, var_type, var_val):
 
     #Check variable type:
     if var_type == 'logical':
-        #If logical, then write the associated truth value:
+        #If logical, then see if it is "True":
         if _is_nml_logical_true(var_name, var_val):
             return ".true."
-        else:
-            return ".false."
         #End if
-    elif var_type in num_set:
+        #If not true, then must be false:
+        return ".false."
+    #End if
+
+    if var_type in num_set:
         #If a number, then write value as-is:
         return f"{var_val}"
-    elif "char*" in var_type:
+    #End if
+
+    if "char*" in var_type:
         #Remove all quotes in the string, as they
         #sometimes added by ParamGen during the "reduce" phase:
         var_val = var_val.replace("'", "")
         var_val = var_val.replace('"', "")
         #Return with double quotes:
         return f'"{var_val.strip()}"'
-    else:
-        #This is an un-recognized type option, so raise an error:
-        emsg = f"Namelist type '{var_type}' for entry '{var_name}' is un-recognized.\n"
-        emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
-        raise AtmInParamGenError(emsg)
     #End if
+
+    #If one makes it here, then this is an un-recognized type option, so raise an error:
+    emsg = f"Namelist type '{var_type}' for entry '{var_name}' is un-recognized.\n"
+    emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
+    raise AtmInParamGenError(emsg)
 
 ################################################################
 # MAIN "atm_in" ParamGen class
@@ -781,11 +785,7 @@ class AtmInParamGen(ParamGen):
         array_type_dims = _ARRAY_TYPE_REGEX.search(var_type)
 
         #Determine if variable is actually an array or not:
-        if array_type_dims:
-            is_array = True
-        else:
-            is_array = False
-        #End if
+        is_array = bool(array_type_dims)
 
         #Exit function here if no array indices were used in user_nl_cam file:
         if not array_syntax_match:
@@ -886,8 +886,7 @@ class AtmInParamGen(ParamGen):
                     #End if
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in
-                                              range(index_min_val, index_max_val+1)])
+                    arr_indxs[dim_idx].extend(list(range(index_min_val, index_max_val+1)))
                 elif array_idx_bnds[0]:
 
                     #Only minimum array bound specified:
@@ -897,8 +896,7 @@ class AtmInParamGen(ParamGen):
                     check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in
-                                              range(index_min_val, max_dim_sizes[dim_idx]+1)])
+                    arr_indxs[dim_idx].extend(list(range(index_min_val, max_dim_sizes[dim_idx]+1)))
 
                 elif array_idx_bnds[1]:
 
@@ -909,7 +907,7 @@ class AtmInParamGen(ParamGen):
                     check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in range(1, index_max_val+1)])
+                    arr_indxs[dim_idx].extend(list(range(1, index_max_val+1)))
 
                 else:
 
@@ -953,8 +951,9 @@ class AtmInParamGen(ParamGen):
                     #End if
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in
-                                              range(index_min_val, index_max_val+1, index_stride)])
+                    arr_indxs[dim_idx].extend(list(range(index_min_val,
+                                                         index_max_val+1,
+                                                         index_stride)))
 
                 elif array_idx_bnds[0]:
 
@@ -967,10 +966,9 @@ class AtmInParamGen(ParamGen):
                     check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in
-                                              range(index_min_val,
-                                                    max_dim_sizes[dim_idx]+1,
-                                                    index_stride)])
+                    arr_indxs[dim_idx].extend(list(range(index_min_val,
+                                                         max_dim_sizes[dim_idx]+1,
+                                                         index_stride)))
 
                 elif array_idx_bnds[1]:
 
@@ -983,8 +981,7 @@ class AtmInParamGen(ParamGen):
                     check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in
-                                              range(1, index_max_val+1, index_stride)])
+                    arr_indxs[dim_idx].extend(list(range(1, index_max_val+1, index_stride)))
 
                 else:
 
@@ -996,10 +993,9 @@ class AtmInParamGen(ParamGen):
                     check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
 
                     #Add index range to array index list:
-                    arr_indxs[dim_idx].extend([idx for idx in
-                                             range(1,
+                    arr_indxs[dim_idx].extend(list(range(1,
                                                    max_dim_sizes[dim_idx]+1,
-                                                   index_stride)])
+                                                   index_stride)))
 
                 #End if (index bounds)
 
@@ -1047,7 +1043,7 @@ class AtmInParamGen(ParamGen):
         possible_dupl = False
 
         #Check if variable name exists in dictionary:
-        if not (var_name in self.__set_index_vals):
+        if not var_name in self.__set_index_vals:
             #Create a new entry with an empty list,
             #it should then be filled out in the loop below:
             self.__set_index_vals[var_name] = []
@@ -1055,6 +1051,10 @@ class AtmInParamGen(ParamGen):
             #Also set duplication to "False":
             is_arr_dupl = False
         #End if
+
+        #Initialize dimension index for use in error-handling at
+        #end of function:
+        dim_indx = 0
 
         #Loop over each separate dimension list:
         for dim_indx, dim_arr_indxs in enumerate(arr_index_list):
@@ -1306,9 +1306,6 @@ class AtmInParamGen(ParamGen):
             emsg += "written to file. Please check CAM's buildnml script."
             raise AtmInParamGenError(emsg)
         #End if
-
-        #Create sets for string evaluation below:
-        num_set = {"integer", "real"} #types that don't need special handling
 
         # Write Fortran namelist file:
         with open(os.path.join(output_path), 'w', encoding='utf-8') as atm_in_fil:
