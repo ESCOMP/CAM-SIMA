@@ -32,6 +32,100 @@ from cam_autogen import generate_registry, generate_physics_suites
 from cam_autogen import generate_init_routines
 
 ###############################################################################
+#HELPER FUNCTIONS
+###############################################################################
+
+def get_atm_hgrid(atm_grid_str):
+
+    """
+    Processes the provided atmospheric grid string
+    to determine what dynamical core and horizontal
+    grid regex are being used for this model run.
+
+    Inputs:
+    atm_grid_str ->  The "ATM_GRID" string provided by CIME
+
+    Outputs:
+    dycore   ->  A string which specifies the dycore being used.
+    hgrid_re ->  A regular expression that matches the provided grid string.
+
+    Doctests:
+
+    1.  Check that a FV grid returns the correct results:
+    >>> get_atm_hgrid("1.9x2.5")
+    ('fv', re.compile('[0-9][0-9.]*x[0-9][0-9.]*'))
+
+    2.  Check that an SE grid returns the correct results:
+    >>> get_atm_hgrid("ne5np4.pg2")
+    ('se', re.compile('ne[0-9]+np[1-8](.*)(pg[1-9])?'))
+
+    3.  Check that an FV3 grid returns the correct results:
+    >>> get_atm_hgrid("C96")
+    ('fv3', re.compile('C[0-9]+'))
+
+    4.  Check that an MPAS grid returns the correct results:
+    >>> get_atm_hgrid("mpasa480")
+    ('mpas', re.compile('mpasa[0-9]+'))
+
+    5.  Check that a null dycore returns the correct results:
+    >>> get_atm_hgrid("null")
+    ('none', None)
+
+    6.  Check that a horizontal grid with with no matches fails
+        with the correct error message:
+    >>> get_atm_hgrid("1.9xC96") # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    cam_config_classes.CamConfigValError: ERROR: The specified CAM horizontal grid, '1.9xC96', does not match any known format.
+    """
+
+    # Create regex expressions to search for the different dynamics grids
+    eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dycore
+    fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")     # FV dycore
+    se_grid_re = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?") # SE dycore
+    fv3_grid_re = re.compile(r"C[0-9]+")                      # FV3 dycore
+    mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dycore (not totally sure about this pattern)
+
+    # Check if specified grid matches any of the pre-defined grid options.
+    #   If so, then add both the horizontal grid and dynamical core
+    #   to the configure object
+    if fv_grid_re.match(atm_grid_str) is not None:
+
+        #Finite Volume (FV) dycore:
+        return "fv", fv_grid_re
+
+    elif se_grid_re.match(atm_grid_str) is not None:
+
+        #Spectral Element (SE) dycore:
+        return "se", se_grid_re
+
+    elif fv3_grid_re.match(atm_grid_str) is not None:
+
+        #Finite Volume Cubed-Sphere (FV3) dycore:
+        return "fv3", fv3_grid_re
+
+    elif mpas_grid_re.match(atm_grid_str) is not None:
+
+        #Model for Prediction Across Scales (MPAS) dycore:
+        return "mpas", mpas_grid_re
+
+    elif eul_grid_re.match(atm_grid_str) is not None:
+
+        #Eulerian Spectral (eul) dycore:
+        return "eul", eul_grid_re
+
+    elif atm_grid_str == "null":
+
+        #Null dycore:
+        return "none", None
+
+    else:
+        emsg = "ERROR: The specified CAM horizontal grid, '{}', "
+        emsg += "does not match any known format."
+        raise CamConfigValError(emsg.format(atm_grid_str))
+    #End if
+
+###############################################################################
 # MAIN CAM CONFIGURE OBJECT
 ###############################################################################
 
@@ -166,8 +260,7 @@ class ConfigCAM:
         self.__xml_nml_def_files = OrderedDict()
 
         #Add the default host model namelist:
-        self.__xml_nml_def_files['namelist_definition_cam.xml'] = \
-            os.path.join(cime_conf_path, 'namelist_definition_cam.xml')
+        self._add_xml_nml_file(cime_conf_path, 'namelist_definition_cam.xml')
 
         #----------------------------------------------------
         # Set CAM start date (needed for namelist generation)
@@ -227,28 +320,16 @@ class ConfigCAM:
                          "These directories are assumed to be located under",
                          "src/dynamics, with a slash ('/') indicating directory hierarchy."]
 
-        # Create regex expressions to search for the different dynamics grids
-        eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dycore
-        fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")     # FV dycore
-        se_grid_re = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?") # SE dycore
-        fv3_grid_re = re.compile(r"C[0-9]+")                      # FV3 dycore
-        mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dycore (not totally sure about this pattern)
 
-        # Check if specified grid matches any of the pre-defined grid options.
-        #   If so, then add both the horizontal grid and dynamical core
-        #   to the configure object
-        if fv_grid_re.match(atm_grid) is not None:
-            # Dynamical core
-            self.create_config("dyn", dyn_desc, "fv",
-                               dyn_valid_vals, is_nml_attr=True)
-            # Horizontal grid
-            self.create_config("hgrid", hgrid_desc, atm_grid,
-                               fv_grid_re, is_nml_attr=True)
+        #Determine dynmaical core and grid-matching regex to use for validation:
+        dycore, grid_regex = get_atm_hgrid(atm_grid)
 
-        elif se_grid_re.match(atm_grid) is not None:
-            # Dynamical core
-            self.create_config("dyn", dyn_desc, "se",
-                               dyn_valid_vals, is_nml_attr=True)
+        #Add dynamical core to config object:
+        self.create_config("dyn", dyn_desc, dycore,
+                           dyn_valid_vals, is_nml_attr=True)
+
+        #Add horizontal grid to config object:
+        if dycore == "se":
 
             #Determine location of period (".") in atm_grid string:
             dot_idx = atm_grid.find(".")
@@ -256,26 +337,34 @@ class ConfigCAM:
             # Horizontal grid
             if dot_idx == -1:
                 self.create_config("hgrid", hgrid_desc, atm_grid,
-                                   se_grid_re, is_nml_attr=True)
+                                   grid_regex, is_nml_attr=True)
             else:
                 self.create_config("hgrid", hgrid_desc, atm_grid[:dot_idx],
-                                   se_grid_re, is_nml_attr=True)
+                                   grid_regex, is_nml_attr=True)
             #End if
 
+        else:
+
+            #Add horizontal grid as-is:
+            self.create_config("hgrid", hgrid_desc, atm_grid,
+                               grid_regex, is_nml_attr=True)
+        #End if
+
+        #Add dycore-specific settings:
+        #------------
+        if dycore == "se":
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["se",os.path.join("se","dycore")],
                                valid_list_type="str")
 
             # Set paths for the SE dycore and "air composition"
             # namelist definition files:
-            se_dyn_nml_fil = os.path.join(cime_conf_path, os.pardir, "src",
-                                          "dynamics", "se", "namelist_definition_se_dycore.xml")
-            air_comp_nml_fil = os.path.join(cime_conf_path, os.pardir, "src",
-                                            "data", "namelist_definition_air_comp.xml")
+            se_dyn_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "dynamics", "se")
+            air_comp_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
 
             #Add NML definition files to dictionary:
-            self.__xml_nml_def_files['namelist_definition_se_dycore.xml'] = se_dyn_nml_fil
-            self.__xml_nml_def_files['namelist_definition_air_comp.xml'] = air_comp_nml_fil
+            self._add_xml_nml_file(se_dyn_nml_path, "namelist_definition_se_dycore.xml")
+            self._add_xml_nml_file(air_comp_nml_path, "namelist_definition_air_comp.xml")
 
             # Add required CPP definitons:
             self.add_cppdef("_MPI")
@@ -284,33 +373,8 @@ class ConfigCAM:
             # Add OpenMP CPP definitions, if needed:
             if nthrds > 1:
                 self.add_cppdef("_OPENMP")
-
-        elif fv3_grid_re.match(atm_grid) is not None:
-            # Dynamical core
-            self.create_config("dyn", dyn_desc, "fv3",
-                               dyn_valid_vals, is_nml_attr=True)
-            # Horizontal grid
-            self.create_config("hgrid", hgrid_desc, atm_grid,
-                               fv3_grid_re, is_nml_attr=True)
-
-        elif mpas_grid_re.match(atm_grid) is not None:
-            # Dynamical core
-            self.create_config("dyn", dyn_desc, "mpas",
-                               dyn_valid_vals, is_nml_attr=True)
-            # Horizontal grid
-            self.create_config("hgrid", hgrid_desc, atm_grid,
-                               mpas_grid_re, is_nml_attr=True)
-
-        elif eul_grid_re.match(atm_grid) is not None:
-            # Dynamical core
-            self.create_config("dyn", dyn_desc, "eul",
-                               dyn_valid_vals, is_nml_attr=True)
-            # Horizontal grid
-            self.create_config("hgrid", hgrid_desc, atm_grid,
-                               eul_grid_re, is_nml_attr=True)
-
-            # If using the Eulerian dycore, then add wavenumber variables
-
+            #End if
+        elif dycore == "eul":
             # Wavenumber variable descriptions
             trm_desc = "Maximum Fourier wavenumber."
             trn_desc = "Highest degree of the Legendre polynomials for m=0."
@@ -320,34 +384,19 @@ class ConfigCAM:
             self.create_config("trm", trm_desc, 1, (1, None))
             self.create_config("trn", trn_desc, 1, (1, None))
             self.create_config("trk", trk_desc, 1, (1, None))
-
-        elif atm_grid == "null":
-            # Dynamical core
-            self.create_config("dyn", dyn_desc, "none",
-                               dyn_valid_vals, is_nml_attr=True)
-            # Atmospheric grid
-            self.create_config("hgrid", hgrid_desc, atm_grid,
-                               None, is_nml_attr=True)
-
+        elif dycore == "none":
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["none"],
                                valid_list_type="str")
-
-        else:
-            emsg = "ERROR: The specified CAM horizontal grid, '{}', "
-            emsg += "does not match any known format."
-            raise CamConfigValError(emsg.format(atm_grid))
         #End if
-
-        # Extract dynamics option
-        dyn = self.get_value("dyn")
+        #------------
 
         # If user-specified dynamics option is present,
         #    check that it matches the grid-derived value
-        if user_dyn_opt is not None and user_dyn_opt != dyn:
+        if user_dyn_opt is not None and user_dyn_opt != dycore:
             emsg = "ERROR:  User-specified dynamics option, '{}', "
             emsg += "does not match dycore expected from case grid: '{}'"
-            raise CamConfigValError(emsg.format(user_dyn_opt, dyn))
+            raise CamConfigValError(emsg.format(user_dyn_opt, dycore))
         # End if
 
         #---------------------------------------
@@ -355,7 +404,7 @@ class ConfigCAM:
         #---------------------------------------
 
         #Set horizontal dimension variables:
-        if dyn == "se":
+        if dycore == "se":
 
             # Determine location of "np" in atm_grid string:
             np_idx = atm_grid.find("np")
@@ -405,6 +454,7 @@ class ConfigCAM:
             nlon_desc = ["Number of unique longitude points in rectangular lat/lon grid.",
                          "Total number of columns for unstructured grids."]
             self.create_config("nlon", nlon_desc, case_nx)
+        #End if
 
         #---------------------------------------
         # Set initial and/or boundary conditions
@@ -416,18 +466,18 @@ class ConfigCAM:
             analy_ic_val = 1 #Use Analytic ICs
 
             #Add analytic IC namelist definition file to dictionary:
-            analy_ic_nml_fil = os.path.join(cime_conf_path, os.pardir, "src",
-                                            "dynamics", "tests",
-                                            "namelist_definition_analy_ic.xml")
+            analy_ic_nml_path = os.path.join(cime_conf_path, os.pardir, "src",
+                                             "dynamics", "tests")
 
             #Add NML definition files to dictionary:
-            self.__xml_nml_def_files['namelist_definition_analy_ic.xml'] = analy_ic_nml_fil
+            self._add_xml_nml_file(analy_ic_nml_path, "namelist_definition_analy_ic.xml")
 
             #Add new CPP definition:
             self.add_cppdef("ANALYTIC_IC")
 
         else:
             analy_ic_val = 0 #Don't use Analytic ICs
+        #End if
 
         analy_ic_desc = ["Switch to turn on analytic initial conditions for the dynamics state: ",
                          "0 => no ",
@@ -860,7 +910,7 @@ class ConfigCAM:
         """
 
         #Extract physics suites list:
-        phys_suites = self.get_value('physics_suites').split(';')
+        phys_suites = [x.strip() for x in self.get_value('physics_suites').split(';')]
 
         #Determine current value of "physics_suite" namelist variable:
         phys_nl_val = phys_nl_pg_dict['physics_suite']['values'].strip()
@@ -871,48 +921,65 @@ class ConfigCAM:
             if phys_nl_val != 'UNSET':
                 #If so, then check that user-provided suite matches
                 #suite in physics_suites config list:
-                if phys_nl_val == phys_suites[0].strip():
+                if phys_nl_val == phys_suites[0]:
                     #If so, then set attribute to phys_suites value:
-                    cam_nml_attr_dict["phys_suite"] = phys_suites[0].strip()
+                    phys_nl_pg_dict['physics_suite']['values'] = phys_suites[0]
+                    cam_nml_attr_dict["phys_suite"] = phys_suites[0]
                 else:
                     #If not, then throw an error:
                     emsg  = "physics_suite specified in user_nl_cam, '{}', does not\n"
                     emsg += "match the suite listed in CAM_CONFIG_OPTS: '{}'"
                     raise CamConfigValError(emsg.format(phys_nl_val,
                                                         phys_suites[0]))
+                #End if
 
             else:
                 #If not, then just set the attribute and nl value to phys_suites value:
-                phys_nl_pg_dict['physics_suite']['values'] = phys_suites[0].strip()
-                cam_nml_attr_dict["phys_suite"] = phys_suites[0].strip()
+                phys_nl_pg_dict['physics_suite']['values'] = phys_suites[0]
+                cam_nml_attr_dict["phys_suite"] = phys_suites[0]
+            #End if
 
         else:
             #Check if "physics_suite" has been set by the user:
             if phys_nl_val != 'UNSET':
                 #If so, then check if user-provided value is present in the
                 #physics_suites config list:
-                match_found = False
-                for phys_suite in phys_suites:
-                    if phys_nl_val == phys_suite.strip():
-                        #If a match is found, then set attribute and leave loop:
-                        cam_nml_attr_dict["phys_suite"] = phys_suite.strip()
-                        match_found = True
-                        break
-
-                #Check that a match was found, if not, then throw an error:
-                if not match_found:
+                if phys_nl_val in phys_suites:
+                    phys_nl_pg_dict['physics_suite']['values'] = phys_nl_val
+                    cam_nml_attr_dict["phys_suite"] = phys_nl_val
+                else:
                     emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
                     emsg += "listed in CAM_CONFIG_OPTS: '{}'"
                     raise CamConfigValError(emsg.format(phys_nl_val,
                                                         self.get_value('physics_suites')))
+                #End if
 
             else:
                 #If not, then throw an error, because one needs to be specified:
                 emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
                 emsg += "This is required because more than one suite is listed\n"
-                emsg += "in CAM_CONFIG_OPTS: '{}'"
-                raise CamConfigValError(emsg.format(self.get_value('physics_suites')))
+                emsg += f"in CAM_CONFIG_OPTS: '{self.get_value('physics_suites')}'"
+                raise CamConfigValError(emsg)
+            #End if
+        #End if
 
+    #++++++++++++++++++++++++
+
+    def _add_xml_nml_file(self, path, filename):
+
+        """
+        Utility function to add XML namelist
+        definition file path to file list.
+
+        Inputs:
+
+        path     -> Path to XML namelist file
+        filename -> XML namelist definition filename
+
+        """
+
+        #Combine file name with path and add to list:
+        self.__xml_nml_def_files[filename] = os.path.join(path, filename)
 
 ###############################################################################
 #IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!

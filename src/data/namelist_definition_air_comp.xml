@@ -41,44 +41,45 @@
       mass and thermodynamic properties.
       Default if CAM4, CAM5, or Kessler physics is used:
 
-      ['specific_humidity',
-       'cloud_liquid_water_mixing_ratio_wrt_dry_air',
-       'rain_mixing_ratio_wrt_dry_air']
+      ['water_vapor_specific_humidity',
+       'cloud_liquid_water_mixing_ratio_of_moist_air',
+       'rain_water_mixing_ratio']
 
       Default if CAM6 physics is used:
 
-      ['specific_humidity',
-       'cloud_liquid_water_mixing_ratio_wrt_dry_air',
-       'cloud_ice_mixing_ratio_wrt_dry_air',
-       'rain_mixing_ratio_wrt_dry_air',
-       'snow_mixing_ratio_wrt_dry_air']
+      ['water_vapor_specific_humidity',
+       'cloud_liquid_water_mixing_ratio_of_moist_air',
+       'cloud_ice_water_mixing_ratio_of_moist_air',
+       'rain_water_mixing_ratio',
+       'snow_water_mixing_ratio']
 
-      Otherwise default is: ['specific_humidity']
+      Otherwise default is: ['water_vapor_specific_humidity']
     </desc>
     <values>
       <value>
-        specific_humidity
+        water_vapor_specific_humidity
       </value>
       <value phys_suite="kessler_cam">
-        specific_humidity,
-        cloud_liquid_water_mixing_ratio_wrt_dry_air,
-        rain_mixing_ratio_wrt_dry_air
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio
       </value>
       <value phys_suite="cam4">
-        specific_humidity,
-        cloud_liquid_water_mixing_ratio_wrt_dry_air,
-        rain_mixing_ratio_wrt_dry_air
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio
       </value>
       <value phys_suite="cam5">
-        specific_humidity,
-        cloud_liquid_water_mixing_ratio_wrt_dry_air,
-        rain_mixing_ratio_wrt_dry_air
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio
       </value>
       <value phys_suite="cam6">
-        specific_humidity,
-        cloud_liquid_water_mixing_ratio_wrt_dry_air,
-        cloud_ice_mixing_ratio_wrt_dry_air, rain_mixing_ratio_wrt_dry_air,
-        rain_mixing_ratio_wrt_dry_air
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        cloud_ice_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio,
+        _water_mixing_ratio
       </value>
     </values>
   </entry>

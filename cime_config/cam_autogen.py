@@ -319,54 +319,6 @@ def _find_metadata_files(source_dirs, scheme_finder):
     return meta_files
 
 ###############################################################################
-def _find_CCPP_SDF_paths(source_dirs):
-###############################################################################
-    """
-    Find all CCPP Suite Definiition File (SDF) paths given a list
-    of directories, assuming every SDF has the form "suite_*.xml".
-
-    Currently this function assumes that suite files are only in the
-    provided directories, and will do no sub-directory searching. It
-    also assumes that if an SDF has already found then all other
-    SDFs with the same name can be ignored.  This means that user-modifiable
-    directories (e.g. "SourceMods/src.cam") should always be listed first
-    in the provided "source_dirs" list.
-    """
-
-    # Create empty dictionary to store SDF filenames and paths
-    SDF_files = {}
-
-    for direc in source_dirs:
-
-        # Search for SDFs in directory:
-        SDF_list = glob.glob(os.path.join(direc, "suite_*.xml"))
-
-        # Move on to next directory if empty:
-        if not SDF_list:
-            continue
-
-        # Loop over SDF paths:
-        for SDF in SDF_list:
-
-            # Check if filename is already in dictionary:
-            if not os.path.basename(SDF) in SDF_files:
-                # If not, then add to dictionary:
-                SDF_files[os.path.basename(SDF)] = SDF
-            # End if
-        # End for
-    # End for
-
-    # Raise error if no SDF files are found:
-    if not SDF_files:
-        emsg = "ERROR: No CCPP Suite Definition Files (SDF)s of the "
-        emsg = "type 'suite_*.xml' were found in the provided directories:"
-        emsg += "\n".join(source_dirs)
-        raise CamAutoGenError(emsg)
-
-    # Return SDF file paths:
-    return SDF_files.values()
-
-###############################################################################
 def _update_genccpp_dir(utility_files, genccpp_dir):
 ###############################################################################
     """
@@ -500,7 +452,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 
     2.  Check that the correct error is raised when a scheme's metadata file cannot be found:
 
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad_suite",        \
+    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad",        \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
                                 False) #doctest: +ELLIPSIS
@@ -510,7 +462,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 
     3. Check that generate_physics_suites works properly when good inputs are provided:
 
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "simple_suite",     \
+    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "simple",     \
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
                                 False) #doctest: +ELLIPSIS
@@ -525,37 +477,15 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # Collect all source directories
     source_search = [source_mods_dir,
                      os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
-    # Finda all possible CCPP suite names and SDF paths:
-    SDF_paths = _find_CCPP_SDF_paths(source_search)
     # Find all metadata files, organize by scheme name
     all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
-
-    # Create dictionary of SDF suite names->paths
-    suite_name_path_dict = {}
-    for SDF_path in SDF_paths:
-        # Open SDF file
-        _, suite = read_xml_file(SDF_path)
-
-        # Extract suite name
-        suite_name = suite.get('name')
-
-        # Check if suite is already present in dictioanry
-        if suite_name in suite_name_path_dict:
-            #If so, then raise an error, because we are unsure which SDF to use
-            emsg = "Two SDFs have the same suite name: '{}'.  The two SDFs are:\n"
-            emsg += "{}\n{}"
-            raise CamAutoGenError(emsg.format(suite_name, SDF_path,
-                                              suite_name_path_dict[suite_name]))
-
-        # Add suite to dictionary
-        suite_name_path_dict[suite_name] = SDF_path
 
     # Find the SDFs specified for this model build
     sdfs = []
     scheme_files = []
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
-        sdf_path = suite_name_path_dict.get(sdf)
+        sdf_path = _find_file(f"suite_{sdf}.xml", source_search)
         if not sdf_path:
             emsg = "ERROR: Unable to find SDF for suite '{}'"
             raise CamAutoGenError(emsg.format(sdf))

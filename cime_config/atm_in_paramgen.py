@@ -63,6 +63,9 @@ def _is_nml_logical_true(varname, var_val):
     varname -> The name of the variable being checked
     var_val -> The value of the variable being checked
 
+    Returns a boolean that matches the value of the
+    input logical.
+
     doctests:
 
     1. Check that a True value returns true:
@@ -177,6 +180,8 @@ def remove_user_nl_comment(user_string):
     removed.
     ----------
     user_string   -> String that will be searched and processed for comments
+
+    Returns the input string, but with any commented text removed.
 
     doctests:
 
@@ -390,6 +395,92 @@ def check_dim_index(var_name, index_val, dim_size):
         emsg = f"\nVariable '{var_name}' has index {index_val}"
         emsg += " in 'user_nl_cam', which is greater than the"
         emsg +=f" max dimension size of {dim_size}"
+        raise AtmInParamGenError(emsg)
+    #End if
+
+#####
+
+def _get_nml_value_str(var_name, var_type, var_val):
+
+    """
+    Converts namelist variable inputs into their
+    correct Fortran namelist value format
+    ----------
+    var_name -> Variable name (used for error message)
+    var_type -> Variable type (logial, integer, float, character)
+    var_val  -> Variable value to convert
+
+    returns the fortran namelist-formatted variable
+    value.
+
+    doctests:
+
+    1.  Check that a true logical variable outputs the correct value:
+    >>> _get_nml_value_str("banana", "logical", "true")
+    '.true.'
+
+    2.  Check that a false logical variable outputs the correct value:
+    >>> _get_nml_value_str("banana", "logical", "0")
+    '.false.'
+
+    3.  Check that an integer variable outputs the correct value:
+    >>> _get_nml_value_str("banana", "integer", 5)
+    '5'
+
+    4.  Check that a float variable outputs the correct value:
+    >>> _get_nml_value_str("banana", "real", "5d5")
+    '5d5'
+
+    5.  Check that a character variable with no quotes outputs
+        the correct value:
+    >>> _get_nml_value_str("banana", "char*10", "apple")
+    '"apple"'
+
+    6.  Check that a character variable with quotes outputs
+        the correct value:
+    >>> _get_nml_value_str("banana", "char*250", " 'apple' ")
+    '"apple"'
+
+    7.  Check that a character variable with double quotes
+        outputs the correct value:
+    >>> _get_nml_value_str("banana", "char*N", ' "apple" ')
+    '"apple"'
+
+    8.  Check that a variable with an unknown type returns
+        the proper error:
+    >>> _get_nml_value_str("banana", "apple", "true") # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError: Namelist type 'apple' for entry 'banana' is un-recognized.
+    Acceptable namelist types are: logical, integer, real, or char*N.
+    """
+
+    #Create set for variable types
+    #that don't need special handling:
+    num_set = {"integer", "real"}
+
+    #Check variable type:
+    if var_type == 'logical':
+        #If logical, then write the associated truth value:
+        if _is_nml_logical_true(var_name, var_val):
+            return ".true."
+        else:
+            return ".false."
+        #End if
+    elif var_type in num_set:
+        #If a number, then write value as-is:
+        return f"{var_val}"
+    elif "char*" in var_type:
+        #Remove all quotes in the string, as they
+        #sometimes added by ParamGen during the "reduce" phase:
+        var_val = var_val.replace("'", "")
+        var_val = var_val.replace('"', "")
+        #Return with double quotes:
+        return f'"{var_val.strip()}"'
+    else:
+        #This is an un-recognized type option, so raise an error:
+        emsg = f"Namelist type '{var_type}' for entry '{var_name}' is un-recognized.\n"
+        emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
         raise AtmInParamGenError(emsg)
     #End if
 
@@ -1259,48 +1350,15 @@ class AtmInParamGen(ParamGen):
                         #Write beginning of namelist entry:
                         nml_str = f"    {var} = "
 
-                        #Check if variable type is a logical:
-                        if var_type == 'logical':
-                            #loop over array elements:
-                            for elem in array_elems:
-                                if _is_nml_logical_true(var, elem):
-                                    elem_str = ".true., "
-                                else:
-                                    elem_str = ".false., "
-                                #End if
-                                #Write to namelist string:
-                                nml_str += elem_str
-                             #End for
-                        #Check if it is a number:
-                        elif var_type in num_set:
-                            #loop over array elements:
-                            for elem in array_elems:
-                                #Write to namelist string:
-                                nml_str += f"{elem}, "
-                            #End for
-                        #check if it is a character:
-                        elif "char*" in var_type:
-                            #loop over array elements:
-                            for elem_with_space in array_elems:
-                                #Remove any extra white space:
-                                elem = elem_with_space.strip()
+                        #loop over array elements:
+                        for elem in array_elems:
 
-                                #Remove all quotes in the string, as they are
-                                #sometimes added by ParamGen during the "reduce" phase:
-                                elem = elem.replace("'", "")
-                                elem = elem.replace('"', "")
+                            #Get properly-formatted variable value:
+                            nml_val = _get_nml_value_str(var, var_type, elem)
 
-                                #Add surrounding quotes:
-                                elem_str = f'"{elem}", '
-                                #Write to namelist entry string:
-                                nml_str += elem_str
-                            #End for
-                        else:
-                            #This is an un-recognized type option, so raise an error:
-                            emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
-                            emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
-                            raise AtmInParamGenError(emsg)
-                        #End if
+                            #Add value string (with comma) to namelist string:
+                            nml_str += (nml_val + ", ")
+                        #End for
 
                         #There will always be a trailing comma and space (, ) so find it:
                         last_comma_idx = nml_str.rfind(", ")
@@ -1309,34 +1367,19 @@ class AtmInParamGen(ParamGen):
                         atm_in_fil.write(nml_str[:last_comma_idx]+"\n")
 
                     else:  #Not an array
-                        #Check if variable type is a logical:
-                        if var_type == 'logical':
-                            #If logical, then write the associated truth value:
-                            if _is_nml_logical_true(var, val):
-                                atm_in_fil.write(f"    {var} = .true.\n")
-                            else:
-                                atm_in_fil.write(f"    {var} = .false.\n")
-                            #End if
-                        elif var_type in num_set:
-                            #If a number, then write value as-is:
-                            atm_in_fil.write(f"    {var} = {val}\n")
-                        elif "char*" in var_type:
-                            #Remove all quotes in the string, as they
-                            #sometimes added by ParamGen during the "reduce" phase:
-                            val = val.replace("'", "")
-                            val = val.replace('"', "")
-                            #Add entry to atm_in file:
-                            atm_in_fil.write(f'    {var} = "{val}"\n')
-                        else:
-                            #This is an un-recognized type option, so raise an error:
-                            emsg = f"Namelist type '{var_type}' for entry '{var}' is un-recognized.\n"
-                            emsg += "Acceptable namelist types are: logical, integer, real, or char*N."
-                            raise AtmInParamGenError(emsg)
-                        #End if
-                    #End if (array type)
 
+                        #Get properly-formatted variable value:
+                        nml_val = _get_nml_value_str(var, var_type, val)
+
+                        #Write variable to namelist file:
+                        atm_in_fil.write(f'    {var} = {nml_val}\n')
+
+                    #End if (array type)
+                #End for (namelist variables)
                 # Add space for next namelist group:
                 atm_in_fil.write('/\n\n')
+            #End for (namelist groups)
+        #End with (open atm_in file)
 
     ####
 

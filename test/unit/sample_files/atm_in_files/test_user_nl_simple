@@ -1,10 +1,13 @@
 ! Users should add all user specific namelist changes below in the form of
 ! namelist_var = new_namelist_value
 
-!Really make sure comments are properly handled:
-!turkey_leg = 22.7
+!Make sure comments are properly handled:
+!turkey_leg = 1.23456789
 
 turkey_leg = 22.7
+
+!Now REALLY make sure comments are properly handled:
+!turkey_leg = 1.23456789 !more comments!
 
  straw_into_gold="Rapunzel"  !Does this also work?
 

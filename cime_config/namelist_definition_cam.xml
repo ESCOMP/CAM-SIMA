@@ -403,29 +403,6 @@
     </values>
   </entry>
 
-<!-- QNEG -->
-
-  <entry id="print_qneg_warn">
-    <type>char*8</type>
-    <category>diagnostics</category>
-    <group>qneg_nl</group>
-    <valid_values>summary,timestep,off</valid_values>
-    <desc>
-      Control the writing of qneg3 and qneg4 warning messages.
-      'summary' causes a summary of QNEG3 and QNEG4 errors to be
-          printed at the end of the run
-      'timestep' causes a summary of QNEG3 and QNEG4 errors to be printed at the
-          end of each timestep. The total is reset at the end of each timestep.
-      'off' causes the qneg3 and qneg4 warnings to be supressed.
-      Note that these settings do not affect the availability of qneg
-          history variables.
-      Default: summary
-    </desc>
-    <values>
-      <value>summary</value>
-    </values>
-  </entry>
-
 <!-- Debug flag -->
 
   <entry id="debug_output">
