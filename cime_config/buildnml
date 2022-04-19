@@ -102,6 +102,7 @@ def nml_file_dict_update(nml_fil_dict, nml_def_fils):
 
     # Loop over all found files:
     for nml_def_fil in nml_def_fils:
+        print(nml_def_fil)
         fil_name = os.path.basename(nml_def_fil)
         if fil_name in nml_fil_dict:
             fil_dir = os.path.dirname(os.path.abspath(nml_def_fil))
@@ -194,7 +195,7 @@ def buildnml(case, caseroot, compname):
                                           "*_namelist.xml"))
 
     # Combine file lists:
-    nml_def_fils.append(ccpp_nml_fils)
+    nml_def_fils.extend(ccpp_nml_fils)
 
     # Update namelist definition file dict with new files:
     xml_nml_dict = nml_file_dict_update(xml_nml_dict, nml_def_fils)

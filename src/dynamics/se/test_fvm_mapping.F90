@@ -156,7 +156,7 @@ contains
     do ie=1,nelemd
 !xxx      fvm(ie)%c(:,:,:,ntrac) = 0.0_r8
     end do
-    
+
     phys_state%pdel(1:ncols,:) = phys_state%pdeldry(1:ncols,:) !make sure there is no conversion from wet to dry
     do nq=ntrac,ntrac
       m_cnst = nq
@@ -173,17 +173,17 @@ contains
 
     do icol=1,ncols
       do k=ntrac,ntrac
-        phys_tend%dudt(icol,k) = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
-        phys_tend%dvdt(icol,k) = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
-        phys_tend%dtdt(icol,k) = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
+        phys_tend%dudt_total(icol,k) = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
+        phys_tend%dvdt_total(icol,k) = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
+        phys_tend%dTdt_total(icol,k) = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
       end do
     enddo
     name = 'p2d_u'
-    call outfld(trim(name),phys_tend%dudt(:ncols,:),ncols,lchnk)
+    call outfld(trim(name),phys_tend%dudt_total(:ncols,:),ncols,lchnk)
     name = 'p2d_v'
-    call outfld(trim(name),phys_tend%dvdt(:ncols,:),ncols,lchnk)
+    call outfld(trim(name),phys_tend%dvdt_total(:ncols,:),ncols,lchnk)
     name = 'p2d_ptend'
-    call outfld(trim(name),phys_tend%dtdt(:ncols,:),ncols,lchnk)
+    call outfld(trim(name),phys_tend%dtdt_total(:ncols,:),ncols,lchnk)
 
 
     do icol=1,ncols
@@ -326,7 +326,7 @@ contains
 !        end do
         call outfld(TRIM(name), RESHAPE(fvm(ie)%c(1:nc,1:nc,:,m_cnst),(/nc*nc,nlev/)), nc*nc, ie)
       end do
-      
+
       elem(ie)%state%Qdp(:,:,:,:,:)   = 0.0_r8 !for testing the p2d map
       do k=1,num_fnc
         do j=1,np
@@ -360,9 +360,9 @@ contains
           case (swest)
             fvm(ie)%c(0,0,:,k) = fvm(ie)%c(0,1,:,k)
           case (seast)
-            fvm(ie)%c(nc+1,0,:,k) = fvm(ie)%c(0,nc,:,k)            
+            fvm(ie)%c(nc+1,0,:,k) = fvm(ie)%c(0,nc,:,k)
           case (neast)
-            fvm(ie)%c(nc+1,nc+1,:,k) = fvm(ie)%c(nc,nc+1,:,k)                        
+            fvm(ie)%c(nc+1,nc+1,:,k) = fvm(ie)%c(nc,nc+1,:,k)
           end select
         end do
       end if
@@ -524,13 +524,13 @@ contains
       fout = 0.5_r8 * ( tanh( 3.0_r8*abs(lat)-pi ) + 1.0_r8)
     case(4)
       fout = 2.0_r8+cos(5.0_r8+40*lon)!1.0e-8_r8
-      fout = -0.5_r8-0.5_r8*(cos(16*lon)*(sin(2_r8*lat)**16))            
+      fout = -0.5_r8-0.5_r8*(cos(16*lon)*(sin(2_r8*lat)**16))
     case(5)
       !
       ! approximately Y^2_2 spherical harmonic
       !
       fout = sin(lon)*cos(40*lat)!1.0e-8_r8
-      fout = 0.5_r8*(cos(16*lon)*(sin(2_r8*lat)**16))      
+      fout = 0.5_r8*(cos(16*lon)*(sin(2_r8*lat)**16))
     case(6)
       !
       ! approximately Y32_16 spherical harmonic

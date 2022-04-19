@@ -59,7 +59,7 @@
       <value>
         water_vapor_specific_humidity
       </value>
-      <value phys_suite="kessler_cam">
+      <value phys_suite="kessler">
         water_vapor_specific_humidity,
         cloud_liquid_water_mixing_ratio_of_moist_air,
         rain_water_mixing_ratio
@@ -79,7 +79,7 @@
         cloud_liquid_water_mixing_ratio_of_moist_air,
         cloud_ice_water_mixing_ratio_of_moist_air,
         rain_water_mixing_ratio,
-        _water_mixing_ratio
+        snow_water_mixing_ratio
       </value>
     </values>
   </entry>

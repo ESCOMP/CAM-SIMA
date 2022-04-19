@@ -428,9 +428,9 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
 
       do ilyr = 1, pver
          dp_phys(blk_ind(1),ilyr,ie)  = real(phys_state%pdeldry(icol,ilyr), r8)
-         T_tmp(blk_ind(1),ilyr,ie)    = real(phys_tend%dtdt(icol,ilyr), r8)
-         uv_tmp(blk_ind(1),1,ilyr,ie) = real(phys_tend%dudt(icol,ilyr), r8)
-         uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt(icol,ilyr), r8)
+         T_tmp(blk_ind(1),ilyr,ie)    = real(phys_tend%dTdt_total(icol,ilyr), r8)
+         uv_tmp(blk_ind(1),1,ilyr,ie) = real(phys_tend%dudt_total(icol,ilyr), r8)
+         uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt_total(icol,ilyr), r8)
          do m = 1, pcnst
             dq_tmp(blk_ind(1),ilyr,m,ie) =                                    &
                  (real(phys_state%q(icol,ilyr,m), r8) - q_prev(icol,ilyr,m))
@@ -821,7 +821,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
      !
      call get_cp(1,ncols,1,pver,1,1,pcnst,phys_state%q(1:ncols,1:pver,:),.true.,inv_cp)
 
-     phys_tend%dtdt(1:ncols,1:pver) = phys_tend%dtdt(1:ncols,1:pver)*cpair*inv_cp
+     phys_tend%dTdt_total(1:ncols,1:pver) = phys_tend%dTdt_total(1:ncols,1:pver)*cpair*inv_cp
    end if
 end subroutine thermodynamic_consistency
 

@@ -19,8 +19,8 @@
     <values>
       <value>none</value>
       <value phys_suite="adiabatic">held_suarez_1994</value>
-      <value phys_suite="held_suarez">held_suarez_1994</value>
-      <value phys_suite="kessler_cam">moist_baroclinic_wave_dcmip2016</value>
+      <value phys_suite="held_suarez_1994">held_suarez_1994</value>
+      <value phys_suite="kessler">moist_baroclinic_wave_dcmip2016</value>
       <value phys_suite="tj2016">moist_baroclinic_wave_dcmip2016</value>
     </values>
   </entry>
