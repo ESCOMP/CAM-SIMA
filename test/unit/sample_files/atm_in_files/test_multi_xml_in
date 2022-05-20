@@ -1,3 +1,7 @@
+&alien_invasions
+    body_snatchers = "looks human", "human", "still looks human", "alien"
+/
+
 &bird_sounds_nl
     duck_quack = .false.
     turkey_leg = 3.14d0

@@ -172,7 +172,7 @@ def _is_nml_logical_true(varname, var_val):
 
 #####
 
-def remove_user_nl_comment(user_string):
+def remove_user_nl_comment(user_string, comment_delim="!"):
 
     """
     Searches a one-line input string for a comment delimiter,
@@ -180,6 +180,8 @@ def remove_user_nl_comment(user_string):
     removed.
     ----------
     user_string   -> String that will be searched and processed for comments
+    comment_delim -> Optional variable that sets the character type being used
+                     as a comment delimiter. Defaults to the standard "!" fortran comment.
 
     Returns the input string, but with any commented text removed.
 
@@ -247,14 +249,22 @@ def remove_user_nl_comment(user_string):
     15.  Check that an array of  values with a comment returns the proper string:
     >>> remove_user_nl_comment('13.0d0,! 15.0d0, 1100.35d0')
     '13.0d0,'
+
+    16.  Check that a line that only contains a comment returns an empty string:
+    >>> remove_user_nl_comment('! bananas and 13.0d0 5 .true. !@$#%*?')
+    ''
+
+    17.  Check that a line with an alternative comment delimiter returns the proper string:
+    >>> remove_user_nl_comment('bananas #and 13.0d0 5 .true. !@$#%*?', comment_delim='#')
+    'bananas '
     """
 
     #Create empty set for comment-delimiting indices:
     comment_delim_indices = set()
 
-    #Search for all comment delimiters (currently just "!"):
+    #Search for all comment delimiters:
     for char_idx, char in enumerate(user_string):
-        if char == "!":
+        if char == comment_delim:
             #Add character index to set:
             comment_delim_indices.add(char_idx)
          #End if
@@ -322,8 +332,16 @@ def user_nl_str_to_int(string, var_name):
     >>> user_nl_str_to_int("5", "banana")
     5
 
-    2.  Check that a string with a non-integer can be
-        convergted properly:
+    2.  Check that a string with a float fails with
+        the correct error:
+    >>> user_nl_str_to_int("5.2", "banana") # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:...
+    Invalid array index entry '5.2' used for variable 'banana' in 'user_nl_cam'.
+
+    3.  Check that a string with a non-number fails with
+        the correct error:
     >>> user_nl_str_to_int("a", "banana") # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
@@ -407,7 +425,7 @@ def _get_nml_value_str(var_name, var_type, var_val):
     correct Fortran namelist value format
     ----------
     var_name -> Variable name (used for error message)
-    var_type -> Variable type (logial, integer, float, character)
+    var_type -> Variable type to convert to (logical, integer, real, character)
     var_val  -> Variable value to convert
 
     returns the fortran namelist-formatted variable
@@ -427,9 +445,14 @@ def _get_nml_value_str(var_name, var_type, var_val):
     >>> _get_nml_value_str("banana", "integer", 5)
     '5'
 
-    4.  Check that a float variable outputs the correct value:
+    4.  Check that a real variable outputs the correct value:
     >>> _get_nml_value_str("banana", "real", "5d5")
     '5d5'
+
+    5.  Check that a real variable with an integer value outputs
+        the correct value:
+    >>> _get_nml_value_str("banana", "real", 5)
+    '5.d0'
 
     5.  Check that a character variable with no quotes outputs
         the correct value:
@@ -470,12 +493,18 @@ def _get_nml_value_str(var_name, var_type, var_val):
     #End if
 
     if var_type in num_set:
-        #If a number, then write value as-is:
+        #Check if the variable value is an integer, but is being
+        #used for a real-type variaable:
+        if var_type == "real" and isinstance(var_val, int):
+            return f"{var_val}.d0"
+        #End if
+
+        #Otherwise, simply write value as-is:
         return f"{var_val}"
     #End if
 
     if "char*" in var_type:
-        #Remove all quotes in the string, as they
+        #Remove all quotes in the string, as they are
         #sometimes added by ParamGen during the "reduce" phase:
         var_val = var_val.replace("'", "")
         var_val = var_val.replace('"', "")
@@ -749,13 +778,13 @@ class AtmInParamGen(ParamGen):
 
         """
 
-        #Iinitialize variable name:
+        #Initialize variable name:
         var_name = var_str
 
         #Initialize array index list:
         arr_indxs = []
 
-        #Check for array syntax, i.e. parantheses:
+        #Check for array syntax, i.e. parentheses:
         array_syntax_match = _ARR_INDEX_REGEX.search(var_str)
 
         #Extract variable name:
@@ -829,18 +858,25 @@ class AtmInParamGen(ParamGen):
         #Split text by number of commas (which should indicate dimensions):
         user_dim_text = user_array_text.split(",")
 
-        #Check that the user hasn't listed more dimensions
-        #than is acutally present in the variable:
-        if len(user_dim_text) > num_arr_dims:
+        #Check that the user hasn't listed the wrong number of dimensions:
+        num_user_dims = len(user_dim_text)
+        if num_user_dims != num_arr_dims:
             #Set proper grammar:
-            if num_arr_dims == 1:
-                dim_err_str = "dimension."
+            if num_user_dims == 1:
+                user_dim_str = "dimension"
             else:
-                dim_err_str = "dimensions."
+                user_dim_str = "dimensions"
             #End if
-            emsg = f"Variable '{var_name}' has {len(user_dim_text)}"
-            emsg += " dimensions used in 'user_nl_cam', but is defined"
-            emsg += f" to only have {num_arr_dims} "+dim_err_str
+            if num_arr_dims == 1:
+                array_dim_str = "dimension."
+            else:
+                array_dim_str = "dimensions."
+            #End if
+
+            #Raise error with proper message:
+            emsg = f"Variable '{var_name}' has {num_user_dims}"
+            emsg += f" {user_dim_str} used in 'user_nl_cam', but is defined"
+            emsg += f" to have {num_arr_dims} {array_dim_str}"
             raise AtmInParamGenError(emsg)
         #End if
 
@@ -1131,7 +1167,7 @@ class AtmInParamGen(ParamGen):
         """
 
         #Create ordered dictionary to store namelist groups,
-        #variables, and values from user_nl_XXX file:
+        #variables, and values from user_nl_cam file:
         _data = OrderedDict()
 
         #Initialize flag preventing duplicate namelist entries:
@@ -1160,7 +1196,7 @@ class AtmInParamGen(ParamGen):
                         #Check if the entire line is a comment:
                         if line_s[0][0] == "!":
                             #Check if this comment is the duplicate keyword:
-                            if "allow_duplicate_namliest_entries" in line_s:
+                            if "allow_duplicate_namelist_entries" in line_s:
                                 #Next check if a user has set variable to True:
                                 for word in line_s:
                                     if word.lower() == "true":
@@ -1177,7 +1213,7 @@ class AtmInParamGen(ParamGen):
                         line = remove_user_nl_comment(line)
                     #End if
 
-                    #Check ifthe first character on the line is a comma (,):
+                    #Check if the first character on the line is a comma (,):
                     if line.strip()[0] == ",":
                         #Is this an array variable:
                         if is_array:
@@ -1233,7 +1269,7 @@ class AtmInParamGen(ParamGen):
                         #End if (array indices)
 
                         #Extract value string:
-                        val_str   = ' '.join(line_ss[1:]) # the rest is tha value string
+                        val_str   = ' '.join(line_ss[1:]) # the rest is the value string
 
                         #Check if value string ends in array continuation:
                         if is_array:
@@ -1263,6 +1299,18 @@ class AtmInParamGen(ParamGen):
                             _data[data_group][var_str] = {'values':val_str}
                         #end if
                     elif (is_array and is_continue_line):
+                        #See if there is an equals sign outside of quotes by treating it like
+                        #a comment delimiter, and seeing if characters in the string are removed:
+                        no_equals_line = remove_user_nl_comment(line, comment_delim='=')
+                        if len(no_equals_line) != len(line):
+                            #This looks like the start of a new namelist entry without the
+                            #proper ending of the previous entry.  So raise an error here:
+                            emsg = f"Line number {line_num+1} in 'user_nl_cam' appears"
+                            emsg += " to be starting a new namelist entry,\nbut"
+                            emsg += " the previous entry has a trailing comma (,).  Please fix."
+                            raise AtmInParamGenError(emsg)
+                        #End if
+
                         #This is an array continuation line, so append the line to previous
                         #variable's value as-is:
                         _data[data_group][var_str]['values'] += line

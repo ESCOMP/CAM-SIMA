@@ -1,5 +1,5 @@
 """
-Location of interal python classes used by the
+Location of internal python classes used by the
 "ConfigCAM" class to generate, store, and pass-on
 any CAM configuration variables to other components
 of the build system.

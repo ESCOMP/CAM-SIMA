@@ -726,6 +726,47 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that a user_nl_cam file with an array
+    #variable with an ending comma followed by a new
+    #namelist variable fails correctly.
+    #+++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_user_nl_trailing_comma(self):
+
+        """
+        Check that a user_nl_cam file with a
+        namelist entry that is an array, but
+        ends with a trailing comma, fails
+        with the appropriate error.
+        """
+
+        # Get XML file path:
+        xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
+
+        # Create the ParamGen object:
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+
+        # Create temporary user_nl_cam file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+            nl_file.write("marx_bros = 'mario', 'luigi',\n")
+            nl_file.write("duck_quack = .false.")
+        # End with
+
+        # Attempt to append user_nl_cam file:
+        with self.assertRaises(AtmInParamGenError) as cerr:
+            pg_test.append_user_nl_file("user_nl_tmp")
+        # End with
+
+        # Check exception message:
+        emsg = "Line number 2 in 'user_nl_cam' appears"
+        emsg += " to be starting a new namelist entry,\nbut"
+        emsg += " the previous entry has a trailing comma (,).  Please fix."
+        self.assertEqual(emsg, str(cerr.exception))
+
+        #Remove temporary user_nl_cam file
+        os.remove("user_nl_tmp")
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++
     #Check that a user_nl_cam file that contains
     #a non-array namelist variable with array
     #dimensions specified fails correctly.
@@ -799,7 +840,47 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         # Check exception message:
         emsg = "Variable 'marx_bros' has 2 dimensions"
         emsg += " used in 'user_nl_cam', but is defined"
-        emsg += f" to only have 1 dimension."
+        emsg += f" to have 1 dimension."
+        self.assertEqual(emsg, str(cerr.exception))
+
+        #Remove temporary user_nl_cam file
+        os.remove("user_nl_tmp")
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that a user_nl_cam file that contains
+    #a array namelist variable with too few array
+    #dimensions specified fails correctly.
+    #+++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_user_nl_too_few_array_dims(self):
+
+        """
+        Check that a user_nl_cam file with
+        a namelist variable that is an array,
+        but that is listed with too many dimension,
+        fails with the appropriate error.
+        """
+
+        # Get XML file path:
+        xml_test_fil = os.path.join(_SAMPLES_DIR, "test_third_nml_def.xml")
+
+        # Create the ParamGen object:
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+
+        # Create temporary user_nl_cam file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+            nl_file.write("body_snatchers(1) = Alien!!!")
+        # End with
+
+        # Attempt to append user_nl_cam file:
+        with self.assertRaises(AtmInParamGenError) as cerr:
+            pg_test.append_user_nl_file("user_nl_tmp")
+        # End with
+
+        # Check exception message:
+        emsg = "Variable 'body_snatchers' has 1 dimension"
+        emsg += " used in 'user_nl_cam', but is defined"
+        emsg += f" to have 2 dimensions."
         self.assertEqual(emsg, str(cerr.exception))
 
         #Remove temporary user_nl_cam file
@@ -816,7 +897,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         """
         Check that a user_nl_cam file with a
-        namelist variable that is an arry
+        namelist variable that is an array
         with specified indexes that are out of
         order (max:min instead of min:max) fails
         with the appropriate error.

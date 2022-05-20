@@ -20,4 +20,18 @@
     </values>
   </entry>
 
+  <entry id="body_snatchers">
+    <type>char*32(2,2)</type>
+    <category>sci_fi</category>
+    <group>alien_invasions</group>
+    <desc>
+      Is it human, or a body snatcher?
+    </desc>
+    <values>
+      <value>
+        "looks human", "human",
+        "still looks human", "alien"
+      </value>
+    </values>
+  </entry>
 </entry_id_pg>
