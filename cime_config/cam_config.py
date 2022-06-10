@@ -194,6 +194,7 @@ class ConfigCAM:
             emsg = "CAM requires python 3.7 or later, currently using python version"
             emsg += f" {sys.version_info[0]}.{sys.version_info[1]}"
             raise SystemError(emsg)
+        #End if
 
         # Read in needed case variables
         atm_grid = case.get_value("ATM_GRID")               # Atmosphere (CAM) grid

@@ -23,12 +23,13 @@ sys.path.append(os.path.join(__CIMEROOT, "scripts", "lib"))
 # CIME imports
 from CIME.case import Case
 from CIME.utils import run_cmd, expect
-from CIME.utils import check_minimum_python_version, stop_buffering_output
+from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
+from CIME.Tools.standard_script_setup import check_minimum_python_version
 #pylint: enable=wrong-import-position
 
-check_minimum_python_version(3, 6)
+check_minimum_python_version(3, 7) #CAM requires version 3.7 or greater
 stop_buffering_output()
 
 _LOGGER = logging.getLogger(__name__)

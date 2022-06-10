@@ -21,7 +21,7 @@ from collections import OrderedDict
 
 _CIME_CONF_DIR = os.path.abspath(os.path.dirname(__file__))
 _CIME_ROOT = os.path.join(_CIME_CONF_DIR, os.pardir, "cime")
-_PARAMGEN_ROOT = os.path.join(_CIME_ROOT, "scripts", "lib", "CIME", "ParamGen")
+_PARAMGEN_ROOT = os.path.join(_CIME_ROOT, "CIME", "ParamGen")
 
 if not os.path.exists(_PARAMGEN_ROOT):
     _EMSG = f"ERROR: Cannot find '{_PARAMGEN_ROOT}' directory.  Did you run checkout_externals?"

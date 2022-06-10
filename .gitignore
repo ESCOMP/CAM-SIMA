@@ -1,5 +1,6 @@
 # Ignore externals
 ccpp_framework
+ccs_config
 chem_proc
 cime
 share

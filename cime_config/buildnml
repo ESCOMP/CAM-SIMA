@@ -17,11 +17,11 @@ _LIBDIR = os.path.join(_CIMEROOT, "scripts", "Tools")
 sys.path.append(_LIBDIR)
 # pylint: disable=wildcard-import, wrong-import-position
 # pylint: disable=unused-wildcard-import
-from standard_script_setup          import *
-from CIME.XML.standard_module_setup import *
-from CIME.buildnml                  import create_namelist_infile, parse_input
-from CIME.case                      import Case
-from CIME.utils                     import expect
+from CIME.Tools.standard_script_setup import *
+from CIME.XML.standard_module_setup   import *
+from CIME.buildnml                    import create_namelist_infile, parse_input
+from CIME.case                        import Case
+from CIME.utils                       import expect
 
 # Save local (cime_config) directory path:
 _CIME_CONFIG_PATH = os.path.dirname(os.path.abspath(__file__))
