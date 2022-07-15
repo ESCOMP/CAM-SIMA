@@ -34,4 +34,20 @@
       </value>
     </values>
   </entry>
+
+  <entry id="swedish_chef">
+    <type>char*16(16)</type>
+    <category>muppets</category>
+    <group>alien_invasions</group>
+    <desc>
+      The best chef in puppet TV today.
+      Five time winner of "Pillow Chef"
+    </desc>
+    <values>
+      <value>
+        "bork", "bork"
+      </value>
+    </values>
+  </entry>
+
 </entry_id_pg>

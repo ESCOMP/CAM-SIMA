@@ -257,6 +257,24 @@ def remove_user_nl_comment(user_string, comment_delim="!"):
     17.  Check that a line with an alternative comment delimiter returns the proper string:
     >>> remove_user_nl_comment('bananas #and 13.0d0 5 .true. !@$#%*?', comment_delim='#')
     'bananas '
+
+    18. Check that some more unusual strings are handled correctly
+    >>> remove_user_nl_comment("'Isn''t it a nice day'")
+    "'Isn''t it a nice day'"
+    >>> remove_user_nl_comment("'Isn''t it a nice day' !comment")
+    "'Isn''t it a nice day' "
+    >>> remove_user_nl_comment("'Isn!''!t it a nice! day'")
+    "'Isn!''!t it a nice! day'"
+    >>> remove_user_nl_comment("'Isn!''!t it a nice! day' ! comment")
+    "'Isn!''!t it a nice! day' "
+    >>> remove_user_nl_comment('''"This is 'one' string"''')
+    '"This is \\'one\\' string"'
+    >>> remove_user_nl_comment('''"This is 'one' string" !comment''')
+    '"This is \\'one\\' string" '
+    >>> remove_user_nl_comment("'This is \\"one\\" string'")
+    '\\'This is "one" string\\''
+    >>> remove_user_nl_comment("'This is \\"one\\" string'! comment")
+    '\\'This is "one" string\\''
     """
 
     #Create empty set for comment-delimiting indices:
@@ -415,6 +433,147 @@ def check_dim_index(var_name, index_val, dim_size):
         emsg +=f" max dimension size of {dim_size}"
         raise AtmInParamGenError(emsg)
     #End if
+
+#####
+
+def parse_dim_spec(var_name, array_spec_text, dim_size):
+    """
+    Given the text of a single array dimension specification,
+    return the range of values specified by the specification or
+    raise an Exception if an error is detected.
+    <var_name> is the variable name and is used for error messages
+    <array_spec_text> is the text representation of the array spec
+    <dim_size> is the size of that rank in <var_name>
+
+    1. Check that a single, legal index returns the correct single value
+    >>> parse_dim_spec('banana', '5', 10)
+    [5]
+
+    2. Check that a single, out-of-bounds index generates the proper error
+    >>> parse_dim_spec('banana', '15', 10) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:
+    Variable 'banana' has index 15 in 'user_nl_cam', which is greater than the max dimension size of 10
+    >>> parse_dim_spec('banana', '0', 10) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:
+    Variable 'banana' has index 0 in 'user_nl_cam', which is less than one (1), the minimal index value allowed.
+    >>> parse_dim_spec('banana', '-2', 10) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:
+    Variable 'banana' has index -2 in 'user_nl_cam', which is less than one (1), the minimal index value allowed.
+
+    3. Check that a legal range returns the correct list of indices
+    >>> parse_dim_spec('banana', '5:9', 10)
+    [5, 6, 7, 8, 9]
+    >>> parse_dim_spec('banana', ':9', 10)
+    [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    >>> parse_dim_spec('banana', ':', 10)
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    >>> parse_dim_spec('banana', '6:', 10)
+    [6, 7, 8, 9, 10]
+
+    4. Check that an out-of-bounds range returns the correct list
+    >>> parse_dim_spec('banana', '0:2', 10)
+    [1, 2]
+    >>> parse_dim_spec('banana', '7:11', 10)
+    [7, 8, 9, 10]
+    >>> parse_dim_spec('banana', '-1:11', 10)
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    5. Check that an empty range returns an empty list
+    >>> parse_dim_spec('banana', '5:1', 10)
+    []
+
+    6. Check that a legal range with a stride returns the correct list
+    >>> parse_dim_spec('banana', '5:9:2', 10)
+    [5, 7, 9]
+    >>> parse_dim_spec('banana', ':9:3', 10)
+    [1, 4, 7]
+    >>> parse_dim_spec('banana', '::3', 10)
+    [1, 4, 7, 10]
+    >>> parse_dim_spec('banana', '6:', 10)
+    [6, 7, 8, 9, 10]
+    >>> parse_dim_spec('banana', '9:1:-3', 10)
+    [9, 6, 3]
+
+    7. Check that a mismatched stride returns an empty list
+    >>> parse_dim_spec('banana', '9:5:2', 10)
+    []
+    >>> parse_dim_spec('banana', '5:9:-2', 10)
+    []
+    >>> parse_dim_spec('banana', ':9:-3', 10)
+    []
+    >>> parse_dim_spec('banana', '::-2', 10)
+    []
+    >>> parse_dim_spec('banana', '6::-1', 10)
+    []
+    >>> parse_dim_spec('banana', '9:1:3', 10)
+    []
+
+    8. Check that a missing stride value generates an error
+    >>> parse_dim_spec('banana', '2::', 10) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError:
+    Two colons were provided for variable 'banana' in 'user_nl_cam', \
+    but no stride value was provided.
+    Please provide either a stride value, or remove the extra colon.
+    """
+    array_dims = [x.strip() for x in array_spec_text.split(':')]
+    if len(array_dims) > 3:
+        #Not sure what to do with three or more colons, so die here:
+        emsg = f"Variable '{var_name}' has {len(array_dims) - 1} colons (:) "
+        emsg += "listed in its dimension indexing in 'user_nl_cam'."
+        emsg += " This is not a valid Fortran array section specification."
+        raise AtmInParamGenError(emsg)
+    #End if
+    # Defaults
+    arr_beg = 1
+    arr_end = dim_size
+    arr_stride = 1
+    # Override start index?
+    if array_dims[0]:
+        arr_beg = user_nl_str_to_int(array_dims[0], var_name)
+    # end if
+    # Override end index?
+    if len(array_dims) > 1:
+        if array_dims[1].strip():
+            arr_end = user_nl_str_to_int(array_dims[1], var_name)
+        #End if (no else, blank means use default)
+    else:
+        # We only need to check this if it is only a single index
+        check_dim_index(var_name, arr_beg, dim_size)
+        # For a single index, the end is the same as the beginning
+        arr_end = arr_beg
+    #End if
+    # Override stride?
+    if len(array_dims) > 2:
+        if array_dims[2]:
+            arr_stride = user_nl_str_to_int(array_dims[2], var_name)
+            if arr_stride == 0:
+                emsg = f"Variable '{var_name}' has a stride of zero "
+                emsg += "listed in its dimension indexing in 'user_nl_cam'."
+                emsg += " This is not a valid Fortran stride."
+                raise AtmInParamGenError(emsg)
+            #End if
+        else:
+            emsg = f"Two colons were provided for variable '{var_name}'"
+            emsg += " in 'user_nl_cam', but no stride value was provided."
+            emsg += "\nPlease provide either a stride value, or remove the "
+            emsg += "extra colon."
+            raise AtmInParamGenError(emsg)
+        #End if
+    #End if (no else, just use default stride)
+    # Now, create the set of entries
+    # We need to modify the end to make the range function compatible with
+    #    how Fortran uses it
+    arr_end += int(arr_stride / abs(arr_stride))
+    return [x for x in list(range(arr_beg, arr_end, arr_stride)) if
+            ((x >= 1) and (x <= dim_size))]
 
 #####
 
@@ -883,167 +1042,20 @@ class AtmInParamGen(ParamGen):
         #Loop over dimensions:
         for dim_idx, array_index_text in enumerate(user_dim_text):
             #Create new array list entry:
-            arr_indxs.append([])
-
-            #check for colons:
-            array_idx_bnds = array_index_text.split(":")
-
-            #Determine number of colons by number of list elements:
-            num_colons = len(array_idx_bnds) - 1
-
-            if num_colons == 0:
-                #No colons are present, so the text should only be a number:
-                index_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
-
-                #Check index value:
-                check_dim_index(var_name, index_val, max_dim_sizes[dim_idx])
-
-                #Add number to array index list:
-                arr_indxs[dim_idx].append(index_val)
-
-            elif num_colons == 1:
-                #One colon is present, so now check if there are specified index bounds:
-                if all(array_idx_bnds):
-
-                    #Both array bounds are specified:
-                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
-                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
-
-                    #Check index values:
-                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
-                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
-
-                    #Make sure first value is smaller than the second:
-                    if index_max_val < index_min_val:
-                        emsg = f"Bad indexing, min index value '{index_min_val}'"
-                        emsg += f" greater than max index value '{index_max_val}'"
-                        emsg += f" for variable '{var_name}' in 'user_nl_cam'."
-                        raise AtmInParamGenError(emsg)
-                    #End if
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(index_min_val, index_max_val+1)))
-                elif array_idx_bnds[0]:
-
-                    #Only minimum array bound specified:
-                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
-
-                    #Check index value:
-                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(index_min_val, max_dim_sizes[dim_idx]+1)))
-
-                elif array_idx_bnds[1]:
-
-                    #Only maximum array bounds specified:
-                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
-
-                    #Check index value:
-                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(1, index_max_val+1)))
-
-                else:
-
-                    #Only a single colon provided.  In this case provide a special index
-                    #that indicates that specific indices can still be provided, but that the
-                    #whole array dimension cannot be written again:
-                    arr_indxs[dim_idx].append(-1)
-
-                #End if (index bounds)
-
-            elif num_colons == 2:
-
-                #Two colons are present, which means a stride value should be present as
-                #the last numerical value.  If one is not present, then throw an error:
-                if not array_idx_bnds[2]:
-                    emsg = f"Two colons were provided for variable '{var_name}'"
-                    emsg += " in 'user_nl_cam', but no stride value was provided."
-                    emsg += "\nPlease provide either a stride value, or remove the"
-                    emsg += "extra colon."
-                    raise AtmInParamGenError(emsg)
-                #End if
-
-                if all(array_idx_bnds):
-
-                    #A min/max/stride value has been provided:
-                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
-                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
-                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
-
-                    #Check index values:
-                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
-                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
-                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
-
-                    #Make sure first value is smaller than the second:
-                    if index_max_val < index_min_val:
-                        emsg = f"Bad indexing, min index value '{index_min_val}'"
-                        emsg += f" greater than max index value '{index_max_val}'"
-                        emsg += f" for variable '{var_name}' in 'user_nl_cam'."
-                        raise AtmInParamGenError(emsg)
-                    #End if
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(index_min_val,
-                                                         index_max_val+1,
-                                                         index_stride)))
-
-                elif array_idx_bnds[0]:
-
-                    #Only minimum array bound specified:
-                    index_min_val = user_nl_str_to_int(array_idx_bnds[0], var_name)
-                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
-
-                    #Check index value:
-                    check_dim_index(var_name, index_min_val, max_dim_sizes[dim_idx])
-                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(index_min_val,
-                                                         max_dim_sizes[dim_idx]+1,
-                                                         index_stride)))
-
-                elif array_idx_bnds[1]:
-
-                    #Only maximum array bounds specified:
-                    index_max_val = user_nl_str_to_int(array_idx_bnds[1], var_name)
-                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
-
-                    #Check index value:
-                    check_dim_index(var_name, index_max_val, max_dim_sizes[dim_idx])
-                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(1, index_max_val+1, index_stride)))
-
-                else:
-
-                    #Only a stride provided, so cover the entire array dimension
-                    #using the provided stride:
-
-                    #Extract and check stride values:
-                    index_stride  = user_nl_str_to_int(array_idx_bnds[2], var_name)
-                    check_dim_index(var_name, index_stride, max_dim_sizes[dim_idx])
-
-                    #Add index range to array index list:
-                    arr_indxs[dim_idx].extend(list(range(1,
-                                                   max_dim_sizes[dim_idx]+1,
-                                                   index_stride)))
-
-                #End if (index bounds)
-
+            if array_index_text.strip() == ':':
+                #Only a single colon provided.  In this case provide a special index
+                #that indicates that specific indices can still be provided, but that the
+                #whole array dimension cannot be written again:
+                arr_indxs.append([-1])
             else:
-
-                #Not sure what to do with three or more colons, so die here:
-                emsg = f"Variable '{var_name}' has {num_colons} colons (:) "
-                emsg += "listed in its dimension indexing in 'user_nl_cam'."
-                emsg += " Only up to two colons are supported."
-                raise AtmInParamGenError(emsg)
-
-            #End if (number of colons)
+                indices = parse_dim_spec(var_name, array_index_text,
+                                         max_dim_sizes[dim_idx])
+                if not indices:
+                    ## Log a warning here if no values were returned?
+                    pass
+                #End if
+                arr_indxs.append(indices)
+            #End if
         #End for (dimensions)
 
         #Return relevant variables:

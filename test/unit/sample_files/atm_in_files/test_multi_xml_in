@@ -1,5 +1,6 @@
 &alien_invasions
     body_snatchers = "looks human", "human", "still looks human", "alien"
+    swedish_chef = "bork", "bork"
 /
 
 &bird_sounds_nl
