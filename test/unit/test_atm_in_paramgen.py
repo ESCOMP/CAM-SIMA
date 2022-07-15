@@ -887,67 +887,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains
-    #a array namelist variable with specified array
-    #indices in the wrong (max:min) order fails
-    #correctly.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_user_nl_bad_index_order(self):
-
-        """
-        Check that a user_nl_cam file with a
-        namelist variable that is an array
-        with specified indexes that are out of
-        order (max:min instead of min:max) fails
-        with the appropriate error.
-        """
-
-        # Get XML file path:
-        xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
-
-        # Create the ParamGen object:
-        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
-
-        # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
-            nl_file.write("marx_bros(4:1) = 'Gummo'")
-        # End with
-
-        # Attempt to append user_nl_cam file with line that
-        # contains no equals ('=') sign:
-        with self.assertRaises(AtmInParamGenError) as cerr:
-            pg_test.append_user_nl_file("user_nl_tmp")
-        # End with
-
-        # Check exception message:
-        emsg = f"Bad indexing, min index value '4'"
-        emsg += f" greater than max index value '1'"
-        emsg += f" for variable 'marx_bros' in 'user_nl_cam'."
-        self.assertEqual(emsg, str(cerr.exception))
-
-        #Remove temporary user_nl_cam file
-        os.remove("user_nl_tmp")
-
-        #Try again with a stride index:
-
-        # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
-            nl_file.write("marx_bros(4:1:2) = 'Gummo'")
-        # End with
-
-        # Attempt to append user_nl_cam file:
-        with self.assertRaises(AtmInParamGenError) as cerr:
-            pg_test.append_user_nl_file("user_nl_tmp")
-        # End with
-
-        # Check exception message:
-        emsg = f"Bad indexing, min index value '4'"
-        emsg += f" greater than max index value '1'"
-        emsg += f" for variable 'marx_bros' in 'user_nl_cam'."
-        self.assertEqual(emsg, str(cerr.exception))
-
-    #+++++++++++++++++++++++++++++++++++++++++++++++
     #Check that a user_nl_cam file that contains an
     #array variable with two colons for a specific
     #array dimension, but no stride value, fails
@@ -982,9 +921,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         # End with
 
         # Check exception message:
-        emsg = f"Two colons were provided for variable 'marx_bros'"
+        emsg = "Two colons were provided for variable 'marx_bros'"
         emsg += " in 'user_nl_cam', but no stride value was provided."
-        emsg += "\nPlease provide either a stride value, or remove the"
+        emsg += "\nPlease provide either a stride value, or remove the "
         emsg += "extra colon."
         self.assertEqual(emsg, str(cerr.exception))
 
@@ -1026,7 +965,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         # Check exception message:
         emsg = f"Variable 'marx_bros' has 3 colons (:) "
         emsg += "listed in its dimension indexing in 'user_nl_cam'."
-        emsg += " Only up to two colons are supported."
+        emsg += " This is not a valid Fortran array section specification."
         self.assertEqual(emsg, str(cerr.exception))
 
         #Remove temporary user_nl_cam file
@@ -1177,6 +1116,57 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += " (1) :\n"
         emsg += "4, 5, 6, 7, 8, 9, 10, 11"
         self.assertEqual(emsg, str(cerr.exception))
+
+        #Remove temporary user_nl_cam file
+        os.remove("user_nl_tmp")
+
+    def test_user_nl_complex_array_dims(self):
+
+        """
+        Check that a user_nl_cam file with
+        a namelist variable that is an array,
+        using complex array syntax produces the correct atm_in file
+        """
+
+        # Create fake CIME case:
+        fcase = FakeCase()
+
+        # Get expected atm_in file:
+        atm_in_output = os.path.join(_SAMPLES_DIR, "test_cmplx_array_atm_in")
+
+        # Get XML file path:
+        xml_test_fil = os.path.join(_SAMPLES_DIR, "test_third_nml_def.xml")
+
+        # Create the ParamGen object:
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+
+        # Create temporary user_nl_cam file:
+        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+            nl_file.write("swedish_chef(15:10:-2) = 'bork', 'bork', 'bork'\n")
+            nl_file.write("swedish_chef(7:9:2) = 'not bork', 'not bork'\n")
+            nl_file.write("swedish_chef(1) = ''\n")
+        # End with
+
+        # Attempt to append user_nl_cam file:
+        pg_test.append_user_nl_file("user_nl_tmp")
+
+        # Set all ParamGen namelist values:
+        pg_test.reduce_atm_in(fcase, {})
+
+        # Create test atm_in namelist file name:
+        test_output = os.path.join(_TMP_DIR, "test_cmplx_array_atm_in")
+
+        # Create CAM namelist using CIME's nmlgen routine:
+        pg_test.write(test_output)
+
+        # Check that output file was written:
+        amsg = f"{test_output} does not exist"
+        self.assertTrue(os.path.exists(test_output), msg=amsg)
+
+        # Check that output file matches expected file:
+        amsg = f"{test_output} does not match {atm_in_output}"
+        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
+                        msg=amsg)
 
         #Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
