@@ -2,6 +2,8 @@
 Class, methods, and supporting functions to track whether either of CAM's
 specialized pre-processing file generation routines (CAM registry and CCPP)
 need to be run as part of a current build.
+
+To run doctests on this file: python cam_build_cache.py
 """
 
 #----------------------------------------

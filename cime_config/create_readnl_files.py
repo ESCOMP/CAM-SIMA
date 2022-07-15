@@ -5,7 +5,7 @@ For each XML file in a list of XML namelist definition files, create
 the appropriate read_namelist module and associated metadata.
 Also, create a master module to execute these namelist read functions.
 
-To run doctest on this file: python -m doctest generate_registry_data.py
+To run doctests on this file: python create_readnl_files.py
 """
 
 # Python library imports

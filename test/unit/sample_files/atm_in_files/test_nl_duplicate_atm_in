@@ -30,11 +30,11 @@
         0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
         0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
         0, 1, 0, 1, 0, 0, 1, 0, 1, 0
+    lets_ask_computer(1:) = 1
+    lets_ask_computer(:50) = 2
     lets_ask_computer(15:20) = 3
     lets_ask_computer(16) = 4
-    lets_ask_computer(1:) = 1
     lets_ask_computer(30:36:2) = 5
-    lets_ask_computer(:50) = 2
     warp_drive = 0
 /
 

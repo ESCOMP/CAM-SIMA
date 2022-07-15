@@ -3,6 +3,8 @@ Location of CAM's "generate" routines,
 which are used to autogenerate fortran
 source code based off of the registry
 and physics suites chosen by the user.
+
+To run doctests on this file: python cam_autogen.py
 '''
 
 ########################################

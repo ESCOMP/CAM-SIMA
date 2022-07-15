@@ -4,6 +4,8 @@ is used to pass any needed data between the relevant CAM
 "cime_config" scripts, and which stores all meta-data and
 descriptions associated with the CAM configuration of a
 CIME case.
+
+To run doctests on this file: python cam_config.py
 """
 
 #----------------------------------------

@@ -3,6 +3,8 @@ Wrapper-class for the ParamGen
 CIME tool, and associated methods
 needed to generated the "atm_in"
 Fortran namelist file.
+
+To run doctests on this file: python -m doctest atm_in_paramgen.py
 """
 
 #----------------------------------------
@@ -450,17 +452,17 @@ def parse_dim_spec(var_name, array_spec_text, dim_size):
     [5]
 
     2. Check that a single, out-of-bounds index generates the proper error
-    >>> parse_dim_spec('banana', '15', 10) # doctest: +ELLIPSIS
+    >>> parse_dim_spec('banana', '15', 10) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     atm_in_paramgen.AtmInParamGenError:
     Variable 'banana' has index 15 in 'user_nl_cam', which is greater than the max dimension size of 10
-    >>> parse_dim_spec('banana', '0', 10) # doctest: +ELLIPSIS
+    >>> parse_dim_spec('banana', '0', 10) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     atm_in_paramgen.AtmInParamGenError:
     Variable 'banana' has index 0 in 'user_nl_cam', which is less than one (1), the minimal index value allowed.
-    >>> parse_dim_spec('banana', '-2', 10) # doctest: +ELLIPSIS
+    >>> parse_dim_spec('banana', '-2', 10) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     atm_in_paramgen.AtmInParamGenError:
@@ -515,7 +517,7 @@ def parse_dim_spec(var_name, array_spec_text, dim_size):
     []
 
     8. Check that a missing stride value generates an error
-    >>> parse_dim_spec('banana', '2::', 10) # doctest: +ELLIPSIS
+    >>> parse_dim_spec('banana', '2::', 10) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     atm_in_paramgen.AtmInParamGenError:
@@ -1367,6 +1369,9 @@ class AtmInParamGen(ParamGen):
             raise AtmInParamGenError(emsg)
         #End if
 
+        #Create function to properly sort variables with array indices:
+        var_sort_key = lambda var : var[:var.index("(")] if "(" in var else var
+
         # Write Fortran namelist file:
         with open(os.path.join(output_path), 'w', encoding='utf-8') as atm_in_fil:
             #Loop through namelist groups in alphabetical order:
@@ -1375,7 +1380,7 @@ class AtmInParamGen(ParamGen):
                 atm_in_fil.write("&"+nml_group+"\n")
 
                 # Write all variables within that group (sorted alphabetically):
-                for var in sorted(self._data[nml_group]):
+                for var in sorted(self._data[nml_group], key=var_sort_key):
                     #Extract variable value(s):
                     val = self._data[nml_group][var]["values"].strip()
 
