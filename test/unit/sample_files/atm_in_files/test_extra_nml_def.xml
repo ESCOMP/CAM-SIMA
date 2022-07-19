@@ -65,7 +65,7 @@
       HAL, where is your hard drive?
     </desc>
     <values>
-      <value>$DIN_LOC_ROOT/I/CANT/LET/YOU/DO/THAT/DAVE</value>
+      <value>${DIN_LOC_ROOT}/I/CANT/LET/YOU/DO/THAT/DAVE</value>
     </values>
   </entry>
 </entry_id_pg>

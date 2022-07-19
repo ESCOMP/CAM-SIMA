@@ -149,9 +149,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         super().setUpClass()
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a namelist can be built with a proper
-    #XML namelist definition file:
-    #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_from_xml(self):
 
@@ -191,10 +188,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
                         msg=amsg)
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a namelist can be built with a proper
-    #XML namelist definition file and corresponding
-    #attributes/guards:
     #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_from_xml_using_attrs(self):
@@ -239,10 +232,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
                         msg=amsg)
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a namelist can be built with a proper
-    #XML namelist definition file and multiple
-    #corresponding attributes/guards:
     #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_from_xml_using_multi_attrs(self):
@@ -289,10 +278,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
                         msg=amsg)
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a namelist with missing, required
-    #XML elements/tags fails with the correct error
-    #message
-    #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_xml_missing_elems(self):
 
@@ -319,10 +304,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that ParamGen can properly concantenate
-    #multiple XML namelist defition files into a single
-    #atm_in namelist file
     #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_mutli_xml_namelist_defs(self):
@@ -377,10 +358,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
                         msg=amsg)
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that trying to combine multiple XML namelist
-    #defition files with the same namelist group
-    #fails with the appropriate error
-    #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_mutli_xml_same_nl_group(self):
 
@@ -404,15 +381,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
             pg_test.append_atm_in_pg(pg_ext)
 
         # Check exception message:
-        emsg = f"Both\n'{xml_test_fil}'\nand\n'{extra_xml_fil}'\nhave"
-        emsg += " the following conflicting namelist groups:\n"
+        emsg = f"Cannot append:\n'{extra_xml_fil}'\n"
+        emsg += " The following namelist groups conflict with those in"
+        emsg += f"\n'{xml_test_fil} :'\n"
         emsg += "bird_sounds_nl"
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that trying to combine multiple XML
-    #namelist defition files with the same namelist
-    #variable fails with the appropriate error
     #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_mutli_xml_same_nl_var(self):
@@ -437,14 +411,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
             pg_test.append_atm_in_pg(pg_ext)
 
         # Check exception message:
-        emsg = f"Both\n'{xml_test_fil}'\nand\n'{extra_xml_fil}'\nhave"
-        emsg += " the following conflicting namelist variables:\n"
+        emsg = f"Cannot append:\n'{extra_xml_fil}'\n"
+        emsg += " The following namelist variablesconflict with those in"
+        emsg += f"\n'{xml_test_fil} :'\n"
         emsg += "duck_quack"
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file properly modifies
-    #an associated atm_in file
     #++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_mode_from_user_nl_cam(self):
@@ -492,10 +464,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
                         msg=amsg)
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file with an improperly
-    #formatted namelist entry fails with the
-    #appropriate error
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_user_nl_bad_format_entry(self):
 
@@ -537,18 +505,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         self.assertEqual(emsg, str(cerr.exception))
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file with a namelist
-    #entry that is not currently present within the
-    #AtmInParamGen object fails with the appropriate
-    #error
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_user_nl_undefined_entry(self):
 
         """
         Check that a user_nl_cam file with a
         namelist entry that has yet to be defined
-        in an namelist definition file throws an
+        in a namelist definition file throws an
         error and that the error message is correct.
         """
 
@@ -571,16 +534,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         self.assertEqual(emsg, str(cerr.exception))
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file with a repeated
-    #namelist entry fails with the appropriate
-    #error message.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_user_nl_double_entry(self):
 
         """
         Check that a user_nl_cam file with a
-        namelist entry that has is included twice
+        namelist entry that has been included twice
         in the file throws an error and that the
         error message is correct. Also check that
         the "allow_dupl" flag works as expected
@@ -643,9 +602,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
                         msg=amsg)
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a line starting with a comma
-    #for a non-array namelist entry fails correctly.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_non_array_comma(self):
 
@@ -681,10 +637,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         #Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file with an array
-    #variable with an ending and starting comma
-    #fails correctly.
     #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_double_comma(self):
@@ -726,10 +678,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file with an array
-    #variable with an ending comma followed by a new
-    #namelist variable fails correctly.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_trailing_comma(self):
 
@@ -767,10 +715,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains
-    #a non-array namelist variable with array
-    #dimensions specified fails correctly.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_non_array_dims(self):
 
@@ -807,17 +751,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains
-    #a array namelist variable with too many array
-    #dimensions specified fails correctly.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_too_many_array_dims(self):
 
         """
         Check that a user_nl_cam file with
         a namelist variable that is an array,
-        but that is listed with too many dimension,
+        but that is listed with too many dimensions,
         fails with the appropriate error.
         """
 
@@ -847,17 +787,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains
-    #a array namelist variable with too few array
-    #dimensions specified fails correctly.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_too_few_array_dims(self):
 
         """
         Check that a user_nl_cam file with
         a namelist variable that is an array,
-        but that is listed with too many dimension,
+        but that is listed with too few dimensions,
         fails with the appropriate error.
         """
 
@@ -886,11 +822,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         #Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains an
-    #array variable with two colons for a specific
-    #array dimension, but no stride value, fails
-    #with the appropriate error.
     #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_no_stride_val(self):
@@ -931,10 +862,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains an
-    #array variable with three colons for a specific
-    #array dimension fails with the appropriate error.
-    #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_three_colons(self):
 
@@ -971,11 +898,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         #Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains an
-    #array variable with a colon dimension, and then
-    #that same array variable is listed again with
-    #a colon, fails with the appropriate error.
     #+++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_colon_dupl(self):
@@ -1014,10 +936,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         #Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains an
-    #array variable with the same exact array index
-    #referenced twice fails with the appropriate error
     #+++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_arr_index_dupl(self):
@@ -1067,10 +985,6 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         os.remove("user_nl_tmp")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check that a user_nl_cam file that contains an
-    #array variable with a specified array index range
-    #referenced twice fails with the appropriate error
-    #+++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_arr_index_range_dupl(self):
 
@@ -1119,6 +1033,8 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         #Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_complex_array_dims(self):
 

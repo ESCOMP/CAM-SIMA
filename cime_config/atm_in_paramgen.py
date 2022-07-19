@@ -34,6 +34,9 @@ sys.path.append(_PARAMGEN_ROOT)
 from paramgen import ParamGen
 #pylint: enable=wrong-import-position
 
+#Set of single and double quotes used by "_check_string_quotes" function:
+_QUOTE_SET = {"'", '"'}
+
 #Regular expression used by "remove_user_nl_comment" function:
 _QUOTE_REGEX = re.compile(r"\".*?\"|'.*?'")
 
@@ -277,6 +280,8 @@ def remove_user_nl_comment(user_string, comment_delim="!"):
     '\\'This is "one" string\\''
     >>> remove_user_nl_comment("'This is \\"one\\" string'! comment")
     '\\'This is "one" string\\''
+    >>> remove_user_nl_comment("'This! is \\"!one\\"! string'! comment")
+    '\\'This! is "!one"! string\\''
     """
 
     #Create empty set for comment-delimiting indices:
@@ -338,7 +343,7 @@ def user_nl_str_to_int(string, var_name):
     Checks if a string can be converted
     into an integer, and if not reports
     the relevant error.  This function
-    is only used in the "check_user_nl_var"
+    is only used in the "get_user_nl_var_array_info"
     function below.
     ----------
     string   -> string to convert to integer.
@@ -579,6 +584,90 @@ def parse_dim_spec(var_name, array_spec_text, dim_size):
 
 #####
 
+def _check_string_quotes(var_name, var_val):
+
+    """
+    Checks if a string is inside closed quotes,
+    i.e. has both a starting and ending quote
+    of the same type.  This function also
+    raises an error if there are quotes but
+    they aren't closed:
+
+    doctests:
+
+    1.  Check that a string with single quotes returns "True":
+    >>> _check_string_quotes("Apple", "'Banana'")
+    True
+
+    2.  Check that a string with double quotes returns "True":
+    >>> _check_string_quotes("Apple", '"Banana"')
+    True
+
+    3.  Check that a string without quotes returns "False":
+    >>> _check_string_quotes("Apple", "Banana")
+    False
+
+    4.  Check that a string with mis-matching quote types raises
+        the appropriate error:
+    >>> _check_string_quotes("Apple", ''' "Banana' ''') # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError: Namelist entry 'Apple' is of type character but its input value:
+    "Banana'
+    has mis-matched quotes.  Please fix.
+
+    5.  Check that a string with a missing ending quote type raises
+        the appropriate error:
+    >>> _check_string_quotes("Apple", "'Banana") # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError: Namelist entry 'Apple' is of type character but its input value:
+    'Banana
+    has mis-matched quotes.  Please fix.
+
+    5.  Check that a string with a missing starting quote type raises
+    the appropriate error:
+    >>> _check_string_quotes("Apple", 'Banana"') # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    atm_in_paramgen.AtmInParamGenError: Namelist entry 'Apple' is of type character but its input value:
+    Banana"
+    has mis-matched quotes.  Please fix.
+
+    """
+
+    #Make sure variable has been stripped:
+    var_val_strip = var_val.strip()
+
+    #Set error message (just in case):
+    emsg = f"Namelist entry '{var_name}' is of type character"
+    emsg += " but its input value:"
+    emsg += f"\n{var_val}\n"
+    emsg += "has mis-matched quotes.  Please fix."
+
+    #Check if starting and ending quotes exist and match:
+    if var_val_strip[0] in _QUOTE_SET:
+        if var_val_strip[0] == var_val_strip[-1]:
+            #String is inside closed quotes:
+            return True
+        #End if
+
+        #Starting and ending quotes don't match,
+        #so raise an error:
+        raise AtmInParamGenError(emsg)
+    #End if
+
+    #Check if there are ending quotes as well:
+    if var_val_strip[-1] in _QUOTE_SET:
+        #No starting quotes, raise an error:
+        raise AtmInParamGenError(emsg)
+    #End if
+
+    #String is not inside quotes:
+    return False
+
+#####
+
 def _get_nml_value_str(var_name, var_type, var_val):
 
     """
@@ -623,14 +712,19 @@ def _get_nml_value_str(var_name, var_type, var_val):
     6.  Check that a character variable with quotes outputs
         the correct value:
     >>> _get_nml_value_str("banana", "char*250", " 'apple' ")
-    '"apple"'
+    "'apple'"
 
     7.  Check that a character variable with double quotes
         outputs the correct value:
     >>> _get_nml_value_str("banana", "char*N", ' "apple" ')
     '"apple"'
 
-    8.  Check that a variable with an unknown type returns
+    8.  Check that a character variable with a quotation mark
+        innternal to the string outputs the correct value:
+    >>> _get_nml_value_str("banana", "char*31", ''' "app'le" ''')
+    '"app\\'le"'
+
+    9.  Check that a variable with an unknown type returns
         the proper error:
     >>> _get_nml_value_str("banana", "apple", "true") # doctest: +ELLIPSIS
     Traceback (most recent call last):
@@ -655,7 +749,7 @@ def _get_nml_value_str(var_name, var_type, var_val):
 
     if var_type in num_set:
         #Check if the variable value is an integer, but is being
-        #used for a real-type variaable:
+        #used for a real-type variable:
         if var_type == "real" and isinstance(var_val, int):
             return f"{var_val}.d0"
         #End if
@@ -665,12 +759,19 @@ def _get_nml_value_str(var_name, var_type, var_val):
     #End if
 
     if "char*" in var_type:
-        #Remove all quotes in the string, as they are
-        #sometimes added by ParamGen during the "reduce" phase:
-        var_val = var_val.replace("'", "")
-        var_val = var_val.replace('"', "")
-        #Return with double quotes:
-        return f'"{var_val.strip()}"'
+        #Removee extra white space:
+        var_val_strip = var_val.strip()
+
+        #Check if string is wrapped in quotes:
+        quoted_flag = _check_string_quotes(var_name, var_val_strip)
+
+        #If not, then pass string with quotes:
+        if not quoted_flag:
+            return f'"{var_val_strip}"'
+        #End if
+
+        #If so, then pass out original string as-is:
+        return var_val_strip
     #End if
 
     #If one makes it here, then this is an un-recognized type option, so raise an error:
@@ -865,18 +966,23 @@ class AtmInParamGen(ParamGen):
 
             #Check that there are no matching namelist groups:
             #------------------------------------------------
+
+            #Initialize error message string:
+            emsg = ""
+
+            #Loop over all namelist files and namelist group sets:
             for nml_file, nml_groups in self.__nml_def_groups.items():
 
                 #Determine if any namelist groups are the same
                 #between the two objects:
                 same_groups = nml_groups.intersection(input_groups)
 
-                #If so, then raise an error (as all namelist groups must be unique):
+                #If so, then add to error message (as all namelist groups must be unique):
                 if same_groups:
-                    emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
-                    emsg += " the following conflicting namelist groups:\n"
+                    emsg += f"Cannot append:\n'{input_file}'\n"
+                    emsg += " The following namelist groups conflict with those in"
+                    emsg += f"\n'{nml_file} :'\n"
                     emsg += ", ".join(same_groups)
-                    raise AtmInParamGenError(emsg)
                 #End if
             #End for
 
@@ -890,17 +996,23 @@ class AtmInParamGen(ParamGen):
                 #between the two objects:
                 same_vars = nml_vars.intersection(input_vars)
 
-                #If so, then raise an error (as all namelist variable ids must be unique):
+                #If so, then add to error message (as all namelist variable ids must be unique):
                 if same_vars:
-                    emsg = f"Both\n'{nml_file}'\nand\n'{input_file}'\nhave"
-                    emsg += " the following conflicting namelist variables:\n"
+                    emsg += f"Cannot append:\n'{input_file}'\n"
+                    emsg += " The following namelist variablesconflict with those in"
+                    emsg += f"\n'{nml_file} :'\n"
                     emsg += ", ".join(same_vars)
-                    raise AtmInParamGenError(emsg)
                 #End if
             #End for
             #------------------------------------------------
 
         #End for (input files used to create input atm_pb object)
+
+        #Check if an error message was written.  If so then raise the
+        #error(s) here:
+        if emsg:
+            raise AtmInParamGenError(emsg)
+        #Endd if
 
         #Add input PG object dictionaries to this object's dicts:
         self.__nml_def_groups.update(atm_pg_obj.__nml_def_groups)
@@ -915,12 +1027,12 @@ class AtmInParamGen(ParamGen):
 
     ####
 
-    def check_user_nl_var(self, var_str):
+    def get_user_nl_var_array_info(self, var_str):
 
         """
         Checks whether the variable string
         is for a specific set of array
-        indices:
+        indices.
         ----------
         var_str  -> variable name string.
 
@@ -1263,7 +1375,8 @@ class AtmInParamGen(ParamGen):
                         #Check if this variable is an array, and if so,
                         #then return what the variable name is, what indices (if any)
                         #are being specified, and what namelist (data) group it belongs to:
-                        is_array, var_name, arr_indxs, data_group = self.check_user_nl_var(var_str)
+                        is_array, var_name, arr_indxs, data_group = \
+                            self.get_user_nl_var_array_info(var_str)
 
                         #Are there array indices specified:
                         if arr_indxs:
