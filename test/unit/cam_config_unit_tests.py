@@ -1,7 +1,9 @@
 """
 Python unit testing collection for the various
 public Config_CAM methods, including their
-error-handling processes.
+error-handling processes.  Please note that
+these tests will only work with Python 3.7
+or later.
 
 To run these unit tests, simply type:
 
@@ -57,7 +59,7 @@ class FakeCase:
 
         #Create dictionary (so get_value works properly):
         self.conf_opts = {
-            "ATM_GRID" : "f19_f19_mg17",
+            "ATM_GRID" : "mpasa480z32_mpasa480",
             "ATM_NX"   : 180,
             "ATM_NY"   : 90,
             "COMP_OCN" : "socn",
@@ -127,6 +129,43 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Check that testval matches ATM_NY set in the "fake" case:
         self.assertEqual(testval, 16)
 
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #check that "get_value" method works properly for non-null dycores
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_get_dycore_values_check(self):
+
+        """
+        Check that Config_CAM.get_value properly retrieves the dycore
+        name and horizontal grid for a non-null dycore.
+        """
+
+        #Create new "fake" case:
+        fcase_dyn = FakeCase()
+
+        #Remove "none" dyn option:
+        fcase_dyn.conf_opts["CAM_CONFIG_OPTS"] = "--physics-suites mango;papaya"
+
+        #Create python logger object:
+        logger = logging.getLogger("cam_config")
+
+        #create CAM configure object:
+        test_config_dyn = ConfigCAM(fcase_dyn, logger)
+
+        #Get dycore name:
+        test_dyn = test_config_dyn.get_value("dyn")
+
+        #Check that dycore name matches what is specified by the grid
+        #in the "fake" CIME case:
+        self.assertEqual(test_dyn, "mpas")
+
+        #Get dycore horizontal grid:
+        test_hgrid = test_config_dyn.get_value("hgrid")
+
+        #Check that dycore grid matches what is specified by the grid
+        #in the "fake" CIME case:
+        self.assertEqual(test_hgrid, "mpasa480")
+
     #++++++++++++++++++++++++++++++++++++++++++++
     #check that "set_value" method works properly
     #++++++++++++++++++++++++++++++++++++++++++++
@@ -155,10 +194,6 @@ class CamConfigTestRoutine(unittest.TestCase):
 
         """
         Check that Config_CAM.print_config properly prints to log
-
-        Please note that this check only works with python 3.4
-        or greater, so if an earlier version is used this test
-        is skipped.
         """
 
         #Create new logger for print_config test:

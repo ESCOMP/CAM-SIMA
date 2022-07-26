@@ -61,70 +61,78 @@ def get_atm_hgrid(atm_grid_str):
     >>> get_atm_hgrid("ne5np4.pg2")
     ('se', re.compile('ne[0-9]+np[1-8](.*)(pg[1-9])?'))
 
-    3.  Check that an FV3 grid returns the correct results:
+    3.  Check that an SE variable resolution grid returns the correct results:
+    >>> get_atm_hgrid("ne0np4CONUS.ne30x8")
+    ('se', re.compile('ne[0-9]+np[1-8](.*)(pg[1-9])?'))
+
+    4.  Check that an FV3 grid returns the correct results:
     >>> get_atm_hgrid("C96")
     ('fv3', re.compile('C[0-9]+'))
 
-    4.  Check that an MPAS grid returns the correct results:
+    5.  Check that an MPAS grid returns the correct results:
     >>> get_atm_hgrid("mpasa480")
     ('mpas', re.compile('mpasa[0-9]+'))
 
-    5.  Check that a null dycore returns the correct results:
+    6.  Check that an MPAS grid with a "decimal" returns the correct results:
+    >>> get_atm_hgrid("mpasa7p5")
+    ('mpas', re.compile('mpasa[0-9]+'))
+
+    7.  Check that an MPAS grid with a variable resolution grid returns the correct results:
+    >>> get_atm_hgrid("mpasa15-3")
+    ('mpas', re.compile('mpasa[0-9]+'))
+
+    8.  Check that a null dycore returns the correct results:
     >>> get_atm_hgrid("null")
     ('none', None)
 
-    6.  Check that a horizontal grid with with no matches fails
-        with the correct error message:
+    9.  Check that an Eulerian (EUL) grid returns the correct results:
+    >>> get_atm_hgrid("T42")
+    ('eul', re.compile('T[0-9]+'))
+
+    10.  Check that a horizontal grid with with no matches fails
+         with the correct error message:
     >>> get_atm_hgrid("1.9xC96") # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
     cam_config_classes.CamConfigValError: ERROR: The specified CAM horizontal grid, '1.9xC96', does not match any known format.
     """
 
-    # Create regex expressions to search for the different dynamics grids
-    eul_grid_re = re.compile(r"T[0-9]+")                      # Eulerian dycore
-    fv_grid_re = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")     # FV dycore
-    se_grid_re = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?") # SE dycore
-    fv3_grid_re = re.compile(r"C[0-9]+")                      # FV3 dycore
-    mpas_grid_re = re.compile(r"mpasa[0-9]+")                 # MPAS dycore (not totally sure about this pattern)
-
     # Check if specified grid matches any of the pre-defined grid options.
     #   If so, then add both the horizontal grid regex and dynamical core
     #   to the configure object:
 
-    if fv_grid_re.match(atm_grid_str) is not None:
-
-        #Finite Volume (FV) dycore:
-        return "fv", fv_grid_re
+    #Finite-Volume (FV) grid:
+    grid_regex = re.compile(r"[0-9][0-9.]*x[0-9][0-9.]*")
+    if grid_regex.match(atm_grid_str) is not None:
+        return "fv", grid_regex
     #End if
 
-    if se_grid_re.match(atm_grid_str) is not None:
-
-        #Spectral Element (SE) dycore:
-        return "se", se_grid_re
+    #Spectral Element (SE) grid:
+    grid_regex = re.compile(r"ne[0-9]+np[1-8](.*)(pg[1-9])?")
+    if grid_regex.match(atm_grid_str) is not None:
+        return "se", grid_regex
     #End if
 
-    if fv3_grid_re.match(atm_grid_str) is not None:
-
-        #Finite Volume Cubed-Sphere (FV3) dycore:
-        return "fv3", fv3_grid_re
+    #Finite-Volume Cubed-Sphere (FV3) grid:
+    grid_regex = re.compile(r"C[0-9]+")
+    if grid_regex.match(atm_grid_str) is not None:
+        return "fv3", grid_regex
     #End if
 
-    if mpas_grid_re.match(atm_grid_str) is not None:
-
-        #Model for Prediction Across Scales (MPAS) dycore:
-        return "mpas", mpas_grid_re
+    #Model for Prediction Across Scales (MPAS) grid:
+    grid_regex = re.compile(r"mpasa[0-9]+")
+    if grid_regex.match(atm_grid_str) is not None:
+        return "mpas", grid_regex
     #End if
 
-    if eul_grid_re.match(atm_grid_str) is not None:
-
-        #Eulerian Spectral (eul) dycore:
-        return "eul", eul_grid_re
+    #Eulerian Spectral (EUL) grid:
+    grid_regex = re.compile(r"T[0-9]+")
+    if grid_regex.match(atm_grid_str) is not None:
+        return "eul", grid_regex
     #End if
 
+    #Null dycore (no specified grid):
     if atm_grid_str == "null":
-
-        #Null dycore:
         return "none", None
     #End if
 
@@ -925,10 +933,11 @@ class ConfigCAM:
         #Determine current value of "physics_suite" namelist variable:
         phys_nl_val = phys_nl_pg_dict['physics_suite']['values'].strip()
 
-        #Check if only one physics suite is listed:
-        if len(phys_suites) == 1:
-            #Check if "physics_suite" has been set by the user:
-            if phys_nl_val != 'UNSET':
+        #Check if "physics_suite" has been set by the user:
+        if phys_nl_val != 'UNSET':
+
+            #Next, check if only one physics suite is listed:
+            if len(phys_suites) == 1:
                 #If so, then check that user-provided suite matches
                 #suite in physics_suites config list:
                 if phys_nl_val == phys_suites[0]:
@@ -944,33 +953,31 @@ class ConfigCAM:
                 #End if
 
             else:
-                #If not, then just set the attribute and nl value to phys_suites value:
-                phys_nl_pg_dict['physics_suite']['values'] = phys_suites[0]
-                cam_nml_attr_dict["phys_suite"] = phys_suites[0]
-            #End if
-
-        else:
-            #Check if "physics_suite" has been set by the user:
-            if phys_nl_val != 'UNSET':
-                #If so, then check if user-provided value is present in the
-                #physics_suites config list:
+                #If more than one suite is listed, then check if user-provided
+                #value is present in the physics_suites config list:
                 if phys_nl_val in phys_suites:
                     phys_nl_pg_dict['physics_suite']['values'] = phys_nl_val
                     cam_nml_attr_dict["phys_suite"] = phys_nl_val
                 else:
+                    #If not, then throw an error:
                     emsg  = "physics_suite specified in user_nl_cam, '{}', doesn't match any suites\n"
                     emsg += "listed in CAM_CONFIG_OPTS: '{}'"
                     raise CamConfigValError(emsg.format(phys_nl_val,
                                                         self.get_value('physics_suites')))
                 #End if
-
-            else:
-                #If not, then throw an error, because one needs to be specified:
-                emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
-                emsg += "This is required because more than one suite is listed\n"
-                emsg += f"in CAM_CONFIG_OPTS: '{self.get_value('physics_suites')}'"
-                raise CamConfigValError(emsg)
             #End if
+
+        elif len(phys_suites) == 1:
+            #Just set the attribute and nl value to phys_suites value:
+            phys_nl_pg_dict['physics_suite']['values'] = phys_suites[0]
+            cam_nml_attr_dict["phys_suite"] = phys_suites[0]
+        else:
+            #If more then one suite listed, then throw an error,
+            #because one needs to be specified by the user:
+            emsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
+            emsg += "This is required because more than one suite is listed\n"
+            emsg += f"in CAM_CONFIG_OPTS: '{self.get_value('physics_suites')}'"
+            raise CamConfigValError(emsg)
         #End if
 
     #++++++++++++++++++++++++

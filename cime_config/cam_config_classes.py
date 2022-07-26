@@ -4,6 +4,9 @@ Location of internal python classes used by the
 any CAM configuration variables to other components
 of the build system.
 
+Please note that running or testing these routines
+requires python 3.7 or later.
+
 To run doctests on this file: python cam_config_classes.py
 """
 
@@ -12,7 +15,6 @@ To run doctests on this file: python cam_config_classes.py
 #----------------------------------------
 
 import re
-from collections import OrderedDict
 
 ###############################################################################
 # Error-handling classes
@@ -21,20 +23,12 @@ from collections import OrderedDict
 class CamConfigValError(ValueError):
     """Class used to handle CAM config value errors
     (e.g., log user errors without backtrace)"""
-    # pylint: disable=useless-super-delegation
-    def __init__(self, message):
-        super().__init__(message)
-    # pylint: enable=useless-super-delegation
 
 ###############################################################################
 
 class CamConfigTypeError(TypeError):
     """Class used to handle CAM config type errors
     (e.g., log user errors without  backtrace)"""
-    # pylint: disable=useless-super-delegation
-    def __init__(self, message):
-        super().__init__(message)
-    # pylint: enable=useless-super-delegation
 
 ###############################################################################
 # Valid value-checking functions
@@ -203,7 +197,7 @@ def _check_integer_val(name, val, valid_vals=None):
 
             # If valid_vals is a list, then just check that the given value
             # matches one of the valid values in the list
-            if not val in valid_vals:
+            if val not in valid_vals:
                 emsg = "ERROR:  Value, '{}', provided for variable, '{}', "
                 emsg += "does not match any of the valid values: '{}'"
                 return emsg.format(val, name, valid_vals)
@@ -318,6 +312,9 @@ def _check_string_val(name, val, valid_vals=None):
 
 # Helper function to better generalize config value checking:
 _TYPE_CHECK_FUNCTIONS = {"int" : _check_integer_val, "str" : _check_string_val}
+
+# Set of valid types (for faster checking):
+_VALID_TYPE_SET = {"int", "str"}
 
 ###############################################################################
 # Internal generic CAM configure class
@@ -715,6 +712,14 @@ class ConfigList(_ConfigGen):
     ERROR:  Value, 'b', provided for variable, 'test', does not match any of the valid values: '['1', '2', '3']'
     <BLANKLINE>
     ERROR:  Value, 'c', provided for variable, 'test', does not match any of the valid values: '['1', '2', '3']'
+
+    9. check that ConfigList with a list that does not mach the "valid_vals" range fails with the correct error:
+    >>> ConfigList("test", "test object description", [1, 2, 6], valid_type="int", valid_vals=(0,5)).value #doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    CamConfigValError: The following errors were found for a list-type config variable:
+    ERROR:  Value, '6', provided for variable, 'test', is outside valid value range, '(0, 5)'
+
     """
 
     def __init__(self, name, desc, val, valid_type=None, valid_vals=None):
@@ -733,7 +738,7 @@ class ConfigList(_ConfigGen):
         # End if
 
         # Check that the valid values option is only being used with a valid type:
-        if valid_vals is not None and valid_type not in ["int", "str"]:
+        if valid_vals is not None and valid_type not in _VALID_TYPE_SET:
             # Currently valid values can only be used with strings or integers,
             # so throw an error:
             emsg = "ERROR: valid values can only be used if valid_type is 'int' or 'str', not '{}'."
@@ -788,7 +793,7 @@ class ConfigList(_ConfigGen):
         valid_type = self.valid_type
 
         # Create empty dictionary to store errors:
-        bad_val_types = OrderedDict()
+        bad_val_type_msgs = []
 
         good_type = "??"
         if valid_type == "str":
@@ -796,7 +801,7 @@ class ConfigList(_ConfigGen):
             good_type = "string"
             for list_entry in val:
                 if not isinstance(list_entry, str):
-                    bad_val_types[str(list_entry)] = str(type(list_entry))
+                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'\n")
                 # end if
             # end for
         elif valid_type == "int":
@@ -804,7 +809,7 @@ class ConfigList(_ConfigGen):
             good_type = "int"
             for list_entry in val:
                 if not isinstance(list_entry, int):
-                    bad_val_types[str(list_entry)] = str(type(list_entry))
+                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'\n")
                 # end if
             # end for
         else:
@@ -814,16 +819,16 @@ class ConfigList(_ConfigGen):
             raise CamConfigValError(emsg.format(valid_type))
         # End if
         #If bad values dictionary is non-empty, then raise error:
-        if bad_val_types:
-            if len(bad_val_types) > 1:
+        if bad_val_type_msgs:
+            if len(bad_val_type_msgs) > 1:
                 emsg = "ERROR: The following list entries, provided for variable,"
                 emsg += f" '{self.name}', are not {good_type}s, but instead are:\n"
             else:
                 emsg = "ERROR: The following list entry, provided for variable,"
                 emsg += f" '{self.name}', is not a {good_type}, but instead is: "
             # end if
-            for key_str, type_str in bad_val_types.items():
-                emsg += f"'{key_str}': type='{type_str}'\n"
+            for err_msg in bad_val_type_msgs:
+                emsg += err_msg
             # end for
             raise CamConfigValError(emsg)
         # End if
@@ -881,7 +886,7 @@ class ConfigList(_ConfigGen):
         self.__value = list_vals
 
 ###############################################################################
-#IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!
+#End of config class definitions
 ###############################################################################
 
 #Call testing routine, if script is run directly

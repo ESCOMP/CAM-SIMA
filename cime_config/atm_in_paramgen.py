@@ -759,7 +759,7 @@ def _get_nml_value_str(var_name, var_type, var_val):
     #End if
 
     if "char*" in var_type:
-        #Removee extra white space:
+        #Remove extra white space:
         var_val_strip = var_val.strip()
 
         #Check if string is wrapped in quotes:
