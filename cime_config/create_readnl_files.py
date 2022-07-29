@@ -5,7 +5,7 @@ For each XML file in a list of XML namelist definition files, create
 the appropriate read_namelist module and associated metadata.
 Also, create a master module to execute these namelist read functions.
 
-To run doctest on this file: python -m doctest generate_registry_data.py
+To run doctests on this file: python create_readnl_files.py
 """
 
 # Python library imports
@@ -23,9 +23,10 @@ import logging
 _CURRDIR = os.path.abspath(os.path.dirname(__file__))
 _CAMROOT = os.path.abspath(os.path.join(_CURRDIR, os.pardir))
 _SPINSCRIPTS = os.path.join(_CAMROOT, "ccpp_framework", 'scripts')
-_XML_SCHEMAS = os.path.join(_CAMROOT, "cime", "config", "xml_schemas")
-_PG_SCHEMAS = os.path.join(_CAMROOT, "cime", "scripts", "lib",
-                           "CIME", "ParamGen", "xml_schema")
+_XML_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "data", "config",
+                            "xml_schemas")
+_PG_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "ParamGen",
+                           "xml_schema")
 if _SPINSCRIPTS not in sys.path:
     sys.path.append(_SPINSCRIPTS)
 # end if

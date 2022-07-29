@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- A third made-up XML namelist file for testing -->
+
+  <entry id="space_station">
+    <type>char*128</type>
+    <category>sci_fi</category>
+    <group>space_stations</group>
+    <desc>
+      Which station is this?
+    </desc>
+    <values>
+      <value>skylab</value>
+      <value international="true">iss</value>
+      <value imperial="true">deathstar</value>
+      <value delta_quad="true">ds9</value>
+      <value last_one_vanished="true">bablyon5</value>
+    </values>
+  </entry>
+
+  <entry id="body_snatchers">
+    <type>char*32(2,2)</type>
+    <category>sci_fi</category>
+    <group>alien_invasions</group>
+    <desc>
+      Is it human, or a body snatcher?
+    </desc>
+    <values>
+      <value>
+        "looks human", "human",
+        "still looks human", "alien"
+      </value>
+    </values>
+  </entry>
+
+  <entry id="swedish_chef">
+    <type>char*16(16)</type>
+    <category>muppets</category>
+    <group>alien_invasions</group>
+    <desc>
+      The best chef in puppet TV today.
+      Five time winner of "Pillow Chef"
+    </desc>
+    <values>
+      <value>
+        "bork", "bork"
+      </value>
+    </values>
+  </entry>
+
+</entry_id_pg>

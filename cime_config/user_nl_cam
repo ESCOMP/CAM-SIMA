@@ -1,3 +1,8 @@
-! Users should add all user specific namelist changes below in the form of 
-! namelist_var = new_namelist_value 
- 
+! Users should add all user specific namelist changes below in the form of
+! namelist_var = new_namelist_value
+!
+! Also, the variable below (which should remain commented)
+! is a special variable that allows duplicate namelist
+! entries in this file, if set to "True".  Otherwise
+! any duplicate namelist entries will result in an error.
+! allow_duplicate_namelist_entries = False

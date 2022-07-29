@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Initial Conditions -->
+
+  <entry id="duck_quack">
+    <!-- No type tag -->
+    <category>testing</category>
+    <group>bird_sounds_nl</group>
+    <desc>
+      Do ducks quack?
+    </desc>
+    <values>
+      <value>true</value>
+      <value bird="goose">False</value>
+    </values>
+  </entry>
+
+   <entry id="turkey_leg">
+    <type>real</type>
+    <category>testing</category>
+    <group>bird_sounds_nl</group>
+    <desc>
+      How many kgs of turkey legs have
+      you eaten?
+    </desc>
+    <values>
+      <value>3.14d0</value>
+    </values>
+  </entry>
+
+  <entry id="monkey_paw">
+    <type>integer</type>
+    <category>more_testing</category>
+    <group>scary_stories</group>
+    <desc>
+      How many wishes do you want?
+      Default: 0
+    </desc>
+    <values>
+      <value>0</value>
+      <value never_read="1">3</value>
+      <value never_read="1" feel_lucky="1">5</value>
+    </values>
+  </entry>
+
+  <entry id="straw_into_gold">
+    <!-- No type, category, or desc tag -->
+    <group>fairy_tales</group>
+    <values>
+      <value>Rumpelstiltskin</value>
+    </values>
+  </entry>
+
+
+</entry_id_pg>

@@ -3,6 +3,8 @@ Location of CAM's "generate" routines,
 which are used to autogenerate fortran
 source code based off of the registry
 and physics suites chosen by the user.
+
+To run doctests on this file: python cam_autogen.py
 '''
 
 ########################################
@@ -198,7 +200,7 @@ def _find_schemes_in_sdf(suite_part):
     NB: This function is recursive as schemes may be nested inside other
         suite objects (e.g., group, subcycle)
     """
-    scheme_list = list() # Attempt to retain ordering
+    scheme_list = [] # Attempt to retain ordering
     for section in suite_part:
         item_type = section.tag.lower()
         if item_type == 'scheme':
@@ -384,7 +386,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     registry_files = [registry_file]
     genreg_dir = os.path.join(bldroot, "cam_registry")
     # Create empty registry file objects list:
-    reg_files_list = list()
+    reg_files_list = []
     # Figure out if we need to generate new data source and metadata files
     gen_reg_file = os.path.join(_REG_GEN_DIR, "generate_registry_data.py")
     if os.path.exists(genreg_dir):
@@ -466,7 +468,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
                                 TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
                                 TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
                                 False) #doctest: +ELLIPSIS
-    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/ccpp_datatable.xml', [], None)
+    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/ccpp_datatable.xml', dict_values([]), None)
     """
 
     # Physics source gets copied into blddir
@@ -479,9 +481,10 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
                      os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
     # Find all metadata files, organize by scheme name
     all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
-    # Find the SDFs
-    sdfs = list()
-    scheme_files = list()
+
+    # Find the SDFs specified for this model build
+    sdfs = []
+    scheme_files = []
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
         sdf_path = _find_file(f"suite_{sdf}.xml", source_search)
@@ -533,6 +536,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         preproc_cache_str = 'UNSET'
     # end if
 
+    # Initialize namelist generation logical:
+    do_gen_nl = False
+
     if os.path.exists(genccpp_dir):
         do_gen_ccpp = force or build_cache.ccpp_mismatch(sdfs, scheme_files,
                                                          host_files,
@@ -541,20 +547,19 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     else:
         os.makedirs(genccpp_dir)
         do_gen_ccpp = True
+        do_gen_nl   = True
     # End if
 
     create_nl_file = os.path.join(_CIME_CONFIG_DIR, "create_readnl_files.py")
-    if xml_files:
+    if not do_gen_nl:
         do_gen_nl = force or build_cache.xml_nl_mismatch(create_nl_file,
                                                          xml_files)
-    else:
-        do_gen_nl = False
     # end if
     if do_gen_nl:
         args = []
-        for scheme in xml_files:
+        for scheme, xml_file in xml_files.items():
             args.extend(["--namelist-file-arg",
-                         f"{scheme}:{xml_files[scheme]}"])
+                         f"{scheme}:{xml_file}"])
         # end for
         args.append("--namelist-read-mod")
         args.append("cam_ccpp_scheme_namelists")
@@ -626,7 +631,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # End if
 
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file,       \
-        nl_groups, capgen_db
+        xml_files.values(), capgen_db
 
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
@@ -747,7 +752,7 @@ if __name__ == "__main__":
             # actual generation routines when performing doctests:
             return False
 
-        def xml_nl_mismatch(self, xml_files):
+        def xml_nl_mismatch(self, create_nl_file, xml_files):
             # Always return False, in order to avoid running the
             # actual generation routines when performing doctests:
             return False
@@ -802,7 +807,7 @@ if __name__ == "__main__":
     TEST_REG_DIR = os.path.join(TEST_BLDROOT, "cam_registry")
 
     # For generate_init_routines:
-    TEST_REGFILES = list()
+    TEST_REGFILES = []
     TEST_CAP_DATAFILE = os.path.join("test_bldroot", "ccpp", "capfiles.txt")
 
     # Create testing buildroot directory:

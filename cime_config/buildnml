@@ -7,6 +7,7 @@ import sys
 import os
 import shutil
 import logging
+import glob
 
 _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
@@ -16,12 +17,11 @@ _LIBDIR = os.path.join(_CIMEROOT, "scripts", "Tools")
 sys.path.append(_LIBDIR)
 # pylint: disable=wildcard-import, wrong-import-position
 # pylint: disable=unused-wildcard-import
-from standard_script_setup          import *
-from CIME.XML.standard_module_setup import *
-from CIME.buildnml                  import create_namelist_infile, parse_input
-from CIME.case                      import Case
-from CIME.utils                     import expect
-from CIME.nmlgen                    import NamelistGenerator
+from CIME.Tools.standard_script_setup import *
+from CIME.XML.standard_module_setup   import *
+from CIME.buildnml                    import create_namelist_infile, parse_input
+from CIME.case                        import Case
+from CIME.utils                       import expect
 
 # Save local (cime_config) directory path:
 _CIME_CONFIG_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +31,9 @@ sys.path.append(_CIME_CONFIG_PATH)
 
 # Import CAM's configure structure:
 from cam_config import ConfigCAM
+
+#Import CAM's ParamGen class:
+from atm_in_paramgen import AtmInParamGen
 
 # Open CIME case log:
 _LOGGER = logging.getLogger(__name__)
@@ -48,8 +51,7 @@ class CamBuildnmlError(ValueError):
 # This simplifies the filename mangling for different cases.
 def _create_ic_filename(inst_string, i_or_r,
                         run_refcase, run_refdate, run_reftod):
-    return "{}.cam{}.{}.{}-{}.nc".format( \
-    run_refcase, inst_string, i_or_r, run_refdate, run_reftod)
+    return f"{run_refcase}.cam{inst_string}.{i_or_r}.{run_refdate}-{run_reftod}.nc"
 
 ##################
 
@@ -81,23 +83,38 @@ def nml_attr_set(config):
     #Return namelist attribute dictionary:
     return cam_nml_attr_dict
 
-def _get_namelist_groups(nmlgen, skip_groups=None):
-    """Return all groups in <nmlgen> except those from <skip_groups>"""
-    all_groups = set()
-    for child in nmlgen._definition.tree.getroot():
-        for item in child:
-            if item.tag == 'group':
-                all_groups.add(item.text)
-            # end if
-        # end for
-    # end for
-    if skip_groups:
-        if not isinstance(skip_groups, set):
-            skip_groups = set(skip_groups)
-        # end if
-        all_groups -= skip_groups
-    # end if
-    return sorted(all_groups)
+##################
+
+def nml_file_dict_update(nml_fil_dict, nml_def_fils):
+
+    """
+    Updates a dictionary of namelist definition
+    files using a list of provided file paths.
+    ----------
+    nml_fil_dict -> Dictionary of nml definition files.
+                    It is assumed to be organized as
+                    {file name : file path}
+
+    nml_def_fils -> List of path-like variables associated
+                    with specific namelist definition files.
+
+    """
+
+    # Loop over all found files:
+    for nml_def_fil in nml_def_fils:
+        fil_name = os.path.basename(nml_def_fil)
+        if fil_name in nml_fil_dict:
+            fil_dir = os.path.dirname(os.path.abspath(nml_def_fil))
+            # Print message to logger:
+            _LOGGER.info("     ...found namelist definition file %s in %s",
+                      fil_name, fil_dir)
+            # Replace file path with SourceMods path
+            nml_fil_dict[fil_name] = nml_def_fil
+        #End if
+    #End fof
+
+    # Return updated dictionary:
+    return nml_fil_dict
 
 #################
 #PRIMARY FUNCTION
@@ -118,7 +135,6 @@ def buildnml(case, caseroot, compname):
     rundir              = case.get_value("RUNDIR")
     cam_namelist_opts   = case.get_value("CAM_NAMELIST_OPTS")
     cam_nml_use_case    = case.get_value("CAM_NML_USE_CASE")
-    debug               = case.get_value("DEBUG")
     ninst_atm           = case.get_value("NINST_ATM")
     run_type            = case.get_value("RUN_TYPE")
     run_startdate       = case.get_value("RUN_STARTDATE")
@@ -154,36 +170,53 @@ def buildnml(case, caseroot, compname):
 
     cam_nml_dict = nml_attr_set(config)
 
-    #---------------------------------
-    # Construct the namelist generator:
-    #---------------------------------
+    #------------------------------------------------
+    # Extract dictionary of namelist definition files
+    #------------------------------------------------
 
-    # Determine directory for user modified namelist_definition_cam.xml:
+    xml_nml_dict = config.xml_nml_def_files
+
+    #--------------------------------------------------
+    # Check for namelist definition files in SourceMods
+    #--------------------------------------------------
+
+    # Check for SourceMods directory:
     user_xml_dir = os.path.join(caseroot, "SourceMods", "src.cam")
     expect(os.path.isdir(user_xml_dir),
-           "user_xml_dir %s does not exist " %user_xml_dir)
+           f"user_xml_dir {user_xml_dir} does not exist ")
 
-    # User definition *replaces* existing definition:
-    user_definition = os.path.join(user_xml_dir, "namelist_definition_cam.xml")
-    if os.path.isfile(user_definition):
-        # Print message to logger:
-        _LOGGER.info("     ...found namelist definition file in %s",
-                     user_xml_dir)
+    # Search for any possible host model namelist definition files:
+    nml_def_fils = glob.glob(os.path.join(user_xml_dir,
+                                          "namelist_definition_*.xml"))
 
-        # Set definition file:
-        definition_file = [user_definition]
-    else:
-        # If no user-defined file exists, then use standard file:
-        definition_file = [os.path.join(_CIME_CONFIG_PATH,
-                                        "namelist_definition_cam.xml")]
+    # Now search for CCPP namelist definition files:
+    ccpp_nml_fils = glob.glob(os.path.join(user_xml_dir,
+                                          "*_namelist.xml"))
 
-        # Check that the standard namelist file actually exists:
-        for file_ in definition_file:
-            expect(os.path.isfile(file_),
-                   "Namelist XML file %s not found!" % file_)
+    # Combine file lists:
+    nml_def_fils.extend(ccpp_nml_fils)
 
-    # Create the namelist generator object - independent of instance:
-    nmlgen = NamelistGenerator(case, definition_file)
+    # Update namelist definition file dict with new files:
+    xml_nml_dict = nml_file_dict_update(xml_nml_dict, nml_def_fils)
+
+    #--------------------------
+    # Construct ParamGen objects:
+    #--------------------------
+
+    pg_atm_list = []
+
+    for xml_fil in xml_nml_dict.values():
+        pg_obj = AtmInParamGen.from_namelist_xml(xml_fil)
+        pg_atm_list.append(pg_obj)
+
+    #--------------------------------------
+    # Combine all ParamGen objects together:
+    #---------------------------------------
+
+    pg_atm = pg_atm_list[0]
+
+    for pg_obj in pg_atm_list[1:]:
+        pg_atm.append_atm_in_pg(pg_obj)
 
     #------------------------
     # Loop over all instances:
@@ -263,11 +296,6 @@ def buildnml(case, caseroot, compname):
                              cam_branch_file)
             # End if
 
-        # Set "debug_output" namelist variable to 2 if DEBUG is true:
-        if debug:
-            infile_lines.append(" debug_output = 2")
-        # End if
-
         # Determine location and name of "user_nl_cam" files:
         user_nl_file = os.path.join(caseroot, "user_nl_cam" + inst_string)
 
@@ -279,53 +307,51 @@ def buildnml(case, caseroot, compname):
         # Determine location and name of namelist input file:
         namelist_infile = os.path.join(confdir, "namelist_infile")
 
-        #-----------------------------------------------------------
-        # Determine CCPP physics suite chosen by user, and set suite
-        # name to be a namelist attribute:
-        #-----------------------------------------------------------
-
-        # Find user-chosen CCPP physics suite, and set as an attribute:
-        config.ccpp_phys_set(cam_nml_dict, user_nl_file)
-
         #--------------------------------
         # Create CIME namelist input file:
         #--------------------------------
         create_namelist_infile(case, user_nl_file, namelist_infile,
                                "\n".join(infile_lines))
 
-        # Convert namelist input file to list:
-        namelist_infile_list = [namelist_infile]
+        #-------------------------------------------
+        # Add user_nl_cam entries to ParamGen object:
+        #-------------------------------------------
+
+        pg_atm.append_user_nl_file(user_nl_file)
+
+        #-----------------------------------------------------------
+        # Determine CCPP physics suite chosen by user, and set suite
+        # name to be a namelist attribute:
+        #-----------------------------------------------------------
+
+        # Find user-chosen CCPP physics suite, and set as an attribute:
+        config.ccpp_phys_set(cam_nml_dict, pg_atm.data["physics_nl"])
 
         #-------------------------------------------------
-        # Initialize only "vert_coord_nl" namelist entries
+        # Set "nlev" attribute using "pver" namelist entry:
         #-------------------------------------------------
 
-        # Initalize vert_coord_nl defaults:
-        skip_groups = _get_namelist_groups(nmlgen,
-                                           skip_groups=config.nml_groups)
-        skip_def_groups = filter(lambda group: group !='vert_coord_nl',
-                                 config.nml_groups)
-        nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
-                             skip_groups=skip_groups,
-                             skip_default_for_groups=skip_def_groups)
+        #Extract pver dictionary:
+        pver_dict = pg_atm.data["vert_coord_nl"]["pver"]
 
-        #--------------------------------------------
-        # Set "nlev" namelist attribute to equal pver
-        #--------------------------------------------
+        #Create new ParamGen object using pver data dictionary:
+        pg_pver = AtmInParamGen(pver_dict)
 
-        cam_nml_dict["nlev"] = nmlgen.get_value("pver")
+        #Reduce pg_pver dictionary:
+        pg_pver.reduce_atm_in(case, cam_nml_dict)
+
+        #Extract pver value and add to namelist attributes dict:
+        cam_nml_dict["nlev"] = pg_pver.data["values"]
 
         #---------------------------------
-        # Initialize all namelist defaults:
+        # Set all ParamGen namelist values:
         #---------------------------------
 
-        # Initalize namelist defaults in used namelist groups:
-        nmlgen.init_defaults(namelist_infile_list, cam_nml_dict,
-                             skip_groups=skip_groups)
+        pg_atm.reduce_atm_in(case, cam_nml_dict)
 
-        #--------------------------
-        # Write out namelist groups:
-        #--------------------------
+        #---------------------------
+        # Write out Fortran namelist:
+        #---------------------------
 
         # Create resolved CAM namelist file name:
         namelist_file = os.path.join(rundir, "atm_in")
@@ -334,8 +360,7 @@ def buildnml(case, caseroot, compname):
         namelist_file += inst_string
 
         # Create CAM namelist using CIME's nmlgen routine:
-        nmlgen.write_output_file(namelist_file, input_data_list,
-                                 groups=config.nml_groups, sorted_groups=False)
+        pg_atm.write(namelist_file)
 
 ###############################################################################
 def _main_func():

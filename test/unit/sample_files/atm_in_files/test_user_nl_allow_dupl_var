@@ -1,0 +1,22 @@
+! Users should add all user specific namelist changes below in the form of
+! namelist_var = new_namelist_value
+! allow_duplicate_namelist_entries = True
+
+turkey_leg = 22.7
+
+turkey_leg = 27.2
+
+straw_into_gold="!Rapunzel!" !Let down your hair!
+
+!Array indexing checks:
+
+lets_ask_computer(1:) = 1
+
+lets_ask_computer(:50) = 2
+
+lets_ask_computer(15:20) = 3
+
+lets_ask_computer(16) = 4
+
+lets_ask_computer(30:36:2) = 5
+

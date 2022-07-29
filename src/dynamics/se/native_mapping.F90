@@ -27,7 +27,8 @@ contains
 
 subroutine native_mapping_readnl(NLFileName)
 
-   use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
+   use shr_nl_mod,  only: find_group_name => shr_nl_find_group_name
+   use runtime_obj, only: unset_str
 
    character(len=*), intent(in) :: NLFileName
 
@@ -42,7 +43,7 @@ subroutine native_mapping_readnl(NLFileName)
    do_native_mapping=.false.
 
    do nf=1,maxoutgrids
-      native_mapping_outgrids(nf)=''
+      native_mapping_outgrids(nf) = unset_str
    enddo
 
    if(masterproc) then
@@ -60,7 +61,7 @@ subroutine native_mapping_readnl(NLFileName)
          if(ierr/=0) then
             call endrun(sub//': namelist read returns an error condition for native_mapping_nl')
          end if
-         if(len_trim(native_mapping_outgrids(1))==0) exist=.false.
+         if(trim(native_mapping_outgrids(1)) == unset_str) exist=.false.
       end if
       close(unitn)
    end if

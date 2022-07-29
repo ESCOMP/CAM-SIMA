@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Analytic Initial Conditions (ICs) for Dycore testing  -->
+
+  <entry id="analytic_ic_type">
+    <type>char*80</type>
+    <category>dyn_test</category>
+    <group>analytic_ic_nl</group>
+    <valid_values>none,held_suarez_1994,moist_baroclinic_wave_dcmip2016,dry_baroclinic_wave_dcmip2016,dry_baroclinic_wave_jw2006</valid_values>
+    <desc>
+      Specify the type of analytic initial conditions for an initial run.
+      held_suarez_1994: Initial conditions specified in Held and Suarez (1994)
+      moist_baroclinic_wave_dcmip2016: Moist baroclinic wave as used in the DCMIP 2016 experiments
+      dry_baroclinic_wave_dcmip2016: Dry baroclinic wave as used in the DCMIP 2016 experiments
+      dry_baroclinic_wave_jw2006: Dry baroclinic wave as specified in Jablonowski and Williamson (2006)
+    </desc>
+    <values>
+      <value>none</value>
+      <value phys_suite="adiabatic">held_suarez_1994</value>
+      <value phys_suite="held_suarez_1994">held_suarez_1994</value>
+      <value phys_suite="kessler">moist_baroclinic_wave_dcmip2016</value>
+      <value phys_suite="tj2016">moist_baroclinic_wave_dcmip2016</value>
+    </values>
+  </entry>
+
+</entry_id_pg>

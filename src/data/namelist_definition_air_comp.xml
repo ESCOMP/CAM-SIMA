@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Dycore air composition -->
+
+  <entry id="dry_air_species">
+    <type>char*80(20)</type>
+    <category>physconst</category>
+    <group>air_composition_nl</group>
+    <desc>
+      List of major species of dry air.  If not set then the composition of dry
+      air is considered fixed at tropospheric conditions and the properties of
+      dry air are constant.  If set then the list of major species is assumed to
+      have 'N2' listed last.  This information is currently used only for
+      computing the variable properties of air in WACCM-X configurations.
+      Default if WACCM-X:
+
+      ['O_mixing_ratio_wrt_dry_air', 'O2_mixing_ratio_wrt_dry_air',
+       'H_mixing_ratio_wrt_dry_air', 'N2_mixing_ratio_wrt_dry_air']
+
+      Otherwise default is None.
+    </desc>
+    <values>
+      <value>""</value>
+      <value waccmx="1">
+        O_mixing_ratio_wrt_dry_air,
+        O2_mixing_ratio_wrt_dry_air,
+        H_mixing_ratio_wrt_dry_air,
+        N2_mixing_ratio_wrt_dry_air
+      </value>
+    </values>
+  </entry>
+  <entry id="water_species_in_air">
+    <type>char*80(20)</type>
+    <category>physconst</category>
+    <group>air_composition_nl</group>
+    <desc>
+      List of water species that are included in "moist" air.  This is currently
+      used only by the SE dycore to generalize the computation of the moist air
+      mass and thermodynamic properties.
+      Default if CAM4, CAM5, or Kessler physics is used:
+
+      ['water_vapor_specific_humidity',
+       'cloud_liquid_water_mixing_ratio_of_moist_air',
+       'rain_water_mixing_ratio']
+
+      Default if CAM6 physics is used:
+
+      ['water_vapor_specific_humidity',
+       'cloud_liquid_water_mixing_ratio_of_moist_air',
+       'cloud_ice_water_mixing_ratio_of_moist_air',
+       'rain_water_mixing_ratio',
+       'snow_water_mixing_ratio']
+
+      Otherwise default is: ['water_vapor_specific_humidity']
+    </desc>
+    <values>
+      <value>
+        water_vapor_specific_humidity
+      </value>
+      <value phys_suite="kessler">
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio
+      </value>
+      <value phys_suite="cam4">
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio
+      </value>
+      <value phys_suite="cam5">
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio
+      </value>
+      <value phys_suite="cam6">
+        water_vapor_specific_humidity,
+        cloud_liquid_water_mixing_ratio_of_moist_air,
+        cloud_ice_water_mixing_ratio_of_moist_air,
+        rain_water_mixing_ratio,
+        snow_water_mixing_ratio
+      </value>
+    </values>
+  </entry>
+
+</entry_id_pg>

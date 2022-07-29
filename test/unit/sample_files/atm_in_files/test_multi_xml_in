@@ -1,0 +1,44 @@
+&alien_invasions
+    body_snatchers = "looks human", "human", "still looks human", "alien"
+    swedish_chef = "bork", "bork"
+/
+
+&bird_sounds_nl
+    duck_quack = .false.
+    turkey_leg = 3.14d0
+/
+
+&fairy_tales
+    straw_into_gold = "Rumpelstiltskin"
+/
+
+&famous_folk
+    marx_bros = "Chico", "Harpo", "Groucho", "Zeppo"
+/
+
+&scary_stories
+    monkey_paw = 0
+/
+
+&sci_fi_sounds_nl
+    hal_hard_drive = "/NOT/HERE/I/CANT/LET/YOU/DO/THAT/DAVE"
+    laser_beam = .true.
+    lets_ask_computer = 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 
+        0, 1, 0, 1, 0, 0, 1, 0, 1, 0
+    warp_drive = 0
+/
+
+&space_stations
+    space_station = "skylab"
+/
+

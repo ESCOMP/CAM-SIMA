@@ -1,0 +1,17 @@
+&bird_sounds_nl
+    duck_quack = .true.
+    turkey_leg = 3.14d0
+/
+
+&fairy_tales
+    straw_into_gold = "Rumpelstiltskin"
+/
+
+&famous_folk
+    marx_bros = "Chico", "Harpo", "Groucho", "Zeppo"
+/
+
+&scary_stories
+    monkey_paw = 0
+/
+

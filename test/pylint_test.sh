@@ -17,6 +17,7 @@ export PYTHONPATH="${CIMEDIR}:${CCPPDIR}:$PYTHONPATH"
 
 pylintcmd="pylint --rcfile=${CURRDIR}/.pylintrc"
 
+${pylintcmd} ${CAMROOT}/cime_config/cam_config_classes.py
 ${pylintcmd} ${CAMROOT}/cime_config/cam_config.py
 ${pylintcmd} ${CAMROOT}/cime_config/cam_autogen.py
 ${pylintcmd} ${CAMROOT}/cime_config/cam_build_cache.py
@@ -24,3 +25,4 @@ ${pylintcmd} ${CAMROOT}/cime_config/buildlib
 ${pylintcmd} ${CAMROOT}/cime_config/buildnml
 ${pylintcmd} ${CAMROOT}/src/data/generate_registry_data.py
 ${pylintcmd} ${CAMROOT}/src/data/write_init_files.py
+${pylintcmd} ${CAMROOT}/cime_config/atm_in_paramgen.py

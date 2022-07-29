@@ -1,0 +1,12 @@
+&alien_invasions
+    body_snatchers = "looks human", "human", "still looks human", "alien"
+    swedish_chef = "bork", "bork"
+    swedish_chef(15:10:-2) = 'bork', 'bork', 'bork'
+    swedish_chef(7:9:2) = 'not bork', 'not bork'
+    swedish_chef(1) = ''
+/
+
+&space_stations
+    space_station = "skylab"
+/
+

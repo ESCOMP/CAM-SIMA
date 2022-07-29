@@ -1,0 +1,691 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- SE dycore -->
+
+  <entry id="se_fine_ne">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Set for refined exodus meshes (variable viscosity).
+      Viscosity in namelist specified for regions with a resolution equivilant
+      to a uniform grid with se_ne = se_fine_ne.
+      Default: -1 (not used)
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hgrid="ne0np4CONUS.ne30x8">120</value>
+    </values>
+  </entry>
+  <entry id="se_ftype">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <valid_values>0,1,2</valid_values>
+    <desc>
+      CAM physics forcing option:
+      0: tendencies
+      1: adjustments
+      2: hybrid
+    </desc>
+    <values>
+      <value>2</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_power">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Scalar viscosity with variable coefficient.
+      Use variable hyperviscosity based on element area limited by
+      se_max_hypervis_courant.
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_scaling">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Use tensor hyperviscosity.
+      Citation: Guba, O., Taylor, M. A., Ullrich, P. A., Overfelt, J. R., and
+      Levy, M. N.: The spectral element method (SEM) on variable-resolution
+      grids: evaluating grid sensitivity and resolution-aware numerical
+      viscosity, Geosci. Model Dev., 7, 2803-2816,
+      doi:10.5194/gmd-7-2803-2014, 2014.
+      Default: 0 (i.e., not used)
+    </desc>
+    <values>
+      <value>0</value>
+      <value hypervis_type="tensor" se_refined_mesh="1">3.0D0</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_subcycle">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of hyperviscosity subcycles per dynamics timestep.
+    </desc>
+    <values>
+      <value>3</value>
+      <value hgrid="ne16np4">4</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_subcycle_sponge">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of hyperviscosity subcycles per dynamics timestep in sponge del2 diffusion.
+    </desc>
+    <values>
+      <value>1</value>
+      <value hgrid="ne120np4">4</value>
+    </values>
+  </entry>
+  <entry id="se_rayk0">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Variable to specify the vertical index at which the
+      Rayleigh friction term is centered (the peak value).
+      Default: 2
+    </desc>
+    <values>
+      <value>2</value>
+    </values>
+  </entry>
+  <entry id="se_raykrange">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Rayleigh friction parameter to determine the width of the profile.  If set
+      to 0 then a width is chosen by the algorithm (see rayleigh_friction.F90).
+      Default: 0.5.
+    </desc>
+    <values>
+      <value>0.5</value>
+      <value waccm_phys="1">3</value>
+    </values>
+  </entry>
+  <entry id="se_raytau0">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Rayleigh friction parameter to determine the approximate value of the decay
+      time (days) at model top.  If 0.0 then no Rayleigh friction is applied.
+      Default: 0.
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="se_molecular_diff">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Used by SE dycore to apply sponge layer diffusion to u, v, and T for
+      stability of WACCM configurations. The diffusion is modeled on 3D molecular
+      diffusion and thermal conductivity by using actual molecular diffusion and
+      thermal conductivity coefficients multiplied by the value of
+      se_molecular_diff.
+
+      If set &lt;= 0.0 then the code is not activated.  If set &gt; 0.0 then
+      the molecular diffusion and thermal conductivity coefficients will be
+      multiplied by a factor of se_molecular_diff.
+
+      Default: 0.
+    </desc>
+    <values>
+      <value>0.0</value>
+      <value waccm_phys="1" waccmx="0">100.0</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_subcycle_q">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of hyperviscosity subcycles done in tracer advection code.
+    </desc>
+    <values>
+      <value>1</value>
+      <value hgrid="ne16np4">2</value>
+    </values>
+  </entry>
+  <entry id="se_limiter_option">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <valid_values>0,4,8</valid_values>
+    <desc>
+      Limiter used for horizontal tracer advection:
+      0: None
+      4: Sign-preserving limiter.
+      8: Monotone limiter.
+    </desc>
+    <values>
+      <value>8</value>
+    </values>
+  </entry>
+  <entry id="se_max_hypervis_courant">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Upper bound for Courant number, used to limit se_hypervis_power.
+      Default: 1.0e99 (i.e., not used) unless se_refined_mesh=TRUE
+    </desc>
+    <values>
+      <value>1.0e99</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.9</value>
+    </values>
+  </entry>
+  <entry id="se_mesh_file">
+    <type>char*256</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Filename of exodus file to read grid from (generated by CUBIT or SQuadGen).
+    </desc>
+    <values>
+      <value>none</value>
+      <value hgrid="ne0np4CONUS.ne30x8">$DIN_LOC_ROOT/atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">$DIN_LOC_ROOT/atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
+    </values>
+  </entry>
+  <entry id="se_ne">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of elements along a cube edge.
+      Must match value of grid. Set this to zero to use a refined mesh.
+      Default: 0
+    </desc>
+    <values>
+      <value>0</value>
+      <value csne="5">5</value>
+      <value csne="16">16</value>
+      <value csne="30">30</value>
+      <value csne="60">60</value>
+      <value csne="120">120</value>
+      <value csne="240">240</value>
+    </values>
+  </entry>
+  <entry id="se_npes">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of PEs to be used by SE dycore.
+      Default: -1 = Number of PEs used by CAM.
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_nsplit">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of dynamics steps per physics timestep.
+    </desc>
+    <values>
+      <value>2</value>
+      <value hgrid="ne16np4">1</value>
+      <value hgrid="ne5np4" waccm_phys="1">3</value>
+      <value hgrid="ne16np4" waccm_phys="1">3</value>
+      <value hgrid="ne30np4" waccm_phys="1">12</value>
+      <value hgrid="ne30np4" npg="2" waccm_phys="1">5</value>
+      <value hgrid="ne30np4" npg="3" waccm_phys="1">5</value>
+      <value hgrid="ne0np4CONUS.ne30x8">6</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">7</value>
+    </values>
+  </entry>
+  <entry id="se_phys_dyn_cp">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <valid_values>0,1,2</valid_values>
+    <desc>
+      Scaling of temperature increment for different levels of
+      thermal energy consistency.
+      0: no scaling
+      1: scale increment for cp consistency between dynamics and physics
+      2: do 1 as well as take into account condensate effect on thermal energy
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="se_nu">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Hyperviscosity coefficient for u,v, T [m^4/s].
+      If &lt; 0, se_nu is automatically set.
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.0e13</value>
+    </values>
+  </entry>
+  <entry id="se_nu_div">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Hyperviscosity applied to divergence component of winds [m^4/s].
+      If &lt; 0, uses se_nu_p.
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
+    </values>
+  </entry>
+  <entry id="se_nu_p">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Hyperviscosity coefficient applied to pressure-level thickness [m^4/s].
+      If &lt; 0, se_nu_p is automatically set.
+    </desc>
+    <values>
+      <value>-1</value>
+      <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
+    </values>
+  </entry>
+  <entry id="se_nu_top">
+    <type>real</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Second-order viscosity applied only near the model top [m^2/s].
+    </desc>
+    <values>
+      <value>5.0e5</value>
+      <value waccmx="1">1.0e6</value>
+      <!-- WACCM uses molecular/thermal diffusion in sponge   -->
+      <value waccm_phys="1">0.0</value>
+      <value se_refined_mesh="1">2.0e5</value>
+    </values>
+  </entry>
+  <entry id="se_hypervis_dynamic_ref_state">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Hyperscosity for T and dp is applied to (T-Tref) and (dp-dp_ref) where
+      Xref are reference states where the effect of topography has been removed
+      (Simmons and Jiabin, 1991, QJRMS, Section 2a).
+      If TRUE dp_ref is dynamic smoothed reference state derived by Patrick Callaghan
+      (Lauritzen et al., 2018, JAMES, Appendix A.2) and temperature reference state
+      based on Simmons and Jiabin (1991) but using smoothed dp_ref.
+      If FALSE Tref is static reference state (Simmons and Jiabin) and dp_ref state
+      derived from hydrostatic balance.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="se_lcp_moist">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      If TRUE the continous equations the dynamical core is based on will conserve a
+      comprehensive moist total energy
+      If FALSE the continous equations the dynamical core is based on will conserve
+      a total energy based on cp for dry air and no condensates (same total energy as
+      CAM physics uses).
+      For more details see Lauritzen et al., (2018;DOI:10.1029/2017MS001257)
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="se_large_Courant_incr">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      If TRUE the CSLAM algorithm will work for Courant number larger than 1 with
+      a low-order increment for tracer mass more than one grid cell width away
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="se_fvm_supercycling">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of SE rsplit time-steps CSLAM supercycles
+      rsplit/se_fvm_supercycling must be an integer
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_fvm_supercycling_jet">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of SE rsplit time-steps CSLAM supercycles in the jet region
+      (which is specified by kmin_jet and kmax_jet)
+      rsplit/se_fvm_supercycling_jet must be an integer
+      se_fvm_supercycling_jet/se_fvm_supercyling must be an integer
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_kmin_jet">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Min level index where CSLAM runs with se_fvm_supercycling_jet
+      (if se_fvm_supercycling_jet.ne.se_fvm_supercycling) or
+      min index where are Courant number increment is active
+      (se_large_Courant_incr=.true.)
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_kmax_jet">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Max level index where CSLAM runs with se_fvm_supercycling_jet
+      (if se_fvm_supercycling_jet.ne.se_fvm_supercycling) or
+      max index where are Courant number increment is active
+      (se_large_Courant_incr=.true.)
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_qsplit">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Tracer advection is done every qsplit dynamics timesteps.
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="se_refined_mesh">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      TRUE specified use of a refined grid (mesh) for this run.
+    </desc>
+    <values>
+      <value>.false.</value>
+      <value hgrid="ne0np4CONUS.ne30x8">.true.</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">.true.</value>
+    </values>
+  </entry>
+  <entry id="se_rsplit">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Vertically lagrangian code vertically remaps every rsplit tracer timesteps.
+    </desc>
+    <values>
+      <value>3</value>
+      <value npg="2" waccm_phys="1">6</value>
+      <value npg="3" waccm_phys="1">6</value>
+    </values>
+  </entry>
+  <entry id="se_statefreq">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Frequency with which diagnostic output is written to log (output every
+      statefreq dynamics timesteps).
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_tstep_type">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Time stepping method for SE dycore
+      se_tstep_type=1  RK2 followed by qsplit-1 Leapfrog steps; second-order accurate in time (CESM1.2.0 setting)
+      se_tstep_type=2  RK2-SSP 3 stage (as used by tracers)
+      se_tstep_type=3  classic Runga-Kutta (RK) 3 stage
+      se_tstep_type=4  Kinnmark&amp;Gray Runga-Kutta (RK) 4 stage
+    </desc>
+    <values>
+      <value>4</value>
+    </values>
+  </entry>
+  <entry id="se_statediag_numtrac">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of tracers to include in logfile diagnostics for SE dycore
+    </desc>
+    <values>
+      <value>3</value>
+    </values>
+  </entry>
+  <entry id="se_vert_remap_T">
+    <type>char*32</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      CAM-SE vertical remapping of temperature:
+
+        "thermal_energy_over_P": Map cp*T (thermal energy conserving) using a pressure coordinate.
+        "Tv_over_logP"         : Map virtual temperature using a log pressure coordinate.
+
+      Default: "thermal_energy_over_P"
+    </desc>
+    <values>
+      <value>thermal_energy_over_P</value>
+    </values>
+  </entry>
+  <entry id="se_vert_remap_uvTq_alg">
+    <type>char*32</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      CAM-SE vertical remap algorithm for u,v,T, and water species:
+
+        "PPM_bc_mirror": PPM vertical remap with mirroring at the boundaries (solid wall boundary conditions, high-order throughout)
+        "PPM_bc_PCoM"  : PPM vertical remap without mirroring at the boundaries (no boundary conditions enforced, first-order at two cells bordering top and bottom boundaries)
+        "PPM_bc_linear_extrapolation": PPM with linear extrapolation in ghost cells (code from A. Bradley, DOE)
+
+      The following options use the FV3 vertical remapping algorithm:
+
+        "FV3_PPM": Monotone PPM
+        "FV3_CS" : Monotonic cubic spline with 2*delta_z oscillations removed
+        "FV3_CS_2dz_filter": Selectively monotonic cubic spline, where local extrema are retained, with 2*delta_z oscillations removed
+        "FV3_non_monotone_CS_2dz_filter": Non-monotonic (linear) cubic spline with 2*delta_z oscillations removed;
+
+      Default: "FV3_CS"
+    </desc>
+    <values>
+      <value>FV3_CS</value>
+    </values>
+  </entry>
+  <entry id="se_vert_remap_tracer_alg">
+    <type>char*32</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      CAM-SE vertical remap algorithm for non-water tracers:
+
+        "PPM_bc_mirror": PPM vertical remap with mirroring at the boundaries (solid wall boundary conditions, high-order throughout)
+        "PPM_bc_PCoM"  : PPM vertical remap without mirroring at the boundaries (no boundary conditions enforced, first-order at two cells bordering top and bottom boundaries)
+        "PPM_bc_linear_extrapolation": PPM with linear extrapolation in ghost cells (code from A. Bradley, DOE)
+
+      The following options use the FV3 vertical remapping algorithm:
+
+        "FV3_PPM": Monotone PPM
+        "FV3_CS" : Monotonic cubic spline with 2*delta_z oscillations removed
+        "FV3_non_monotone_CS_2dz_filter": Non-monotonic (linear) cubic spline with 2*delta_z oscillations removed;
+
+      Default: "PPM_bc_linear_extrapolation"
+    </desc>
+    <values>
+      <value>PPM_bc_linear_extrapolation</value>
+    </values>
+  </entry>
+  <entry id="se_write_restart_unstruct">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Set .true. to allow writing SE dynamics fields to the restart file using the
+      unstructured grid format.  This allows the restart file to be used as an
+      initial file, but its use as a restart file will introduce roundoff size
+      differences into the simulation.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+<!-- Physics grid entries -->
+
+  <entry id="se_fv_nphys">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of equally-spaced horizontal physics points per spectral
+      element. A number greater than zero will define [se_fv_nphys] equally
+      spaced physics points in each direction (e.g., se_fv_nphys = 3 will
+      result in 9 equally-spaced physics points per element).
+      Default: 0 = feature disabled, use dynamics GLL points.
+    </desc>
+    <values>
+      <value>0</value>
+      <value npg="2">2</value>
+      <value npg="3">3</value>
+      <value npg="4">4</value>
+    </values>
+  </entry>
+
+<!-- Option to write SCRIP grid file -->
+
+  <entry id="se_write_grid_file">
+    <type>char*16</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <valid_values>no,SCRIP</valid_values>
+    <desc>
+      If 'SCRIP', write a NetCDF file with the grid in SCRIP format.
+      If using a finite-volume physics grid, write the FVM grid, otherwise
+      write the native GLL grid.
+      Note that if this option is used, the simulation will exit after writing.
+    </desc>
+    <values>
+      <value>no</value>
+    </values>
+  </entry>
+  <entry id="se_grid_filename">
+    <type>char*256</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Name of grid file to write if se_write_grid_file is set.
+      Default: Set according to active grid
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+  <entry id="se_write_gll_corners">
+    <type>logical</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Set to true to write the SEMapping.nc file.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="native_mapping_outgrids">
+    <type>char*256(5)</type>
+    <category>se</category>
+    <group>native_mapping_nl</group>
+    <desc>
+      List of SCRIP grid filenames each representing a destination grid. If provided during a CAM simulation running the spectral element dycore, mapping files will be created from the native cubed-sphere grid to each destination grid. Both native mapping (using the internal spectral element basis functions) and bilinear maps are created.
+      Default: UNSET
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+<!-- SE performance (threading) entries -->
+
+  <entry id="se_horz_num_threads">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of threads to use for loops over elements.
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_vert_num_threads">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of threads to use when processing vertical loops. Normally
+      equal to se_tracer_num_threads.
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_tracer_num_threads">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Number of threads to use when processing loops over threads.
+      Normally equal to se_vert_num_threads.
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+</entry_id_pg>

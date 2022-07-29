@@ -53,9 +53,9 @@ def  project_card_move(oa_token, column_id, card_id):
     """
 
     #create required argument strings from inputs:
-    github_oa_header = ''' "Authorization: token {0}" '''.format(oa_token)
-    github_url_str = '''https://api.github.com/projects/columns/cards/{0}/moves'''.format(card_id)
-    json_post_inputs = ''' '{{"position":"top", "column_id":{}}}' '''.format(column_id)
+    github_oa_header = f''' "Authorization: token {oa_token}" '''
+    github_url_str = f'''https://api.github.com/projects/columns/cards/{card_id}/moves'''
+    json_post_inputs = f''' '{{"position":"top", "column_id":{column_id}}}' '''
 
     #Create curl command line string:
     curl_cmdline = '''curl -H '''+github_oa_header+''' -H "Accept: application/vnd.github.inertia-preview+json" -X POST -d '''+\
@@ -101,7 +101,7 @@ def end_script(msg):
     """
     Prints message to screen, and then exits script.
     """
-    print("\n{}\n".format(msg))
+    print(f"\n{msg}\n")
     print("Issue closing check has completed successfully.")
     sys.exit(0)
 
@@ -173,7 +173,7 @@ def _main_prog():
         first_word = post_msg_word_list[0]
 
         #Print merged pr number to screen:
-        print("Merged PR: {}".format(first_word))
+        print(f"Merged PR: {first_word}")
 
         try:
             #Try assuming the word is just a number:
@@ -267,10 +267,10 @@ def _main_prog():
     issue_pattern = re.compile(r'#[0-9]+(\s|,|$)|.')
 
     #Create new "close" issues list:
-    close_issues = list()
+    close_issues = []
 
     #Create new "closed" PR list:
-    close_pulls = list()
+    close_pulls = []
 
     #Search text right after keywords for possible issue numbers:
     for match in word_matches:
@@ -364,20 +364,20 @@ def _main_prog():
                         end_script(endmsg)
 
     #Print project name associated with merged PR:
-    print("merged PR project name: {}".format(proj_mod_name))
+    print(f"merged PR project name: {proj_mod_name}")
 
     #++++++++++++++++++++++++++++++++++++++++
     #Extract repo project "To do" card issues
     #++++++++++++++++++++++++++++++++++++++++
 
     #Initalize issue counting dictionary:
-    proj_issues_count = dict()
+    proj_issues_count = {}
 
     #Initalize issue id to project card id dictionary:
-    proj_issue_card_ids = dict()
+    proj_issue_card_ids = {}
 
     #Initialize list for issues that have already been closed:
-    already_closed_issues = list()
+    already_closed_issues = []
 
     #Loop over all repo projects:
     for project in projects:
@@ -467,7 +467,7 @@ def _main_prog():
             cam_issue = cam_repo.get_issue(number=issue_num)
             #Close issue:
             cam_issue.edit(state='closed')
-            print("Issue #{} has been closed.".format(issue_num))
+            print(f"Issue #{issue_num} has been closed.")
         else:
             #Extract card id from id dictionary:
             if issue_num in proj_issue_card_ids:
@@ -498,7 +498,7 @@ def _main_prog():
 
         #Close Pull Request:
         cam_pull.edit(state='closed')
-        print("Pull Request #{} has been closed.".format(pull_num))
+        print(f"Pull Request #{pull_num} has been closed.")
 
     #++++++++++
     #End script

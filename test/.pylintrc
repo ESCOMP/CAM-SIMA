@@ -55,10 +55,7 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 
-#Note:  If python 3.5 is ever dropped as a testing option
-#       then 'consider-using-f-string' should be re-enabled -JN
-
-disable=import-error, too-many-statements, too-many-lines, too-many-locals, bad-whitespace, consider-using-f-string
+disable=import-error, too-many-statements, too-many-lines, too-many-locals, bad-whitespace
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

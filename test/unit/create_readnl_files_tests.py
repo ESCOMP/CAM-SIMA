@@ -353,7 +353,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
                 '--namelist-read-mod', reader_mod]
         with self.assertRaises(NamelistError) as nerr:
             with self.assertLogs("test_bad_namelist_def",
-                                 level='ERROR') as cmp_log:
+                                 level='INFO') as cmp_log:
                 namelist_obj = gen_namelist_files(args, _TMP_DIR, logger)
             # end with
         # end with

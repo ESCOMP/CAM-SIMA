@@ -1,0 +1,17 @@
+&bird_sounds_nl
+    duck_quack = .true.
+    turkey_leg = 22.7
+/
+
+&fairy_tales
+    straw_into_gold = "Rapunzel"
+/
+
+&famous_folk
+    marx_bros = "mario", "luigi", "wario", "karl"
+/
+
+&scary_stories
+    monkey_paw = 0
+/
+

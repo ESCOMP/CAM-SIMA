@@ -6,7 +6,7 @@ doctests, to test that a missing metadata file
 raises the correct error.
 -->
 
-<suite name="simple_suite" version="1.0">
+<suite name="bad_suite" version="1.0">
   <group name="physics">
     <scheme>bad_scheme</scheme>
   </group>

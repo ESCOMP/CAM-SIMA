@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Made-up XML namelist file for testing -->
+
+  <entry id="duck_quack">
+    <type>logical</type>
+    <category>testing</category>
+    <group>bird_sounds_nl</group>
+    <desc>
+      Do ducks quack?
+    </desc>
+    <values>
+      <value>true</value>
+      <value bird="goose">False</value>
+    </values>
+  </entry>
+
+   <entry id="turkey_leg">
+    <type>real</type>
+    <category>testing</category>
+    <group>bird_sounds_nl</group>
+    <desc>
+      How many kgs of turkey legs have
+      you eaten?
+    </desc>
+    <values>
+      <value>3.14d0</value>
+    </values>
+  </entry>
+
+  <entry id="monkey_paw">
+    <type>integer</type>
+    <category>more_testing</category>
+    <group>scary_stories</group>
+    <desc>
+      How many wishes do you want?
+      Default: 0
+    </desc>
+    <values>
+      <value>0</value>
+      <value never_read="1">3</value>
+      <value never_read="1" feel_lucky="1">5</value>
+    </values>
+  </entry>
+
+  <entry id="straw_into_gold">
+    <type>char*128</type>
+    <category>more_testing</category>
+    <group>fairy_tales</group>
+    <desc>
+      What do you think my name is?
+    </desc>
+    <values>
+      <value>Rumpelstiltskin</value>
+    </values>
+  </entry>
+
+  <entry id="marx_bros">
+      <type>char*256(4)</type>
+      <category>more_testing</category>
+      <group>famous_folk</group>
+      <desc>
+        They were in movies.
+      </desc>
+      <values>
+        <value>"Chico", "Harpo", "Groucho", "Zeppo"</value>
+      </values>
+  </entry>
+
+</entry_id_pg>

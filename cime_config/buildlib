@@ -23,12 +23,13 @@ sys.path.append(os.path.join(__CIMEROOT, "scripts", "lib"))
 # CIME imports
 from CIME.case import Case
 from CIME.utils import run_cmd, expect
-from CIME.utils import check_minimum_python_version, stop_buffering_output
+from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
+from CIME.Tools.standard_script_setup import check_minimum_python_version
 #pylint: enable=wrong-import-position
 
-check_minimum_python_version(3, 6)
+check_minimum_python_version(3, 7) #CAM requires version 3.7 or greater
 stop_buffering_output()
 
 _LOGGER = logging.getLogger(__name__)
@@ -143,17 +144,17 @@ def _build_cam():
         complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
 
-        cmd = "{} complib -j {} MODEL=cam COMPLIB={} -f {} {} " \
-            .format(gmake, gmake_j, complib, makefile,
-                    get_standard_makefile_args(case))
+        cmd = f"{gmake} complib -j {gmake_j} MODEL=cam COMPLIB={complib}"
+        cmd += f" -f {makefile} {get_standard_makefile_args(case)} "
 
         # Add C Pre-Processor (CPP) definitions, if present:
         if config.cpp_defs:
-            cmd += " USER_CPPDEFS='{}'".format(' '.join(config.cpp_defs))
+            ccpp_defs_str = ' '.join(config.cpp_defs)
+            cmd += f" USER_CPPDEFS='{ccpp_defs_str}'"
 
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
-        expect(retcode == 0, "Command {} failed with rc={}".format(cmd, retcode))
+        expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
 ###############################################################################
 

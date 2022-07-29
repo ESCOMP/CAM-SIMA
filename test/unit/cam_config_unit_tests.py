@@ -1,7 +1,9 @@
 """
 Python unit testing collection for the various
 public Config_CAM methods, including their
-error-handling processes.
+error-handling processes.  Please note that
+these tests will only work with Python 3.7
+or later.
 
 To run these unit tests, simply type:
 
@@ -37,7 +39,7 @@ sys.path.append(CAM_CONF_DIR)
 # pylint: disable=wrong-import-position
 from cam_autogen import CamAutoGenError
 from cam_config import ConfigCAM
-from cam_config import CamConfigTypeError, CamConfigValError
+from cam_config_classes import CamConfigTypeError, CamConfigValError
 # pylint: enable=wrong-import-position
 
 #++++++++++++++++++++++++++++++++++++++++++
@@ -57,18 +59,19 @@ class FakeCase:
 
         #Create dictionary (so get_value works properly):
         self.conf_opts = {
-            "ATM_GRID" : "f19_f19_mg17",
+            "ATM_GRID" : "mpasa480z32_mpasa480",
             "ATM_NX"   : 180,
             "ATM_NY"   : 90,
             "COMP_OCN" : "socn",
             "COMP_ATM" : "cam",
             "EXEROOT"  : "/some/made-up/path",
             "CASEROOT" : "/another/made-up/path",
-            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic;kessler",
+            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites mango;papaya",
             "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
-            "RUN_STARTDATE" : "101"
+            "RUN_STARTDATE" : "101",
+            "DEBUG" : False
             }
 
     def get_value(self, key):
@@ -126,6 +129,43 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Check that testval matches ATM_NY set in the "fake" case:
         self.assertEqual(testval, 16)
 
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #check that "get_value" method works properly for non-null dycores
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_config_get_dycore_values_check(self):
+
+        """
+        Check that Config_CAM.get_value properly retrieves the dycore
+        name and horizontal grid for a non-null dycore.
+        """
+
+        #Create new "fake" case:
+        fcase_dyn = FakeCase()
+
+        #Remove "none" dyn option:
+        fcase_dyn.conf_opts["CAM_CONFIG_OPTS"] = "--physics-suites mango;papaya"
+
+        #Create python logger object:
+        logger = logging.getLogger("cam_config")
+
+        #create CAM configure object:
+        test_config_dyn = ConfigCAM(fcase_dyn, logger)
+
+        #Get dycore name:
+        test_dyn = test_config_dyn.get_value("dyn")
+
+        #Check that dycore name matches what is specified by the grid
+        #in the "fake" CIME case:
+        self.assertEqual(test_dyn, "mpas")
+
+        #Get dycore horizontal grid:
+        test_hgrid = test_config_dyn.get_value("hgrid")
+
+        #Check that dycore grid matches what is specified by the grid
+        #in the "fake" CIME case:
+        self.assertEqual(test_hgrid, "mpasa480")
+
     #++++++++++++++++++++++++++++++++++++++++++++
     #check that "set_value" method works properly
     #++++++++++++++++++++++++++++++++++++++++++++
@@ -154,18 +194,7 @@ class CamConfigTestRoutine(unittest.TestCase):
 
         """
         Check that Config_CAM.print_config properly prints to log
-
-        Please note that this check only works with python 3.4
-        or greater, so if an earlier version is used this test
-        is skipped.
         """
-
-        if sys.version_info[0] < 3:
-            raise unittest.SkipTest("This test doesn't work with Python 2")
-
-        if sys.version_info[1] < 4:
-            raise unittest.SkipTest("This test requires Python version 3.4 or later")
-
 
         #Create new logger for print_config test:
         print_log = logging.getLogger("print_config")
@@ -307,24 +336,19 @@ class CamConfigTestRoutine(unittest.TestCase):
 
 
         #Set "new" physics_suites value with one physics suite:
-        self.test_config_cam.set_value("physics_suites", "kessler")
+        self.test_config_cam.set_value("physics_suites", "papaya")
 
         #Create (empty) namelist attribute dictionary:
         cam_nml_attr_dict = {}
 
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite = "kessler"\n')
+        #Create fake 'atm_in' ParamGen dictionary:
+        phys_nl_pg_dict = {'physics_suite': {'values': 'papaya'}}
 
         #Run ccpp_phys_set config method:
-        self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+        self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, phys_nl_pg_dict)
 
         #Check that dictonary entries are correct:
-        self.assertEqual(cam_nml_attr_dict["phys_suite"], "kessler")
-
-        #Remove text file:
-        os.remove("test.txt")
+        self.assertEqual(cam_nml_attr_dict["phys_suite"], "papaya")
 
         #Set physics_suites back to its original value:
         self.test_config_cam.set_value("physics_suites", cam_config_suites_orig)
@@ -345,19 +369,14 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Create namelist attribute dictionary:
         cam_nml_attr_dict = {}
 
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite = "adiabatic"\n')
+        #Create fake 'atm_in' ParamGen dictionary:
+        phys_nl_pg_dict = {'physics_suite': {'values': 'mango'}}
 
         #Run ccpp_phys_set config method:
-        self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+        self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, phys_nl_pg_dict)
 
         #Check that dictonary entries are correct:
-        self.assertEqual(cam_nml_attr_dict["phys_suite"], "adiabatic")
-
-        #Remove text file:
-        os.remove("test.txt")
+        self.assertEqual(cam_nml_attr_dict["phys_suite"], "mango")
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "ccpp_phys_set" missing "physics_suite" error-handling
@@ -374,135 +393,22 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Create namelist attribute dictionary:
         cam_nml_attr_dict = {}
 
+        #Create fake 'atm_in' ParamGen dictionary:
+        phys_nl_pg_dict = {'physics_suite': {'values': 'UNSET'}}
+
         #Set error message:
         ermsg  = "No 'physics_suite' variable is present in user_nl_cam.\n"
-        ermsg += "This is required if more than one suite is listed\n"
-        ermsg += "in CAM_CONFIG_OPTS."
-
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
+        ermsg += "This is required because more than one suite is listed\n"
+        ermsg += "in CAM_CONFIG_OPTS: 'mango;papaya'"
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
             #Run ccpp_phys_set config method, which should fail
             #due to missing "physics_suite" namelist variable:
-            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, phys_nl_pg_dict)
 
         #Check that error message matches what's expected:
         self.assertEqual(ermsg, str(valerr.exception))
-
-        #Remove text file:
-        os.remove("test.txt")
-
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check "ccpp_phys_set" multiple namelist entries error-handling
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_ccpp_phys_set_two_phys(self):
-
-        """
-        Check that "ccpp_phys_set" throws the proper
-        error if there is more than one CCPP suite and
-        more than one "physics_suite" namelist variable.
-        """
-
-        #Create namelist attribute dictionary:
-        cam_nml_attr_dict = {}
-
-        #Set error message:
-        ermsg  = "More than one 'physics_suite' variable is present in user_nl_cam.\n"
-        ermsg += "Only one 'physics_suite' line is allowed."
-
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite = "adiabatic"\n')
-            test_fil.write('physics_suite = "kessler"\n')
-
-        #Expect "CamConfigValError":
-        with self.assertRaises(CamConfigValError) as valerr:
-            #Run ccpp_phys_set config method, which should fail
-            #due to multiple "physics_suite" namelist variable:
-            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
-
-        #Check that error message matches what's expected:
-        self.assertEqual(ermsg, str(valerr.exception))
-
-        #Remove text file:
-        os.remove("test.txt")
-
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check "ccpp_phys_set" missing equals-sign error-handling
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_ccpp_phys_set_missing_equals(self):
-
-        """
-        Check that "ccpp_phys_set" throws the proper
-        error if there is a missing equals (=) sign
-        after the "physics_suite" namelist variable.
-        """
-
-        #Create namelist attribute dictionary:
-        cam_nml_attr_dict = {}
-
-        #Set error message:
-        ermsg = "No equals (=) sign was found with the 'physics_suite' variable."
-
-
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite  "adiabatic"\n')
-
-        #Expect "CamConfigValError":
-        with self.assertRaises(CamConfigValError) as valerr:
-            #Run ccpp_phys_set config method, which should fail
-            #due to a missing equals sign in the namelist entry:
-            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
-
-        #Check that error message matches what's expected:
-        self.assertEqual(ermsg, str(valerr.exception))
-
-        #Remove text file:
-        os.remove("test.txt")
-
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #Check "ccpp_phys_set" multiple equals-signs error-handling
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def test_config_ccpp_phys_set_two_equals(self):
-
-        """
-        Check that "ccpp_phys_set" throws the proper
-        error if there is more than one equals (=) sign
-        after the "physics_suite" namelist variable.
-        """
-
-        #Create namelist attribute dictionary:
-        cam_nml_attr_dict = {}
-
-        #Set error message:
-        ermsg = "There must only be one equals (=) sign in the 'physics_suite' namelist line."
-
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite == "adiabatic"\n')
-
-        #Expect "CamConfigValError":
-        with self.assertRaises(CamConfigValError) as valerr:
-            #Run ccpp_phys_set config method, which should fail
-            #due to an incorrect number of equal signs in the
-            #namelist entry:
-            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
-
-        #Check that error message matches what's expected:
-        self.assertEqual(ermsg, str(valerr.exception))
-
-        #Remove text file:
-        os.remove("test.txt")
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "ccpp_phys_set" non-matching physics_suite error-handling
@@ -520,14 +426,12 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Create namelist attribute dictionary:
         cam_nml_attr_dict = {}
 
-        #Set error message:
-        ermsg  = "physics_suite specified in user_nl_cam, 'cam6', doesn't match any suites\n"
-        ermsg += "listed in CAM_CONFIG_OPTS"
+        #Create fake 'atm_in' ParamGen dictionary:
+        phys_nl_pg_dict = {'physics_suite': {'values': 'starfruit'}}
 
-        #Create namelist file:
-        with open("test.txt", "w", encoding='UTF-8') as test_fil:
-            test_fil.write('!Namelist test file\n')
-            test_fil.write('physics_suite = "cam6"\n')
+        #Set error message:
+        ermsg  = "physics_suite specified in user_nl_cam, 'starfruit', doesn't match any suites\n"
+        ermsg += "listed in CAM_CONFIG_OPTS: 'mango;papaya'"
 
         #Expect "CamConfigValError":
         with self.assertRaises(CamConfigValError) as valerr:
@@ -535,13 +439,32 @@ class CamConfigTestRoutine(unittest.TestCase):
             #due to a mis-match between the "physics_suite" namelist
             #variable and the physics suite options listed in the
             #physics_suites config variable:
-            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, "test.txt")
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, phys_nl_pg_dict)
 
         #Check that error message matches what's expected:
         self.assertEqual(ermsg, str(valerr.exception))
 
-        #Remove text file:
-        os.remove("test.txt")
+        #-----
+        #Same test, but with only one physics suite available:
+        #-----
+
+        #Set "new" physics_suites value with one physics suite:
+        self.test_config_cam.set_value("physics_suites", "papaya")
+
+        #Set new error message:
+        ermsg  = "physics_suite specified in user_nl_cam, 'starfruit', does not\n"
+        ermsg += "match the suite listed in CAM_CONFIG_OPTS: 'papaya'"
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Run ccpp_phys_set config method, which should fail
+            #due to a mis-match between the "physics_suite" namelist
+            #variable and the physics suite options listed in the
+            #physics_suites config variable:
+            self.test_config_cam.ccpp_phys_set(cam_nml_attr_dict, phys_nl_pg_dict)
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
 
 #################################################

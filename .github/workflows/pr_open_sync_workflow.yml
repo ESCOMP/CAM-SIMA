@@ -13,11 +13,11 @@ jobs:
     strategy:
       matrix:
         #All of these python versions will be used to run tests:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
       fail-fast: false
     steps:
     # Acquire github action routines:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     # Acquire specific version of python:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
@@ -35,7 +35,9 @@ jobs:
         pip install pytest
     # Run "checkout_externals":
     - name: Checkout externals
-      run: manage_externals/checkout_externals --externals Externals_CAM.cfg ccpp-framework
+      run: |
+        manage_externals/checkout_externals --externals Externals_CAM.cfg ccpp-framework
+        manage_externals/checkout_externals --externals Externals.cfg cime
     # Run python unit and doctests:
     - name: python unit tests
       run: |
@@ -47,12 +49,20 @@ jobs:
         python cime_config/cam_autogen.py
         # CAM build cache doctests:
         python cime_config/cam_build_cache.py
+        # Namelist reader generator doctests:
+        python cime_config/create_readnl_files.py
         # Registry generator doctests:
         pytest src/data/generate_registry_data.py --doctest-modules
+        # ParamGen atm_in namelist writer doctests:
+        pytest cime_config/atm_in_paramgen.py --doctest-modules
         # Registry generator unit tests:
         python test/unit/test_registry.py
+        # Namelist reader autogeneration unit tests
+        python test/unit/create_readnl_files_tests.py
         # Physics variable init (phys_init) generator unit tests:
         python test/unit/write_init_unit_tests.py
+        # ParamGen atm_in namelist writer unit tests:
+        python test/unit/test_atm_in_paramgen.py
 
 #####
 
@@ -65,12 +75,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     # acquire github action routines
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     # acquire specific version of python
-    - name: Set up Python 3.8
+    - name: Set up Python 3.10
       uses: actions/setup-python@v1
       with:
-        python-version: '3.8' # Use python 3.8
+        python-version: "3.10" # Use python 3.8
     # install required python packages
     - name: Install dependencies
       run: |
