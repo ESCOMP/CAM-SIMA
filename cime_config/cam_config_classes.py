@@ -692,7 +692,6 @@ class ConfigList(_ConfigGen):
     '1': type='<class 'int'>'
     '2': type='<class 'int'>'
     '3': type='<class 'int'>'
-    <BLANKLINE>
 
     6.  Check that ConfigList with "valid_vals" but no "valid_type" fails with the correct error:
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_vals=[1,2,3,4,5]).value #doctest: +ELLIPSIS
@@ -801,7 +800,7 @@ class ConfigList(_ConfigGen):
             good_type = "string"
             for list_entry in val:
                 if not isinstance(list_entry, str):
-                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'\n")
+                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'")
                 # end if
             # end for
         elif valid_type == "int":
@@ -809,7 +808,7 @@ class ConfigList(_ConfigGen):
             good_type = "int"
             for list_entry in val:
                 if not isinstance(list_entry, int):
-                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'\n")
+                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'")
                 # end if
             # end for
         else:
@@ -827,9 +826,7 @@ class ConfigList(_ConfigGen):
                 emsg = "ERROR: The following list entry, provided for variable,"
                 emsg += f" '{self.name}', is not a {good_type}, but instead is: "
             # end if
-            for err_msg in bad_val_type_msgs:
-                emsg += err_msg
-            # end for
+            emsg += '\n'.join(bad_val_type_msgs)
             raise CamConfigValError(emsg)
         # End if
 
