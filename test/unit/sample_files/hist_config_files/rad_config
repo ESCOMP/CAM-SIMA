@@ -1,0 +1,47 @@
+hist_add_avg_fields;h0: SOLIN, SOLIN_d1, SOLIN_d2, SOLIN_d3, SOLIN_d4, SOLIN_d5
+hist_add_avg_fields:    SOLIN_d6, SOLIN_d7, SOLIN_d8, SOLIN_d9, SOLIN_d10
+hist_add_avg_fields: QRS, QRS_d1, QRS_d2, QRS_d3, QRS_d4, QRS_d5
+hist_add_avg_fields:      QRS_d6, QRS_d7, QRS_d8, QRS_d9, QRS_d10
+hist_add_avg_fields: FSNT, FSNT_d1, FSNT_d2, FSNT_d3, FSNT_d4, FSNT_d5
+hist_add_avg_fields:       FSNT_d6, FSNT_d7, FSNT_d8, FSNT_d9, FSNT_d10
+hist_add_avg_fields: FSNTC, FSNTC_d1, FSNTC_d2, FSNTC_d3, FSNTC_d4, FSNTC_d5
+hist_add_avg_fields:        FSNTC_d6, FSNTC_d7, FSNTC_d8, FSNTC_d9, FSNTC_d10
+hist_add_avg_fields: FSNTOA, FSNTOA_d1, FSNTOA_d2, FSNTOA_d3, FSNTOA_d4
+hist_add_avg_fields: FSNTOA_d5, FSNTOA_d6, FSNTOA_d7, FSNTOA_d8, FSNTOA_d9
+hist_add_avg_fields: FSNTOA_d10, FSNTOAC, FSNTOAC_d1, FSNTOAC_d2, FSNTOAC_d3
+hist_add_avg_fields: FSNTOAC_d4, FSNTOAC_d5
+hist_add_avg_fields: FSNTOAC_d6, FSNTOAC_d7, FSNTOAC_d8, FSNTOAC_d9, FSNTOAC_d10
+hist_add_avg_fields: SWCF, SWCF_d1, SWCF_d2, SWCF_d3, SWCF_d4, SWCF_d5
+hist_add_avg_fields: SWCF_d6, SWCF_d7, SWCF_d8, SWCF_d9, SWCF_d10
+hist_add_avg_fields: FSNS, FSNS_d1, FSNS_d2, FSNS_d3, FSNS_d4, FSNS_d5
+hist_add_avg_fields: FSNS_d6, FSNS_d7, FSNS_d8, FSNS_d9, FSNS_d10
+hist_add_avg_fields: FSNSC, FSNSC_d1, FSNSC_d2, FSNSC_d3, FSNSC_d4, FSNSC_d5
+hist_add_avg_fields: FSNSC_d6, FSNSC_d7, FSNSC_d8, FSNSC_d9, FSNSC_d10
+hist_add_avg_fields: FSUTOA, FSUTOA_d1, FSUTOA_d2, FSUTOA_d3, FSUTOA_d4, FSUTOA_d5
+hist_add_avg_fields: FSUTOA_d6, FSUTOA_d7, FSUTOA_d8, FSUTOA_d9, FSUTOA_d10
+hist_add_avg_fields: FSDSC, FSDSC_d1, FSDSC_d2, FSDSC_d3, FSDSC_d4, FSDSC_d5
+hist_add_avg_fields: FSDSC_d6, FSDSC_d7, FSDSC_d8, FSDSC_d9, FSDSC_d10
+hist_add_avg_fields: FSDS, FSDS_d1, FSDS_d2, FSDS_d3, FSDS_d4, FSDS_d5
+hist_add_avg_fields: FSDS_d6, FSDS_d7, FSDS_d8, FSDS_d9, FSDS_d10
+hist_add_avg_fields: QRL, QRL_d1, QRL_d2, QRL_d3, QRL_d4, QRL_d5
+hist_add_avg_fields: QRL_d6, QRL_d7, QRL_d8, QRL_d9, QRL_d10
+hist_add_avg_fields: FLNT, FLNT_d1, FLNT_d2, FLNT_d3, FLNT_d4, FLNT_d5
+hist_add_avg_fields: FLNT_d6, FLNT_d7, FLNT_d8, FLNT_d9, FLNT_d10
+hist_add_avg_fields: FLNTC, FLNTC_d1, FLNTC_d2, FLNTC_d3, FLNTC_d4, FLNTC_d5
+hist_add_avg_fields: FLNTC_d6, FLNTC_d7, FLNTC_d8, FLNTC_d9, FLNTC_d10
+hist_add_avg_fields: FLNTCLR, FLNTCLR_d1, FLNTCLR_d2, FLNTCLR_d3, FLNTCLR_d4, FLNTCLR_d5
+hist_add_avg_fields: FLNTCLR_d6, FLNTCLR_d7, FLNTCLR_d8, FLNTCLR_d9, FLNTCLR_d10
+hist_add_avg_fields: FREQCLR, FREQCLR_d1, FREQCLR_d2, FREQCLR_d3, FREQCLR_d4, FREQCLR_d5
+hist_add_avg_fields: FREQCLR_d6, FREQCLR_d7, FREQCLR_d8, FREQCLR_d9, FREQCLR_d10
+hist_add_avg_fields: FLUT, FLUT_d1, FLUT_d2, FLUT_d3, FLUT_d4, FLUT_d5
+hist_add_avg_fields: FLUT_d6, FLUT_d7, FLUT_d8, FLUT_d9, FLUT_d10
+hist_add_avg_fields: FLUTC, FLUTC_d1, FLUTC_d2, FLUTC_d3, FLUTC_d4, FLUTC_d5
+hist_add_avg_fields: FLUTC_d6, FLUTC_d7, FLUTC_d8, FLUTC_d9, FLUTC_d10
+hist_add_avg_fields: LWCF, LWCF_d1, LWCF_d2, LWCF_d3, LWCF_d4, LWCF_d5
+hist_add_avg_fields: LWCF_d6, LWCF_d7, LWCF_d8, LWCF_d9, LWCF_d10
+hist_add_avg_fields: FLNS, FLNS_d1, FLNS_d2, FLNS_d3, FLNS_d4, FLNS_d5
+hist_add_avg_fields: FLNS_d6, FLNS_d7, FLNS_d8, FLNS_d9, FLNS_d10
+hist_add_avg_fields: FLNSC, FLNSC_d1, FLNSC_d2, FLNSC_d3, FLNSC_d4, FLNSC_d5
+hist_add_avg_fields: FLNSC_d6, FLNSC_d7, FLNSC_d8, FLNSC_d9, FLNSC_d10
+hist_add_avg_fields: FLDS, FLDS_d1, FLDS_d2, FLDS_d3, FLDS_d4, FLDS_d5
+hist_add_avg_fields: FLDS_d6, FLDS_d7, FLDS_d8, FLDS_d9, FLDS_d10

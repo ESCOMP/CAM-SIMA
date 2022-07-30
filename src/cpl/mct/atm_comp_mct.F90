@@ -43,7 +43,7 @@ module atm_comp_mct
    use cam_initfiles,     only: cam_initfiles_get_caseid
    use cam_initfiles,     only: cam_initfiles_get_restdir
    use cam_abortutils,    only: endrun
-   use filenames,         only: interpret_filename_spec
+   use cam_filenames,     only: interpret_filename_spec
    use spmd_utils,        only: spmd_init, masterproc, iam
    use time_manager,      only: get_curr_calday, advance_timestep
    use time_manager,      only: get_curr_date, get_nstep, get_step_size

@@ -1,0 +1,17 @@
+max_frames: 1
+output_frequency: monthly
+precision: REAL32
+output_levels: IPCC_PRESSURE_LEVELS
+
+! ADF mean
+diag_file: adf_mean_config
+! Radiation
+!diag_file: rad_config
+! Gravity wave
+diag_file: grav_wav_config
+! Turbulent mountain stress
+add_avg_fields: TAUTMSX, TAUTMSY
+! Modal aerosol optics
+add_avg_fields: AODDUST1, AODDUST3, AODDUST, AODVIS
+! ndrop
+add_avg_fields: CCN3

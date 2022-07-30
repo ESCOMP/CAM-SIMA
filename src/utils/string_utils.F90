@@ -8,16 +8,10 @@ module string_utils
 
    ! Public interface methods
 
-   public :: to_upper         ! Convert character string to upper case
-   public :: to_lower         ! Convert character string to lower case
-   public :: strlist_get_ind  ! find string in a list of strings and return its index
    public :: increment_string ! increments a string
    public :: last_sig_char    ! Position of last significant character in string
    public :: to_str           ! convert integer to left justified string
-
-   ! Private module variables
-   integer, parameter :: lower_to_upper = iachar("A") - iachar("a")
-   integer, parameter :: upper_to_lower = iachar("a") - iachar("A")
+   public :: parse_multiplier ! Parse a repeat count and a token from input
 
 CONTAINS
 
@@ -83,7 +77,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       ! 	... Dummy variables
       !-----------------------------------------------------------------------
-      character(len=*), intent(inout) :: str       ! string with trailing digits
+      character(len=*), intent(inout) :: str     ! string with trailing digits
       ! increment: value to increment string (may be negative)
       integer,          intent(in)    :: increment
 
@@ -140,7 +134,7 @@ CONTAINS
 
    end function increment_string
 
-!=========================================================================================
+   !===========================================================================
 
    integer function last_index(cstr)
       !-----------------------------------------------------------------------
@@ -179,7 +173,7 @@ CONTAINS
 
    end function last_index
 
-!=========================================================================================
+   !===========================================================================
 
    integer function last_sig_char(cstr)
       !-----------------------------------------------------------------------
@@ -216,20 +210,117 @@ CONTAINS
 
    end function last_sig_char
 
-!=========================================================================================
+   !===========================================================================
 
-character(len=10) function to_str(n)
+   character(len=10) function to_str(n)
 
-   ! return default integer as a left justified string
+      ! return default integer as a left justified string
 
-   ! arguments
-   integer, intent(in) :: n
-   !----------------------------------------------------------------------------
+      ! arguments
+      integer, intent(in) :: n
+      !----------------------------------------------------------------------------
 
-   write(to_str,'(i0)') n
+      write(to_str,'(i0)') n
 
-end function to_str
+   end function to_str
 
-!=========================================================================================
+   !===========================================================================
+
+   subroutine parse_multiplier(input, multiplier, token, allowed_set, errmsg)
+      ! Parse a character string (<input>) to find a token <token>, possibly
+      ! multiplied by an integer (<multiplier>).
+      ! Return values for <multiplier>:
+      !   positive integer: Successful return with <multiplier> and <token>.
+      !   zero:             <input> is an empty string
+      !   -1:               Error condition (malformed input string)
+      ! Return values for <token>
+      !   On a successful return, <token> will contain <input> with the
+      !      optional multiplier and multiplication symbol removed.
+      !   On an error return, <token> will be an empty string
+      !
+      ! If <allowed_set> is present, then <token> must equal a value in
+      !   <allowed_set> (case insensitive)
+      ! If <errmsg> is present, it is filled with an error message if <input>
+      !   is not an allowed format.
+      ! Allowed formats are:
+      !   <multiplier>*<token> where <multiplier> is the string representation
+      !      a positive integer.
+      !   <token> in which case <multiplier> is assumed to be one.
+      !
+
+      ! Dummy arguments
+      character(len=*),           intent(in)  :: input
+      integer,                    intent(out) :: multiplier
+      character(len=*),           intent(out) :: token
+      character(len=*), optional, intent(in)  :: allowed_set(:)
+      character(len=*), optional, intent(out) :: errmsg
+      ! Local variables
+      integer          :: mult_ind ! Index of multiplication symbol
+      integer          :: lind     ! Loop index
+      integer          :: alen     ! Number of entries in <allowed_set>
+      integer          :: stat     ! Read status
+      logical          :: match    ! For matching <allowed_set>
+      character(len=8) :: fmt_str  ! Format string
+
+      ! Initialize output
+      errmsg = ''
+      multiplier = -1
+      token = ''
+      ! Do we have a multipler?
+      mult_ind = index(input, '*')
+      if (len_trim(input) == 0) then
+         multiplier = 0
+      else if (mult_ind <= 0) then
+         multiplier = 1
+         token = trim(input)
+      else
+         write(fmt_str, '(a,i0,a)') "(i", mult_ind - 1, ")"
+         read(input, fmt_str, iostat=stat) multiplier
+         if (stat == 0) then
+            token = trim(input(mult_ind+1:))
+         else
+            if (present(errmsg)) then
+               write(errmsg, *) "Invalid multiplier, '",                      &
+                    input(1:mult_ind-1), "' in '", trim(input), "'"
+            end if
+            multiplier = -1
+            token = ''
+         end if
+      end if
+
+      if ((multiplier >= 0) .and. present(allowed_set)) then
+         alen = size(allowed_set)
+         match = .false.
+         do lind = 1, alen
+            if (trim(to_lower(token)) == trim(to_lower(allowed_set(lind)))) then
+               match = .true.
+               exit
+            end if
+         end do
+         if (.not. match) then
+            if (present(errmsg)) then
+               write(errmsg, *) "Error, token, '", trim(token), "' not in (/"
+               lind = len_trim(errmsg) + 1
+               do mult_ind = 1, alen
+                  if (mult_ind == alen) then
+                     fmt_str = "' "
+                  else
+                     fmt_str = "', "
+                  end if
+                  write(errmsg(lind:), *) "'", trim(allowed_set(mult_ind)),   &
+                       trim(fmt_str)
+                  lind = lind + len_trim(allowed_set(mult_ind)) +             &
+                       len_trim(fmt_str) + 2
+               end do
+               write(errmsg(lind:), *) "/)"
+            end if
+            multiplier = -1
+            token = ''
+         end if
+      end if
+
+   end subroutine parse_multiplier
+
+   !===========================================================================
 
 end module string_utils

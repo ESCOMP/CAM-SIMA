@@ -39,18 +39,21 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>ps state_ps</ic_file_input_names>
+      <diagnostic name="PS"></diagnostic>
     </variable>
     <variable local_name="psdry" standard_name="surface_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>psdry state_psdry</ic_file_input_names>
+      <diagnostic name="PSDRY"></diagnostic>
     </variable>
     <variable local_name="phis" standard_name="geopotential_at_surface"
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>phis state_phis</ic_file_input_names>
+      <diagnostic name="PHIS"></diagnostic>
     </variable>
     <variable local_name="T" standard_name="air_temperature"
               units="K" type="real" kind="kind_phys"
@@ -58,6 +61,7 @@
       <long_name>Air temperature</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>T state_t</ic_file_input_names>
+      <diagnostic name="T"></diagnostic>
     </variable>
     <variable local_name="u" standard_name="x_wind"
               units="m s-1" type="real" kind="kind_phys"
@@ -65,6 +69,7 @@
       <long_name>Horizontal wind in a direction perpendicular to y_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>u state_u</ic_file_input_names>
+      <diagnostic name="U"></diagnostic>
     </variable>
     <variable local_name="v" standard_name="y_wind"
               units="m s-1" type="real" kind="kind_phys"
@@ -72,6 +77,7 @@
       <long_name>Horizontal wind in a direction perpendicular to x_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>v state_v</ic_file_input_names>
+      <diagnostic name="V"></diagnostic>
     </variable>
     <variable local_name="dse" standard_name="dry_static_energy"
               units="J kg-1" type="real" kind="kind_phys"
