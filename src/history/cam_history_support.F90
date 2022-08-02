@@ -3,9 +3,7 @@ module cam_history_support
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !!
    !!  cam_history_support is used by cam_history as well as by the dycores
-   !!    (for vertical coordinate and "mdim" support). Some parameters are
-   !!    also referenced by cam_grid_support (although those could be copied
-   !!    if necessary).
+   !!    (for vertical coordinate support).
    !!
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -53,31 +51,9 @@ module cam_history_support
       procedure                   :: deallocate   => history_patch_deallocate
    end type history_patch_t
 
-   !
-   ! dim_index_2d, dim_index_3d: 2-D & 3-D dimension index lower & upper bounds
-   !
-   type, public :: dim_index_2d        ! 2-D dimension index
-      integer :: beg1, end1            ! lower & upper bounds of 1st dimension
-      integer :: beg2, end2            ! lower & upper bounds of 2nd dimension
-   contains
-      procedure :: dim_sizes_2d  => dim_index_2d_dim_sizes_2d
-      procedure :: dim_sizes_arr => dim_index_2d_dim_size_arr
-      generic   :: dim_sizes     => dim_sizes_arr, dim_sizes_2d
-   end type dim_index_2d
-
-   type, public :: dim_index_3d       ! 3-D dimension index
-      integer :: beg1, end1            ! lower & upper bounds of 1st dimension
-      integer :: beg2, end2            ! lower & upper bounds of 2nd dimension
-      integer :: beg3, end3            ! lower & upper bounds of 3rd dimension
-   contains
-      procedure :: dim_sizes_3d  => dim_index_3d_dim_sizes_3d
-      procedure :: dim_sizes_arr => dim_index_3d_dim_size_arr
-      generic   :: dim_sizes     => dim_sizes_arr, dim_sizes_3d
-   end type dim_index_3d
-
    !---------------------------------------------------------------------------
    !
-   ! field_info: A derived type containing information in an addfld call.
+   ! field_info: A derived type containing information in a history field
    !
    !---------------------------------------------------------------------------
    type, public :: field_info

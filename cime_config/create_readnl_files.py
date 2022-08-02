@@ -23,10 +23,9 @@ import logging
 _CURRDIR = os.path.abspath(os.path.dirname(__file__))
 _CAMROOT = os.path.abspath(os.path.join(_CURRDIR, os.pardir))
 _SPINSCRIPTS = os.path.join(_CAMROOT, "ccpp_framework", 'scripts')
-_XML_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "data", "config",
-                            "xml_schemas")
-_PG_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "ParamGen",
-                           "xml_schema")
+_XML_SCHEMAS = os.path.join(_CAMROOT, "cime", "config", "xml_schemas")
+_PG_SCHEMAS = os.path.join(_CAMROOT, "cime", "scripts", "lib", "CIME",
+                           "ParamGen", "xml_schema")
 if _SPINSCRIPTS not in sys.path:
     sys.path.append(_SPINSCRIPTS)
 # end if

@@ -65,26 +65,6 @@ module cam_history
    private
    save
 
-   ! history file info
-   type (active_entry), pointer :: file(:) => null()           ! history file
-   type (active_entry), target, allocatable :: history_file(:) ! history files
-   ! restarthistory_files is a set of files containing partially accumulated
-   !   history fields (e.g., an averaged field saved at mid month).
-   type (active_entry), target, allocatable :: restarthistory_files(:)
-   !
-
-   integer :: nfmaster = 0             ! number of fields in master field list
-   integer :: nflds(pfiles)            ! number of fields per file
-
-   real(r8) :: beg_time(pfiles)        ! time at beginning of an averaging interval
-
-   ! regen_hist_file is .true. for files that require a regeneration volume
-   logical :: regen_hist_file(pfiles) = .false.
-   logical :: write_file(pfiles) = .false.  ! .true. to write file
-   ! empty_hfiles: Namelist flag indicates no default history fields
-   logical :: empty_hfiles  = .false.
-   logical :: hfiles_defined = .false. ! flag indicates history contents have been defined
-
    character(len=cl) :: model_doi_url = '' ! Model DOI
    character(len=cl) :: caseid = ''        ! case ID
    character(len=cl) :: ctitle = ''        ! case title
@@ -92,9 +72,8 @@ module cam_history
    character(len=*), parameter   :: history_namelist = 'cam_history_nl'
    ! hrestpath:  Full history restart pathnames
    character(len=max_string_len) :: hrestpath(pfiles) = (/(' ',idx=1,pfiles)/)
-   character(len=max_string_len) :: cpath(pfiles)                   ! Array of current pathnames
-   character(len=max_string_len) :: nhfil(pfiles)                   ! Array of current file names
-   character(len=1)  :: avgflag_perfile(pfiles) = (/(' ',idx=1,pfiles)/) ! per file averaging flag
+   character(len=max_string_len) :: cpath(pfiles) ! Array of current pathnames
+   character(len=max_string_len) :: nhfil(pfiles) ! Array of current file names
    character(len=16)  :: logname             ! user name
    character(len=16)  :: host                ! host name
    character(len=8)   :: inithist = 'YEARLY' ! If set to '6-HOURLY, 'DAILY', 'MONTHLY' or
@@ -103,19 +82,6 @@ module cam_history
    ! included on IC file
    !  .false.  include only required fields
    !  .true.   include required *and* optional fields
-   character(len=fieldname_lenp2) :: fincl(pflds,pfiles) ! List of fields to add to primary h-file
-   character(len=max_chars)       :: fincllonlat(pflds,pfiles) ! List of fields to add to primary h-file
-   character(len=fieldname_lenp2) :: fexcl(pflds,pfiles) ! List of fields to rm from primary h-file
-   ! fout_prec: List of fields to change default history output prec
-   character(len=fieldname_lenp2) :: fout_prec(pflds, pfiles)
-   character(len=fieldname_suffix_len ) :: fieldname_suffix = '&IC' ! Suffix appended to field names for IC file
-
-   ! Allowed history averaging flags
-   ! This should match namelist_definition.xml => avgflag_perfile (+ ' ')
-   ! The presence of 'ABI' and 'XML' in this string is a coincidence
-   character(len=7), parameter    :: HIST_AVG_FLAGS = ' ABIXML'
-   character(len=22) ,parameter   :: LT_DESC = 'mean (over local time)' ! local time description
-   logical :: collect_column_output(pfiles)
 
    integer :: maxvarmdims=1
    !
@@ -127,11 +93,6 @@ module cam_history
    character(len=max_string_len) :: rhfilename_spec = '%c.cam.rh%t.%y-%m-%d-%s.nc' ! history restart
    character(len=max_string_len) :: hfilename_spec(pfiles) = (/ (' ', idx=1, pfiles) /) ! filename specifyer
 
-
-   interface addfld
-      module procedure addfld_1d
-      module procedure addfld_nd
-   end interface addfld
 
    ! Needed by cam_diagnostics
    public :: inithist_all
@@ -208,50 +169,6 @@ CONTAINS
       interpolate_gridtype(:)  = 1
       interpolate_type(:)      = 1
       interpolate_output(:)    = .false.
-
-      ! Initialize namelist 'temporary variables'
-      do f = 1, pflds
-         fincl1(fld_idx)        = ' '
-         fincl2(fld_idx)        = ' '
-         fincl3(fld_idx)        = ' '
-         fincl4(fld_idx)        = ' '
-         fincl5(fld_idx)        = ' '
-         fincl6(fld_idx)        = ' '
-         fincl7(fld_idx)        = ' '
-         fincl8(fld_idx)        = ' '
-         fincl9(fld_idx)        = ' '
-         fincl10(fld_idx)       = ' '
-         fincl1lonlat(fld_idx)  = ' '
-         fincl2lonlat(fld_idx)  = ' '
-         fincl3lonlat(fld_idx)  = ' '
-         fincl4lonlat(fld_idx)  = ' '
-         fincl5lonlat(fld_idx)  = ' '
-         fincl6lonlat(fld_idx)  = ' '
-         fincl7lonlat(fld_idx)  = ' '
-         fincl8lonlat(fld_idx)  = ' '
-         fincl9lonlat(fld_idx)  = ' '
-         fincl10lonlat(fld_idx) = ' '
-         fexcl1(fld_idx)        = ' '
-         fexcl2(fld_idx)        = ' '
-         fexcl3(fld_idx)        = ' '
-         fexcl4(fld_idx)        = ' '
-         fexcl5(fld_idx)        = ' '
-         fexcl6(fld_idx)        = ' '
-         fexcl7(fld_idx)        = ' '
-         fexcl8(fld_idx)        = ' '
-         fexcl9(fld_idx)        = ' '
-         fexcl10(fld_idx)       = ' '
-         fwrtpr1(fld_idx)       = ' '
-         fwrtpr2(fld_idx)       = ' '
-         fwrtpr3(fld_idx)       = ' '
-         fwrtpr4(fld_idx)       = ' '
-         fwrtpr5(fld_idx)       = ' '
-         fwrtpr6(fld_idx)       = ' '
-         fwrtpr7(fld_idx)       = ' '
-         fwrtpr8(fld_idx)       = ' '
-         fwrtpr9(fld_idx)       = ' '
-         fwrtpr10(fld_idx)      = ' '
-      end do
 
       if (trim(history_namelist) /= 'cam_history_nl') then
          call endrun('HISTORY_READNL: CAM history namelist mismatch')
