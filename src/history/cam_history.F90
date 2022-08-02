@@ -119,14 +119,11 @@ module cam_history
 CONTAINS
 
    subroutine history_readnl(nlfile)
-
-      use namelist_utils, only: find_group_name
-      use units,          only: getunit, freeunit
-      use spmd_utils,     only: masterproc, masterprocid, mpicom
-      use spmd_utils,     only: mpi_integer, mpi_logical, mpi_character
-      use shr_string_mod, only: shr_string_toUpper
-      use time_manager,   only: get_step_size
-      use sat_hist,       only: sat_hist_readnl
+      use spmd_utils,           only: masterproc, masterprocid, mpicom
+      use spmd_utils,           only: mpi_integer, mpi_logical, mpi_character
+      use cam_hist_config_file, only: hist_file_config_t
+      use cam_hist_config_file, only: hist_read_namelist_config
+      use time_manager,         only: get_step_size
 
       ! Dummy argument
       character(len=*), intent(in)   :: nlfile  ! filepath of namelist input file
@@ -134,116 +131,8 @@ CONTAINS
       !
       ! Local variables
       integer                        :: dtime   ! Step time in seconds
-      integer                        :: unitn, ierr, f, t
+      integer                        :: unitn, ierr
       character(len=8)               :: ctemp      ! Temporary character string
-
-      ! History namelist items
-      namelist /cam_history_nl/ &
-           diag_file1, diag_file2, diag_file3, diag_file4, diag_file5,        &
-           diag_file6, diag_file7, diag_file8, diag_file9, diag_file10,       &
-           lcltod_start, lcltod_stop,          &
-           inithist, inithist_all,                                            &
-           hfilename_spec,                             &
-           interpolate_nlat, interpolate_nlon,                                &
-           interpolate_gridtype, interpolate_type, interpolate_output
-
-      ! Set namelist defaults (these should match initial values if given)
-      fincl(:,:)               = ' '
-      fincllonlat(:,:)         = ' '
-      fexcl(:,:)               = ' '
-      fout_prec(:,:)           = ' '
-      collect_column_output(:) = .false.
-      avgflag_perfile(:)       = ' '
-      ndens                    = 2
-      hist_freq(1)             = 0
-      hist_freq(2:)            = -24
-      mfilt                    = 30
-      inithist                 = 'YEARLY'
-      inithist_all             = .false.
-      empty_hfiles             = .false.
-      lcltod_start(:)          = 0
-      lcltod_stop(:)           = 0
-      hfilename_spec(:)        = ' '
-      interpolate_nlat(:)      = 0
-      interpolate_nlon(:)      = 0
-      interpolate_gridtype(:)  = 1
-      interpolate_type(:)      = 1
-      interpolate_output(:)    = .false.
-
-      if (trim(history_namelist) /= 'cam_history_nl') then
-         call endrun('HISTORY_READNL: CAM history namelist mismatch')
-      end if
-      if (masterproc) then
-         write(iulog, *) 'Read in ',history_namelist,' namelist from: ',trim(nlfile)
-         unitn = getunit()
-         open(unitn, file=trim(nlfile), status='old')
-         call find_group_name(unitn, history_namelist, status=ierr)
-         if (ierr == 0) then
-            read(unitn, cam_history_nl, iostat=ierr)
-            if (ierr /= 0) then
-               call endrun('history_readnl: ERROR reading namelist, '//trim(history_namelist))
-            end if
-         end if
-         close(unitn)
-         call freeunit(unitn)
-
-         do f = 1, pflds
-            fincl(f, 1) = fincl1(fld_idx)
-            fincl(f, 2) = fincl2(fld_idx)
-            fincl(f, 3) = fincl3(fld_idx)
-            fincl(f, 4) = fincl4(fld_idx)
-            fincl(f, 5) = fincl5(fld_idx)
-            fincl(f, 6) = fincl6(fld_idx)
-            fincl(f, 7) = fincl7(fld_idx)
-            fincl(f, 8) = fincl8(fld_idx)
-            fincl(f, 9) = fincl9(fld_idx)
-            fincl(f,10) = fincl10(fld_idx)
-
-            fincllonlat(f, 1) = fincl1lonlat(fld_idx)
-            fincllonlat(f, 2) = fincl2lonlat(fld_idx)
-            fincllonlat(f, 3) = fincl3lonlat(fld_idx)
-            fincllonlat(f, 4) = fincl4lonlat(fld_idx)
-            fincllonlat(f, 5) = fincl5lonlat(fld_idx)
-            fincllonlat(f, 6) = fincl6lonlat(fld_idx)
-            fincllonlat(f, 7) = fincl7lonlat(fld_idx)
-            fincllonlat(f, 8) = fincl8lonlat(fld_idx)
-            fincllonlat(f, 9) = fincl9lonlat(fld_idx)
-            fincllonlat(f,10) = fincl10lonlat(fld_idx)
-
-            fexcl(f, 1) = fexcl1(fld_idx)
-            fexcl(f, 2) = fexcl2(fld_idx)
-            fexcl(f, 3) = fexcl3(fld_idx)
-            fexcl(f, 4) = fexcl4(fld_idx)
-            fexcl(f, 5) = fexcl5(fld_idx)
-            fexcl(f, 6) = fexcl6(fld_idx)
-            fexcl(f, 7) = fexcl7(fld_idx)
-            fexcl(f, 8) = fexcl8(fld_idx)
-            fexcl(f, 9) = fexcl9(fld_idx)
-            fexcl(f,10) = fexcl10(fld_idx)
-
-            fout_prec(f, 1) = fwrtpr1(fld_idx)
-            fout_prec(f, 2) = fwrtpr2(fld_idx)
-            fout_prec(f, 3) = fwrtpr3(fld_idx)
-            fout_prec(f, 4) = fwrtpr4(fld_idx)
-            fout_prec(f, 5) = fwrtpr5(fld_idx)
-            fout_prec(f, 6) = fwrtpr6(fld_idx)
-            fout_prec(f, 7) = fwrtpr7(fld_idx)
-            fout_prec(f, 8) = fwrtpr8(fld_idx)
-            fout_prec(f, 9) = fwrtpr9(fld_idx)
-            fout_prec(f,10) = fwrtpr10(fld_idx)
-         end do
-
-         !
-         ! If generate an initial conditions history file as an auxillary file:
-         !
-         ctemp = shr_string_toUpper(inithist)
-         inithist = trim(ctemp)
-         if ( (inithist /= '6-HOURLY') .and. (inithist /= 'DAILY')  .and.        &
-              (inithist /= 'MONTHLY')  .and. (inithist /= 'YEARLY') .and.        &
-              (inithist /= 'CAMIOP')   .and. (inithist /= 'ENDOFRUN')) then
-            inithist = 'NONE'
-         end if
-         !
          ! History file write times
          ! Convert write freq. of hist files from hours to timesteps if necessary.
          !
