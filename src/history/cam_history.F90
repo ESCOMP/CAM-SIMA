@@ -112,13 +112,13 @@ CONTAINS
       use time_manager,         only: get_step_size
 
       ! Dummy argument
-      character(len=*), intent(in)   :: nlfile  ! filepath of namelist input file
+      character(len=*), intent(in) :: nlfile ! path of namelist input file
 
       !
       ! Local variables
-      integer                        :: dtime   ! Step time in seconds
-      integer                        :: unitn, ierr
-      character(len=8)               :: ctemp      ! Temporary character string
+      integer                      :: dtime  ! Step time in seconds
+      integer                      :: unitn, ierr
+      character(len=8)             :: ctemp  ! Temporary character string
 
       ! Read in CAM history configuration
       hist_configs => hist_read_namelist_config(nlfile)
@@ -126,9 +126,9 @@ CONTAINS
          err_cnt = err_cnt + 1
       end if
       ! History file write times
-         ! Convert write freq. of hist files from hours to timesteps if necessary.
-         !
-         dtime = get_step_size()
+      ! Convert write freq. of hist files from hours to timesteps if necessary.
+      !
+      dtime = get_step_size()
          do t = 1, pfiles
             if (hist_freq(fil_idx) < 0) then
                hist_freq(fil_idx) = nint((-hist_freq(fil_idx) * 3600._r8) / dtime)
