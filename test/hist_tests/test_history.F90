@@ -12,8 +12,8 @@ CONTAINS
         test_cnt, err_cnt)
       use shr_kind_mod,         only: max_flen=>SHR_KIND_CL
       use cam_abortutils,       only: endrun, check_endrun
-      use cam_hist_config_file, only: hist_file_config_t
-      use cam_hist_config_file, only: hist_read_namelist_config
+      use cam_hist_file, only: hist_file_t
+      use cam_hist_file, only: hist_read_namelist_config
 
       ! Dummy arguments
       character(len=*), intent(in)  :: test_msg
@@ -27,9 +27,9 @@ CONTAINS
       integer,          intent(out) :: test_cnt
       integer,          intent(out) :: err_cnt
       ! Local variables
-      type(hist_file_config_t), pointer :: tconfig_arr(:)
-      character(len=max_flen)           :: test_path
-      integer                           :: indx
+      type(hist_file_t), pointer :: tconfig_arr(:)
+      character(len=max_flen)    :: test_path
+      integer                    :: indx
 
       test_cnt = 0
       err_cnt = 0
@@ -91,25 +91,25 @@ end module test_hist_mod
 
 program test_history
 
-   use shr_kind_mod,         only: max_chars=>SHR_KIND_CX
-   use shr_kind_mod,         only: max_flen=>SHR_KIND_CL
-   use cam_abortutils,       only: endrun, check_endrun
-   use cam_hist_config_file, only: hist_file_config_t
-   use cam_hist_config_file, only: hist_read_namelist_config
-   use test_hist_mod,        only: run_test
+   use shr_kind_mod,   only: max_chars=>SHR_KIND_CX
+   use shr_kind_mod,   only: max_flen=>SHR_KIND_CL
+   use cam_abortutils, only: endrun, check_endrun
+   use cam_hist_file,  only: hist_file_t
+   use cam_hist_file,  only: hist_read_namelist_config
+   use test_hist_mod,  only: run_test
 
    implicit none
 
-   integer                           :: out_unit = 6
-   integer                           :: ierr
-   integer                           :: errcnt
-   integer                           :: testcnt
-   integer                           :: total_errcnt = 0
-   integer                           :: total_tests = 0
-   character(len=max_flen)           :: sample_dir
-   character(len=max_flen)           :: test_file
-   character(len=max_chars)          :: test_msg
-   type(hist_file_config_t), pointer :: test_config_arr(:)
+   integer                    :: out_unit = 6
+   integer                    :: ierr
+   integer                    :: errcnt
+   integer                    :: testcnt
+   integer                    :: total_errcnt = 0
+   integer                    :: total_tests = 0
+   character(len=max_flen)    :: sample_dir
+   character(len=max_flen)    :: test_file
+   character(len=max_chars)   :: test_msg
+   type(hist_file_t), pointer :: test_config_arr(:) => NULL()
 
    ! Get sample directory from command line
    errcnt = command_argument_count()

@@ -37,6 +37,7 @@ LIST(APPEND SOURCE_FILES "${UTILS_PATH}/shr_assert_mod.F90")
 LIST(APPEND SOURCE_FILES "${UTILS_PATH}/shr_string_mod.F90")
 LIST(APPEND SOURCE_FILES "${UTILS_PATH}/time_manager.F90")
 LIST(APPEND SOURCE_FILES "${UTILS_PATH}/cam_control_mod.F90")
+LIST(APPEND SOURCE_FILES "${UTILS_PATH}/pio.F90")
 LIST(APPEND SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/cam_interp_mod.F90")
 LIST(APPEND SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/cam_history_support.F90")
 # Regular CAM and CIME utility files
@@ -51,7 +52,7 @@ LIST(APPEND SOURCE_FILES "${ROOT_PATH}/share/src/shr_strconvert_mod.F90")
 LIST(APPEND SOURCE_FILES "${SRC_PATH}/utils/string_utils.F90")
 LIST(APPEND SOURCE_FILES "${SRC_PATH}/utils/cam_filenames.F90")
 # CAM history files
-LIST(APPEND SOURCE_FILES "${HIST_PATH}/cam_hist_config_file.F90")
+LIST(APPEND SOURCE_FILES "${HIST_PATH}/cam_hist_file.F90")
 ## We need to copy shr_assert.h into this directory
 #configure_file("${CIME_PATH}/src/share/util/shr_assert.h"
 # "${CMAKE_CURRENT_SOURCE_DIR}/shr_assert.h" COPYONLY)
@@ -133,6 +134,8 @@ else(OPENMP)
   message (STATUS "Disable OpenMP support for C/C++/Fortran compiler")
 endif()
 TARGET_SOURCES(${TEST_EXE} PUBLIC ${SOURCE_FILES})
+# Allow include files in ../include
+TARGET_INCLUDE_DIRECTORIES(${TEST_EXE} PRIVATE ${UTILS_PATH})
 TARGET_LINK_LIBRARIES(${TEST_EXE} ${MPI_Fortran_LIBRARIES})
 
 set_target_properties(${TEST_EXE} PROPERTIES

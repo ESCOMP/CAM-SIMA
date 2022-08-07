@@ -6,24 +6,14 @@ module cam_history
    ! It maintains the lists of fields that are written to each history file,
    !   and the associated metadata for those fields such as descriptive names,
    !   physical units, time axis properties, etc.
-   ! It also contains the programmer interface which provides routines that
-   !   are called from the physics and dynamics initialization routines to
-   !   define the fields that are produced by the model and are available for
-   !   output, and the routine that is called from the corresponding run
-   !   method to add the field values into a history buffer so that they
-   !   may be output to disk.
-   !
-   ! There are two special history files.  The initial file and the
-   !   satellite track file.
    !
    ! Public functions/subroutines:
-   !   addfld, add_default
-   !   hist_init_files
-   !   history_initialized
-   !   write_restart_history
-   !   read_restart_history
-   !   outfld
-   !   wshist
+   !   cam_hist_init_files
+   !   cam_hist_write_history_state
+   !   cam_hist_write_restart
+   !   cam_hist_read_restart
+   !   cam_hist_capture_field
+   !   cam_hist_write_history_files
    !-----------------------------------------------------------------------
 
    use shr_kind_mod,    only: r8 => shr_kind_r8, r4 => shr_kind_r4
@@ -37,29 +27,32 @@ module cam_history
    use cam_abortutils,  only: endrun
    use cam_logfile,     only: iulog
 
-   use cam_history_support, only: max_fieldname_len
-   use cam_history_support, only: fieldname_suffix_len
-   use cam_history_support, only: max_chars
-   use cam_history_support, only: pfiles
-   use cam_history_support, only: fieldname_len
-   use cam_history_support, only: max_string_len
-   use cam_history_support, only: date2yyyymmdd
-   use cam_history_support, only: pflds
-   use cam_history_support, only: fieldname_lenp2
-   use cam_history_support, only: sec2hms
-   use cam_history_support, only: field_info
-   use cam_history_support, only: active_entry
-   use cam_history_support, only: hentry
-   use cam_history_support, only: horiz_only
-   use cam_history_support, only: write_hist_coord_attrs
-   use cam_history_support, only: write_hist_coord_vars
-   use cam_history_support, only: interp_info_t
-   use cam_history_support, only: lookup_hist_coord_indices
-   use cam_history_support, only: get_hist_coord_index
-   use sat_hist,            only: is_satfile
-   use solar_parms_data,    only: solar_parms_define, solar_parms_write
-   use solar_wind_data,     only: solar_wind_define, solar_wind_write
-   use epotential_params,   only: epot_active, epot_crit_colats
+   use cam_hist_config_file, only: hist_file_config_t
+!!XXgoldyXX: v remove unused
+!   use cam_history_support, only: max_fieldname_len
+!   use cam_history_support, only: fieldname_suffix_len
+!   use cam_history_support, only: max_chars
+!   use cam_history_support, only: pfiles
+!   use cam_history_support, only: fieldname_len
+!   use cam_history_support, only: max_string_len
+!   use cam_history_support, only: date2yyyymmdd
+!   use cam_history_support, only: pflds
+!   use cam_history_support, only: fieldname_lenp2
+!   use cam_history_support, only: sec2hms
+!   use cam_history_support, only: field_info
+!   use cam_history_support, only: active_entry
+!   use cam_history_support, only: hentry
+!   use cam_history_support, only: horiz_only
+!   use cam_history_support, only: write_hist_coord_attrs
+!   use cam_history_support, only: write_hist_coord_vars
+!   use cam_history_support, only: interp_info_t
+!   use cam_history_support, only: lookup_hist_coord_indices
+!   use cam_history_support, only: get_hist_coord_index
+!   use sat_hist,            only: is_satfile
+!   use solar_parms_data,    only: solar_parms_define, solar_parms_write
+!   use solar_wind_data,     only: solar_wind_define, solar_wind_write
+!   use epotential_params,   only: epot_active, epot_crit_colats
+!!XXgoldyXX: ^ remove unused
 
    implicit none
    private
@@ -78,12 +71,8 @@ module cam_history
    character(len=16)  :: host                ! host name
    character(len=8)   :: inithist = 'YEARLY' ! If set to '6-HOURLY, 'DAILY', 'MONTHLY' or
    ! 'YEARLY' then write IC file
-   logical            :: inithist_all = .false. ! Flag to indicate set of fields to be
-   ! included on IC file
-   !  .false.  include only required fields
-   !  .true.   include required *and* optional fields
 
-   integer :: maxvarmdims=1
+   integer, private :: maxvarmdims = 1
    !
 
    !
@@ -92,10 +81,6 @@ module cam_history
    !
    character(len=max_string_len) :: rhfilename_spec = '%c.cam.rh%t.%y-%m-%d-%s.nc' ! history restart
    character(len=max_string_len) :: hfilename_spec(pfiles) = (/ (' ', idx=1, pfiles) /) ! filename specifyer
-
-
-   ! Needed by cam_diagnostics
-   public :: inithist_all
 
    integer :: lcltod_start(pfiles) ! start time of day for local time averaging (sec)
    integer :: lcltod_stop(pfiles)  ! stop time of day for local time averaging, stop > start is wrap around (sec)
@@ -107,8 +92,7 @@ module cam_history
    public :: history_read_restart   ! Read restart history data
    public :: history_write_files    ! Write files out
 !   public :: outfld                 ! Output a field
-   public :: history_init_files     ! Initialization
-   public :: history_initialized    ! .true. iff cam history initialized
+   public :: cam_hist_init_files     ! Initialization
    public :: history_finalize       ! process history files at end of run
    public :: history_write_IC       ! flag to dump of IC to IC file
    public :: history_addfld         ! Add a field to history file
@@ -116,12 +100,14 @@ module cam_history
    public :: history_fld_col_active ! .true. for each column where a field is active on any history file
    public :: register_vector_field  ! Register vector field set for interpolated output
 
+   ! Private data
+   type(hist_file_config_t), pointer :: hist_configs(:)
+
 CONTAINS
 
    subroutine history_readnl(nlfile)
       use spmd_utils,           only: masterproc, masterprocid, mpicom
       use spmd_utils,           only: mpi_integer, mpi_logical, mpi_character
-      use cam_hist_config_file, only: hist_file_config_t
       use cam_hist_config_file, only: hist_read_namelist_config
       use time_manager,         only: get_step_size
 
@@ -133,7 +119,13 @@ CONTAINS
       integer                        :: dtime   ! Step time in seconds
       integer                        :: unitn, ierr
       character(len=8)               :: ctemp      ! Temporary character string
-         ! History file write times
+
+      ! Read in CAM history configuration
+      hist_configs => hist_read_namelist_config(nlfile)
+      if (check_endrun(test_desc=test_msg, output=out_unit)) then
+         err_cnt = err_cnt + 1
+      end if
+      ! History file write times
          ! Convert write freq. of hist files from hours to timesteps if necessary.
          !
          dtime = get_step_size()
@@ -257,7 +249,7 @@ CONTAINS
 
    !===========================================================================
 
-   subroutine history_init_files(model_doi_url_in, caseid_in, ctitle_in)
+   subroutine cam_hist_init_files(model_doi_url_in, caseid_in, ctitle_in)
       !
       !-----------------------------------------------------------------------
       !
@@ -417,11 +409,7 @@ CONTAINS
       call sat_hist_init()
 
       return
-   end subroutine hist_init_files
-
-   logical function history_initialized()
-      history_initialized = associated(masterlist)
-   end function history_initialized
+   end subroutine cam_hist_init_files
 
    !===========================================================================
 
@@ -621,7 +609,7 @@ CONTAINS
          return
       end if
 
-      call wshist(regen_hist_file)
+      call cam_hist_write_history_files(regen_hist_file)
 
       file => history_file
 
@@ -3780,7 +3768,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       !
       ! Purpose: Set flags that will initiate dump to IC file when OUTFLD and
-      ! WSHIST are called
+      ! CAM_HIST_WRITE_HISTORY_FILES are called
       !
       !-----------------------------------------------------------------------
       !
@@ -3824,7 +3812,7 @@ CONTAINS
 
    !#######################################################################
 
-   subroutine wshist(regen_hist_file_in)
+   subroutine cam_hist_write_history_files(regen_hist_file_in)
       !
       !-----------------------------------------------------------------------
       !
@@ -3871,6 +3859,7 @@ CONTAINS
       integer :: tsec             ! day component of current time
       integer :: dtime            ! seconds component of current time
 #endif
+      character(len=*), parameter :: subname = 'cam_hist_write_history_files'
 
       if(present(regen_hist_file_in)) then
          regen_hist_file = regen_hist_file_in
@@ -3914,20 +3903,20 @@ CONTAINS
          if (write_file(fil_idx) .or. (restart .and. regen_hist_file(fil_idx))) then
             if(masterproc) then
                if(is_initfile(file_index=t)) then
-                  write(iulog,100) yr,mon,day,ncsec
-100               format('WSHIST: writing time sample to Initial Conditions h-file', &
-                       ' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
+                  write(iulog, '(3a,i4.4,2(a,i2.2),a,i6)') subname,           &
+                       ': writing time sample to Initial Conditions h-file',  &
+                       ' DATE = ', yr, '/', mon, '/', day, 'NCSEC = ', ncsec
                else if(is_satfile(fil_idx)) then
                   write(iulog,150) nfils(fil_idx),t,yr,mon,day,ncsec
-150               format('WSHIST: writing sat columns ',i6,' to h-file ', &
+150               format(subname//': writing sat columns ',i6,' to h-file ', &
                        i1,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
                else if(write_file(fil_idx)) then
                   write(iulog,200) nfils(fil_idx),t,yr,mon,day,ncsec
-200               format('WSHIST: writing time sample ',i3,' to h-file ', &
+200               format(subname//': writing time sample ',i3,' to h-file ', &
                        i1,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
                else if(restart .and. regen_hist_file(fil_idx)) then
                   write(iulog,300) nfils(fil_idx),t,yr,mon,day,ncsec
-300               format('WSHIST: writing history restart ',i3,' to hr-file ', &
+300               format(subname//': writing history restart ',i3,' to hr-file ', &
                        i1,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
                end if
                write(iulog,*)
@@ -3952,7 +3941,7 @@ CONTAINS
                !
                do f = 1, pfiles
                   if (masterproc.and. trim(fname) == trim(nhfil(fld_idx)) )then
-                     write(iulog,*)'WSHIST: New filename same as old file = ', trim(fname)
+                     write(iulog,*)subname//': New filename same as old file = ', trim(fname)
                      write(iulog,*)'Is there an error in your filename specifiers?'
                      write(iulog,*)'hfilename_spec(', t, ') = ', hfilename_spec(fil_idx)
                      if ( t /= f )then
@@ -3963,7 +3952,7 @@ CONTAINS
                end do
                if(.not. restart) then
                   nhfil(fil_idx) = fname
-                  if(masterproc) write(iulog,*)'WSHIST: nhfil(',t,')=',trim(nhfil(fil_idx))
+                  if(masterproc) write(iulog,*)subname//': nhfil(',t,')=',trim(nhfil(fil_idx))
                   cpath(fil_idx) = nhfil(fil_idx)
                end if
                call h_define (t, restart)
@@ -4089,7 +4078,7 @@ CONTAINS
       end do
 
       return
-   end subroutine wshist
+   end subroutine cam_hist_write_history_files
 
    !#######################################################################
 

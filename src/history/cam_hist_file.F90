@@ -1,14 +1,18 @@
-module cam_hist_config_file
-   ! Module to define and read CAM history configuration namelist entries.
+module cam_hist_file
+   ! Module to define and read CAM history configuration namelist entries
+   !    and associated history files
+   ! Note: In test mode, endrun does not abort so there are a few lines
+   !          of special code to cleanly return after an endrun call.
 
    use ISO_FORTRAN_ENV,     only: REAL64, REAL32
+   use pio,                 only: file_desc_t
    use cam_history_support, only: max_fldlen=>max_fieldname_len
    use cam_interp_mod,      only: interp_info_t=>hist_interp_info_t
 
    implicit none
    private
 
-   public :: hist_file_config_t
+   public :: hist_file_t
    public :: hist_read_namelist_config
 
    character(len=*), parameter :: hist_nl_group_name = 'hist_file_config_nl'
@@ -22,7 +26,8 @@ module cam_hist_config_file
    integer, parameter, private             :: UNSET_I = -1
    character(len=vlen), parameter, private :: UNSET_C = 'UNSET'
 
-   type :: hist_file_config_t
+   type :: hist_file_t
+      ! History file configuration information
       character(len=vlen),          private :: volume = UNSET_C
       integer,                      private :: rl_kind = OUTPUT_DEF
       integer,                      private :: max_frames = UNSET_I
@@ -32,6 +37,8 @@ module cam_hist_config_file
       logical,                      private :: is_sat_track_file = .false.
       logical,                      private :: collect_patch_output = PATCH_DEF
       type(interp_info_t), pointer, private :: interp_info => NULL()
+      ! History file information
+      type(file_desc_t),            private :: hist_file
    contains
       ! Accessors
       procedure :: filename => config_filename
@@ -44,7 +51,7 @@ module cam_hist_config_file
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
       procedure :: print_config => config_print_config
-   end type hist_file_config_t
+   end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
    private :: read_namelist_entry ! Read a namelist group and create config
@@ -57,7 +64,7 @@ CONTAINS
       use shr_kind_mod,  only: CL => SHR_KIND_CL
       use cam_filenames, only: interpret_filename_spec
       ! Dummy arguments
-      class(hist_file_config_t),  intent(in) :: this
+      class(hist_file_t),         intent(in) :: this
       character(len=*), optional, intent(in) :: filename_spec
       character(len=CL)                      :: cfile
 
@@ -73,7 +80,7 @@ CONTAINS
 
    function config_precision(this) result(cprec)
       ! Dummy arguments
-      class(hist_file_config_t), intent(in) :: this
+      class(hist_file_t), intent(in) :: this
       character(len=vlen)                   :: cprec
 
       if (this%rl_kind == REAL32) then
@@ -89,7 +96,7 @@ CONTAINS
 
    integer function config_max_frame(this)
       ! Dummy argument
-      class(hist_file_config_t), intent(in) :: this
+      class(hist_file_t), intent(in) :: this
 
       config_max_frame = this%max_frames
    end function config_max_frame
@@ -100,7 +107,7 @@ CONTAINS
       use shr_kind_mod,   only: CL => SHR_KIND_CL, CS => SHR_KIND_CS
       use shr_string_mod, only: to_lower => shr_string_toLower
       ! Dummy arguments
-      class(hist_file_config_t), intent(in) :: this
+      class(hist_file_t), intent(in) :: this
       character(len=CL)                     :: out_freq
       ! Local variable
       character(len=CS) :: out_opt
@@ -127,7 +134,7 @@ CONTAINS
 
    logical function config_init_value_file(this)
       ! Dummy argument
-      class(hist_file_config_t), intent(in) :: this
+      class(hist_file_t), intent(in) :: this
 
       config_init_value_file = this%is_init_val_file
 
@@ -137,7 +144,7 @@ CONTAINS
 
    logical function config_satellite_file(this)
       ! Dummy argument
-      class(hist_file_config_t), intent(in) :: this
+      class(hist_file_t), intent(in) :: this
 
       config_satellite_file = this%is_sat_track_file
 
@@ -147,7 +154,7 @@ CONTAINS
 
    subroutine config_reset(this)
       ! Dummy argument
-      class(hist_file_config_t), intent(inout) :: this
+      class(hist_file_t), intent(inout) :: this
 
       this%collect_patch_output = PATCH_DEF
       this%rl_kind = OUTPUT_DEF
@@ -173,7 +180,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use string_utils,   only: parse_multiplier
       ! Dummy arguments
-      class(hist_file_config_t),  intent(inout) :: this
+      class(hist_file_t),         intent(inout) :: this
       character(len=*),           intent(in)    :: volume
       integer,                    intent(in)    :: out_prec
       integer,                    intent(in)    :: max_frames
@@ -233,7 +240,7 @@ CONTAINS
       use spmd_utils,  only: masterproc
       use cam_logfile, only: iulog
       ! Dummy argument
-      class(hist_file_config_t), intent(in) :: this
+      class(hist_file_t), intent(in) :: this
 
       if (masterproc) then
          write(iulog, '(2a)') "History configuration for volume = ",           &
@@ -307,13 +314,13 @@ CONTAINS
       ! This routine assumes that <unitn> is positioned at the beginning of
       !    a history file configuration namelist entry
       ! Dummy arguments
-      integer,                  intent(inout) :: unitn
-      type(hist_file_config_t), intent(inout) :: hfile_config
-      character(len=*),         intent(inout) :: hist_inst_fields(:)
-      character(len=*),         intent(inout) :: hist_avg_fields(:)
-      character(len=*),         intent(inout) :: hist_min_fields(:)
-      character(len=*),         intent(inout) :: hist_max_fields(:)
-      character(len=*),         intent(inout) :: hist_var_fields(:)
+      integer,           intent(inout) :: unitn
+      type(hist_file_t), intent(inout) :: hfile_config
+      character(len=*),  intent(inout) :: hist_inst_fields(:)
+      character(len=*),  intent(inout) :: hist_avg_fields(:)
+      character(len=*),  intent(inout) :: hist_min_fields(:)
+      character(len=*),  intent(inout) :: hist_max_fields(:)
+      character(len=*),  intent(inout) :: hist_var_fields(:)
       ! Local variables (namelist)
       character(len=vlen) :: hist_volume ! h# ir i, not config number
       character(len=vlen) :: hist_precision
@@ -365,10 +372,6 @@ CONTAINS
          if (ierr /= 0) then
             call endrun(subname//"ERROR "//trim(to_str(ierr))//               &
                  " reading namelist", file=__FILE__, line=__LINE__)
-!!XXgoldyXX: v debug only
-  write(6, *) subname, "ERROR ", ierr, " reading namelist"
-  return
-!!XXgoldyXX: ^ debug only
          end if
          ! Translate <file_type>
          select case(trim(hist_file_type))
@@ -509,10 +512,7 @@ CONTAINS
                write(errmsg, '(2a,i0,a)') subname, ": ERROR ", ierr,         &
                     " reading namelist, hist_config_arrays_nl"
                call endrun(trim(errmsg))
-!!XXgoldyXX: v debug only
-  write(6, *) trim(errmsg)
-  return
-!!XXgoldyXX: ^ debug only
+               return ! For testing
             end if
          else
             write(6, *) subname, ": WARNING, no hist_config_arrays_nl ",      &
@@ -564,8 +564,8 @@ CONTAINS
       !       broadcast to other tasks.
 
       ! Dummy arguments
-      character(len=*), intent(in)      :: filename
-      type(hist_file_config_t), pointer :: config_arr(:)
+      character(len=*), intent(in) :: filename
+      type(hist_file_t), pointer   :: config_arr(:)
       ! Local variables
       integer                                :: unitn
       integer                                :: read_status
@@ -587,6 +587,7 @@ CONTAINS
       nullify(config_arr)
       unitn = -1 ! Prevent reads on error or wrong tasks
       ierr = 0
+      errmsg = ''
       if (masterproc) then
          inquire(file=trim(filename), exist=filefound)
          if (.not. filefound) then
@@ -594,9 +595,7 @@ CONTAINS
                  "ERROR: could not find history config file '",               &
                  trim(filename), "'"
             call endrun(subname//trim(config_line))
-!!XXgoldyXX: v debug only
-return
-!!XXgoldyXX: ^ debug only
+            return ! Needed for testing
          else
             open(newunit=unitn, file=trim(filename), status='old', iostat=ierr)
             line_num = 0
@@ -604,8 +603,10 @@ return
       end if
       call MPI_bcast(ierr, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       if (ierr /= 0) then
-         write(errmsg, '(a,i0,2a)') ": Error ", ierr, " opening ", trim(filename)
+         write(errmsg, '(a,i0,2a)') ": Error ", ierr, " opening ",            &
+              trim(filename)
          call endrun(subname//trim(errmsg))
+         return ! Needed for testing
       end if
       ! First, count up the number of history configs in this file
       num_configs = 0
@@ -617,21 +618,17 @@ return
             if (read_status == 0) then
                ! We found a history config, count it
                num_configs = num_configs + 1
-!!XXgoldyXX: v debug only
-write(6, '(a,i0)') "XXG: Found config #", num_configs
-!!XXgoldyXX: ^ debug only
                ! shr_nl_find_group_name leaves the file pointer at the beginning
                !      of the namelist, move past for the next search
                read(unitn, '(a)', iostat=read_status) config_line
                ! Check that the read did not cause trouble
                if (read_status > 0) then
-                  write(config_line, '(a,i0,3a)') ": Error (", read_status,   &
+                  write(errmsg, '(a,i0,3a)') ": Error (", read_status,        &
                        ") from '", trim(filename), "'"
                   close(unitn)
-                  call endrun(subname//trim(config_line))
-!!XXgoldyXX: v debug only
-return
-!!XXgoldyXX: ^ debug only
+                  num_configs = - read_status ! Used for testing
+                  call endrun(subname//trim(errmsg))
+                  return ! Neede for testing
                else if (read_status < 0) then
                   ! We reached the end of the file, just quit
                   exit
@@ -641,12 +638,30 @@ return
                exit
             end if
          end do
+      else
+         config_line = '' ! For testing
       end if
       ! All tasks allocate the history config file objects
       call MPI_bcast(num_configs, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      ! This block is used for testing
+      if ((num_configs < 0) .or. (LEN_TRIM(errmsg) > 0)) then
+         call endrun(subname//trim(errmsg))
+         return ! Needed for testing
+      end if
       allocate(config_arr(num_configs), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'config_arr', errmsg=errmsg,         &
            file=__FILE__, line=__LINE__-2)
+      ! This block is needed for testing
+      if (ierr /= 0) then
+         return
+      end if ! End test
+      ! This block is needed for testing
+      if (masterproc) then
+         inquire(unit=unitn, opened=filefound, iostat=ierr)
+         if ((ierr > 0) .or. (.not. filefound)) then
+            return
+         end if
+      end if ! End test
       ! Allocate the config field name arrays
       call allocate_field_arrays(unitn, hist_inst_fields, hist_avg_fields,    &
            hist_min_fields, hist_max_fields, hist_var_fields)
@@ -665,10 +680,6 @@ return
                     " in '", trim(filename), "'"
                close(unitn)
                call endrun(trim(errmsg))
-!!XXgoldyXX: v debug only
-write(6, *) trim(errmsg)
-return
-!!XXgoldyXX: ^ debug only
             end if
          end if
          call read_namelist_entry(unitn, config_arr(lindex),                  &
@@ -678,6 +689,11 @@ return
       !
       ! Cleanup
       !
+      ! Special block for testing
+      call MPI_bcast(read_status, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      if (read_status /= 0) then
+         return
+      end if
       ! Close unitn if it is still open
       inquire(unit=unitn, opened=filefound, iostat=ierr)
       if ((ierr == 0) .and. filefound) then
@@ -700,4 +716,4 @@ return
       end if
    end function hist_read_namelist_config
 
-end module cam_hist_config_file
+end module cam_hist_file
