@@ -16,7 +16,7 @@ Written by:  Jesse Nusbaumer <nusbaume@ucar.edu> - November, 2020
 
 import argparse
 import io
-import pylint.lint as lint
+from pylint import lint
 
 from pylint.reporters.text import TextReporter
 
@@ -66,7 +66,7 @@ def pylint_check(pyfile_list, rcfile, threshold=10.0):
     """
 
     #Creat empty list to store pylint output:
-    lint_msgs = list()
+    lint_msgs = []
 
     #Check if pyfile_list is empty.  If so then exit
     #script, as their are no python files to test:
@@ -74,7 +74,7 @@ def pylint_check(pyfile_list, rcfile, threshold=10.0):
         return lint_msgs
 
     #Create rcfile option string:
-    rcstr = '--rcfile={}'.format(rcfile)
+    rcstr = f'--rcfile={rcfile}'
 
     #If files exist, then loop through the list:
     for pyfile in pyfile_list:
