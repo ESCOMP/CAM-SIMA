@@ -72,6 +72,18 @@ def _find_file(filename, search_dirs):
     """
     Find file <filename> in the list of search directories, <search_dirs>.
     Return the first match (full path, match dir) or None, None
+
+    doctests:
+
+    1.  Check that the function can find a file correctly:
+    >>> _find_file("Externals.cfg", [_CAM_ROOT_DIR]) == \
+                   os.path.join(_CAM_ROOT_DIR, "Externals.cfg")
+    True
+
+    2.  Check that the function returns None if it can't find a file:
+    >>> _find_file("banana", [_CAM_ROOT_DIR]) is None
+    True
+
     """
     match_file = None
     for sdir in search_dirs:
@@ -114,6 +126,22 @@ def _find_scheme_source(source_dirs, metadata_file_name):
     Log a warning if no Fortran file exists and return None.
     Return two values, the Fortran file pathname and the XML file
     pathname (if found, otherwise, None).
+
+    doctests:
+
+    1.  Check that the function can correctly find source and namelist files:
+    >>> _find_scheme_source([os.path.join(_CAM_ROOT_DIR, "test", "unit", "sample_files", \
+                            "autogen_files")], "two_scheme_banana") # doctest: +ELLIPSIS
+    ('...two_scheme_banana.F90', '...two_scheme_banana_namelist.xml')
+
+    2.  Check that the function can correctly find a source file (but no namelist):
+    >>> _find_scheme_source([_REG_GEN_DIR], "ref_pres") # doctest: +ELLIPSIS
+    ('...ref_pres.F90', None)
+
+    3.  Check that the function correctly returns None if no files are found:
+    >>> _find_scheme_source([_REG_GEN_DIR], "kumquat")
+    (None, None)
+
     """
 
     # Set fortran extensions:
@@ -239,25 +267,6 @@ def _find_metadata_files(source_dirs, scheme_finder):
     file, and an associated XML namelist definition file (or None if no
     XML file is found).
     <scheme_finder> is a function for finding schemes in a metadata file.
-
-    doctests:
-
-    1.  Check that the function works properly if given the proper inputs:
-
-    >>> _find_metadata_files([TEST_SOURCE_MODS_DIR], find_scheme_names) #doctest: +ELLIPSIS
-    {'temp_adjust': ('.../SourceMods/temp_adjust.meta', '.../SourceMods/temp_adjust.F90', None)}
-
-    2.  Check that the function throws the correct error if no Fortran file is found:
-
-    >>> _find_metadata_files([os.path.join(SUITE_TEST_PATH, os.pardir)], \
-                             find_scheme_names) #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    CamAutoGenError: ERROR: No Fortran files were found for the following meta files:
-    ...test/unit/sample_files/write_init_files/../phys_types_dup_section.meta
-    ...test/unit/sample_files/write_init_files/../phys_types_no_table.meta
-    ...test/unit/sample_files/write_init_files/../ref_pres.meta
-    ...test/unit/sample_files/write_init_files/../ref_pres_SourceMods.meta
     """
 
     meta_files = {}
@@ -267,7 +276,7 @@ def _find_metadata_files(source_dirs, scheme_finder):
     for direc in source_dirs:
         for root, _, files in os.walk(direc):
             if '.git' not in root:
-                for file in [x for x in files if x[-5:] == '.meta']:
+                for file in sorted([x for x in files if x[-5:] == '.meta']):
                     if file not in meta_files:
                         path = os.path.join(root, file)
                         # Check for Fortran source
@@ -306,10 +315,10 @@ def _find_metadata_files(source_dirs, scheme_finder):
     if bad_xml_sources:
         if (len(bad_xml_sources) > 1):
             emsg += "ERROR: These XML files were associated with more than " \
-                    "one scheme"
+                    "one scheme\n"
         else:
             emsg += "ERROR: This XML file was associated with more than " \
-                    "one scheme"
+                    "one scheme\n"
         # end if
         emsg += "\n".join(bad_xml_sources)
     # end if
@@ -354,27 +363,6 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     """
     Generate the CAM data source and metadata from the registry,
     if required (new case or changes to registry source(s) or script).
-
-    doctests:
-
-    1.  Check that the correct error is raised with a bad search path:
-        NOTE:  This must be done first to avoid having the module
-        permanently imported by the "successful" test.
-
-    >>> generate_registry(["/bad/path"], TestBuildCache, TEST_ATM_ROOT,       \
-                          TEST_BLDROOT, TEST_SOURCE_MODS_DIR, 'se',           \
-                          TEST_FORT_INDENT) #doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    ...
-    CamAutoGenError: ERROR: Unable to find CAM registry, registry.xml, in [/bad/path]
-
-    2. Check that generate_registry works properly a good path is given:
-
-    >>> generate_registry(TEST_DATA_SEARCH, TestBuildCache, TEST_ATM_ROOT,    \
-                          TEST_BLDROOT, TEST_SOURCE_MODS_DIR, 'se',           \
-                          TEST_FORT_INDENT) #doctest: +ELLIPSIS
-    ('.../test_bldroot/cam_registry', False, [], {})
     """
 
     # Find the registry file. Try SourceMods first.
@@ -439,36 +427,6 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
        - A flag set to True if the CCPP framework was run
        - The pathname of the CCPP Framework database
        - A list of CCPP namelist groups to add to atm_in
-
-    doctests:
-
-    1.  Check that the correct error is raised when a physics suite SDF cannot be found:
-
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "missing",    \
-                                TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
-                                TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
-                                False) #doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    CamAutoGenError: ERROR: Unable to find SDF for suite 'missing'
-
-    2.  Check that the correct error is raised when a scheme's metadata file cannot be found:
-
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "bad",        \
-                                TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
-                                TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
-                                False) #doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    CamAutoGenError: ERROR: No metadata file found for physics scheme 'bad_scheme'
-
-    3. Check that generate_physics_suites works properly when good inputs are provided:
-
-    >>> generate_physics_suites(TestBuildCache, "UNSET", "cam", "simple",     \
-                                TEST_ATM_ROOT, TEST_BLDROOT, TEST_REG_DIR,    \
-                                TEST_REGFILES, TEST_SOURCE_MODS_DIR,          \
-                                False) #doctest: +ELLIPSIS
-    (['.../test_bldroot/ccpp_physics', '.../test_bldroot/ccpp'], False, '.../test_bldroot/ccpp/ccpp_datatable.xml', dict_values([]), None)
     """
 
     # Physics source gets copied into blddir
@@ -644,15 +602,6 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
     both the registry and the CCPP physics suites if required
     (new case or changes to registry or CCPP source(s), meta-data,
     and/or script).
-
-    doctests:
-
-    1. Check that generate_init_routines works properly when good inputs are given:
-
-    >>> generate_init_routines(TestBuildCache, TEST_BLDROOT, False, False,    \
-                               TEST_SOURCE_MODS_DIR, TEST_FORT_INDENT, None,  \
-                               {}) #doctest: +ELLIPSIS
-    '.../test_bldroot/phys_init'
     """
 
     #Add new directory to build path:
@@ -699,191 +648,6 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
     # End if
 
     return init_dir
-
-###############################################################################
-# IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_AUTOGEN!
-###############################################################################
-
-# Call testing routine, if script is run directly
-if __name__ == "__main__":
-
-    # Import modules needed for testing:
-    import doctest
-    import inspect
-
-    # Create fake buildcache object for testing:
-    #++++++++++++++++++++++++++++++++++++++++++
-    #pylint: disable=missing-function-docstring
-    #pylint: disable=unused-argument
-    #pylint: disable=no-self-use
-    class FakeBuildCache:
-
-        """
-        Fake BuildCache class with methods
-        needed to test the above "generate"
-        functions.
-        """
-
-        def __init__(self):
-            pass
-
-        def update_registry(self, gen_reg_file, registry_files,
-                            dycore, reg_config):
-            pass
-
-        def reg_file_list(self):
-            return []
-
-        def registry_mismatch(self, gen_reg_file, registry_files,
-                              dycore, reg_config):
-
-            # Always return False, in order to avoid running the
-            # actual generation routines when performing doctests:
-            return False
-
-        def update_ccpp(self, sdfs, scheme_files, xml_files,
-                        preproc_defs, kind_phys):
-            pass
-
-        def ccpp_mismatch(self, sdfs, scheme_files, host_files,
-                          preproc_defs, kind_phys):
-
-            # Always return False, in order to avoid running the
-            # actual generation routines when performing doctests:
-            return False
-
-        def xml_nl_mismatch(self, create_nl_file, xml_files):
-            # Always return False, in order to avoid running the
-            # actual generation routines when performing doctests:
-            return False
-
-        def update_init_gen(self, input_file):
-            pass
-
-        def init_write_mismatch(self, input_file):
-
-            # Always return False, in order to avoid running the
-            # actual generation routines when performing doctests:
-            return False
-
-        def scheme_nl_metadata(self):
-            return []
-
-        def scheme_nl_groups(self):
-            return []
-
-        def ic_names(self):
-            return {}
-
-    #pylint: enable=missing-function-docstring
-    #pylint: enable=unused-argument
-    #pylint: enable=no-self-use
-    #++++++++++++++++++++++++++++++++++++++++++
-
-    # Create new, fake BuildCache object:
-    #pylint: disable=invalid-name
-    TestBuildCache = FakeBuildCache()
-    #pylint: enable=invalid-name
-
-    # Determine current working directory:
-    TEST_AUTO_DIR = os.path.dirname(os.path.abspath(__file__))
-    TEST_ATM_ROOT = os.path.abspath(os.path.join(TEST_AUTO_DIR, os.pardir))
-
-    # Create variables for testing:
-    TEST_DATA_SEARCH = [os.path.join(TEST_ATM_ROOT, "src", "data")]
-    TEST_CCPP_PATH = os.path.join(TEST_ATM_ROOT, "ccpp_framework", "scripts")
-    TEST_BLDROOT = os.path.join(TEST_ATM_ROOT, "test_bldroot")
-    TEST_SOURCE_MODS_DIR = os.path.join(TEST_ATM_ROOT, "SourceMods")
-    TEST_FORT_INDENT = 3
-
-    # Remove old test directories if they exist:
-    if os.path.exists(TEST_BLDROOT):
-        shutil.rmtree(TEST_BLDROOT)
-
-    if os.path.exists(TEST_SOURCE_MODS_DIR):
-        shutil.rmtree(TEST_SOURCE_MODS_DIR)
-
-    # For generate_physics_suites:
-    TEST_REG_DIR = os.path.join(TEST_BLDROOT, "cam_registry")
-
-    # For generate_init_routines:
-    TEST_REGFILES = []
-    TEST_CAP_DATAFILE = os.path.join("test_bldroot", "ccpp", "capfiles.txt")
-
-    # Create testing buildroot directory:
-    os.mkdir(TEST_BLDROOT)
-
-    # Create "SourceMods directory:
-    os.mkdir(TEST_SOURCE_MODS_DIR)
-
-    # Create source code directories needed in order
-    # to avoid running the actual code generators
-    # while testing:
-    os.mkdir(os.path.join(TEST_BLDROOT, "cam_registry"))
-    os.mkdir(os.path.join(TEST_BLDROOT, "ccpp"))
-    os.mkdir(os.path.join(TEST_BLDROOT, "phys_init"))
-
-    # Set test CCPP suite paths:
-    SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
-                                   "write_init_files")
-    TEST_SDF = os.path.join(SUITE_TEST_PATH, "simple_suite.xml")
-    BAD_SDF = os.path.join(SUITE_TEST_PATH, "suite_bad.xml")
-    TEST_META = os.path.join(SUITE_TEST_PATH, "temp_adjust.meta")
-    TEST_F90 = os.path.join(SUITE_TEST_PATH, "temp_adjust.F90")
-
-    # Copy test CCPP suite into SourceMods directory:
-    shutil.copy2(TEST_SDF, os.path.join(TEST_SOURCE_MODS_DIR, "suite_simple.xml"))
-    shutil.copy2(BAD_SDF, TEST_SOURCE_MODS_DIR)
-    shutil.copy2(TEST_META, TEST_SOURCE_MODS_DIR)
-    shutil.copy2(TEST_F90, TEST_SOURCE_MODS_DIR)
-
-    # Set logger to fatal, to avoid log messages:
-    _LOGGER.setLevel(logging.FATAL)
-
-    # Create doctest parsing object:
-    DOCPARSE = doctest.DocTestParser()
-
-    # Create doctest runner object:
-    DOC_RUNNER = doctest.DocTestRunner()
-
-    # Parse doc_tests:
-    GEN_PHYS_TESTS = DOCPARSE.get_doctest(inspect.getdoc(generate_physics_suites), globals(), generate_physics_suites, None, None)
-    GEN_REG_TESTS  = DOCPARSE.get_doctest(inspect.getdoc(generate_registry), globals(), generate_registry, None, None)
-    GEN_INIT_TESTS = DOCPARSE.get_doctest(inspect.getdoc(generate_init_routines), globals(), generate_init_routines, None, None)
-
-    #Note:  Due to a bug in the "summarize" command, as soon as a doctest failure occurs
-    #       it should not be called again.
-
-    # Run doctests in a specific order (to avoid import issues):
-
-    #generate_physics_suites:
-    DOC_RUNNER.run(GEN_PHYS_TESTS)
-    NUM_FAILS, _ = DOC_RUNNER.summarize()
-
-    #generate_registry:
-    DOC_RUNNER.run(GEN_REG_TESTS)
-    if NUM_FAILS == 0:
-        NUM_FAILS, _ = DOC_RUNNER.summarize()
-
-    #generate_init_routines:
-    DOC_RUNNER.run(GEN_INIT_TESTS)
-    if NUM_FAILS == 0:
-        NUM_FAILS, _ = DOC_RUNNER.summarize()
-
-    # Run additional doctests:
-
-    #find_metadata_files:
-    METADATA_TESTS = DOCPARSE.get_doctest(inspect.getdoc(_find_metadata_files), globals(), _find_metadata_files, None, None)
-    DOC_RUNNER.run(METADATA_TESTS)
-    if NUM_FAILS == 0:
-        NUM_FAILS, _ = DOC_RUNNER.summarize()
-
-    # Remove testing directories:
-    shutil.rmtree(TEST_BLDROOT)
-    shutil.rmtree(TEST_SOURCE_MODS_DIR)
-
-    # Exit script with number of failures as the error code:
-    sys.exit(NUM_FAILS)
 
 #############
 # End of file

@@ -662,7 +662,7 @@ if __name__ == "__main__":
     # Set test CCPP suite paths:
     SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
                                    "write_init_files")
-    TEST_SDF = os.path.join(SUITE_TEST_PATH, "simple_suite.xml")
+    TEST_SDF = os.path.join(SUITE_TEST_PATH, "suite_simple.xml")
     TEST_SCHEME = os.path.join(SUITE_TEST_PATH, "temp_adjust_scalar.meta")
     BUILD_CACHE = os.path.join(SUITE_TEST_PATH, "simple_build_cache_template.xml")
     REGISTRY_FILE = os.path.join(SUITE_TEST_PATH, "simple_reg.xml")
@@ -681,7 +681,7 @@ if __name__ == "__main__":
     BAD_BUILD_CACHE = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache.xml")
     BAD_BUILD_CACHE_REG = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_reg.xml")
     BAD_BUILD_CACHE_CCPP = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_ccpp.xml")
-    TEST_SDF = os.path.join(TEST_SOURCE_MODS_DIR, "simple_suite.xml")
+    TEST_SDF = os.path.join(TEST_SOURCE_MODS_DIR, "suite_simple.xml")
     TEST_SCHEME = os.path.join(TEST_SOURCE_MODS_DIR, "temp_adjust_scalar.meta")
 
     # Generate test build caches from template:

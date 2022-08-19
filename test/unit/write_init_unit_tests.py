@@ -132,7 +132,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
 
@@ -215,7 +215,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_noreq.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_req_var.xml")
 
@@ -297,7 +297,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_protected.xml")
 
@@ -381,7 +381,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"host_var_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_host_var.xml")
 
@@ -466,7 +466,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR,
                                     "temp_adjust_no_horiz.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_horiz.xml")
@@ -540,7 +540,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR,
                                     "temp_adjust_scalar.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_scalar.xml")
@@ -615,7 +615,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_4D.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_4D.xml")
 
@@ -692,7 +692,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt.xml")
 
@@ -772,7 +772,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt2.xml")
 
@@ -854,7 +854,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_array.xml")
 
@@ -935,7 +935,7 @@ class WriteInitTest(unittest.TestCase):
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
         model_mf_file = os.path.join(_INIT_SAMPLES_DIR,"ref_theta.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_mf.xml")
 
@@ -1016,7 +1016,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_param.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_param.xml")
 
@@ -1099,7 +1099,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"simple_suite.xml")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_bvd.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_bad_vertdim.xml")
 
