@@ -65,7 +65,7 @@ def pylint_check(pyfile_list, rcfile, threshold=10.0):
     threshold.
     """
 
-    #Creat empty list to store pylint output:
+    #Create empty list to store pylint output:
     lint_msgs = []
 
     #Check if pyfile_list is empty.  If so then exit
