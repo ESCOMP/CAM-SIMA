@@ -3,6 +3,10 @@ CAM Developmental and Experimental iNfrastructure
 
 NOTE:  Only developmental code exists at the moment.  This README will be updated once production code becomes available.
 
+## Current code status:
+
+[![Python Unit Tests](https://github.com/NCAR/CAMDEN/actions/workflows/python_unit_tests.yml/badge.svg)](https://github.com/NCAR/CAMDEN/actions/workflows/python_unit_tests.yml)
+
 ## How to checkout and use CAMDEN:
 
 The instructions below assume you have cloned this repository and are in the repository directory. For example:
