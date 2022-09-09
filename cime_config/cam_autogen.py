@@ -71,7 +71,7 @@ def _find_file(filename, search_dirs):
 ###############################################################################
     """
     Find file <filename> in the list of search directories, <search_dirs>.
-    Return the first match (full path, match dir) or None, None
+    Return the first match (full path, match dir) or None.
 
     doctests:
 
@@ -120,12 +120,14 @@ def _update_file(filename, source_path, bld_dir):
 def _find_scheme_source(source_dirs, metadata_file_name):
 ###############################################################################
     """
-    Given a metadata file name, find the associated Fortran file, and
-    an optional associated XML namelist definition file
-    by searching through the relavant source code directories.
+    Given a metadata file name (without the '.meta' extension),
+    find the associated Fortran file, and an optional associated
+    XML namelist definition file by searching through the relavant
+    source code directories.
+
     Log a warning if no Fortran file exists and return None.
-    Return two values, the Fortran file pathname and the XML file
-    pathname (if found, otherwise, None).
+    Otherwise return two values, the Fortran file pathname and the
+    XML file pathname (if found, otherwise, None).
 
     doctests:
 
