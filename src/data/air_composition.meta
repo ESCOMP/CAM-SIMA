@@ -1,0 +1,61 @@
+[ccpp-table-properties]
+  name = air_composition
+  type = module
+[ccpp-arg-table]
+  name  = air_composition
+  type  = module
+[ mmro2 ]
+  standard_name = enter_standard_name_1
+  units = enter_units
+  type = real | kind = kind_phys
+  dimensions = ()
+[ mmrn2 ]
+  standard_name = enter_standard_name_2
+  units = enter_units
+  type = real | kind = kind_phys
+  dimensions = ()
+[ o2_mwi ]
+  standard_name = enter_standard_name_3
+  units = enter_units
+  type = real | kind = kind_phys
+  dimensions = ()
+[ n2_mwi ]
+  standard_name = enter_standard_name_4
+  units = enter_units
+  type = real | kind = kind_phys
+  dimensions = ()
+[ mbar ]
+  standard_name = enter_standard_name_5
+  units = enter_units
+  type = real | kind = kind_phys
+  dimensions = ()
+[ cpairv ]
+  standard_name = composition_dependent_specific_heat_of_dry_air_at_constant_pressure
+  units = J kg-1 K-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ rairv ]
+  standard_name = composition_dependent_gas_constant_of_dry_air
+  units = J kg-1 K-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ cappav ]
+  standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ mbarv ]
+  standard_name = enter_standard_name_8
+  units = enter_units
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ zvirv ]
+  standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True

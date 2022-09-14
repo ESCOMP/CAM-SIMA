@@ -6,7 +6,7 @@
 
   <entry id="dry_air_species">
     <type>char*80(20)</type>
-    <category>physconst</category>
+    <category>air_composition</category>
     <group>air_composition_nl</group>
     <desc>
       List of major species of dry air.  If not set then the composition of dry
@@ -33,7 +33,7 @@
   </entry>
   <entry id="water_species_in_air">
     <type>char*80(20)</type>
-    <category>physconst</category>
+    <category>air_composition</category>
     <group>air_composition_nl</group>
     <desc>
       List of water species that are included in "moist" air.  This is currently

@@ -458,7 +458,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use dimensions_mod,         only: kmin_jet,kmax_jet
     use hycoef,                 only: hyai, hybi, ps0
     use derivative_mod,         only: subcell_integration
-    use physconst,              only: thermodynamic_active_species_num
+    use air_composition,        only: thermodynamic_active_species_num
 
     type (fvm_struct) :: fvm(:)
     type (element_t)  :: elem(:)

@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Physconst Namelist Variables -->
+<!-- the following namelist variables do not have default values since the defaults are pulled from shr_cnst_mod in the code -->
+  <entry id="user_defined_gravit">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Gravitational acceleration (m s-2)
+      Default: 9.80616, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_sday">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Seconds in sidereal day (seconds)
+      Default: 86164.0, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_mwh2o">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Molecular weight of h2o (g mol-1)
+      Default: 18.016, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_cpwv">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Specific heat of water vapor (J K-1 kg-1)
+      Default: 1.810e3, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_cpair">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Specific heat of dry air (J K-1 kg-1)
+      Default: 1.00464e3, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_mwdry">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Molecular weight of dry air (g mol-1)
+      Default: 28.966, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_rearth">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Radius of earth (m)
+      Default: 6.37122e6, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_tmelt">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Freezing point of water (K)
+      Default: 273.15, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="user_defined_omega">
+    <type>real</type>
+    <category>physconst</category>
+    <group>physconst_nl</group>
+    <desc>
+      Angular speed of earth's rotation (rad sec-1)
+      Default: 7.29212e-5, from shr_cnst_mod
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+
+</entry_id_pg>

@@ -95,7 +95,7 @@ contains
 
 subroutine dyn_readnl(NLFileName)
    use mpi,            only: mpi_real8, mpi_integer, mpi_character, mpi_logical
-   use physconst,      only: thermodynamic_active_species_num
+   use air_composition,only: thermodynamic_active_species_num
    use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
    use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
@@ -567,8 +567,8 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use runtime_obj,        only: runtime_options
    use dyn_grid,           only: elem, fvm
    use cam_pio_utils,      only: clean_iodesc_list
-   use physconst,          only: thermodynamic_active_species_num, thermodynamic_active_species_idx
-   use physconst,          only: thermodynamic_active_species_idx_dycore
+   use air_composition,    only: thermodynamic_active_species_num, thermodynamic_active_species_idx
+   use air_composition,    only: thermodynamic_active_species_idx_dycore
    use dynconst,           only: cpair
    use dyn_thermo,         only: get_molecular_diff_coef_reference
    !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
@@ -794,13 +794,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
      tref = 1000._r8     !mean value at model top for solar max
      km_sponge_factor = molecular_diff
      km_sponge_factor_local = molecular_diff
-     call get_molecular_diff_coef_reference(1,nlev+1,tref,&
+     call get_molecular_diff_coef_reference(tref,&
           (hvcoord%hyai(:)+hvcoord%hybi(:))*hvcoord%ps0, km_sponge_factor_local,&
           kmvisi_ref,kmcndi_ref,rhoi_ref)
      !
      ! get rho, kmvis and kmcnd at mid-levels
      !
-     call get_molecular_diff_coef_reference(1,nlev,tref,&
+     call get_molecular_diff_coef_reference(tref,&
           (hvcoord%hyam(:)+hvcoord%hybm(:))*hvcoord%ps0,km_sponge_factor,&
           kmvis_ref,kmcnd_ref,rho_ref)
 
@@ -976,8 +976,8 @@ end subroutine dyn_init
 !=========================================================================================
 
 subroutine dyn_run(dyn_state)
-   use physconst,        only: thermodynamic_active_species_num, dry_air_species_num
-   use physconst,        only: thermodynamic_active_species_idx_dycore
+   use air_composition,  only: thermodynamic_active_species_num, dry_air_species_num
+   use air_composition,  only: thermodynamic_active_species_idx_dycore
 
    !Se dycore:
    use prim_advance_mod, only: calc_tot_energy_dynamics
@@ -1185,8 +1185,8 @@ end subroutine dyn_final
 !===============================================================================
 
 subroutine read_inidat(dyn_in)
-   use physconst,            only: thermodynamic_active_species_num, dry_air_species_num
-   use physconst,            only: thermodynamic_active_species_idx
+   use air_composition,      only: thermodynamic_active_species_num, dry_air_species_num
+   use air_composition,      only: thermodynamic_active_species_idx
    use shr_sys_mod,          only: shr_sys_flush
    use hycoef,               only: hyai, hybi, ps0
    use phys_vars_init_check, only: mark_as_initialized

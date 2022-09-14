@@ -122,7 +122,7 @@ subroutine model_grid_init()
    use vert_coord,          only: vert_coord_init, pver
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
-   use physconst,           only: thermodynamic_active_species_num
+   use air_composition,     only: thermodynamic_active_species_num
    use dynconst,            only: dynconst_init
    use ref_pres,            only: ref_pres_init
    use time_manager,        only: get_nstep, get_step_size

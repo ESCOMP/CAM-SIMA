@@ -1,0 +1,18 @@
+[ccpp-table-properties]
+  name = cam_thermo
+  type = module
+[ccpp-arg-table]
+  name  = cam_thermo
+  type  = module
+[ kmvis ]
+  standard_name = enter_standard_name_10
+  units = kg m-1 s-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_interface_dimension)
+  protected = True
+[ kmcnd ]
+  standard_name = enter_standard_name_14
+  units = J m-1 s-1 K-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_interface_dimension)
+  protected = True

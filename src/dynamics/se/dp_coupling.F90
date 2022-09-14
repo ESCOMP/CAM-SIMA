@@ -574,7 +574,9 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
 !   use constituents,   only: qmin
    use physics_types,  only: lagrangian_vertical
-   use physconst,      only: cpair, gravit, zvir, cappa, rairv, physconst_update
+   use physconst,      only: cpair, gravit, zvir, cappa
+   use cam_thermo,     only: cam_thermo_update
+   use air_composition,only: rairv
    use shr_const_mod,  only: shr_const_rwv
    use geopotential_t, only: geopotential_t_run
 !   use check_energy,   only: check_energy_timestep_init
@@ -743,7 +745,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    endif
 
    !-----------------------------------------------------------------------------
-   ! Call physconst_update to compute cpairv, rairv, mbarv, and cappav as
+   ! Call cam_thermo_update to compute cpairv, rairv, mbarv, and cappav as
    ! constituent dependent variables.
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
    ! Fill local zvirv variable; calculated for WACCM-X.
@@ -751,7 +753,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    if (cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
        cam_runtime_opts%waccmx_option() == 'neutral')  then
 
-      call physconst_update(phys_state%q, phys_state%t, pcols)
+      call cam_thermo_update(phys_state%q, phys_state%t, pcols)
       zvirv(:,:) = shr_const_rwv / rairv(:,:) -1._r8
    else
       zvirv(:,:) = zvir
@@ -798,7 +800,8 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
    ! dynamics.
    ! Note: mixing ratios are assumed to be dry.
    !
-   use physconst,         only: cpair, get_cp
+   use physconst,         only: cpair
+   use air_composition,   only: get_cp
 
    ! SE dycore:
    use dimensions_mod,    only: lcp_moist
@@ -819,7 +822,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
      ! note that if lcp_moist=.false. then there is thermal energy increment
      ! consistency (not taking into account dme adjust)
      !
-     call get_cp(1,ncols,1,pver,1,1,pcnst,phys_state%q(1:ncols,1:pver,:),.true.,inv_cp)
+     call get_cp(phys_state%q(1:ncols,1:pver,:),.true.,inv_cp)
 
      phys_tend%dTdt_total(1:ncols,1:pver) = phys_tend%dTdt_total(1:ncols,1:pver)*cpair*inv_cp
    end if
