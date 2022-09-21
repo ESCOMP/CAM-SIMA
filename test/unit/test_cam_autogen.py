@@ -90,10 +90,11 @@ class FakeBuildCache:
     def registry_mismatch(self, gen_reg_file, registry_files,
                           dycore, reg_config):
 
-        """Fake version of 'registry_mismatch' method"""
-
-        # Always return False, in order to avoid running the
-        # actual generation routines when performing doctests:
+        """
+        Fake version of 'registry_mismatch' method.
+        It always return False, in order to avoid running the
+        actual generation routines when performing doctests.
+        """
         return False
 
     def update_ccpp(self, sdfs, scheme_files, xml_files,
@@ -104,18 +105,20 @@ class FakeBuildCache:
     def ccpp_mismatch(self, sdfs, scheme_files, host_files,
                       preproc_defs, kind_phys):
 
-        """Fake version of 'ccpp_mismatch' method"""
-
-        # Always return False, in order to avoid running the
-        # actual generation routines when performing doctests:
+        """
+        Fake version of 'ccpp_mismatch' method.
+        It always return False, in order to avoid running the
+        actual generation routines when performing doctests.
+        """
         return False
 
     def xml_nl_mismatch(self, create_nl_file, xml_files):
 
-        """Fake version of 'xml_nl_mismatch' method."""
-
-        # Always return False, in order to avoid running the
-        # actual generation routines when performing doctests:
+        """
+        Fake version of 'xml_nl_mismatch' method.
+        It always return False, in order to avoid running the
+        actual generation routines when performing doctests.
+        """
         return False
 
     def update_init_gen(self, input_file):
@@ -124,10 +127,11 @@ class FakeBuildCache:
 
     def init_write_mismatch(self, input_file):
 
-        """Fake version of 'init_write_mismatch' method."""
-
-        # Always return False, in order to avoid running the
-        # actual generation routines when performing doctests:
+        """
+        Fake version of 'init_write_mismatch' method.
+        It always return False, in order to avoid running the
+        actual generation routines when performing doctests.
+        """
         return False
 
     def reg_file_list(self):
