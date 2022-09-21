@@ -29,9 +29,9 @@ module air_composition
 
    ! composition of air
    !
-   integer, parameter :: num_names_max = 20 ! Should match namelist definition
-   character(len=6)   :: dry_air_species(num_names_max)
-   character(len=6)   :: water_species_in_air(num_names_max)
+   integer, parameter :: num_names_max = 30
+   character(len=80)  :: dry_air_species(num_names_max)
+   character(len=80)  :: water_species_in_air(num_names_max)
 
    integer, protected, public :: dry_air_species_num
    integer, protected, public :: water_species_in_air_num
@@ -231,7 +231,8 @@ CONTAINS
       use string_utils, only: to_str
       use spmd_utils,   only: masterproc
       use cam_logfile,  only: iulog
-      use physconst,    only: r_universal, cpair, rair, cpwv, rh2o, cpliq, cpice, mwdry, zvir
+      use physconst,    only: r_universal, cpair, rair, cpwv, rh2o, cpliq, cpice, mwdry, zvir, mwh2o
+      use physics_types,only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled - PEVERWHEE
       use physics_grid, only: pcols => columns_on_task
       use vert_coord,   only: pver
 
@@ -349,6 +350,7 @@ CONTAINS
          !    others and constants associated with it are initialized here
          !
          if (TRIM(dry_air_species(dry_air_species_num + 1)) == 'N2') then
+#if 0
             call air_species_info('N', ix, mw)
             mw = 2.0_kind_phys * mw
             icnst = 0 ! index for the derived tracer N2
@@ -358,6 +360,7 @@ CONTAINS
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
+#endif
             !
             ! if last major species is not N2 then add code here
             !
@@ -388,7 +391,9 @@ CONTAINS
             !
             ! O
             !
-         case('O')
+         case('O_mixing_ratio_wrt_dry_air')
+!Un-comment once constituents are enabled - PEVERWHEE
+#if 0
             call air_species_info('O', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cp1 / mw
@@ -398,10 +403,13 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv3
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
+#endif
             !
             ! O2
             !
-         case('O2')
+         case('O2_mixing_ratio_wrt_dry_air')
+!Un-comment once constituents are enabled - PEVERWHEE
+#if 0
             call air_species_info('O2', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cp2 / mw
@@ -411,10 +419,13 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv1
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
+#endif
             !
             ! H
             !
-         case('H')
+         case('H_mixing_ratio_wrt_dry_air')
+!Un-comment once constituents are enabled - PEVERWHEE
+#if 0
             call air_species_info('H', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cp1 / mw
@@ -425,6 +436,7 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = 0.0_kind_phys
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
+#endif
             !
             ! If support for more major species is to be included add code here
             !
@@ -467,9 +479,10 @@ CONTAINS
             !
             ! Q
             !
-         case('Q')
-            call air_species_info('Q', ix, mw)
-            wv_idx = ix
+         case('water_vapor_specific_humidity')
+!            call air_species_info('Q', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+            ix = ix_qv ! this should be removed once constituents are enabled
+            mw = mwh2o !this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpwv
             thermodynamic_active_species_cv (icnst) = cv3 / mw
@@ -478,8 +491,9 @@ CONTAINS
             !
             ! CLDLIQ
             !
-         case('CLDLIQ')
-            call air_species_info('CLDLIQ', ix, mw)
+         case('cloud_liquid_water_mixing_ratio_of_moist_air')
+!            call air_species_info('CLDLIQ', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+            ix = ix_cld_liq ! this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -490,8 +504,9 @@ CONTAINS
             !
             ! CLDICE
             !
-         case('CLDICE')
-            call air_species_info('CLDICE', ix, mw)
+         case('cloud_ice_mixing_ratio_of_moist_air')
+!            call air_species_info('CLDICE', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+            ix = -1 !Model should die if it gets here, until constituents are enabled - PEVERWHEE
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -502,8 +517,9 @@ CONTAINS
             !
             ! RAINQM
             !
-         case('RAINQM')
-            call air_species_info('RAINQM', ix, mw)
+         case('rain_water_mixing_ratio')
+!            call air_species_info('RAINQM', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+            ix = ix_rain ! this should be removed once constituents are enabled - PEVERWHEE
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -514,8 +530,9 @@ CONTAINS
             !
             ! SNOWQM
             !
-         case('SNOWQM')
-            call air_species_info('SNOWQM', ix, mw)
+         case('snow_water_mixing_ratio')
+!            call air_species_info('SNOWQM', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+            ix = -1 !Model should die if it gets here, until constituents are enabled - PEVERWHEE
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -526,8 +543,9 @@ CONTAINS
             !
             ! GRAUQM
             !
-         case('GRAUQM')
-            call air_species_info('GRAUQM', ix, mw)
+         case('graupel_mixing_ratio')
+!            call air_species_info('GRAUQM', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+            ix = -1 !Model should die if it gets here, until constituents are enabled - PEVERWHEE
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -617,7 +635,7 @@ CONTAINS
    !===========================================================================
 
    subroutine air_composition_update(mmr, ncol, to_moist_factor)
-      
+
       real(kind_phys),           intent(in) :: mmr(:,:,:) ! constituents array
       integer,                   intent(in) :: ncol       ! number of columns
       real(kind_phys), optional, intent(in) :: to_moist_factor(:,:)
