@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet type="text/xsl" href="namelist_definition.xsl"?>
+
+<entry_id_pg version="2.0">
+
+<!-- Basic test namelist XML file
+                                                                        -->
+<!-- Banana Parameterization -->
+
+  <entry id="rayk0">
+    <type>integer</type>
+    <category>banana</category>
+    <group>banana_nl</group>
+    <standard_name>banana_center_vertical_index</standard_name>
+    <units>1</units>
+    <desc>
+      Variable to specify the vertical index at which the
+      Banana term is centered (the peak value).
+    </desc>
+    <values>
+      <value>2</value>
+    </values>
+  </entry>
+  <entry id="raykrange">
+    <type>real</type>
+    <category>banana</category>
+    <group>banana_nl</group>
+    <standard_name>banana_profile_width</standard_name>
+    <units>1</units>
+    <desc>
+      Banana parameter to determine the width of the profile.
+      If set to 0 then a width is chosen by the algorithm
+      (see banana.F90).
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+  <entry id="raytau0">
+    <type>real</type>
+    <category>banana</category>
+    <group>banana_nl</group>
+    <standard_name>banana_decay_time</standard_name>
+    <units>days</units>
+    <kind>kind_phys</kind>
+    <desc>
+      Banana parameter to determine the approximate value of
+      the decay time (days) at model top.  If 0.0 then no Rayleigh
+      friction is applied.
+    </desc>
+    <values>
+      <value>0.0</value>
+    </values>
+  </entry>
+
+</entry_id_pg>

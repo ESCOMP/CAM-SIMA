@@ -54,7 +54,9 @@ jobs:
         # CAM config unit tests:
         python test/unit/cam_config_unit_tests.py
         # CAM autogen doctests:
-        python cime_config/cam_autogen.py
+        pytest cime_config/cam_autogen.py --doctest-modules
+        # CAM autogen unit tests:
+        python test/unit/test_cam_autogen.py
         # CAM build cache doctests:
         python cime_config/cam_build_cache.py
         # Namelist reader generator doctests:

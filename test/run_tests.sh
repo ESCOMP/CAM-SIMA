@@ -68,6 +68,8 @@ run_doctest src/data/generate_registry_data.py
 run_doctest cime_config/atm_in_paramgen.py
 # CAM config unit tests:
 run_unittest test/unit/cam_config_unit_tests.py
+# CAM autogen unit tests:
+run_unittest test/unit/test_cam_autogen.py
 # Registry generator unit tests:
 run_unittest test/unit/test_registry.py
 # Namelist reader autogeneration unit tests
