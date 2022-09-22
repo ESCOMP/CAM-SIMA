@@ -387,9 +387,9 @@ CONTAINS
 
       ! Local Variables
       integer                     :: itrac, qdx
-      real(kind_phys)                    :: sum_species(SIZE(tracer, 1), SIZE(tracer, 2))
-      real(kind_phys)                    :: factor(SIZE(tracer, 1), SIZE(tracer, 2))
-      real(kind_phys)                    :: Rd(SIZE(tracer, 1), SIZE(tracer, 2))
+      real(kind_phys)             :: sum_species(SIZE(tracer, 1), SIZE(tracer, 2))
+      real(kind_phys)             :: factor(SIZE(tracer, 1), SIZE(tracer, 2))
+      real(kind_phys)             :: Rd(SIZE(tracer, 1), SIZE(tracer, 2))
       integer                     :: idx_local(thermodynamic_active_species_num)
       character(len=*), parameter :: subname = 'get_virtual_temp_1hd: '
 
@@ -513,7 +513,7 @@ CONTAINS
       ! tracer: Tracer array
       real(kind_phys),           intent(in)  :: tracer(:, :, :)
       ! active_species_idx: Index for thermodynamic active tracers
-      integer,            intent(in)  :: active_species_idx(:)
+      integer,                   intent(in)  :: active_species_idx(:)
       ! dp_dry: Dry pressure level thickness.
       !         If present, then tracer is in units of mass
       real(kind_phys), optional, intent(in)  :: dp_dry(:, :)
@@ -548,7 +548,7 @@ CONTAINS
       ! tracer: Tracer array
       real(kind_phys),           intent(in)  :: tracer(:, :, :, :)
       ! active_species_idx: Index for thermodynamic active tracers
-      integer,            intent(in)  :: active_species_idx(:)
+      integer,                   intent(in)  :: active_species_idx(:)
       ! dp_dry: Dry pressure level thickness.
       !         If present, then tracer is in units of mass
       real(kind_phys), optional, intent(in)  :: dp_dry(:, :, :)
@@ -594,13 +594,13 @@ CONTAINS
      use string_utils,    only: to_str
 
      real(kind_phys), intent(in)  :: tracer(:, :, :)                    ! tracers; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:, :)                       ! dry pressure level thickness
      real(kind_phys), intent(out) :: dp(:, :)                           ! pressure level thickness
      real(kind_phys), optional,intent(out) :: ps(:, :)                  ! surface pressure (if ps present then ptop
-                                                                 !                   must be present)
+                                                                        !                   must be present)
      real(kind_phys), optional,intent(in)  :: ptop                      ! pressure at model top
 
      integer :: idx, kdx, m_cnst, qdx
@@ -646,9 +646,9 @@ CONTAINS
    subroutine get_dp_2hd(tracer, mixing_ratio, active_species_idx, dp_dry, dp, ps, ptop)
      ! Version of get_dp for arrays that have a second horizontal index
      real(kind_phys), intent(in)  :: tracer(:,:,:,:)                    ! tracers; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:,:,:)                      ! dry pressure level thickness
      real(kind_phys), intent(out) :: dp(:,:,:)                          ! pressure level thickness
      real(kind_phys), optional,intent(out) :: ps(:,:)                   ! surface pressure
@@ -673,9 +673,9 @@ CONTAINS
    subroutine get_pmid_from_dpdry_1hd(tracer, mixing_ratio, active_species_idx, dp_dry, ptop, pmid, pint, dp)
 
      real(kind_phys), intent(in)  :: tracer(:,:,:)                      ! tracers; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:,:)                        ! dry pressure level thickness
      real(kind_phys), intent(in)  :: ptop                               ! model top pressure
      real(kind_phys), intent(out) :: pmid(:,:)                          ! mid-level pressure
@@ -740,13 +740,13 @@ CONTAINS
    subroutine get_exner_1hd(tracer, mixing_ratio, active_species_idx, dp_dry, ptop, p00, inv_exner, exner, poverp0)
      use string_utils,    only: to_str
      real(kind_phys), intent(in)  :: tracer(:,:,:)                      ! tracers; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:,:)                        ! dry pressure level thickness
      real(kind_phys), intent(in)  :: ptop                               ! pressure at model top
      real(kind_phys), intent(in)  :: p00                                ! reference pressure for Exner pressure (usually 1000hPa)
-     logical , intent(in)  :: inv_exner                          ! logical for outputting inverse Exner or Exner pressure
+     logical ,        intent(in)  :: inv_exner                          ! logical for outputting inverse Exner or Exner pressure
      real(kind_phys), intent(out) :: exner(:,:)
      real(kind_phys), optional, intent(out) :: poverp0(:,:)             ! for efficiency when a routine needs this variable
 
@@ -777,14 +777,14 @@ CONTAINS
 
    subroutine get_exner_2hd(tracer, mixing_ratio, active_species_idx, dp_dry, ptop, p00, inv_exner, exner, poverp0)
 
-     real(kind_phys), intent(in)  :: tracer(:,:,:,:)                      ! tracers; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
-     real(kind_phys), intent(in)  :: dp_dry(:,:,:)                        ! dry pressure level thickness
+     real(kind_phys), intent(in)  :: tracer(:,:,:,:)                    ! tracers; quantity specified by mixing_ratio arg
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     real(kind_phys), intent(in)  :: dp_dry(:,:,:)                      ! dry pressure level thickness
      real(kind_phys), intent(in)  :: ptop                               ! pressure at model top
      real(kind_phys), intent(in)  :: p00                                ! reference pressure for Exner pressure (usually 1000hPa)
-     logical , intent(in)  :: inv_exner                          ! logical for outputting inverse Exner or Exner pressure
+     logical,         intent(in)  :: inv_exner                          ! logical for outputting inverse Exner or Exner pressure
      real(kind_phys), intent(out) :: exner(:,:,:)
      real(kind_phys), optional, intent(out) :: poverp0(:,:,:)             ! for efficiency when a routine needs this variable
 
@@ -812,9 +812,9 @@ CONTAINS
    !
    subroutine get_virtual_theta_1hd(tracer, mixing_ratio, active_species_idx, dp_dry, ptop, p00, temp, theta_v)
      real(kind_phys), intent(in)  :: tracer(:,:,:)                      ! tracers; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:,:)                        ! dry pressure level thickness
      real(kind_phys), intent(in)  :: ptop                               ! pressure at model top
      real(kind_phys), intent(in)  :: p00                                ! reference pressure for Exner pressure (usually 1000hPa)
@@ -842,9 +842,9 @@ CONTAINS
      use air_composition, only: get_R_dry
      use string_utils,    only: to_str
      real(kind_phys), intent(in)  :: tracer(:,:,:)                      ! tracer; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
-                                                                 ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                       ! 1 => tracer is dry mixing ratio
+                                                                        ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)              ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:,:)                        ! dry pressure level thickness
      real(kind_phys), intent(in)  :: ptop                               ! pressure at model top
      real(kind_phys), intent(in)  :: temp(:,:)                          ! temperature
@@ -959,9 +959,9 @@ CONTAINS
    subroutine get_Richardson_number_1hd(tracer,mixing_ratio, active_species_idx, dp_dry, ptop, &
         p00, temp, v, Richardson_number, pmid, dp)
      real(kind_phys), intent(in)  :: tracer(:,:,:)                        ! tracer; quantity specified by mixing_ratio arg
-     integer,  intent(in)  :: mixing_ratio                         ! 1 => tracer is dry mixing ratio
-                                                                   ! 2 => tracer is mass (q*dp)
-     integer,  intent(in)  :: active_species_idx(:)                ! index for thermodynamic species in tracer array
+     integer,         intent(in)  :: mixing_ratio                         ! 1 => tracer is dry mixing ratio
+                                                                          ! 2 => tracer is mass (q*dp)
+     integer,         intent(in)  :: active_species_idx(:)                ! index for thermodynamic species in tracer array
      real(kind_phys), intent(in)  :: dp_dry(:,:)                          ! dry pressure level thickness
      real(kind_phys), intent(in)  :: ptop                                 ! pressure at model top
      real(kind_phys), intent(in)  :: p00                                  ! reference pressure for Exner pressure (usually 1000hPa)
@@ -1004,10 +1004,10 @@ CONTAINS
      real(kind_phys), intent(in)   :: dp_dry(:,:)                             ! dry pressure level thickness
      real(kind_phys), intent(out)  :: ps(:)                                   ! surface pressure
      real(kind_phys), intent(in)   :: ptop
-     integer,  intent(in)   :: active_species_idx(:)
+     integer,         intent(in)   :: active_species_idx(:)
 
-     integer                    :: idx, kdx, m_cnst, qdx
-     real(kind_phys)                   :: dp(SIZE(tracer_mass, 1), SIZE(tracer_mass, 2))  ! dry pressure level thickness
+     integer                       :: idx, kdx, m_cnst, qdx
+     real(kind_phys)               :: dp(SIZE(tracer_mass, 1), SIZE(tracer_mass, 2))  ! dry pressure level thickness
 
      dp = dp_dry
      do qdx = dry_air_species_num + 1, thermodynamic_active_species_num
@@ -1032,7 +1032,7 @@ CONTAINS
      real(kind_phys), intent(in)   :: dp_dry(:,:,:)                             ! dry pressure level thickness
      real(kind_phys), intent(out)  :: ps(:,:)                                   ! surface pressure
      real(kind_phys), intent(in)   :: ptop
-     integer,  intent(in)   :: active_species_idx(:)
+     integer,  intent(in)          :: active_species_idx(:)
 
      integer :: jdx
 
@@ -1055,7 +1055,7 @@ CONTAINS
      use physconst,        only: rair, cpair
 
      real(kind_phys), intent(in)  :: tracer(:,:,:)              !tracer array
-     integer,  intent(in)  :: active_species_idx(:)      !index of thermodynamic active tracers
+     integer,         intent(in)  :: active_species_idx(:)      !index of thermodynamic active tracers
      real(kind_phys), intent(out) :: kappa_dry(:,:)             !kappa dry
      real(kind_phys), optional, intent(in) :: fact(:,:)         !factor for converting tracer to dry mixing ratio
      !
@@ -1086,7 +1086,7 @@ CONTAINS
    subroutine get_kappa_dry_2hd(tracer, active_species_idx, kappa_dry, fact)
      ! Version of get_kappa_dry for arrays that have a second horizontal index
      real(kind_phys), intent(in)  :: tracer(:,:,:,:)              !tracer array
-     integer,  intent(in)  :: active_species_idx(:)        !index of thermodynamic active tracers
+     integer,         intent(in)  :: active_species_idx(:)        !index of thermodynamic active tracers
      real(kind_phys), intent(out) :: kappa_dry(:,:,:)             !kappa dry
      real(kind_phys), optional, intent(in) :: fact(:,:,:)         !factor for converting tracer to dry mixing ratio
 
@@ -1160,7 +1160,7 @@ CONTAINS
      real(kind_phys), intent(in)           :: temp(:,:)          ! Temperature
      real(kind_phys), intent(in)           :: ptop
      real(kind_phys), intent(in)           :: dp_dry(:,:)
-     logical,  intent(in)           :: tracer_mass
+     logical,         intent(in)           :: tracer_mass
      real(kind_phys), optional,intent(out) :: rho_dry(:,:)
      real(kind_phys), optional,intent(out) :: rhoi_dry(:,:)
      !
@@ -1236,7 +1236,7 @@ CONTAINS
      real(kind_phys), intent(in)           :: temp(:,:,:)          ! Temperature
      real(kind_phys), intent(in)           :: ptop
      real(kind_phys), intent(in)           :: dp_dry(:,:,:)
-     logical,  intent(in)           :: tracer_mass
+     logical,         intent(in)           :: tracer_mass
      real(kind_phys), optional,intent(out) :: rho_dry(:,:,:)
      real(kind_phys), optional,intent(out) :: rhoi_dry(:,:,:)
      !
@@ -1280,24 +1280,24 @@ CONTAINS
 
      ! args
      real(kind_phys), intent(in)           :: temp(:,:)                     ! temperature
-     logical,  intent(in)           :: get_at_interfaces             ! true: compute kmvis and kmcnd at interfaces
+     logical,         intent(in)           :: get_at_interfaces             ! true: compute kmvis and kmcnd at interfaces
                                                                      ! false: compute kmvis and kmcnd at mid-levels
      real(kind_phys), intent(in)           :: sponge_factor(:)              ! multiply kmvis and kmcnd with sponge_factor (for sponge layer)
      real(kind_phys), intent(out)          :: kmvis(:,:)
      real(kind_phys), intent(out)          :: kmcnd(:,:)
      real(kind_phys), intent(in)           :: tracer(:,:,:)                 ! tracer array
-     integer,  intent(in), optional :: active_species_idx_dycore(:)  ! index of active species in tracer
+     integer,         intent(in), optional :: active_species_idx_dycore(:)  ! index of active species in tracer
      real(kind_phys), intent(in), optional :: fact(:,:)                     ! if tracer is in units of mass or moist
                                                                      ! fact converts to dry mixing ratio: tracer/fact
      real(kind_phys), intent(in), optional :: mbarv_in(:,:)                 ! composition dependent atmosphere mean mass
      !
      ! local vars
      !
-     integer :: idx, kdx, icnst, ispecies
+     integer        :: idx, kdx, icnst, ispecies
      real(kind_phys):: mbarvi, mm, residual             ! Mean mass at mid level
      real(kind_phys):: cnst_vis, cnst_cnd, temp_local
      real(kind_phys), dimension(SIZE(tracer,1), SIZE(sponge_factor, 1)) :: factor, mbarv
-     integer,  dimension(thermodynamic_active_species_num)       :: idx_local
+     integer,         dimension(thermodynamic_active_species_num)       :: idx_local
      character(len=*), parameter :: subname = 'get_molecular_diff_coef_1hd: '
 
      !--------------------------------------------
@@ -1418,13 +1418,13 @@ CONTAINS
         tracer, fact, active_species_idx_dycore, mbarv_in)
      ! Version of get_molecular_diff_coef for arrays that have a second horizontal index
      real(kind_phys), intent(in)           :: temp(:,:,:)                     ! temperature
-     logical,  intent(in)           :: get_at_interfaces               ! true: compute kmvis and kmcnd at interfaces
+     logical,         intent(in)           :: get_at_interfaces               ! true: compute kmvis and kmcnd at interfaces
                                                                        ! false: compute kmvis and kmcnd at mid-levels
      real(kind_phys), intent(in)           :: sponge_factor(:)                ! multiply kmvis and kmcnd with sponge_factor (for sponge layer)
      real(kind_phys), intent(out)          :: kmvis(:,:,:)
      real(kind_phys), intent(out)          :: kmcnd(:,:,:)
      real(kind_phys), intent(in)           :: tracer(:,:,:,:)                 ! tracer array
-     integer,  intent(in), optional :: active_species_idx_dycore(:)    ! index of active species in tracer
+     integer,         intent(in), optional :: active_species_idx_dycore(:)    ! index of active species in tracer
      real(kind_phys), intent(in), optional :: fact(:,:,:)                     ! if tracer is in units of mass or moist
                                                                        ! fact converts to dry mixing ratio: tracer/fact
      real(kind_phys), intent(in), optional :: mbarv_in(:,:,:)                 ! composition dependent atmosphere mean mass
@@ -1567,7 +1567,7 @@ CONTAINS
       real(kind_phys), intent(in)            :: U(:,:)
       real(kind_phys), intent(in)            :: V(:,:)
       real(kind_phys), intent(in)            :: T(:,:)
-      integer,  intent(in)            :: vcoord ! vertical coordinate
+      integer,         intent(in)            :: vcoord ! vertical coordinate
       real(kind_phys), intent(in),  optional :: ps(:)
       real(kind_phys), intent(in),  optional :: phis(:)
       real(kind_phys), intent(in),  optional :: z_mid(:,:)
