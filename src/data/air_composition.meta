@@ -5,28 +5,28 @@
   name  = air_composition
   type  = module
 [ mmro2 ]
-  standard_name = enter_standard_name_1
-  units = enter_units
+  standard_name = molecular_oxygen_mixing_ratio_wrt_dry_air
+  units = kg kg-1
   type = real | kind = kind_phys
   dimensions = ()
 [ mmrn2 ]
-  standard_name = enter_standard_name_2
-  units = enter_units
+  standard_name = molecular_nitrogen_mixing_ratio_wrt_dry_air
+  units = kg kg-1
   type = real | kind = kind_phys
   dimensions = ()
 [ o2_mwi ]
-  standard_name = enter_standard_name_3
-  units = enter_units
+  standard_name = inverse_molecular_oxygen_weight_wrt_dry_air
+  units = kg-1
   type = real | kind = kind_phys
   dimensions = ()
 [ n2_mwi ]
-  standard_name = enter_standard_name_4
-  units = enter_units
+  standard_name = inverse_molecular_nitrogen_weight_wrt_dry_air
+  units = kg-1
   type = real | kind = kind_phys
   dimensions = ()
 [ mbar ]
-  standard_name = enter_standard_name_5
-  units = enter_units
+  standard_name = mean_mass_at_mid_level_wrt_dry_air
+  units = kg
   type = real | kind = kind_phys
   dimensions = ()
 [ cpairv ]

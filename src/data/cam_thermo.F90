@@ -1281,14 +1281,14 @@ CONTAINS
      ! args
      real(kind_phys), intent(in)           :: temp(:,:)                     ! temperature
      logical,         intent(in)           :: get_at_interfaces             ! true: compute kmvis and kmcnd at interfaces
-                                                                     ! false: compute kmvis and kmcnd at mid-levels
+                                                                            ! false: compute kmvis and kmcnd at mid-levels
      real(kind_phys), intent(in)           :: sponge_factor(:)              ! multiply kmvis and kmcnd with sponge_factor (for sponge layer)
      real(kind_phys), intent(out)          :: kmvis(:,:)
      real(kind_phys), intent(out)          :: kmcnd(:,:)
      real(kind_phys), intent(in)           :: tracer(:,:,:)                 ! tracer array
      integer,         intent(in), optional :: active_species_idx_dycore(:)  ! index of active species in tracer
      real(kind_phys), intent(in), optional :: fact(:,:)                     ! if tracer is in units of mass or moist
-                                                                     ! fact converts to dry mixing ratio: tracer/fact
+                                                                            ! fact converts to dry mixing ratio: tracer/fact
      real(kind_phys), intent(in), optional :: mbarv_in(:,:)                 ! composition dependent atmosphere mean mass
      !
      ! local vars
@@ -1419,14 +1419,14 @@ CONTAINS
      ! Version of get_molecular_diff_coef for arrays that have a second horizontal index
      real(kind_phys), intent(in)           :: temp(:,:,:)                     ! temperature
      logical,         intent(in)           :: get_at_interfaces               ! true: compute kmvis and kmcnd at interfaces
-                                                                       ! false: compute kmvis and kmcnd at mid-levels
+                                                                              ! false: compute kmvis and kmcnd at mid-levels
      real(kind_phys), intent(in)           :: sponge_factor(:)                ! multiply kmvis and kmcnd with sponge_factor (for sponge layer)
      real(kind_phys), intent(out)          :: kmvis(:,:,:)
      real(kind_phys), intent(out)          :: kmcnd(:,:,:)
      real(kind_phys), intent(in)           :: tracer(:,:,:,:)                 ! tracer array
      integer,         intent(in), optional :: active_species_idx_dycore(:)    ! index of active species in tracer
      real(kind_phys), intent(in), optional :: fact(:,:,:)                     ! if tracer is in units of mass or moist
-                                                                       ! fact converts to dry mixing ratio: tracer/fact
+                                                                              ! fact converts to dry mixing ratio: tracer/fact
      real(kind_phys), intent(in), optional :: mbarv_in(:,:,:)                 ! composition dependent atmosphere mean mass
      integer :: jdx
 

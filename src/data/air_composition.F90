@@ -350,6 +350,7 @@ CONTAINS
          !    others and constants associated with it are initialized here
          !
          if (TRIM(dry_air_species(dry_air_species_num + 1)) == 'N2') then
+!Un-comment once constituents are enabled - PEVERWHEE
 #if 0
             call air_species_info('N', ix, mw)
             mw = 2.0_kind_phys * mw
@@ -361,6 +362,7 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
 #endif
+! Un-comment once constituents are enabled - PEVERWHEE
             !
             ! if last major species is not N2 then add code here
             !
@@ -404,6 +406,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
 #endif
+!Un-comment once constituents are enabled - PEVERWHEE
             !
             ! O2
             !
@@ -420,6 +423,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
 #endif
+!Un-comment once constituents are enabled - PEVERWHEE
             !
             ! H
             !
@@ -437,6 +441,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
 #endif
+!Un-comment once constituents are enabled - PEVERWHEE
             !
             ! If support for more major species is to be included add code here
             !
