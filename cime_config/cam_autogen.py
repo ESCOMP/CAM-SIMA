@@ -57,7 +57,7 @@ try:
     from ccpp_datafile import datatable_report
 except ImportError as ierr:
     _EMSG = "ERROR: Cannot find CCPP-framework routines in '{}'\n{}"
-    raise CamAutoGenError(_EMSG.format(_CCPP_FRAMEWORK_DIR, ierr))
+    raise CamAutoGenError(_EMSG.format(_CCPP_FRAMEWORK_DIR, ierr)) from ierr
 #pylint: enable=wrong-import-position
 # Cleanup python path
 sys.path.remove(_CCPP_FRAMEWORK_DIR)
@@ -315,7 +315,7 @@ def _find_metadata_files(source_dirs, scheme_finder):
         emsg += "\n".join(sorted(missing_source_files))
     # end if
     if bad_xml_sources:
-        if (len(bad_xml_sources) > 1):
+        if len(bad_xml_sources) > 1:
             emsg += "ERROR: These XML files were associated with more than " \
                     "one scheme\n"
         else:
@@ -526,8 +526,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         args.append("--namelist-read-subname")
         args.append("cam_read_ccpp_scheme_namelists")
         # print extra info to bldlog if DEBUG is TRUE
-        _LOGGER.debug("Calling gen_namelist_files with schemes: "      \
-                      f"{', '.join(xml_files.keys())}")
+        _LOGGER.debug("Calling gen_namelist_files with schemes: %s",
+                      ', '.join(xml_files.keys()))
         namelist_obj = gen_namelist_files(args, genccpp_dir, _LOGGER)
         # Save generated namelist groups
         nl_groups = namelist_obj.groups()
