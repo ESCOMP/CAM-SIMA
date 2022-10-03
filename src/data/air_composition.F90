@@ -21,6 +21,8 @@ module air_composition
    public :: get_R
    ! get_mbarv: molecular weight of dry air
    public :: get_mbarv
+   ! update_zvirv: update composition-dependent zvir
+   public :: update_zvirv
 
    private :: air_species_info
 
@@ -1103,6 +1105,14 @@ CONTAINS
        mbarv_in(:,:) = 1.0_kind_phys / mbarv_in(:,:)
      end if
    end subroutine get_mbarv_1hd
+
+   !==========================================================================
+   subroutine update_zvirv()
+      use physconst, only: rh2o
+
+      zvirv = (rh2o / rairv) - 1._kind_phys
+
+   end subroutine update_zvirv
 
    !===========================================================================
 

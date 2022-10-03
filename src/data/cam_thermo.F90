@@ -214,8 +214,8 @@ CONTAINS
    !
    !***************************************************************************
    !
-   subroutine cam_thermo_update(mmr, T, ncol, to_moist_factor)
-      use air_composition, only: air_composition_update
+   subroutine cam_thermo_update(mmr, T, ncol, update_thermo_variables, to_moist_factor)
+      use air_composition, only: air_composition_update, update_zvirv
       use string_utils,    only: to_str
       !-----------------------------------------------------------------------
       ! Update the physics "constants" that vary
@@ -225,13 +225,19 @@ CONTAINS
 
       real(kind_phys),           intent(in) :: mmr(:,:,:) ! constituents array
       real(kind_phys),           intent(in) :: T(:,:)     ! temperature
-      integer,            intent(in) :: ncol       ! number of columns
+      integer,                   intent(in) :: ncol       ! number of columns
+      logical,                   intent(in) :: update_thermo_variables ! true: calculate composition-dependent thermo variables
+                                                                       ! false: do not calculate composition-dependent thermo variables
+
       real(kind_phys), optional, intent(in) :: to_moist_factor(:,:)
       !
       !---------------------------Local storage-------------------------------
       real(kind_phys):: sponge_factor(SIZE(mmr, 2))
       character(len=*), parameter :: subname = 'cam_thermo_update: '
 
+      if (.not. update_thermo_variables) then
+         return
+      end if
 
       if (present(to_moist_factor)) then
          if (SIZE(to_moist_factor, 1) /= ncol) then
@@ -244,6 +250,7 @@ CONTAINS
       call get_molecular_diff_coef(T(:ncol,:), .true., sponge_factor, kmvis(:ncol,:), &
            kmcnd(:ncol,:), tracer=mmr(:ncol,:,:), fact=to_moist_factor,  &
            active_species_idx_dycore=thermodynamic_active_species_idx)
+      call update_zvirv()
 
    end subroutine cam_thermo_update
 

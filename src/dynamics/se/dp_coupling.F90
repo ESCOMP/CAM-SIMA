@@ -576,7 +576,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use physics_types,  only: lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa
    use cam_thermo,     only: cam_thermo_update
-   use air_composition,only: rairv
+   use air_composition,only: rairv, zvirv
    use shr_const_mod,  only: shr_const_rwv
    use geopotential_t, only: geopotential_t_run
 !   use check_energy,   only: check_energy_timestep_init
@@ -592,7 +592,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    type(physics_tend ),   intent(inout) :: phys_tend
 
    ! local variables
-   real(r8) :: zvirv(pcols,pver)    ! Local zvir array pointer
    real(kind_phys) :: factor_array(pcols,nlev)
 
    integer :: m, i, k
@@ -745,19 +744,14 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    endif
 
    !-----------------------------------------------------------------------------
-   ! Call cam_thermo_update to compute cpairv, rairv, mbarv, and cappav as
-   ! constituent dependent variables.
+   ! Call cam_thermo_update. If cam_runtime_opts%update_thermodynamic_variables()
+   ! returns .true., cam_thermo_update will compute cpairv, rairv, mbarv, and cappav as
+   ! constituent dependent variables. It will also:
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
-   ! Fill local zvirv variable; calculated for WACCM-X.
+   ! Update air_composition zvirv variable; calculated for WACCM-X.
    !-----------------------------------------------------------------------------
-   if (cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
-       cam_runtime_opts%waccmx_option() == 'neutral')  then
-
-      call cam_thermo_update(phys_state%q, phys_state%t, pcols)
-      zvirv(:,:) = shr_const_rwv / rairv(:,:) -1._r8
-   else
-      zvirv(:,:) = zvir
-   endif
+   call cam_thermo_update(phys_state%q, phys_state%t, pcols, &
+        cam_runtime_opts%update_thermodynamic_variables())
 
    !Call geopotential_t CCPP scheme:
    call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
