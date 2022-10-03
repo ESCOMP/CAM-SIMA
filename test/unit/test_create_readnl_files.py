@@ -19,6 +19,7 @@ import os
 import logging
 import sys
 import unittest
+import xml.etree.ElementTree as ET
 
 _TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 _CAM_ROOT = os.path.abspath(os.path.join(_TEST_DIR, os.pardir, os.pardir))
@@ -55,6 +56,7 @@ sys.path.append(_CIME_CONFIG_DIR)
 
 # pylint: disable=wrong-import-position
 from create_readnl_files import gen_namelist_files, NamelistFiles, NamelistError
+from create_readnl_files import NLVar
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -95,6 +97,154 @@ class CreateReadnlFilesTest(unittest.TestCase):
         #Run inherited setup method:
         super().setUpClass()
 
+    def test_nlvar_valid_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable is valid.
+        """
+
+        #Create a "good" xml namelist entry:
+        good_xml_entry = ET.fromstring("""<entry id="green">
+        <type>integer</type><category>banana</category><group>banana_nl</group>
+        <standard_name>banana_index</standard_name><units>1</units>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(good_xml_entry)
+
+        #Check that the object recgonizes the input as valid:
+        self.assertTrue(nlvar_obj.is_valid())
+
+    def test_nlvar_no_stdname_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable is
+        missing a standard name and is thus invalid.
+        """
+
+        #Create an xml namelist entry with a missing
+        #standard name:
+        no_stdname_xml_entry = ET.fromstring("""<entry id="spotted">
+        <type>integer</type><category>banana</category><group>banana_nl</group>
+        <units>1</units><desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(no_stdname_xml_entry)
+
+        #Check that the object recognizes the input as invalid:
+        self.assertFalse(nlvar_obj.is_valid())
+
+        #Check that the object recognizes that the standard name
+        #is missing:
+        self.assertEqual(nlvar_obj.missing(), 'standard_name')
+
+    def test_nlvar_no_group_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable is
+        missing a group name and is thus invalid.
+        """
+
+        #Create an xml namelist entry with a missing group:
+        no_group_xml_entry = ET.fromstring("""<entry id="brown">
+        <type>integer</type><category>banana</category>
+        <standard_name>banana_index</standard_name><units>1</units>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(no_group_xml_entry)
+
+        #Check that the object recognizes the input as invalid:
+        self.assertFalse(nlvar_obj.is_valid())
+
+        #Check that the object recognizes that the group name
+        #is missing:
+        self.assertEqual(nlvar_obj.missing(), 'group')
+
+    def test_nlvar_no_units_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable is
+        missing units and is thus invalid.
+        """
+
+        #Create an xml namelist entry with missing units:
+        no_units_xml_entry = ET.fromstring("""<entry id="black">
+        <type>integer</type><category>banana</category><group>banana_nl</group>
+        <standard_name>banana_index</standard_name>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(no_units_xml_entry)
+
+        #Check that the object recognizes the input as invalid:
+        self.assertFalse(nlvar_obj.is_valid())
+
+        #Check that the object recognizes that the units
+        #are missing:
+        self.assertEqual(nlvar_obj.missing(), 'units')
+
+    def test_nlvar_bad_char_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable has
+        a missing character length specifier, and
+        is thus invalid.
+        """
+
+        #Set error message:
+        ermsg = "Bad 'char' type for 'spotted', must specify length"
+
+        #Create an xml namelist entry with a bad character type
+        #(i.e. no length specification):
+        bad_char_xml_entry = ET.fromstring("""<entry id="spotted">
+        <type>char</type><category>banana</category><group>banana_nl</group>
+        <standard_name>banana_index</standard_name><units>1</units>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(bad_char_xml_entry)
+
+        #Check that the object recognizes the input as invalid:
+        self.assertFalse(nlvar_obj.is_valid())
+
+        #Check that the object recognizes that the character
+        #length is missing:
+        self.assertEqual(nlvar_obj.missing(), ermsg)
+
+    def test_nlvar_bad_type_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable has
+        an un-recognized variable type specifier, and
+        is thus invalid.
+        """
+
+        #Set error message:
+        ermsg = "Unknown variable type, 'orange'"
+
+        #Create an xml namelist entry with a bad variable type:
+        bad_type_xml_entry = ET.fromstring("""<entry id="mushy">
+        <type>orange</type><category>banana</category><group>banana_nl</group>
+        <standard_name>banana_index</standard_name><units>1</units>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(bad_type_xml_entry)
+
+        #Check that the object recognizes the input as invalid:
+        self.assertFalse(nlvar_obj.is_valid())
+
+        #Check that the object recognizes that the variable
+        #type was bad:
+        self.assertEqual(nlvar_obj.missing(), ermsg)
+
     def test_single_namelist_def(self):
         """
         Test that the 'gen_namelist_files' function
@@ -127,7 +277,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
         remove_files([out_source, out_meta, reader_source])
 
         # Create the namelist object
-        args = ['--namelist-file-arg', "{}:{}".format(scheme_name, xml_file),
+        args = ['--namelist-file-arg', f"{scheme_name}:{xml_file}",
                 '--namelist-read-mod', reader_mod]
         namelist_obj = gen_namelist_files(args, _TMP_DIR, logger)
 
@@ -288,23 +438,16 @@ class CreateReadnlFilesTest(unittest.TestCase):
         reader_mod = "cam_ccpp_scheme_namelists_single_def"
         reader_source = os.path.join(_TMP_DIR, reader_mod + ".F90")
 
-        # Check output files
-        out_source_check = os.path.join(_NL_SAMPLES_DIR,
-                                        out_source_name + '.F90')
-        out_meta_check = os.path.join(_NL_SAMPLES_DIR,
-                                      out_source_name + '.meta')
-        reader_source_check = os.path.join(_NL_SAMPLES_DIR, reader_mod + ".F90")
-
         # Clear all temporary output files:
         remove_files([out_source, out_meta, reader_source])
 
         # Create the namelist object
-        args = ['--namelist-file-arg', "{}:{}".format(scheme_name, xml_file),
+        args = ['--namelist-file-arg', f"{scheme_name}:{xml_file}",
                 '--namelist-read-mod', reader_mod]
         with self.assertRaises(NamelistError) as verr:
             with self.assertLogs('test_missing_xml_file',
                                  level='ERROR') as cmp_log:
-                namelist_obj = gen_namelist_files(args, _TMP_DIR, logger)
+                _ = gen_namelist_files(args, _TMP_DIR, logger)
             # end with
         # end with
         # Check exception message
@@ -349,12 +492,12 @@ class CreateReadnlFilesTest(unittest.TestCase):
         remove_files([out_source, out_meta, reader_source])
 
         # Create the namelist object
-        args = ['--namelist-file-arg', "{}:{}".format(scheme_name, xml_file),
+        args = ['--namelist-file-arg', f"{scheme_name}:{xml_file}",
                 '--namelist-read-mod', reader_mod]
         with self.assertRaises(NamelistError) as nerr:
             with self.assertLogs("test_bad_namelist_def",
                                  level='INFO') as cmp_log:
-                namelist_obj = gen_namelist_files(args, _TMP_DIR, logger)
+                _ = gen_namelist_files(args, _TMP_DIR, logger)
             # end with
         # end with
 

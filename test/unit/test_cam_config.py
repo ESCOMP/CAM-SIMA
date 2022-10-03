@@ -23,6 +23,7 @@ import logging
 import os
 import os.path
 import sys
+from collections import OrderedDict
 
 #Python unit-testing library:
 import unittest
@@ -186,6 +187,127 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Check that testval matches
         self.assertEqual(testval, newval)
 
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #check that "create_config" with an integer value works properly
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_create_config_int(self):
+
+        """
+        Check that Config_CAM.create_config properly sets an integer value
+        """
+
+        #Set test value:
+        testval = 5
+
+        #Create new config integer variable:
+        self.test_config_cam.create_config("test_int", "test object description", testval)
+
+        #Get value of new config variable:
+        conf_val = self.test_config_cam.get_value("test_int")
+
+        #Check that the test value matches what is expected:
+        self.assertEqual(conf_val, testval)
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #check that "create_config" with a string value works properly
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_create_config_str(self):
+
+        """
+        Check that Config_CAM.create_config properly sets a string value
+        """
+
+        #Set test value:
+        testval = "test_val"
+
+        #Create new config integer variable:
+        self.test_config_cam.create_config("test_str", "test object description", testval)
+
+        #Get value of new config variable:
+        conf_val = self.test_config_cam.get_value("test_str")
+
+        #Check that the test value matches what is expected:
+        self.assertEqual(conf_val, testval)
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #check that "create_config" with a list works properly
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_create_config_list(self):
+
+        """
+        Check that Config_CAM.create_config properly sets a list
+        """
+
+        #Set test value:
+        testval = [1,2]
+
+        #Create new config integer variable:
+        self.test_config_cam.create_config("test_list", "test object description", testval)
+
+        #Get value of new config variable:
+        conf_val = self.test_config_cam.get_value("test_list")
+
+        #Check that the test value matches what is expected:
+        self.assertEqual(conf_val, testval)
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that the same config variable cannot be created twice
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_create_config_twice(self):
+
+        """
+        Check that Config_CAM.create_config raises the
+        correct error if a config variable is created
+        more than once.
+        """
+
+        #Set error message:
+        ermsg = "ERROR:  The CAM config variable, 'test_int',"
+        ermsg += " already exists! Any new config variable"
+        ermsg += " must be given a different name"
+
+        #Create new config variable:
+        self.test_config_cam.create_config("test_int", "test object description", 5)
+
+        #Expect "CamConfigValError":
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Now attempt to create that same config variable again:
+            self.test_config_cam.create_config("test_int", "new test object", 6)
+        #end with
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
+
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that a config variable must be a string, integer, or list
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_create_config_bad_type(self):
+
+        """
+        Check that Config_CAM.creaeconfig raises the
+        correct error if a config variable is created
+        with a non-supported type.
+        """
+
+        #Set error message:
+        ermsg = "ERROR:  The input value for new CAM config variable,"
+        ermsg += " 'test_dict', must be an integer, string, or list,"
+        ermsg += " not <class 'dict'>"
+
+        #Expect "CamConfigTypeError":
+        with self.assertRaises(CamConfigTypeError) as typerr:
+            #Now attempt to create a config variable with type dict:
+            self.test_config_cam.create_config("test_dict", "test object description", {"x": 5})
+        #end with
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(typerr.exception))
+
     #+++++++++++++++++++++++++++++++++++++++++++++++
     #check that "print_config" method works properly
     #+++++++++++++++++++++++++++++++++++++++++++++++
@@ -193,7 +315,7 @@ class CamConfigTestRoutine(unittest.TestCase):
     def test_config_print_config_check(self):
 
         """
-        Check that Config_CAM.print_config properly prints to log
+        Check that Config_CAM.print_config properly prints to the log.
         """
 
         #Create new logger for print_config test:
@@ -211,6 +333,72 @@ class CamConfigTestRoutine(unittest.TestCase):
 
             self.assertEqual(cmplog.output, [logmsg,
                                              'DEBUG:print_config:nlon = null'])
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++
+    #check that the "print_all" method works properly
+    #++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_print_all(self):
+
+        """
+        Check that Config_CAM.print_all properly prints to the log.
+        """
+
+        #Set expected log output:
+        logmsg = ['DEBUG:print_config:CAM configuration variables:',
+                  'DEBUG:print_config:-----------------------------',
+                  'DEBUG:print_config:# Start date of model run.',
+                  'DEBUG:print_config:ic_ymd = 101',
+                  'DEBUG:print_config:# Flag to check if debug mode is enabled.',
+                  'DEBUG:print_config:debug = 0',
+                  'DEBUG:print_config:# Maximum number of columns assigned to a thread.',
+                  'DEBUG:print_config:pcols = 16',
+                  'DEBUG:print_config:# Maximum number of sub-columns in a column.',
+                  'DEBUG:print_config:psubcols = 1',
+                  'DEBUG:print_config:# Dynamics package, which is set by the horizontal grid specified.',
+                  'DEBUG:print_config:dyn = none',
+                  'DEBUG:print_config:# Horizontal grid specifier.',
+                  'DEBUG:print_config:hgrid = null',
+                  "DEBUG:print_config:# Comma-separated list of local directories containing\n#"+\
+                  "    dynamics package source code.\n#"+\
+                  "    These directories are assumed to be located under\n#"+\
+                  "    src/dynamics, with a slash ('/') indicating directory hierarchy.",
+                  "DEBUG:print_config:dyn_src_dirs = ['none']",
+                  'DEBUG:print_config:# Number of unique latitude points in rectangular lat/lon grid.\n#'+\
+                  '    Set to 1 (one) for unstructured grids.',
+                  'DEBUG:print_config:nlat = null',
+                  'DEBUG:print_config:# Number of unique longitude points in rectangular lat/lon grid.\n#'+\
+                  '    Total number of columns for unstructured grids.',
+                  'DEBUG:print_config:nlon = null',
+                  'DEBUG:print_config:# Switch to turn on analytic initial conditions for the dynamics state: \n#'+\
+                  '    0 => no \n#    1 => yes.',
+                  'DEBUG:print_config:analytic_ic = 0',
+                  'DEBUG:print_config:# The ocean model being used.\n#'+\
+                  '    Valid values include prognostic ocean models (POP or MOM),\n#'+\
+                  '    data ocean models (DOCN or DOM), a stub ocean (SOCN), \n#'+\
+                  '    and an aqua planet ocean (aquaplanet).\n#'+\
+                  '    This does not impact how the case is built, only how\n#'+\
+                  '    attributes are matched when searching for namelist defaults.',
+                  'DEBUG:print_config:ocn = socn',
+                  "DEBUG:print_config:# A semicolon-separated list of physics suite definition file (SDF) names.\n#"+\
+                  "    To specify the Kessler and Held-Suarez suites as \n#"+\
+                  "    run time options, use '--physics-suites kessler;held_suarez_1994'.",
+                  'DEBUG:print_config:physics_suites = mango;papaya',
+                  'DEBUG:print_config:# Fortran kind used in dycore for type real.',
+                  'DEBUG:print_config:dyn_kind = REAL64',
+                  'DEBUG:print_config:# Fortran kind used in physics for type real.',
+                  'DEBUG:print_config:phys_kind = REAL64', 'DEBUG:print_config:-----------------------------']
+
+        #Create new logger for print_config test:
+        print_log = logging.getLogger("print_config")
+
+        #Create unittest log:
+        with self.assertLogs(print_log, level='DEBUG') as cmplog:
+            #Print variable information to logger via "print_config":
+            self.test_config_cam.print_all(print_log)
+        #end with
+
+        self.assertEqual(cmplog.output, logmsg)
 
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "get_value" non-created variable error-handling
@@ -284,7 +472,9 @@ class CamConfigTestRoutine(unittest.TestCase):
         """
 
         #Set error message:
-        ermsg = "ERROR:  Value provided for variable, 'pcols', must be either an integer or a string.  Currently it is type <class 'float'>"
+        ermsg = "ERROR:  Value provided for variable, 'pcols',"
+        ermsg += " must be either an integer or a string."
+        ermsg += "  Currently it is type <class 'float'>"
 
         #Expect "CamConfigTypeError":
         with self.assertRaises(CamConfigTypeError) as typerr:
@@ -293,6 +483,101 @@ class CamConfigTestRoutine(unittest.TestCase):
 
         #Check that error message matches what's expected:
         self.assertEqual(ermsg, str(typerr.exception))
+
+    #++++++++++++++++++++++++++++++++++++
+    #Check that add_cppdef works properly
+    #++++++++++++++++++++++++++++++++++++
+
+    def test_add_cppdef(self):
+
+        """
+        Check that adding a new CPP def works as expected.
+        """
+
+        #Set expected result:
+        cppdef_result = ["-DTEST"]
+
+        #Add new CPP definition:
+        self.test_config_cam.add_cppdef("TEST")
+
+        #Check result
+        self.assertEqual(self.test_config_cam.cpp_defs, cppdef_result)
+
+        #Set new expected result:
+        cppdef_result_new = ["-DTEST", "-DTEST_NUM=100"]
+
+        #Add another CPP definition, this time with a set value:
+        self.test_config_cam.add_cppdef("TEST_NUM", 100)
+
+        #Check result:
+        self.assertEqual(self.test_config_cam.cpp_defs, cppdef_result_new)
+
+    #++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that a duplicate cppdef creates an error
+    #++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_duplicate_cppdef(self):
+
+        """
+        Check that "add_cppdef" throws the proper error when
+        a CPP definition is added twice.
+        """
+
+        #Set error message:
+        ermsg = "ERROR: CPP definition 'TEST_CPPDEF' has already been set"
+
+        #Add new CPP definition:
+        self.test_config_cam.add_cppdef("TEST_CPPDEF")
+
+        #Expect "CamConfigValError" to be raised:
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Now try to add that CPP def again:
+            self.test_config_cam.add_cppdef("TEST_CPPDEF")
+        #end with
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #Check that a duplicate cppdef creates an error even if an equals
+    #sign is present in the stored copy but not the passed variable
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_duplicate_cppdef_val_set(self):
+
+        """
+        Check that "add_cppdef" throws the proper error when a
+        duplicate CPP def is added, even if the duplicate value
+        does (or does not) have a value set.
+        """
+
+        #Set error message:
+        ermsg = "ERROR: CPP definition 'NEW_TEST' has already been set"
+
+        #Add CPP defs to list:
+        self.test_config_cam.add_cppdef("NEW_TEST")
+        self.test_config_cam.add_cppdef("NEW_TEST_VAL", "test_text")
+
+        #Expect "CamConfigValError" to be raised:
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Try adding "NEW_TEST", but with a value:
+            self.test_config_cam.add_cppdef("NEW_TEST", 3)
+        #end with
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
+
+        #Set new error message:
+        ermsg = "ERROR: CPP definition 'NEW_TEST_VAL' has already been set"
+
+        #Expect "CamConfigValError" to be raised:
+        with self.assertRaises(CamConfigValError) as valerr:
+            #Try adding "NEW_TEST_VAL", but without a value:
+            self.test_config_cam.add_cppdef("NEW_TEST_VAL")
+        #end with
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(valerr.exception))
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #Check "generate_cam_src" missing "ccpp_framework" error-handling
@@ -466,6 +751,30 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Check that error message matches what's expected:
         self.assertEqual(ermsg, str(valerr.exception))
 
+    #+++++++++++++++++++++++++++++++++++++++++++
+    #Check that _add_xml_nml_file works properly
+    #+++++++++++++++++++++++++++++++++++++++++++
+
+    def test_xml_nml_file(self):
+
+        """
+        Check that "_add_xml_nml_file" works as expected.
+        """
+
+        #Create new, expected dictionary:
+        xml_fil_list = OrderedDict()
+
+        #This file will always be present:
+        xml_fil_list['namelist_definition_cam.xml'] = os.path.join(CAM_CONF_DIR,
+                                               'namelist_definition_cam.xml')
+        #This is the file being added:
+        xml_fil_list['test_file.xml'] = '/fake/path/test_file.xml'
+
+        #Run xml addition function:
+        self.test_config_cam._add_xml_nml_file('/fake/path/', 'test_file.xml')
+
+        #Check that the output matches the expected value:
+        self.assertEqual(xml_fil_list, self.test_config_cam.xml_nml_def_files)
 
 #################################################
 #Run unit tests if this script is called directly
