@@ -26,7 +26,7 @@
   dimensions = ()
 [ mbar ]
   standard_name = mean_mass_at_mid_level_wrt_dry_air
-  units = kg
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
 [ cpairv ]
@@ -48,8 +48,8 @@
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True
 [ mbarv ]
-  standard_name = enter_standard_name_8
-  units = enter_units
+  standard_name = composition_dependent_mean_mass_at_mid_level_wrt_dry_air
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension)
   protected = True

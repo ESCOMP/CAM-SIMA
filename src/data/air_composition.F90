@@ -1141,10 +1141,8 @@ CONTAINS
       character(len=*), parameter :: subname = 'air_species_info: '
 
       ! vv commented out until we get constituents figured out - PEVERWHEE
-      !   until then, the model will die if this subroutine is called
       !call cnst_get_ind(trim(name), index, abort=.false.)
       ! ^^ commented out until we get constituents figured out - PEVERWHEE
-      !   until then, the model will die if this subroutine is called
       if (index < 1) then
          if (present(caller)) then
             write(iulog, *) trim(caller), ": air component not found, '", &

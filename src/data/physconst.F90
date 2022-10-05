@@ -54,9 +54,9 @@ module physconst
    real(kind_phys), public, parameter :: latice      = real(shr_const_latice, kind_phys)     ! Latent heat of fusion (J kg-1)
    real(kind_phys), public, parameter :: latvap      = real(shr_const_latvap, kind_phys)     ! Latent heat of vaporization (J kg-1)
    real(kind_phys), public, parameter :: pi          = real(shr_const_pi, kind_phys)         ! 3.14...
-   real(kind_phys), public, parameter :: pstd        = real(shr_const_pstd, kind_phys)       ! Standard pressure (Pascals)
-   real(kind_phys), public, parameter :: ps_base     = 1.0e5_kind_phys                       ! Base state surface pressure (Pascals)
-   real(kind_phys), public, parameter :: ps_ref      = 1.0e5_kind_phys                       ! Reference surface pressure (Pascals)
+   real(kind_phys), public, protected :: pstd        = real(shr_const_pstd, kind_phys)       ! Standard pressure (Pascals)
+   real(kind_phys), public, protected :: ps_base     = 1.0e5_kind_phys                       ! Base state surface pressure (Pascals)
+   real(kind_phys), public, protected :: ps_ref      = 1.0e5_kind_phys                       ! Reference surface pressure (Pascals)
    real(kind_phys), public, parameter :: tref        = 288._kind_phys                        ! Reference temperature (K)
    real(kind_phys), public, parameter :: lapse_rate  = 0.0065_kind_phys                      ! reference lapse rate (K m-1)
    real(kind_phys), public, parameter :: r_universal = real(shr_const_rgas, kind_phys)       ! Universal gas constant (J K-1 kmol-1)
