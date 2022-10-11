@@ -549,20 +549,44 @@ class ConfigCAM:
     @classmethod
     def parse_config_opts(cls, config_opts, test_mode=False):
         """Parse <config_opts> and return the results
+
+        doctests:
+
+        1.  Check that parse_config_opts fails correctly when no arguments are given:
         >>> ConfigCAM.parse_config_opts("", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
+
+        2.  Check that parse_config_opts fails correctly when no physics suite is given:
         >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler"))
+
+        3.  Check that parse_config_opts works as expected when given only a single physics suite entry:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se"))
+
+        4.  Check that parse_config_opts works as expected when given a physics suite and a second argument:
+        >>> config_opts = config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic"))
+
+        5.  Check that parse_config_opts works as expected when given both a string and logical argument:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler;musica"))
+
+        6.  Check that parse_config_opts works as expected when given multiple physics suites:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
+
+        7.  Check that parse_config_opts fails correctly when given an un-recognized argument:
         >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
@@ -943,15 +967,6 @@ class ConfigCAM:
 
         #Combine file name with path and add to list:
         self.__xml_nml_def_files[filename] = os.path.join(path, filename)
-
-###############################################################################
-#Testing functions (only used during unit testing)
-###############################################################################
-
-def vlist(nspace):
-    """Convert a namespace into an ordered list view"""
-    vargs = vars(nspace)
-    return [(x, vargs[x]) for x in sorted(vargs)]
 
 #############
 # End of file

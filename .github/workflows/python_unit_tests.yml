@@ -49,6 +49,7 @@ jobs:
     # Run python unit and doctests:
     - name: python unit tests
       run: |
+        # Run all python doctests in cime_config:
         # CAM config classes doctests:
         pytest cime_config/cam_config_classes.py --doctest-modules
         # CAM config doctests:
@@ -59,10 +60,11 @@ jobs:
         python cime_config/cam_build_cache.py
         # Namelist reader generator doctests:
         pytest cime_config/create_readnl_files.py --doctest-modules
-        # Registry generator doctests:
-        pytest src/data/generate_registry_data.py --doctest-modules
         # ParamGen atm_in namelist writer doctests:
         pytest cime_config/atm_in_paramgen.py --doctest-modules
+
+        # Run all python doctests in src/data:
+        pytest src/data --doctest-modules
 
         # Run all python unit tests:
         pytest test/unit

@@ -57,6 +57,7 @@ sys.path.append(_CIME_CONFIG_DIR)
 # pylint: disable=wrong-import-position
 from create_readnl_files import gen_namelist_files, NamelistFiles, NamelistError
 from create_readnl_files import NLVar
+from parse_tools import ParseInternalError  #CCPP error class
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -196,7 +197,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
         is thus invalid.
         """
 
-        #Set error message:
+        #Set expected error message:
         ermsg = "Bad 'char' type for 'spotted', must specify length"
 
         #Create an xml namelist entry with a bad character type
@@ -225,7 +226,7 @@ class CreateReadnlFilesTest(unittest.TestCase):
         is thus invalid.
         """
 
-        #Set error message:
+        #Set expected error message:
         ermsg = "Unknown variable type, 'orange'"
 
         #Create an xml namelist entry with a bad variable type:
@@ -237,6 +238,60 @@ class CreateReadnlFilesTest(unittest.TestCase):
 
         #Create NLVar object:
         nlvar_obj = NLVar(bad_type_xml_entry)
+
+        #Check that the object recognizes the input as invalid:
+        self.assertFalse(nlvar_obj.is_valid())
+
+        #Check that the object recognizes that the variable
+        #type was bad:
+        self.assertEqual(nlvar_obj.missing(), ermsg)
+
+    def test_nlvar_no_var_type_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        throw an "ParseInternalError" message if
+        the "type" XML tag is missing for the given
+        namelist variable.
+        """
+
+        #Set expected error message:
+        ermsg = "ERROR: No type for green"
+
+        #Create a an xml namelist entry with a missing type tag:
+        missing_type_xml_entry = ET.fromstring("""<entry id="green">
+        <category>banana</category><group>banana_nl</group>
+        <standard_name>banana_index</standard_name><units>1</units>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Expect a parsing error to be raised:
+        with self.assertRaises(ParseInternalError) as perr:
+            #Attempt to create NLVar object:
+            nlvar_obj = NLVar(missing_type_xml_entry)
+        #End with
+
+        #Check that the raised error message matches what is expected:
+        self.assertEqual(str(perr.exception), ermsg)
+
+    def test_nlvar_multi_bad_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable has
+        multiple missing required tags, and is thus
+        invalid.
+        """
+
+        #Set expected error message:
+        ermsg = "group, standard_name, and units"
+
+        #Create an xml namelist entry with a bad variable type:
+        multi_bad_xml_entry = ET.fromstring("""<entry id="green">
+        <type>integer</type><category>banana</category>
+        <desc>Variable to specify banana</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Create NLVar object:
+        nlvar_obj = NLVar(multi_bad_xml_entry)
 
         #Check that the object recognizes the input as invalid:
         self.assertFalse(nlvar_obj.is_valid())
