@@ -13,7 +13,7 @@ or (for more verbose output):
 
 python test_cam_autogen.py -v
 
-which will currently run 19 tests, all of which should pass.
+which will currently run 14 tests, all of which should pass.
 """
 
 #----------------------------------------

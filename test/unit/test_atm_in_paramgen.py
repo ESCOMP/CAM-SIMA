@@ -11,7 +11,7 @@ or (for more verbose output):
 
 python test_atm_in_paramgen.py -v
 
-which will currently run XXX tests, all of which should pass.
+which will currently run 23 tests, all of which should pass.
 """
 
 #----------------------------------------
