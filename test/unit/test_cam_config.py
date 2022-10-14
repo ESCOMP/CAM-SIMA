@@ -13,7 +13,7 @@ or (for more verbose output):
 
 python cam_config_unit_tests.py -v
 
-which will currently run 19 tests, all of which should pass.
+which will currently run 23 tests, all of which should pass.
 """
 
 #----------------------------------------
