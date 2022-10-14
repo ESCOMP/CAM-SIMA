@@ -61,38 +61,38 @@ def _check_integer_val(name, val, valid_vals=None):
     >>> _check_integer_val("test", 5.0, valid_vals=None) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR: Value being checked in 'check_integer_val' must be an integer type, not '<class 'float'>'.
+    cam_config_classes.CamConfigTypeError: ERROR: Value being checked in 'check_integer_val' must be an integer type, not '<class 'float'>'.
 
     2.  Check that using a valid_vals option that is not a list or tuple throws an error:
     >>> _check_integer_val("test", 5, valid_vals="test_vals") #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR: Valid values for integers must by provided as either a tuple or a list, not '<class 'str'>'.
+    cam_config_classes.CamConfigTypeError: ERROR: Valid values for integers must by provided as either a tuple or a list, not '<class 'str'>'.
 
     3.  Check that using non-integer values inside the valid_vals list or tuple throws an error:
     >>> _check_integer_val("test", 5, valid_vals=[1,2,5,"test_val"]) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR:  Valid value, 'test_val', for variable 'test', must be an integer.  Currently it is '<class 'str'>'.
+    cam_config_classes.CamConfigTypeError: ERROR:  Valid value, 'test_val', for variable 'test', must be an integer.  Currently it is '<class 'str'>'.
     <BLANKLINE>
 
     4.  Check that using a tuple with only one entry throws an error:
     >>> _check_integer_val("test", 5, valid_vals=(1,)) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '1' elements.
+    cam_config_classes.CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '1' elements.
 
     5.  Check that using a tuple with more than two entries throws an error:
     >>> _check_integer_val("test", 5, valid_vals=(1,2,5)) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '3' elements.
+    cam_config_classes.CamConfigValError: ERROR: Valid values tuple for variable, 'test', must have two elements, not '3' elements.
 
     6.  Check that using a tuple with only Nones throws an error:
     >>> _check_integer_val("test", 5, valid_vals=(None,None)) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: ERROR: Valid values tuple for variable, 'test', must contain at least one integer.
+    cam_config_classes.CamConfigValError: ERROR: Valid values tuple for variable, 'test', must contain at least one integer.
 
     7.  Check that an integer less than the tuple min is "invalid":
     >>> _check_integer_val("test", 5, valid_vals=(6,None))
@@ -238,19 +238,19 @@ def _check_string_val(name, val, valid_vals=None):
     >>> _check_string_val("test", [5], valid_vals=None) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR: Value being checked in 'check_string_val' must be a string type, not '<class 'list'>'.
+    cam_config_classes.CamConfigTypeError: ERROR: Value being checked in 'check_string_val' must be a string type, not '<class 'list'>'.
 
     2.  Check that using a valid_vals option that is not None, a list, or a regex throws an error:
     >>> _check_string_val("test", "test_val", valid_vals=5) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR: Valid values for strings must by provided as either a regular expression or a list, not '<class 'int'>'.
+    cam_config_classes.CamConfigTypeError: ERROR: Valid values for strings must by provided as either a regular expression or a list, not '<class 'int'>'.
 
     3.  Check that using non-string values inside the valid_vals list throws an error:
     >>> _check_string_val("test", "1", valid_vals=["1","2","5",6]) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR:  Valid value, '6', for variable 'test', must be a string.  Currently it is '<class 'int'>'.
+    cam_config_classes.CamConfigTypeError: ERROR:  Valid value, '6', for variable 'test', must be a string.  Currently it is '<class 'int'>'.
 
     9.  Check that a string that doesn't match the provided regex is "invalid":
     >>> _check_string_val("test", "test_val", valid_vals=re.compile(r"foo"))
@@ -353,17 +353,20 @@ class _ConfigGen:
 
     2.  Check that non-optional inputs must be strings:
 
-    >>> _ConfigGen(5, "test_object_description").name #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> _ConfigGen(5, "test_object_description").name #doctest: +ELLIPSIS
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  Configuration variable name '5' must be a string, not <type 'int'>
+    ...
+    cam_config_classes.CamConfigTypeError: ERROR:  Configuration variable name '5' must be a string, not <class 'int'>
 
-    >>> _ConfigGen("test", (5,)).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> _ConfigGen("test", (5,)).desc  #doctest: +ELLIPSIS
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:
+    ...
+    cam_config_classes.CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not tuple ((5,))
 
-    >>> _ConfigGen("test", ["test", ("object", "description")]).desc #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> _ConfigGen("test", ["test", ("object", "description")]).desc #doctest: +ELLIPSIS
     Traceback (most recent call last):
-    CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not [<class 'str'>, <class 'tuple'>]
+    ...
+    cam_config_classes.CamConfigTypeError: ERROR:  Configuration variable, 'test', must have a string-type description, or a list of string-type descriptions, not [<class 'str'>, <class 'tuple'>]
 
     """
 
@@ -676,19 +679,19 @@ class ConfigList(_ConfigGen):
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_type=5).value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigTypeError: ERROR: valid_type entry for variable 'test' must be a string,  not type '<class 'int'>'.
+    cam_config_classes.CamConfigTypeError: ERROR: valid_type entry for variable 'test' must be a string,  not type '<class 'int'>'.
 
     4. Check that ConfigList with a non-recognized "valid_type" option fails with the correct error:
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="foo").value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: ERROR: 'foo' is not a recognized option for 'valid_type'. Please use either 'int' or 'str'.
+    cam_config_classes.CamConfigValError: ERROR: 'foo' is not a recognized option for 'valid_type'. Please use either 'int' or 'str'.
 
     5.  Check that ConfigList with list entries that don't match the valid_type entry fails with the correct error:
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="str").value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: ERROR: The following list entries, provided for variable, 'test', are not strings, but instead are:
+    cam_config_classes.CamConfigValError: ERROR: The following list entries, provided for variable, 'test', are not strings, but instead are:
     '1': type='<class 'int'>'
     '2': type='<class 'int'>'
     '3': type='<class 'int'>'
@@ -697,7 +700,7 @@ class ConfigList(_ConfigGen):
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_vals=[1,2,3,4,5]).value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: ERROR: valid values can only be used if valid_type is 'int' or 'str', not 'None'.
+    cam_config_classes.CamConfigValError: ERROR: valid values can only be used if valid_type is 'int' or 'str', not 'None'.
 
     7.  check that ConfigList with a list that matches the "valid_vals" entry works as expected:
     >>> ConfigList("test", "test object description", [1, 2, 3], valid_type="int", valid_vals=(0,5)).value
@@ -707,7 +710,7 @@ class ConfigList(_ConfigGen):
     >>> ConfigList("test", "test object description", ["1", "b", "c"], valid_type="str", valid_vals=["1","2","3"]).value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: The following errors were found for a list-type config variable:
+    cam_config_classes.CamConfigValError: The following errors were found for a list-type config variable:
     ERROR:  Value, 'b', provided for variable, 'test', does not match any of the valid values: '['1', '2', '3']'
     <BLANKLINE>
     ERROR:  Value, 'c', provided for variable, 'test', does not match any of the valid values: '['1', '2', '3']'
@@ -716,7 +719,7 @@ class ConfigList(_ConfigGen):
     >>> ConfigList("test", "test object description", [1, 2, 6], valid_type="int", valid_vals=(0,5)).value #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    CamConfigValError: The following errors were found for a list-type config variable:
+    cam_config_classes.CamConfigValError: The following errors were found for a list-type config variable:
     ERROR:  Value, '6', provided for variable, 'test', is outside valid value range, '(0, 5)'
 
     """
@@ -881,23 +884,6 @@ class ConfigList(_ConfigGen):
 
         # If ok, then set object's value to one provided
         self.__value = list_vals
-
-###############################################################################
-#End of config class definitions
-###############################################################################
-
-#Call testing routine, if script is run directly
-if __name__ == "__main__":
-
-    # Import modules needed for testing
-    import doctest
-    import sys
-
-    # Run doctests on this file's python objects
-    TEST_SUCCESS = doctest.testmod()[0]
-
-    # Exit script with error code matching number of failed tests:
-    sys.exit(TEST_SUCCESS)
 
 #############
 # End of file

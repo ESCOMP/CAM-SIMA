@@ -155,39 +155,6 @@ class ConfigCAM:
     case                   -> CIME case that uses CAM
     logger                 -> Python logger object (ususally the CIME log)
 
-    Doctests:
-
-    1.  Check that "create_config" works properly:
-
-    With a given integer value:
-    >>> FCONFIG.create_config("test_int", "test object description", 5)
-    >>> FCONFIG.get_value("test_int")
-    5
-
-    With a given string value:
-    >>> FCONFIG.create_config("test_str", "test object description", "test_val")
-    >>> FCONFIG.get_value("test_str")
-    'test_val'
-
-    With a given list value:
-    >>> FCONFIG.create_config("test_list", "test object description", [1, 2])
-    >>> FCONFIG.get_value("test_list")
-    [1, 2]
-
-    2.  Check that the same configure object can't be created twice:
-
-    >>> FCONFIG.create_config("test_int", "test object description", 5)
-    Traceback (most recent call last):
-    ...
-    cam_config_classes.CamConfigValError: ERROR:  The CAM config variable, 'test_int', already exists!  Any new config variable must be given a different name
-
-    3.  Check that a configure object's given value must be either a string, integer or list:
-
-    >>> FCONFIG.create_config("test_dict", "test_object_description", {"x": "y"})
-    Traceback (most recent call last):
-    ...
-    cam_config_classes.CamConfigTypeError: ERROR:  The input value for new CAM config variable, 'test_dict', must be an integer, string, or list, not <class 'dict'>
-
     """
 
     def __init__(self, case, case_log):
@@ -582,20 +549,44 @@ class ConfigCAM:
     @classmethod
     def parse_config_opts(cls, config_opts, test_mode=False):
         """Parse <config_opts> and return the results
+
+        doctests:
+
+        1.  Check that parse_config_opts fails correctly when no arguments are given:
         >>> ConfigCAM.parse_config_opts("", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
+
+        2.  Check that parse_config_opts fails correctly when no physics suite is given:
         >>> ConfigCAM.parse_config_opts("--dyn se", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler"))
+
+        3.  Check that parse_config_opts works as expected when given only a single physics suite entry:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se"))
+
+        4.  Check that parse_config_opts works as expected when given a physics suite and a second argument:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic"))
+
+        5.  Check that parse_config_opts works as expected when given both a string and logical argument:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
-        >>> vlist(ConfigCAM.parse_config_opts("--physics-suites kessler;musica"))
+
+        6.  Check that parse_config_opts works as expected when given multiple physics suites:
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
+        >>> vargs = vars(config_opts)
+        >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
+
+        7.  Check that parse_config_opts fails correctly when given an un-recognized argument:
         >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True)
         Traceback (most recent call last):
         SystemExit: 2
@@ -758,27 +749,6 @@ class ConfigCAM:
         Add a CPP definition value to be used during the
         building of the model.  An error is thrown if
         the CPP macro has already been defined.
-
-        Check that add_cppdef works properly:
-        >>> FCONFIG.add_cppdef("TEST"); FCONFIG.cpp_defs
-        ['-DTEST_CPPDEF', '-DNEW_TEST=5', '-DTEST']
-
-        Check that add_cppdef works properly with provided value:
-        >>> FCONFIG.add_cppdef("COOL_VAR", 100); FCONFIG.cpp_defs
-        ['-DTEST_CPPDEF', '-DNEW_TEST=5', '-DTEST', '-DCOOL_VAR=100']
-
-        Check that a duplicate cppdef creates an error:
-        >>> FCONFIG.add_cppdef("TEST_CPPDEF") # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        cam_config_classes.CamConfigValError: ERROR: CPP definition 'TEST_CPPDEF' has already been set
-
-        Check that a duplicate cppdef creates an error even if an equals sign
-        is present in the stored copy but not the passed variable:
-        >>> FCONFIG.add_cppdef("NEW_TEST") # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        cam_config_classes.CamConfigValError: ERROR: CPP definition 'NEW_TEST' has already been set
         """
 
         #Create string to check if CPP definition is already present:
@@ -997,87 +967,6 @@ class ConfigCAM:
 
         #Combine file name with path and add to list:
         self.__xml_nml_def_files[filename] = os.path.join(path, filename)
-
-###############################################################################
-#IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!
-###############################################################################
-
-#Call testing routine, if script is run directly
-if __name__ == "__main__":
-
-    # Import modules needed for testing
-    import doctest
-    import logging
-
-    #--------------------------------------
-    # Create fake case for Config_CAM tests
-    #--------------------------------------
-
-    class FakeCase:
-
-        # pylint: disable=too-few-public-methods
-        """
-        Fake CIME case class with variables needed to test
-        the "Config_CAM" object.
-        """
-
-        def __init__(self):
-
-
-            # Create dictionary (so get_value works properly)
-            self.conf_opts = {
-                "ATM_GRID" : "f19_f19_mg17",
-                "ATM_NX"   : 180,
-                "ATM_NY"   : 90,
-                "COMP_OCN" : "socn",
-                "COMP_ATM" : "cam",
-                "EXEROOT"  : "/some/made-up/path",
-                "CASEROOT" : "/another/made-up/path",
-                "CAM_CONFIG_OPTS" : "-dyn none --physics-suites adiabatic",
-                "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
-                "CAM_CPPDEFS" : "-DTEST_CPPDEF -DNEW_TEST=5",
-                "NTHRDS_ATM" : 1,
-                "RUN_STARTDATE" : "101",
-                "DEBUG" : False
-                }
-
-        def get_value(self, key):
-
-            """
-            Function used to return value
-            from conf_opts dictionary,
-            with the key as input.
-            """
-
-            val = self.conf_opts[key]
-
-            return val
-
-
-    def vlist(nspace):
-        """Convert a namespace into an ordered list view"""
-        vargs = vars(nspace)
-        return [(x, vargs[x]) for x in sorted(vargs)]
-
-    #-------------------------------------------
-    # Create new "Config_CAM" object for testing
-    #-------------------------------------------
-
-    # Create new "fake" CIME case
-    FCASE = FakeCase()
-
-    # Create python logger object
-    LOGGER = logging.getLogger("cam_config")
-
-    # Create ConfigCAM object using "fake" CIME case and logger
-    FCONFIG = ConfigCAM(FCASE, LOGGER)
-
-    # Run doctests on this file's python objects
-    OPTIONS = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
-    TEST_SUCCESS = doctest.testmod(optionflags=OPTIONS)[0]
-
-    # Exit script with error code matching number of failed tests:
-    sys.exit(TEST_SUCCESS)
 
 #############
 # End of file

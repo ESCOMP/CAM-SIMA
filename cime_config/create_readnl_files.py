@@ -9,8 +9,6 @@ To run doctests on this file: python create_readnl_files.py
 """
 
 # Python library imports
-# NB: ET is used in doctests which are not recognized by pylint
-import xml.etree.ElementTree as ET # pylint: disable=unused-import
 import os
 import os.path
 import re
@@ -182,28 +180,7 @@ class NLVar:
     __type_strlen = 20 # Crude but no loop through variables necessary
 
     def __init__(self, var_xml):
-        """Collect namelist variable information from <var_xml> element
-        >>> NLVar(_TEST_GOOD_XML_ENTRY).is_valid()
-        True
-        >>> NLVar(_TEST_NO_STDNAME_ENTRY).is_valid()
-        False
-        >>> NLVar(_TEST_NO_STDNAME_ENTRY).missing()
-        'standard_name'
-        >>> NLVar(_TEST_NO_GROUP_ENTRY).is_valid()
-        False
-        >>> NLVar(_TEST_NO_GROUP_ENTRY).missing()
-        'group'
-        >>> NLVar(_TEST_NO_UNITS_ENTRY).is_valid()
-        False
-        >>> NLVar(_TEST_NO_UNITS_ENTRY).missing()
-        'units'
-        >>> NLVar(_TEST_BAD_CHAR_ENTRY).is_valid()
-        False
-        >>> NLVar(_TEST_BAD_CHAR_ENTRY).missing()
-        "Bad 'char' type for 'spotted', must specify length"
-        >>> NLVar(_TEST_BAD_TYPE_ENTRY).missing()
-        "Unknown variable type, 'orange'"
-        """
+        """Collect namelist variable information from <var_xml> element"""
         self.__var_name = var_xml.get("id")
         self.__type = None
         self.__group = None
@@ -1323,40 +1300,3 @@ def gen_namelist_files(args, outdir, logger):
     return namelist_obj
 
 ###############################################################################
-if __name__ == "__main__":
-# pylint: enable=ungrouped-imports
-    import doctest
-    import sys
-# pylint: disable=ungrouped-imports
-    _TEST_GOOD_XML_ENTRY = ET.fromstring("""<entry id="green">
-    <type>integer</type><category>banana</category><group>banana_nl</group>
-    <standard_name>banana_index</standard_name><units>1</units>
-    <desc>Variable to specify banana</desc>
-    <values><value>2</value></values></entry>""")
-    _TEST_NO_STDNAME_ENTRY = ET.fromstring("""<entry id="spotted">
-    <type>integer</type><category>banana</category><group>banana_nl</group>
-    <units>1</units><desc>Variable to specify banana</desc>
-    <values><value>2</value></values></entry>""")
-    _TEST_NO_GROUP_ENTRY = ET.fromstring("""<entry id="brown">
-    <type>integer</type><category>banana</category>
-    <standard_name>banana_index</standard_name><units>1</units>
-    <desc>Variable to specify banana</desc>
-    <values><value>2</value></values></entry>""")
-    _TEST_NO_UNITS_ENTRY = ET.fromstring("""<entry id="black">
-    <type>integer</type><category>banana</category><group>banana_nl</group>
-    <standard_name>banana_index</standard_name>
-    <desc>Variable to specify banana</desc>
-    <values><value>2</value></values></entry>""")
-    _TEST_BAD_CHAR_ENTRY = ET.fromstring("""<entry id="spotted">
-    <type>char</type><category>banana</category><group>banana_nl</group>
-    <standard_name>banana_index</standard_name><units>1</units>
-    <desc>Variable to specify banana</desc>
-    <values><value>2</value></values></entry>""")
-    _TEST_BAD_TYPE_ENTRY = ET.fromstring("""<entry id="mushy">
-    <type>orange</type><category>banana</category><group>banana_nl</group>
-    <standard_name>banana_index</standard_name><units>1</units>
-    <desc>Variable to specify banana</desc>
-    <values><value>2</value></values></entry>""")
-    OPTIONS = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
-    fail, _ = doctest.testmod(optionflags=OPTIONS)
-    sys.exit(fail)

@@ -67,15 +67,15 @@ run_doctest src/data/generate_registry_data.py
 # ParamGen atm_in namelist writer doctests:
 run_doctest cime_config/atm_in_paramgen.py
 # CAM config unit tests:
-run_unittest test/unit/cam_config_unit_tests.py
+run_unittest test/unit/test_cam_config.py
 # CAM autogen unit tests:
 run_unittest test/unit/test_cam_autogen.py
 # Registry generator unit tests:
 run_unittest test/unit/test_registry.py
 # Namelist reader autogeneration unit tests
-run_unittest test/unit/create_readnl_files_tests.py
+run_unittest test/unit/test_create_readnl_files.py
 # Physics variable init (phys_init) generator unit tests:
-run_unittest test/unit/write_init_unit_tests.py
+run_unittest test/unit/test_write_init_files.py
 # ParamGen atm_in namelist writer unit tests:
 run_unittest test/unit/test_atm_in_paramgen.py
 

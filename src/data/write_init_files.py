@@ -342,7 +342,7 @@ def write_ic_params(outfile, host_vars, ic_names):
     outfile.write("!Max length of physics-related variable standard names:", 1)
     stdname_list = [x.get_prop_value('standard_name') for x in host_vars]
     if stdname_list:
-        max_slen = max([len(x) for x in stdname_list])
+        max_slen = max(len(x) for x in stdname_list)
     else:
         max_slen = 0
     # end if
@@ -359,7 +359,7 @@ def write_ic_params(outfile, host_vars, ic_names):
         stdname = hvar.get_prop_value('standard_name')
         if stdname in ic_names:
             max_loclen = max(max_loclen,
-                             max([len(x) for x in ic_names[stdname]]))
+                             max(len(x) for x in ic_names[stdname]))
         else:
             locname = hvar.get_prop_value('local_name')
             max_loclen = max(max_loclen, len(locname))
@@ -393,7 +393,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     #Create fake name and fake name list with proper lengths:
     fake_ic_name = " "*ic_max_len
     if ic_name_dict:
-        max_ic_num = max([len(x) for x in ic_name_dict.values()])
+        max_ic_num = max(len(x) for x in ic_name_dict.values())
     else:
         max_ic_num = 0
     # end if
@@ -594,7 +594,7 @@ def write_use_statements(outfile, use_stmts, indent):
     """
 
     # The plus one is for a comma
-    max_modname = max([len(x[0]) for x in use_stmts]) + 1
+    max_modname = max(len(x[0]) for x in use_stmts) + 1
     # max_modspace is the max chars of the module plus other 'use' statement
     #    syntax (e.g., 'only:')
     max_modspace = (outfile.indent_size * indent) + max_modname + 10
