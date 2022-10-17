@@ -3,6 +3,8 @@ module air_composition
 
    use ccpp_kinds,     only: kind_phys
    use cam_abortutils, only: endrun, check_allocate
+   use runtime_obj,    only: unset_real, unset_int
+   use phys_vars_init_check, only: std_name_len
 
    implicit none
    private
@@ -26,20 +28,17 @@ module air_composition
 
    private :: air_species_info
 
-   integer,         parameter :: unseti = -HUGE(1)
-   real(kind_phys), parameter :: unsetr =  HUGE(1.0_kind_phys)
-
    ! composition of air
    !
-   integer, parameter :: num_names_max = 30
-   character(len=80)  :: dry_air_species(num_names_max)
-   character(len=80)  :: water_species_in_air(num_names_max)
+   integer, parameter          :: num_names_max = 30
+   character(len=std_name_len) :: dry_air_species(num_names_max)
+   character(len=std_name_len) :: water_species_in_air(num_names_max)
 
-   integer, protected, public :: dry_air_species_num
-   integer, protected, public :: water_species_in_air_num
+   integer, protected, public  :: dry_air_species_num
+   integer, protected, public  :: water_species_in_air_num
 
    ! Thermodynamic variables
-   integer,                      protected, public :: thermodynamic_active_species_num = unseti
+   integer,                      protected, public :: thermodynamic_active_species_num = unset_int
    integer,         allocatable, protected, public :: thermodynamic_active_species_idx(:)
    integer,         allocatable,            public :: thermodynamic_active_species_idx_dycore(:)
    real(kind_phys), allocatable, protected, public :: thermodynamic_active_species_cp(:)
@@ -55,9 +54,9 @@ module air_composition
    ! for energy computations liquid and ice species need to be identified
    !
    ! thermodynamic_active_species_liq_num: number of liquid water species
-   integer,               protected, public :: thermodynamic_active_species_liq_num = unseti
+   integer,               protected, public :: thermodynamic_active_species_liq_num = unset_int
    ! thermodynamic_active_species_ice_num: number of frozen water species
-   integer,               protected, public :: thermodynamic_active_species_ice_num = unseti
+   integer,               protected, public :: thermodynamic_active_species_ice_num = unset_int
    ! thermodynamic_active_species_liq_idx: index of liquid water species
    integer,  allocatable, protected, public :: thermodynamic_active_species_liq_idx(:)
    ! thermodynamic_active_species_liq_idx_dycore: index of liquid water species
@@ -92,11 +91,11 @@ module air_composition
    !> \section arg_table_air_composition  Argument Table
    !! \htmlinclude air_composition.html
    ! standard dry air (constant composition)
-   real(kind_phys), public, protected :: mmro2 = unsetr  ! Mass mixing ratio of O2
-   real(kind_phys), public, protected :: mmrn2 = unsetr  ! Mass mixing ratio of N2
-   real(kind_phys), public, protected :: o2_mwi = unsetr ! Inverse mol. weight of O2
-   real(kind_phys), public, protected :: n2_mwi = unsetr ! Inverse mol. weight of N2
-   real(kind_phys), public, protected :: mbar = unsetr   ! Mean mass at mid level
+   real(kind_phys), public, protected :: mmro2 = unset_real  ! Mass mixing ratio of O2
+   real(kind_phys), public, protected :: mmrn2 = unset_real  ! Mass mixing ratio of N2
+   real(kind_phys), public, protected :: o2_mwi = unset_real ! Inverse mol. weight of O2
+   real(kind_phys), public, protected :: n2_mwi = unset_real ! Inverse mol. weight of N2
+   real(kind_phys), public, protected :: mbar = unset_real   ! Mean mass at mid level
 
    ! cpairv:  composition dependent specific heat at constant pressure
    real(kind_phys), public, protected, allocatable :: cpairv(:,:)

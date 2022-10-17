@@ -508,12 +508,12 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(hyai_phys(size(hyai,1)), stat=iret)
+         allocate(hyai_phys(size(hyai)), stat=iret)
          call check_allocate(iret, subname, &
                              'hyai_phys', &
                              file=__FILE__, line=__LINE__)
 
-         allocate(hybi_phys(size(hybi,1)), stat=iret)
+         allocate(hybi_phys(size(hybi)), stat=iret)
          call check_allocate(iret, subname, &
                              'hybi_phys', &
                              file=__FILE__, line=__LINE__)

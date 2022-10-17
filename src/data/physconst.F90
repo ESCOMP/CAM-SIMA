@@ -26,7 +26,6 @@ module physconst
    use shr_const_mod,  only: shr_const_rearth
    use shr_const_mod,  only: shr_const_sday
    use shr_const_mod,  only: shr_const_cday
-   use shr_const_mod,  only: shr_const_spval
    use shr_const_mod,  only: shr_const_omega
    use shr_const_mod,  only: shr_const_cpvir
    use shr_const_mod,  only: shr_const_tktrip
@@ -61,7 +60,6 @@ module physconst
    real(kind_phys), public, parameter :: lapse_rate  = 0.0065_kind_phys                      ! reference lapse rate (K m-1)
    real(kind_phys), public, parameter :: r_universal = real(shr_const_rgas, kind_phys)       ! Universal gas constant (J K-1 kmol-1)
    real(kind_phys), public, parameter :: rhoh2o      = real(shr_const_rhofw, kind_phys)      ! Density of liquid water at STP (kg m-3)
-   real(kind_phys), public, parameter :: spval       = real(shr_const_spval, kind_phys)      !special value
    real(kind_phys), public, parameter :: stebol      = real(shr_const_stebol, kind_phys)     ! Stefan-Boltzmann's constant (W m-2 K-4)
    real(kind_phys), public, parameter :: h2otrip     = real(shr_const_tktrip, kind_phys)     ! Triple point temperature of water (K)
 
@@ -93,18 +91,18 @@ module physconst
 
    !-----  Variables below here are derived from those above -----------------
 
-   real(kind_phys), public, protected :: rga        = 1._kind_phys/real(shr_const_g, kind_phys)         ! reciprocal of gravit (s2 m-1)
-   real(kind_phys), public, protected :: ra         = 1._kind_phys/real(shr_const_rearth, kind_phys)    ! reciprocal of earth radius (m-1)
-   real(kind_phys), public, protected :: omega      = real(shr_const_omega, kind_phys)                  ! earth rot (rad sec-1)
-   real(kind_phys), public, protected :: rh2o       = real(shr_const_rwv, kind_phys)                    ! Water vapor gas constant (J K-1 kg-1)
-   real(kind_phys), public, protected :: rair       = real(shr_const_rdair, kind_phys)                  ! Dry air gas constant     (J K-1 kg-1)
-   real(kind_phys), public, protected :: epsilo     = real(shr_const_mwwv/shr_const_mwdair, kind_phys)  ! ratio of h2o to dry air molecular weights
-   real(kind_phys), public, protected :: zvir       = real(shr_const_zvir, kind_phys)                   ! (rh2o/rair) - 1
-   real(kind_phys), public, protected :: cpvir      = real(shr_const_cpvir, kind_phys)                  ! CPWV/CPDAIR - 1.0
-   real(kind_phys), public, protected :: rhodair    = real(shr_const_rhodair, kind_phys)                ! density of dry air at STP (kg m-3)
-   real(kind_phys), public, protected :: cappa      = real((shr_const_rgas/shr_const_mwdair)/shr_const_cpdair, kind_phys)  ! R/Cp
+   real(kind_phys), public, protected :: rga          = 1._kind_phys/real(shr_const_g, kind_phys)         ! reciprocal of gravit (s2 m-1)
+   real(kind_phys), public, protected :: rearth_recip = 1._kind_phys/real(shr_const_rearth, kind_phys)    ! reciprocal of earth radius (m-1)
+   real(kind_phys), public, protected :: omega        = real(shr_const_omega, kind_phys)                  ! earth rot (rad sec-1)
+   real(kind_phys), public, protected :: rh2o         = real(shr_const_rwv, kind_phys)                    ! Water vapor gas constant (J K-1 kg-1)
+   real(kind_phys), public, protected :: rair         = real(shr_const_rdair, kind_phys)                  ! Dry air gas constant     (J K-1 kg-1)
+   real(kind_phys), public, protected :: epsilo       = real(shr_const_mwwv/shr_const_mwdair, kind_phys)  ! ratio of h2o to dry air molecular weights
+   real(kind_phys), public, protected :: zvir         = real(shr_const_zvir, kind_phys)                   ! (rh2o/rair) - 1
+   real(kind_phys), public, protected :: cpvir        = real(shr_const_cpvir, kind_phys)                  ! CPWV/CPDAIR - 1.0
+   real(kind_phys), public, protected :: rhodair      = real(shr_const_rhodair, kind_phys)                ! density of dry air at STP (kg m-3)
+   real(kind_phys), public, protected :: cappa        = real((shr_const_rgas/shr_const_mwdair)/shr_const_cpdair, kind_phys)  ! R/Cp
    real(kind_phys), public, protected :: ez                                                             ! Coriolis expansion coeff -> omega/sqrt(0.375)
-   real(kind_phys), public, protected :: Cpd_on_Cpv = real(shr_const_cpdair/shr_const_cpwv, kind_phys)
+   real(kind_phys), public, protected :: Cpd_on_Cpv   = real(shr_const_cpdair/shr_const_cpwv, kind_phys)
 
 !==============================================================================
 CONTAINS
@@ -254,7 +252,7 @@ CONTAINS
             write(iulog,*) banner
          end if
          rga = 1._kind_phys / gravit
-         ra  = 1._kind_phys / rearth
+         rearth_recip  = 1._kind_phys / rearth
          if (.not. newomega) then
             omega = 2.0_kind_phys * pi / sday
          end if

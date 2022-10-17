@@ -4,6 +4,7 @@
 
 <!-- Physconst Namelist Variables -->
 <!-- the following namelist variables do not have default values since the defaults are pulled from shr_cnst_mod in the code -->
+<!-- Using a value of 0.0 results in the model using the internal default value -->
   <entry id="user_defined_gravit">
     <type>real</type>
     <category>physconst</category>

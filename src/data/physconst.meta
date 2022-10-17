@@ -104,12 +104,6 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ spval ]
-  standard_name = special_missing_value
-  units = 1
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
 [ stebol ]
   standard_name = stefan_boltzmanns_constant
   units = W m-2 K-4
@@ -153,13 +147,13 @@
   dimensions = ()
   protected = True
 [ mwf11 ]
-  standard_name = molecular_weight_of_f11
+  standard_name = molecular_weight_of_cfc11
   units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwf12 ]
-  standard_name = molecular_weight_of_f12
+  standard_name = molecular_weight_of_cfc12
   units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
@@ -200,6 +194,18 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
+[ mwh2o ]
+  standard_name = molecular_weight_of_h2o
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True
+[ mwdry ]
+  standard_name = molecular_weight_of_dry_air
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True
 [ gravit ]
   standard_name = gravitational_acceleration
   units = m s-2
@@ -212,21 +218,9 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ mwh2o ]
-  standard_name = molecular_weight_of_h2o
-  units = g mol-1
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
 [ cpwv ]
   standard_name = specific_heat_of_water_vapor_at_constant_pressure
   units = J kg-1 K-1
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ mwdry ]
-  standard_name = molecular_weight_of_dry_air
-  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -254,7 +248,7 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ ra ]
+[ rearth_recip ]
   standard_name = reciprocal_of_radius_of_earth
   units = m-1
   type = real | kind = kind_phys
@@ -298,7 +292,7 @@
   dimensions = ()
   protected = True
 [ rhodair ]
-  standard_name = density_of_dry_air_at_stp_constant
+  standard_name = density_of_dry_air_at_stp
   units = kg m-3
   type = real | kind = kind_phys
   dimensions = ()

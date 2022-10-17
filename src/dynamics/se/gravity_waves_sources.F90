@@ -126,17 +126,17 @@ CONTAINS
   !  to prevent repeated allocation/initialization
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    use physconst,      only: cappa
-    use air_composition,only: dry_air_species_num,thermodynamic_active_species_num
-    use air_composition,only: thermodynamic_active_species_idx_dycore
-    use dyn_grid,       only: hvcoord
+    use physconst,       only: cappa
+    use air_composition, only: dry_air_species_num,thermodynamic_active_species_num
+    use air_composition, only: thermodynamic_active_species_idx_dycore
+    use dyn_grid,        only: hvcoord
 
     !SE dycore:
-    use derivative_mod, only: gradient_sphere, ugradv_sphere
-    use edge_mod,       only: edgevpack, edgevunpack
-    use bndry_mod,      only: bndry_exchange
-    use dimensions_mod, only: fv_nphys,ntrac
-    use fvm_mapping,    only: dyn2phys_vector,dyn2phys
+    use derivative_mod,  only: gradient_sphere, ugradv_sphere
+    use edge_mod,        only: edgevpack, edgevunpack
+    use bndry_mod,       only: bndry_exchange
+    use dimensions_mod,  only: fv_nphys,ntrac
+    use fvm_mapping,     only: dyn2phys_vector,dyn2phys
 
     type(hybrid_t),     intent(in)            :: hybrid
     type(element_t),    intent(inout), target :: elem(:)

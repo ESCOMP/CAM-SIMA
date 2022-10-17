@@ -1,12 +1,13 @@
 module runtime_obj
 
    use shr_kind_mod, only: CS => SHR_KIND_CS
-
+   use shr_kind_mod, only: r8=>shr_kind_r8
    implicit none
    private
 
-   character(len=*), public, parameter :: unset_str = 'UNSET'
-   integer,          public, parameter :: unset_int = huge(1)
+   character(len=*), public, parameter :: unset_str    = 'UNSET'
+   integer,          public, parameter :: unset_int    = huge(1)
+   real(r8),         public, parameter :: unset_real   = huge(1.0_r8)
 
    ! Public interfaces and data
 
