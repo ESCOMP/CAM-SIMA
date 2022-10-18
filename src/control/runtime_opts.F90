@@ -36,6 +36,7 @@ contains
 
 !      use scamMod,             only: scam_readnl
       use physconst,           only: physconst_readnl
+      use air_composition,     only: air_composition_readnl
       use phys_comp,           only: phys_readnl, phys_suite_name
       use vert_coord,          only: vert_coord_readnl
       use ref_pres,            only: ref_pres_readnl
@@ -89,6 +90,7 @@ contains
       call cam_logfile_readnl(nlfilename)
 !      call physics_grid_readnl(nlfilename)
       call physconst_readnl(nlfilename)
+      call air_composition_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
       call cnst_readnl(nlfilename)
 !      call history_readnl(nlfilename)

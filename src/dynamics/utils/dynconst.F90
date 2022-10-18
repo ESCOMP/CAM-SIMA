@@ -53,7 +53,7 @@ CONTAINS
       !real kind used by the dynamics itself.
 
       use physconst, only: phys_rearth=>rearth
-      use physconst, only: phys_ra=>ra
+      use physconst, only: phys_ra=>rearth_recip
       use physconst, only: phys_omega=>omega
       use physconst, only: phys_cpair=>cpair
       use physconst, only: phys_gravit=>gravit

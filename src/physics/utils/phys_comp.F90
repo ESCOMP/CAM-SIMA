@@ -134,7 +134,7 @@ CONTAINS
       use camsrfexch,     only: cam_out_t
       use physics_grid,   only: columns_on_task
       use vert_coord,     only: pver, pverp
-      use physconst,      only: physconst_init
+      use cam_thermo,     only: cam_thermo_init
       use physics_types,  only: allocate_physics_types_fields
       use constituents,   only: pcnst
       use cam_ccpp_cap,   only: cam_ccpp_physics_initialize
@@ -152,7 +152,7 @@ CONTAINS
       integer                    :: errcode
 
       errcode = 0
-      call physconst_init(columns_on_task, pver, pverp)
+      call cam_thermo_init(columns_on_task, pver, pverp)
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            pcnst, set_init_val_in=.true., reallocate_in=.false.)

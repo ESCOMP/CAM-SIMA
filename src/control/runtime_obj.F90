@@ -1,12 +1,13 @@
 module runtime_obj
 
    use shr_kind_mod, only: CS => SHR_KIND_CS
-
+   use shr_kind_mod, only: r8=>shr_kind_r8
    implicit none
    private
 
-   character(len=*), public, parameter :: unset_str = 'UNSET'
-   integer,          public, parameter :: unset_int = huge(1)
+   character(len=*), public, parameter :: unset_str    = 'UNSET'
+   integer,          public, parameter :: unset_int    = huge(1)
+   real(r8),         public, parameter :: unset_real   = huge(1.0_r8)
 
    ! Public interfaces and data
 
@@ -20,12 +21,15 @@ module runtime_obj
       logical,           private :: use_gw_front = .false.
       ! use_gw_front_igw: Frontogenesis to inertial spectrum.
       logical,           private :: use_gw_front_igw = .false.
+      ! update_thermo_variables: update thermo "constants" to composition-dependent thermo variables
+      logical,           private :: update_thermo_variables = .false.
    contains
       procedure, public :: physics_suite
       procedure, public :: waccmx_on
       procedure, public :: waccmx_option
       procedure, public :: gw_front
       procedure, public :: gw_front_igw
+      procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
    type(runtime_options), public, protected :: cam_runtime_opts
@@ -71,6 +75,13 @@ CONTAINS
 
    end function gw_front_igw
 
+   logical function update_thermodynamic_variables(self)
+      class(runtime_options), intent(in) :: self
+
+      update_thermodynamic_variables = self%update_thermo_variables
+
+   end function update_thermodynamic_variables
+
    subroutine cam_set_runtime_opts(phys_suite, waccmx_opt,                    &
         gw_front, gw_front_igw)
       use cam_abortutils, only: endrun
@@ -89,6 +100,8 @@ CONTAINS
       cam_runtime_opts%waccmx_opt = trim(waccmx_opt)
       cam_runtime_opts%use_gw_front = gw_front
       cam_runtime_opts%use_gw_front_igw = gw_front_igw
+      cam_runtime_opts%update_thermo_variables = (trim(waccmx_opt) == 'ionosphere' .or. &
+            trim(waccmx_opt) == 'neutral')
 
       runtime_configured = .true.
 

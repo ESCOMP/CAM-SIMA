@@ -32,20 +32,20 @@
   dimensions = ()
   protected = True
 [ cpice ]
-  standard_name =
-  units = enter units
+  standard_name = specific_heat_of_fresh_ice
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ karman ]
-  standard_name = enter_standard_name_6
-  units = enter units
+  standard_name = von_karman_constant
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ latice ]
-  standard_name = enter_standard_name_7
-  units = enter units
+  standard_name = latent_heat_of_fusion_of_water_at_0c
+  units = J kg-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -56,8 +56,8 @@
   dimensions = ()
   protected = True
 [ pi ]
-  standard_name = enter_standard_name_9
-  units = enter units
+  standard_name = pi_constant
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -80,20 +80,20 @@
   dimensions = ()
   protected = True
 [ tref ]
-  standard_name = enter_standard_name_11
-  units = enter units
+  standard_name = reference_temperature_at_sea_level
+  units = K
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ lapse_rate ]
-  standard_name = enter_standard_name_12
-  units = enter units
+  standard_name = reference_temperature_lapse_rate
+  units = K m-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ r_universal ]
-  standard_name = enter_standard_name_13
-  units = enter units
+  standard_name = universal_gas_constant
+  units = J K-1 kmol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -104,99 +104,105 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ spval ]
-  standard_name = enter_standard_name_15
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
 [ stebol ]
-  standard_name = enter_standard_name_16
-  units = enter units
+  standard_name = stefan_boltzmanns_constant
+  units = W m-2 K-4
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ h2otrip ]
-  standard_name = enter_standard_name_17
-  units = enter units
+  standard_name = triple_point_temperature_of_water
+  units = K
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ c0 ]
-  standard_name = enter_standard_name_18
-  units = enter units
+  standard_name = speed_of_light_in_vacuum
+  units = m s-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ planck ]
-  standard_name = enter_standard_name_19
-  units = enter units
+  standard_name = plancks_constant
+  units = J s
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwco2 ]
-  standard_name = enter_standard_name_20
-  units = enter units
+  standard_name = molecular_weight_of_co2
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwn2o ]
-  standard_name = enter_standard_name_21
-  units = enter units
+  standard_name = molecular_weight_of_n2o
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwch4 ]
-  standard_name = enter_standard_name_22
-  units = enter units
+  standard_name = molecular_weight_of_ch4
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwf11 ]
-  standard_name = enter_standard_name_23
-  units = enter units
+  standard_name = molecular_weight_of_cfc11
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwf12 ]
-  standard_name = enter_standard_name_24
-  units = enter units
+  standard_name = molecular_weight_of_cfc12
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwo3 ]
-  standard_name = enter_standard_name_25
-  units = enter units
+  standard_name = molecular_weight_of_o3
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwso2 ]
-  standard_name = enter_standard_name_26
-  units = enter units
+  standard_name = molecular_weight_of_so2
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwso4 ]
-  standard_name = enter_standard_name_27
-  units = enter units
+  standard_name = molecular_weight_of_so4
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwh2o2 ]
-  standard_name = enter_standard_name_28
-  units = enter units
+  standard_name = molecular_weight_of_h2o2
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwdms ]
-  standard_name = enter_standard_name_29
-  units = enter units
+  standard_name = molecular_weight_of_dms
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ mwnh4 ]
-  standard_name = enter_standard_name_30
-  units = enter units
+  standard_name = molecular_weight_of_nh4
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True
+[ mwh2o ]
+  standard_name = molecular_weight_of_h2o
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True
+[ mwdry ]
+  standard_name = molecular_weight_of_dry_air
+  units = g mol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -207,26 +213,14 @@
   dimensions = ()
   protected = True
 [ sday ]
-  standard_name = enter_standard_name_32
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ mwh2o ]
-  standard_name = enter_standard_name_33
-  units = enter units
+  standard_name = seconds_in_sidereal_day
+  units = s
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ cpwv ]
-  standard_name = enter_standard_name_34
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ mwdry ]
-  standard_name = enter_standard_name_35
-  units = enter units
+  standard_name = specific_heat_of_water_vapor_at_constant_pressure
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -237,38 +231,38 @@
   dimensions = ()
   protected = True
 [ rearth ]
-  standard_name = enter_standard_name_37
-  units = enter units
+  standard_name = radius_of_earth
+  units = m
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ tmelt ]
-  standard_name = enter_standard_name_38
-  units = enter units
+  standard_name = freezing_point_of_water
+  units = K
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ rga ]
-  standard_name = enter_standard_name_39
-  units = enter units
+  standard_name = reciprocal_of_gravitational_acceleration
+  units = s2 m-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ ra ]
-  standard_name = enter_standard_name_40
-  units = enter units
+[ rearth_recip ]
+  standard_name = reciprocal_of_radius_of_earth
+  units = m-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ omega ]
-  standard_name = enter_standard_name_41
-  units = enter units
+  standard_name = angular_velocity_of_earth_rotation
+  units = rad s-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ rh2o ]
-  standard_name = enter_standard_name_42
-  units = enter units
+  standard_name = gas_constant_of_water_vapor
+  units = J kg-1 K-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -280,8 +274,8 @@
   dimensions = ()
   protected = True
 [ epsilo ]
-  standard_name = enter_standard_name_44
-  units = enter units
+  standard_name = ratio_of_h2o_to_dry_air_molecular_weights
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -292,14 +286,14 @@
   dimensions = ()
   protected = True
 [ cpvir ]
-  standard_name = enter_standard_name_46
-  units = enter units
+  standard_name = ratio_of_specific_heat_of_water_vapor_to_specific_heat_of_dry_air
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ rhodair ]
-  standard_name = enter_standard_name_47
-  units = enter units
+  standard_name = density_of_dry_air_at_stp
+  units = kg m-3
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
@@ -310,98 +304,14 @@
   dimensions = ()
   protected = True
 [ ez ]
-  standard_name = enter_standard_name_49
-  units = enter units
+  standard_name = coriolis_expansion_coefficient
+  units = 1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ Cpd_on_Cpv ]
-  standard_name = enter_standard_name_50
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ cpairv ]
-  standard_name = composition_dependent_specific_heat_of_dry_air_at_constant_pressure
-  units = J kg-1 K-1
-  type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_layer_dimension)
-  protected = True
-[ rairv ]
-  standard_name = composition_dependent_gas_constant_of_dry_air
-  units = J kg-1 K-1
-  type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_layer_dimension)
-  protected = True
-[ cappav ]
-  standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants
+  standard_name = ratio_of_specific_heat_of_dry_air_to_specific_heat_of_water_vapor
   units = 1
   type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_layer_dimension)
-  protected = True
-[ mbarv ]
-  standard_name = enter_standard_name_54
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_layer_dimension)
-  protected = True
-[ zvirv ]
-  standard_name = composition_dependent_ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
-  units = 1
-  type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_layer_dimension)
-  protected = True
-[ kmvis ]
-  standard_name = enter_standard_name_55
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_interface_dimension)
-  protected = True
-[ kmcnd ]
-  standard_name = enter_standard_name_56
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_interface_dimension)
-  protected = True
-[ o2_mwi ]
-  standard_name = enter_standard_name_57
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ o_mwi ]
-  standard_name = enter_standard_name_58
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ h_mwi ]
-  standard_name = enter_standard_name_59
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ n2_mwi ]
-  standard_name = enter_standard_name_60
-  units = enter units
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ o2_ndx ]
-  standard_name = enter_standard_name_61
-  units = enter units
-  type = integer
-  dimensions = ()
-  protected = True
-[ o_ndx ]
-  standard_name = enter_standard_name_62
-  units = enter units
-  type = integer
-  dimensions = ()
-  protected = True
-[ h_ndx ]
-  standard_name = enter_standard_name_63
-  units = enter units
-  type = integer
   dimensions = ()
   protected = True

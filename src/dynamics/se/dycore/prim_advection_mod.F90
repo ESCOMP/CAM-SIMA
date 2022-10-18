@@ -951,18 +951,20 @@ contains
     ! map temperature (either by mapping thermal energy or virtual temperature over log(p)
     ! (controlled by vert_remap_uvTq_alg > -20 or <= -20)
     !
-    use hybvcoord_mod, only          : hvcoord_t
-    use vertremap_mod,          only : remap1
-    use hybrid_mod            , only : hybrid_t, config_thread_region,get_loop_ranges, PrintHybrid
-    use fvm_control_volume_mod, only : fvm_struct
-    use dimensions_mod        , only : ntrac
-    use dimensions_mod,         only : lcp_moist, kord_tr,kord_tr_cslam
-    use cam_logfile,            only : iulog
-    use dynconst              , only : pi
-    use dyn_thermo            , only : get_thermal_energy, get_dp, get_virtual_temp
-    use physconst             , only : thermodynamic_active_species_idx_dycore
-    use thread_mod            , only : omp_set_nested
-    use control_mod,             only: vert_remap_uvTq_alg
+    use hybvcoord_mod         , only: hvcoord_t
+    use vertremap_mod         , only: remap1
+    use hybrid_mod            , only: hybrid_t, config_thread_region,get_loop_ranges, PrintHybrid
+    use fvm_control_volume_mod, only: fvm_struct
+    use dimensions_mod        , only: ntrac
+    use dimensions_mod        , only: lcp_moist, kord_tr,kord_tr_cslam
+    use cam_logfile           , only: iulog
+    use dynconst              , only: pi
+    use dyn_thermo            , only: get_enthalpy, get_dp, get_virtual_temp
+    use cam_thermo            , only: MASS_MIXING_RATIO
+    use air_composition       , only: thermodynamic_active_species_idx_dycore
+    use thread_mod            , only: omp_set_nested
+    use control_mod           , only: vert_remap_uvTq_alg
+
     type (hybrid_t),  intent(in)    :: hybrid  ! distributed parallel structure (shared)
     type(fvm_struct), intent(inout) :: fvm(:)
     type (element_t), intent(inout) :: elem(:)
@@ -992,7 +994,7 @@ contains
           ! compute internal energy on Lagrangian levels
           ! (do it here since qdp is overwritten by remap1)
           !
-          call get_thermal_energy(1,np,1,np,1,nlev,qsize,elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
+          call get_enthalpy(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
                elem(ie)%state%t(:,:,:,np1),elem(ie)%state%dp3d(:,:,:,np1),internal_energy_star,     &
                active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
         end if
@@ -1000,7 +1002,7 @@ contains
         !
         ! map Tv over log(p) following FV and FV3
         !
-        call get_virtual_temp(1,np,1,np,1,nlev,qsize,elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
+        call get_virtual_temp(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
              internal_energy_star,dp_dry=elem(ie)%state%dp3d(:,:,:,np1),                        &
              active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
         internal_energy_star = internal_energy_star*elem(ie)%state%t(:,:,:,np1)
@@ -1020,7 +1022,7 @@ contains
         elem(ie)%state%dp3d(:,:,k,np1) = dp_dry(:,:,k)
       enddo
       !
-      call get_dp(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),2,&
+      call get_dp(elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),MASS_MIXING_RATIO,&
          thermodynamic_active_species_idx_dycore,dp_star_dry,dp_star_moist(:,:,:))
       !
       ! Check if Lagrangian leves have crossed
@@ -1048,7 +1050,7 @@ contains
       !
       ! compute moist reference pressure level thickness
       !
-      call get_dp(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),2,&
+      call get_dp(elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),MASS_MIXING_RATIO,&
            thermodynamic_active_species_idx_dycore,dp_dry,dp_moist(:,:,:))
 
       !
@@ -1064,7 +1066,7 @@ contains
           ! compute sum c^(l)_p*m^(l)*dp on arrival (Eulerian) grid
           !
           ttmp(:,:,:,1) = 1.0_r8
-          call get_thermal_energy(1,np,1,np,1,nlev,qsize,elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp),   &
+          call get_enthalpy(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp),   &
                ttmp(:,:,:,1),dp_dry,ttmp(:,:,:,2), &
                active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
           elem(ie)%state%t(:,:,:,np1)=internal_energy_star/ttmp(:,:,:,2)
@@ -1078,7 +1080,7 @@ contains
         ! map Tv over log(p); following FV and FV3
         !
         call remap1(internal_energy_star,np,1,1,1,dp_star_moist,dp_moist,ptop,1,.false.,kord_uvT)
-        call get_virtual_temp(1,np,1,np,1,nlev,qsize,elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
+        call get_virtual_temp(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
              ttmp(:,:,:,1),dp_dry=dp_dry,                                                       &
              active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
         !

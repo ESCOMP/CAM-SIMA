@@ -345,11 +345,13 @@ class ConfigCAM:
             # Set paths for the SE dycore and "air composition"
             # namelist definition files:
             se_dyn_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "dynamics", "se")
-            air_comp_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
+            data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
 
             #Add NML definition files to dictionary:
             self._add_xml_nml_file(se_dyn_nml_path, "namelist_definition_se_dycore.xml")
-            self._add_xml_nml_file(air_comp_nml_path, "namelist_definition_air_comp.xml")
+            self._add_xml_nml_file(data_nml_path, "namelist_definition_air_comp.xml")
+            self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
+            self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
 
             # Add required CPP definitons:
             self.add_cppdef("_MPI")

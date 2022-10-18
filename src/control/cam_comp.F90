@@ -79,7 +79,7 @@ CONTAINS
       use cam_instance,         only: inst_suffix
 !      use history_defaults,     only: initialize_iop_history
       use stepon,               only: stepon_init
-      use physconst,            only: composition_init
+      use air_composition,      only: air_composition_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -157,7 +157,7 @@ CONTAINS
       call model_grid_init()
 
       ! Initialize composition-dependent constants:
-      call composition_init()
+      call air_composition_init()
 
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init

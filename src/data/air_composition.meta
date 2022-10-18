@@ -1,0 +1,61 @@
+[ccpp-table-properties]
+  name = air_composition
+  type = module
+[ccpp-arg-table]
+  name  = air_composition
+  type  = module
+[ mmro2 ]
+  standard_name = molecular_oxygen_mixing_ratio_wrt_dry_air
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ mmrn2 ]
+  standard_name = molecular_nitrogen_mixing_ratio_wrt_dry_air
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ o2_mwi ]
+  standard_name = inverse_molecular_oxygen_weight
+  units = mol g-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ n2_mwi ]
+  standard_name = inverse_molecular_nitrogen_weight
+  units = mol g-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ mbar ]
+  standard_name = mean_molecular_dry_air_weight
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ cpairv ]
+  standard_name = composition_dependent_specific_heat_of_dry_air_at_constant_pressure
+  units = J kg-1 K-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ rairv ]
+  standard_name = composition_dependent_gas_constant_of_dry_air
+  units = J kg-1 K-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ cappav ]
+  standard_name = composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ mbarv ]
+  standard_name = composition_dependent_mean_molecular_dry_air_weight_at_mid_level
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True
+[ zvirv ]
+  standard_name = composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  protected = True

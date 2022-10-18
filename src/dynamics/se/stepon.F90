@@ -184,8 +184,8 @@ subroutine diag_dynvar_ic(elem, fvm)
    !use constituents,           only: cnst_type, cnst_name
    !use cam_history,            only: write_inithist, outfld, hist_fld_active, fieldname_len
    use dyn_grid,               only: TimeLevel
-   use physconst,              only: thermodynamic_active_species_idx
-   use physconst,              only: thermodynamic_active_species_idx_dycore
+   use air_composition,        only: thermodynamic_active_species_idx
+   use air_composition,        only: thermodynamic_active_species_idx_dycore
    use dyn_thermo,             only: get_sum_species, get_ps, get_dp_ref
    use hycoef,                 only: hyai, hybi, ps0
    use cam_abortutils,         only: endrun, check_allocate
@@ -296,7 +296,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    if (hist_fld_active('dp_ref_gll')) then
      do ie = 1, nelemd
-       call get_dp_ref(hyai,hybi,ps0,1,np,1,np,1,nlev,elem(ie)%state%phis(:,:),dp_ref(:,:,:),ps_ref(:,:))
+       call get_dp_ref(hyai,hybi,ps0,elem(ie)%state%phis(:,:),dp_ref(:,:,:),ps_ref(:,:))
          do j = 1, np
             do i = 1, np
                ftmp(i+(j-1)*np,:,1) = elem(ie)%state%dp3d(i,j,:,tl_f)/dp_ref(i,j,:)
@@ -323,7 +323,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                        file=__FILE__, line=__LINE__)
 
      do ie = 1, nelemd
-       call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
+       call get_ps(elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
             thermodynamic_active_species_idx_dycore,elem(ie)%state%dp3d(:,:,:,tl_f),fld_2d,hyai(1)*ps0)
          do j = 1, np
             do i = 1, np
@@ -351,7 +351,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                        file=__FILE__, line=__LINE__)
 
      do ie = 1, nelemd
-       call get_ps(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
+       call get_ps(elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
             thermodynamic_active_species_idx_dycore,elem(ie)%state%dp3d(:,:,:,tl_f),fld_2d,hyai(1)*ps0)
        do j = 1, np
          do i = 1, np
@@ -377,7 +377,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 !REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
 #if 0
          if (fv_nphys < 1) then
-            call get_sum_species(1,np,1,np,1,nlev,qsize,elem(ie)%state%Qdp(:,:,:,:,tl_qdp), &
+            call get_sum_species(elem(ie)%state%Qdp(:,:,:,:,tl_qdp), &
                thermodynamic_active_species_idx_dycore, factor_array,dp_dry=elem(ie)%state%dp3d(:,:,:,tl_f))
             factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
             do m_cnst = 1, qsize
@@ -426,7 +426,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 #if 0
 
          do ie = nets, nete
-           call get_sum_species(1,nc,1,nc,1,nlev,ntrac,fvm(ie)%c(1:nc,1:nc,:,:),thermodynamic_active_species_idx,factor_array)
+           call get_sum_species(fvm(ie)%c(1:nc,1:nc,:,:),thermodynamic_active_species_idx,factor_array)
            factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
            do m_cnst = 1, ntrac
              if (cnst_type(m_cnst) == 'wet') then

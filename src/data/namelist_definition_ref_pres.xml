@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+
+<entry_id_pg version="0.1">
+
+<!-- Reference Pressure Namelist Variables -->
+  <entry id="trop_cloud_top_press">
+    <type>real</type>
+    <category>press_lim</category>
+    <group>ref_pres_nl</group>
+    <desc>
+      Troposphere cloud physics will be done only below the top defined
+      by this pressure (Pa).
+    </desc>
+    <values>
+      <value>1.D2</value>
+    </values>
+  </entry>
+  <entry id="clim_modal_aero_top_press">
+    <type>real</type>
+    <category>press_lim</category>
+    <group>ref_pres_nl</group>
+    <desc>
+      MAM affects climate only below the top defined by this pressure (Pa).
+    </desc>
+    <values>
+      <value>1.D-4</value>
+    </values>
+  </entry>
+  <entry id="do_molec_press">
+    <type>real</type>
+    <category>press_lim</category>
+    <group>ref_pres_nl</group>
+    <desc>
+      Molecular diffusion will be done only if the lowest pressure is
+      below this limit (Pa).
+    </desc>
+    <values>
+      <value>0.1D0</value>
+    </values>
+  </entry>
+  <entry id="molec_diff_bot_press">
+    <type>real</type>
+    <category>press_lim</category>
+    <group>ref_pres_nl</group>
+    <desc>
+      The level closest to this pressure (Pa) is the bottom of the region
+      where molecular diffusion is done.
+    </desc>
+    <values>
+      <value>50.D0</value>
+    </values>
+  </entry>
+
+</entry_id_pg>
