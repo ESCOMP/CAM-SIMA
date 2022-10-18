@@ -21,7 +21,7 @@
   dimensions = ()
 [ n2_mwi ]
   standard_name = inverse_molecular_nitrogen_weight
-  units = mold g-1
+  units = mol g-1
   type = real | kind = kind_phys
   dimensions = ()
 [ mbar ]
