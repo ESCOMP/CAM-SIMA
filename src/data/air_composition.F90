@@ -233,7 +233,7 @@ CONTAINS
       use spmd_utils,   only: masterproc
       use cam_logfile,  only: iulog
       use physconst,    only: r_universal, cpair, rair, cpwv, rh2o, cpliq, cpice, mwdry, zvir, mwh2o
-      use physics_types,only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled - PEVERWHEE
+      use physics_types,only: ix_qv, ix_cld_liq, ix_rain !!XXgoldyXXRemove once constituents are enabled
       use physics_grid, only: pcols => columns_on_task
       use vert_coord,   only: pver
 
@@ -351,7 +351,7 @@ CONTAINS
          !    others and constants associated with it are initialized here
          !
          if (TRIM(dry_air_species(dry_air_species_num + 1)) == 'N2') then
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
 #if 0
             call air_species_info('N', ix, mw)
             mw = 2.0_kind_phys * mw
@@ -363,7 +363,7 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
 #endif
-! Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! if last major species is not N2 then add code here
             !
@@ -395,7 +395,7 @@ CONTAINS
             ! O
             !
          case('O_mixing_ratio_wrt_dry_air')
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
 #if 0
             call air_species_info('O', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
@@ -407,12 +407,12 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
 #endif
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! O2
             !
          case('O2_mixing_ratio_wrt_dry_air')
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
 #if 0
             call air_species_info('O2', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
@@ -424,12 +424,12 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
 #endif
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! H
             !
          case('H_mixing_ratio_wrt_dry_air')
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
 #if 0
             call air_species_info('H', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
@@ -442,7 +442,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
 #endif
-!Un-comment once constituents are enabled - PEVERWHEE
+!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! If support for more major species is to be included add code here
             !
@@ -486,7 +486,7 @@ CONTAINS
             ! Q
             !
          case('water_vapor_specific_humidity')
-!            call air_species_info('Q', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+!            call air_species_info('Q', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = ix_qv ! this should be removed once constituents are enabled
             mw = mwh2o !this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
@@ -498,7 +498,7 @@ CONTAINS
             ! CLDLIQ
             !
          case('cloud_liquid_water_mixing_ratio_of_moist_air')
-!            call air_species_info('CLDLIQ', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
+!            call air_species_info('CLDLIQ', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = ix_cld_liq ! this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
@@ -511,8 +511,8 @@ CONTAINS
             ! CLDICE
             !
          case('cloud_ice_mixing_ratio_of_moist_air')
-!            call air_species_info('CLDICE', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
-            ix = -1 !Model should die if it gets here, until constituents are enabled - PEVERWHEE
+!            call air_species_info('CLDICE', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
+            ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -524,8 +524,8 @@ CONTAINS
             ! RAINQM
             !
          case('rain_water_mixing_ratio')
-!            call air_species_info('RAINQM', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
-            ix = ix_rain ! this should be removed once constituents are enabled - PEVERWHEE
+!            call air_species_info('RAINQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
+            ix = ix_rain !!XXgoldyXX: this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -537,8 +537,8 @@ CONTAINS
             ! SNOWQM
             !
          case('snow_water_mixing_ratio')
-!            call air_species_info('SNOWQM', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
-            ix = -1 !Model should die if it gets here, until constituents are enabled - PEVERWHEE
+!            call air_species_info('SNOWQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
+            ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -550,8 +550,8 @@ CONTAINS
             ! GRAUQM
             !
          case('graupel_mixing_ratio')
-!            call air_species_info('GRAUQM', ix, mw) ! this should be uncommented once constituents are enabled - PEVERWHEE
-            ix = -1 !Model should die if it gets here, until constituents are enabled - PEVERWHEE
+!            call air_species_info('GRAUQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
+            ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -1139,9 +1139,9 @@ CONTAINS
       ! Local parameter
       character(len=*), parameter :: subname = 'air_species_info: '
 
-      ! vv commented out until we get constituents figured out - PEVERWHEE
+      !!XXgoldyXX: vv commented out until we get constituents figured out
       !call cnst_get_ind(trim(name), index, abort=.false.)
-      ! ^^ commented out until we get constituents figured out - PEVERWHEE
+      !!XXgoldyXX^^ commented out until we get constituents figured out
       if (index < 1) then
          if (present(caller)) then
             write(iulog, *) trim(caller), ": air component not found, '", &
@@ -1155,9 +1155,9 @@ CONTAINS
                  trim(name)//"'")
          end if
       else
-      ! vv commented out until we get constituents figured out - PEVERWHEE
+      !!XXgoldyXX vv commented out until we get constituents figured out
       !   molec_weight = cnst_mw(index)
-      ! ^^ commented out until we get constituents figured out - PEVERWHEE
+      !!XXgoldyXX ^^ commented out until we get constituents figured out
       end if
 
    end subroutine air_species_info
