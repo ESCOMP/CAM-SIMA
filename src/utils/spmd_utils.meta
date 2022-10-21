@@ -7,19 +7,31 @@
   type  = module
 [ mpicom ]
   standard_name = mpi_communicator
-  units = None
+  units = idex
   type = integer
   dimensions = ()
   protected = True
 [ masterprocid ]
   standard_name = mpi_root
-  units = None
+  units = index
   type = integer
   dimensions = ()
   protected = True
 [ masterproc ]
-  standard_name = flag_for_mpi_root
+  standard_name = is_mpi_root
   units = flag
   type = logical
+  dimensions = ()
+  protected = True
+[ iam ]
+  standard_name = mpi_rank
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True
+[ npes ]
+  standard_name = number_of_mpi_tasks
+  units = count
+  type = integer
   dimensions = ()
   protected = True

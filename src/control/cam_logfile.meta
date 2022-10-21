@@ -1,0 +1,19 @@
+[ccpp-table-properties]
+  name = cam_logfile
+  type = module
+
+[ccpp-arg-table]
+  name  = cam_logfile
+  type  = module
+[ iulog ]
+  standard_name = log_output_unit
+  units = None
+  type = integer
+  dimensions = ()
+  protected = True
+[ log_output ]
+  standard_name = do_log_output
+  units = flag
+  type = logical
+  dimensions = ()
+  protected = True

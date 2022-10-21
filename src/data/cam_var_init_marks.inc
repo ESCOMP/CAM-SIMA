@@ -102,7 +102,7 @@
 
    end function is_initialized
 
-   logical function is_read_from_file(varname, stdnam_idx_out)
+   subroutine is_read_from_file(varname, is_read, stdnam_idx_out)
 
       ! This function checks if the variable, <varname>, is read from
       !    file according to the 'initialized_vars' array.
@@ -111,6 +111,7 @@
 
       ! Dummy arguments
       character(len=*),  intent(in)  :: varname ! Variable name being checked
+      logical,           intent(out) :: is_read ! Set to .true. if from file
       integer, optional, intent(out) :: stdnam_idx_out
 
       ! Local variables
@@ -119,18 +120,28 @@
       logical                     :: found      ! Check that <varname> was found
       character(len=*), parameter :: subname = 'is_read_from_file: '
 
-      is_read_from_file = .false.
+      is_read = .false.
       found = .false.
 
       ! Return .true. if the variable's status is READ_FROM_FILE:
       do stdnam_idx = 1, phys_var_num
          if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
-            is_read_from_file = (initialized_vars(stdnam_idx) == READ_FROM_FILE)
+            is_read = (initialized_vars(stdnam_idx) == READ_FROM_FILE)
             ! Mark as found:
             found = .true.
             exit ! Exit loop once variable has been found and checked
          end if
       end do
+
+      if (.not. found) then
+         ! Check to see if this is an internally-protected variable
+         do stdnam_idx = 1, phys_const_num
+            if (trim(phys_const_stdnames(stdnam_idx)) == trim(varname)) then
+               found = .true.
+               exit ! Exit loop once variable has been found
+            end if
+         end do
+      end if
 
       if (.not. found) then
          ! This condition is an internal error, it should not happen
@@ -141,4 +152,4 @@
          stdnam_idx_out = stdnam_idx
       end if
 
-   end function is_read_from_file
+   end subroutine is_read_from_file

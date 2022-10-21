@@ -6,8 +6,7 @@ module dp_coupling
 
 use shr_kind_mod,   only: r8=>shr_kind_r8
 use ccpp_kinds,     only: kind_phys
-!use constituents,   only: pcnst, cnst_type
-use constituents,   only: pcnst
+use constituents,   only: const_is_wet, num_advected
 
 use spmd_dyn,       only: local_dp_map
 use spmd_utils,     only: iam
@@ -109,8 +108,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    if (fv_nphys > 0) then
       nphys = fv_nphys
    else
-     allocate(qgll(np,np,nlev,pcnst), stat=ierr)
-     call check_allocate(ierr, subname, 'qgll(np,np,nlev,pcnst)', &
+     allocate(qgll(np,np,nlev,num_advected), stat=ierr)
+     call check_allocate(ierr, subname, 'qgll(np,np,nlev,num_advected)', &
                          file=__FILE__, line=__LINE__)
 
      nphys = np
@@ -141,8 +140,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(q_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
-   call check_allocate(ierr, subname, 'q_tmp(nphys_pts,pver,pcnst,nelemd)', &
+   allocate(q_tmp(nphys_pts,pver,num_advected,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'q_tmp(nphys_pts,pver,num_advected,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
    allocate(omega_tmp(nphys_pts,pver,nelemd), stat=ierr)
@@ -181,7 +180,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          ! note that the fvm halo has been filled in prim_run_subcycle
          ! if physics grid resolution is not equal to fvm resolution
          call dyn2phys_all_vars(1,nelemd,elem, dyn_out%fvm,&
-              pcnst,hyai(1)*ps0,tl_f,                      &
+              num_advected,hyai(1)*ps0,tl_f,               &
               ! output
               dp3d_tmp, ps_tmp, q_tmp, T_tmp,              &
               omega_tmp, phis_tmp                          &
@@ -198,14 +197,14 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          ! physics decomposition
          !******************************************************************
 
-         if (qsize < pcnst) then
+         if (qsize < num_advected) then
             call endrun('d_p_coupling: Fewer GLL tracers advected than required')
          end if
 
          call t_startf('UniquePoints')
          do ie = 1, nelemd
            inv_dp3d(:,:,:) = 1.0_r8/elem(ie)%state%dp3d(:,:,:,tl_f)
-           do m=1,pcnst
+           do m = 1, num_advected
              qgll(:,:,:,m) = elem(ie)%state%Qdp(:,:,:,m,tl_qdp_np0)*inv_dp3d(:,:,:)
            end do
             ncols = elem(ie)%idxP%NumUniquePts
@@ -216,7 +215,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
             call UniquePoints(elem(ie)%idxV, nlev, elem(ie)%derived%omega, omega_tmp(1:ncols,:,ie))
 
             call UniquePoints(elem(ie)%idxP, elem(ie)%state%phis, phis_tmp(1:ncols,ie))
-            call UniquePoints(elem(ie)%idxP, nlev, pcnst, qgll,q_tmp(1:ncols,:,:,ie))
+            call UniquePoints(elem(ie)%idxP, nlev, num_advected, qgll,q_tmp(1:ncols,:,:,ie))
 
          end do
          call t_stopf('UniquePoints')
@@ -248,8 +247,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! q_prev is for saving the tracer fields for calculating tendencies
    if (.not. allocated(q_prev)) then
-      allocate(q_prev(pcols,pver,pcnst), stat=ierr)
-      call check_allocate(ierr, subname, 'q_prev(pcols,pver,pcnst)', &
+      allocate(q_prev(pcols,pver,num_advected), stat=ierr)
+      call check_allocate(ierr, subname, 'q_prev(pcols,pver,num_advected)', &
                           file=__FILE__, line=__LINE__)
    end if
    q_prev = 0.0_r8
@@ -273,7 +272,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          end if
       end do
 
-      do m = 1, pcnst
+      do m = 1, num_advected
          do ilyr = 1, pver
             phys_state%q(icol, ilyr,m) = real(q_tmp(blk_ind(1), ilyr,m, ie), kind_phys)
          end do
@@ -366,8 +365,8 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(dq_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
-   call check_allocate(ierr, subname, 'dq_tmp(nphys_pts,pver,pcnst,nelemd)', &
+   allocate(dq_tmp(nphys_pts,pver,num_advected,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'dq_tmp(nphys_pts,pver,num_advected,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
    allocate(dp_phys(nphys_pts,pver,nelemd), stat=ierr)
@@ -383,7 +382,6 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    end if
 
 !Remove once constituents are implemented in the CCPP framework -JN:
-#if 0
    ! Convert wet to dry mixing ratios and modify the physics temperature
    ! tendency to be thermodynamically consistent with the dycore.
    !$omp parallel do num_threads(max_num_threads) private (lchnk, ncols, icol, ilyr, m, factor)
@@ -393,8 +391,8 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
          do ilyr = 1, pver
             ! convert wet mixing ratios to dry
             factor = phys_state(lchnk)%pdel(icol,ilyr)/phys_state(lchnk)%pdeldry(icol,ilyr)
-            do m = 1, pcnst
-               if (cnst_type(m) == 'wet') then
+            do m = 1, num_advected
+               if (const_is_wet(m)) then
                   phys_state(lchnk)%q(icol,ilyr,m) = factor*phys_state(lchnk)%q(icol,ilyr,m)
                end if
             end do
@@ -403,18 +401,6 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
       call thermodynamic_consistency( &
            phys_state(lchnk), phys_tend(lchnk), ncols, pver)
    end do
-#else
-   do ilyr = 1, pver
-      do icol=1, pcols
-         !Apply adjustment only to water vapor:
-         factor = phys_state%pdel(icol,ilyr)/phys_state%pdeldry(icol,ilyr)
-         phys_state%q(icol,ilyr,ix_qv) = factor*phys_state%q(icol,ilyr,ix_qv)
-         phys_state%q(icol,ilyr,ix_cld_liq) = factor*phys_state%q(icol,ilyr,ix_cld_liq)
-         phys_state%q(icol,ilyr,ix_rain) = factor*phys_state%q(icol,ilyr,ix_rain)
-      end do
-   end do
-   call thermodynamic_consistency(phys_state, phys_tend, pcols, pver)
-#endif
 
    call t_startf('pd_copy')
    !$omp parallel do num_threads(max_num_threads) private (icol, ie, blk_ind, ilyr, m)
@@ -431,7 +417,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
          T_tmp(blk_ind(1),ilyr,ie)    = real(phys_tend%dTdt_total(icol,ilyr), r8)
          uv_tmp(blk_ind(1),1,ilyr,ie) = real(phys_tend%dudt_total(icol,ilyr), r8)
          uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt_total(icol,ilyr), r8)
-         do m = 1, pcnst
+         do m = 1, num_advected
             dq_tmp(blk_ind(1),ilyr,m,ie) =                                    &
                  (real(phys_state%q(icol,ilyr,m), r8) - q_prev(icol,ilyr,m))
          end do
@@ -478,7 +464,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
                elem(ie)%derived%fT(:,:,:))
             call putUniquePoints(elem(ie)%idxV, 2, nlev, uv_tmp(1:ncols,:,:,ie), &
                elem(ie)%derived%fM(:,:,:,:))
-            call putUniquePoints(elem(ie)%idxV, nlev, pcnst, dq_tmp(1:ncols,:,:,ie), &
+            call putUniquePoints(elem(ie)%idxV, nlev, num_advected, dq_tmp(1:ncols,:,:,ie), &
                elem(ie)%derived%fQ(:,:,:,:))
          end do
          call t_stopf('putUniquePoints')
@@ -689,9 +675,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    factor_array(:,1:nlev) = 1._kind_phys/factor_array(:,1:nlev)
 
 !Remove once constituents are enabled in the CCPP framework:
-#if 0
-   do m = 1,pcnst
-      if (cnst_type(m) == 'wet') then
+   do m = 1, num_advected
+      if (const_is_wet(m)) then
          do k = 1, nlev
             do i = 1, ncol
                phys_state(lchnk)%q(i,k,m) = factor_array(i,k)*phys_state(lchnk)%q(i,k,m)
@@ -708,7 +693,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
          phys_state%q(i,k,ix_rain) = factor_array(i,k)*phys_state%q(i,k,ix_rain)
       end do
    end do
-#endif
 
    !------------------------------------------------------------
    ! Ensure O2 + O + H (N2) mmr greater than one.
@@ -775,7 +759,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 #if 0
       ! Ensure tracers are all positive
       call qneg3('D_P_COUPLING',lchnk  ,ncol    ,pcols   ,pver    , &
-           1, pcnst, qmin  ,phys_state%q)
+           1, num_advected, qmin  ,phys_state%q)
 #endif
 
 !Remove once check_energy scheme exists in CAMDEN:
@@ -816,7 +800,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
      ! note that if lcp_moist=.false. then there is thermal energy increment
      ! consistency (not taking into account dme adjust)
      !
-     call get_cp(phys_state%q(1:ncols,1:pver,:),.true.,inv_cp)
+     call get_cp(phys_state%q(1:ncols,1:pver,1:num_advected),.true.,inv_cp)
 
      phys_tend%dTdt_total(1:ncols,1:pver) = phys_tend%dTdt_total(1:ncols,1:pver)*cpair*inv_cp
    end if

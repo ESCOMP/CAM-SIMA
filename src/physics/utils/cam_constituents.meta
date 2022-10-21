@@ -1,0 +1,49 @@
+###################################
+[ccpp-table-properties]
+  name = cam_constituents
+  type = module
+
+[ccpp-arg-table]
+  name  = cam_constituents
+  type  = module
+[ num_advected ]
+  standard_name = number_of_advected_constituents
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ indx_spec_humidity_wet ]
+  standard_name = index_of_specific_humidity_in_advection_array
+  long_name = Index of mass mixing ratio of specific humidity in advection array
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True
+[ indx_cloud_liquid_wet ]
+  standard_name = index_of_cloud_liquid_water_mixing_ratio_wrt_total_mass_in_advection_array
+  long_name = Index of mass mixing ratio of cloud liquid water mixing ratio wrt total mass in advection array
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True
+[ indx_cloud_ice_wet ]
+  standard_name = index_of_cloud_ice_mixing_ratio_wrt_total_mass_in_advection_array
+  long_name = Index of mass mixing ration of cloud ice mixing ratio wrt total mass in advection array
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True
+[ indx_rain_wet ]
+  standard_name = index_of_rain_mixing_ratio_wrt_total_mass_in_advection_array
+  long_name = Index of mass mixing ratio of rain mixing ratio wrt total mass in advection array
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True
+[ indx_snow_wet ]
+  standard_name = index_of_snow_mixing_ratio_wrt_total_mass_in_advection_array
+  long_name = Index mass mixing ratio of snow mixing ratio wrt total mass in advection array
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True

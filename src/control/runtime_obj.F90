@@ -1,4 +1,4 @@
-module runtime_obj
+ module runtime_obj
 
    use shr_kind_mod, only: CS => SHR_KIND_CS
    use shr_kind_mod, only: r8=>shr_kind_r8
@@ -17,6 +17,7 @@ module runtime_obj
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str
       character(len=16), private            :: waccmx_opt = unset_str
+      ! Number of constituents
       ! use_gw_front: Frontogenesis
       logical,           private :: use_gw_front = .false.
       ! use_gw_front_igw: Frontogenesis to inertial spectrum.
@@ -24,12 +25,16 @@ module runtime_obj
       ! update_thermo_variables: update thermo "constants" to composition-dependent thermo variables
       logical,           private :: update_thermo_variables = .false.
    contains
+      ! General runtime access
       procedure, public :: physics_suite
+      procedure, public :: suite_list
+      ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
       procedure, public :: waccmx_option
       procedure, public :: gw_front
       procedure, public :: gw_front_igw
       procedure, public :: update_thermodynamic_variables
+      ! Constituent information
    end type runtime_options
 
    type(runtime_options), public, protected :: cam_runtime_opts
@@ -46,6 +51,13 @@ CONTAINS
 
       physics_suite = trim(self%phys_suite)
    end function physics_suite
+
+   function suite_list(self) result(slist)
+      class(runtime_options), intent(in) :: self
+      character(len=CS) :: slist(1)
+
+      slist = (/ trim(self%phys_suite) /)
+   end function suite_list
 
    logical function waccmx_on(self)
       class(runtime_options), intent(in) :: self

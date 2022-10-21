@@ -16,7 +16,18 @@ from fortran_tools import FortranWriter
 from var_props import is_horizontal_dimension, is_vertical_dimension
 
 # Exclude these standard names from init processing
-_EXCLUDED_STDNAMES = set(['suite_name', 'suite_part'])
+# Some are internal names (e.g., suite_name)
+# Some are from the CCPP framework (e.g., ccpp_num_constituents)
+# Some are for efficiency and to avoid dependency loops (e.g., log_output_unit)
+_EXCLUDED_STDNAMES = set(['suite_name', 'suite_part',
+                          'ccpp_num_constituents',
+                          'ccpp_num_advected_constituents',
+                          'ccpp_constituent_array',
+                          'ccpp_constituent_properties_array',
+                          'ccpp_constituent_array_minimum_values',
+                          'log_output_unit', 'do_log_output',
+                          'mpi_communicator', 'mpi_root', 'mpi_rank',
+                          'number_of_mpi_tasks'])
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
 
@@ -40,12 +51,16 @@ def write_init_files(cap_database, ic_names, outdir,
 
     1.  phys_vars_init_check.F90
 
-        This file contains four
+        This file contains five
         variable arrays:
 
         phys_var_stdnames -
             All registered variable
             standard names
+
+        phys_const_stdnames -
+            The "excluded" standard names
+            (from _EXCLUDED_STDNAMES)
 
         input_var_names -
             All registered names for
@@ -241,22 +256,44 @@ class CamInitWriteError(ValueError):
 #################
 
 ##############################################################################
-def _find_and_add_host_variable(stdname, host_dict, var_dict, missing_vars):
+def _find_and_add_host_variable(stdname, host_dict, const_dicts, var_dict):
     """Find <stdname> in <host_dict> and add it to <var_dict> if found and
           not of type, 'host'.
+       If <stdname> is not in <host_dict> but is in one of the <const_dicts>,
+          it is considered found but not added to <var_dict>.
        If not found, add <stdname> to <missing_vars>.
-       Return the variable if found, otherwise None
-       Note: This function has side effects.
+       If found and added to <var_dict>, also process the standard names of
+          any intrinsic sub-elements of <stdname>.
+       Return the list of <missing_vars> (if any).
+       Note: This function has a side effect (adding to <var_dict>).
     """
+    missing_vars = []
     hvar = host_dict.find_variable(stdname)
-    if hvar:
-        if hvar.source.type != 'host':
-            var_dict[stdname] = hvar
-        # end if (other variables not readable)
-    else:
-        missing_vars.add(stdname)
+    if hvar and (hvar.source.ptype != 'host'):
+        var_dict[stdname] = hvar
+        # Process elements (if any)
+        ielem = hvar.intrinsic_elements()
+        if isinstance(ielem, list):
+            for sname in ielem:
+                smissing = _find_and_add_host_variable(sname, host_dict,
+                                                       const_dicts, var_dict)
+                missing_vars.extend(smissing)
+            # end for
+        # end if
     # end if
-    return hvar
+    if not hvar:
+        cvar = None
+        for cdict in const_dicts:
+            cvar = cdict.find_variable(stdname)
+            if cvar:
+                break
+            # end if
+        # end for
+        if not cvar:
+            missing_vars.append(stdname)
+        # end if
+    # end if
+    return missing_vars
 
 ##############################################################################
 def gather_ccpp_req_vars(cap_database):
@@ -268,18 +305,19 @@ def gather_ccpp_req_vars(cap_database):
        the host model.
     Return several values:
     - A list of host model variables
-    - The local name of the vertical layer dimension
-    - The local name of the vertical interface dimension
     - An error message (blank for no error)
     """
 
     # Dictionary of all 'in' and 'inout' suite variables.
-    # Key is standard name, value is host-model variable
+    # Key is standard name, value is host-model or constituent variable
     req_vars = {}
     missing_vars = set()
     retmsg = ""
-    # Host model
-    host = cap_database.host_model_dict()
+    # Host model dictionary
+    host_dict = cap_database.host_model_dict()
+    # Constituent dictionaries
+    const_dicts = [cap_database.constituent_dictionary(s)
+                   for s in cap_database.suite_list()]
 
     # Create CCPP datatable required variables-listing object:
     # XXgoldyXX: Choose only some phases here?
@@ -291,19 +329,9 @@ def gather_ccpp_req_vars(cap_database):
                 (stdname not in req_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 # We need to work with the host model version of this variable
-                hvar = _find_and_add_host_variable(stdname, host,
-                                                   req_vars, missing_vars)
-                # Expand any combo objects
-                if hvar:
-                    ielem = hvar.intrinsic_elements()
-                else:
-                    ielem = None
-                # end if
-                if isinstance(ielem, list):
-                    for sname in ielem:
-                        _find_and_add_host_variable(sname, host,
-                                                    req_vars, missing_vars)
-                    # end for
+                missing = _find_and_add_host_variable(stdname, host_dict,
+                                                      const_dicts, req_vars)
+                missing_vars.update(missing)
                 # end if
             # end if (do not include output variables)
         # end for (loop over call list)
@@ -333,6 +361,9 @@ def write_ic_params(outfile, host_vars, ic_names):
     outfile.write("!Total number of physics-related variables:", 1)
     num_pvars = len(host_vars)
     outfile.write(f"integer, public, parameter :: phys_var_num = {num_pvars}",
+                  1)
+    num_cvars = len(_EXCLUDED_STDNAMES)
+    outfile.write(f"integer, public, parameter :: phys_const_num = {num_cvars}",
                   1)
 
     outfile.blank_line()
@@ -446,6 +477,21 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     # end for
 
     outfile.blank_line()
+
+    # Write excluded standard names
+    cname_max_len = max([len(x) for x in _EXCLUDED_STDNAMES])
+    num_cvars = len(_EXCLUDED_STDNAMES)
+    vartype = f"character(len={cname_max_len}), public, protected"
+    varname = "phys_const_stdnames(phys_const_num)"
+    outfile.write(f"{vartype} :: {varname} = (/ &", 1)
+    suffix = ", &"
+    for index, stdname_str in enumerate(_EXCLUDED_STDNAMES):
+        spc = ' '*(cname_max_len - len(stdname_str))
+        if index == num_cvars - 1:
+            suffix = " /)"
+        # end if
+        outfile.write(f'"{stdname_str}{spc}"{suffix}', 2)
+    # end for
 
     #Write starting declaration of IC field input names array:
     outfile.write("!Array storing all registered IC file input names for each variable:", 1)
@@ -580,7 +626,7 @@ def collect_host_var_imports(host_vars, host_dict):
         # We do not import variables from the 'host' table as they are
         #    passed to physics via the argument list.
         # As such, they are also always considered initialized.
-        if hvar.source.type == 'host':
+        if hvar.source.ptype == 'host':
             continue
         # end if
         _get_host_model_import(hvar, use_vars_write_dict, host_dict)
@@ -719,7 +765,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         # We do not attempt to read values from variables from the 'host'
         #    table as they are passed to physics via the argument list.
         # As such, they are always considered initialized.
-        if hvar.source.type == 'host':
+        if hvar.source.ptype == 'host':
             continue
         # end if
         var_stdname = hvar.get_prop_value('standard_name')
@@ -967,7 +1013,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         # We do not 'check' variables from the 'host' table as they are
         #    passed to physics via the argument list.
         # As such, they are always considered initialized.
-        if hvar.source.type == 'host':
+        if hvar.source.ptype == 'host':
             continue
         # end if
         var_stdname = hvar.get_prop_value('standard_name')
@@ -1058,6 +1104,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("type(file_desc_t), pointer :: file", 2)
     outfile.write("logical                    :: file_found", 2)
     outfile.write("logical                    :: is_first", 2)
+    outfile.write("logical                    :: is_read", 2)
     outfile.blank_line()
 
     # Initialize variables:
@@ -1119,8 +1166,10 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Call input name search function:
     outfile.comment("Find IC file input name array index for required variable:", 4)
-    outfile.write("if (.not. is_read_from_file(ccpp_required_data(req_idx), name_idx)) then", 4)
-    outfile.write("continue", 5)
+    outfile.write("call is_read_from_file(ccpp_required_data(req_idx), " +    \
+                  "is_read, stdnam_idx_out=name_idx)", 4)
+    outfile.write("if (.not. is_read) then", 4)
+    outfile.write("cycle", 5)
     outfile.write("end if", 4)
 
     # Generate "check_field" calls:
@@ -1128,8 +1177,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 4)
     for case_call, read_call in call_string_dict.items():
-        outfile.write(case_call, 5)
-        outfile.write(read_call, 6)
+        outfile.write(case_call, 4)
+        outfile.write(read_call, 5)
         outfile.blank_line()
     outfile.write("end select !check variables", 4)
 

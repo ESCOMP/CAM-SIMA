@@ -210,13 +210,14 @@ class BuildCacheCAM:
                         elif item.tag == 'config':
                             self.__config = item.text
                         elif item.tag == 'reg_gen_file':
-                            self.__reg_gen_files.append(item.text.strip())
+                            self.__reg_gen_files.append(self._clean_text(item))
                         elif item.tag == 'ic_name_entry':
                             stdname = item.get('standard_name')
                             if stdname not in self.__ic_names:
                                 self.__ic_names[stdname] = []
                             # end if
-                            self.__ic_names[stdname].append(item.text.strip())
+                            itext = self._clean_text(item)
+                            self.__ic_names[stdname].append(itext)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -242,11 +243,15 @@ class BuildCacheCAM:
                             new_entry = new_entry_from_xml(item)
                             self.__scheme_nl_metadata.append(new_entry)
                         elif item.tag == 'scheme_namelist_groups':
-                            group_list = [x for x in
-                                          item.text.strip().split(' ') if x]
+                            if item.text:
+                                group_list = [x for x in
+                                              item.text.strip().split(' ') if x]
+                            else:
+                                group_list = []
+                            # end if
                             self.__scheme_nl_groups = group_list
                         elif item.tag == 'preproc_defs':
-                            self.__preproc_defs = item.text.strip()
+                            self.__preproc_defs = self._clean_text(item)
                         elif item.tag == 'kind_type':
                             kname, ktype = item.text.strip().split('=')
                             self.__kind_types[kname.strip()] = ktype.strip()
@@ -600,6 +605,18 @@ class BuildCacheCAM:
 
         #Return mismatch logical:
         return mismatch
+
+    @staticmethod
+    def _clean_text(item):
+        """Return a 'clean' (stripped) version of <item>.text or an empty
+           string if <item>.text is None
+        """
+        itext = item.text
+        iret = ""
+        if isinstance(itext, str):
+            iret = itext.strip()
+        # end if
+        return iret
 
     def scheme_nl_metadata(self):
         """Return the stored list of scheme namelist metadata files"""

@@ -90,13 +90,13 @@ end subroutine std_atm_pres
 !=========================================================================================
 
 subroutine std_atm_height(pstd, height)
+   use string_utils, only: to_str
 
    ! arguments
    real(r8), intent(in)   :: pstd(:)   ! std pressure in Pa
    real(r8), intent(out)  :: height(:) ! height above sea level in meters
 
    integer :: i, ii, k, nlev
-   logical :: found_region
    character(len=*), parameter :: routine = 'std_atm_height'
    !----------------------------------------------------------------------------
 
@@ -109,12 +109,18 @@ subroutine std_atm_height(pstd, height)
          ii = 1
       else
          ! find region containing pressure
+         ii = -1
          find_region: do i = 2, nreg
             if (pstd(k) > pb(i)) then
                ii = i - 1
                exit find_region
             end if
          end do find_region
+      end if
+
+      if (ii < 1) then
+         ! We did not find a region
+         call endrun(routine//": Did not find presure region for level = "//to_str(k))
       end if
 
       if (lb(ii) /= 0._r8) then
@@ -129,6 +135,7 @@ end subroutine std_atm_height
 !=========================================================================================
 
 subroutine std_atm_temp(height, temp)
+   use string_utils, only: to_str
 
    ! arguments
    real(r8), intent(in)   :: height(:) ! std pressure in Pa
@@ -144,6 +151,7 @@ subroutine std_atm_temp(height, temp)
       if (height(k) < 0.0_r8) then
          ii = 1
       else
+         ii = -1
          ! find region containing height
          find_region: do i = nreg, 1, -1
             if (height(k) >= hb(i)) then
@@ -151,6 +159,11 @@ subroutine std_atm_temp(height, temp)
                exit find_region
             end if
          end do find_region
+      end if
+
+      if (ii < 1) then
+         ! We did not find a region
+         call endrun(routine//": Did not find presure region for level = "//to_str(k))
       end if
 
       if (lb(ii) /= 0._r8) then

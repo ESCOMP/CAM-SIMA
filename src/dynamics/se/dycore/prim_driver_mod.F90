@@ -201,7 +201,7 @@ contains
     real(kind=r8), intent(in)        :: dt  ! "timestep dependent" timestep
     type (TimeLevel_t), intent(inout):: tl
     integer, intent(in)              :: nsubstep  ! nsubstep = 1 .. nsplit
-    real (kind=r8)    , intent(inout):: omega_cn(2,nets:nete) !min and max of vertical Courant number    
+    real (kind=r8)    , intent(inout):: omega_cn(2,nets:nete) !min and max of vertical Courant number
 
     real(kind=r8)   :: dt_q, dt_remap, dt_phys
     integer         :: ie, q,k,n0_qdp,np1_qdp,r, nstep_end,region_num_threads,i,j
@@ -229,7 +229,7 @@ contains
     !
     ! initialize variables for computing vertical Courant number
     !
-    if (variable_nsplit.or.compute_diagnostics) then    
+    if (variable_nsplit.or.compute_diagnostics) then
       if (nsubstep==1) then
         do ie=nets,nete
           omega_cn(1,ie) = 0.0_r8
@@ -247,13 +247,13 @@ contains
 
     call calc_tot_energy_dynamics(elem,fvm,nets,nete,tl%n0,n0_qdp,'dAF')
     call ApplyCAMForcing(elem,fvm,tl%n0,n0_qdp,dt_remap,dt_phys,nets,nete,nsubstep)
-    call calc_tot_energy_dynamics(elem,fvm,nets,nete,tl%n0,n0_qdp,'dBD')    
+    call calc_tot_energy_dynamics(elem,fvm,nets,nete,tl%n0,n0_qdp,'dBD')
     do r=1,rsplit
       if (r.ne.1) call TimeLevel_update(tl,"leapfrog")
       call prim_step(elem, fvm, hybrid,nets,nete, dt, tl, hvcoord,r)
     enddo
 
-    
+
     ! defer final timelevel update until after remap and diagnostics
     call TimeLevel_Qdp( tl, qsplit, n0_qdp, np1_qdp)
 
@@ -263,12 +263,12 @@ contains
     !  always for tracers
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call calc_tot_energy_dynamics(elem,fvm,nets,nete,tl%np1,np1_qdp,'dAD')    
+    call calc_tot_energy_dynamics(elem,fvm,nets,nete,tl%np1,np1_qdp,'dAD')
 
     if (variable_nsplit.or.compute_diagnostics) then
       !
       ! initialize variables for computing vertical Courant number
-      !      
+      !
       do ie=nets,nete
         dp_end(:,:,:,ie) = elem(ie)%state%dp3d(:,:,:,tl%np1)
       end do
@@ -283,7 +283,7 @@ contains
     call calc_tot_energy_dynamics(elem,fvm,nets,nete,tl%np1,np1_qdp,'dAR')
 
     if (nsubstep==nsplit) then
-      call compute_omega(hybrid,tl%np1,np1_qdp,elem,deriv,nets,nete,dt_remap,hvcoord)           
+      call compute_omega(hybrid,tl%np1,np1_qdp,elem,deriv,nets,nete,dt_remap,hvcoord)
     end if
 
     ! now we have:
@@ -384,8 +384,8 @@ contains
 
 #ifdef waccm_debug
   use cam_history, only: outfld
-#endif  
-    
+#endif
+
 
     type (element_t) ,  intent(inout) :: elem(:)
     type(fvm_struct),   intent(inout) :: fvm(:)
@@ -503,20 +503,20 @@ contains
     if (qsize > 0) then
 
       call t_startf('prim_advec_tracers_remap')
-      if(ntrac>0) then 
+      if(ntrac>0) then
         ! Deactivate threading in the tracer dimension if this is a CSLAM run
         region_num_threads = 1
       else
         region_num_threads=tracer_num_threads
-      endif  
+      endif
       call omp_set_nested(.true.)
       !$OMP PARALLEL NUM_THREADS(region_num_threads), DEFAULT(SHARED), PRIVATE(hybridnew)
-      if(ntrac>0) then 
+      if(ntrac>0) then
         ! Deactivate threading in the tracer dimension if this is a CSLAM run
         hybridnew = config_thread_region(hybrid,'serial')
       else
         hybridnew = config_thread_region(hybrid,'tracer')
-      endif  
+      endif
       call Prim_Advec_Tracers_remap(elem, deriv,hvcoord,hybridnew,dt_q,tl,nets,nete)
       !$OMP END PARALLEL
       call omp_set_nested(.false.)
@@ -529,7 +529,7 @@ contains
       !
       ! FVM transport
       !
-      if ((mod(rstep,fvm_supercycling) == 0).and.(mod(rstep,fvm_supercycling_jet) == 0)) then        
+      if ((mod(rstep,fvm_supercycling) == 0).and.(mod(rstep,fvm_supercycling_jet) == 0)) then
 
 !        call omp_set_nested(.true.)
 !        !$OMP PARALLEL NUM_THREADS(vert_num_threads), DEFAULT(SHARED), PRIVATE(hybridnew2,kbeg,kend)
@@ -595,15 +595,15 @@ contains
       use hybvcoord_mod ,   only: hvcoord_t
       use dimensions_mod,   only: nelemd, nlev, np
 !Un-comment once constitutents are enabled -JN:
-!      use constituents,     only: cnst_type, qmin, pcnst
-      use constituents,     only: pcnst
+!      use constituents,     only: cnst_type, qmin, num_advected
+      use cam_constituents, only: num_advected
       use cam_logfile,      only: iulog
       use spmd_utils,       only: masterproc
 
       type (element_t)     , intent(inout):: elem(:)
       type (hvcoord_t)     , intent(in)   :: hvcoord
       real (kind=r8), intent(in)   :: initial_global_ave_dry_ps
-      real (kind=r8), intent(inout):: q(np,np,nlev,nelemd,pcnst)
+      real (kind=r8), intent(inout):: q(np,np,nlev,nelemd,num_advected)
 
       ! local
       real (kind=r8)               :: global_ave_ps_inic,dp_tmp, factor(np,np,nlev)
@@ -629,7 +629,7 @@ contains
         ! conserve initial condition mass of 'wet' tracers (following dryairm.F90 for FV dycore)
         ! and conserve mixing ratio (not mass) of 'dry' tracers
         !
-        do  m_cnst=1,pcnst
+        do m_cnst = 1, num_advected
 !Un-comment once constitutents are enabled -JN:
 !          if (cnst_type(m_cnst).ne.'dry') then
             do k=1,nlev

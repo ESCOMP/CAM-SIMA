@@ -24,8 +24,8 @@ contains
   subroutine compute_adv_tends_xyz(elem,fvm,nets,nete,qn0,n0)
 !    use cam_history,            only: outfld, hist_fld_active
     use time_manager,           only: get_step_size
-!    use constituents,           only: tottnam,pcnst
-    use constituents,           only: pcnst
+!    use constituents,           only: tottnam,num_advected
+    use constituents,           only: num_advected
     use cam_abortutils,         only: check_allocate
 
     ! SE dycore:
@@ -58,8 +58,8 @@ contains
     init = .false.
     if ( .not. allocated( adv_tendxyz ) ) then
       init = .true.
-      allocate( adv_tendxyz(nx,nx,nlev,pcnst,nets:nete), stat=iret )
-      call check_allocate(iret, subname, 'adv_tendxyz(nx,nx,nlev,pcnst,nets:nete)', &
+      allocate( adv_tendxyz(nx,nx,nlev,num_advected,nets:nete), stat=iret )
+      call check_allocate(iret, subname, 'adv_tendxyz(nx,nx,nlev,num_advected,nets:nete)', &
                           file=__FILE__, line=__LINE__)
 
       adv_tendxyz(:,:,:,:,:) = 0._r8
@@ -67,13 +67,13 @@ contains
 
     if (ntrac>0) then
       do ie=nets,nete
-        do ic=1,pcnst
+        do ic = 1, num_advected
           adv_tendxyz(:,:,:,ic,ie) = fvm(ie)%c(1:nc,1:nc,:,ic) - adv_tendxyz(:,:,:,ic,ie)
         end do
       end do
     else
       do ie=nets,nete
-        do ic=1,pcnst
+        do ic = 1, num_advected
           adv_tendxyz(:,:,:,ic,ie) = elem(ie)%state%Qdp(:,:,:,ic,qn0)/elem(ie)%state%dp3d(:,:,:,n0)  - adv_tendxyz(:,:,:,ic,ie)
         enddo
       end do
@@ -86,7 +86,7 @@ contains
       idt = 1._r8/dt
 
       do ie=nets,nete
-        do ic = 1,pcnst
+        do ic = 1, num_advected
           do j=1,nx
             do i=1,nx
               ftmp(i+(j-1)*nx,:) = adv_tendxyz(i,j,:,ic,ie)

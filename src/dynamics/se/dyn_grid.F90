@@ -31,7 +31,7 @@ use pio,                    only: file_desc_t
 use shr_kind_mod,           only: r8 => shr_kind_r8, shr_kind_cl
 use spmd_utils,             only: masterproc, iam, mpicom, mstrid=>masterprocid, &
                                   npes
-use constituents,           only: pcnst
+use constituents,           only: num_advected
 use dynconst,               only: pi
 use cam_initfiles,          only: initial_file_get_id
 use physics_column_type,    only: physics_column_t, kind_pcol
@@ -249,7 +249,7 @@ subroutine model_grid_init()
       if (fv_nphys > 0) then
          qsize_local = thermodynamic_active_species_num + 3
       else
-         qsize_local = pcnst + 3
+         qsize_local = num_advected + 3
       end if
 
       call initEdgeBuffer(par, edgebuf, elem, qsize_local*nlev, nthreads=1)

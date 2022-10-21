@@ -1,4 +1,4 @@
-module runtime_opts
+ module runtime_opts
 
    !-----------------------------------------------------------------------
    !
@@ -25,7 +25,7 @@ contains
       use cam_abortutils,            only: endrun
       use cam_logfile,               only: cam_logfile_readnl, iulog
       use cam_initfiles,             only: cam_initfiles_readnl
-      use constituents,              only: cnst_readnl
+      use cam_constituents,          only: cam_constituents_readnl
       use cam_ccpp_scheme_namelists, only: cam_read_ccpp_scheme_namelists
       use runtime_obj,               only: cam_set_runtime_opts, unset_str
       use cam_ccpp_cap,              only: ccpp_physics_suite_schemes
@@ -92,7 +92,7 @@ contains
       call physconst_readnl(nlfilename)
       call air_composition_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
-      call cnst_readnl(nlfilename)
+      call cam_constituents_readnl(nlfilename)
 !      call history_readnl(nlfilename)
       call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)

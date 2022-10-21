@@ -159,6 +159,7 @@ class VarBase:
         self.__local_index_name = local_index_name
         self.__local_index_name_str = local_index_name_str
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
+        self.__advected = elem_node.get("advected", default=False)
         self.__tstep_init = elem_node.get("phys_timestep_init_zero",
                                           default=tstep_init_default)
         if self.__allocatable == "none":
@@ -206,6 +207,9 @@ class VarBase:
             outfile.write(f'  type = {self.var_type}\n')
         # end if
         outfile.write(f'  dimensions = {self.dimension_string}\n')
+        if self.is_advected:
+            outfile.write('  advected = true\n')
+        # end if
 
     def write_initial_value(self, outfile, indent, init_var, ddt_str,
                             tstep_init=False):
@@ -373,6 +377,11 @@ class VarBase:
         return self.__type.ddt
 
     @property
+    def is_advected(self):
+        """Return True if this variable is a advected"""
+        return self.__advected
+
+    @property
     def tstep_init(self):
         """Return True if variable will be set to zero every physics timestep."""
         return self.__tstep_init
@@ -475,9 +484,10 @@ class Variable(VarBase):
     # Constant dimensions
     __CONSTANT_DIMENSIONS = {'ccpp_constant_one' : 1, 'ccpp_constant_zero' : 0}
 
-    __VAR_ATTRIBUTES = ["access", "allocatable", "dycore", "extends",
-                        "kind", "local_name", "name", "standard_name",
-                        "type", "units", "version", "phys_timestep_init_zero"]
+    __VAR_ATTRIBUTES = ["access", "advected", "allocatable", "dycore",
+                        "extends", "kind", "local_name", "name",
+                        "phys_timestep_init_zero", "standard_name",
+                        "type", "units", "version"]
 
     def __init__(self, var_node, known_types, vdict, logger):
         # pylint: disable=too-many-locals

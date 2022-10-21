@@ -42,7 +42,7 @@ CONTAINS
 !========================================================================
 
    subroutine spmd_init(mpicom_atm)
-      use mpi, only: MPI_MAX_PROCESSOR_NAME
+      use mpi,                  only: MPI_MAX_PROCESSOR_NAME
       !-----------------------------------------------------------------------
       !
       ! Purpose: MPI initialization routine:

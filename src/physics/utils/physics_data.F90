@@ -35,18 +35,22 @@ CONTAINS
 
       use phys_vars_init_check, only: protected_vars
       use phys_vars_init_check, only: phys_var_stdnames
-      use phys_vars_init_check, only: phys_var_num
+      use phys_vars_init_check, only: phys_const_stdnames
+      use phys_vars_init_check, only: phys_var_num, phys_const_num
       use phys_vars_init_check, only: is_initialized
       use phys_vars_init_check, only: is_read_from_file
 
-      !Variable standard name being checked:
+      ! Dummy arguments
+      ! Variable standard name being checked:
       character(len=*),  intent(in) :: stdname
-
-      !Logical for whether or not to read initialized variables
+      ! Logical for whether or not to read initialized variables
       logical,           intent(in) :: use_init_variables
 
-      !standard names array index:
+      ! Local variables
+      ! standard names array index:
       integer                       :: idx
+      ! to test read_from_file status
+      logical                       :: is_read
 
       !Initialize function:
       find_input_name_idx = no_exist_idx
@@ -58,7 +62,12 @@ CONTAINS
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (is_initialized(stdname)) then
-               if (use_init_variables.and.is_read_from_file(stdname)) then
+               if (use_init_variables) then
+                  call is_read_from_file(stdname, is_read)
+               else
+                  is_read = .false.
+               end if
+               if (is_read) then
                   !If reading initialized variables, set to idx:
                   find_input_name_idx = idx
                else
@@ -75,6 +84,16 @@ CONTAINS
             exit
          end if
       end do
+      ! If not found, loop through the excluded variable standard names
+      if (find_input_name_idx == no_exist_idx) then
+         do idx = 1, phys_const_num
+            if (trim(phys_const_stdnames(idx)) == trim(stdname)) then
+               ! Set to initialized because we can't check here.
+               ! The relevant modules (e.g., cam_constituents) will check.
+               find_input_name_idx = init_mark_idx
+            end if
+         end do
+      end if
 
    end function find_input_name_idx
 
@@ -405,7 +424,6 @@ CONTAINS
       !Local variables:
       character(len=24)            :: fmt_str
       integer                      :: slen
-      integer                      :: row
       integer, parameter           :: indent_level = 50
 
       slen = len_trim(stdname)

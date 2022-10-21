@@ -5,10 +5,10 @@ module dyn_comp
 use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
 use dynconst,               only: pi
 use spmd_utils,             only: iam, masterproc
-!use constituents,           only: pcnst, cnst_get_ind, cnst_name, cnst_longname, &
+use cam_constituents,       only: const_name, const_longname, num_advected
+use cam_constituents,       only: const_get_index
 !                                  cnst_read_iv, qmin, cnst_type, tottnam,        &
 !                                  cnst_is_a_water_species
-use constituents,           only: pcnst
 use cam_control_mod,        only: initial_run, simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
 use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
@@ -332,7 +332,7 @@ subroutine dyn_readnl(NLFileName)
    ! Finally, set the HOMME variables which have different names
    fine_ne                  = se_fine_ne
    ftype                    = se_ftype
-   statediag_numtrac        = MIN(se_statediag_numtrac,pcnst)
+   statediag_numtrac        = MIN(se_statediag_numtrac,num_advected)
    hypervis_power           = se_hypervis_power
    hypervis_scaling         = se_hypervis_scaling
    hypervis_subcycle        = se_hypervis_subcycle
@@ -378,7 +378,7 @@ subroutine dyn_readnl(NLFileName)
       qsize = thermodynamic_active_species_num ! number tracers advected by GLL
    else
       ! Use GLL for tracer advection
-      qsize = pcnst
+      qsize = num_advected
    end if
 
    if (rsplit < 1) then
@@ -603,7 +603,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
    type(hybrid_t)      :: hybrid
 
-   integer :: ixcldice, ixcldliq, ixrain, ixsnow, ixgraupel
+   integer :: ixq, ixcldice, ixcldliq, ixrain, ixsnow, ixgraupel
    integer :: m_cnst, m
    integer :: iret
 
@@ -674,9 +674,6 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
      kord_tr_cslam(:) = vert_remap_tracer_alg
    end if
 
-!Remove/replace after constituents are enabled in CCPP -JN:
-#if 0
-
    do m=1,qsize
      !
      ! The "_gll" index variables below are used to keep track of condensate-loading tracers
@@ -696,8 +693,8 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
        thermodynamic_active_species_idx_dycore(m) = m
        kord_tr_cslam(thermodynamic_active_species_idx(m)) = vert_remap_uvTq_alg
        kord_tr(m)                                 = vert_remap_uvTq_alg
-       cnst_name_gll    (m)                       = cnst_name    (thermodynamic_active_species_idx(m))
-       cnst_longname_gll(m)                       = cnst_longname(thermodynamic_active_species_idx(m))
+       cnst_name_gll    (m)                       = const_name    (thermodynamic_active_species_idx(m))
+       cnst_longname_gll(m)                       = const_longname(thermodynamic_active_species_idx(m))
      else
        !
        ! if not running with CSLAM then the condensate-loading water tracers are not necessarily
@@ -707,37 +704,11 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
          thermodynamic_active_species_idx_dycore(m) = thermodynamic_active_species_idx(m)
          kord_tr(thermodynamic_active_species_idx_dycore(m)) = vert_remap_uvTq_alg
        end if
-       cnst_name_gll    (m)                = cnst_name    (m)
+       cnst_name_gll    (m)                = const_name    (m)
        cnst_longname_gll(m)                = cnst_longname(m)
 
      end if
    end do
-#else
-   !Remove/replace after constituents are enabled in CCPP -JN:
-   do m=1, qsize
-      if (ntrac>0) then
-        thermodynamic_active_species_idx_dycore(m) = m
-        kord_tr_cslam(thermodynamic_active_species_idx(m)) = vert_remap_uvTq_alg
-        kord_tr(m)                                 = vert_remap_uvTq_alg
-      else
-         if (m.le.thermodynamic_active_species_num) then
-            thermodynamic_active_species_idx_dycore(m) = thermodynamic_active_species_idx(m)
-            kord_tr(thermodynamic_active_species_idx_dycore(m)) = vert_remap_uvTq_alg
-          end if
-      endif
-
-      if (m == ix_qv) then
-         cnst_name_gll(m) = 'Q'
-         cnst_longname_gll(m) = 'water_vapor_specific_humidity'
-      else if (m == ix_cld_liq) then
-         cnst_name_gll(m) = 'CLDLIQ'
-         cnst_longname_gll(m) = 'cloud_liquid_water_mixing_ratio'
-      else
-         cnst_name_gll(m) = 'RAINQM'
-         cnst_longname_gll(m) = 'rain_water_mixing_ratio'
-      end if
-   end do
-#endif
 
    !
    ! Initialize the import/export objects
@@ -885,10 +856,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! Tracer forcing on fvm (CSLAM) grid and internal CSLAM pressure fields
    if (ntrac>0) then
       do m = 1, ntrac
-         call addfld (trim(cnst_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg',   &
+         call addfld (trim(const_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg',   &
             trim(cnst_longname(m)), gridname='FVM')
 
-         call addfld ('F'//trim(cnst_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg/s',   &
+         call addfld ('F'//trim(const_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg/s',   &
             trim(cnst_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
             gridname='FVM')
       end do
@@ -938,32 +909,34 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! add dynamical core tracer tendency output
    !
    if (ntrac>0) then
-     do m = 1, pcnst
-       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(cnst_name(m))//' horz + vert',  &
+     do m = 1, num_advected
+       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(const_name(m))//' horz + vert',  &
             gridname='FVM')
      end do
    else
-     do m = 1, pcnst
-       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(cnst_name(m))//' horz + vert',  &
+     do m = 1, num_advected
+       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(const_name(m))//' horz + vert',  &
             gridname='GLL')
      end do
    end if
    call phys_getopts(history_budget_out=history_budget, history_budget_histfile_num_out=budget_hfile_num)
    if ( history_budget ) then
-      call cnst_get_ind('CLDLIQ', ixcldliq)
-      call cnst_get_ind('CLDICE', ixcldice)
-      call add_default(tottnam(       1), budget_hfile_num, ' ')
+      call const_get_index('specific_humidity', ixq)
+      call const_get_index('cloud_liquid_water_mixing_ratio_wrt_total_mass',  &
+           ixcldliq)
+      call const_get_index('cloud_ice_mixing_ratio_wrt_total_mass', ixcldice)
+      call add_default(tottnam(     ixq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldliq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldice), budget_hfile_num, ' ')
    end if
 
-   ! constituent indices for waccm-x
+  ! constituent indices for waccm-x
   if ( cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
        cam_runtime_opts%waccmx_option() == 'neutral' ) then
-     call cnst_get_ind('O',  ixo)
-     call cnst_get_ind('O2', ixo2)
-     call cnst_get_ind('H',  ixh)
-     call cnst_get_ind('H2', ixh2)
+     call const_get_index('atomic_oxygen_mixing_ratio_wrt_total_mass',  ixo)
+     call const_get_index('oxygen_mixing_ratio_wrt_total_mass', ixo2)
+     call const_get_index('atomic_hydrogen_mixing_ratio_wrt_total_mass',  ixh)
+     call const_get_index('hydrogen_mixing_ratio_wrt_total_mass', ixh2)
   end if
 
    call test_mapping_addfld
@@ -1264,8 +1237,8 @@ subroutine read_inidat(dyn_in)
       nullify(elem)
    end if
 
-   allocate(qtmp(np,np,nlev,nelemd,pcnst), stat=ierr)
-   call check_allocate(ierr, subname, 'qtmp(np,np,nlev,nelemd,pcnst)', &
+   allocate(qtmp(np,np,nlev,nelemd,num_advected), stat=ierr)
+   call check_allocate(ierr, subname, 'qtmp(np,np,nlev,nelemd,num_advected)', &
                        file=__FILE__, line=__LINE__)
 
    qtmp = 0._r8
@@ -1538,13 +1511,13 @@ subroutine read_inidat(dyn_in)
    ! except for the water species.
 
    if (ntrac > qsize) then
-      if (ntrac < pcnst) then
+      if (ntrac < num_advected) then
          write(errmsg, '(a,3(i0,a))') ': ntrac (',ntrac,') > qsize (',qsize, &
-            ') but < pcnst (',pcnst,')'
+            ') but < num_advected (',num_advected,')'
          call endrun(trim(subname)//errmsg)
       end if
-   else if (qsize < pcnst) then
-      write(errmsg, '(a,2(i0,a))') ': qsize (',qsize,') < pcnst (',pcnst,')'
+   else if (qsize < num_advected) then
+      write(errmsg, '(a,2(i0,a))') ': qsize (',qsize,') < num_advected (',num_advected,')'
       call endrun(trim(subname)//errmsg)
    end if
 
@@ -1554,9 +1527,9 @@ subroutine read_inidat(dyn_in)
    ! If using analytic ICs the initial file only needs the horizonal grid
    ! dimension checked in the case that the file contains constituent mixing
    ! ratios.
-   do m_cnst = 1, pcnst
-      if (cnst_read_iv(m_cnst) .and. .not. cnst_is_a_water_species(cnst_name(m_cnst))) then
-         if (dyn_field_exists(fh_ini, trim(cnst_name(m_cnst)), required=.false.)) then
+   do m_cnst = 1, num_advected
+      if (cnst_read_iv(m_cnst) .and. .not. cnst_is_a_water_species(const_name(m_cnst))) then
+         if (dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
             exit
          end if
@@ -1567,17 +1540,17 @@ subroutine read_inidat(dyn_in)
    call check_allocate(ierr, subname, 'dbuf3(npsq,nlev,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-   do m_cnst = 1, pcnst
+   do m_cnst = 1, num_advected
 
-      if (analytic_ic_active() .and. cnst_is_a_water_species(cnst_name(m_cnst))) cycle
+      if (analytic_ic_active() .and. cnst_is_a_water_species(const_name(m_cnst))) cycle
 
       found = .false.
       if (cnst_read_iv(m_cnst)) then
-         found = dyn_field_exists(fh_ini, trim(cnst_name(m_cnst)), required=.false.)
+         found = dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)
       end if
 
       if (found) then
-         call read_dyn_var(trim(cnst_name(m_cnst)), fh_ini, dimname, dbuf3)
+         call read_dyn_var(trim(const_name(m_cnst)), fh_ini, dimname, dbuf3)
       else
          call cnst_init_default(m_cnst, latvals, lonvals, dbuf3, pmask)
       end if
@@ -1601,7 +1574,7 @@ subroutine read_inidat(dyn_in)
          end do
       end do
 
-   end do ! pcnst
+   end do ! num_advected
 
    ! Cleanup
    deallocate(dbuf3)
@@ -1625,7 +1598,7 @@ subroutine read_inidat(dyn_in)
    ! once we've read or initialized all the fields we do a boundary exchange to
    ! update the redundent columns in the dynamics
    if(iam < par%nprocs) then
-      call initEdgeBuffer(par, edge, elem, (3+pcnst)*nlev + 2 )
+      call initEdgeBuffer(par, edge, elem, (3+num_advected)*nlev + 2 )
    end if
    do ie = 1, nelemd
       kptr = 0
@@ -1635,7 +1608,7 @@ subroutine read_inidat(dyn_in)
       kptr = kptr + (2 * nlev)
       call edgeVpack(edge, elem(ie)%state%T(:,:,:,1),nlev,kptr,ie)
       kptr = kptr + nlev
-      call edgeVpack(edge, qtmp(:,:,:,ie,:),nlev*pcnst,kptr,ie)
+      call edgeVpack(edge, qtmp(:,:,:,ie,:),nlev*num_advected,kptr,ie)
    end do
    if(iam < par%nprocs) then
       call bndry_exchange(par,edge,location='read_inidat')
@@ -1648,7 +1621,7 @@ subroutine read_inidat(dyn_in)
       kptr = kptr + (2 * nlev)
       call edgeVunpack(edge, elem(ie)%state%T(:,:,:,1),nlev,kptr,ie)
       kptr = kptr + nlev
-      call edgeVunpack(edge, qtmp(:,:,:,ie,:),nlev*pcnst,kptr,ie)
+      call edgeVunpack(edge, qtmp(:,:,:,ie,:),nlev*num_advected,kptr,ie)
    end do
 
    if (inic_wet) then
@@ -1678,7 +1651,7 @@ subroutine read_inidat(dyn_in)
       end do
       factor_array(:,:,:,:) = 1.0_r8/factor_array(:,:,:,:)
 
-      do m_cnst = 1, pcnst
+      do m_cnst = 1, num_advected
 !Un-comment once constituents are enabled -JN:
 !         if (cnst_type(m_cnst) == 'wet') then
             do ie = 1, nelemd
@@ -2463,7 +2436,6 @@ end subroutine map_phis_from_physgrid_to_gll
 
 !Un-comment once "outfld has been enabled in CAMDEN -JN:
 #if 0
-
 subroutine write_dyn_vars(dyn_out)
 
    type (dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
@@ -2474,17 +2446,17 @@ subroutine write_dyn_vars(dyn_out)
 
    if (ntrac > 0) then
       do ie = 1, nelemd
-         call outfld('dp_fvm', RESHAPE(dyn_out%fvm(ie)%dp_fvm(1:nc,1:nc,:), &
+         call outfld('dp_fvm', RESHAPE(dyn_out%fvm(ie)%dp_fvm(1:nc,1:nc,:),   &
                                        (/nc*nc,nlev/)), nc*nc, ie)
-         call outfld('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc), &
+         call outfld('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc),     &
                                           (/nc*nc/)), nc*nc, ie)
          do m = 1, ntrac
-            tfname = trim(cnst_name(m))//'_fvm'
-            call outfld(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m), &
+            tfname = trim(const_name(m))//'_fvm'
+            call outfld(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m),     &
                                         (/nc*nc,nlev/)), nc*nc, ie)
 
-            tfname = 'F'//trim(cnst_name(m))//'_fvm'
-            call outfld(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),&
+            tfname = 'F'//trim(const_name(m))//'_fvm'
+            call outfld(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),    &
                                         (/nc*nc,nlev/)), nc*nc, ie)
          end do
       end do

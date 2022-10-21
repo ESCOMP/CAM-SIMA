@@ -139,6 +139,8 @@
     <xs:attribute name="index_pos"     type="standard_name_type"
                   use="required"/>
     <xs:attribute ref="units"          use="optional"/>
+    <xs:attribute name="advected"      use="optional"
+                  type="xs:boolean" default="false"/>
     <xs:attribute name="phys_timestep_init_zero" use="optional"
                   type="xs:boolean" default="false"/>
   </xs:complexType>
@@ -157,6 +159,8 @@
     <xs:attribute ref="kind"          use="optional" default=""/>
     <xs:attribute ref="allocatable"   use="optional" default="none"/>
     <xs:attribute ref="access"        use="optional" default="public"/>
+    <xs:attribute name="advected"     use="optional"
+                  type="xs:boolean" default="false"/>
     <xs:attribute name="phys_timestep_init_zero" use="optional"
                   type="xs:boolean" default="false"/>
   </xs:complexType>
