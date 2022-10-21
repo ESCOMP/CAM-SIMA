@@ -13,14 +13,15 @@ import sys
 import os
 import hashlib
 import xml.etree.ElementTree as ET
+from xml.dom import minidom #Used to pretty-print cache file
 
 # Find and include the ccpp-framework scripts directory
 # Assume we are in <CAMROOT>/cime_config and SPIN is in <CAMROOT>/ccpp_framework
 __CURRDIR = os.path.abspath(os.path.dirname(__file__))
 __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
-__SPINSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
-if __SPINSCRIPTS not in sys.path:
-    sys.path.append(__SPINSCRIPTS)
+__CCPP_FRAMEWORK = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
+if __CCPP_FRAMEWORK not in sys.path:
+    sys.path.append(__CCPP_FRAMEWORK)
 # end if
 
 # CCPP framework imports
@@ -386,8 +387,17 @@ class BuildCacheCAM:
             kind_type = ET.SubElement(ccpp, 'kind_type')
             kind_type.text = f"{kind_def}={kind_type}"
         # end for
+
+        #Combine elments into an Element Tree object:
         new_cache_tree = ET.ElementTree(new_cache)
-        new_cache_tree.write(self.__build_cache)
+
+        #Convert Element Tree to a Document Object Model (DOM) XML object:
+        dom_xml = minidom.parseString(ET.tostring(new_cache_tree.getroot()))
+
+        #Write XML in a "pretty-print" format:
+        with open(self.__build_cache, "w", encoding="UTF-8") as xml_file:
+            xml_file.write(dom_xml.toprettyxml(indent="   "))
+        #End with
 
     def registry_mismatch(self, gen_reg_file, registry_source_files,
                           dycore, config):
