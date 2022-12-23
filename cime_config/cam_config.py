@@ -241,11 +241,17 @@ class ConfigCAM:
         # Save local (cime_config) directory path:
         cime_conf_path = os.path.dirname(os.path.abspath(__file__))
 
+        # Save path to the "data" src direcotry:
+        data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
+
         # Create empty XML namelist definition files dictionary:
         self.__xml_nml_def_files = OrderedDict()
 
-        #Add the default host model namelist:
-        self._add_xml_nml_file(cime_conf_path, 'namelist_definition_cam.xml')
+        #Add the default host model namelists:
+        self._add_xml_nml_file(cime_conf_path, "namelist_definition_cam.xml")
+        self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
+        self._add_xml_nml_file(data_nml_path, "namelist_definition_air_comp.xml")
+        self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
 
         #----------------------------------------------------
         # Set CAM start date (needed for namelist generation)
@@ -342,16 +348,12 @@ class ConfigCAM:
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["se",os.path.join("se","dycore")],
                                valid_list_type="str")
 
-            # Set paths for the SE dycore and "air composition"
-            # namelist definition files:
+            # Set paths for the SE dycore namelist definition file:
             se_dyn_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "dynamics", "se")
             data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
 
             #Add NML definition files to dictionary:
             self._add_xml_nml_file(se_dyn_nml_path, "namelist_definition_se_dycore.xml")
-            self._add_xml_nml_file(data_nml_path, "namelist_definition_air_comp.xml")
-            self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
-            self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
 
             # Add required CPP definitons:
             self.add_cppdef("_MPI")

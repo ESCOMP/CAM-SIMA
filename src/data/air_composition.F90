@@ -485,7 +485,7 @@ CONTAINS
             !
             ! Q
             !
-         case('water_vapor_specific_humidity')
+         case('specific_humidity')
 !            call air_species_info('Q', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = ix_qv ! this should be removed once constituents are enabled
             mw = mwh2o !this should be removed once constituents are enabled
@@ -497,7 +497,7 @@ CONTAINS
             !
             ! CLDLIQ
             !
-         case('cloud_liquid_water_mixing_ratio_of_moist_air')
+         case('cloud_liquid_water_mixing_ratio_wrt_moist_air')
 !            call air_species_info('CLDLIQ', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = ix_cld_liq ! this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
@@ -510,7 +510,7 @@ CONTAINS
             !
             ! CLDICE
             !
-         case('cloud_ice_mixing_ratio_of_moist_air')
+         case('cloud_ice_mixing_ratio_wrt_moist_air')
 !            call air_species_info('CLDICE', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
@@ -523,7 +523,7 @@ CONTAINS
             !
             ! RAINQM
             !
-         case('rain_water_mixing_ratio')
+         case('rain_water_mixing_ratio_wrt_moist_air')
 !            call air_species_info('RAINQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = ix_rain !!XXgoldyXX: this should be removed once constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
@@ -536,7 +536,7 @@ CONTAINS
             !
             ! SNOWQM
             !
-         case('snow_water_mixing_ratio')
+         case('snow_water_mixing_ratio_wrt_moist_air')
 !            call air_species_info('SNOWQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix
@@ -549,7 +549,7 @@ CONTAINS
             !
             ! GRAUQM
             !
-         case('graupel_mixing_ratio')
+         case('graupel_mixing_ratio_wrt_moist_air')
 !            call air_species_info('GRAUQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
             ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
             thermodynamic_active_species_idx(icnst) = ix

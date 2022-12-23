@@ -41,45 +41,45 @@
       mass and thermodynamic properties.
       Default if CAM4, CAM5, or Kessler physics is used:
 
-      ['water_vapor_specific_humidity',
-       'cloud_liquid_water_mixing_ratio_of_moist_air',
-       'rain_water_mixing_ratio']
+      ['specific_humidity',
+       'cloud_liquid_water_mixing_ratio_wrt_moist_air',
+       'rain_water_mixing_ratio_wrt_moist_air']
 
       Default if CAM6 physics is used:
 
-      ['water_vapor_specific_humidity',
-       'cloud_liquid_water_mixing_ratio_of_moist_air',
-       'cloud_ice_water_mixing_ratio_of_moist_air',
-       'rain_water_mixing_ratio',
-       'snow_water_mixing_ratio']
+      ['specific_humidity',
+       'cloud_liquid_water_mixing_ratio_wrt_moist_air',
+       'cloud_ice_water_mixing_ratio_wrt_moist_air',
+       'rain_water_mixing_ratio_wrt_moist_air',
+       'snow_water_mixing_ratio_wrt_moist_air']
 
-      Otherwise default is: ['water_vapor_specific_humidity']
+      Otherwise default is: ['specific_humidity']
     </desc>
     <values>
       <value>
-        water_vapor_specific_humidity
+        specific_humidity
       </value>
       <value phys_suite="kessler">
-        water_vapor_specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio
+        specific_humidity,
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air
       </value>
       <value phys_suite="cam4">
-        water_vapor_specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio
+        specific_humidity,
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air
       </value>
       <value phys_suite="cam5">
-        water_vapor_specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio
+        specific_humidity,
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air
       </value>
       <value phys_suite="cam6">
-        water_vapor_specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        cloud_ice_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio,
-        snow_water_mixing_ratio
+        specific_humidity,
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        cloud_ice_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air,
+        snow_water_mixing_ratio_wrt_moist_air
       </value>
     </values>
   </entry>
