@@ -38,7 +38,7 @@ _CCPP_DIR = os.path.join(_CAM_ROOT_DIR, "ccpp_framework", "scripts")
 
 #Check for all necessary directories:
 if not os.path.exists(_CAM_CONF_DIR):
-    _EMSG = f"ERROR: Cannot find 'cime_config' directory in '{_CAM_CONF_DIR}'"
+    _EMSG = f"ERROR: Cannot find required '{_CAM_CONF_DIR}' directory"
     raise ImportError(_EMSG)
 #End if
 if not os.path.exists(_CCPP_DIR):
