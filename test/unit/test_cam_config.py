@@ -764,9 +764,20 @@ class CamConfigTestRoutine(unittest.TestCase):
         #Create new, expected dictionary:
         xml_fil_list = OrderedDict()
 
-        #This file will always be present:
+        #Create path to "src/data" directory:
+        data_path = os.path.join(CAM_CONF_DIR, os.pardir,
+                                 "src", "data")
+
+        #These files will always be present:
         xml_fil_list['namelist_definition_cam.xml'] = os.path.join(CAM_CONF_DIR,
                                                'namelist_definition_cam.xml')
+        xml_fil_list['namelist_definition_physconst.xml'] = os.path.join(data_path,
+                                               'namelist_definition_physconst.xml')
+        xml_fil_list['namelist_definition_air_comp.xml'] = os.path.join(data_path,
+                                               'namelist_definition_air_comp.xml')
+        xml_fil_list['namelist_definition_ref_pres.xml'] = os.path.join(data_path,
+                                               'namelist_definition_ref_pres.xml')
+
         #This is the file being added:
         xml_fil_list['test_file.xml'] = '/fake/path/test_file.xml'
 

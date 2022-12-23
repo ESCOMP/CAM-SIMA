@@ -350,7 +350,6 @@ class ConfigCAM:
 
             # Set paths for the SE dycore namelist definition file:
             se_dyn_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "dynamics", "se")
-            data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
 
             #Add NML definition files to dictionary:
             self._add_xml_nml_file(se_dyn_nml_path, "namelist_definition_se_dycore.xml")
