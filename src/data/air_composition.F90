@@ -233,7 +233,6 @@ CONTAINS
       use spmd_utils,   only: masterproc
       use cam_logfile,  only: iulog
       use physconst,    only: r_universal, cpair, rair, cpwv, rh2o, cpliq, cpice, mwdry, zvir, mwh2o
-      use physics_types,only: ix_qv, ix_cld_liq, ix_rain !!XXgoldyXXRemove once constituents are enabled
       use physics_grid, only: pcols => columns_on_task
       use vert_coord,   only: pver
 
@@ -350,10 +349,9 @@ CONTAINS
          ! The last major species in dry_air_species is derived from the
          !    others and constants associated with it are initialized here
          !
-         if (TRIM(dry_air_species(dry_air_species_num + 1)) == 'N2') then
-!!XXgoldyXX: Un-comment once constituents are enabled
-#if 0
-            call air_species_info('N', ix, mw)
+         if (TRIM(dry_air_species(dry_air_species_num + 1)) ==                &
+              'N_mixing_ratio_wrt_dry_air') then
+            call air_species_info('N_mixing_ratio_wrt_dry_air', ix, mw)
             mw = 2.0_kind_phys * mw
             icnst = 0 ! index for the derived tracer N2
             thermodynamic_active_species_cp(icnst) = cp2 / mw
@@ -362,8 +360,6 @@ CONTAINS
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
-#endif
-!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! if last major species is not N2 then add code here
             !
@@ -395,9 +391,7 @@ CONTAINS
             ! O
             !
          case('O_mixing_ratio_wrt_dry_air')
-!!XXgoldyXX: Un-comment once constituents are enabled
-#if 0
-            call air_species_info('O', ix, mw)
+            call air_species_info('O_mixing_ratio_wrt_dry_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cp1 / mw
             thermodynamic_active_species_cv (icnst) = cv1 / mw
@@ -406,15 +400,11 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv3
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
-#endif
-!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! O2
             !
          case('O2_mixing_ratio_wrt_dry_air')
-!!XXgoldyXX: Un-comment once constituents are enabled
-#if 0
-            call air_species_info('O2', ix, mw)
+            call air_species_info('O2_mixing_ratio_wrt_dry_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cp2 / mw
             thermodynamic_active_species_cv (icnst) = cv2 / mw
@@ -423,15 +413,11 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv1
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
-#endif
-!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! H
             !
          case('H_mixing_ratio_wrt_dry_air')
-!!XXgoldyXX: Un-comment once constituents are enabled
-#if 0
-            call air_species_info('H', ix, mw)
+            call air_species_info('H_mixing_ratio_wrt_dry_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cp1 / mw
             thermodynamic_active_species_cv (icnst) = cv1 / mw
@@ -441,8 +427,6 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = 0.0_kind_phys
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
-#endif
-!!XXgoldyXX: Un-comment once constituents are enabled
             !
             ! If support for more major species is to be included add code here
             !
@@ -485,10 +469,8 @@ CONTAINS
             !
             ! Q
             !
-         case('water_vapor_specific_humidity')
-!            call air_species_info('Q', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
-            ix = ix_qv ! this should be removed once constituents are enabled
-            mw = mwh2o !this should be removed once constituents are enabled
+         case('specific_humidity')
+            call air_species_info('specific_humidity', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpwv
             thermodynamic_active_species_cv (icnst) = cv3 / mw
@@ -497,9 +479,9 @@ CONTAINS
             !
             ! CLDLIQ
             !
-         case('cloud_liquid_water_mixing_ratio_of_moist_air')
-!            call air_species_info('CLDLIQ', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
-            ix = ix_cld_liq ! this should be removed once constituents are enabled
+         case('cloud_liquid_water_mixing_ratio_wrt_moist_air')
+            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air', &
+                 ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -510,9 +492,8 @@ CONTAINS
             !
             ! CLDICE
             !
-         case('cloud_ice_mixing_ratio_of_moist_air')
-!            call air_species_info('CLDICE', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
-            ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
+         case('cloud_ice_mixing_ratio_wrt_moist_air')
+            call air_species_info('cloud_ice_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -523,9 +504,8 @@ CONTAINS
             !
             ! RAINQM
             !
-         case('rain_water_mixing_ratio')
-!            call air_species_info('RAINQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
-            ix = ix_rain !!XXgoldyXX: this should be removed once constituents are enabled
+         case('rain_mixing_ratio_wrt_moist_air')
+            call air_species_info('rain_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -536,9 +516,8 @@ CONTAINS
             !
             ! SNOWQM
             !
-         case('snow_water_mixing_ratio')
-!            call air_species_info('SNOWQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
-            ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
+         case('snow_mixing_ratio_wrt_moist_air')
+            call air_species_info('snow_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -549,9 +528,8 @@ CONTAINS
             !
             ! GRAUQM
             !
-         case('graupel_mixing_ratio')
-!            call air_species_info('GRAUQM', ix, mw) !!XXgoldyXX: this should be uncommented once constituents are enabled
-            ix = -1 !!XXgoldyXX: Model should die if it gets here, until constituents are enabled
+         case('graupel_mixing_ratio_wrt_moist_air')
+            call air_species_info('graupel_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -1116,20 +1094,9 @@ CONTAINS
    !===========================================================================
 
    subroutine air_species_info(name, index, molec_weight, caller)
-      use cam_abortutils, only: endrun
-      use cam_logfile,    only: iulog
-      !!XXgoldyXX: v until we get constituents figured out in CCPP
-#if 0
-      !!XXgoldyXX: ^  until we get constituents figured out in CCPP
-      use constituents, only: cnst_get_ind, cnst_mw
-      !!XXgoldyXX: v until we get constituents figured
-      !out in CCPP
-#endif
-      !!XXgoldyXX: ^  until we get constituents
-      !figured out in CCPP
-      ! Find the constituent index of <name> and return it in
-      !    <index>. Return the constituent molecular weight in
-      !    <molec_weight>
+      use cam_abortutils,   only: endrun
+      use cam_logfile,      only: iulog
+      use cam_constituents, only: const_get_index, const_molec_weight
 
       ! Dummy arguments
       character(len=*),           intent(in)    :: name
@@ -1139,9 +1106,7 @@ CONTAINS
       ! Local parameter
       character(len=*), parameter :: subname = 'air_species_info: '
 
-      !!XXgoldyXX: vv commented out until we get constituents figured out
-      !call cnst_get_ind(trim(name), index, abort=.false.)
-      !!XXgoldyXX^^ commented out until we get constituents figured out
+      call const_get_index(name, index, abort=.false.)
       if (index < 1) then
          if (present(caller)) then
             write(iulog, *) trim(caller), ": air component not found, '", &
@@ -1155,9 +1120,7 @@ CONTAINS
                  trim(name)//"'")
          end if
       else
-      !!XXgoldyXX vv commented out until we get constituents figured out
-      !   molec_weight = cnst_mw(index)
-      !!XXgoldyXX ^^ commented out until we get constituents figured out
+         molec_weight = const_molec_weight(index)
       end if
 
    end subroutine air_species_info
