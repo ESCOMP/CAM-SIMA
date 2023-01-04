@@ -58,6 +58,8 @@ run_doctest cime_config/cam_config_classes.py
 run_doctest cime_config/cam_config.py
 # CAM autogen doctests:
 run_doctest cime_config/cam_autogen.py
+# CAM build cache doctests:
+run_doctest cime_config/cam_build_cache.py
 # Namelist reader generator doctests:
 run_doctest cime_config/create_readnl_files.py
 # Registry generator doctests:
@@ -68,7 +70,7 @@ run_doctest cime_config/atm_in_paramgen.py
 run_unittest test/unit/test_cam_config.py
 # CAM autogen unit tests:
 run_unittest test/unit/test_cam_autogen.py
-# CAM build_cache unit tests:
+# CAM build cache unit tests:
 run_unittest test/unit/test_build_cache.py
 # Registry generator unit tests:
 run_unittest test/unit/test_registry.py

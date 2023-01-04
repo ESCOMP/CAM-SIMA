@@ -13,7 +13,7 @@ or (for more verbose output):
 
 python test_build_cache.py -v
 
-which will currently run XX tests, all of which should pass.
+which will currently run 30 tests, all of which should pass.
 """
 
 #----------------------------------------
@@ -22,11 +22,15 @@ which will currently run XX tests, all of which should pass.
 import sys
 import os
 import os.path
+import glob
+import shutil
+import filecmp
 
 #Python unit-testing library:
 import unittest
 
 #Add directory to python path:
+_CWD = os.getcwd()
 _CURRDIR = os.path.abspath(os.path.dirname(__file__))
 _CAM_ROOT_DIR = os.path.join(_CURRDIR, os.pardir, os.pardir)
 _CAM_CONF_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "cime_config"))
@@ -54,11 +58,23 @@ sys.path.append(_CCPP_FRAMEWORK)
 
 #Import CAM Build Cache object:
 # pylint: disable=wrong-import-position
-from cam_build_cache import BuildCacheCAM
+from cam_build_cache import FileStatus, BuildCacheCAM
 
 #Import CCPP Error type:
 from parse_source import CCPPError
 # pylint: enable=wrong-import-position
+
+#++++++++++++++++
+#Helper functions
+#++++++++++++++++
+
+def remove_files(file_list):
+   """Remove files in <file_list> if they exist"""
+   for fpath in file_list:
+       if os.path.exists(fpath):
+           os.remove(fpath)
+       #End if
+   #End for
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #Main cam_build_cache testing routine, used when script is run directly
@@ -71,6 +87,161 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
     to ensure that the scripts and error-handling methods
     are running properly.
     """
+
+    #++++++++++++++++++++++
+    #Test environment setup
+    #++++++++++++++++++++++
+
+    @classmethod
+    def setUpClass(cls):
+        """Clean output directory (tmp) before running tests"""
+        #Does "tmp" directory exist?  If not then create it:
+        if not os.path.exists(_PRE_TMP_DIR):
+            os.mkdir(_PRE_TMP_DIR)
+        #end if
+        #Now check if "write_init_files" directory exists:
+        if not os.path.exists(_TMP_DIR):
+            os.mkdir(_TMP_DIR)
+        #end if
+
+        #Clear out all files:
+        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
+
+        #Set path to test registry file, which will be used in
+        #various tests below as a stand-in for all teeded files:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+
+        #Copy test registry file to local "tmp" directory:
+        shutil.copy2(test_reg_file, os.path.join(_TMP_DIR, "test_reg.xml"))
+
+        #Finally, need to change the current working directory in order
+        #for the relative paths to work:
+        os.chdir(_CURRDIR)
+
+        #Run inherited setup method:
+        super(cls, CamBuildCacheTestRoutine).setUpClass()
+
+    #++++++++++++++++
+
+    @classmethod
+    def tearDownClass(cls):
+       """
+       Return to original working directory
+       now that these tests are finished.
+       """
+
+       #Return to original working working directory:
+       os.chdir(_CWD)
+
+       #Run inherited teardown method:
+       super(cls, CamBuildCacheTestRoutine).tearDownClass()
+
+    #++++++++++++++++++++++++++++++++
+    #FileStatus object creation tests
+    #++++++++++++++++++++++++++++++++
+
+    def test_file_status_cache_file_hash(self):
+
+        """
+        Check that the FileStatus object is
+        created successfully when given the
+        proper inputs, incluing a file hash.
+        """
+
+        #Set path to test registry file:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+
+        #Create new FileStatus object with assigned hashs:
+        test_status = FileStatus(test_reg_file, "test", file_hash="orange")
+
+        #Check that new status object has correct properties:
+        self.assertEqual(test_status.file_path, test_reg_file)
+        self.assertEqual(test_status.file_hash, "orange")
+        self.assertEqual(test_status.key, "param_reg.xml")
+
+    #++++++++++++++++
+
+    def test_file_status_cache_file_no_hash(self):
+
+        """
+        Check that the FileStatus object is
+        created successfully when given the
+        proper inputs, except a file hash.
+        """
+
+        #Set path to test registry file:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+
+        #Set expected sha256 hash value:
+        test_hash = "584c7f0992d4af811afb2069c752f279c51a1ac4"
+
+        #Create new FileStatus object with assigned hashs:
+        test_status = FileStatus(test_reg_file, "test")
+
+        #Check that new status object has correct properties:
+        self.assertEqual(test_status.file_path, test_reg_file)
+        self.assertEqual(test_status.file_hash, test_hash)
+        self.assertEqual(test_status.key, "param_reg.xml")
+
+    #++++++++++++++++
+
+    def test_file_status_no_file(self):
+
+        """
+        Check that the correct error is raised when
+        the FileStatus object is initialized with
+        no provided hash and a non-existent file.
+        """
+
+        #Set path to non-existent file:
+        missing_file = os.path.join(_WRITE_INIT_DIR, "scooby_dooby.doo")
+
+        #Set expected error message:
+        emsg = f"ERROR: 'test', '{missing_file}', does not exist"
+
+        #Expect Value error when initializing object:
+        with self.assertRaises(ValueError) as verr:
+            _ = FileStatus(missing_file, "test")
+        #End with
+
+        #Check that error message matches what is expected:
+        self.assertEqual(emsg, str(verr.exception))
+
+    #++++++++++++++++
+
+    def test_file_status_hash_mismatch(self):
+
+        """
+        Check that the "hash_mismatch" method
+        works as expected.
+        """
+
+        #Set path to test registry file:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+
+        #Set path to temporary copy of registry file:
+        mod_reg_file = os.path.join(_TMP_DIR, "param_reg_mod.xml")
+
+        #Create new FileStatus object:
+        test_status = FileStatus(test_reg_file, "test")
+
+        #Open test file:
+        with open(test_reg_file, "r", encoding="utf-8") as test_fil:
+            #Read in file:
+            file_lines = test_fil.readlines()
+
+            #Modify third line:
+            file_lines[2] = '<registry name="zoiks" version="1.0">'
+        #end with
+
+        #Now create new file with modified lines:
+        with open(mod_reg_file, "w", encoding="utf-8") as mod_fil:
+            #Write lines to new file:
+            mod_fil.writelines(file_lines)
+        #End with
+
+        #Check that hash_mismatch returns the correct result:
+        self.assertTrue(test_status.hash_mismatch(mod_reg_file))
 
     #+++++++++++++++++++++++++++++++++++
     #BuildCacheCAM object creation tests
@@ -222,6 +393,55 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
     #Registry generation tests
     #+++++++++++++++++++++++++
 
+    def test_update_registry(self):
+
+        """
+        Check that the "update_registry"
+        method successfully updates the build
+        cache, using the "write" method to validate
+        the change.
+        """
+
+        #Set path to already-existing cache file:
+        cache_file = os.path.join(_SAMPLES_DIR, "example_build_cache.xml")
+
+        #Set path to expected cache file:
+        expected_file = os.path.join(_SAMPLES_DIR, "update_reg_build_cache.xml")
+
+        #Set path to "new" build cache file:
+        test_file = os.path.join(_TMP_DIR, "update_reg_build_cache.xml")
+
+        #Set path to test registry file, which is used in the provided cache file,
+        #making sure to use the relative path in order to exactly match the cache:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+
+        #Copy build cache file to temporary directory:
+        shutil.copy2(cache_file, test_file)
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(test_file)
+
+        #Set non-file update_registry inputs:
+        ic_names = {"Only_had_a": ["heart", "brain"]}
+        dycore = "banana"
+
+        #Update registry fields:
+        test_cache.update_registry(tmp_test_reg, [tmp_test_reg],
+                                   dycore, None, [tmp_test_reg], ic_names)
+
+        #Write updated fields to build cache file:
+        test_cache.write()
+
+        #Create assertion message for file comparison:
+        amsg = f"Test file '{test_file}' does not match '{expected_file}'"
+
+        #Check that the newly written build cache file matches
+        #what is expected:
+        self.assertTrue(filecmp.cmp(test_file, expected_file,
+                                    shallow=False), msg=amsg)
+
+    #++++++++++++++++
+
     def test_registry_mismatch_good_match(self):
 
         """
@@ -369,6 +589,61 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
     #++++++++++++++++++++++++++++++++++++
     #CCPP Physics suites generation tests
     #++++++++++++++++++++++++++++++++++++
+
+    def test_update_ccpp(self):
+
+        """
+        Check that the "update_ccpp"
+        method successfully updates the build
+        cache, using the "write" method to validate
+        the change.
+        """
+
+        #Set path to already-existing cache file:
+        cache_file = os.path.join(_SAMPLES_DIR, "example_build_cache.xml")
+
+        #Set path to expected cache file:
+        expected_file = os.path.join(_SAMPLES_DIR, "update_ccpp_build_cache.xml")
+
+        #Set path to "new" build cache file:
+        test_file = os.path.join(_TMP_DIR, "update_ccpp_build_cache.xml")
+
+        #Set path to test registry file, which is used in the provided cache file,
+        #making sure to use the relative path in order to exactly match the cache:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+
+        #Copy build cache file to temporary directory:
+        shutil.copy2(cache_file, test_file)
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(test_file)
+
+        #Set file-based update_ccpp inputs:
+        xml_nl_file_dict = {"starfruit": tmp_test_reg}
+
+        #Set non-file update_ccpp inputs:
+        nl_meta      = ["/dragon/fruit/kumquat_namelist.meta"]
+        nl_groups    = ["orange", "lemon"]
+        preproc_defs = "-DBANANA"
+        kind_types   = ["kind_phys=REAL32"]
+
+        #Update ccpp fields:
+        test_cache.update_ccpp([tmp_test_reg], [tmp_test_reg], [tmp_test_reg],
+                               xml_nl_file_dict, nl_meta, nl_groups,
+                               tmp_test_reg, preproc_defs, kind_types)
+
+        #Write updated fields to build cache file:
+        test_cache.write()
+
+        #Create assertion message for file comparison:
+        amsg = f"Test file '{test_file}' does not match '{expected_file}'"
+
+        #Check that the newly written build cache file matches
+        #what is expected:
+        self.assertTrue(filecmp.cmp(test_file, expected_file,
+                                    shallow=False), msg=amsg)
+
+    #++++++++++++++++
 
     def test_ccpp_mismatch_good_match(self):
 
@@ -559,9 +834,205 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         #Check that function returns True:
         self.assertTrue(ccpp_match)
 
+    #++++++++++++++++++++++++++++++++
+    #CCPP scheme namelist files tests
+    #++++++++++++++++++++++++++++++++
+
+    def test_xml_nl_good_match(self):
+
+        """
+        Check that the 'xml_nl_mismatch'
+        function returns False when there
+        is no change in the init files writing
+        function being used.
+        """
+
+        #Set path to already-existing cache file used by "update" tests:
+        cache_file = os.path.join(_SAMPLES_DIR, "update_ccpp_build_cache.xml")
+
+        #Set path to test registry file, which is used in the provided cache file,
+        #making sure to use the relative path in order to exactly match the cache:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(cache_file)
+
+        #Create xml namelist files dictionary:
+        xml_nl_file_dict = {"starfruit": tmp_test_reg}
+
+        #Run xml_nl_mismatch function:
+        nl_match = test_cache.xml_nl_mismatch(tmp_test_reg, xml_nl_file_dict)
+
+        #Check that function returns False:
+        self.assertFalse(nl_match)
+
+    #++++++++++++++++
+
+    def test_xml_nl_diff_create_nl_file(self):
+
+        """
+        Check that the 'xml_nl_mismatch'
+        function returns True when there
+        is a change in the namelist files
+        generation function being used.
+        """
+
+        #Set path to already-existing cache file used by "update" tests:
+        cache_file = os.path.join(_SAMPLES_DIR, "update_ccpp_build_cache.xml")
+
+        #Set path to test registry file, which is used in the provided cache file,
+        #making sure to use the relative path in order to exactly match the cache:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+
+        #Set path to "new" file being used as the namelist generator file.  Please
+        #note that for simplicity this is still just another registry xml file:
+        new_create_nl_file = os.path.join(_WRITE_INIT_DIR, "simple_reg.xml")
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(cache_file)
+
+        #Create xml namelist files dictionary:
+        xml_nl_file_dict = {"starfruit": tmp_test_reg}
+
+        #Run xml_nl_mismatch function:
+        nl_match = test_cache.xml_nl_mismatch(new_create_nl_file, xml_nl_file_dict)
+
+        #Check that function returns False:
+        self.assertTrue(nl_match)
+
+    #++++++++++++++++
+
+    def test_xml_nl_diff_xml_file_path(self):
+
+        """
+        Check that the 'xml_nl_mismatch'
+        function returns True when there
+        is a difference in the namelist xml
+        file path, even if the files themselves
+        are the same.
+        """
+
+        #Set path to already-existing cache file used by "update" tests:
+        cache_file = os.path.join(_SAMPLES_DIR, "update_ccpp_build_cache.xml")
+
+        #Set path to test registry file, which is used in the provided cache file:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+
+        #Also set path to original registry file, which should have the same
+        #file contents (and thus the same hash), but a different file path:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(cache_file)
+
+        #Create xml namelist files dictionary, but this time
+        #pointing to the original, non-cached file path:
+        xml_nl_file_dict = {"starfruit": test_reg_file}
+
+        #Run xml_nl_mismatch function:
+        nl_match = test_cache.xml_nl_mismatch(tmp_test_reg, xml_nl_file_dict)
+
+        #Check that function returns False:
+        self.assertTrue(nl_match)
+
+    #++++++++++++++++
+
+    def test_xml_nl_diff_xml_file(self):
+
+        """
+        Check that the 'xml_nl_mismatch'
+        function returns True when there
+        is a difference in the namelist xml
+        file, even if the file paths are the
+        same.
+        """
+
+        #Set path to already-existing cache file used by "update" tests:
+        cache_file = os.path.join(_SAMPLES_DIR, "update_ccpp_build_cache.xml")
+
+        #Set path to test registry file, which is used in the provided cache file,
+        #making sure to use the relative path in order to exactly match the cache:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+
+        #Set path to "new" xml file, which is different from the one provided
+        #in the cache file:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "simple_reg.xml")
+
+        #Copy "new" xml file to local "tmp" directory, so that it has the
+        #same path and name as the cached file, but different  contents/hash:
+        shutil.copy2(test_reg_file, os.path.join(_CURRDIR, tmp_test_reg))
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(cache_file)
+
+        #Create xml namelist files dictionary, but this time
+        #pointing to the original, non-cached file path:
+        xml_nl_file_dict = {"starfruit": tmp_test_reg}
+
+        #Run xml_nl_mismatch function:
+        nl_match = test_cache.xml_nl_mismatch(tmp_test_reg, xml_nl_file_dict)
+
+        #Check that function returns False:
+        self.assertTrue(nl_match)
+
+        #Reset the "test_reg.xml" file to it's original values,
+        #in order to avoid test failures elsewhere:
+        orig_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+        shutil.copy2(orig_reg_file, os.path.join(_CURRDIR, tmp_test_reg))
+
     #++++++++++++++++++++++++++++++++++++++++
     #Initialization routines generation tests
     #++++++++++++++++++++++++++++++++++++++++
+
+    def test_update_init_gen(self):
+
+        """
+        Check that the "update_init_gen"
+        method successfully updates the build
+        cache, using the "write" method to validate
+        the change.
+        """
+
+        #Set path to already-existing cache file:
+        cache_file = os.path.join(_SAMPLES_DIR, "example_build_cache.xml")
+
+        #Set path to expected cache file:
+        expected_file = os.path.join(_SAMPLES_DIR, "update_init_gen_build_cache.xml")
+
+        #Set path to "new" build cache file:
+        test_file = os.path.join(_TMP_DIR, "update_init_gen_build_cache.xml")
+
+        #Set path to test registry file, which will be used in the
+        #"updated" build cache as a stand-in for all needed files:
+        test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+
+        #Copy build cache file to temporary directory:
+        shutil.copy2(cache_file, test_file)
+
+        #Copy registry file to local "tmp" directory, which
+        #removes the need to match absolute paths when
+        #checking the contents of the output file:
+        tmp_test_reg = os.path.join("tmp", "cam_build_cache", "test_reg.xml")
+        shutil.copy2(test_reg_file, os.path.join(os.curdir, tmp_test_reg))
+
+        #Create new build cache object:
+        test_cache = BuildCacheCAM(test_file)
+
+        #Update init routines generator:
+        test_cache.update_init_gen(tmp_test_reg)
+
+        #Write updated fields to build cache file:
+        test_cache.write()
+
+        #Create assertion message for file comparison:
+        amsg = f"Test file '{test_file}' does not match '{expected_file}'"
+
+        #Check that the newly written build cache file matches
+        #what is expected:
+        self.assertTrue(filecmp.cmp(test_file, expected_file,
+                                    shallow=False), msg=amsg)
+
+    #++++++++++++++++
 
     def test_init_write_mismatch_good_match(self):
 
@@ -583,7 +1054,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         #Create new  build cache object:
         test_cache = BuildCacheCAM(cache_file)
 
-        #Run registry_mismatch function:
+        #Run init_write_mismatch function:
         init_match = test_cache.init_write_mismatch(init_gen_file)
 
         #Check that function returns False:
@@ -610,7 +1081,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         #Create new  build cache object:
         test_cache = BuildCacheCAM(cache_file)
 
-        #Run registry_mismatch function:
+        #Run init_write_mismatch function:
         init_match = test_cache.init_write_mismatch(new_init_gen_file)
 
         #Check that function returns True:

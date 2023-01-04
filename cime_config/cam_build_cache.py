@@ -32,7 +32,15 @@ from parse_tools import read_xml_file
 ###############################################################################
 def new_xml_entry(parent, tag, path, file_hash):
 ###############################################################################
-    """Create a new file type entry in the cache"""
+    """
+    Create a new file type entry in the cache
+
+    doctest:
+    >>> parent_xml = ET.Element("test")
+    >>> test_xml = new_xml_entry(parent_xml, "test", "/no/where", "banana")
+    >>> ET.dump(test_xml)
+    <test file_path="/no/where" hash="banana" />
+    """
     new_entry = ET.SubElement(parent, tag)
     new_entry.set('file_path', path)
     new_entry.set('hash', file_hash)
@@ -43,6 +51,38 @@ def new_entry_from_xml(item):
 ###############################################################################
     """Create a new FileStatus entry from XML entry, <item>.
         ValueError is thrown in error.
+
+    doctests:
+
+    1.  Make sure function works as expected:
+    >>> parent_xml = ET.Element("test")
+    >>> test_xml = new_xml_entry(parent_xml, "test", "/no/where", "banana")
+    >>> new_entry_from_xml(test_xml).file_hash
+    'banana'
+
+    2.  Make sure function throws an error if no hash entry is found:
+    >>> test_xml = ET.Element("test")
+    >>> test_xml.set("file_path", "/no/where")
+    >>> new_entry_from_xml(test_xml) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ERROR: No hash for 'test', '/no/where'
+
+    3.  Make sure function throws an error if no file path entry is found:
+    >>> test_xml = ET.Element("test")
+    >>> test_xml.set("hash", "banana")
+    >>> new_entry_from_xml(test_xml) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ERROR: No path for 'test' XML item
+
+    4.  Make sure function throws an error if neither a file path or hash is found:
+    >>> test_xml = ET.Element("test")
+    >>> new_entry_from_xml(test_xml) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ERROR: Invalid 'test' XML item
+
     """
     path = item.get('file_path', default=None)
     file_hash = item.get('hash', default=None)
@@ -50,13 +90,13 @@ def new_entry_from_xml(item):
     if path and file_hash:
         new_entry = FileStatus(path, item.tag, file_hash)
     elif path:
-        emsg = f"ERROR: No hash for {item.tag}, '{path}'"
+        emsg = f"ERROR: No hash for '{item.tag}', '{path}'"
         raise ValueError(emsg)
     elif file_hash:
-        emsg = f"ERROR: No path for {item.tag} XML item"
+        emsg = f"ERROR: No path for '{item.tag}' XML item"
         raise ValueError(emsg)
     else:
-        raise ValueError(f"ERROR: Invalid {item.tag} XML item")
+        raise ValueError(f"ERROR: Invalid '{item.tag}' XML item")
     # end if
     return new_entry
 
@@ -75,8 +115,8 @@ class FileStatus:
         elif os.path.exists(self.__path):
             self.__hash = FileStatus.sha1sum(self.__path)
         else:
-            emsg = "ERROR: {}, '{}', does not exist"
-            raise ValueError(emsg.format(description, file_path))
+            emsg = f"ERROR: '{description}', '{file_path}', does not exist"
+            raise ValueError(emsg)
         # end if
 
     def hash_mismatch(self, file_path):
@@ -108,6 +148,10 @@ class FileStatus:
     def sha1sum(cls, filename):
         """Efficient SHA hash of a file. SHA1 is good enough for this cache
         Stolen from Georg Sauthoff (https://stackoverflow.com/users/427158)
+
+        Relevant Stack Overflow post:
+
+        https://stackoverflow.com/questions/22058048/hashing-a-file-in-python/44873382#44873382
         """
         file_hash = hashlib.sha1()
         barray = bytearray(128*1024)
@@ -204,8 +248,7 @@ class BuildCacheCAM:
                             new_entry = new_entry_from_xml(item)
                             self.__xml_files[new_entry.key] = new_entry
                         elif item.tag == 'scheme_namelist_meta_file':
-                            new_entry = new_entry_from_xml(item)
-                            self.__scheme_nl_metadata.append(new_entry)
+                            self.__scheme_nl_metadata.append(item.text.strip())
                         elif item.tag == 'scheme_namelist_groups':
                             group_list = [x for x in
                                           item.text.strip().split(' ') if x]
@@ -244,8 +287,9 @@ class BuildCacheCAM:
         # end for
         # reg_file_list contains the files generated from the registry
         self.__reg_gen_files = reg_file_list
-        # ic_names are the initial condition variable names from the registry
-        self.__ic_names = dict(ic_names)
+        # ic_names are the initial condition variable names from the registry,
+        # and should already be of type dict:
+        self.__ic_names = ic_names
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
                     xml_files, namelist_meta_files, namelist_groups,
@@ -335,8 +379,8 @@ class BuildCacheCAM:
             new_xml_entry(ccpp, 'xml_file', sfile.file_path, sfile.file_hash)
         # end for
         for sfile in self.__scheme_nl_metadata:
-            new_xml_entry(ccpp, 'scheme_namelist_meta_file', sfile,
-                          FileStatus.sha1sum(sfile))
+            scheme_nlmeta = ET.SubElement(ccpp, 'scheme_namelist_meta_file')
+            scheme_nlmeta.text = sfile
         # end for
         if self.__scheme_nl_groups:
             scheme_nlgroups = ET.SubElement(ccpp, 'scheme_namelist_groups')
@@ -348,8 +392,8 @@ class BuildCacheCAM:
         preproc = ET.SubElement(ccpp, 'preproc_defs')
         preproc.text = self.__preproc_defs
         for kind_def, kind_type in self.__kind_types.items():
-            kind_type = ET.SubElement(ccpp, 'kind_type')
-            kind_type.text = f"{kind_def}={kind_type}"
+            kind_elem = ET.SubElement(ccpp, 'kind_type')
+            kind_elem.text = f"{kind_def}={kind_type}"
         # end for
 
         #Combine elments into an Element Tree object:
@@ -508,7 +552,7 @@ class BuildCacheCAM:
 
     def scheme_nl_metadata(self):
         """Return the stored list of scheme namelist metadata files"""
-        return [x.file_path for x in self.__scheme_nl_metadata]
+        return self.__scheme_nl_metadata
 
     def scheme_nl_groups(self):
         """Return the stored list of scheme namelist groups"""

@@ -15,10 +15,11 @@
       <scheme file_path="/emerald/city/wizard_convert.meta" hash="269883c29a4209c06680404ad0af88d0a239c5aa"/>
       <host file_path="/emerald/city/hot_air_balloon.meta" hash="c712e17ceb9c0219e19e99c7a9687dc9c8d70f29"/>
       <create_nl_file file_path="/not/in/kansas/create_readnl_files.py" hash="5ce83eb22d5c6276ab6cefdf012292b4b1360892"/>
-      <scheme_namelist_meta_file file_path="/not/in/kansas/wizard_nl.meta" hash="abcd1234"/>
+      <xml_file file_path="/hot/air/balloon_namelist.xml" hash="abcd1234"/>
+      <scheme_namelist_meta_file>/not/in/kansas/wizard_nl.meta</scheme_namelist_meta_file>
       <scheme_namelist_groups>toto dog</scheme_namelist_groups>
       <preproc_defs>UNSET</preproc_defs>
-      <kind_type>kind_phys=&lt;Element 'kind_type' at 0x7f6f680c4450&gt;</kind_type>
+      <kind_type>kind_phys=REAL64</kind_type>
    </CCPP>
    <Wicked_Witch> <!--Bad tag -->
      <of_the_west file_path="/this/should/fail" hash="abcd1234"/>

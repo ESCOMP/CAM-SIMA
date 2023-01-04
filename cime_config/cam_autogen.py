@@ -533,14 +533,19 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         nl_groups = namelist_obj.groups()
         # include generated metadata files
         scheme_nl_meta_files = namelist_obj.meta_files()
+        # Finally, make sure the CCPP caps are grenerated
+        # (although this may not really be necessary):
+        do_gen_ccpp = True
+
     else:
-        # Not running namelist generator, collect metadata files and
-        #   namelist group names from the build cache
+        # Not running namelist generator, collect metadata files
+        # from the build cache
         nl_groups = build_cache.scheme_nl_groups()
         scheme_nl_meta_files = build_cache.scheme_nl_metadata()
     # end if
+    #Add the namelist meta files to the host files list
+    #if present:
     if scheme_nl_meta_files:
-        do_gen_ccpp = True
         host_files.extend(scheme_nl_meta_files)
     # end if (no else)
 
