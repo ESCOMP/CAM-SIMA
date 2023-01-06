@@ -338,19 +338,15 @@ CONTAINS
 
       ! Mark constituent-dependent variables as initialized
       ! cpairv
-      call
-      mark_as_initialized('composition_dependent_specific_heat_of_dry_air_at_constant_pressure')
+      call mark_as_initialized('composition_dependent_specific_heat_of_dry_air_at_constant_pressure')
       ! rairv
       call mark_as_initialized('composition_dependent_gas_constant_of_dry_air')
       ! cappav
-      call
-      mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
+      call mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
       ! mbarv
-      call
-      mark_as_initialized('composition_dependent_mean_molecular_dry_air_weight_at_mid_level')
+      call mark_as_initialized('composition_dependent_mean_molecular_dry_air_weight_at_mid_level')
       ! zvirv
-      call
-      mark_as_initialized('composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one')
+      call mark_as_initialized('composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one')
 
       !
       if (dry_air_species_num > 0) then
