@@ -69,12 +69,12 @@ from parse_source import CCPPError
 #++++++++++++++++
 
 def remove_files(file_list):
-   """Remove files in <file_list> if they exist"""
-   for fpath in file_list:
-       if os.path.exists(fpath):
-           os.remove(fpath)
-       #End if
-   #End for
+    """Remove files in <file_list> if they exist"""
+    for fpath in file_list:
+        if os.path.exists(fpath):
+            os.remove(fpath)
+        #End if
+    #End for
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #Main cam_build_cache testing routine, used when script is run directly
@@ -125,16 +125,16 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-       """
-       Return to original working directory
-       now that these tests are finished.
-       """
+        """
+        Return to original working directory
+        now that these tests are finished.
+        """
 
-       #Return to original working working directory:
-       os.chdir(_CWD)
+        #Return to original working working directory:
+        os.chdir(_CWD)
 
-       #Run inherited teardown method:
-       super(cls, CamBuildCacheTestRoutine).tearDownClass()
+        #Run inherited teardown method:
+        super(cls, CamBuildCacheTestRoutine).tearDownClass()
 
     #++++++++++++++++++++++++++++++++
     #FileStatus object creation tests
@@ -501,31 +501,31 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
     def test_registry_mismatch_diff_reg_file(self):
 
-       """
-       Check that the 'registry_mismatch'
-       function returns True when there is
-       a change in the registry file being used.
-       """
+        """
+        Check that the 'registry_mismatch'
+        function returns True when there is
+        a change in the registry file being used.
+        """
 
-       #Set path to already-existing cache file used by test_write_init_files:
-       cache_file = os.path.join(_WRITE_INIT_DIR, "simple_build_cache_template.xml")
+        #Set path to already-existing cache file used by test_write_init_files:
+        cache_file = os.path.join(_WRITE_INIT_DIR, "simple_build_cache_template.xml")
 
-       #Set path to registry generator file listed in build_cache file.
-       #Please note that in this sample file the registry XML file is listed,
-       #and not a python file as would normally be the case:
-       reg_file = os.path.join(_WRITE_INIT_DIR, "simple_reg.xml")
+        #Set path to registry generator file listed in build_cache file.
+        #Please note that in this sample file the registry XML file is listed,
+        #and not a python file as would normally be the case:
+        reg_file = os.path.join(_WRITE_INIT_DIR, "simple_reg.xml")
 
-       #Set path to "new" registry file:
-       new_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
+        #Set path to "new" registry file:
+        new_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
 
-       #Create new  build cache object:
-       test_cache = BuildCacheCAM(cache_file)
+        #Create new  build cache object:
+        test_cache = BuildCacheCAM(cache_file)
 
-       #Run registry_mismatch function:
-       reg_match = test_cache.registry_mismatch(reg_file, [new_file], "none", None)
+        #Run registry_mismatch function:
+        reg_match = test_cache.registry_mismatch(reg_file, [new_file], "none", None)
 
-       #Check that function returns True:
-       self.assertTrue(reg_match)
+        #Check that function returns True:
+        self.assertTrue(reg_match)
 
     #++++++++++++++++
 
