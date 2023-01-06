@@ -21,17 +21,17 @@
     <use module="runtime_obj" reference="unset_int"/>
     <!-- Constituent indices -->
     <variable local_name="ix_qv"
-              standard_name="index_of_water_vapor_specific_humidity"
+              standard_name="index_of_specific_humidity"
               units="index" type="integer">
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="ix_cld_liq"
-              standard_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
+              standard_name="index_of_cloud_liquid_water_mixing_ratio_wrt_moist_air"
               units="index" type="integer">
       <initial_value>2</initial_value>
     </variable>
     <variable local_name="ix_rain"
-              standard_name="index_of_rain_water_mixing_ratio"
+              standard_name="index_of_rain_water_mixing_ratio_wrt_moist_air"
               units="index" type="integer">
       <initial_value>3</initial_value>
     </variable>
@@ -178,18 +178,18 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension
       number_of_constituents</dimensions>
-      <element standard_name="water_vapor_specific_humidity"
-               index_name="index_of_water_vapor_specific_humidity"
+      <element standard_name="specific_humidity"
+               index_name="index_of_specific_humidity"
                index_pos="number_of_constituents">
                <ic_file_input_names>Q cnst_Q</ic_file_input_names>
       </element>
-      <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
-               index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
+      <element standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air"
+               index_name="index_of_cloud_liquid_water_mixing_ratio_wrt_moist_air"
                index_pos="number_of_constituents">
                <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
       </element>
-      <element standard_name="rain_water_mixing_ratio"
-               index_name="index_of_rain_water_mixing_ratio"
+      <element standard_name="rain_water_mixing_ratio_wrt_moist_air"
+               index_name="index_of_rain_water_mixing_ratio_wrt_moist_air"
                index_pos="number_of_constituents">
                <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
       </element>

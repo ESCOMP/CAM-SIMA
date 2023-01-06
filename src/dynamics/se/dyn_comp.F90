@@ -728,13 +728,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
       if (m == ix_qv) then
          cnst_name_gll(m) = 'Q'
-         cnst_longname_gll(m) = 'water_vapor_specific_humidity'
+         cnst_longname_gll(m) = 'specific_humidity'
       else if (m == ix_cld_liq) then
          cnst_name_gll(m) = 'CLDLIQ'
-         cnst_longname_gll(m) = 'cloud_liquid_water_mixing_ratio'
+         cnst_longname_gll(m) = 'cloud_liquid_water_mixing_ratio_wrt_moist_air'
       else
          cnst_name_gll(m) = 'RAINQM'
-         cnst_longname_gll(m) = 'rain_water_mixing_ratio'
+         cnst_longname_gll(m) = 'rain_water_mixing_ratio_wrt_moist_air'
       end if
    end do
 #endif
@@ -1866,9 +1866,9 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("air_temperature")
 
    !These calls will need to be modified once constituents are enabled:
-   call mark_as_initialized("water_vapor_specific_humidity")
-   call mark_as_initialized("cloud_liquid_water_mixing_ratio_of_moist_air")
-   call mark_as_initialized("rain_water_mixing_ratio")
+   call mark_as_initialized("specific_humidity")
+   call mark_as_initialized("cloud_liquid_water_mixing_ratio_wrt_moist_air")
+   call mark_as_initialized("rain_water_mixing_ratio_wrt_moist_air")
 
    !These calls may be removed if geopotential_t is only allowed to run
    !in a CCPP physics suite:
