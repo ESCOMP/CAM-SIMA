@@ -149,7 +149,16 @@ CONTAINS
       !    (e.g., for aqua planet experiments)
       namelist /physconst_nl/  user_defined_gravit, user_defined_sday, user_defined_mwh2o, user_defined_cpwv, user_defined_mwdry,              &
            user_defined_cpair, user_defined_rearth, user_defined_tmelt, user_defined_omega
-      !-----------------------------------------------------------------------
+      !----------------------------------------------------------------------
+      user_defined_gravit = UNSET_NAMELIST
+      user_defined_sday = UNSET_NAMELIST
+      user_defined_mwh2o = UNSET_NAMELIST
+      user_defined_cpwv = UNSET_NAMELIST
+      user_defined_mwdry = UNSET_NAMELIST
+      user_defined_cpair = UNSET_NAMELIST
+      user_defined_rearth = UNSET_NAMELIST
+      user_defined_tmelt = UNSET_NAMELIST
+      user_defined_omega = UNSET_NAMELIST
 
       banner = repeat('*', lsize)
       bline = "***"//repeat(' ', lsize - 6)//"***"

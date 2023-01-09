@@ -205,8 +205,8 @@ CONTAINS
 
       ! Return the standard name of the constituent at <const_ind>.
       ! Dummy arguments
-      integer, intent(in) :: const_ind
-      character(len=*)    :: const_name
+      integer, intent(in)           :: const_ind
+      character(len=:), allocatable :: const_name
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
@@ -231,8 +231,8 @@ CONTAINS
 
       ! Return the long name of the constituent at <const_ind>.
       ! Dummy arguments
-      integer, intent(in) :: const_ind
-      character(len=*)    :: const_longname
+      integer, intent(in)           :: const_ind
+      character(len=:), allocatable :: const_longname
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg

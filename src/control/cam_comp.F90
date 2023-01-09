@@ -92,7 +92,6 @@ CONTAINS
       use cam_instance,         only: inst_suffix
 !      use history_defaults,     only: initialize_iop_history
       use stepon,               only: stepon_init
-      use cam_constituents,     only: cam_register_constituents
       use air_composition,      only: air_composition_init
 
       ! Arguments
