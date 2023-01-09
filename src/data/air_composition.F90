@@ -1,10 +1,11 @@
 ! air_composition module defines major species of the atmosphere and manages the physical properties that are dependent on the composition of air
 module air_composition
 
-   use ccpp_kinds,     only: kind_phys
-   use cam_abortutils, only: endrun, check_allocate
-   use runtime_obj,    only: unset_real, unset_int
+   use ccpp_kinds,           only: kind_phys
+   use cam_abortutils,       only: endrun, check_allocate
+   use runtime_obj,          only: unset_real, unset_int
    use phys_vars_init_check, only: std_name_len
+   use physics_types,        only: cpairv, rairv, cappav, mbarv, zvirv
 
    implicit none
    private
@@ -96,17 +97,6 @@ module air_composition
    real(kind_phys), public, protected :: o2_mwi = unset_real ! Inverse mol. weight of O2
    real(kind_phys), public, protected :: n2_mwi = unset_real ! Inverse mol. weight of N2
    real(kind_phys), public, protected :: mbar = unset_real   ! Mean mass at mid level
-
-   ! cpairv:  composition dependent specific heat at constant pressure
-   real(kind_phys), public, protected, allocatable :: cpairv(:,:)
-   ! rairv: composition dependent gas "constant"
-   real(kind_phys), public, protected, allocatable :: rairv(:,:)
-   ! cappav: rairv / cpairv
-   real(kind_phys), public, protected, allocatable :: cappav(:,:)
-   ! mbarv: composition dependent atmosphere mean mass
-   real(kind_phys), public, protected, allocatable :: mbarv(:,:)
-   ! zvirv: rh2o / rair - 1
-   real(kind_phys), public, protected, allocatable :: zvirv(:,:)
 
    !
    ! Interfaces for public routines
@@ -229,12 +219,14 @@ CONTAINS
    !===========================================================================
 
    subroutine air_composition_init()
-      use string_utils, only: to_str
-      use spmd_utils,   only: masterproc
-      use cam_logfile,  only: iulog
-      use physconst,    only: r_universal, cpair, rair, cpwv, rh2o, cpliq, cpice, mwdry, zvir, mwh2o
-      use physics_grid, only: pcols => columns_on_task
-      use vert_coord,   only: pver
+      use string_utils,         only: to_str
+      use spmd_utils,           only: masterproc
+      use cam_logfile,          only: iulog
+      use physconst,            only: r_universal, cpair, rair, cpwv
+      use physconst,            only: rh2o, cpliq, cpice, mwdry, zvir, mwh2o
+      use physics_grid,         only: pcols => columns_on_task
+      use vert_coord,           only: pver
+      use phys_vars_init_check, only: mark_as_initialized
 
       integer  :: icnst, ix, isize, ierr, idx
       integer  :: liq_num, ice_num
@@ -343,6 +335,19 @@ CONTAINS
       cappav(:pcols, :pver) = rair / cpair
       mbarv(:pcols,  :pver) = mwdry
       zvirv(:pcols,  :pver) = zvir
+
+      ! Mark constituent-dependent variables as initialized
+      ! cpairv
+      call mark_as_initialized('composition_dependent_specific_heat_of_dry_air_at_constant_pressure')
+      ! rairv
+      call mark_as_initialized('composition_dependent_gas_constant_of_dry_air')
+      ! cappav
+      call mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
+      ! mbarv
+      call mark_as_initialized('composition_dependent_mean_molecular_dry_air_weight_at_mid_level')
+      ! zvirv
+      call mark_as_initialized('composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one')
+
       !
       if (dry_air_species_num > 0) then
          !

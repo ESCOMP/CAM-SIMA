@@ -182,12 +182,12 @@ CONTAINS
       character(len=256) :: err_msg
 
       if (const_ind < LBOUND(const_props, 1)) then
-         call endrun(subname//"index ("//to_str(const_in)//") out of "//      &
+         call endrun(subname//"index ("//to_str(const_ind)//") out of "//      &
               "bounds, lower bound is "//to_str(LBOUND(const_props, 1)),      &
               file=__FILE__, line=__LINE__)
          check_index_bounds = .false. ! safety in case abort becomes optionsl
       else if (const_ind > UBOUND(const_props, 1)) then
-         call endrun(subname//"index ("//to_str(const_in)//") out of "//      &
+         call endrun(subname//"index ("//to_str(const_ind)//") out of "//      &
               "bounds, upper bound is "//to_str(UBOUND(const_props, 1)),      &
               file=__FILE__, line=__LINE__)
          check_index_bounds = .false. ! safety in case abort becomes optionsl
@@ -258,7 +258,7 @@ CONTAINS
       ! Return the long name of the constituent at <const_ind>.
       ! Dummy arguments
       integer, intent(in) :: const_ind
-      character(len=*)    :: const_molec_weight
+      real(kind_phys)     :: const_molec_weight
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg

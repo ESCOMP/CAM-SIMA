@@ -316,5 +316,41 @@
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
+    <!-- Constituent Variables -->
+    <variable local_name="cpairv"
+              standard_name="composition_dependent_specific_heat_of_dry_air_at_constant_pressure"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Composition-dependent specific heat of dry air at constant pressure</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
+    <variable local_name="rairv"
+              standard_name="composition_dependent_gas_constant_of_dry_air"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Composition-dependent gas constant of dry air</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
+    <variable local_name="cappav"
+              standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure"
+              units="1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
+    <variable local_name="mbarv"
+              standard_name="composition_dependent_mean_molecular_dry_air_weight_at_mid_level"
+              units="g mol-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Composition-dependent mean molecular dry air weight at mid-level</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
+    <variable local_name="zvirv"
+              standard_name="composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Composition-dependent ratio of water vapor to dry air gas constants minus one</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
   </file>
 </registry>

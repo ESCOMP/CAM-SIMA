@@ -562,7 +562,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use physics_types,  only: lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa
    use cam_thermo,     only: cam_thermo_update
-   use air_composition,only: rairv, zvirv
+   use physics_types,  only: rairv, zvirv
    use shr_const_mod,  only: shr_const_rwv
    use geopotential_t, only: geopotential_t_run
 !   use check_energy,   only: check_energy_timestep_init
@@ -732,7 +732,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! returns .true., cam_thermo_update will compute cpairv, rairv, mbarv, and cappav as
    ! constituent dependent variables. It will also:
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
-   ! Update air_composition zvirv variable; calculated for WACCM-X.
+   ! Update zvirv registry variable; calculated for WACCM-X.
    !-----------------------------------------------------------------------------
    call cam_thermo_update(phys_state%q, phys_state%t, pcols, &
         cam_runtime_opts%update_thermodynamic_variables())
