@@ -484,8 +484,8 @@ CONTAINS
             !
             ! CLDLIQ
             !
-         case('cloud_liquid_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air', &
+         case('cloud_liquid_water_mixing_ratio_of_moist_air')
+            call air_species_info('cloud_liquid_water_mixing_ratio_of_moist_air', &
                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
@@ -509,8 +509,8 @@ CONTAINS
             !
             ! RAINQM
             !
-         case('rain_mixing_ratio_wrt_moist_air')
-            call air_species_info('rain_mixing_ratio_wrt_moist_air', ix, mw)
+         case('rain_water_mixing_ratio')
+            call air_species_info('rain_water_mixing_ratio', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq

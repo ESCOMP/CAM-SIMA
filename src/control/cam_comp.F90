@@ -169,13 +169,13 @@ CONTAINS
       ! Initialize model grids and decompositions
       call model_grid_init()
 
-      ! Initialize composition-dependent constants:
-      call air_composition_init()
-
       ! Initialize constituent information
       !    This will set the  number of constituents and the
       !    number of advected constituents is set
       call cam_register_constituents(cam_runtime_opts, num_host_advected)
+
+      ! Initialize composition-dependent constants:
+      call air_composition_init()
 
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
