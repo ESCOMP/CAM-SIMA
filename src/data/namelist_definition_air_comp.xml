@@ -42,16 +42,16 @@
       Default if CAM4, CAM5, or Kessler physics is used:
 
       ['specific_humidity',
-       'cloud_liquid_water_mixing_ratio_of_moist_air',
-       'rain_water_mixing_ratio']
+       'cloud_liquid_water_mixing_ratio_wrt_moist_air',
+       'rain_water_mixing_ratio_wrt_moist_air']
 
       Default if CAM6 physics is used:
 
       ['specific_humidity',
-       'cloud_liquid_water_mixing_ratio_of_moist_air',
-       'cloud_ice_water_mixing_ratio_of_moist_air',
-       'rain_water_mixing_ratio',
-       'snow_water_mixing_ratio']
+       'cloud_liquid_water_mixing_ratio_wrt_moist_air',
+       'cloud_ice_water_mixing_ratio_wrt_moist_air',
+       'rain_water_mixing_ratio_wrt_moist_air',
+       'snow_water_mixing_ratio_wrt_moist_air']
 
       Otherwise default is: ['specific_humidity']
     </desc>
@@ -61,25 +61,25 @@
       </value>
       <value phys_suite="kessler">
         specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air
       </value>
       <value phys_suite="cam4">
         specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air
       </value>
       <value phys_suite="cam5">
         specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air
       </value>
       <value phys_suite="cam6">
         specific_humidity,
-        cloud_liquid_water_mixing_ratio_of_moist_air,
-        cloud_ice_water_mixing_ratio_of_moist_air,
-        rain_water_mixing_ratio,
-        snow_water_mixing_ratio
+        cloud_liquid_water_mixing_ratio_wrt_moist_air,
+        cloud_ice_water_mixing_ratio_wrt_moist_air,
+        rain_water_mixing_ratio_wrt_moist_air,
+        snow_water_mixing_ratio_wrt_moist_air
       </value>
     </values>
   </entry>

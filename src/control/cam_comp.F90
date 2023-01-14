@@ -93,6 +93,7 @@ CONTAINS
 !      use history_defaults,     only: initialize_iop_history
       use stepon,               only: stepon_init
       use air_composition,      only: air_composition_init
+      use air_composition,      only: composition_dependent_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -210,6 +211,7 @@ CONTAINS
       end if
 
       call phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
+      call composition_dependent_init()
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)

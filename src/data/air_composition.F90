@@ -12,6 +12,7 @@ module air_composition
    save
 
    public  :: air_composition_readnl
+   public  :: composition_dependent_init
    public  :: air_composition_init
    public  :: air_composition_update
    ! get_cp_dry: (generalized) heat capacity for dry air
@@ -218,15 +219,42 @@ CONTAINS
 
    !===========================================================================
 
+   subroutine composition_dependent_init()
+      use physconst,            only: cpair, rair, mwdry, zvir
+      use phys_vars_init_check, only: mark_as_initialized
+      !------------------------------------------------------------------------
+      !  Initialize constituent dependent properties
+      !------------------------------------------------------------------------
+      cpairv(:,:) = cpair
+      rairv(:,:) = rair
+      cappav(:,:) = rair / cpair
+      mbarv(:,:) = mwdry
+      zvirv(:,:) = zvir
+
+      ! Mark constituent-dependent variables as initialized
+      ! cpairv
+      call mark_as_initialized('composition_dependent_specific_heat_of_dry_air_at_constant_pressure')
+      ! rairv
+      call mark_as_initialized('composition_dependent_gas_constant_of_dry_air')
+      ! cappav
+      call mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
+      ! mbarv
+      call mark_as_initialized('composition_dependent_mean_molecular_dry_air_weight_at_mid_level')
+      ! zvirv
+      call mark_as_initialized('composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one')
+
+   end subroutine composition_dependent_init
+
+   !===========================================================================
+
    subroutine air_composition_init()
       use string_utils,         only: to_str
       use spmd_utils,           only: masterproc
       use cam_logfile,          only: iulog
       use physconst,            only: r_universal, cpair, rair, cpwv
-      use physconst,            only: rh2o, cpliq, cpice, mwdry, zvir, mwh2o
+      use physconst,            only: rh2o, cpliq, cpice, zvir, mwh2o
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
-      use phys_vars_init_check, only: mark_as_initialized
 
       integer  :: icnst, ix, isize, ierr, idx
       integer  :: liq_num, ice_num
@@ -300,24 +328,6 @@ CONTAINS
       allocate(thermodynamic_active_species_kc(0:isize), stat=ierr)
       call check_allocate(ierr, subname,'thermodynamic_active_species_kc(0:isize)', &
                           file=__FILE__, line=__LINE__)
-      !------------------------------------------------------------------------
-      !  Allocate constituent dependent properties
-      !------------------------------------------------------------------------
-      allocate(cpairv(pcols,pver), stat=ierr)
-      call check_allocate(ierr, subname,'cpairv(pcols,pver)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(rairv(pcols,pver),  stat=ierr)
-      call check_allocate(ierr, subname,'rairv(pcols,pver)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(cappav(pcols,pver), stat=ierr)
-      call check_allocate(ierr, subname,'cappav(pcols,pver)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(mbarv(pcols,pver),  stat=ierr)
-      call check_allocate(ierr, subname,'mbarv(pcols,pver)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(zvirv(pcols,pver),  stat=ierr)
-      call check_allocate(ierr, subname, 'zvirv(pcols,pver)', &
-                          file=__FILE__, line=__LINE__)
 
       thermodynamic_active_species_idx        = -HUGE(1)
       thermodynamic_active_species_idx_dycore = -HUGE(1)
@@ -327,26 +337,6 @@ CONTAINS
       thermodynamic_active_species_mwi        = 0.0_kind_phys
       thermodynamic_active_species_kv         = 0.0_kind_phys
       thermodynamic_active_species_kc         = 0.0_kind_phys
-      !------------------------------------------------------------------------
-      !  Initialize constituent dependent properties
-      !------------------------------------------------------------------------
-      cpairv(:pcols, :pver) = cpair
-      rairv(:pcols,  :pver) = rair
-      cappav(:pcols, :pver) = rair / cpair
-      mbarv(:pcols,  :pver) = mwdry
-      zvirv(:pcols,  :pver) = zvir
-
-      ! Mark constituent-dependent variables as initialized
-      ! cpairv
-      call mark_as_initialized('composition_dependent_specific_heat_of_dry_air_at_constant_pressure')
-      ! rairv
-      call mark_as_initialized('composition_dependent_gas_constant_of_dry_air')
-      ! cappav
-      call mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
-      ! mbarv
-      call mark_as_initialized('composition_dependent_mean_molecular_dry_air_weight_at_mid_level')
-      ! zvirv
-      call mark_as_initialized('composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one')
 
       !
       if (dry_air_species_num > 0) then
@@ -484,8 +474,8 @@ CONTAINS
             !
             ! CLDLIQ
             !
-         case('cloud_liquid_water_mixing_ratio_of_moist_air')
-            call air_species_info('cloud_liquid_water_mixing_ratio_of_moist_air', &
+         case('cloud_liquid_water_mixing_ratio_wrt_moist_air')
+            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air', &
                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
@@ -497,8 +487,8 @@ CONTAINS
             !
             ! CLDICE
             !
-         case('cloud_ice_mixing_ratio_wrt_moist_air')
-            call air_species_info('cloud_ice_mixing_ratio_wrt_moist_air', ix, mw)
+         case('cloud_ice_water_mixing_ratio_wrt_moist_air')
+            call air_species_info('cloud_ice_water_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -509,8 +499,8 @@ CONTAINS
             !
             ! RAINQM
             !
-         case('rain_water_mixing_ratio')
-            call air_species_info('rain_water_mixing_ratio', ix, mw)
+         case('rain_water_mixing_ratio_wrt_moist_air')
+            call air_species_info('rain_water_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -521,8 +511,8 @@ CONTAINS
             !
             ! SNOWQM
             !
-         case('snow_mixing_ratio_wrt_moist_air')
-            call air_species_info('snow_mixing_ratio_wrt_moist_air', ix, mw)
+         case('snow_water_mixing_ratio_wrt_moist_air')
+            call air_species_info('snow_water_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice

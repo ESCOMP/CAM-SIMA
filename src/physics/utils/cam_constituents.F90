@@ -21,10 +21,10 @@ module cam_constituents
 
    character(len=46), public, parameter :: water_species_stdnames(5) = (/     &
         "specific_humidity                             ",                     &
-        "cloud_liquid_water_mixing_ratio_wrt_total_mass",                     &
-        "cloud_ice_mixing_ratio_wrt_total_mass         ",                     &
-        "rain_mixing_ratio_wrt_total_mass              ",                     &
-        "snow_mixing_ratio_wrt_total_mass              " /)
+        "cloud_liquid_water_mixing_ratio_wrt_moist_air ",                     &
+        "cloud_ice_water_mixing_ratio_wrt_moist_air    ",                     &
+        "rain_water_mixing_ratio_wrt_moist_air         ",                     &
+        "snow_water_mixing_ratio_wrt_moist_air         " /)
 
    ! To keep track of standard name locations above, save the indices
    integer, private :: ind_q_ind       = 1

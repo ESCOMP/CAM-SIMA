@@ -924,7 +924,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call const_get_index('specific_humidity', ixq)
       call const_get_index('cloud_liquid_water_mixing_ratio_wrt_total_mass',  &
            ixcldliq)
-      call const_get_index('cloud_ice_mixing_ratio_wrt_total_mass', ixcldice)
+      call const_get_index('cloud_ice_water_mixing_ratio_wrt_total_mass', ixcldice)
       call add_default(tottnam(     ixq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldliq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldice), budget_hfile_num, ' ')
@@ -1839,9 +1839,9 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("air_temperature")
 
    !These calls will need to be modified once constituents are enabled:
-   call mark_as_initialized("water_vapor_specific_humidity")
-   call mark_as_initialized("cloud_liquid_water_mixing_ratio_of_moist_air")
-   call mark_as_initialized("rain_water_mixing_ratio")
+   call mark_as_initialized("specific_humidity")
+   call mark_as_initialized("cloud_liquid_water_mixing_ratio_wrt_moist_air")
+   call mark_as_initialized("rain_water_mixing_ratio_wrt_moist_air")
 
    !These calls may be removed if geopotential_t is only allowed to run
    !in a CCPP physics suite:
