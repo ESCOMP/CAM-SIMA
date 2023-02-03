@@ -817,8 +817,9 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
-                                   "prot_no_init_idx"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables"]],
+                                   "prot_no_init_idx", "const_idx"]],
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_advected_constituents"]],
+                 ["ccpp_kinds", ["kind_phys"]],
                  [phys_check_fname_str, ["phys_var_stdnames",
                                          "input_var_names", "std_name_len"]]]
 
@@ -848,14 +849,16 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("character(len=SHR_KIND_CL) :: missing_required_vars", 2)
     outfile.write("character(len=SHR_KIND_CL) :: protected_non_init_vars", 2)
     outfile.blank_line()
-    outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message", 2)
-    outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
-    outfile.write("integer                    :: name_idx  !Input variable array index", 2)
-    outfile.write("integer                    :: req_idx   !Required variable array index", 2)
-    outfile.write("integer                    :: suite_idx !Suite array index", 2)
-    outfile.write("character(len=2)           :: sep  = '' !String separator used to print error messages", 2)
-    outfile.write("character(len=2)           :: sep2 = '' !String separator used to print error messages", 2)
-    outfile.write("character(len=2)           :: sep3 = '' !String separator used to print error messages", 2)
+    outfile.write("character(len=SHR_KIND_CX) :: errmsg          !CCPP framework error message", 2)
+    outfile.write("integer                    :: errflg          !CCPP framework error flag", 2)
+    outfile.write("integer                    :: name_idx        !Input variable array index", 2)
+    outfile.write("integer                    :: constituent_idx !Constituent table index", 2)
+    outfile.write("integer                    :: req_idx         !Required variable array index", 2)
+    outfile.write("integer                    :: suite_idx       !Suite array index", 2)
+    outfile.write("character(len=2)           :: sep  = ''       !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep2 = ''       !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep3 = ''       !String separator used to print error messages", 2)
+    outfile.write("real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)", 2)
     outfile.blank_line()
     outfile.comment("Logical to default optional argument to False:", 2)
     outfile.write("logical                    :: use_init_variables", 2)
@@ -896,7 +899,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Call input name search function:
     outfile.comment("Find IC file input name array index for required variable:", 4)
-    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)", 4)
 
     # Start select-case statement:
     outfile.blank_line()
@@ -936,6 +939,14 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Update character separator to now include comma:", 6)
     outfile.write("sep2 = ', '", 6)
     outfile.blank_line()
+
+    # Handle the case where the required variable is a constituent
+    outfile.write("case (const_idx)", 5)
+    outfile.blank_line()
+    outfile.comment("If an index was found in the constituent hash table, then read in the data to that index of the constituent array", 6)
+    outfile.blank_line()
+    outfile.write("field_data_ptr => cam_advected_constituents()", 6)
+    outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 6)
 
     # start default case steps:
     outfile.write("case default", 5)
@@ -1054,8 +1065,9 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["check_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
-                                   "prot_no_init_idx"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables"]],
+                                   "prot_no_init_idx", "const_idx"]],
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_advected_constituents"]],
+                 ["cam_constituents", ["const_get_index"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  ["cam_logfile", ["iulog"]],
                  ["spmd_utils", ["masterproc"]],
@@ -1098,6 +1110,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message", 2)
     outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
     outfile.write("integer                    :: name_idx  !Input variable array index", 2)
+    outfile.write("integer                    :: constituent_idx !Index of variable in constituent array", 2)
     outfile.write("integer                    :: req_idx   !Required variable array index", 2)
     outfile.write("integer                    :: suite_idx !Suite array index", 2)
     outfile.write("character(len=SHR_KIND_CL) :: ncdata_check_loc", 2)
@@ -1105,6 +1118,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("logical                    :: file_found", 2)
     outfile.write("logical                    :: is_first", 2)
     outfile.write("logical                    :: is_read", 2)
+    outfile.write("real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)", 2)
     outfile.blank_line()
 
     # Initialize variables:
@@ -1164,23 +1178,34 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.blank_line()
 
+    # First check if the required variable is a constituent
+    outfile.comment("First check if the required variable is a constituent:", 4)
+    outfile.write("call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)", 4)
+    outfile.write("if (constituent_idx > -1) then", 4)
+    outfile.comment("The required variable is a constituent. Call check variable routine on the relevant index of the constituent array", 5)
+    outfile.write("field_data_ptr => cam_advected_constituents()", 5)
+    outfile.write("call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 5)
+    outfile.write("else", 4)
+    outfile.comment("The required variable is not a constituent. Check if the variable was read from a file", 5)
+
     # Call input name search function:
-    outfile.comment("Find IC file input name array index for required variable:", 4)
+    outfile.comment("Find IC file input name array index for required variable:", 5)
     outfile.write("call is_read_from_file(ccpp_required_data(req_idx), " +    \
-                  "is_read, stdnam_idx_out=name_idx)", 4)
-    outfile.write("if (.not. is_read) then", 4)
-    outfile.write("cycle", 5)
-    outfile.write("end if", 4)
+                  "is_read, stdnam_idx_out=name_idx)", 5)
+    outfile.write("if (.not. is_read) then", 5)
+    outfile.write("cycle", 6)
+    outfile.write("end if", 5)
 
     # Generate "check_field" calls:
-    outfile.comment("Check variable vs input check file:", 4)
+    outfile.comment("Check variable vs input check file:", 5)
     outfile.blank_line()
-    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 4)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 5)
     for case_call, read_call in call_string_dict.items():
-        outfile.write(case_call, 4)
-        outfile.write(read_call, 5)
+        outfile.write(case_call, 5)
+        outfile.write(read_call, 6)
         outfile.blank_line()
-    outfile.write("end select !check variables", 4)
+    outfile.write("end select !check variables", 5)
+    outfile.write("end if !check if constituent", 4)
 
     # End select case and required variables loop:
     outfile.write("end do !Suite-required variables", 3)

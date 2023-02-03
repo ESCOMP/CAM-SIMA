@@ -277,7 +277,7 @@ CONTAINS
 
    !#######################################################################
 
-   subroutine const_get_index(name, cindex, abort, caller)
+   subroutine const_get_index(name, cindex, abort, warning, caller)
       use shr_kind_mod,   only: CX => SHR_KIND_CX
       use cam_abortutils, only: endrun
       use cam_logfile,    only: iulog
@@ -294,6 +294,7 @@ CONTAINS
       character(len=*),           intent(in)  :: name   ! constituent name
       integer,                    intent(out) :: cindex ! global constituent ind
       logical,          optional, intent(in)  :: abort  ! flag controlling abort
+      logical,          optional, intent(in)  :: warning ! flag controlling warning
       character(len=*), optional, intent(in)  :: caller ! calling routine
 
       !---------------------------Local workspace-----------------------------
@@ -314,6 +315,11 @@ CONTAINS
          else
             abort_on_error = .true.
          end if
+         if (present(warning)) then
+            warning_on_error = warning
+         else
+            warning_on_error = .true.
+         end if
 
          if (abort_on_error) then
             if (present(caller)) then
@@ -326,12 +332,14 @@ CONTAINS
                call endrun(subname//'FATAL: name ('//trim(name)//') not found')
             end if
          else
-            if (present(caller)) then
-               write(iulog, *) caller, 'WARNING: name:', trim(name),          &
-                    ' not found in constituent table'
-            else
-               write(iulog, *) subname, 'WARNING: name:', trim(name),         &
-                    ' not found in constituent table'
+            if (warning_on_error) then
+               if (present(caller)) then
+                  write(iulog, *) caller, 'WARNING: name:', trim(name),          &
+                       ' not found in constituent table'
+               else
+                  write(iulog, *) subname, 'WARNING: name:', trim(name),         &
+                       ' not found in constituent table'
+               end if
             end if
          end if
       end if

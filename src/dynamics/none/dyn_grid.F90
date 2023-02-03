@@ -127,7 +127,7 @@ CONTAINS
       ! We will handle errors for this routine
       call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, oldmethod=err_handling)
       ! Find the latitude variable and dimension(s)
-      call cam_pio_find_var(fh_ini, (/ 'lat  ', 'lat_d' /), lat_name,         &
+      call cam_pio_find_var(fh_ini, (/ 'lat     ', 'lat_d   ', 'latitude' /), lat_name,         &
            lat_vardesc, var_found)
       if (var_found) then
          ! Find the variable latitude dimension info
@@ -160,7 +160,7 @@ CONTAINS
          end if
       end if
       ! Find the longitude variable and dimension(s)
-      call cam_pio_find_var(fh_ini, (/ 'lon  ', 'lon_d' /), lon_name,         &
+      call cam_pio_find_var(fh_ini, (/ 'lon      ', 'lon_d    ', 'longitude' /), lon_name,         &
            lon_vardesc, var_found)
       if (var_found) then
          ! Find the longitude variable dimension info
@@ -213,7 +213,7 @@ CONTAINS
               '(a,i4,i9,2i7)', (/ num_local_columns, col_start, col_end/))
       end if
       ! Find a 3D variable and get its dimensions
-      call cam_pio_find_var(fh_ini, (/ 'U      ', 'state_u' /),         &
+      call cam_pio_find_var(fh_ini, (/ 'U      ', 'state_u', 'x_wind ' /),         &
            fieldname, vardesc, var_found)
       if (var_found) then
          ! Find the variable dimension info
@@ -353,7 +353,7 @@ CONTAINS
          end if
       end if
       ! Find the grid area and / or weight terms
-      call cam_pio_find_var(fh_ini, (/ 'gw  ', 'area' /), var_name,           &
+      call cam_pio_find_var(fh_ini, (/ 'gw       ', 'area     ', 'cell_area' /), var_name,           &
            vardesc, var_found)
       if (var_found) then
          ! Find the variable dimension info
