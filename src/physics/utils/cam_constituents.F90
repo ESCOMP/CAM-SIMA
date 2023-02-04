@@ -298,6 +298,7 @@ CONTAINS
       character(len=*), optional, intent(in)  :: caller ! calling routine
 
       !---------------------------Local workspace-----------------------------
+      logical                     :: warning_on_error
       logical                     :: abort_on_error
       integer                     :: errcode
       character(len=CX)           :: errmsg
