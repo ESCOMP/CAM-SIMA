@@ -27,7 +27,7 @@ contains
 
 #ifdef debug_coupling
     use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
-    use constituents,       only: const_name
+    use cam_constituents,   only: const_name
     character(LEN=128) :: name
     integer :: nq,m_cnst
 
@@ -136,8 +136,8 @@ contains
   end subroutine test_mapping_addfld
 
   subroutine test_mapping_overwrite_tendencies(phys_state,phys_tend,ncols,q_prev,fvm)
-    use constituents,           only: const_name
-    use physics_types,  only: physics_state, physics_tend
+    use cam_constituents, only: const_name
+    use physics_types,    only: physics_state, physics_tend
 
     !SE dycore:
     use dimensions_mod,         only: fv_nphys
@@ -197,7 +197,7 @@ contains
   end subroutine test_mapping_overwrite_tendencies
 
   subroutine test_mapping_output_mapped_tendencies(fvm,elem,nets,nete,tl_f,tl_qdp)
-    use constituents,           only: const_name
+    use cam_constituents,       only: const_name
 
     !SE dycore:
     use dimensions_mod,         only: fv_nphys,nlev,nc
@@ -283,7 +283,7 @@ contains
   end subroutine test_mapping_output_mapped_tendencies
 
   subroutine test_mapping_overwrite_dyn_state(elem,fvm)
-    use constituents,           only: const_name
+    use cam_constituents,       only: const_name
 
     !SE dycore:
     use fvm_control_volume_mod, only: fvm_struct
@@ -372,9 +372,9 @@ contains
   end subroutine test_mapping_overwrite_dyn_state
 
   subroutine test_mapping_output_phys_state(phys_state,fvm)
-    use physics_types, only: physics_state
-!    use ppgrid,        only: begchunk, endchunk, pver, pcols
-    use constituents,  only: const_name
+    use physics_types,    only: physics_state
+!    use ppgrid,           only: begchunk, endchunk, pver, pcols
+    use cam_constituents, only: const_name
 
     type(physics_state), intent(inout) :: phys_state
     type(fvm_struct), pointer:: fvm(:)

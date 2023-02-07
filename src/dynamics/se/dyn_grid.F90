@@ -31,7 +31,7 @@ use pio,                    only: file_desc_t
 use shr_kind_mod,           only: r8 => shr_kind_r8, shr_kind_cl
 use spmd_utils,             only: masterproc, iam, mpicom, mstrid=>masterprocid, &
                                   npes
-use constituents,           only: num_advected
+use cam_constituents,       only: num_advected
 use dynconst,               only: pi
 use cam_initfiles,          only: initial_file_get_id
 use physics_column_type,    only: physics_column_t, kind_pcol

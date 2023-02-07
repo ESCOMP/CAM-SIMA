@@ -17,7 +17,6 @@
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str
       character(len=16), private            :: waccmx_opt = unset_str
-      ! Number of constituents
       ! use_gw_front: Frontogenesis
       logical,           private :: use_gw_front = .false.
       ! use_gw_front_igw: Frontogenesis to inertial spectrum.
@@ -34,7 +33,6 @@
       procedure, public :: gw_front
       procedure, public :: gw_front_igw
       procedure, public :: update_thermodynamic_variables
-      ! Constituent information
    end type runtime_options
 
    type(runtime_options), public, protected :: cam_runtime_opts

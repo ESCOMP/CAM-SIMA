@@ -7,7 +7,7 @@
   type  = module
 [ mpicom ]
   standard_name = mpi_communicator
-  units = idex
+  units = index
   type = integer
   dimensions = ()
   protected = True

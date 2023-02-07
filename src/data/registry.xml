@@ -316,7 +316,7 @@
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
-    <!-- Constituent Variables -->
+    <!-- Composition-dependent Variables -->
     <variable local_name="cpairv"
               standard_name="composition_dependent_specific_heat_of_dry_air_at_constant_pressure"
               units="J kg-1 K-1" type="real" kind="kind_phys"

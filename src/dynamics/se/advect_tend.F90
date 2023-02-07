@@ -22,10 +22,10 @@ contains
   !   - second call computes and outputs the tendencies
   !----------------------------------------------------------------------
   subroutine compute_adv_tends_xyz(elem,fvm,nets,nete,qn0,n0)
-!    use cam_history,            only: outfld, hist_fld_active
+!    use cam_history,           only: outfld, hist_fld_active
     use time_manager,           only: get_step_size
-!    use constituents,           only: tottnam,num_advected
-    use constituents,           only: num_advected
+!    use cam_constituents,      only: tottnam,num_advected
+    use cam_constituents,       only: num_advected
     use cam_abortutils,         only: check_allocate
 
     ! SE dycore:

@@ -4,34 +4,34 @@ module dp_coupling
 ! dynamics - physics coupling module
 !-------------------------------------------------------------------------------
 
-use shr_kind_mod,   only: r8=>shr_kind_r8
-use ccpp_kinds,     only: kind_phys
-use constituents,   only: const_is_wet, num_advected
+use shr_kind_mod,     only: r8=>shr_kind_r8
+use ccpp_kinds,       only: kind_phys
+use cam_constituents, only: const_is_wet, num_advected
 
-use spmd_dyn,       only: local_dp_map
-use spmd_utils,     only: iam
-use dyn_grid,       only: TimeLevel, edgebuf
-use dyn_comp,       only: dyn_export_t, dyn_import_t
+use spmd_dyn,         only: local_dp_map
+use spmd_utils,       only: iam
+use dyn_grid,         only: TimeLevel, edgebuf
+use dyn_comp,         only: dyn_export_t, dyn_import_t
 
-use runtime_obj,    only: runtime_options
-use physics_types,  only: physics_state, physics_tend
-use physics_types,  only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled
-use physics_grid,   only: pcols => columns_on_task, get_dyn_col_p
-use vert_coord,     only: pver, pverp
+use runtime_obj,      only: runtime_options
+use physics_types,    only: physics_state, physics_tend
+use physics_types,    only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled
+use physics_grid,     only: pcols => columns_on_task, get_dyn_col_p
+use vert_coord,       only: pver, pverp
 
-use dp_mapping,     only: nphys_pts
+use dp_mapping,       only: nphys_pts
 
-use perf_mod,       only: t_startf, t_stopf, t_barrierf
-use cam_abortutils, only: endrun, check_allocate
+use perf_mod,         only: t_startf, t_stopf, t_barrierf
+use cam_abortutils,   only: endrun, check_allocate
 
 !SE dycore:
-use parallel_mod,   only: par
-use thread_mod,     only: horz_num_threads, max_num_threads
-use hybrid_mod,     only: config_thread_region, get_loop_ranges, hybrid_t
-use dimensions_mod, only: np, npsq, nelemd, nlev, nc, qsize, ntrac, fv_nphys
+use parallel_mod,     only: par
+use thread_mod,       only: horz_num_threads, max_num_threads
+use hybrid_mod,       only: config_thread_region, get_loop_ranges, hybrid_t
+use dimensions_mod,   only: np, npsq, nelemd, nlev, nc, qsize, ntrac, fv_nphys
 
-use dof_mod,        only: UniquePoints, PutUniquePoints
-use element_mod,    only: element_t
+use dof_mod,          only: UniquePoints, PutUniquePoints
+use element_mod,      only: element_t
 
 implicit none
 private
