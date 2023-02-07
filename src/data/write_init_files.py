@@ -818,7 +818,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_advected_constituents"]],
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_constituents"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  [phys_check_fname_str, ["phys_var_stdnames",
                                          "input_var_names", "std_name_len"]]]
@@ -945,7 +945,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.comment("If an index was found in the constituent hash table, then read in the data to that index of the constituent array", 6)
     outfile.blank_line()
-    outfile.write("field_data_ptr => cam_advected_constituents()", 6)
+    outfile.write("field_data_ptr => cam_constituents()", 6)
     outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 6)
 
     # start default case steps:
