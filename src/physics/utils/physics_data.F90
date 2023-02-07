@@ -58,6 +58,7 @@ CONTAINS
 
       !Initialize function:
       find_input_name_idx = no_exist_idx
+      constituent_index = no_exist_idx
 
       !Loop through physics variable standard names:
       do idx = 1, phys_var_num
