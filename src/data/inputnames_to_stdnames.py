@@ -58,8 +58,6 @@ def main(input_file, output_filename, stdname_file):
         else:
             print("Directory {} does not exist".format(output_dir))
             return 1
-    print(output_file)
-    return 1
     inputname_dict = parse_stdname_file(stdname_file)
     if len(inputname_dict) == 0:
         print("Could not parse standard name wiki file. Are you sure you're pointing to Metadata-standard-names.md?")
