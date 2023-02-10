@@ -60,13 +60,13 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_filename(this, filename_spec) result(cfile)
+   function config_filename(this, inst_suffix) result(cfile)
       use shr_kind_mod,  only: CL => SHR_KIND_CL
       use cam_filenames, only: interpret_filename_spec
       ! Dummy arguments
-      class(hist_file_t),         intent(in) :: this
-      character(len=*), optional, intent(in) :: filename_spec
-      character(len=CL)                      :: cfile
+      class(hist_file_t), intent(in) :: this
+      character(len=*),   intent(in) :: inst_suffix
+      character(len=CL)              :: cfile
 
       if (present(filename_spec)) then
          cfile = interpret_filename_spec(filename_spec, unit=this%volume)

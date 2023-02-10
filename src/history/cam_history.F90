@@ -17,7 +17,7 @@ module cam_history
    !-----------------------------------------------------------------------
 
    use shr_kind_mod,    only: r8 => shr_kind_r8, r4 => shr_kind_r4
-   use shr_kind_mod,    only: cl=>SHR_KIND_CL
+   use shr_kind_mod,    only: cl=>SHR_KIND_CL, cxx=>SHR_KIND_CXX
    use shr_sys_mod,     only: shr_sys_flush
    use perf_mod,        only: t_startf, t_stopf
    use spmd_utils,      only: masterproc
@@ -28,31 +28,6 @@ module cam_history
    use cam_logfile,     only: iulog
 
    use cam_hist_config_file, only: hist_file_config_t
-!!XXgoldyXX: v remove unused
-!   use cam_history_support, only: max_fieldname_len
-!   use cam_history_support, only: fieldname_suffix_len
-!   use cam_history_support, only: max_chars
-!   use cam_history_support, only: pfiles
-!   use cam_history_support, only: fieldname_len
-!   use cam_history_support, only: max_string_len
-!   use cam_history_support, only: date2yyyymmdd
-!   use cam_history_support, only: pflds
-!   use cam_history_support, only: fieldname_lenp2
-!   use cam_history_support, only: sec2hms
-!   use cam_history_support, only: field_info
-!   use cam_history_support, only: active_entry
-!   use cam_history_support, only: hentry
-!   use cam_history_support, only: horiz_only
-!   use cam_history_support, only: write_hist_coord_attrs
-!   use cam_history_support, only: write_hist_coord_vars
-!   use cam_history_support, only: interp_info_t
-!   use cam_history_support, only: lookup_hist_coord_indices
-!   use cam_history_support, only: get_hist_coord_index
-!   use sat_hist,            only: is_satfile
-!   use solar_parms_data,    only: solar_parms_define, solar_parms_write
-!   use solar_wind_data,     only: solar_wind_define, solar_wind_write
-!   use epotential_params,   only: epot_active, epot_crit_colats
-!!XXgoldyXX: ^ remove unused
 
    implicit none
    private
@@ -64,9 +39,9 @@ module cam_history
    ! NB: This name must match the group name in namelist_definition.xml
    character(len=*), parameter   :: history_namelist = 'cam_history_nl'
    ! hrestpath:  Full history restart pathnames
-   character(len=max_string_len) :: hrestpath(pfiles) = (/(' ',idx=1,pfiles)/)
-   character(len=max_string_len) :: cpath(pfiles) ! Array of current pathnames
-   character(len=max_string_len) :: nhfil(pfiles) ! Array of current file names
+   character(len=cxx) :: hrestpath(pfiles) = (/(' ',idx=1,pfiles)/)
+   character(len=cxx) :: cpath(pfiles) ! Array of current pathnames
+   character(len=cxx) :: nhfil(pfiles) ! Array of current file names
    character(len=16)  :: logname             ! user name
    character(len=16)  :: host                ! host name
    character(len=8)   :: inithist = 'YEARLY' ! If set to '6-HOURLY, 'DAILY', 'MONTHLY' or
@@ -77,10 +52,17 @@ module cam_history
 
    !
    ! Filename specifiers for history, initial files and restart history files
-   ! (%c = caseid, $y = year, $m = month, $d = day, $s = seconds in day, %t = file number)
+   ! (%c = caseid,
+   !  %y = year,
+   !  %m = month,
+   !  %d = day,
+   !  %s = seconds in day,
+   !  %u = unit number (e.g., h0, i)
    !
-   character(len=max_string_len) :: rhfilename_spec = '%c.cam.rh%t.%y-%m-%d-%s.nc' ! history restart
-   character(len=max_string_len) :: hfilename_spec(pfiles) = (/ (' ', idx=1, pfiles) /) ! filename specifyer
+   ! rhfilename_spec is the templdate for history restart files
+   character(len=cxx) :: rhfilename_spec = '%c.cam.r%u.%y-%m-%d-%s.nc'
+   ! hfilename_spec is the template for each history file
+   character(len=cxx) :: hfilename_spec(pfiles) = (/ (' ', idx=1, pfiles) /)
 
    integer :: lcltod_start(pfiles) ! start time of day for local time averaging (sec)
    integer :: lcltod_stop(pfiles)  ! stop time of day for local time averaging, stop > start is wrap around (sec)
@@ -91,11 +73,11 @@ module cam_history
    public :: history_write_restart  ! Write restart history data
    public :: history_read_restart   ! Read restart history data
    public :: history_write_files    ! Write files out
-!   public :: outfld                 ! Output a field
-   public :: cam_hist_init_files     ! Initialization
+   public :: cam_hist_init_files    ! Initialization
    public :: history_finalize       ! process history files at end of run
    public :: history_write_IC       ! flag to dump of IC to IC file
-   public :: history_addfld         ! Add a field to history file
+   public :: history_define_fld     ! Add a field to history file
+   public :: history_capture_fld    ! Capture current state of a model field
    public :: history_fld_active     ! .true. if a field is active on any history file
    public :: history_fld_col_active ! .true. for each column where a field is active on any history file
    public :: register_vector_field  ! Register vector field set for interpolated output
@@ -106,10 +88,10 @@ module cam_history
 CONTAINS
 
    subroutine history_readnl(nlfile)
-      use spmd_utils,           only: masterproc, masterprocid, mpicom
-      use spmd_utils,           only: mpi_integer, mpi_logical, mpi_character
-      use cam_hist_config_file, only: hist_read_namelist_config
-      use time_manager,         only: get_step_size
+      use spmd_utils,    only: masterproc, masterprocid, mpicom
+      use spmd_utils,    only: mpi_integer, mpi_logical, mpi_character
+      use cam_hist_file, only: hist_read_namelist_config
+      use time_manager,  only: get_step_size
 
       ! Dummy argument
       character(len=*), intent(in) :: nlfile ! path of namelist input file
@@ -125,45 +107,31 @@ CONTAINS
       if (check_endrun(test_desc=test_msg, output=out_unit)) then
          err_cnt = err_cnt + 1
       end if
-      ! History file write times
-      ! Convert write freq. of hist files from hours to timesteps if necessary.
       !
-      dtime = get_step_size()
-         do t = 1, pfiles
-            if (hist_freq(fil_idx) < 0) then
-               hist_freq(fil_idx) = nint((-hist_freq(fil_idx) * 3600._r8) / dtime)
+      ! Initialize the filename specifier if not already set
+      ! This is the format for the history filenames:
+      ! %c= caseid, %t=file no., %y=year, %m=month, %d=day, %s=second, %%=%
+      ! See the filenames module for more information
+      !
+      do t = 1, pfiles
+         if ( len_trim(hfilename_spec(fil_idx)) == 0 )then
+            if ( hist_freq(fil_idx) == 0 )then
+               ! Monthly files
+               hfilename_spec(fil_idx) = '%c.cam' // trim(inst_suffix) //  &
+                    '.%u.%y-%m.nc'
+            else
+               hfilename_spec(fil_idx) = '%c.cam' // trim(inst_suffix) //  &
+                    '.%u.%y-%m-%d-%s.nc'
             end if
-         end do
+         end if
          !
-         ! Initialize the filename specifier if not already set
-         ! This is the format for the history filenames:
-         ! %c= caseid, %t=file no., %y=year, %m=month, %d=day, %s=second, %%=%
-         ! See the filenames module for more information
-         !
-         do t = 1, pfiles
-            if ( len_trim(hfilename_spec(fil_idx)) == 0 )then
-               if ( hist_freq(fil_idx) == 0 )then
-                  ! Monthly files
-                  hfilename_spec(fil_idx) = '%c.cam' // trim(inst_suffix) // '.h%t.%y-%m.nc'
-               else
-                  hfilename_spec(fil_idx) = '%c.cam' // trim(inst_suffix) // '.h%t.%y-%m-%d-%s.nc'
-               end if
-            end if
-            !
-            ! Only one time sample allowed per monthly average file
-            !
-            if (hist_freq(fil_idx) == 0) then
-               mfilt(fil_idx) = 1
-            end if
-         end do
-      end if ! masterproc
 
       ! Print per-file averaging flags
       if (masterproc) then
          do t = 1, pfiles
             if (avgflag_perfile(fil_idx) /= ' ') then
-               write(iulog,*)'Unless overridden by namelist input on a per-field basis (FINCL),'
-               write(iulog,*)'All fields on history file ',t,' will have averaging flag ',avgflag_perfile(fil_idx)
+               write(iulog, *) 'Unless overridden by namelist input on a per-field basis (FINCL),'
+               write(iulog,*) 'All fields on history file ',t,' will have averaging flag ',avgflag_perfile(fil_idx)
             end if
             ! Enforce no interpolation for satellite files
             if (is_satfile(fil_idx) .and. interpolate_output(fil_idx)) then
@@ -653,7 +621,7 @@ CONTAINS
       integer regen_hist_int(pfiles)
       integer :: ierr
 
-      character(len=max_string_len)  :: locfn       ! Local filename
+      character(len=cxx)  :: locfn       ! Local filename
       character(len=max_fieldname_len), allocatable :: tmpname(:,:)
       integer, allocatable :: decomp(:,:), tmpnumlev(:,:)
       integer, pointer :: nacs(:,:)    ! accumulation counter
@@ -3852,7 +3820,7 @@ CONTAINS
       integer :: nscur             ! seconds component of current time
       real(r8) :: time             ! current time
       real(r8) :: tdata(2)         ! time interval boundaries
-      character(len=max_string_len) :: fname ! Filename
+      character(len=cxx) :: fname ! Filename
       logical :: prev              ! Label file with previous date rather than current
       integer :: ierr
 #if ( defined BFB_CAM_SCAM_IOP )
