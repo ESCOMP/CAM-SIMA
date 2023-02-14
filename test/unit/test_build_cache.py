@@ -266,7 +266,6 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         self.assertEqual(test_cache.scheme_nl_groups(), [])
         self.assertEqual(test_cache.reg_file_list(), [])
         self.assertEqual(test_cache.ic_names(), {})
-        self.assertEqual(test_cache.
 
     #++++++++++++++++
 
