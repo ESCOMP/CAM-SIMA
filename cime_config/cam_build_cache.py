@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom #Used to pretty-print cache file
 
 # Find and include the ccpp-framework scripts directory
-# Assume we are in <CAMROOT>/cime_config and SPIN is in <CAMROOT>/ccpp_framework
+# Assume we are in <CAMROOT>/cime_config and CCPP_FRAMEWORK is in <CAMROOT>/ccpp_framework
 __CURRDIR = os.path.abspath(os.path.dirname(__file__))
 __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
 __CCPP_FRAMEWORK = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')

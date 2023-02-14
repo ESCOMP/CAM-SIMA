@@ -539,9 +539,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 
     else:
         # Not running namelist generator, collect metadata files
-        # from the build cache
-        nl_groups = build_cache.scheme_nl_groups()
+        # and namelist group names from the build cache
         scheme_nl_meta_files = build_cache.scheme_nl_metadata()
+        nl_groups = build_cache.scheme_nl_groups()
     # end if
     #Add the namelist meta files to the host files list
     #if present:

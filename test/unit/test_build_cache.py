@@ -42,7 +42,7 @@ _CCPP_FRAMEWORK = os.path.join(_CAM_ROOT_DIR, "ccpp_framework", 'scripts')
 
 #Check for all necessary directories:
 if not os.path.exists(_CAM_CONF_DIR):
-    _EMSG = f"ERROR: Cannot find required '{_CAM_ROOT_DIR}' directory"
+    _EMSG = f"ERROR: Cannot find required '{_CAM_CONF_DIR}' directory"
     raise ImportError(_EMSG)
 #End if
 if not os.path.exists(_CCPP_FRAMEWORK):
@@ -175,7 +175,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         #Set expected sha256 hash value:
         test_hash = "584c7f0992d4af811afb2069c752f279c51a1ac4"
 
-        #Create new FileStatus object with assigned hashs:
+        #Create new FileStatus object with assigned hash:
         test_status = FileStatus(test_reg_file, "test")
 
         #Check that new status object has correct properties:
@@ -266,6 +266,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         self.assertEqual(test_cache.scheme_nl_groups(), [])
         self.assertEqual(test_cache.reg_file_list(), [])
         self.assertEqual(test_cache.ic_names(), {})
+        self.assertEqual(test_cache.
 
     #++++++++++++++++
 
@@ -843,8 +844,9 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         """
         Check that the 'xml_nl_mismatch'
         function returns False when there
-        is no change in the init files writing
-        function being used.
+        is no change in the namelist files
+        or readnl generation function being
+        used.
         """
 
         #Set path to already-existing cache file used by "update" tests:
@@ -873,8 +875,8 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         """
         Check that the 'xml_nl_mismatch'
         function returns True when there
-        is a change in the namelist files
-        generation function being used.
+        is a change in the readnl generation
+        function being used.
         """
 
         #Set path to already-existing cache file used by "update" tests:
