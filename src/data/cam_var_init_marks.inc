@@ -104,7 +104,7 @@
 
    subroutine is_read_from_file(varname, is_read, stdnam_idx_out)
 
-      ! This function checks if the variable, <varname>, is read from
+      ! This subroutine checks if the variable, <varname>, is read from
       !    file according to the 'initialized_vars' array.
 
       use cam_abortutils, only: endrun

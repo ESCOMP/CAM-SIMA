@@ -1,5 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """Change variable names in NetCDF file to match those in Standard Names wiki file"""
+"""NOTE: Use of this scripts requires the user to have NCO operators (e.g. ncrename) in their path"""
 
 import sys
 import os
@@ -13,12 +14,12 @@ _INPUT_NAME_LINE = re.compile(".*IC file input names:.*")
 def write_new_ncdata_file(input_filename, output_filename, inputname_dict):
     # create and run ncrename command
     first_replacement = True
-    base_cmd = 'ncrename -h -o {} -O'.format(output_filename)
+    base_cmd = f'ncrename -h -o {output_filename} -O'
     for input_name in inputname_dict:
-        base_cmd += ' -v .{},{}'.format(input_name, inputname_dict[input_name])
-    base_cmd += ' {}'.format(input_filename)
+        base_cmd += f' -v .{input_name},{inputname_dict[input_name]}'
+    #end for input_name in inputname_dict
+    base_cmd += f' {input_filename}'
     os.system(base_cmd)
-    return 0
 
 def parse_stdname_file(file_to_parse):
     input_names = {}
@@ -29,6 +30,7 @@ def parse_stdname_file(file_to_parse):
             if lmatch is not None:
                 # we've found a new variable stdname - parse it out!
                 current_stdname = line.split(":")[0].split('*')[1].strip().replace('`', '')
+            #end if lmatch is not None
             lmatch = _INPUT_NAME_LINE.match(line.strip())
             if lmatch is not None:
                 # we've found an input names line - parse out the input names into a list
@@ -36,32 +38,39 @@ def parse_stdname_file(file_to_parse):
                 # add (input name, standard name) pairs to dict
                 for input_name in input_names_list:
                     input_names[input_name.strip()] = current_stdname.strip()
-
+                #end for input_name in input_names_list
+            #end if lmatch is not None
+        #end for line in fh1
+    #end with open(file_to_parse)
     return input_names
 
 def main(input_file, output_filename, stdname_file):
     """Parse standard name wiki file and then replace input name variables with stdnames"""
     if not os.path.isfile(input_file):
-        print("Input file {} does not exist".format(input_file))
+        print(f"Input file {input_file} does not exist")
         return 1
+    #end if not os.path.isfile(input_file)
     if not os.path.isfile(stdname_file):
-        print("Standard name wiki file {} does not exist".format(stdname_file))
-        return 1
+        print(f"Standard name wiki file {stdname_file} does not exist")
+        return 2
+    #end if not os.path.isfile(stdname_file)
     output_dir = os.path.split(output_filename)[0]
     if len(output_dir.strip()) == 0:
         inputfile_dir = os.path.dirname(input_file)
         output_file = os.path.join(inputfile_dir, output_filename)
     else:
-        # use the parsed dictionary to create new NetCDF file
         if os.path.isdir(output_dir):
             output_file = output_filename
         else:
-            print("Directory {} does not exist".format(output_dir))
+            print(f"Directory {output_dir} does not exist")
             return 1
+    #end if len(output_dir.strip())) == 0
     inputname_dict = parse_stdname_file(stdname_file)
-    if len(inputname_dict) == 0:
+    if not inputname_dict:
         print("Could not parse standard name wiki file. Are you sure you're pointing to Metadata-standard-names.md?")
         return 1
+    #end if len(inputname_dict) == 0
+    # use the parsed dictionary to create new NetCDF file
     write_new_ncdata_file(input_file, output_file, inputname_dict)
     return 0
 

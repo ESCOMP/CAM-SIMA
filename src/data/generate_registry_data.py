@@ -378,7 +378,7 @@ class VarBase:
 
     @property
     def is_advected(self):
-        """Return True if this variable is a advected"""
+        """Return True if this variable is advected"""
         return self.__advected
 
     @property

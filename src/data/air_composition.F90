@@ -11,7 +11,6 @@ module air_composition
    private
    save
 
-   public  :: air_composition_readnl
    public  :: composition_dependent_init
    public  :: air_composition_init
    public  :: air_composition_update
@@ -33,8 +32,6 @@ module air_composition
    ! composition of air
    !
    integer, parameter          :: num_names_max = 30
-   character(len=std_name_len) :: dry_air_species(num_names_max)
-   character(len=std_name_len) :: water_species_in_air(num_names_max)
 
    integer, protected, public  :: dry_air_species_num
    integer, protected, public  :: water_species_in_air_num
@@ -127,96 +124,6 @@ module air_composition
 
 CONTAINS
 
-   ! Read namelist variables.
-   subroutine air_composition_readnl(nlfile)
-      use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,     only: masterproc, mpicom, masterprocid
-      use mpi,            only: mpi_character
-      use cam_logfile,    only: iulog
-
-      ! Dummy argument: filepath for file containing namelist input
-      character(len=*), intent(in) :: nlfile
-
-      ! Local variables
-      integer                     :: unitn, ierr, indx
-      integer,          parameter :: lsize = 76
-      character(len=*), parameter :: subname = 'air_composition_readnl :: '
-      character(len=lsize)        :: banner
-      character(len=lsize)        :: bline
-
-      ! Variable components of dry air and water species in air
-      namelist /air_composition_nl/ dry_air_species, water_species_in_air
-      !-----------------------------------------------------------------------
-
-      banner = repeat('*', lsize)
-      bline = "***"//repeat(' ', lsize - 6)//"***"
-
-      ! Read variable components of dry air and water species in air
-      dry_air_species = (/ (' ', indx = 1, num_names_max) /)
-      water_species_in_air = (/ (' ', indx = 1, num_names_max) /)
-
-      if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
-         call find_group_name(unitn, 'air_composition_nl', status=ierr)
-         if (ierr == 0) then
-            read(unitn, air_composition_nl, iostat=ierr)
-            if (ierr /= 0) then
-               call endrun(subname//'ERROR reading namelist, air_composition_nl')
-            end if
-         end if
-         close(unitn)
-      end if
-
-      call mpi_bcast(dry_air_species, len(dry_air_species)*num_names_max,     &
-           mpi_character, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(subname//": FATAL: mpi_bcast: dry_air_species")
-      call mpi_bcast(water_species_in_air,                                    &
-           len(water_species_in_air)*num_names_max, mpi_character,            &
-           masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(subname//": FATAL: mpi_bcast: water_species_in_air")
-
-      dry_air_species_num = 0
-      water_species_in_air_num = 0
-      do indx = 1, num_names_max
-         if ( (LEN_TRIM(dry_air_species(indx)) > 0) .and.                     &
-              (TRIM(dry_air_species(indx)) /= 'N2')) then
-            dry_air_species_num = dry_air_species_num + 1
-         end if
-         if (LEN_TRIM(water_species_in_air(indx)) > 0) then
-            water_species_in_air_num = water_species_in_air_num + 1
-         end if
-      end do
-
-      ! Initialize number of thermodynamically active species
-      thermodynamic_active_species_num =                                      &
-           dry_air_species_num + water_species_in_air_num
-
-      if (masterproc) then
-         write(iulog, *) banner
-         write(iulog, *) bline
-
-         if (dry_air_species_num == 0) then
-            write(iulog, *) " Thermodynamic properties of dry air are ",      &
-                 "fixed at troposphere values"
-         else
-            write(iulog, *) " Thermodynamic properties of dry air are ",      &
-                 "based on variable composition of the following species:"
-            do indx = 1, dry_air_species_num
-               write(iulog, *) '   ',  trim(dry_air_species(indx))
-            end do
-            write(iulog,*) ' '
-         end if
-         write(iulog,*) " Thermodynamic properties of moist air are ",        &
-              "based on variable composition of the following water species:"
-         do indx = 1, water_species_in_air_num
-            write(iulog, *) '   ', trim(water_species_in_air(indx))
-         end do
-         write(iulog, *) bline
-         write(iulog, *) banner
-      end if
-
-   end subroutine air_composition_readnl
-
    !===========================================================================
 
    subroutine composition_dependent_init()
@@ -255,13 +162,15 @@ CONTAINS
       use physconst,            only: rh2o, cpliq, cpice, zvir, mwh2o
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
+      use cam_constituents,     only: const_name, num_advected
 
       integer  :: icnst, ix, isize, ierr, idx
-      integer  :: liq_num, ice_num
-      integer  :: liq_idx(water_species_in_air_num)
-      integer  :: ice_idx(water_species_in_air_num)
+      integer  :: liq_num, ice_num, water_species_num, dry_species_num
+      integer  :: liq_idx(num_advected)
+      integer  :: ice_idx(num_advected)
       logical  :: has_liq, has_ice
       real(kind_phys) :: mw
+      character(len=std_name_len) :: cnst_stdname
 
       character(len=*), parameter :: subname = 'air_composition_init'
 
@@ -301,7 +210,7 @@ CONTAINS
 
       ! init for variable composition dry air
 
-      isize = dry_air_species_num + water_species_in_air_num
+      isize = num_advected
       allocate(thermodynamic_active_species_idx(isize), stat=ierr)
       call check_allocate(ierr, subname,'thermodynamic_active_species_idx(isize)', &
                           file=__FILE__, line=__LINE__)
@@ -318,7 +227,6 @@ CONTAINS
       call check_allocate(ierr, subname,'thermodynamic_active_species_R(0:isize)', &
                           file=__FILE__, line=__LINE__)
 
-      isize = dry_air_species_num
       allocate(thermodynamic_active_species_mwi(0:isize), stat=ierr)
       call check_allocate(ierr, subname,'thermodynamic_active_species_mwi(0:isize)', &
                           file=__FILE__, line=__LINE__)
@@ -339,40 +247,6 @@ CONTAINS
       thermodynamic_active_species_kc         = 0.0_kind_phys
 
       !
-      if (dry_air_species_num > 0) then
-         !
-         ! The last major species in dry_air_species is derived from the
-         !    others and constants associated with it are initialized here
-         !
-         if (TRIM(dry_air_species(dry_air_species_num + 1)) ==                &
-              'N_mixing_ratio_wrt_dry_air') then
-            call air_species_info('N_mixing_ratio_wrt_dry_air', ix, mw)
-            mw = 2.0_kind_phys * mw
-            icnst = 0 ! index for the derived tracer N2
-            thermodynamic_active_species_cp(icnst) = cp2 / mw
-            thermodynamic_active_species_cv(icnst) = cv2 / mw !N2
-            thermodynamic_active_species_R  (icnst) = r_universal / mw
-            thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
-            thermodynamic_active_species_kv(icnst)  = kv2
-            thermodynamic_active_species_kc(icnst)  = kc2
-            !
-            ! if last major species is not N2 then add code here
-            !
-         else
-            write(iulog, *) subname, ' derived major species not found: ',    &
-                 dry_air_species(dry_air_species_num)
-            call endrun(subname//': derived major species not found')
-         end if
-      else
-         !
-         ! dry air is not species dependent
-         !
-         icnst = 0
-         thermodynamic_active_species_cp (icnst) = cpair
-         thermodynamic_active_species_cv (icnst) = cpair - rair
-         thermodynamic_active_species_R  (icnst) = rair
-      end if
-      !
       !************************************************************************
       !
       ! add prognostic components of dry air
@@ -380,8 +254,11 @@ CONTAINS
       !************************************************************************
       !
       icnst = 1
-      do idx = 1, dry_air_species_num
-         select case (TRIM(dry_air_species(idx)))
+      water_species_num = 0
+      dry_species_num = 0
+      do idx = 1, num_advected
+         cnst_stdname = const_name(idx)
+         select case (TRIM((cnst_stdname)))
             !
             ! O
             !
@@ -395,6 +272,7 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv3
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
+            dry_species_num = dry_species_num + 1
             !
             ! O2
             !
@@ -408,6 +286,7 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = kv1
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
+            dry_species_num = dry_species_num + 1
             !
             ! H
             !
@@ -422,45 +301,20 @@ CONTAINS
             thermodynamic_active_species_kv(icnst)  = 0.0_kind_phys
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
+            dry_species_num = dry_species_num + 1
             !
-            ! If support for more major species is to be included add code here
+            ! N2
             !
-         case default
-            write(iulog, *) subname, ' dry air component not found: ',        &
-                 dry_air_species(idx)
-            call endrun(subname//': dry air component not found')
-         end select
-
-         if (masterproc) then
-            write(iulog, *) "Dry air composition ",                           &
-                 TRIM(dry_air_species(idx)),                                  &
-                 icnst-1,thermodynamic_active_species_idx(icnst-1),           &
-                 thermodynamic_active_species_mwi(icnst-1),                   &
-                 thermodynamic_active_species_cp(icnst-1),                    &
-                 thermodynamic_active_species_cv(icnst-1)
-         end if
-      end do
-      isize = dry_air_species_num+1
-      icnst = 0 ! N2
-      if(isize > 0) then
-         if(masterproc) then
-            write(iulog, *) "Dry air composition ",                           &
-                 TRIM(dry_air_species(idx)),                                  &
-                 icnst, -1, thermodynamic_active_species_mwi(icnst),          &
-                 thermodynamic_active_species_cp(icnst),                      &
-                 thermodynamic_active_species_cv(icnst)
-         end if
-      end if
-      !
-      !************************************************************************
-      !
-      ! Add non-dry components of moist air (water vapor and condensates)
-      !
-      !************************************************************************
-      !
-      icnst = dry_air_species_num + 1
-      do idx = 1, water_species_in_air_num
-         select case (TRIM(water_species_in_air(idx)))
+         case('N2_mixing_ratio_wrt_dry_air')
+            call air_species_info('N2_mixing_ratio_wrt_dry_air', ix, mw)
+            mw = 2.0_kind_phys * mw
+            icnst = 0 ! index for the derived tracer N2
+            thermodynamic_active_species_cp(icnst) = cp2 / mw
+            thermodynamic_active_species_cv(icnst) = cv2 / mw !N2
+            thermodynamic_active_species_R  (icnst) = r_universal / mw
+            thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
+            thermodynamic_active_species_kv(icnst)  = kv2
+            thermodynamic_active_species_kc(icnst)  = kc2
             !
             ! Q
             !
@@ -471,6 +325,7 @@ CONTAINS
             thermodynamic_active_species_cv (icnst) = cv3 / mw
             thermodynamic_active_species_R  (icnst) = rh2o
             icnst = icnst + 1
+            water_species_num = water_species_num + 1
             !
             ! CLDLIQ
             !
@@ -483,6 +338,7 @@ CONTAINS
             liq_num           = liq_num+1
             liq_idx (liq_num) = ix
             icnst = icnst + 1
+            water_species_num = water_species_num + 1
             has_liq = .true.
             !
             ! CLDICE
@@ -495,6 +351,7 @@ CONTAINS
             ice_num           = ice_num+1
             ice_idx(ice_num)  = ix
             icnst = icnst + 1
+            water_species_num = water_species_num + 1
             has_ice = .true.
             !
             ! RAINQM
@@ -507,6 +364,7 @@ CONTAINS
             liq_num           = liq_num+1
             liq_idx(liq_num)  = ix
             icnst = icnst + 1
+            water_species_num = water_species_num + 1
             has_liq = .true.
             !
             ! SNOWQM
@@ -519,33 +377,35 @@ CONTAINS
             ice_num           = ice_num+1
             ice_idx(ice_num)  = ix
             icnst = icnst + 1
+            water_species_num = water_species_num + 1
             has_ice = .true.
             !
             ! GRAUQM
             !
-         case('graupel_mixing_ratio_wrt_moist_air')
-            call air_species_info('graupel_mixing_ratio_wrt_moist_air', ix, mw)
+         case('graupel_water_mixing_ratio_wrt_moist_air')
+            call air_species_info('graupel_water_mixing_ratio_wrt_moist_air', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
             ice_num           = ice_num+1
             ice_idx(ice_num)  = ix
             icnst = icnst + 1
+            water_species_num = water_species_num + 1
             has_ice = .true.
             !
             ! If support for more major species is to be included add code here
             !
+         case('')
+            has_ice = .false.
          case default
-            write(iulog, *) subname, ' moist air component not found: ',      &
-                 water_species_in_air(idx)
-            call endrun(subname//': moist air component not found')
+            write(iulog, *) subname, ' air component not found: ',        &
+                 TRIM(cnst_stdname)
+            call endrun(subname//': air component not found')
          end select
-         !
-         !
-         !
+
          if (masterproc) then
             write(iulog, *) "Thermodynamic active species ",                  &
-                 TRIM(water_species_in_air(idx))
+                 TRIM(cnst_stdname)
             write(iulog, *) "   global index                           : ",   &
                  icnst-1
             write(iulog, *) "   thermodynamic_active_species_idx       : ",   &
@@ -567,6 +427,9 @@ CONTAINS
          has_liq = .false.
          has_ice = .false.
       end do
+
+      water_species_in_air_num = water_species_num
+      dry_air_species_num = dry_species_num
 
       allocate(thermodynamic_active_species_liq_idx(liq_num), stat=ierr)
       call check_allocate(ierr, subname,'thermodynamic_active_species_liq_idx(liq_num)', &

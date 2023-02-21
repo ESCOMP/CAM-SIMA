@@ -349,7 +349,6 @@ class ConfigCAM:
 
             #Add NML definition files to dictionary:
             self._add_xml_nml_file(se_dyn_nml_path, "namelist_definition_se_dycore.xml")
-            self._add_xml_nml_file(data_nml_path, "namelist_definition_air_comp.xml")
             self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
             self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
 
@@ -377,7 +376,6 @@ class ConfigCAM:
                                valid_list_type="str")
             data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
             #Add NML definition files to dictionary:
-            self._add_xml_nml_file(data_nml_path, "namelist_definition_air_comp.xml")
             self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
             self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
         #End if

@@ -171,8 +171,8 @@ CONTAINS
       call model_grid_init()
 
       ! Initialize constituent information
-      !    This will set the  number of constituents and the
-      !    number of advected constituents is set
+      !    This will set the total number of constituents and the
+      !    number of advected constituents.
       call cam_register_constituents(cam_runtime_opts, num_host_advected)
 
       ! Initialize composition-dependent constants:
@@ -484,15 +484,14 @@ CONTAINS
 !-----------------------------------------------------------------------
 
    subroutine cam_register_constituents(cam_runtime_opts, num_host_advected)
-      !! Call the CCPP interface to register all constituents for the
-      !! physics suite(s?) being invoked during this run.
+      ! Call the CCPP interface to register all constituents for the
+      ! physics suite being invoked during this run.
       use shr_kind_mod,              only: CX => SHR_KIND_CX
       use cam_abortutils,            only: endrun
       use runtime_obj,               only: runtime_options
       use physics_grid,              only: columns_on_task
       use vert_coord,                only: pver
       use cam_constituents,          only: cam_constituents_init
-      use cam_constituents,          only: water_species_stdnames
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_ccpp_cap,              only: cam_ccpp_register_constituents
       use cam_ccpp_cap,              only: cam_ccpp_number_constituents
@@ -524,16 +523,16 @@ CONTAINS
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
       end if
-      call cam_ccpp_register_constituents(cam_runtime_opts%suite_list(),      &
+      call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),      &
            columns_on_task, pver, host_constituents,                          &
            errcode=errflg, errmsg=errmsg)
 
-      if (errflg == 0) then
-         call cam_ccpp_number_constituents(num_advect, advected=.true., &
-              errcode=errflg, errmsg=errmsg)
-      else
+      if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
       end if
+      call cam_ccpp_number_constituents(num_advect, advected=.true., &
+           errcode=errflg, errmsg=errmsg)
+
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
       end if
@@ -541,19 +540,8 @@ CONTAINS
       ! Grab a pointer to the constituent array
       const_props => cam_model_const_properties()
 
-      ! Find the indices of the water species
-      allocate(ind_water_spec(size(water_species_stdnames)))
-      do index = 1, size(water_species_stdnames)
-         ! Ignore errcode it is okay if species is absent
-         call cam_const_get_index(water_species_stdnames(index),              &
-              ind_water_spec(index), errcode=errflg, errmsg=errmsg)
-      end do
-
       ! Finally, initialize the constituents module
-      call cam_constituents_init(const_props, num_advect, ind_water_spec)
-
-      ! Cleanup
-      deallocate(ind_water_spec)
+      call cam_constituents_init(const_props, num_advect)
 
    end subroutine cam_register_constituents
 

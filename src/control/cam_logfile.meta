@@ -7,7 +7,7 @@
   type  = module
 [ iulog ]
   standard_name = log_output_unit
-  units = None
+  units = 1
   type = integer
   dimensions = ()
   protected = True

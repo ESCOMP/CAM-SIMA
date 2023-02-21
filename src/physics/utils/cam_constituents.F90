@@ -19,20 +19,6 @@ module cam_constituents
    public :: const_is_wet
    public :: const_qmin
 
-   character(len=46), public, parameter :: water_species_stdnames(5) = (/     &
-        "specific_humidity                             ",                     &
-        "cloud_liquid_water_mixing_ratio_wrt_moist_air ",                     &
-        "cloud_ice_water_mixing_ratio_wrt_moist_air    ",                     &
-        "rain_water_mixing_ratio_wrt_moist_air         ",                     &
-        "snow_water_mixing_ratio_wrt_moist_air         " /)
-
-   ! To keep track of standard name locations above, save the indices
-   integer, private :: ind_q_ind       = 1
-   integer, private :: ind_cld_liq_ind = 2
-   integer, private :: ind_cld_ice_ind = 3
-   integer, private :: ind_rain_ind    = 4
-   integer, private :: ind_snow_ind    = 5
-
    ! Private array of constituent properties (for property interface functions)
    type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:) => NULL()
 
@@ -45,11 +31,6 @@ module cam_constituents
    !> \section arg_table_cam_constituents  Argument Table
    !! \htmlinclude cam_constituents.html
    integer, public, protected :: num_advected = 0
-   integer, public, protected :: indx_spec_humidity_wet = -1
-   integer, public, protected :: indx_cloud_liquid_wet = -1
-   integer, public, protected :: indx_cloud_ice_wet = -1
-   integer, public, protected :: indx_rain_wet = -1
-   integer, public, protected :: indx_snow_wet = -1
 
    !! Note: There are no <xxx>_name interfaces in function interfaces below
    !!       because use of this sort of interface is often for optional
@@ -143,13 +124,12 @@ CONTAINS
 
    !#######################################################################
 
-   subroutine cam_constituents_init(cnst_prop_ptr, num_advect, ind_water_spec)
+   subroutine cam_constituents_init(cnst_prop_ptr, num_advect)
       use cam_abortutils, only: endrun
 
       ! Initialize module constituent variables
       type(ccpp_constituent_prop_ptr_t), pointer :: cnst_prop_ptr(:)
       integer, intent(in)                        :: num_advect
-      integer, intent(in)                        :: ind_water_spec(:)
 
       if (initialized) then
          call endrun("cam_constituents_init: already initialized",            &
@@ -157,11 +137,6 @@ CONTAINS
       end if
       const_props => cnst_prop_ptr
       num_advected = num_advect
-      indx_spec_humidity_wet = ind_water_spec(ind_q_ind)
-      indx_cloud_liquid_wet = ind_water_spec(ind_cld_liq_ind)
-      indx_cloud_ice_wet = ind_water_spec(ind_cld_ice_ind)
-      indx_rain_wet = ind_water_spec(ind_rain_ind)
-      indx_snow_wet = ind_water_spec(ind_snow_ind)
 
       initialized = .true.
 
@@ -200,13 +175,14 @@ CONTAINS
    !#######################################################################
 
    function const_name(const_ind)
-      use cam_abortutils, only: endrun
-      use string_utils,   only: to_str
+      use cam_abortutils,       only: endrun
+      use string_utils,         only: to_str
+      use phys_vars_init_check, only: std_name_len
 
       ! Return the standard name of the constituent at <const_ind>.
       ! Dummy arguments
-      integer, intent(in)           :: const_ind
-      character(len=:), allocatable :: const_name
+      integer, intent(in)         :: const_ind
+      character(len=std_name_len) :: const_name
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
@@ -228,11 +204,12 @@ CONTAINS
    function const_longname(const_ind)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
+      use shr_kind_mod,   only: CL => shr_kind_cl
 
       ! Return the long name of the constituent at <const_ind>.
       ! Dummy arguments
-      integer, intent(in)           :: const_ind
-      character(len=:), allocatable :: const_longname
+      integer, intent(in)         :: const_ind
+      character(len=CL)           :: const_longname
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg

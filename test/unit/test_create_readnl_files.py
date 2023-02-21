@@ -16,6 +16,7 @@
 import filecmp
 import glob
 import os
+import logging
 import sys
 import unittest
 import xml.etree.ElementTree as ET

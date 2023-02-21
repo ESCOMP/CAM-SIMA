@@ -134,7 +134,6 @@ CONTAINS
       use camsrfexch,       only: cam_out_t
       use physics_grid,     only: columns_on_task
       use vert_coord,       only: pver, pverp
-      use cam_constituents, only: num_advected
       use cam_thermo,       only: cam_thermo_init
       use physics_types,    only: allocate_physics_types_fields
       use cam_ccpp_cap,     only: cam_ccpp_physics_initialize
@@ -148,7 +147,6 @@ CONTAINS
 
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
-      integer                    :: num_host_advected
       character(len=512)         :: errmsg
       integer                    :: errcode
 

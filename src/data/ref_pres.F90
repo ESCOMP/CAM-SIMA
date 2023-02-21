@@ -178,21 +178,21 @@ contains
       ! ptop_ref
       call mark_as_initialized("air_pressure_at_top_of_atmosphere_model")
       ! reference_pressure_at_surface
-      call mark_as_initialized("psurf_ref")
+      call mark_as_initialized("reference_pressure_at_surface")
       ! number_of_pure_pressure_levels_at_top
-      call mark_as_initialized("num_pr_lev")
+      call mark_as_initialized("number_of_pure_pressure_levels_at_top")
       ! index_of_pressure_at_troposhere_cloud_top
-      call mark_as_initialized("trop_cloud_top_lev")
+      call mark_as_initialized("index_of_pressure_at_troposhere_cloud_top")
       ! index_of_air_pressure_at_top_of_aerosol_model
-      call mark_as_initialized("clim_modal_aero_top_lev")
+      call mark_as_initialized("index_of_air_pressure_at_top_of_aerosol_model")
       ! largest_model_top_pressure_that_allows_molecular_diffusion
-      call mark_as_initialized("do_molec_press")
+      call mark_as_initialized("largest_model_top_pressure_that_allows_molecular_diffusion")
       ! pressure_at_bottom_of_molcular_diffusion
-      call mark_as_initialized("molec_diff_bot_press")
+      call mark_as_initialized("pressure_at_bottom_of_molcular_diffusion")
       ! flag_for_molecular_diffusion
-      call mark_as_initialized("do_molec_diff")
+      call mark_as_initialized("flag_for_molecular_diffusion")
       ! index_of_pressure_at_bottom_of_molcular_diffusion
-      call mark_as_initialized("nbot_molec")
+      call mark_as_initialized("index_of_pressure_at_bottom_of_molcular_diffusion")
 
    end subroutine ref_pres_init
 
