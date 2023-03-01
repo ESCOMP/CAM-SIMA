@@ -24,7 +24,7 @@ module cam_constituents
 
    ! Namelist variable
    ! readtrace: Obtain initial tracer data from IC file if .true.
-   logical, private :: readtrace = .true.
+   logical, public :: readtrace = .true.
    ! Only allow initialization once
    logical, private :: initialized = .false.
 

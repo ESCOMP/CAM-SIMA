@@ -11,7 +11,7 @@ module cam_comp
 !-----------------------------------------------------------------------
 
    use shr_kind_mod,              only: r8 => SHR_KIND_R8
-   use shr_kind_mod,              only: cl=>SHR_KIND_CL, cs=>SHR_KIND_CS
+   use shr_kind_mod,              only: cl=>SHR_KIND_CL, cs=>SHR_KIND_CS, cx=>SHR_KIND_CX
    use shr_sys_mod,               only: shr_sys_flush
 
    use spmd_utils,                only: masterproc, mpicom
@@ -94,6 +94,9 @@ CONTAINS
       use stepon,               only: stepon_init
       use air_composition,      only: air_composition_init
       use air_composition,      only: composition_dependent_init
+      use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
+      use physics_grid,         only: columns_on_task
+      use vert_coord,           only: pver
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -136,6 +139,8 @@ CONTAINS
 
                                                 ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
+      integer                  :: errflg
+      character(len=cx)        :: errmsg
       !-----------------------------------------------------------------------
 
       call init_pio_subsystem()
@@ -167,9 +172,6 @@ CONTAINS
       ! Open initial or restart file, and topo file if specified.
       call cam_initfiles_open()
 
-      ! Initialize model grids and decompositions
-      call model_grid_init()
-
       ! Initialize constituent information
       !    This will set the total number of constituents and the
       !    number of advected constituents.
@@ -177,6 +179,15 @@ CONTAINS
 
       ! Initialize composition-dependent constants:
       call air_composition_init()
+
+      ! Initialize model grids and decompositions
+      call model_grid_init()
+
+      ! Initialize constituent data
+      call cam_ccpp_initialize_constituents(columns_on_task, pver, errflg, errmsg)
+
+      ! Initialize composition-dependent constants:
+      !call air_composition_init()
 
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
@@ -486,11 +497,8 @@ CONTAINS
    subroutine cam_register_constituents(cam_runtime_opts, num_host_advected)
       ! Call the CCPP interface to register all constituents for the
       ! physics suite being invoked during this run.
-      use shr_kind_mod,              only: CX => SHR_KIND_CX
       use cam_abortutils,            only: endrun
       use runtime_obj,               only: runtime_options
-      use physics_grid,              only: columns_on_task
-      use vert_coord,                only: pver
       use cam_constituents,          only: cam_constituents_init
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_ccpp_cap,              only: cam_ccpp_register_constituents
@@ -506,7 +514,7 @@ CONTAINS
       integer                                        :: num_advect
       integer,                           allocatable :: ind_water_spec(:)
       integer                                        :: errflg
-      character(len=CX)                              :: errmsg
+      character(len=cx)                              :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
@@ -524,8 +532,7 @@ CONTAINS
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
       end if
       call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),      &
-           columns_on_task, pver, host_constituents,                          &
-           errcode=errflg, errmsg=errmsg)
+           host_constituents, errcode=errflg, errmsg=errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)

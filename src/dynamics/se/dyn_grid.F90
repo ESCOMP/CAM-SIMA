@@ -138,7 +138,7 @@ subroutine model_grid_init()
    use control_mod,         only: qsplit, rsplit
    use time_mod,            only: tstep, nsplit
    use fvm_mod,             only: fvm_init2, fvm_init3, fvm_pg_init
-   use dimensions_mod,      only: irecons_tracer, dimensions_mod_init
+   use dimensions_mod,      only: irecons_tracer, dimensions_mod_init, qsize
    use comp_gll_ctr_vol,    only: gll_grid_write
 
    ! Local variables
@@ -165,6 +165,13 @@ subroutine model_grid_init()
    character(len=*), parameter :: subname = 'model_grid_init'
    !----------------------------------------------------------------------------
 
+   if (fv_nphys > 0) then
+      ! Use CSLAM for tracer advection
+      qsize = thermodynamic_active_species_num ! number tracers advected by GLL
+   else
+      ! Use GLL for tracer advection
+      qsize = num_advected
+   end if
    ! Get file handle for initial file and first consistency check
    fh_ini => initial_file_get_id()
 
@@ -255,7 +262,6 @@ subroutine model_grid_init()
       call initEdgeBuffer(par, edgebuf, elem, qsize_local*nlev, nthreads=1)
 
    else  ! auxiliary processes
-
       globaluniquecols = 0
       nelem     = 0
       nelemd    = 0

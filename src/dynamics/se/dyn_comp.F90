@@ -6,9 +6,9 @@ use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
 use dynconst,               only: pi
 use spmd_utils,             only: iam, masterproc
 use cam_constituents,       only: const_name, const_longname, num_advected
-use cam_constituents,       only: const_get_index
-!                                  cnst_read_iv, qmin, cnst_type, tottnam,        &
-!                                  cnst_is_a_water_species
+use cam_constituents,       only: const_get_index, const_is_wet, const_qmin
+use cam_constituents,       only: readtrace
+use air_composition,        only: const_is_water_species
 use cam_control_mod,        only: initial_run, simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
 use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
@@ -373,14 +373,6 @@ subroutine dyn_readnl(NLFileName)
    rayk0                    = se_rayk0
    molecular_diff           = se_molecular_diff
 
-   if (fv_nphys > 0) then
-      ! Use CSLAM for tracer advection
-      qsize = thermodynamic_active_species_num ! number tracers advected by GLL
-   else
-      ! Use GLL for tracer advection
-      qsize = num_advected
-   end if
-
    if (rsplit < 1) then
       call endrun('dyn_readnl: rsplit must be > 0')
    end if
@@ -574,8 +566,6 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
    use gravity_waves_sources, only: gws_init
 
-   use physics_types,  only: ix_qv, ix_cld_liq !Use until constituents are fully-enabled -JN
-
    !SE dycore:
    use prim_advance_mod,   only: prim_advance_init
    use thread_mod,         only: horz_num_threads
@@ -705,7 +695,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
          kord_tr(thermodynamic_active_species_idx_dycore(m)) = vert_remap_uvTq_alg
        end if
        cnst_name_gll    (m)                = const_name    (m)
-       cnst_longname_gll(m)                = cnst_longname(m)
+       cnst_longname_gll(m)                = const_longname(m)
 
      end if
    end do
@@ -857,10 +847,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    if (ntrac>0) then
       do m = 1, ntrac
          call addfld (trim(const_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg',   &
-            trim(cnst_longname(m)), gridname='FVM')
+            trim(const_longname(m)), gridname='FVM')
 
          call addfld ('F'//trim(const_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg/s',   &
-            trim(cnst_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
+            trim(const_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
             gridname='FVM')
       end do
 
@@ -870,7 +860,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
    do m_cnst = 1, qsize
      call addfld ('F'//trim(cnst_name_gll(m_cnst))//'_gll',  (/ 'lev' /), 'I', 'kg/kg/s',   &
-          trim(cnst_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', gridname='GLL')
+          trim(const_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', gridname='GLL')
    end do
 
    ! Energy diagnostics and axial angular momentum diagnostics
@@ -1163,7 +1153,6 @@ subroutine read_inidat(dyn_in)
    use shr_sys_mod,          only: shr_sys_flush
    use hycoef,               only: hyai, hybi, ps0
    use phys_vars_init_check, only: mark_as_initialized
-   !use const_init,          only: cnst_init_default
 
    !SE-dycore:
    use element_mod,          only: timelevels
@@ -1230,7 +1219,6 @@ subroutine read_inidat(dyn_in)
 
    fh_ini  => initial_file_get_id()
    fh_topo => topo_file_get_id()
-
    if (iam < par%nprocs) then
       elem => dyn_in%elem
    else
@@ -1521,14 +1509,11 @@ subroutine read_inidat(dyn_in)
       call endrun(trim(subname)//errmsg)
    end if
 
-!Un-comment once non-water constituents are enabled in CAMDEN -JN:
-#if 0
-
    ! If using analytic ICs the initial file only needs the horizonal grid
    ! dimension checked in the case that the file contains constituent mixing
    ! ratios.
    do m_cnst = 1, num_advected
-      if (cnst_read_iv(m_cnst) .and. .not. cnst_is_a_water_species(const_name(m_cnst))) then
+      if (readtrace .and. const_is_water_species(m_cnst) == 0) then
          if (dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
             exit
@@ -1542,17 +1527,17 @@ subroutine read_inidat(dyn_in)
 
    do m_cnst = 1, num_advected
 
-      if (analytic_ic_active() .and. cnst_is_a_water_species(const_name(m_cnst))) cycle
+      if (analytic_ic_active() .and. const_is_water_species(m_cnst) == 1) cycle
 
       found = .false.
-      if (cnst_read_iv(m_cnst)) then
+      if (readtrace) then
          found = dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)
       end if
 
       if (found) then
          call read_dyn_var(trim(const_name(m_cnst)), fh_ini, dimname, dbuf3)
       else
-         call cnst_init_default(m_cnst, latvals, lonvals, dbuf3, pmask)
+         !call cnst_init_default(m_cnst, latvals, lonvals, dbuf3, pmask)
       end if
 
       do ie = 1, nelemd
@@ -1564,7 +1549,7 @@ subroutine read_inidat(dyn_in)
                do i = 1, np
                   ! Set qtmp at the unique columns only: zero non-unique columns
                   if (pmask(((ie - 1) * npsq) + indx)) then
-                     qtmp(i,j, k, ie, m_cnst) = max(qmin(m_cnst),dbuf3(indx,k,ie))
+                     qtmp(i,j, k, ie, m_cnst) = max(const_qmin(m_cnst),dbuf3(indx,k,ie))
                   else
                      qtmp(i,j, k, ie, m_cnst) = 0.0_r8
                   end if
@@ -1578,9 +1563,6 @@ subroutine read_inidat(dyn_in)
 
    ! Cleanup
    deallocate(dbuf3)
-
-!Un-comment once constituents are enabled in CAMDEN -JN:
-#endif
 
    ! Put the error handling back the way it was
    call pio_seterrorhandling(fh_ini, pio_errtype)
@@ -1652,26 +1634,23 @@ subroutine read_inidat(dyn_in)
       factor_array(:,:,:,:) = 1.0_r8/factor_array(:,:,:,:)
 
       do m_cnst = 1, num_advected
-!Un-comment once constituents are enabled -JN:
-!         if (cnst_type(m_cnst) == 'wet') then
+         if (const_is_wet(m_cnst)) then
             do ie = 1, nelemd
                do k = 1, nlev
                   do j = 1, np
                      do i = 1, np
-
                         ! convert wet mixing ratio to dry
                         qtmp(i,j,k,ie,m_cnst) = qtmp(i,j,k,ie,m_cnst) * factor_array(i,j,k,ie)
 
                         ! truncate negative values if they were not analytically specified
                         if (.not. analytic_ic_active()) then
-!                           qtmp(i,j,k,ie,m_cnst) = max(qmin(m_cnst), qtmp(i,j,k,ie,m_cnst))
-                           qtmp(i,j,k,ie,m_cnst) = max(0._r8, qtmp(i,j,k,ie,m_cnst)) !Remove once constituents are enabled -JN
+                           qtmp(i,j,k,ie,m_cnst) = max(const_qmin(m_cnst), qtmp(i,j,k,ie,m_cnst))
                         end if
                      end do
                   end do
                end do
             end do
-!         end if
+         end if
       end do
 
       ! initialize dp3d and qdp
@@ -1838,10 +1817,10 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("y_wind") !northward wind
    call mark_as_initialized("air_temperature")
 
-   !These calls will need to be modified once constituents are enabled:
-   call mark_as_initialized("specific_humidity")
-   call mark_as_initialized("cloud_liquid_water_mixing_ratio_wrt_moist_air")
-   call mark_as_initialized("rain_water_mixing_ratio_wrt_moist_air")
+   !Mark all constituents as initialized
+   do m_cnst = 1, num_advected
+      call mark_as_initialized(const_name(m_cnst))
+   end do
 
    !These calls may be removed if geopotential_t is only allowed to run
    !in a CCPP physics suite:

@@ -32,7 +32,7 @@ module air_composition
    ! composition of air
    !
    integer, parameter          :: num_names_max = 30
-
+   integer, protected, public  :: const_is_water_species(num_names_max)
    integer, protected, public  :: dry_air_species_num
    integer, protected, public  :: water_species_in_air_num
 
@@ -273,6 +273,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            const_is_water_species(ix) = 0
             !
             ! O2
             !
@@ -287,6 +288,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            const_is_water_species(ix) = 0
             !
             ! H
             !
@@ -302,6 +304,7 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            const_is_water_species(ix) = 0
             !
             ! N2
             !
@@ -315,6 +318,7 @@ CONTAINS
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
+            const_is_water_species(ix) = 0
             !
             ! Q
             !
@@ -326,6 +330,7 @@ CONTAINS
             thermodynamic_active_species_R  (icnst) = rh2o
             icnst = icnst + 1
             water_species_num = water_species_num + 1
+            const_is_water_species(ix) = 1
             !
             ! CLDLIQ
             !
@@ -340,6 +345,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_liq = .true.
+            const_is_water_species(ix) = 1
             !
             ! CLDICE
             !
@@ -353,6 +359,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_ice = .true.
+            const_is_water_species(ix) = 1
             !
             ! RAINQM
             !
@@ -366,6 +373,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_liq = .true.
+            const_is_water_species(ix) = 1
             !
             ! SNOWQM
             !
@@ -379,6 +387,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_ice = .true.
+            const_is_water_species(ix) = 1
             !
             ! GRAUQM
             !
@@ -392,6 +401,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_ice = .true.
+            const_is_water_species(ix) = 1
             !
             ! If support for more major species is to be included add code here
             !
@@ -430,6 +440,7 @@ CONTAINS
 
       water_species_in_air_num = water_species_num
       dry_air_species_num = dry_species_num
+      thermodynamic_active_species_num = water_species_num + dry_species_num
 
       allocate(thermodynamic_active_species_liq_idx(liq_num), stat=ierr)
       call check_allocate(ierr, subname,'thermodynamic_active_species_liq_idx(liq_num)', &
