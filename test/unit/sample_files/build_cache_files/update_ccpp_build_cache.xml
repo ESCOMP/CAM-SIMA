@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<CAMBuildCache>
+   <registry>
+      <generate_init_file file_path="/over/the/rainbow/write_init_files.py" hash="d8c767bbf93ada186d819a8ab464091f4f23ee1d"/>
+      <generate_registry_file file_path="/under/the/rainbow/generate_registry_data.py" hash="59f353246bdb856b5ab7d728db510dce07870d55"/>
+      <registry_file file_path="in/the/rainbow/registry.xml" hash="010e4f5c69298bc3e519dae0aa17aee1f8232d09"/>
+      <dycore>none</dycore>
+      <config/>
+      <reg_gen_file>/yellow/brick/road/munchkin.meta</reg_gen_file>
+      <ic_name_entry standard_name="Only_had_a">brain</ic_name_entry>
+      <ic_name_entry standard_name="Only_had_a">heart</ic_name_entry>
+   </registry>
+   <CCPP>
+      <SDF file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
+      <scheme file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
+      <host file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
+      <xml_file file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
+      <scheme_namelist_meta_file>/dragon/fruit/kumquat_namelist.meta</scheme_namelist_meta_file>
+      <scheme_namelist_groups>orange lemon</scheme_namelist_groups>
+      <create_nl_file file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
+      <preproc_defs>-DBANANA</preproc_defs>
+      <kind_type>kind_phys=REAL32</kind_type>
+   </CCPP>
+</CAMBuildCache>

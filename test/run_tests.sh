@@ -70,6 +70,8 @@ run_doctest cime_config/atm_in_paramgen.py
 run_unittest test/unit/test_cam_config.py
 # CAM autogen unit tests:
 run_unittest test/unit/test_cam_autogen.py
+# CAM build cache unit tests:
+run_unittest test/unit/test_build_cache.py
 # Registry generator unit tests:
 run_unittest test/unit/test_registry.py
 # Namelist reader autogeneration unit tests

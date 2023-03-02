@@ -13,14 +13,15 @@ import sys
 import os
 import hashlib
 import xml.etree.ElementTree as ET
+from xml.dom import minidom #Used to pretty-print cache file
 
 # Find and include the ccpp-framework scripts directory
-# Assume we are in <CAMROOT>/cime_config and SPIN is in <CAMROOT>/ccpp_framework
+# Assume we are in <CAMROOT>/cime_config and CCPP_FRAMEWORK is in <CAMROOT>/ccpp_framework
 __CURRDIR = os.path.abspath(os.path.dirname(__file__))
 __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
-__SPINSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
-if __SPINSCRIPTS not in sys.path:
-    sys.path.append(__SPINSCRIPTS)
+__CCPP_FRAMEWORK = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
+if __CCPP_FRAMEWORK not in sys.path:
+    sys.path.append(__CCPP_FRAMEWORK)
 # end if
 
 # CCPP framework imports
@@ -31,7 +32,15 @@ from parse_tools import read_xml_file
 ###############################################################################
 def new_xml_entry(parent, tag, path, file_hash):
 ###############################################################################
-    """Create a new file type entry in the cache"""
+    """
+    Create a new file type entry in the cache
+
+    doctest:
+    >>> parent_xml = ET.Element("test")
+    >>> test_xml = new_xml_entry(parent_xml, "test", "/no/where", "banana")
+    >>> ET.dump(test_xml)
+    <test file_path="/no/where" hash="banana" />
+    """
     new_entry = ET.SubElement(parent, tag)
     new_entry.set('file_path', path)
     new_entry.set('hash', file_hash)
@@ -42,6 +51,38 @@ def new_entry_from_xml(item):
 ###############################################################################
     """Create a new FileStatus entry from XML entry, <item>.
         ValueError is thrown in error.
+
+    doctests:
+
+    1.  Make sure function works as expected:
+    >>> parent_xml = ET.Element("test")
+    >>> test_xml = new_xml_entry(parent_xml, "test", "/no/where", "banana")
+    >>> new_entry_from_xml(test_xml).file_hash
+    'banana'
+
+    2.  Make sure function throws an error if no hash entry is found:
+    >>> test_xml = ET.Element("test")
+    >>> test_xml.set("file_path", "/no/where")
+    >>> new_entry_from_xml(test_xml) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ERROR: No hash for 'test', '/no/where'
+
+    3.  Make sure function throws an error if no file path entry is found:
+    >>> test_xml = ET.Element("test")
+    >>> test_xml.set("hash", "banana")
+    >>> new_entry_from_xml(test_xml) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ERROR: No path for 'test' XML item
+
+    4.  Make sure function throws an error if neither a file path or hash is found:
+    >>> test_xml = ET.Element("test")
+    >>> new_entry_from_xml(test_xml) # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ERROR: Invalid 'test' XML item
+
     """
     path = item.get('file_path', default=None)
     file_hash = item.get('hash', default=None)
@@ -49,13 +90,13 @@ def new_entry_from_xml(item):
     if path and file_hash:
         new_entry = FileStatus(path, item.tag, file_hash)
     elif path:
-        emsg = f"ERROR: No hash for {item.tag}, '{path}'"
+        emsg = f"ERROR: No hash for '{item.tag}', '{path}'"
         raise ValueError(emsg)
     elif file_hash:
-        emsg = f"ERROR: No path for {item.tag} XML item"
+        emsg = f"ERROR: No path for '{item.tag}' XML item"
         raise ValueError(emsg)
     else:
-        raise ValueError(f"ERROR: Invalid {item.tag} XML item")
+        raise ValueError(f"ERROR: Invalid '{item.tag}' XML item")
     # end if
     return new_entry
 
@@ -102,8 +143,8 @@ class FileStatus:
         elif os.path.exists(self.__path):
             self.__hash = FileStatus.sha1sum(self.__path)
         else:
-            emsg = "ERROR: {}, '{}', does not exist"
-            raise ValueError(emsg.format(description, file_path))
+            emsg = f"ERROR: '{description}', '{file_path}', does not exist"
+            raise ValueError(emsg)
         # end if
 
     def hash_mismatch(self, file_path):
@@ -135,6 +176,10 @@ class FileStatus:
     def sha1sum(cls, filename):
         """Efficient SHA hash of a file. SHA1 is good enough for this cache
         Stolen from Georg Sauthoff (https://stackoverflow.com/users/427158)
+
+        Relevant Stack Overflow post:
+
+        https://stackoverflow.com/questions/22058048/hashing-a-file-in-python/44873382#44873382
         """
         file_hash = hashlib.sha1()
         barray = bytearray(128*1024)
@@ -156,42 +201,6 @@ class BuildCacheCAM:
     metadata and source code files for all schemes specified in the SDFs.
     Any host model metadata file changes will also trigger a CCPP rebuild so
     a registry-file creation implies a CCPP Framework run.
-
-    doctests
-
-    1.  Check that the proper error is generated when wrong file is input:
-
-    >>> BuildCacheCAM(TEST_SCHEME)
-    Traceback (most recent call last):
-    ...
-    parse_source.CCPPError: read_xml_file: Cannot read ...temp_adjust_scalar.meta, syntax error: line 1, column 0
-
-    2.  Check that the proper error is generated when build_cache has an invalid tag:
-
-    >>> BuildCacheCAM(BAD_BUILD_CACHE)
-    Traceback (most recent call last):
-    ...
-    ValueError: ERROR: Unknown section tag, 'test'
-
-    3.  Check that the proper error is generated when build_cache has an invalid registry tag:
-
-    >>> BuildCacheCAM(BAD_BUILD_CACHE_REG)
-    Traceback (most recent call last):
-    ...
-    ValueError: ERROR: Unknown registry tag, 'test'
-
-    4.  Check that the proper error is generated when build_cache has an invalid ccpp tag:
-
-    >>> BuildCacheCAM(BAD_BUILD_CACHE_CCPP)
-    Traceback (most recent call last):
-    ...
-    ValueError: ERROR: Unknown CCPP tag, 'test'
-
-    5.  Check that parsing works (no errors) when input is valid:
-
-    >>> BuildCacheCAM(BUILD_CACHE)._BuildCacheCAM__dycore
-    'none'
-
     """
 
     def __init__(self, build_cache):
@@ -268,8 +277,7 @@ class BuildCacheCAM:
                             new_entry = new_entry_from_xml(item)
                             self.__xml_files[new_entry.key] = new_entry
                         elif item.tag == 'scheme_namelist_meta_file':
-                            new_entry = new_entry_from_xml(item)
-                            self.__scheme_nl_metadata.append(new_entry)
+                            self.__scheme_nl_metadata.append(item.text.strip())
                         elif item.tag == 'scheme_namelist_groups':
                             if item.text:
                                 group_list = [x for x in
@@ -312,8 +320,9 @@ class BuildCacheCAM:
         # end for
         # reg_file_list contains the files generated from the registry
         self.__reg_gen_files = reg_file_list
-        # ic_names are the initial condition variable names from the registry
-        self.__ic_names = dict(ic_names)
+        # ic_names are the initial condition variable names from the registry,
+        # and should already be of type dict:
+        self.__ic_names = ic_names
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
                     xml_files, namelist_meta_files, namelist_groups,
@@ -403,8 +412,8 @@ class BuildCacheCAM:
             new_xml_entry(ccpp, 'xml_file', sfile.file_path, sfile.file_hash)
         # end for
         for sfile in self.__scheme_nl_metadata:
-            new_xml_entry(ccpp, 'scheme_namelist_meta_file', sfile,
-                          FileStatus.sha1sum(sfile))
+            scheme_nlmeta = ET.SubElement(ccpp, 'scheme_namelist_meta_file')
+            scheme_nlmeta.text = sfile
         # end for
         if self.__scheme_nl_groups:
             scheme_nlgroups = ET.SubElement(ccpp, 'scheme_namelist_groups')
@@ -416,45 +425,26 @@ class BuildCacheCAM:
         preproc = ET.SubElement(ccpp, 'preproc_defs')
         preproc.text = self.__preproc_defs
         for kind_def, kind_type in self.__kind_types.items():
-            kind_type = ET.SubElement(ccpp, 'kind_type')
-            kind_type.text = f"{kind_def}={kind_type}"
+            kind_elem = ET.SubElement(ccpp, 'kind_type')
+            kind_elem.text = f"{kind_def}={kind_type}"
         # end for
+
+        #Combine elments into an Element Tree object:
         new_cache_tree = ET.ElementTree(new_cache)
-        new_cache_tree.write(self.__build_cache)
+
+        #Convert Element Tree to a Document Object Model (DOM) XML object:
+        dom_xml = minidom.parseString(ET.tostring(new_cache_tree.getroot()))
+
+        #Write XML in a "pretty-print" format:
+        with open(self.__build_cache, "w", encoding="UTF-8") as xml_file:
+            xml_file.write(dom_xml.toprettyxml(indent="   "))
+        #End with
 
     def registry_mismatch(self, gen_reg_file, registry_source_files,
                           dycore, config):
         """
         Determine if the registry input data differs from the data
         stored in our cache. Return True if the data differs.
-
-        doctests
-
-        1.  Check that the function returns False when there are no changes:
-
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG)
-        False
-
-        2.  Check that the function returns True when the dycore has changed:
-
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], SE_DYCORE, NONE_CONFIG)
-        True
-
-        3.  Check that the function returns True when the registry has been updated:
-
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [TEST_SDF], NULL_DYCORE, NONE_CONFIG)
-        True
-
-        4.  Check that the function returns True when the gen_reg_file has been updated:
-
-        >>> BUILD_CACHE_CAM.registry_mismatch(TEST_SDF, [REGISTRY_FILE], NULL_DYCORE, NONE_CONFIG)
-        True
-
-        5.  Check that the function returns True when config changes:
-
-        >>> BUILD_CACHE_CAM.registry_mismatch(REGISTRY_FILE, [REGISTRY_FILE], NULL_DYCORE, TEST_CHANGE)
-        True
-
         """
         mismatch = False
         mismatch = (not self.__dycore) or (self.__dycore != dycore)
@@ -485,34 +475,6 @@ class BuildCacheCAM:
         """
         Determine if the CCPP input data differs from the data stored in
         our cache. Return True if the data differs.
-
-        doctests
-
-        1.  Check that the function returns False when no changes were made:
-
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], PREPROC_DEFS, KIND_PHYS)
-        False
-
-        2.  Check that the function returns True when the preproc_defs changes:
-
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], TEST_CHANGE, KIND_PHYS)
-        True
-
-        3.  Check that the function returns True when kind_phys changes:
-
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [TEST_SCHEME], [], PREPROC_DEFS, KPHYS_CHANGE)
-        True
-
-        4. Check that the function returns True when an SDF changes:
-
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([REGISTRY_FILE], [TEST_SCHEME], [], PREPROC_DEFS, KIND_PHYS)
-        True
-
-        5.  Check that the function returns True when a scheme changes:
-
-        >>> BUILD_CACHE_CAM.ccpp_mismatch([TEST_SDF], [REGISTRY_FILE], [], PREPROC_DEFS, KIND_PHYS)
-        True
-
         """
         mismatch = ((not self.__preproc_defs) or
                     (self.__preproc_defs != preproc_defs))
@@ -610,19 +572,6 @@ class BuildCacheCAM:
         Determine if the init_files writer (write_init_files.py)
             differs from the data stored in our cache. Return True
             if the data differs.
-
-        doctests
-
-        1.  Check that the function returns False when nothing has changed:
-
-        >>> BUILD_CACHE_CAM.init_write_mismatch(REGISTRY_FILE)
-        False
-
-        2.  Check that the function returns True when the file has changed:
-
-        >>> BUILD_CACHE_CAM.init_write_mismatch(TEST_SDF)
-        True
-
         """
 
         #Initialize variable:
@@ -636,7 +585,7 @@ class BuildCacheCAM:
 
     def scheme_nl_metadata(self):
         """Return the stored list of scheme namelist metadata files"""
-        return [x.file_path for x in self.__scheme_nl_metadata]
+        return self.__scheme_nl_metadata
 
     def scheme_nl_groups(self):
         """Return the stored list of scheme namelist groups"""
@@ -651,116 +600,6 @@ class BuildCacheCAM:
     def ic_names(self):
         """Return a copy of the registry initial conditions dictionary"""
         return dict(self.__ic_names)
-
-###############################################################################
-# IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_BUILD_CACHE!
-###############################################################################
-
-# Call testing routine, if script is run directly
-if __name__ == "__main__":
-
-    # Import modules needed for testing:
-    import doctest
-    import logging
-    import shutil
-
-    _LOGGER = logging.getLogger(__name__)
-
-    #++++++++++++++++++++++++++++++++++++++++++
-    # Determine current working directory:
-    TEST_AUTO_DIR = os.path.dirname(os.path.abspath(__file__))
-    TEST_ATM_ROOT = os.path.abspath(os.path.join(TEST_AUTO_DIR, os.pardir))
-
-    TEST_SOURCE_MODS_DIR = os.path.join(TEST_ATM_ROOT, "SourceMods")
-
-    # Remove old test directories if they exist:
-    if os.path.exists(TEST_SOURCE_MODS_DIR):
-        shutil.rmtree(TEST_SOURCE_MODS_DIR)
-
-    # Create variables for testing:
-    NULL_DYCORE = 'none'
-    SE_DYCORE = 'se'
-    NONE_CONFIG = None
-    KIND_PHYS = ["kind_phys = REAL64"]
-    KPHYS_CHANGE = ["kind_phys = REAL32"]
-    PREPROC_DEFS = "UNSET"
-    TEST_CHANGE = "TEST"
-
-    # Create "SourceMods directory:
-    os.mkdir(TEST_SOURCE_MODS_DIR)
-
-    # Set logger to fatal, to avoid log messages:
-    _LOGGER.setLevel(logging.FATAL)
-
-    # Set test CCPP suite paths:
-    SUITE_TEST_PATH = os.path.join(TEST_ATM_ROOT, "test", "unit", "sample_files",
-                                   "write_init_files")
-    TEST_SDF = os.path.join(SUITE_TEST_PATH, "suite_simple.xml")
-    TEST_SCHEME = os.path.join(SUITE_TEST_PATH, "temp_adjust_scalar.meta")
-    BUILD_CACHE = os.path.join(SUITE_TEST_PATH, "simple_build_cache_template.xml")
-    REGISTRY_FILE = os.path.join(SUITE_TEST_PATH, "simple_reg.xml")
-
-    # Copy test CCPP suite into SourceMods directory:
-    shutil.copy2(TEST_SDF, TEST_SOURCE_MODS_DIR)
-    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "simple_build_cache.xml"))
-    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache.xml"))
-    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_reg.xml"))
-    shutil.copy2(BUILD_CACHE, os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_ccpp.xml"))
-    shutil.copy2(REGISTRY_FILE, TEST_SOURCE_MODS_DIR)
-    shutil.copy2(TEST_SCHEME, TEST_SOURCE_MODS_DIR)
-
-    REGISTRY_FILE = os.path.join(TEST_SOURCE_MODS_DIR, "simple_reg.xml")
-    BUILD_CACHE = os.path.join(TEST_SOURCE_MODS_DIR, "simple_build_cache.xml")
-    BAD_BUILD_CACHE = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache.xml")
-    BAD_BUILD_CACHE_REG = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_reg.xml")
-    BAD_BUILD_CACHE_CCPP = os.path.join(TEST_SOURCE_MODS_DIR, "bad_simple_build_cache_ccpp.xml")
-    TEST_SDF = os.path.join(TEST_SOURCE_MODS_DIR, "suite_simple.xml")
-    TEST_SCHEME = os.path.join(TEST_SOURCE_MODS_DIR, "temp_adjust_scalar.meta")
-
-    # Generate test build caches from template:
-    f1 = open(BUILD_CACHE, 'rt', encoding='utf-8')
-    data = f1.read()
-    data = data.replace("TAG1", "").replace("TAG2", "").replace("TAG3", "")
-    f1.close()
-    f1 = open(BUILD_CACHE, 'w', encoding='utf-8')
-    f1.write(data)
-    f1.close()
-
-    f1 = open(BAD_BUILD_CACHE, 'rt', encoding='utf-8')
-    data = f1.read()
-    data = data.replace("TAG1", "<test />").replace("TAG2", "").replace("TAG3", "")
-    f1.close()
-    f1 = open(BAD_BUILD_CACHE, 'w', encoding='utf-8')
-    f1.write(data)
-    f1.close()
-
-    f1 = open(BAD_BUILD_CACHE_REG, 'rt', encoding='utf-8')
-    data = f1.read()
-    data = data.replace("TAG1", "").replace("TAG2", "<test />").replace("TAG3", "")
-    f1.close()
-    f1 = open(BAD_BUILD_CACHE_REG, 'w', encoding='utf-8')
-    f1.write(data)
-    f1.close()
-
-    f1 = open(BAD_BUILD_CACHE_CCPP, 'rt', encoding='utf-8')
-    data = f1.read()
-    data = data.replace("TAG1", "").replace("TAG2", "").replace("TAG3", "<test />")
-    f1.close()
-    f1 = open(BAD_BUILD_CACHE_CCPP, 'w', encoding='utf-8')
-    f1.write(data)
-    f1.close()
-
-    BUILD_CACHE_CAM = BuildCacheCAM(BUILD_CACHE)
-
-    # Run doctests:
-    OPTIONS = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
-    TEST_SUCCESS = doctest.testmod(optionflags=OPTIONS)[0]
-
-    # Remove testing directories:
-    shutil.rmtree(TEST_SOURCE_MODS_DIR)
-
-    # Exit script with error code matching number of failed tests:
-    sys.exit(TEST_SUCCESS)
 
 #############
 # End of file

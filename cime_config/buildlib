@@ -17,7 +17,7 @@ from cam_config import ConfigCAM # CAM's configure structure
 __CIMEROOT = os.environ.get("CIMEROOT")
 if __CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
-sys.path.append(os.path.join(__CIMEROOT, "scripts", "lib"))
+sys.path.append(os.path.join(__CIMEROOT, "CIME", "Tools"))
 
 #pylint: disable=wrong-import-position
 # CIME imports
