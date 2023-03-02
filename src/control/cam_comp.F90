@@ -186,9 +186,6 @@ CONTAINS
       ! Initialize constituent data
       call cam_ccpp_initialize_constituents(columns_on_task, pver, errflg, errmsg)
 
-      ! Initialize composition-dependent constants:
-      !call air_composition_init()
-
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of

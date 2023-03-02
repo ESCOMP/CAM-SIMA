@@ -104,7 +104,7 @@ def new_entry_from_xml(item):
 def clean_xml_text(item):
 ###############################################################################
     """Return a 'clean' (stripped) version of <item>.text or an empty
-       string if <item>.text is None
+       string if <item>.text is None or not a string-type variable
 
        doctests
 

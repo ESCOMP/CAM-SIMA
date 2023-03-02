@@ -307,12 +307,16 @@ CONTAINS
       deallocate(file)
       nullify(file)
       if (is_first) then
-         write(iulog,*) ''
-         write(iulog,*) 'No differences found!'
+         if (masterproc) then
+            write(iulog,*) ''
+            write(iulog,*) 'No differences found!'
+         end if
       end if
-      write(iulog,*) ''
-      write(iulog,*) '********** End Physics Check Data Results **********'
-      write(iulog,*) ''
+      if (masterproc) then
+         write(iulog,*) ''
+         write(iulog,*) '********** End Physics Check Data Results **********'
+         write(iulog,*) ''
+      end if
    end subroutine physics_check_data
 
 end module physics_inputs_mf

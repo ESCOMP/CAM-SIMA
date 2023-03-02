@@ -1233,15 +1233,19 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Check if no differences were found
     outfile.write("if (is_first) then", 2)
-    outfile.write("write(iulog,*) ''", 3)
-    outfile.write("write(iulog,*) 'No differences found!'", 3)
+    outfile.write("if (masterproc) then", 3)
+    outfile.write("write(iulog,*) ''", 4)
+    outfile.write("write(iulog,*) 'No differences found!'", 4)
+    outfile.write("end if", 3)
     outfile.write("end if", 2)
 
     # End check data log:
-    outfile.write("write(iulog,*) ''", 2)
+    outfile.write("if (masterproc) then", 2)
+    outfile.write("write(iulog,*) ''", 3)
     outfile.write("write(iulog,*) '********** End Physics Check Data " +      \
-                  "Results **********'", 2)
-    outfile.write("write(iulog,*) ''", 2)
+                  "Results **********'", 3)
+    outfile.write("write(iulog,*) ''", 3)
+    outfile.write("end if", 2)
 
     # End subroutine:
     outfile.write("end subroutine physics_check_data", 1)
