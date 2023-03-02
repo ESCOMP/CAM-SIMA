@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Change variable names in NetCDF file to match those in Standard Names wiki file"""
-"""NOTE: Use of this scripts requires the user to have NCO operators (e.g. ncrename) in their path"""
-
+"""
+Change variable names in NetCDF file to match those in Standard Names wiki file
+NOTE: Use of this scripts requires the user to have NCO operators (e.g. ncrename) in their path
+"""
 import sys
 import os
 import argparse
@@ -9,11 +10,10 @@ import re
 
 ## Regular expression for stdname parsing
 _VARIABLE_LINE = re.compile(r"\* `[A-Za-z0-9_]+`: ([A-Za-z0-9]+( [A-Za-z0-9]+)*)")
-_INPUT_NAME_LINE = re.compile(".*IC file input names:.*") 
+_INPUT_NAME_LINE = re.compile(".*IC file input names:.*")
 
 def write_new_ncdata_file(input_filename, output_filename, inputname_dict):
-    # create and run ncrename command
-    first_replacement = True
+    """Create and run ncrename command"""
     base_cmd = f'ncrename -h -o {output_filename} -O'
     for input_name in inputname_dict:
         base_cmd += f' -v .{input_name},{inputname_dict[input_name]}'
@@ -22,8 +22,9 @@ def write_new_ncdata_file(input_filename, output_filename, inputname_dict):
     os.system(base_cmd)
 
 def parse_stdname_file(file_to_parse):
+    """Parse provided standard names file"""
     input_names = {}
-    with open(file_to_parse) as fh1:
+    with open(file_to_parse, encoding='utf-8') as fh1:
         current_stdname = ''
         for line in fh1:
             lmatch = _VARIABLE_LINE.match(line.strip())
@@ -55,7 +56,7 @@ def main(input_file, output_filename, stdname_file):
         return 2
     #end if not os.path.isfile(stdname_file)
     output_dir = os.path.split(output_filename)[0]
-    if len(output_dir.strip()) == 0:
+    if output_dir.strip():
         inputfile_dir = os.path.dirname(input_file)
         output_file = os.path.join(inputfile_dir, output_filename)
     else:
@@ -74,7 +75,7 @@ def main(input_file, output_filename, stdname_file):
     write_new_ncdata_file(input_file, output_file, inputname_dict)
     return 0
 
-def parse_command_line(args, description):
+def parse_command_line(arguments, description):
     """Parse command-line arguments"""
     parser = argparse.ArgumentParser(description=description,
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -88,10 +89,9 @@ def parse_command_line(args, description):
     parser.add_argument("--stdnames", type=str, required=True,
                         metavar='stdname file - REQUIRED',
                         help="Full path to the Standard Names wiki file (Metadata-standard-names.md)")
-    pargs = parser.parse_args(args)
+    pargs = parser.parse_args(arguments)
     return pargs
 
 if __name__ == "__main__":
-    args = parse_command_line(sys.argv[1:], __doc__)
-    sys.exit(main(args.input, args.output, args.stdnames))
-
+    ARGS = parse_command_line(sys.argv[1:], __doc__)
+    sys.exit(main(ARGS.input, ARGS.output, ARGS.stdnames))

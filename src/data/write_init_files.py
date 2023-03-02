@@ -19,7 +19,7 @@ from var_props import is_horizontal_dimension, is_vertical_dimension
 # Some are internal names (e.g., suite_name)
 # Some are from the CCPP framework (e.g., ccpp_num_constituents)
 # Some are for efficiency and to avoid dependency loops (e.g., log_output_unit)
-_EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
+_EXCLUDED_STDNAMES = ['suite_name', 'suite_part',
                           'ccpp_num_constituents',
                           'ccpp_num_advected_constituents',
                           'ccpp_constituent_array',
@@ -27,7 +27,7 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'ccpp_constituent_array_minimum_values',
                           'log_output_unit', 'do_log_output',
                           'mpi_communicator', 'mpi_root', 'mpi_rank',
-                          'number_of_mpi_tasks'}
+                          'number_of_mpi_tasks']
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
 
@@ -273,6 +273,7 @@ def _find_and_add_host_variable(stdname, host_dict, const_dicts, var_dict):
         var_dict[stdname] = hvar
         # Process elements (if any)
         ielem = hvar.intrinsic_elements()
+        # List elements are the only ones we care about
         if isinstance(ielem, list):
             for sname in ielem:
                 smissing = _find_and_add_host_variable(sname, host_dict,

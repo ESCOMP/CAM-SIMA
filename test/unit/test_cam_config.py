@@ -773,8 +773,6 @@ class CamConfigTestRoutine(unittest.TestCase):
                                                'namelist_definition_cam.xml')
         xml_fil_list['namelist_definition_physconst.xml'] = os.path.join(data_path,
                                                'namelist_definition_physconst.xml')
-        xml_fil_list['namelist_definition_air_comp.xml'] = os.path.join(data_path,
-                                               'namelist_definition_air_comp.xml')
         xml_fil_list['namelist_definition_ref_pres.xml'] = os.path.join(data_path,
                                                'namelist_definition_ref_pres.xml')
 
