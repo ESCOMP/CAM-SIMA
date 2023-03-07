@@ -277,20 +277,29 @@ class BuildCacheCAM:
                             new_entry = new_entry_from_xml(item)
                             self.__xml_files[new_entry.key] = new_entry
                         elif item.tag == 'scheme_namelist_meta_file':
-                            self.__scheme_nl_metadata.append(item.text.strip())
+                            if isinstance(item.text, str):
+                                if item.text:
+                                    self.__scheme_nl_metadata.append(item.text.strip())
+                                # end if
+                            # end if
                         elif item.tag == 'scheme_namelist_groups':
-                            if item.text:
-                                group_list = [x for x in
-                                              item.text.strip().split(' ') if x]
-                            else:
-                                group_list = []
+                            group_list = []
+                            if isinstance(item.text, str):
+                                if item.text:
+                                    group_list = [x for x in
+                                                  item.text.strip().split(' ') if x]
+                                # end if
                             # end if
                             self.__scheme_nl_groups = group_list
                         elif item.tag == 'preproc_defs':
                             self.__preproc_defs = clean_xml_text(item)
                         elif item.tag == 'kind_type':
-                            kname, ktype = item.text.strip().split('=')
-                            self.__kind_types[kname.strip()] = ktype.strip()
+                            if isinstance(item.text, str):
+                                if item.text:
+                                    kname, ktype = item.text.strip().split('=')
+                                    self.__kind_types[kname.strip()] = ktype.strip()
+                                # end if
+                            # end if
                         else:
                             emsg = "ERROR: Unknown CCPP tag, '{}'"
                             raise ValueError(emsg.format(item.tag))

@@ -19,7 +19,7 @@ from var_props import is_horizontal_dimension, is_vertical_dimension
 # Some are internal names (e.g., suite_name)
 # Some are from the CCPP framework (e.g., ccpp_num_constituents)
 # Some are for efficiency and to avoid dependency loops (e.g., log_output_unit)
-_EXCLUDED_STDNAMES = ['suite_name', 'suite_part',
+_EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'ccpp_num_constituents',
                           'ccpp_num_advected_constituents',
                           'ccpp_constituent_array',
@@ -27,7 +27,7 @@ _EXCLUDED_STDNAMES = ['suite_name', 'suite_part',
                           'ccpp_constituent_array_minimum_values',
                           'log_output_unit', 'do_log_output',
                           'mpi_communicator', 'mpi_root', 'mpi_rank',
-                          'number_of_mpi_tasks']
+                          'number_of_mpi_tasks'}
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
 
@@ -486,7 +486,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     varname = "phys_const_stdnames(phys_const_num)"
     outfile.write(f"{vartype} :: {varname} = (/ &", 1)
     suffix = ", &"
-    for index, stdname_str in enumerate(_EXCLUDED_STDNAMES):
+    for index, stdname_str in enumerate(sorted(_EXCLUDED_STDNAMES)):
         spc = ' '*(cname_max_len - len(stdname_str))
         if index == num_cvars - 1:
             suffix = " /)"
@@ -856,9 +856,9 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("integer                    :: constituent_idx !Constituent table index", 2)
     outfile.write("integer                    :: req_idx         !Required variable array index", 2)
     outfile.write("integer                    :: suite_idx       !Suite array index", 2)
-    outfile.write("character(len=2)           :: sep             !String separator used to print error messages", 2)
-    outfile.write("character(len=2)           :: sep2            !String separator used to print error messages", 2)
-    outfile.write("character(len=2)           :: sep3            !String separator used to print error messages", 2)
+    outfile.write("character(len=2)           :: sep             !String separator used to print err messages", 2)
+    outfile.write("character(len=2)           :: sep2            !String separator used to print err messages", 2)
+    outfile.write("character(len=2)           :: sep3            !String separator used to print err messages", 2)
     outfile.write("real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)", 2)
     outfile.blank_line()
     outfile.comment("Logical to default optional argument to False:", 2)

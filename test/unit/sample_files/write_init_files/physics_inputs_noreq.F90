@@ -59,12 +59,9 @@ CONTAINS
       integer                    :: constituent_idx !Constituent table index
       integer                    :: req_idx         !Required variable array index
       integer                    :: suite_idx       !Suite array index
-      character(len=2)           :: sep             !String separator used to print error
-      ! messages
-      character(len=2)           :: sep2            !String separator used to print error
-      ! messages
-      character(len=2)           :: sep3            !String separator used to print error
-      ! messages
+      character(len=2)           :: sep             !String separator used to print err messages
+      character(len=2)           :: sep2            !String separator used to print err messages
+      character(len=2)           :: sep3            !String separator used to print err messages
       real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
 
       ! Logical to default optional argument to False:

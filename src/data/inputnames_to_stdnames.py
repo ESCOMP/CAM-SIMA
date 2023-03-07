@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Change variable names in NetCDF file to match those in Standard Names wiki file
-NOTE: Use of this scripts requires the user to have NCO operators (e.g. ncrename) in their path
+NOTE: Use of this script requires the user to have NCO operators (e.g. ncrename) in their path
 """
 import sys
 import os
@@ -64,12 +64,13 @@ def main(input_file, output_filename, stdname_file):
             output_file = output_filename
         else:
             print(f"Directory {output_dir} does not exist")
-            return 1
+            return 3
+        #end if os.path.isdir(output_dir)
     #end if len(output_dir.strip())) == 0
     inputname_dict = parse_stdname_file(stdname_file)
     if not inputname_dict:
         print("Could not parse standard name wiki file. Are you sure you're pointing to Metadata-standard-names.md?")
-        return 1
+        return 4
     #end if len(inputname_dict) == 0
     # use the parsed dictionary to create new NetCDF file
     write_new_ncdata_file(input_file, output_file, inputname_dict)

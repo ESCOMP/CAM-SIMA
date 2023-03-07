@@ -256,6 +256,7 @@ CONTAINS
       icnst = 1
       water_species_num = 0
       dry_species_num = 0
+      has_ice = .false.
       do idx = 1, num_advected
          cnst_stdname = const_name(idx)
          select case (TRIM((cnst_stdname)))
@@ -405,12 +406,6 @@ CONTAINS
             !
             ! If support for more major species is to be included add code here
             !
-         case('')
-            has_ice = .false.
-         case default
-            write(iulog, *) subname, ' air component not found: ',        &
-                 TRIM(cnst_stdname)
-            call endrun(subname//': air component not found')
          end select
 
          if (masterproc) then
@@ -969,7 +964,7 @@ CONTAINS
 
       ! Dummy arguments
       character(len=*),           intent(in)    :: name
-      integer,                    intent(inout) :: index
+      integer,                    intent(out) :: index
       real(kind_phys),            intent(out)   :: molec_weight
       character(len=*), optional, intent(in)    :: caller
       ! Local parameter

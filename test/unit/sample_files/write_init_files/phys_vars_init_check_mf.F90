@@ -48,19 +48,19 @@ module phys_vars_init_check_mf
       'air_pressure_at_sea_level' /)
 
    character(len=37), public, protected :: phys_const_stdnames(phys_const_num) = (/ &
-      "suite_name                           ", &
-      "suite_part                           ", &
-      "ccpp_num_constituents                ", &
-      "ccpp_num_advected_constituents       ", &
       "ccpp_constituent_array               ", &
-      "ccpp_constituent_properties_array    ", &
       "ccpp_constituent_array_minimum_values", &
-      "log_output_unit                      ", &
+      "ccpp_constituent_properties_array    ", &
+      "ccpp_num_advected_constituents       ", &
+      "ccpp_num_constituents                ", &
       "do_log_output                        ", &
+      "log_output_unit                      ", &
       "mpi_communicator                     ", &
-      "mpi_root                             ", &
       "mpi_rank                             ", &
-      "number_of_mpi_tasks                  " /)
+      "mpi_root                             ", &
+      "number_of_mpi_tasks                  ", &
+      "suite_name                           ", &
+      "suite_part                           " /)
    !Array storing all registered IC file input names for each variable:
    character(len=5), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
       'theta', &

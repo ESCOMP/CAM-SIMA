@@ -375,8 +375,6 @@ class ConfigCAM:
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["none"],
                                valid_list_type="str")
-            data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
-            #Add NML definition files to dictionary:
         #End if
         #------------
 
