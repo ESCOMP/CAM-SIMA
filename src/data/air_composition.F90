@@ -11,7 +11,6 @@ module air_composition
    private
    save
 
-   public  :: composition_dependent_init
    public  :: air_composition_init
    public  :: air_composition_update
    ! get_cp_dry: (generalized) heat capacity for dry air
@@ -32,7 +31,7 @@ module air_composition
    ! composition of air
    !
    integer, parameter          :: num_names_max = 30
-   integer, protected, public  :: const_is_water_species(num_names_max)
+   logical, protected, public, allocatable  :: const_is_water_species(:)
    integer, protected, public  :: dry_air_species_num
    integer, protected, public  :: water_species_in_air_num
 
@@ -126,45 +125,17 @@ CONTAINS
 
    !===========================================================================
 
-   subroutine composition_dependent_init()
-      use physconst,            only: cpair, rair, mwdry, zvir
-      use phys_vars_init_check, only: mark_as_initialized
-      !------------------------------------------------------------------------
-      !  Initialize constituent dependent properties
-      !------------------------------------------------------------------------
-      cpairv(:,:) = cpair
-      rairv(:,:) = rair
-      cappav(:,:) = rair / cpair
-      mbarv(:,:) = mwdry
-      zvirv(:,:) = zvir
-
-      ! Mark constituent-dependent variables as initialized
-      ! cpairv
-      call mark_as_initialized('composition_dependent_specific_heat_of_dry_air_at_constant_pressure')
-      ! rairv
-      call mark_as_initialized('composition_dependent_gas_constant_of_dry_air')
-      ! cappav
-      call mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
-      ! mbarv
-      call mark_as_initialized('composition_dependent_mean_molecular_dry_air_weight_at_mid_level')
-      ! zvirv
-      call mark_as_initialized('composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one')
-
-   end subroutine composition_dependent_init
-
-   !===========================================================================
-
    subroutine air_composition_init()
       use string_utils,         only: to_str
       use spmd_utils,           only: masterproc
       use cam_logfile,          only: iulog
-      use physconst,            only: r_universal, cpair, rair, cpwv
-      use physconst,            only: rh2o, cpliq, cpice, zvir, mwh2o
+      use physconst,            only: r_universal, cpwv
+      use physconst,            only: rh2o, cpliq, cpice
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
       use cam_constituents,     only: const_name, num_advected
 
-      integer  :: icnst, ix, isize, ierr, idx
+      integer  :: icnst, ix, ierr, idx
       integer  :: liq_num, ice_num, water_species_num, dry_species_num
       integer  :: liq_idx(num_advected)
       integer  :: ice_idx(num_advected)
@@ -210,32 +181,33 @@ CONTAINS
 
       ! init for variable composition dry air
 
-      isize = num_advected
-      allocate(thermodynamic_active_species_idx(isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_idx(isize)', &
+      allocate(thermodynamic_active_species_idx(num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_idx(num_advected)', &
                           file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_idx_dycore(isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_idx_dycore(isize)', &
+      allocate(thermodynamic_active_species_idx_dycore(num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_idx_dycore(num_advected)', &
                           file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_cp(0:isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_cp(0:isize)', &
+      allocate(thermodynamic_active_species_cp(0:num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_cp(0:num_advected)', &
                           file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_cv(0:isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_cv(0:isize)', &
+      allocate(thermodynamic_active_species_cv(0:num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_cv(0:num_advected)', &
                           file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_R(0:isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_R(0:isize)', &
+      allocate(thermodynamic_active_species_R(0:num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_R(0:num_advected)', &
                           file=__FILE__, line=__LINE__)
 
-      allocate(thermodynamic_active_species_mwi(0:isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_mwi(0:isize)', &
+      allocate(thermodynamic_active_species_mwi(0:num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_mwi(0:num_advected)', &
                           file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_kv(0:isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_kv(0:isize)', &
+      allocate(thermodynamic_active_species_kv(0:num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_kv(0:num_advected)', &
                           file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_kc(0:isize), stat=ierr)
-      call check_allocate(ierr, subname,'thermodynamic_active_species_kc(0:isize)', &
+      allocate(thermodynamic_active_species_kc(0:num_advected), stat=ierr)
+      call check_allocate(ierr, subname,'thermodynamic_active_species_kc(0:num_advected)', &
                           file=__FILE__, line=__LINE__)
+      allocate(const_is_water_species(num_advected), stat=ierr)
+      call check_allocate(ierr, subname, 'const_is_water_species', file=__FILE__, line=__LINE__)
 
       thermodynamic_active_species_idx        = -HUGE(1)
       thermodynamic_active_species_idx_dycore = -HUGE(1)
@@ -245,6 +217,7 @@ CONTAINS
       thermodynamic_active_species_mwi        = 0.0_kind_phys
       thermodynamic_active_species_kv         = 0.0_kind_phys
       thermodynamic_active_species_kc         = 0.0_kind_phys
+      const_is_water_species                  = .false.
 
       !
       !************************************************************************
@@ -274,7 +247,6 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
-            const_is_water_species(ix) = 0
             !
             ! O2
             !
@@ -289,7 +261,6 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
-            const_is_water_species(ix) = 0
             !
             ! H
             !
@@ -305,7 +276,6 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
-            const_is_water_species(ix) = 0
             !
             ! N2
             !
@@ -319,7 +289,6 @@ CONTAINS
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
-            const_is_water_species(ix) = 0
             !
             ! Q
             !
@@ -331,7 +300,7 @@ CONTAINS
             thermodynamic_active_species_R  (icnst) = rh2o
             icnst = icnst + 1
             water_species_num = water_species_num + 1
-            const_is_water_species(ix) = 1
+            const_is_water_species(ix) = .true.
             !
             ! CLDLIQ
             !
@@ -346,7 +315,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_liq = .true.
-            const_is_water_species(ix) = 1
+            const_is_water_species(ix) = .true.
             !
             ! CLDICE
             !
@@ -360,7 +329,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_ice = .true.
-            const_is_water_species(ix) = 1
+            const_is_water_species(ix) = .true.
             !
             ! RAINQM
             !
@@ -374,7 +343,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_liq = .true.
-            const_is_water_species(ix) = 1
+            const_is_water_species(ix) = .true.
             !
             ! SNOWQM
             !
@@ -388,7 +357,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_ice = .true.
-            const_is_water_species(ix) = 1
+            const_is_water_species(ix) = .true.
             !
             ! GRAUQM
             !
@@ -402,7 +371,7 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             has_ice = .true.
-            const_is_water_species(ix) = 1
+            const_is_water_species(ix) = .true.
             !
             ! If support for more major species is to be included add code here
             !

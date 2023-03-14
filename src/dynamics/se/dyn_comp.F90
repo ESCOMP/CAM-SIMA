@@ -1513,7 +1513,7 @@ subroutine read_inidat(dyn_in)
    ! dimension checked in the case that the file contains constituent mixing
    ! ratios.
    do m_cnst = 1, num_advected
-      if (readtrace .and. const_is_water_species(m_cnst) == 0) then
+      if (readtrace .and. .not. const_is_water_species(m_cnst)) then
          if (dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
             exit
@@ -1527,7 +1527,7 @@ subroutine read_inidat(dyn_in)
 
    do m_cnst = 1, num_advected
 
-      if (analytic_ic_active() .and. const_is_water_species(m_cnst) == 1) cycle
+      if (analytic_ic_active() .and. const_is_water_species(m_cnst)) cycle
 
       found = .false.
       if (readtrace) then

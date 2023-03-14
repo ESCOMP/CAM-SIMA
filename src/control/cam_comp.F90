@@ -93,7 +93,6 @@ CONTAINS
 !      use history_defaults,     only: initialize_iop_history
       use stepon,               only: stepon_init
       use air_composition,      only: air_composition_init
-      use air_composition,      only: composition_dependent_init
       use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
@@ -175,7 +174,7 @@ CONTAINS
       ! Initialize constituent information
       !    This will set the total number of constituents and the
       !    number of advected constituents.
-      call cam_register_constituents(cam_runtime_opts, num_host_advected)
+      call cam_register_constituents(cam_runtime_opts)
 
       ! Initialize composition-dependent constants:
       call air_composition_init()
@@ -219,7 +218,6 @@ CONTAINS
       end if
 
       call phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
-      call composition_dependent_init()
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
@@ -491,7 +489,7 @@ CONTAINS
 
 !-----------------------------------------------------------------------
 
-   subroutine cam_register_constituents(cam_runtime_opts, num_host_advected)
+   subroutine cam_register_constituents(cam_runtime_opts)
       ! Call the CCPP interface to register all constituents for the
       ! physics suite being invoked during this run.
       use cam_abortutils,            only: endrun
@@ -505,7 +503,6 @@ CONTAINS
 
       ! Dummy arguments
       type(runtime_options), intent(in) :: cam_runtime_opts
-      integer,               intent(in) :: num_host_advected
       ! Local variables
       integer                                        :: index
       integer                                        :: num_advect
@@ -515,11 +512,6 @@ CONTAINS
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
-      ! We only know about one host constituent, so check
-      if (num_host_advected /= 1) then
-         call endrun("INTERNAL ERROR: num_advected mismatch",                 &
-              file=__FILE__, line=__LINE__)
-      end if
       ! Register the constituents to find out what needs advecting
       call host_constituents(1)%initialize(std_name="specific_humidity",      &
            long_name="Specific humidity", units="kg kg-1",                    &

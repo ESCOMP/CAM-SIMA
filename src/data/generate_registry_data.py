@@ -211,7 +211,7 @@ class VarBase:
             outfile.write('  advected = true\n')
         # end if
 
-    def write_initial_value(self, outfile, indent, init_var, ddt_str,
+    def write_initial_value(self, outfile, indent, init_var, ddt_str, physconst_vars,
                             tstep_init=False):
         """Write the code for the initial value of this variable
         and/or one of its array elements."""
@@ -280,6 +280,9 @@ class VarBase:
         elif init_val:
             outfile.write(f"if ({init_var}) then", indent)
             outfile.write(f"{var_name} = {init_val}", indent+1)
+            if init_val in physconst_vars:
+               outfile.write(f"call mark_as_initialized('{self.standard_name}')", indent+1)
+            # end if
             outfile.write("end if", indent)
         # end if
 
@@ -665,7 +668,7 @@ class Variable(VarBase):
         # Initial value
         if self.initial_value:
             if self.allocatable == "pointer":
-                init_str = f" => {self.initial_value}"
+                init_str = f" => NULL()"
             elif not (self.allocatable[0:11] == 'allocatable'):
                 init_str = f" = {self.initial_value}"
             # end if (no else, do not initialize allocatable fields)
@@ -684,7 +687,7 @@ class Variable(VarBase):
         outfile.write(var_dec_str, indent)
 
     def write_allocate_routine(self, outfile, indent,
-                               init_var, reall_var, ddt_str):
+                               init_var, reall_var, ddt_str, physconst_vars):
         """Write the code to allocate and initialize this Variable
         <init_var> is a string to use to write initialization test code.
         <reall_var> is a string to use to write reallocate test code.
@@ -707,7 +710,7 @@ class Variable(VarBase):
             # end if
             for var in my_ddt.variable_list():
                 var.write_allocate_routine(outfile, subi,
-                                           init_var, reall_var, sub_ddt_str)
+                                           init_var, reall_var, sub_ddt_str, physconst_vars)
         else:
             # Do we need to allocate this variable?
             lname = f'{ddt_str}{self.local_name}'
@@ -735,17 +738,17 @@ class Variable(VarBase):
             # end if
             if self.allocatable != "parameter":
                 # Initialize the variable
-                self.write_initial_value(outfile, indent, init_var, ddt_str)
+                self.write_initial_value(outfile, indent, init_var, ddt_str, physconst_vars)
                 for elem in self.elements:
                     if elem.initial_value:
                         elem.write_initial_value(outfile, indent,
-                                                 init_var, ddt_str)
+                                                 init_var, ddt_str, physconst_vars)
                     # end if
                 # end for
             # end if
 
     def write_tstep_init_routine(self, outfile, indent,
-                                 ddt_str, init_val=False):
+                                 ddt_str, physconst_vars, init_val=False):
         """
         Write the code to iniitialize this variable to zero at the
         start of each physics timestep.
@@ -772,7 +775,7 @@ class Variable(VarBase):
                 raise ParseInternalError(emsg)
             # end if
             for var in my_ddt.variable_list():
-                var.write_tstep_init_routine(outfile, subi, sub_ddt_str,
+                var.write_tstep_init_routine(outfile, subi, sub_ddt_str, physconst_vars,
                                              init_val=self.tstep_init)
         else:
 
@@ -794,7 +797,7 @@ class Variable(VarBase):
                 outfile.write(comment, indent)
 
                 # Initialize the variable:
-                self.write_initial_value(outfile, indent, "", ddt_str,
+                self.write_initial_value(outfile, indent, "", ddt_str, physconst_vars,
                                          tstep_init=True)
 
             # end if
@@ -1153,6 +1156,7 @@ class File:
         self.__known_types = known_types
         self.__ddts = OrderedDict()
         self.__use_statements = []
+        self.__use_physconst = []
         self.__generate_code = gen_code
         self.__file_path = file_path
         for obj in file_node:
@@ -1172,6 +1176,9 @@ class File:
                     raise CCPPError('Illegal use entry, no reference')
                 # end if
                 self.__use_statements.append((module, ref))
+                if module == 'physconst':
+                    self.__use_physconst.append(ref)
+                # end if
             else:
                 emsg = "Unknown registry File element, '{}'"
                 raise CCPPError(emsg.format(obj.tag))
@@ -1283,8 +1290,8 @@ class File:
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
-            self.write_allocate_routine(outfile)
-            self.write_tstep_init_routine(outfile)
+            self.write_allocate_routine(outfile, self.__use_physconst)
+            self.write_tstep_init_routine(outfile, self.__use_physconst)
 
         # end with
 
@@ -1296,7 +1303,7 @@ class File:
         """Return the name of the physics timestep init routine for this module"""
         return f"{self.name}_tstep_init"
 
-    def write_allocate_routine(self, outfile):
+    def write_allocate_routine(self, outfile, physconst_vars):
         """Write a subroutine to allocate all the data in this module"""
         subname = self.allocate_routine_name()
         args = list(self.__var_dict.known_dimensions)
@@ -1342,11 +1349,11 @@ class File:
         outfile.write('end if', 2)
         outfile.write('', 0)
         for var in self.__var_dict.variable_list():
-            var.write_allocate_routine(outfile, 2, init_var, reall_var, '')
+            var.write_allocate_routine(outfile, 2, init_var, reall_var, '', physconst_vars)
         # end for
         outfile.write(f'end subroutine {subname}', 1)
 
-    def write_tstep_init_routine(self, outfile):
+    def write_tstep_init_routine(self, outfile, physconst_vars):
         """
         Write a subroutine to initialize registered variables
         to zero at the beginning of each physics timestep.
@@ -1359,7 +1366,7 @@ class File:
         subn_str = f'character(len=*), parameter :: subname = "{subname}"'
         outfile.write(subn_str, 2)
         for var in self.__var_dict.variable_list():
-            var.write_tstep_init_routine(outfile, 2, '')
+            var.write_tstep_init_routine(outfile, 2, '', physconst_vars)
         # end for
         outfile.write('', 0)
         outfile.write(f'end subroutine {subname}', 1)

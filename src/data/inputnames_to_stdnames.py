@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-Change variable names in NetCDF file to match those in Standard Names wiki file
+Change variable names in NetCDF file to match those in a standard names dictionary
 NOTE: Use of this script requires the user to have NCO operators (e.g. ncrename) in their path
 """
+# Python library imports
 import sys
 import os
 import argparse
-import re
-
-## Regular expression for stdname parsing
-_VARIABLE_LINE = re.compile(r"\* `[A-Za-z0-9_]+`: ([A-Za-z0-9]+( [A-Za-z0-9]+)*)")
-_INPUT_NAME_LINE = re.compile(".*IC file input names:.*")
+import xml.etree.ElementTree as ET
 
 def write_new_ncdata_file(input_filename, output_filename, inputname_dict):
     """Create and run ncrename command"""
@@ -22,41 +19,50 @@ def write_new_ncdata_file(input_filename, output_filename, inputname_dict):
     os.system(base_cmd)
 
 def parse_stdname_file(file_to_parse):
-    """Parse provided standard names file"""
-    input_names = {}
+    """Parse XML standard name dictionary"""
     with open(file_to_parse, encoding='utf-8') as fh1:
-        current_stdname = ''
-        for line in fh1:
-            lmatch = _VARIABLE_LINE.match(line.strip())
-            if lmatch is not None:
-                # we've found a new variable stdname - parse it out!
-                current_stdname = line.split(":")[0].split('*')[1].strip().replace('`', '')
-            #end if lmatch is not None
-            lmatch = _INPUT_NAME_LINE.match(line.strip())
-            if lmatch is not None:
-                # we've found an input names line - parse out the input names into a list
-                input_names_list = line.split(':')[1].split(',')
-                # add (input name, standard name) pairs to dict
-                for input_name in input_names_list:
-                    input_names[input_name.strip()] = current_stdname.strip()
-                #end for input_name in input_names_list
-            #end if lmatch is not None
-        #end for line in fh1
-    #end with open(file_to_parse)
-    return input_names
+        try:
+            tree = ET.parse(fh1)
+            root = tree.getroot()
+        except ET.ParseError as perr:
+            print(f"Cannot parse XML file {file_to_parse}")
+            return {}
+        # end try
+    # end with open(file_to_parse)
+    inputname_dict = {}
+    for entry in root:
+        stdname = entry.attrib["stdname"]
+        for sub_element in entry:
+            if sub_element.tag == "ic_file_input_names":
+                for input_name in sub_element:
+                    inputname_dict[input_name.text.strip()] = stdname
+                # end for input_name
+            # end if sub_element.tag
+        # end if for sub_element in entry
+    # end if for entry in root
+    return inputname_dict
+
 
 def main(input_file, output_filename, stdname_file):
-    """Parse standard name wiki file and then replace input name variables with stdnames"""
+    """Parse standard name dictionary and then replace input name variables with stdnames"""
     if not os.path.isfile(input_file):
         print(f"Input file {input_file} does not exist")
         return 1
     #end if not os.path.isfile(input_file)
-    if not os.path.isfile(stdname_file):
-        print(f"Standard name wiki file {stdname_file} does not exist")
+    if not os.access(input_file, os.R_OK):
+        print(f"Cannot open file {input_file}")
         return 2
+    #end if not os.access(input_file)
+    if not os.path.isfile(stdname_file):
+        print(f"Standard name dictionary {stdname_file} does not exist")
+        return 3
     #end if not os.path.isfile(stdname_file)
+    if not os.access(stdname_file, os.R_OK):
+        print(f"Cannot open standard name dictionary {stdname_file}")
+        return 4
+    #end if not os.access(stdname_file)
     output_dir = os.path.split(output_filename)[0]
-    if output_dir.strip():
+    if not output_dir.strip():
         inputfile_dir = os.path.dirname(input_file)
         output_file = os.path.join(inputfile_dir, output_filename)
     else:
@@ -64,14 +70,15 @@ def main(input_file, output_filename, stdname_file):
             output_file = output_filename
         else:
             print(f"Directory {output_dir} does not exist")
-            return 3
+            return 5
         #end if os.path.isdir(output_dir)
     #end if len(output_dir.strip())) == 0
+    # Parse the standard name dictionary
     inputname_dict = parse_stdname_file(stdname_file)
     if not inputname_dict:
-        print("Could not parse standard name wiki file. Are you sure you're pointing to Metadata-standard-names.md?")
-        return 4
-    #end if len(inputname_dict) == 0
+        print(f"Standard name dictionary {stdname_file} empty or not parse-able")
+        return 6
+    #end if inputname_dict
     # use the parsed dictionary to create new NetCDF file
     write_new_ncdata_file(input_file, output_file, inputname_dict)
     return 0
@@ -88,8 +95,8 @@ def parse_command_line(arguments, description):
                         help="Name of the output NetCDF file that will have standard variable names\n"\
                         "Written to the same directory --input file is in;\nif full path is supplied, file is written there")
     parser.add_argument("--stdnames", type=str, required=True,
-                        metavar='stdname file - REQUIRED',
-                        help="Full path to the Standard Names wiki file (Metadata-standard-names.md)")
+                        metavar='stdname file',
+                        help="Full path to the standard names dictionary (e.g. stdnames_to_inputnames_dictionary.xml)")
     pargs = parser.parse_args(arguments)
     return pargs
 

@@ -7,10 +7,10 @@
   <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
@@ -20,6 +20,11 @@
     <use module="ccpp_kinds" reference="kind_phys"/>
     <use module="runtime_obj" reference="unset_str"/>
     <use module="runtime_obj" reference="unset_int"/>
+    <use module="phys_vars_init_check" reference="mark_as_initialized"/>
+    <use module="physconst" reference="cpair"/>
+    <use module="physconst" reference="rair"/>
+    <use module="physconst" reference="mwdry"/>
+    <use module="physconst" reference="zvir"/>
     <!-- State variables -->
     <variable local_name="ps" standard_name="surface_air_pressure"
               units="Pa" type="real" kind="kind_phys"
@@ -323,6 +328,7 @@
               allocatable="pointer">
       <long_name>Composition-dependent specific heat of dry air at constant pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>cpair</initial_value>
     </variable>
     <variable local_name="rairv"
               standard_name="composition_dependent_gas_constant_of_dry_air"
@@ -330,6 +336,7 @@
               allocatable="pointer">
       <long_name>Composition-dependent gas constant of dry air</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>rair</initial_value>
     </variable>
     <variable local_name="cappav"
               standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure"
@@ -337,6 +344,7 @@
               allocatable="pointer">
       <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>rair/cpair</initial_value>
     </variable>
     <variable local_name="mbarv"
               standard_name="composition_dependent_mean_molecular_dry_air_weight_at_mid_level"
@@ -344,6 +352,7 @@
               allocatable="pointer">
       <long_name>Composition-dependent mean molecular dry air weight at mid-level</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>mwdry</initial_value>
     </variable>
     <variable local_name="zvirv"
               standard_name="composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one"
@@ -351,6 +360,7 @@
               allocatable="pointer">
       <long_name>Composition-dependent ratio of water vapor to dry air gas constants minus one</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>zvir</initial_value>
     </variable>
   </file>
 </registry>
