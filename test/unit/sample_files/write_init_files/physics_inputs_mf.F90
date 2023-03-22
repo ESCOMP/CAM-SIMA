@@ -34,7 +34,7 @@ CONTAINS
       use shr_kind_mod,            only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,            only: read_field, find_input_name_idx, no_exist_idx
       use physics_data,            only: init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,            only: ccpp_physics_suite_variables, cam_constituents
+      use cam_ccpp_cap,            only: ccpp_physics_suite_variables, cam_constituents_array
       use ccpp_kinds,              only: kind_phys
       use phys_vars_init_check_mf, only: phys_var_stdnames, input_var_names, std_name_len
       use ref_theta,               only: theta
@@ -131,7 +131,7 @@ CONTAINS
                   ! If an index was found in the constituent hash table, then read in the data
                   ! to that index of the constituent array
 
-                  field_data_ptr => cam_constituents()
+                  field_data_ptr => cam_constituents_array()
                   call read_field(file, ccpp_required_data(req_idx),                              &
                        [ccpp_required_data(req_idx)], 'lev', timestep,                            &
                        field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)
@@ -179,7 +179,8 @@ CONTAINS
       use shr_kind_mod,            only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,            only: check_field, find_input_name_idx, no_exist_idx
       use physics_data,            only: init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,            only: ccpp_physics_suite_variables, cam_advected_constituents
+      use cam_ccpp_cap,            only: ccpp_physics_suite_variables
+      use cam_ccpp_cap,            only: cam_advected_constituents_array
       use cam_constituents,        only: const_get_index
       use ccpp_kinds,              only: kind_phys
       use cam_logfile,             only: iulog
@@ -266,7 +267,7 @@ CONTAINS
             if (constituent_idx > -1) then
                ! The required variable is a constituent. Call check variable routine on the
                ! relevant index of the constituent array
-               field_data_ptr => cam_advected_constituents()
+               field_data_ptr => cam_advected_constituents_array()
                call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep,             &
                     field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx),             &
                     min_difference, min_relative_value, is_first)

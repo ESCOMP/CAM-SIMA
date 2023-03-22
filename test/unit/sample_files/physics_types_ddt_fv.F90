@@ -18,6 +18,8 @@
 module physics_types_ddt
 
   use ccpp_kinds, only: kind_phys
+  use physconst,  only: cpair
+  use physconst,  only: rair
 
 
   implicit none
@@ -35,9 +37,12 @@ module physics_types_ddt
 !> \section arg_table_physics_types_ddt  Argument Table
 !! \htmlinclude physics_types_ddt.html
   ! latitude: Latitude
-  real(kind_phys),     public, pointer, protected :: latitude(:) => NULL()
+  real(kind_phys),     public, pointer,     protected :: latitude(:) => NULL()
+  ! cappav: Composition-dependent ratio of dry air gas constant to specific heat at constant
+  ! pressure
+  real(kind_phys),     public, allocatable          :: cappav(:, :)
   ! phys_state: Physics state variables updated by dynamical core
-  type(physics_state), public                   :: phys_state
+  type(physics_state), public                       :: phys_state
 
 !! public interfaces
   public :: allocate_physics_types_ddt_fields
@@ -45,12 +50,13 @@ module physics_types_ddt
 
 CONTAINS
 
-  subroutine allocate_physics_types_ddt_fields(horizontal_dimension, set_init_val_in,             &
-       reallocate_in)
+  subroutine allocate_physics_types_ddt_fields(horizontal_dimension, vertical_layer_dimension,    &
+       set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
     !! Dummy arguments
     integer,           intent(in) :: horizontal_dimension
+    integer,           intent(in) :: vertical_layer_dimension
     logical, optional, intent(in) :: set_init_val_in
     logical, optional, intent(in) :: reallocate_in
 
@@ -82,6 +88,20 @@ CONTAINS
     allocate(latitude(horizontal_dimension))
     if (set_init_val) then
       latitude = nan
+    end if
+    if (allocated(cappav)) then
+      if (reallocate) then
+        deallocate(cappav)
+      else
+        call endrun(subname//": cappav is already allocated, cannot allocate")
+      end if
+    end if
+    allocate(cappav(horizontal_dimension, vertical_layer_dimension))
+    if (set_init_val) then
+      cappav = rair/cpair
+      call                                                                                        &
+           mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
+
     end if
     if (set_init_val) then
       phys_state%ncol = 0
