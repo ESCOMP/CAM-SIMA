@@ -787,6 +787,8 @@ _HIST_CONFIG_ENTRY_TYPES = [HistConfigEntry(r"hist_add_avg_fields",
                                             HistoryVolConfig.set_precision),
                             HistConfigEntry(r"hist_diag_file", _is_filename,
                                             None),
+                            HistConfigEntry(r"hist_filename_template",
+                                            _is_filename, None),
                             HistConfigEntry(r"hist_remove_fields",
                                             _list_of_idents,
                                             HistoryVolConfig.remove_fields)]

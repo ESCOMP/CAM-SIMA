@@ -26,27 +26,35 @@ module cam_hist_file
    integer, parameter, private             :: UNSET_I = -1
    character(len=vlen), parameter, private :: UNSET_C = 'UNSET'
 
+   integer, parameter, private             :: hfile_type_default    = -1
+   integer, parameter, private             :: hfile_type_history    =  1
+   integer, parameter, private             :: hfile_type_init_value =  2
+   integer, parameter, private             :: hfile_type_sat_track  =  3
+   integer, parameter, private             :: hfile_type_restart    =  4
+
    type :: hist_file_t
       ! History file configuration information
-      character(len=vlen),          private :: volume = UNSET_C
-      integer,                      private :: rl_kind = OUTPUT_DEF
-      integer,                      private :: max_frames = UNSET_I
-      integer,                      private :: output_freq_mult = UNSET_I
-      character(len=8),             private :: output_freq_type = UNSET_C
-      logical,                      private :: is_init_val_file = .false.
-      logical,                      private :: is_sat_track_file = .false.
-      logical,                      private :: collect_patch_output = PATCH_DEF
-      type(interp_info_t), pointer, private :: interp_info => NULL()
+      character(len=vlen),           private :: volume = UNSET_C
+      integer,                       private :: rl_kind = OUTPUT_DEF
+      integer,                       private :: max_frames = UNSET_I
+      integer,                       private :: output_freq_mult = UNSET_I
+      character(len=8),              private :: output_freq_type = UNSET_C
+      character(len=*), allocatable, private :: filename_spec
+      integer,                       private :: hfile_type = hfile_type_default
+      logical,                       private :: collect_patch_output = PATCH_DEF
+      type(interp_info_t), pointer,  private :: interp_info => NULL()
       ! History file information
-      type(file_desc_t),            private :: hist_file
+      type(file_desc_t),            private  :: hist_file
    contains
       ! Accessors
       procedure :: filename => config_filename
       procedure :: precision => config_precision
       procedure :: max_frame => config_max_frame
       procedure :: output_freq => config_output_freq
+      procedure :: is_history_file => config_history_file
       procedure :: is_initial_value_file => config_init_value_file
       procedure :: is_satellite_file => config_satellite_file
+      procedure :: is_hist_restart_file => config_restart_file
       ! Actions
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
@@ -57,6 +65,19 @@ module cam_hist_file
    private :: read_namelist_entry ! Read a namelist group and create config
 
 CONTAINS
+   !
+   ! Filename specifiers for history, initial files and restart history files
+   !  %c = caseid,
+   !  %y = year,
+   !  %m = month,
+   !  %d = day,
+   !  %s = seconds in day,
+   !  %u = unit number (e.g., h0, i)
+   !
+   ! rhfilename_spec is the templdate for history restart files
+   character(len=*), parameter :: rhfilename_spec = '%c.cam.r%u.%y-%m-%d-%s.nc'
+   ! hfilename_spec is the template for each history file
+   character(len=*), parameter :: hfilename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 
    ! ========================================================================
 
@@ -68,11 +89,7 @@ CONTAINS
       character(len=*),   intent(in) :: inst_suffix
       character(len=CL)              :: cfile
 
-      if (present(filename_spec)) then
-         cfile = interpret_filename_spec(filename_spec, unit=this%volume)
-      else
-         cfile = this%volume
-      end if
+      cfile = interpret_filename_spec(this%filename_spec, unit=this%volume)
 
    end function config_filename
 
@@ -132,11 +149,21 @@ CONTAINS
 
    ! ========================================================================
 
+   logical function config_history_file(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_init_value_file = this%hfile_type == hfile_type_history
+
+   end function config_history_file
+
+   ! ========================================================================
+
    logical function config_init_value_file(this)
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
-      config_init_value_file = this%is_init_val_file
+      config_init_value_file = this%hfile_type == hfile_type_init_value
 
    end function config_init_value_file
 
@@ -146,9 +173,19 @@ CONTAINS
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
-      config_satellite_file = this%is_sat_track_file
+      config_satellite_file = this%hfile_type == hfile_type_sat_track
 
    end function config_satellite_file
+
+   ! ========================================================================
+
+   logical function config_restart_file(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_satellite_file = this%hfile_type == hfile_type_restart
+
+   end function config_restart_file
 
    ! ========================================================================
 
@@ -173,7 +210,7 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_configure(this, volume, out_prec, max_frames,            &
-        output_freq, init_file, sat_file, collect_patch_out,                  &
+        output_freq, file_type, collect_patch_out, filename_spec,             &
         interp_out, interp_nlat, interp_nlon, interp_grid, interp_type)
       use shr_kind_mod,   only: CL=>SHR_KIND_CL
       use shr_string_mod, only: to_lower => shr_string_toLower
@@ -185,9 +222,9 @@ CONTAINS
       integer,                    intent(in)    :: out_prec
       integer,                    intent(in)    :: max_frames
       character(len=*),           intent(in)    :: output_freq
-      logical,                    intent(in)    :: init_file
-      logical,                    intent(in)    :: sat_file
+      integer,                    intent(in)    :: file_type
       logical,                    intent(in)    :: collect_patch_out
+      character(len*),            intent(in)    :: filename_spec
       logical,          optional, intent(in)    :: interp_out
       integer,          optional, intent(in)    :: interp_nlat
       integer,          optional, intent(in)    :: interp_nlon
@@ -223,9 +260,9 @@ CONTAINS
       if (to_lower(this%output_freq_type(last_char:last_char)) == "s") then
          this%output_freq_type = this%output_freq_type(1:last_char-1)
       end if
-      this%is_init_val_file = init_file
-      this%is_sat_track_file = sat_file
+      this%hfile_type = file_type
       this%collect_patch_output = collect_patch_out
+      this%filename_spec = filename_spec
       if (present(interp_out)) then
          if (interp_out) then
             allocate(this%interp_info)
@@ -303,6 +340,7 @@ CONTAINS
    subroutine read_namelist_entry(unitn, hfile_config, hist_inst_fields,      &
         hist_avg_fields, hist_min_fields, hist_max_fields, hist_var_fields)
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_LOGICAL
+      use shr_kind_mod,   only: CL=>SHR_KIND_CL
       use string_utils,   only: to_str
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
@@ -328,11 +366,11 @@ CONTAINS
       character(len=flen) :: hist_output_frequency
       logical             :: hist_collect_patch_output
       character(len=flen) :: hist_file_type
+      character(len=CL)   :: hist_filename_spec
       ! Local variables (other)
       integer             :: ierr
       integer             :: num_fields
-      logical             :: is_sat_file
-      logical             :: is_init_file
+      integer             :: file_type
       integer             :: rl_kind
       ! XXgoldyXX: Add patch information
       logical             :: hist_interp_out
@@ -347,7 +385,7 @@ CONTAINS
            hist_precision, hist_max_frames, hist_output_frequency,            &
            hist_file_type, hist_collect_patch_output,                         &
            hist_interp_out, hist_interp_nlat, hist_interp_nlon,               &
-           hist_interp_grid, hist_interp_type
+           hist_interp_grid, hist_interp_type, hist_filename_spec
 
       ! Initialize namelist entries to default values
       hist_inst_fields(:) = ''
@@ -366,6 +404,8 @@ CONTAINS
       hist_interp_nlon = 0
       hist_interp_grid = UNSET_C
       hist_interp_type = UNSET_C
+      file_type = hfile_type_default
+      hist_filename_spec = UNSET_C
       ! Read namelist entry
       if (masterproc) then
          read(unitn, hist_file_config_nl, iostat=ierr)
@@ -376,12 +416,13 @@ CONTAINS
          ! Translate <file_type>
          select case(trim(hist_file_type))
          case(UNSET_C, 'history')
-            is_sat_file = .false.
-            is_init_file = .false.
-         case('satellite')
-            is_sat_file = .true.
+            file_type = hfile_type_history
          case('initial_value')
-            is_init_file = .true.
+            file_type = hfile_type_init_value
+         case('restart')
+            file_type = hfile_type_restart
+         case('satellite')
+            file_type = hfile_type_sat_track
          case default
             call endrun(subname//"ERROR, Invalid history file type, '"//      &
                  trim(hist_file_type)//"'", file=__FILE__, line=__LINE__)
@@ -433,17 +474,19 @@ CONTAINS
            masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_collect_patch_output, 1, MPI_LOGICAL,               &
            masterprocid, mpicom, ierr)
-      call MPI_Bcast(is_sat_file, 1, MPI_LOGICAL, masterprocid, mpicom, ierr)
-      call MPI_Bcast(is_init_file, 1, MPI_LOGICAL, masterprocid, mpicom, ierr)
+      call MPI_Bcast(file_type, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_interp_grid, flen, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_interp_type, flen, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
+      call MPI_Bcast(hist_filename_spec, CL, MPI_CHARACTER,                   &
+           masterprocid, mpicom, ierr)
       ! Configure the history file
       call hfile_config%configure(hist_volume, rl_kind, hist_max_frames,      &
-           hist_output_frequency, is_init_file, is_sat_file,                  &
+           hist_output_frequency, file_type,                                  &
            hist_collect_patch_output, hist_interp_out, hist_interp_nlat,      &
-           hist_interp_nlon, hist_interp_grid, hist_interp_type)
+           hist_interp_nlon, hist_interp_grid, hist_interp_type,              &
+           hist_filename_spec)
       call hfile_config%print_config()
 
    end subroutine read_namelist_entry

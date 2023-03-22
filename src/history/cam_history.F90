@@ -16,17 +16,16 @@ module cam_history
    !   cam_hist_write_history_files
    !-----------------------------------------------------------------------
 
-   use shr_kind_mod,    only: r8 => shr_kind_r8, r4 => shr_kind_r4
-   use shr_kind_mod,    only: cl=>SHR_KIND_CL, cxx=>SHR_KIND_CXX
-   use shr_sys_mod,     only: shr_sys_flush
-   use perf_mod,        only: t_startf, t_stopf
-   use spmd_utils,      only: masterproc
-   use cam_filenames,   only: interpret_filename_spec
-   use cam_instance,    only: inst_suffix
-   use cam_initfiles,   only: ncdata, bnd_topo
-   use cam_abortutils,  only: endrun
-   use cam_logfile,     only: iulog
-
+   use shr_kind_mod,         only: r8 => shr_kind_r8, r4 => shr_kind_r4
+   use shr_kind_mod,         only: cl=>SHR_KIND_CL, cxx=>SHR_KIND_CXX
+   use shr_sys_mod,          only: shr_sys_flush
+   use perf_mod,             only: t_startf, t_stopf
+   use spmd_utils,           only: masterproc
+   use cam_filenames,        only: interpret_filename_spec
+   use cam_instance,         only: inst_suffix
+   use cam_initfiles,        only: ncdata, bnd_topo
+   use cam_abortutils,       only: endrun
+   use cam_logfile,          only: iulog
    use cam_hist_config_file, only: hist_file_config_t
 
    implicit none
@@ -36,7 +35,7 @@ module cam_history
    character(len=cl) :: model_doi_url = '' ! Model DOI
    character(len=cl) :: caseid = ''        ! case ID
    character(len=cl) :: ctitle = ''        ! case title
-   ! NB: This name must match the group name in namelist_definition.xml
+   ! NB: history_namelist value must match the group name in namelist_definition.xml
    character(len=*), parameter   :: history_namelist = 'cam_history_nl'
    ! hrestpath:  Full history restart pathnames
    character(len=cxx) :: hrestpath(pfiles) = (/(' ',idx=1,pfiles)/)
@@ -44,25 +43,13 @@ module cam_history
    character(len=cxx) :: nhfil(pfiles) ! Array of current file names
    character(len=16)  :: logname             ! user name
    character(len=16)  :: host                ! host name
+!!XXgoldyXX: Change inithist to use same values as any other history file
    character(len=8)   :: inithist = 'YEARLY' ! If set to '6-HOURLY, 'DAILY', 'MONTHLY' or
    ! 'YEARLY' then write IC file
 
+!!XXgoldyXX: Do we need maxvarmdims anymore?
    integer, private :: maxvarmdims = 1
    !
-
-   !
-   ! Filename specifiers for history, initial files and restart history files
-   ! (%c = caseid,
-   !  %y = year,
-   !  %m = month,
-   !  %d = day,
-   !  %s = seconds in day,
-   !  %u = unit number (e.g., h0, i)
-   !
-   ! rhfilename_spec is the templdate for history restart files
-   character(len=cxx) :: rhfilename_spec = '%c.cam.r%u.%y-%m-%d-%s.nc'
-   ! hfilename_spec is the template for each history file
-   character(len=cxx) :: hfilename_spec(pfiles) = (/ (' ', idx=1, pfiles) /)
 
    integer :: lcltod_start(pfiles) ! start time of day for local time averaging (sec)
    integer :: lcltod_stop(pfiles)  ! stop time of day for local time averaging, stop > start is wrap around (sec)
