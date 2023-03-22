@@ -819,7 +819,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_constituents"]],
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_constituents_array"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  [phys_check_fname_str, ["phys_var_stdnames",
                                          "input_var_names", "std_name_len"]]]
@@ -949,7 +949,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.comment("If an index was found in the constituent hash table, then read in the data to that index of the constituent array", 6)
     outfile.blank_line()
-    outfile.write("field_data_ptr => cam_constituents()", 6)
+    outfile.write("field_data_ptr => cam_constituents_array()", 6)
     outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 6)
 
     # start default case steps:
@@ -1070,7 +1070,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["physics_data", ["check_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_advected_constituents"]],
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_advected_constituents_array"]],
                  ["cam_constituents", ["const_get_index"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  ["cam_logfile", ["iulog"]],
@@ -1187,7 +1187,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)", 4)
     outfile.write("if (constituent_idx > -1) then", 4)
     outfile.comment("The required variable is a constituent. Call check variable routine on the relevant index of the constituent array", 5)
-    outfile.write("field_data_ptr => cam_advected_constituents()", 5)
+    outfile.write("field_data_ptr => cam_advected_constituents_array()", 5)
     outfile.write("call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 5)
     outfile.write("else", 4)
     outfile.comment("The required variable is not a constituent. Check if the variable was read from a file", 5)

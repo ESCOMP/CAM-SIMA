@@ -53,7 +53,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    use gravity_waves_sources,  only: gws_src_fnct
    use hycoef,                 only: hyai, ps0
    use test_fvm_mapping,       only: test_mapping_overwrite_dyn_state, test_mapping_output_phys_state
-   use cam_ccpp_cap,           only: cam_constituents
+   use cam_ccpp_cap,           only: cam_constituents_array
    use cam_constituents,       only: const_name
 
    !SE dycore:
@@ -118,7 +118,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
      nphys = np
    end if
 
-   const_data_ptr => cam_constituents()
+   const_data_ptr => cam_constituents_array()
 
    ! Allocate temporary arrays to hold data for physics decomposition
    allocate(ps_tmp(nphys_pts,nelemd), stat=ierr)
@@ -316,7 +316,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    ! Convert the physics output state into the dynamics input state.
    use test_fvm_mapping, only: test_mapping_overwrite_tendencies
    use test_fvm_mapping, only: test_mapping_output_mapped_tendencies
-   use cam_ccpp_cap,     only: cam_constituents
+   use cam_ccpp_cap,     only: cam_constituents_array
 
    ! SE dycore:
    use bndry_mod,        only: bndry_exchange
@@ -385,7 +385,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    dq_tmp = 0.0_r8
 
    ! Grab pointer to constituent array
-   const_data_ptr => cam_constituents()
+   const_data_ptr => cam_constituents_array()
 
    if (.not. allocated(q_prev)) then
       call endrun('p_d_coupling: q_prev not allocated')
@@ -547,7 +547,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Finally compute energy and water column integrals of the physics input state.
 
 !   use constituents,   only: qmin
-   use cam_ccpp_cap,   only: cam_constituents
+   use cam_ccpp_cap,   only: cam_constituents_array
    use cam_constituents, only: const_get_index
    use physics_types,  only: lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa
@@ -592,7 +592,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
 
    ! Grab pointer to constituent array
-   const_data_ptr => cam_constituents()
+   const_data_ptr => cam_constituents_array()
 
    ! Evaluate derived quantities
 
