@@ -25,6 +25,7 @@ __SPINSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
 if __SPINSCRIPTS not in sys.path:
     sys.path.append(__SPINSCRIPTS)
 # end if
+_ALL_STRINGS_REGEX = re.compile(r'[A-Za-z][A-Za-z_0-9]+')
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
@@ -152,7 +153,7 @@ class VarBase:
         self.__standard_name = elem_node.get('standard_name')
         self.__long_name = ''
         self.__initial_value = ''
-        self.__initial_val_var_array = []
+        self.__initial_val_vars = set()
         self.__ic_names = None
         self.__elements = []
         self.__protected = protected
@@ -281,14 +282,15 @@ class VarBase:
         elif init_val:
             outfile.write(f"if ({init_var}) then", indent)
             outfile.write(f"{var_name} = {init_val}", indent+1)
-            if self.initial_val_var_array and set(self.initial_val_var_array).issubset(set(physconst_vars)):
+            if self.initial_val_vars and self.initial_val_vars.issubset(physconst_vars):
                outfile.write(f"call mark_as_initialized('{self.standard_name}')", indent+1)
             # end if
             outfile.write("end if", indent)
         # end if
 
-    def set_initial_val_var_array(self, init_vars):
-        self.__initial_val_var_array = init_vars
+    def set_initial_val_vars(self, init_vars):
+        """Set the initial value variable set"""
+        self.__initial_val_vars = init_vars
 
     @property
     def local_name(self):
@@ -336,9 +338,9 @@ class VarBase:
         return self.__initial_value
 
     @property
-    def initial_val_var_array(self):
+    def initial_val_vars(self):
         """Return the initial_val_var_array for this variable"""
-        return self.__initial_val_var_array
+        return self.__initial_val_vars
 
     @property
     def ic_names(self):
@@ -907,17 +909,17 @@ class VarDict(OrderedDict):
             # end for
         # end for
         # Parse out all strings from initial value
-        all_strings = re.findall(r'[A-Za-z][A-Za-z_0-9]+', newvar.initial_value)
+        all_strings = _ALL_STRINGS_REGEX.findall(newvar.initial_value)
         init_val_vars = set()
-        null_initializations = ['null', 'nan']
+        excluded_initializations = {'null', 'nan', 'false', 'true'}
         # Exclude NULL and nan variables
         for var in all_strings:
-            if var.lower() not in null_initializations:
+            if var.lower() not in excluded_initializations:
                init_val_vars.add(var)
             # end if
         # end if
         self.__initial_value_vars.update(init_val_vars)
-        newvar.set_initial_val_var_array(init_val_vars)
+        newvar.set_initial_val_vars(init_val_vars)
 
     def find_variable_by_local_name(self, local_name):
         """Return this dictionary's variable matching local name, <local_name>.
@@ -1014,8 +1016,11 @@ class VarDict(OrderedDict):
         non-"used" and/or non-"physconst" variables"""
         for var in self.known_initial_value_vars:
             if var not in physconst_vars:
-                emsg = "Initial value '{}' is not a physconst variable or does not have necessary use statement"
-                raise CCPPError(emsg.format(var))
+                emsg = f"Initial value '{var}' is not a physconst variable"
+                emsg += " or does not have necessary use statement"
+                raise CCPPError(emsg)
+            # end if
+        # end for
 
 ###############################################################################
 class DDT:
@@ -1631,10 +1636,10 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     for file_ in files:
         # Check to see if any initial values for variables aren't "used" physconst vars
         # First pull out the physconst variables used for this file
-        physconst_vars = []
+        physconst_vars = set()
         for ref in file_.use_statements:
             if ref[0] == 'physconst':
-                physconst_vars.append(ref[1])
+                physconst_vars.add(ref[1])
             # end if
         # end for
         # Then check against the initial values in the variable dictionary
