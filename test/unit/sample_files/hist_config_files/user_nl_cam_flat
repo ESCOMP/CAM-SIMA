@@ -16,3 +16,8 @@ hist_add_inst_fields;h3: T, U, V
 hist_output_frequency;h3: 2*nsteps
 hist_precision;h3: REAL64
 hist_max_frames;h3: 24
+
+! Let's try an initial data file
+hist_add_inst_fields;i: X
+hist_output_frequency;i: 2*nmonths
+hist_file_type;i = initial_value

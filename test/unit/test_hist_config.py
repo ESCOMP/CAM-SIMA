@@ -101,8 +101,8 @@ class HistConfigTest(unittest.TestCase):
         amsg = "Test failure: no HistConfig object created"
         self.assertTrue(isinstance(hist_configs, HistoryConfig), msg=amsg)
         clen = len(hist_configs)
-        amsg = "Test failure: Found {} history files, expected 2".format(clen)
-        self.assertEqual(clen, 2, msg=amsg)
+        amsg = "Test failure: Found {} history files, expected 3".format(clen)
+        self.assertEqual(clen, 3, msg=amsg)
         # Check properties of created config objects
         self.assertTrue('h1' in hist_configs, msg="'h1' not in hist_configs")
         hconfig = hist_configs['h1']
@@ -121,7 +121,7 @@ class HistConfigTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # Make sure the output file is correct
-        amsg = "{} does not match {}".format(out_test, out_source)
+        amsg = "{} does not match {}".format(out_source, out_test)
         self.assertTrue(filecmp.cmp(out_test, out_source, shallow=False),
                         msg=amsg)
 
@@ -161,7 +161,7 @@ class HistConfigTest(unittest.TestCase):
         amsg = "{} does not exist".format(out_source)
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # Make sure the output file is correct
-        amsg = "{} does not match {}".format(out_test, out_source)
+        amsg = "{} does not match {}".format(out_source, out_test)
         self.assertTrue(filecmp.cmp(out_test, out_source, shallow=False),
                         msg=amsg)
 

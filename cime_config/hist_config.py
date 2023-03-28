@@ -25,11 +25,34 @@ if __SPINSCRIPTS not in sys.path:
 from parse_tools import ParseObject, context_string, ParseInternalError
 # pylint: enable=wrong-import-position
 
+## Default filename specifications for different history types
+_DEFAULT_RESTART_HIST_SPEC = '%c.cam.r%u.%y-%m-%d-%s.nc'
+_DEFAULT_HISTORY_SPEC = '%c.cam.%u.%y-%m-%d-%s.nc'
+
+# Note, these lists should match the corresponding lists in
+#    cam_hist_config_file.F90
+_TIME_PERIODS = ['nsteps', 'nstep', 'nseconds', 'nsecond',
+                 'nminutes', 'nminute', 'nhours', 'nhour', 'ndays', 'nday',
+                 'monthly', 'nmonths', 'nmonth', 'nyears', 'nyear',
+                 'steps', 'seconds', 'minutes', 'hours',
+                 'days', 'months', 'years']
+_OUT_PRECS = ['REAL32', 'REAL64']
+
 ##############################################################################
 ###
-### Support functions for history configuration commands
+### Support class and functions for history configuration commands
 ###
 ##############################################################################
+
+##############################################################################
+class HistoryConfigError(ValueError):
+##############################################################################
+    """Error type specific to history configuration parsing"""
+
+    def __init__(self, message):
+        """Initialize this exception"""
+        logging.shutdown()
+        super(HistoryConfigError, self).__init__(message)
 
 ##############################################################################
 def blank_config_line(line):
@@ -156,11 +179,11 @@ def _is_mult_period(entry):
     # end if
     if good_entry:
         period = tokens[-1].lower()
-        if period in HistConfigEntry._TIME_PERIODS:
+        if period in _TIME_PERIODS:
             good_entry = (good_entry, period)
         else:
             good_entry = None
-            time_periods = ", ".join(HistConfigEntry._TIME_PERIODS)
+            time_periods = ", ".join(_TIME_PERIODS)
             errmsg = "period must be one of {}".format(time_periods)
         # end if
     # end if
@@ -185,15 +208,15 @@ def _is_prec_str(entry):
     """
     ustr = entry.strip().upper()
     errmsg = None
-    if ustr not in HistConfigEntry._OUT_PRECS:
+    if ustr not in _OUT_PRECS:
         ustr = None
-        out_precs = ", ".join(HistConfigEntry._OUT_PRECS)
+        out_precs = ", ".join(_OUT_PRECS)
         errmsg = "precision must be one of {}".format(out_precs)
     # end if
     return ustr, errmsg
 
 ##############################################################################
-def _is_filename(entry):
+def _is_string(entry):
 ##############################################################################
     """Return <entry> if it represents a valid history configuration
     filename or None if it is invalid.
@@ -310,7 +333,7 @@ class HistFieldList():
         A list is only output if there are members in the list
         """
         if self.__field_names:
-            lhs = "  {} = ".format(field_varname)
+            lhs = f"  {field_varname} = "
             blank_lhs = ' '*(len(field_varname) + 5)
             # Break up output into lines
             num_fields = self.num_fields()
@@ -335,8 +358,7 @@ class HistFieldList():
                 comma = "," if fld_end < num_fields - 1 else ""
                 quotelist = ["'{}{}'".format(x, ' '*(self.max_len - len(x)))
                              for x in self.__field_names[fld_beg:fld_end+1]]
-                outfile.write("{}{}{}\n".format(lhs, ", ".join(quotelist),
-                                                comma))
+                outfile.write(f"{lhs}{', '.join(quotelist)}{comma}\n")
                 lhs = blank_lhs
             # end while
         # end if
@@ -377,16 +399,6 @@ class HistFieldList():
 _NETCDF_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$", re.IGNORECASE)
 
 ##############################################################################
-class HistoryConfigError(ValueError):
-##############################################################################
-    """Error type specific to history configuration parsing"""
-
-    def __init__(self, message):
-        """Initialize this exception"""
-        logging.shutdown()
-        super(HistoryConfigError, self).__init__(message)
-
-##############################################################################
 class HistConfigEntry():
 ##############################################################################
     """Object to hold information, checking, and conversion functions for
@@ -395,16 +407,6 @@ class HistConfigEntry():
 
     __HIST_CONF_ENTRY_RE = re.compile(r"[a-z][a-z_]*")
     __HIST_VOL = r"(?:[ ]*;[ ]*((?:h[0-9]*)|i))?[ ]*[:=][ ]*(.*)$"
-
-    # Note, these lists should match the corresponding lists in
-    #    cam_hist_config_file.F90
-    _TIME_PERIODS = ['nsteps', 'nstep', 'nseconds', 'nsecond',
-                     'nminutes', 'nminute', 'nhours', 'nhour', 'ndays', 'nday',
-                     'monthly', 'nmonths', 'nmonth', 'nyears', 'nyear',
-                     'steps', 'seconds', 'minutes', 'hours',
-                     'days', 'months', 'years']
-
-    _OUT_PRECS = ['REAL32', 'REAL64']
 
     def __init__(self, entry_string, entry_check_fn, process_fn):
         """Set the entry string regular expression and value check function
@@ -503,10 +505,12 @@ class HistoryVolConfig():
     # Note, variable values below must match those in cam_hist_config_file.F90
     #    (without leading undescores)
     __UNSET_C = 'UNSET'
+    __HIST_FILE = "history"
     __SAT_FILE = "satellite"
     __INITIAL_FILE = "initial_value"
+    __HFILE_TYPES = [__HIST_FILE, __SAT_FILE, __INITIAL_FILE]
 
-    def __init__(self, volume, file_type="history"):
+    def __init__(self, volume):
         """Initialize a HistoryConfig object to a default state.
         <volume> is the history file descriptor (e.g., h1, i)
         """
@@ -521,6 +525,7 @@ class HistoryVolConfig():
                              self.__min_fields, self.__max_fields,
                              self.__var_fields]
         self.__precision = 'REAL32'
+        self.__precision_set = False
         if self.__volume == 'h0':
             self.__max_frames = 1
             self.__output_freq = (1, 'month')
@@ -528,7 +533,12 @@ class HistoryVolConfig():
             self.__max_frames = 30
             self.__output_freq = (1, 'day')
         # end if
-        self.__file_type = file_type
+        self.__max_frames_set = False
+        self.__file_type = self.__HIST_FILE
+        self.__filename_spec = _DEFAULT_HISTORY_SPEC
+        self.__restart_fname_spec = _DEFAULT_RESTART_HIST_SPEC
+        self.__fname_spec_set = False
+        self.__restart_fname_spec_set = False
         self.__collect_patch_output = False
         self.__interp_out = False
         self.__interp_nlat = 0
@@ -645,8 +655,9 @@ class HistoryVolConfig():
     def set_precision(self, prec, pobj, logger):
         """Modify the precision property of this HistoryVolConfig object.
         Return True if <prec> is a recognized precision"""
-        if prec in HistConfigEntry._OUT_PRECS:
+        if prec in _OUT_PRECS:
             self.__precision = prec
+            self.__precision_set = True
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 ctx = context_string(pobj)
                 logger.debug("Setting precision to '{}'{}".format(prec, ctx))
@@ -670,6 +681,7 @@ class HistoryVolConfig():
         nframes_ok = nframes_i and (nframes > 0)
         if nframes_ok:
             self.__max_frames = nframes_i
+            self.__max_frames_set = True
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 ctx = context_string(pobj)
                 logger.debug("Setting max frames to '{}'{}".format(nframes,
@@ -703,7 +715,7 @@ class HistoryVolConfig():
         if ( isinstance(ofreq, tuple) and (len(ofreq) == 2) and
              isinstance(ofreq[0], int) and isinstance(ofreq[1], str) and
              (ofreq[0] > 0) and
-             (ofreq[1].strip() in HistConfigEntry._TIME_PERIODS)):
+             (ofreq[1].strip() in _TIME_PERIODS)):
             self.__output_freq = ofreq
             return True
         # end if
@@ -718,10 +730,70 @@ class HistoryVolConfig():
 
     def set_file_type(self, ftype, pobj, logger):
         """Modify the file_type property of this HistoryVolConfig object"""
-        self.__file_type = ftype
-        if logger.getEffectiveLevel() <= logging.DEBUG:
+        if ftype in self.__HFILE_TYPES:
+            self.__file_type = ftype
+        else:
+            tstr = f", must be one of ({', '.join(self.__HFILE_TYPES)})."
+            raise HistoryConfigError(f"Bad history file type, '{ftype}'{tstr}")
+        # end if
+        if (ftype == self.__INITIAL_FILE) and (not self.__max_frames_set):
+            self.__max_frames = 1
+        # end if
+        if (ftype == self.__INITIAL_FILE) and (not self.__precision_set):
+            self.__precision = 'REAL64'
+        # end if
+        if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
             ctx = context_string(pobj)
             logger.debug("Setting file type to '{}'{}".format(ftype, ctx))
+        # end if
+        return True
+
+    @property
+    def filename_spec(self):
+        """Return the filename_spec property for this HistoryVolConfig object"""
+        return self.__filename_spec
+
+    def set_filename_spec(self, fnspec, pobj=None, logger=None):
+        """Modify the filename_spec property of this HistoryVolConfig object.
+        If the restart filename spec has not yet been set, set it to the default
+        for <fnspec> if possible (i.e., if <fnspec> contains a '%u').
+        Note that it is an error to try and set this twice.
+        """
+        self.__filename_spec = ftype
+        self.__fname_spec_set = True
+        if not self.__restart_fname_spec_set:
+            if '%u' in self.__filename_spec:
+                self.__restart_fname_spec = self.__filename_spec.replace("%u",
+                                                                         "r%u")
+            # end if
+        # end if
+        if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
+            ctx = context_string(pobj)
+            logger.debug("Setting filename spec to '{}'{}".format(fnspec, ctx))
+        # end if
+        return True
+
+    @property
+    def restart_fname_spec(self):
+        """Return the restart history filename_spec property for this
+        HistoryVolConfig object"""
+        return self.__restart_fname_spec
+
+    def set_restart_fname_spec(self, rfnspec=None, pobj=None, logger=None):
+        """Modify the filename_spec property of this HistoryVolConfig object.
+        If the restart filename spec has not yet been set, set it to the default
+        for <fnspec> if possible (i.e., if <fnspec> contains a '%u').
+        Note that it is an error to try and set this twice.
+        """
+        if not rfnspec:
+            rfnspec = self.__filename_spec.replace("%u", "r%u")
+        # end if
+        self.__restart_fname_spec = rfnspec
+        self.__restart_fname_spec_set = True
+        if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
+            ctx = context_string(pobj)
+            logger.debug("Setting restart filename spec to '{}'{}".format(fnspec,
+                                                                          ctx))
         # end if
         return True
 
@@ -747,16 +819,17 @@ class HistoryVolConfig():
         """Write the fortran namelist object for this HistoryVolConfig
         object"""
         outfile.write("\n&hist_file_config_nl\n")
-        outfile.write("  hist_volume = '{}'\n".format(self.volume))
+        outfile.write(f"  hist_volume = '{self.volume}'\n")
         self.__inst_fields.output_nl_fieldlist(outfile, "hist_inst_fields")
         self.__avg_fields.output_nl_fieldlist(outfile, "hist_avg_fields")
         self.__min_fields.output_nl_fieldlist(outfile, "hist_min_fields")
         self.__max_fields.output_nl_fieldlist(outfile, "hist_max_fields")
         self.__var_fields.output_nl_fieldlist(outfile, "hist_var_fields")
-        outfile.write("  hist_max_frames = {}\n".format(self.__max_frames))
-        outfile.write("  hist_output_frequency = '{}'\n".format(self.outfreq_str()))
-        outfile.write("  hist_precision = '{}'\n".format(self.__precision))
-        outfile.write("  hist_file_type = '{}'\n".format(self.__file_type))
+        outfile.write(f"  hist_max_frames = {self.__max_frames}\n")
+        outfile.write(f"  hist_output_frequency = '{self.outfreq_str()}'\n")
+        outfile.write(f"  hist_precision = '{self.__precision}'\n")
+        outfile.write(f"  hist_file_type = '{self.__file_type}'\n")
+        outfile.write(f"  hist_filename_spec = '{self.__filename_spec}'\n")
         outfile.write("/\n")
 
 ##############################################################################
@@ -778,6 +851,8 @@ _HIST_CONFIG_ENTRY_TYPES = [HistConfigEntry(r"hist_add_avg_fields",
                             HistConfigEntry(r"hist_add_var_fields",
                                             _list_of_idents,
                                             HistoryVolConfig.add_var_fields),
+                            HistConfigEntry(r"hist_file_type", _is_string,
+                                            HistoryVolConfig.set_file_type),
                             HistConfigEntry(r"hist_max_frames", _is_integer,
                                             HistoryVolConfig.set_max_frames),
                             HistConfigEntry(r"hist_output_frequency",
@@ -785,10 +860,10 @@ _HIST_CONFIG_ENTRY_TYPES = [HistConfigEntry(r"hist_add_avg_fields",
                                             HistoryVolConfig.set_output_frequency),
                             HistConfigEntry(r"hist_precision", _is_prec_str,
                                             HistoryVolConfig.set_precision),
-                            HistConfigEntry(r"hist_diag_file", _is_filename,
+                            HistConfigEntry(r"hist_diag_file", _is_string,
                                             None),
-                            HistConfigEntry(r"hist_filename_template",
-                                            _is_filename, None),
+                            HistConfigEntry(r"hist_filename_template", _is_string,
+                                            HistoryVolConfig.set_filename_spec),
                             HistConfigEntry(r"hist_remove_fields",
                                             _list_of_idents,
                                             HistoryVolConfig.remove_fields)]
@@ -945,8 +1020,8 @@ class HistoryConfig(dict):
                         self.parse_hist_config_file(dfile, logger, volume=fnum)
                     else:
                         ctx = context_string(pobj)
-                        emsg = "History config file, '{}', not found{}"
-                        raise HistoryConfigError(emsg.format(cmd_val, ctx))
+                        emsg = f"History config file, '{cmd_val}', not found{ctx}"
+                        raise HistoryConfigError(emsg)
                     # end if
                 else:
                     hconf_entry = _HIST_CONFIG_ENTRY_OBJS[cmd]

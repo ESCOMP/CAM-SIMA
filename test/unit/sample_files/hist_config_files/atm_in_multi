@@ -56,6 +56,7 @@
   hist_output_frequency = '1*monthly'
   hist_precision = 'REAL32'
   hist_file_type = 'history'
+  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 /
 
 &hist_file_config_nl
@@ -65,4 +66,5 @@
   hist_output_frequency = '2*nsteps'
   hist_precision = 'REAL64'
   hist_file_type = 'history'
+  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 /
