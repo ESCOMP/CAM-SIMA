@@ -181,7 +181,7 @@ CONTAINS
 
       ! init for variable composition dry air
 
-      allocate(thermodynamic_active_species_idx(num_advected), stat=ierr)
+      allocate(thermodynamic_active_species_idx(0:num_advected), stat=ierr)
       call check_allocate(ierr, subname,'thermodynamic_active_species_idx(num_advected)', &
                           file=__FILE__, line=__LINE__)
       allocate(thermodynamic_active_species_idx_dycore(num_advected), stat=ierr)
