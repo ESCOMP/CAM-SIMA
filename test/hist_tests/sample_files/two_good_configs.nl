@@ -14,6 +14,7 @@
   hist_max_frames = 13
   hist_output_frequency = '2*hours'
   hist_file_type = 'history'
+  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 /
 
 &hist_file_config_nl
@@ -23,4 +24,5 @@
   hist_max_frames = 30
   hist_output_frequency = 'monthly'
   hist_file_type = 'history'
+  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 /

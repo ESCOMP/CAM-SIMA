@@ -21,8 +21,8 @@ module cam_control_mod
    !   cam_ctrl_set_orbit
    !   cam_ctrl_set_physics_type
 
-   character(len=cl), protected :: caseid  ! case ID
-   character(len=cl), protected :: ctitle  ! case title
+   character(len=cl), protected :: caseid = ''  ! case ID
+   character(len=cl), protected :: ctitle = ''  ! case title
 
    logical, protected :: initial_run  ! startup mode which only requires a minimal initial file
    logical, protected :: restart_run  ! continue a previous run; requires a restart file

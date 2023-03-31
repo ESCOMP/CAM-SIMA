@@ -9,6 +9,8 @@ add_definitions(${MPI_Fortran_COMPILE_FLAGS})
 include_directories(${MPI_Fortran_INCLUDE_PATH})
 link_directories(${MPI_Fortran_LIBRARIES})
 
+# Command line switches
+SET(ABORT "OFF" CACHE BOOL "If ON, endrun aborts job")
 #-----------------------------------------------------------------------------
 #
 # Paths should be relative to CMAKE_SOURCE_DIR (this file's directory)
@@ -28,7 +30,9 @@ else(EXISTS "${ROOT_PATH}/cime")
   SET(CIME_PATH ${_toplev}/cime)
 endif(EXISTS "${ROOT_PATH}/cime")
 # Test copies of CAM and CIME utility files
-LIST(APPEND SOURCE_FILES "${UTILS_PATH}/cam_abortutils.F90")
+if (NOT ${ABORT})
+    LIST(APPEND SOURCE_FILES "${UTILS_PATH}/cam_abortutils.F90")
+endif(NOT ${ABORT})
 LIST(APPEND SOURCE_FILES "${UTILS_PATH}/cam_logfile.F90")
 LIST(APPEND SOURCE_FILES "${UTILS_PATH}/ccpp_kinds.F90")
 LIST(APPEND SOURCE_FILES "${UTILS_PATH}/spmd_utils.F90")
@@ -51,6 +55,10 @@ LIST(APPEND SOURCE_FILES "${ROOT_PATH}/share/src/shr_nl_mod.F90")
 LIST(APPEND SOURCE_FILES "${ROOT_PATH}/share/src/shr_strconvert_mod.F90")
 LIST(APPEND SOURCE_FILES "${SRC_PATH}/utils/string_utils.F90")
 LIST(APPEND SOURCE_FILES "${SRC_PATH}/utils/cam_filenames.F90")
+if (${ABORT})
+    LIST(APPEND SOURCE_FILES "${SRC_PATH}/utils/cam_abortutils.F90")
+    LIST(APPEND SOURCE_FILES "${UTILS_PATH}/shr_mem_mod.F90")
+endif(${ABORT})
 # CAM history files
 LIST(APPEND SOURCE_FILES "${HIST_PATH}/cam_hist_file.F90")
 ## We need to copy shr_assert.h into this directory

@@ -50,7 +50,7 @@ CONTAINS
    !===========================================================================
 
    character(len=cl) function interpret_filename_spec(filename_spec, unit,    &
-        prev, case, instance, yr_spec, mon_spec, day_spec, sec_spec)
+        prev, case, instance, yr_spec, mon_spec, day_spec, sec_spec, incomplete_ok)
 
       ! Create a filename from a filename specifier. The
       ! filename specifyer includes codes for setting things such as the
@@ -68,6 +68,9 @@ CONTAINS
       !      %% for the "%" character
       !
       ! If <prev> is present and .true. label the file with previous time-step
+      ! If <incomplete_ok> is present and .true., then wildcards without
+      !   values passed as optional dummy arguments will not generate an error.
+      !   This allows a partial resolution of the filename_spec.
 
       ! Dummy Arguments
       character(len=*),           intent(in) :: filename_spec
@@ -79,6 +82,7 @@ CONTAINS
       integer,          optional, intent(in) :: mon_spec
       integer,          optional, intent(in) :: day_spec
       integer,          optional, intent(in) :: sec_spec
+      logical,          optional, intent(in) :: incomplete_ok
 
       ! Local variables
       integer           :: year     ! Simulation year
@@ -91,6 +95,7 @@ CONTAINS
       integer           :: next     ! Index location in <filename_spec>
       logical           :: previous ! If should label with previous time-step
       logical           :: done
+      logical           :: incomplete_ok_use
       character(len=*), parameter :: subname = "INTERPRET_FILENAME_SPEC: "
       !------------------------------------------------------------------------
 
@@ -98,8 +103,13 @@ CONTAINS
          call endrun (subname//'filename specifier is empty')
       end if
       if (index(trim(filename_spec), " ") /= 0)then
-         call endrun(subname//"filename specifier can not contain a space:"// &
+         call endrun(subname//"filename specifier may not contain a space:"// &
               trim(filename_spec), file=__FILE__, line=__LINE__)
+      end if
+      if (present(incomplete_ok)) then
+         incomplete_ok_use = incomplete_ok
+      else
+         incomplete_ok_use = .false.
       end if
       !
       ! Determine year, month, day and sec to put in filename
@@ -110,7 +120,7 @@ CONTAINS
          month = mon_spec
          day   = day_spec
          ncsec = sec_spec
-      else
+      else if (.not. incomplete_ok_use) then
          if (present(prev)) then
             previous = prev
          else
@@ -121,7 +131,7 @@ CONTAINS
          else
             call get_curr_date(year, month, day, ncsec)
          end if
-      end if
+      end if ! No else, do not use these quantities below.
       !
       ! Go through each character in the filename specifyer and interpret
       !   if it is a format specifier
@@ -138,11 +148,25 @@ CONTAINS
             case('c')   ! caseid
                if (present(case)) then
                   string = trim(case)
-               else
+               else if (len_trim(caseid) > 0) then
                   string = trim(caseid)
+               else if (incomplete_ok_use) then
+                  string = "%c"
+               else
+                  write(string, *) "case needed in filename_spec, ",          &
+                       "but not provided to subroutine, filename_spec = '",   &
+                       trim(filename_spec), "'"
+                  if (masterproc) then
+                     write(iulog, *) subname, trim(string)
+                  end if
+                  call endrun(subname//trim(string))
                end if
             case('u')   ! unit description (e.g., h2)
-               if (.not. present(unit)) then
+               if (present(unit)) then
+                  string = trim(unit)
+               else if (incomplete_ok_use) then
+                  string = "%u"
+               else
                   write(string, *) "unit needed in filename_spec, ",          &
                        "but not provided to subroutine, filename_spec = '",   &
                        trim(filename_spec), "'"
@@ -151,9 +175,12 @@ CONTAINS
                   end if
                   call endrun(subname//trim(string))
                end if
-               string = trim(unit)
             case('i')   ! instance description (e.g., _0001)
-               if (.not. present(instance)) then
+               if (present(instance)) then
+                  string = trim(instance)
+               else if (incomplete_ok_use) then
+                  string = "%i"
+               else
                   write(string, *) "instance needed in filename_spec, ",      &
                        "but not provided to subroutine, filename_spec = '",   &
                        trim(filename_spec), "'"
@@ -162,22 +189,37 @@ CONTAINS
                   end if
                   call endrun(subname//trim(string))
                end if
-               string = trim(instance)
             case('y')   ! year
-               if (year > 99999) then
-                  fmt_str = '(i6.6)'
-               else if (year > 9999) then
-                  fmt_str = '(i5.5)'
+               if (.not. present(yr_spec) .and. incomplete_ok_use) then
+                  string = '%y'
                else
-                  fmt_str = '(i4.4)'
+                  if (year > 99999) then
+                     fmt_str = '(i6.6)'
+                  else if (year > 9999) then
+                     fmt_str = '(i5.5)'
+                  else
+                     fmt_str = '(i4.4)'
+                  end if
+                  write(string,fmt_str) year
                end if
-               write(string,fmt_str) year
             case('m')   ! month
-               write(string,'(i2.2)') month
+               if (.not. present(mon_spec) .and. incomplete_ok_use) then
+                  string = '%m'
+               else
+                  write(string,'(i2.2)') month
+               end if
             case('d')   ! day
-               write(string,'(i2.2)') day
+               if (.not. present(day_spec) .and. incomplete_ok_use) then
+                  string = '%d'
+               else
+                  write(string,'(i2.2)') day
+               end if
             case('s')   ! second
-               write(string,'(i5.5)') ncsec
+               if (.not. present(sec_spec) .and. incomplete_ok_use) then
+                  string = '%s'
+               else
+                  write(string,'(i5.5)') ncsec
+               end if
             case('%')   ! percent character
                string = "%"
             case default
@@ -202,7 +244,9 @@ CONTAINS
             interpret_filename_spec = trim(string)
          else
             if ((len_trim(interpret_filename_spec)+len_trim(string)) >= cl) then
-               call endrun(subname//"Resultant filename too long")
+               call endrun(subname//                                          &
+                    "Resultant filename too long, trying to add: '"//         &
+                    trim(string)//"' to '"//trim(interpret_filename_spec)//"'")
             end if
             interpret_filename_spec = trim(interpret_filename_spec)//trim(string)
          end if

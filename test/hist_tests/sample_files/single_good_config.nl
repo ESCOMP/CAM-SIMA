@@ -13,4 +13,5 @@
   hist_precision = 'REAL32'
   hist_max_frames = 13
   hist_output_frequency = '2*hours'
+  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 /

@@ -39,7 +39,7 @@ module cam_hist_file
       integer,                       private :: max_frames = UNSET_I
       integer,                       private :: output_freq_mult = UNSET_I
       character(len=8),              private :: output_freq_type = UNSET_C
-      character(len=*), allocatable, private :: filename_spec
+      character(len=:), allocatable, private :: filename_spec
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
       type(interp_info_t), pointer,  private :: interp_info => NULL()
@@ -65,31 +65,18 @@ module cam_hist_file
    private :: read_namelist_entry ! Read a namelist group and create config
 
 CONTAINS
-   !
-   ! Filename specifiers for history, initial files and restart history files
-   !  %c = caseid,
-   !  %y = year,
-   !  %m = month,
-   !  %d = day,
-   !  %s = seconds in day,
-   !  %u = unit number (e.g., h0, i)
-   !
-   ! rhfilename_spec is the templdate for history restart files
-   character(len=*), parameter :: rhfilename_spec = '%c.cam.r%u.%y-%m-%d-%s.nc'
-   ! hfilename_spec is the template for each history file
-   character(len=*), parameter :: hfilename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
 
    ! ========================================================================
 
-   function config_filename(this, inst_suffix) result(cfile)
+   function config_filename(this) result(cfile)
       use shr_kind_mod,  only: CL => SHR_KIND_CL
       use cam_filenames, only: interpret_filename_spec
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
-      character(len=*),   intent(in) :: inst_suffix
       character(len=CL)              :: cfile
 
-      cfile = interpret_filename_spec(this%filename_spec, unit=this%volume)
+      cfile = interpret_filename_spec(this%filename_spec, unit=this%volume, &
+           incomplete_ok=.true.)
 
    end function config_filename
 
@@ -153,7 +140,7 @@ CONTAINS
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
-      config_init_value_file = this%hfile_type == hfile_type_history
+      config_history_file = this%hfile_type == hfile_type_history
 
    end function config_history_file
 
@@ -183,7 +170,7 @@ CONTAINS
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
-      config_satellite_file = this%hfile_type == hfile_type_restart
+      config_restart_file = this%hfile_type == hfile_type_restart
 
    end function config_restart_file
 
@@ -198,8 +185,7 @@ CONTAINS
       this%max_frames = UNSET_I
       this%output_freq_mult = UNSET_I
       this%output_freq_type = UNSET_C
-      this%is_init_val_file = .false.
-      this%is_sat_track_file = .false.
+      this%hfile_type = hfile_type_default
       if (associated(this%interp_info)) then
          call this%interp_info%reset()
          deallocate(this%interp_info)
@@ -210,7 +196,7 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_configure(this, volume, out_prec, max_frames,            &
-        output_freq, file_type, collect_patch_out, filename_spec,             &
+        output_freq, file_type, filename_spec, collect_patch_out,             &
         interp_out, interp_nlat, interp_nlon, interp_grid, interp_type)
       use shr_kind_mod,   only: CL=>SHR_KIND_CL
       use shr_string_mod, only: to_lower => shr_string_toLower
@@ -223,8 +209,8 @@ CONTAINS
       integer,                    intent(in)    :: max_frames
       character(len=*),           intent(in)    :: output_freq
       integer,                    intent(in)    :: file_type
+      character(len=*),           intent(in)    :: filename_spec
       logical,                    intent(in)    :: collect_patch_out
-      character(len*),            intent(in)    :: filename_spec
       logical,          optional, intent(in)    :: interp_out
       integer,          optional, intent(in)    :: interp_nlat
       integer,          optional, intent(in)    :: interp_nlon
@@ -274,20 +260,29 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_print_config(this)
-      use spmd_utils,  only: masterproc
-      use cam_logfile, only: iulog
+      use string_utils,   only: to_str
+      use cam_abortutils, only: endrun
+      use spmd_utils,     only: masterproc
+      use cam_logfile,    only: iulog
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
       if (masterproc) then
          write(iulog, '(2a)') "History configuration for volume = ",           &
               trim(this%volume)
-         if (this%is_init_val_file) then
-            write(6, '(a)') "  File will contain initial values"
-         end if
-         if (this%is_sat_track_file) then
-            write(6, '(a)') "  File will contain satellite track values"
-         end if
+         select case(this%hfile_type)
+         case (hfile_type_history)
+            write(iulog, *) "File will contain model history (diagnostics) output"
+         case (hfile_type_init_value)
+            write(iulog, *) "File will contain values for model initialization"
+         case (hfile_type_sat_track)
+            write(iulog, *) "File will contain satellite track values"
+         case (hfile_type_restart)
+            write(iulog, *) "File contains history restart information"
+         case default
+            call endrun("ERROR: Unknown CAM history file type, "//            &
+                 to_str(this%hfile_type))
+         end select
          if (this%rl_kind == REAL64) then
             write(iulog, '(a)') "  Ouput precision, 64 bits"
          else if (this%rl_kind == REAL32) then
@@ -295,20 +290,20 @@ CONTAINS
          else
             write(iulog, '(a,i0)') "  Unknown output precision, ", this%rl_kind
          end if
-         write(6, '(a,i0)') "  Maximum number of output frames per file = ",  &
+         write(iulog, '(a,i0)') "  Maximum number of output frames per file = ",  &
               this%max_frames
          if (this%output_freq_mult == 1) then
-            write(6, *) "  Writing output once per ", trim(this%output_freq_type)
+            write(iulog, *) "  Writing output once per ", trim(this%output_freq_type)
          else
-            write(6, '(a,i0,3a)') "  Writing output every ",                  &
+            write(iulog, '(a,i0,3a)') "  Writing output every ",                  &
                  this%output_freq_mult, " ", trim(this%output_freq_type), "s"
          end if
          !!XXgoldyXX: Fix this when patch output is known
          if (this%collect_patch_output) then
-            write(6, '(2a)') "  Output from all patches will be collected ",  &
+            write(iulog, '(2a)') "  Output from all patches will be collected ",  &
                  "into a single variable"
          else
-            write(6, '(2a)') "  Output from each patch will be written ",     &
+            write(iulog, '(2a)') "  Output from each patch will be written ",     &
                  "as a separate variable"
          end if
          if (associated(this%interp_info)) then
@@ -342,7 +337,6 @@ CONTAINS
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_LOGICAL
       use shr_kind_mod,   only: CL=>SHR_KIND_CL
       use string_utils,   only: to_str
-      use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
       use spmd_utils,     only: masterproc, masterprocid, mpicom
       ! Read a history file configuration from <unitn> and process it into
@@ -483,10 +477,10 @@ CONTAINS
            masterprocid, mpicom, ierr)
       ! Configure the history file
       call hfile_config%configure(hist_volume, rl_kind, hist_max_frames,      &
-           hist_output_frequency, file_type,                                  &
-           hist_collect_patch_output, hist_interp_out, hist_interp_nlat,      &
-           hist_interp_nlon, hist_interp_grid, hist_interp_type,              &
-           hist_filename_spec)
+           hist_output_frequency, file_type, hist_filename_spec,              &
+           hist_collect_patch_output, interp_out=hist_interp_out,             &
+           interp_nlat=hist_interp_nlat, interp_nlon=hist_interp_nlon,        &
+           interp_grid=hist_interp_grid, interp_type=hist_interp_type)
       call hfile_config%print_config()
 
    end subroutine read_namelist_entry
@@ -500,6 +494,7 @@ CONTAINS
       use shr_nl_mod,     only: shr_nl_find_group_name
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
+      use cam_logfile,    only: iulog
       use spmd_utils,     only: mpicom, masterproc, masterprocid
       use cam_abortutils, only: endrun, check_allocate
       ! Read the maximum sizes of field arrays from namelist file and allocate
@@ -552,13 +547,13 @@ CONTAINS
          if (ierr == 0) then
             read(unitn, hist_config_arrays_nl, iostat=ierr)
             if (ierr /= 0) then
-               write(errmsg, '(2a,i0,a)') subname, ": ERROR ", ierr,         &
+               write(errmsg, '(2a,i0,a)') subname, ": ERROR ", ierr,          &
                     " reading namelist, hist_config_arrays_nl"
                call endrun(trim(errmsg))
                return ! For testing
             end if
          else
-            write(6, *) subname, ": WARNING, no hist_config_arrays_nl ",      &
+            write(iulog, *) subname, ": WARNING, no hist_config_arrays_nl ",  &
                  "namelist found"
          end if
       end if
@@ -575,19 +570,19 @@ CONTAINS
            mpicom, ierr)
       ! Allocate arrays
       allocate(hist_inst_fields(hist_num_inst_fields), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'hist_inst_fields', errmsg=errmsg,   &
+      call check_allocate(ierr, subname, 'hist_inst_fields',                  &
            file=__FILE__, line=__LINE__-1)
       allocate(hist_avg_fields(hist_num_avg_fields), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'hist_avg_fields', errmsg=errmsg,    &
+      call check_allocate(ierr, subname, 'hist_avg_fields',                   &
            file=__FILE__, line=__LINE__-1)
       allocate(hist_min_fields(hist_num_min_fields), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'hist_min_fields', errmsg=errmsg,    &
+      call check_allocate(ierr, subname, 'hist_min_fields',                   &
            file=__FILE__, line=__LINE__-1)
       allocate(hist_max_fields(hist_num_max_fields), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'hist_max_fields', errmsg=errmsg,    &
+      call check_allocate(ierr, subname, 'hist_max_fields',                   &
            file=__FILE__, line=__LINE__-1)
       allocate(hist_var_fields(hist_num_var_fields), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'hist_var_fields', errmsg=errmsg,    &
+      call check_allocate(ierr, subname, 'hist_var_fields',                   &
            file=__FILE__, line=__LINE__-1)
 
    end subroutine allocate_field_arrays
@@ -692,7 +687,7 @@ CONTAINS
          return ! Needed for testing
       end if
       allocate(config_arr(num_configs), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'config_arr', errmsg=errmsg,         &
+      call check_allocate(ierr, subname, 'config_arr',                        &
            file=__FILE__, line=__LINE__-2)
       ! This block is needed for testing
       if (ierr /= 0) then

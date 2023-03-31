@@ -1230,7 +1230,7 @@ CONTAINS
    subroutine cam_pio_createfile(file, fname, mode_in)
       use pio,            only : pio_createfile, file_desc_t, pio_noerr
       use pio,            only: pio_64bit_offset, pio_iotask_rank, pio_clobber
-      use cam_abortutils, only : endrun, cam_register_open_file
+      use cam_abortutils, only : endrun
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -1250,9 +1250,6 @@ CONTAINS
 
       if(ierr /= PIO_NOERR) then
          call endrun('Failed to open file,'//trim(fname)//', to write')
-      else if(pio_iotask_rank(pio_subsystem) == 0) then
-         write(iulog, *) 'Opened file ', trim(fname),  ' to write', file%fh
-         call cam_register_open_file(file, trim(fname))
       end if
 
    end subroutine cam_pio_createfile
@@ -1261,7 +1258,7 @@ CONTAINS
    subroutine cam_pio_openfile(file, fname, mode, log_info)
       use pio,           only: pio_openfile, file_desc_t
       use pio,           only: pio_noerr, pio_iotask_rank
-      use cam_abortutils, only: endrun, cam_register_open_file
+      use cam_abortutils, only: endrun
 
       type(file_desc_t), intent(inout), target :: file
       character(len=*), intent(in) :: fname
@@ -1281,9 +1278,6 @@ CONTAINS
 
       if(ierr /= PIO_NOERR) then
          call endrun('Failed to open '//trim(fname)//' to read')
-      else if(pio_iotask_rank(pio_subsystem) == 0 .and. log_information) then
-         write(iulog,*) 'Opened existing file ', trim(fname), file%fh
-         call cam_register_open_file(file, trim(fname))
       end if
 
    end subroutine cam_pio_openfile
@@ -1292,12 +1286,10 @@ CONTAINS
    subroutine cam_pio_closefile(file)
 
       use pio, only: pio_closefile, file_desc_t
-      use cam_abortutils, only: cam_register_close_file
 
       type(file_desc_t), intent(inout), target :: file
 
       call pio_closefile(file)
-      call cam_register_close_file(file)
 
    end subroutine cam_pio_closefile
 

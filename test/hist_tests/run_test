@@ -9,6 +9,7 @@ scriptdir="$( cd $( dirname $0 ); pwd -P )"
 defdir="build"
 build_dir="${currdir}/${defdir}"
 cleanup="PASS" # Other supported options are ALWAYS and NEVER
+abort="OFF"    # Use "ON" to use real endrun call
 verbosity=0
 
 ##
@@ -18,13 +19,14 @@ verbosity=0
 help () {
   local hname="Usage: `basename ${0}`"
   local hprefix="`echo ${hname} | tr '[!-~]' ' '`"
-  echo "${hname} [ --build-dir <dir name> ] [ --cleanup <opt> ]"
+  echo "${hname} [ --build-dir <dir name> ] [ --cleanup <opt> ] [ --abort ]"
   hprefix="    "
   echo ""
   echo "${hprefix} <dir name>: Directory for building and running the test"
   echo "${hprefix}             default is <current directory>/${defdir}"
   echo "${hprefix} <opt>: Cleanup option is ALWAYS, NEVER, or PASS"
   echo "${hprefix}        default is PASS"
+  echo "${hprefix} --abort will cause endrun calls to stop test (debug only)"
   exit $1
 }
 
@@ -54,6 +56,9 @@ while [ $# -gt 0 ]; do
   case $1 in
     --h | -h | --help | -help)
       help 0
+      ;;
+    --abort)
+      abort="ON"
       ;;
     --build-dir)
       if [ $# -lt 2 ]; then
@@ -113,6 +118,9 @@ if [ $res -ne 0 ]; then
 fi
 # Run CMake
 opts=""
+if [ "${abort}" == "ON" ]; then
+  opts="${opts} -DABORT=ON"
+fi
 cmake ${scriptdir} ${opts}
 res=$?
 if [ $res -ne 0 ]; then

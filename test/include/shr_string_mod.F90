@@ -77,7 +77,6 @@ module shr_string_mod
   public :: shr_string_listDiff        ! get set difference of two field lists
   public :: shr_string_listMerge       ! merge two lists to form third
   public :: shr_string_listAppend      ! append list at end of another
-  public :: shr_string_listPrepend     ! prepend list in front of another
   public :: shr_string_listSetDel      ! Set field delimiter in lists
   public :: shr_string_listGetDel      ! Get field delimiter in lists
   public :: shr_string_listFromSuffixes! return colon delimited field list
@@ -1362,75 +1361,6 @@ contains
     if (debug>1) call shr_timer_stop (t01)
 
   end subroutine shr_string_listAppend
-
-  !===============================================================================
-  !BOP ===========================================================================
-  !
-  ! !IROUTINE: shr_string_listPrepend -- Prepend one list to another
-  !
-  ! !DESCRIPTION:
-  !     Prepend one list to another
-  !     \newline
-  !     call shr\_string\_listPrepend(listadd,list)
-  !     \newline
-  !     results in listadd:list
-  !
-  ! !REVISION HISTORY:
-  !     2005-May-05 - T. Craig
-  !
-  ! !INTERFACE: ------------------------------------------------------------------
-
-  subroutine shr_string_listPrepend(listadd,list,rc)
-
-    implicit none
-
-    ! !INPUT/OUTPUT PARAMETERS:
-
-    character(*)                 ,intent(in)    :: listadd ! list/string
-    character(*)                 ,intent(inout) :: list   ! list/string
-    integer(SHR_KIND_IN),optional,intent(out)   :: rc      ! return code
-
-    !EOP
-
-    !----- local -----
-    character(SHR_KIND_CX) :: l1      ! local string
-    integer(SHR_KIND_IN)   :: rCode   ! return code
-    integer(SHR_KIND_IN)   :: t01 = 0 ! timer
-
-    !----- formats -----
-    character(*),parameter :: subName =   "(shr_string_listPrepend) "
-    character(*),parameter :: F00     = "('(shr_string_listPrepend) ',4a)"
-
-    !-------------------------------------------------------------------------------
-    ! Notes:
-    ! - no input or output string should be longer than SHR_KIND_CX
-    !-------------------------------------------------------------------------------
-
-    if (debug>1 .and. t01<1) call shr_timer_get(t01,subName)
-    if (debug>1) call shr_timer_start(t01)
-    rCode = 0
-
-    !--- make sure temp string is large enough ---
-    if (len(l1) < len_trim(listAdd)) then
-       call shr_string_abort(subName//'ERROR: temp string not large enough')
-    end if
-
-    call shr_string_clean(l1)
-    l1 = trim(listadd)
-    call shr_string_leftalign_and_convert_tabs(l1,rCode)
-    call shr_string_leftalign_and_convert_tabs(list,rCode)
-    if (len_trim(list)+len_trim(l1)+1 > len(list)) &
-         call shr_string_abort(subName//'ERROR: output list string not large enough')
-    if (len_trim(l1) == 0) then
-       list = trim(list)
-    else
-       list = trim(l1)//":"//trim(list)
-    endif
-
-    if (present(rc)) rc = rCode
-    if (debug>1) call shr_timer_stop (t01)
-
-  end subroutine shr_string_listPrepend
 
   !===============================================================================
   !BOP ===========================================================================

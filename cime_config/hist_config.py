@@ -26,7 +26,17 @@ from parse_tools import ParseObject, context_string, ParseInternalError
 # pylint: enable=wrong-import-position
 
 ## Default filename specifications for different history types
+# Filename specifiers for history, initial files and restart history files
+#  %c = caseid,
+#  %y = year,
+#  %m = month,
+#  %d = day,
+#  %s = seconds in day,
+#  %u = unit number (e.g., h0, i)
+#
+# rhfilename_spec is the templdate for history restart files
 _DEFAULT_RESTART_HIST_SPEC = '%c.cam.r%u.%y-%m-%d-%s.nc'
+# hfilename_spec is the template for each history file
 _DEFAULT_HISTORY_SPEC = '%c.cam.%u.%y-%m-%d-%s.nc'
 
 # Note, these lists should match the corresponding lists in

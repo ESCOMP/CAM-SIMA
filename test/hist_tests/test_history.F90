@@ -59,10 +59,10 @@ CONTAINS
             test_cnt = test_cnt + 1 ! Is volume correct?
             if (trim(tconfig_arr(indx)%filename())  /= trim(volumes(indx))) then
                err_cnt = err_cnt + 1
-               write(out_unit, '(3a,i0,4a)') "FAIL: ", trim(test_msg),        &
-                    ": volume(", indx, ") is ",                               &
-                    trim(tconfig_arr(indx)%filename()), ", should be ",       &
-                    trim(volumes(indx))
+               write(out_unit, '(3a,i0,5a)') "FAIL: ", trim(test_msg),        &
+                    ": volume(", indx, ") is '",                              &
+                    trim(tconfig_arr(indx)%filename()), "', should be '",     &
+                    trim(volumes(indx)), "'"
             end if
             test_cnt = test_cnt + 1 ! Is max_frames correct?
             if (tconfig_arr(indx)%max_frame() /= max_frames(indx)) then
@@ -147,8 +147,9 @@ program test_history
    ! Read single-good config test
    test_file = "single_good_config.nl"
    test_msg = "single_good_config.nl file read test"
-   call run_test(test_msg, test_file, sample_dir, out_unit, 1, (/ 'h1' /),    &
-        (/ 13 /), (/ 'REAL32' /), testcnt, errcnt)
+   call run_test(test_msg, test_file, sample_dir, out_unit, 1,                &
+        (/ "%c.cam.h1.%y-%m-%d-%s.nc" /), (/ 13 /),                           &
+        (/ 'REAL32' /), testcnt, errcnt)
    total_tests = total_tests + testcnt
    total_errcnt = total_errcnt + errcnt
 
@@ -156,8 +157,8 @@ program test_history
    test_file = "two_good_configs.nl"
    test_msg = "two_good_configs.nl file read test"
    call run_test(test_msg, test_file, sample_dir, out_unit, 2,                &
-        (/ 'h1', 'h0' /), (/ 13, 30 /), (/ 'REAL32', 'REAL64' /),             &
-        testcnt, errcnt)
+        (/ "%c.cam.h1.%y-%m-%d-%s.nc", "%c.cam.h0.%y-%m-%d-%s.nc" /),         &
+        (/ 13, 30 /), (/ 'REAL32', 'REAL64' /), testcnt, errcnt)
    total_tests = total_tests + testcnt
    total_errcnt = total_errcnt + errcnt
 
