@@ -513,7 +513,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
       ! Register the constituents to find out what needs advecting
-      call host_constituents(1)%initialize(std_name="specific_humidity",      &
+      call host_constituents(1)%instantiate(std_name="specific_humidity",      &
            long_name="Specific humidity", units="kg kg-1",                    &
            vertical_dim="vertical_layer_dimension", advected=.true.,          &
            errcode=errflg, errmsg=errmsg)
