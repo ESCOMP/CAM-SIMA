@@ -488,7 +488,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
-      ! Return the minimum allowed mixing ratio for, <const_obj>
+      ! Return true iff <const_obj> is initialized in physics
       ! Dummy argument
       type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
       ! Local variables
@@ -508,13 +508,14 @@ CONTAINS
 
    logical function const_is_initialized_in_physics_index(const_ind) result(is_initialized)
       use cam_ccpp_cap, only: cam_model_const_properties
-      ! Return the minimum allowed mxing ratio for the constituent at <index>
+      ! Return true iff the  constituent at <index> is initialized in physics
       ! Dummy argument
       integer, intent(in) :: const_ind
       ! Local variable
-      type(ccpp_constituent_prop_ptr_t), pointer :: const_properties(:) => NULL()
+      type(ccpp_constituent_prop_ptr_t), pointer :: const_properties(:)
       character(len=*), parameter                :: subname = 'const_is_initialized_in_physics_index: '
 
+      const_properties => NULL()
       if (check_index_bounds(const_ind, subname)) then
          const_properties => cam_model_const_properties()
          is_initialized = const_is_initialized_in_physics(const_properties(const_ind))
