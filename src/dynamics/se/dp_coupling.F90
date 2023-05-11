@@ -288,7 +288,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! Save the tracer fields input to physics package for calculating tendencies
    ! The mixing ratios are all dry at this point.
-   q_prev(1:pcols,1:pver,:) = real(const_data_ptr(1:pcols,1:pver,1:3), r8)
+   q_prev(1:pcols,1:pver,:) = real(const_data_ptr(1:pcols,1:pver,1:num_advected), r8)
 
    call test_mapping_output_phys_state(phys_state,dyn_out%fvm)
 
