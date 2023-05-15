@@ -114,6 +114,7 @@ CONTAINS
       use spmd_utils,      only: masterproc, mpicom, masterprocid
       use mpi,             only: mpi_real8
       use cam_logfile,     only: iulog
+      use runtime_obj,     only: unset_real
 
       ! Dummy argument: filepath for file containing namelist input
       character(len=*), intent(in) :: nlfile
@@ -149,7 +150,16 @@ CONTAINS
       !    (e.g., for aqua planet experiments)
       namelist /physconst_nl/  user_defined_gravit, user_defined_sday, user_defined_mwh2o, user_defined_cpwv, user_defined_mwdry,              &
            user_defined_cpair, user_defined_rearth, user_defined_tmelt, user_defined_omega
-      !-----------------------------------------------------------------------
+      !----------------------------------------------------------------------
+      user_defined_gravit = UNSET_REAL
+      user_defined_sday = UNSET_REAL
+      user_defined_mwh2o = UNSET_REAL
+      user_defined_cpwv = UNSET_REAL
+      user_defined_mwdry = UNSET_REAL
+      user_defined_cpair = UNSET_REAL
+      user_defined_rearth = UNSET_REAL
+      user_defined_tmelt = UNSET_REAL
+      user_defined_omega = UNSET_REAL
 
       banner = repeat('*', lsize)
       bline = "***"//repeat(' ', lsize - 6)//"***"

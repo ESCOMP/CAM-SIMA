@@ -59,7 +59,7 @@
   dimensions = ()
   protected = True
 [ molec_diff_bot_press ]
-  standard_name = pressure_at_bottom_of_molcular_diffusion
+  standard_name = pressure_at_bottom_of_molecular_diffusion
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
@@ -71,7 +71,7 @@
   dimensions = ()
   protected = True
 [ nbot_molec ]
-  standard_name = index_of_pressure_at_bottom_of_molcular_diffusion
+  standard_name = index_of_pressure_at_bottom_of_molecular_diffusion
   units = index
   type = integer
   dimensions = ()

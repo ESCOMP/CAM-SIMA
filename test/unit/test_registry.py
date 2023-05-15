@@ -165,7 +165,6 @@ class RegistryTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(out_source, in_source,
                                         shallow=False), msg=amsg)
         # End for
-
     def test_good_ddt_registry2(self):
         """Test code and metadata generation from a good registry with DDTs
         with extends and bindC attributes.
@@ -405,7 +404,8 @@ class RegistryTest(unittest.TestCase):
     def test_good_complete_registry(self):
         """
         Test that a good registry with variables, meta-data files,
-        DDTs, Arrays, and parameters validates, i.e. try and test
+        DDTs, Arrays, variables set to a physconst variable,
+        and parameters validates, i.e. try and test
         everything at once.
 
         Check that generate_registry_data.py generates
@@ -1130,6 +1130,52 @@ class RegistryTest(unittest.TestCase):
         emsg += ", already defined with local_name, 'latitude'"
         self.assertEqual(emsg, str(verr.exception))
         # Make sure no output files were created
+        self.assertFalse(os.path.exists(out_meta))
+        self.assertFalse(os.path.exists(out_source))
+
+    def test_missing_use_statement(self):
+        """Test a registry with a missing use statement needed for initialization.
+        Check that it raises an exception and does not generate any
+        Fortran or metadata files"""
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_complete.xml")
+        filename = os.path.join(_TMP_DIR, "reg_missing_use.xml")
+        out_source_name = "physics_types_missing_use"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        tree, root = read_xml_file(infilename)
+        # Add a new variable that uses a non-"used" physconst variable
+        for obj in root:
+            oname = obj.get('name')
+            if (obj.tag == 'file') and (oname == 'physics_types_complete'):
+                obj.set('name', out_source_name)
+                new_var = ET.SubElement(obj, "variable")
+                new_var.set("local_name", "french_fries")
+                new_var.set("standard_name", "french_fried_potaters")
+                new_var.set("units", "radians")
+                new_var.set("type", "real")
+                new_var.set("kind", "kind_phys")
+                new_var.set("allocatable", "allocatable")
+                dims_elem = ET.SubElement(new_var, "dimensions")
+                dims_elem.text = 'horizontal_dimension'
+                initial_elem = ET.SubElement(new_var, "initial_value")
+                initial_elem.text = 'zvir'
+                break
+            # End if
+        # End for
+        tree.write(filename)
+        # Run test
+        with self.assertRaises(ValueError) as verr:
+            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+                             _SRC_MOD_DIR, _CAM_ROOT,
+                             loglevel=logging.ERROR,
+                             error_on_no_validate=True)
+        # End with
+        # Check exception message
+        emsg = "Initial value 'zvir' is not a physconst variable or does not have necessary use statement"
+        self.assertEqual(emsg, str(verr.exception))
+        # Make sure the output meta data file matches and no source data file has been generated
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
 

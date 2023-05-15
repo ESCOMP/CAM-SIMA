@@ -117,9 +117,9 @@ contains
 
      ! Allocate and initalize the relevant SE dycore dimension variables.
 
-     use vert_coord,     only: pver, pverp
-     use constituents,   only: pcnst
-     use cam_abortutils, only: check_allocate
+     use vert_coord,       only: pver, pverp
+     use cam_constituents, only: num_advected
+     use cam_abortutils,   only: check_allocate
 
      ! Local variables:
 
@@ -131,10 +131,10 @@ contains
      if (fv_nphys > 0) then
         ! Use CSLAM for tracer advection
         qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
-        ntrac = pcnst
+        ntrac = num_advected
      else
         ! Use GLL for tracer advection
-        qsize_d = pcnst
+        qsize_d = num_advected
         ntrac = 0 ! No fvm tracers if CSLAM is off
      end if
 
@@ -213,4 +213,3 @@ contains
 !==============================================================================
 
 end module dimensions_mod
-

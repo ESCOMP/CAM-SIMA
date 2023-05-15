@@ -4,35 +4,33 @@ module dp_coupling
 ! dynamics - physics coupling module
 !-------------------------------------------------------------------------------
 
-use shr_kind_mod,   only: r8=>shr_kind_r8
-use ccpp_kinds,     only: kind_phys
-!use constituents,   only: pcnst, cnst_type
-use constituents,   only: pcnst
+use shr_kind_mod,     only: r8=>shr_kind_r8
+use ccpp_kinds,       only: kind_phys
+use cam_constituents, only: const_is_wet, num_advected
 
-use spmd_dyn,       only: local_dp_map
-use spmd_utils,     only: iam
-use dyn_grid,       only: TimeLevel, edgebuf
-use dyn_comp,       only: dyn_export_t, dyn_import_t
+use spmd_dyn,         only: local_dp_map
+use spmd_utils,       only: iam
+use dyn_grid,         only: TimeLevel, edgebuf
+use dyn_comp,         only: dyn_export_t, dyn_import_t
 
-use runtime_obj,    only: runtime_options
-use physics_types,  only: physics_state, physics_tend
-use physics_types,  only: ix_qv, ix_cld_liq, ix_rain !Remove once constituents are enabled
-use physics_grid,   only: pcols => columns_on_task, get_dyn_col_p
-use vert_coord,     only: pver, pverp
+use runtime_obj,      only: runtime_options
+use physics_types,    only: physics_state, physics_tend
+use physics_grid,     only: pcols => columns_on_task, get_dyn_col_p
+use vert_coord,       only: pver, pverp
 
-use dp_mapping,     only: nphys_pts
+use dp_mapping,       only: nphys_pts
 
-use perf_mod,       only: t_startf, t_stopf, t_barrierf
-use cam_abortutils, only: endrun, check_allocate
+use perf_mod,         only: t_startf, t_stopf, t_barrierf
+use cam_abortutils,   only: endrun, check_allocate
 
 !SE dycore:
-use parallel_mod,   only: par
-use thread_mod,     only: horz_num_threads, max_num_threads
-use hybrid_mod,     only: config_thread_region, get_loop_ranges, hybrid_t
-use dimensions_mod, only: np, npsq, nelemd, nlev, nc, qsize, ntrac, fv_nphys
+use parallel_mod,     only: par
+use thread_mod,       only: horz_num_threads, max_num_threads
+use hybrid_mod,       only: config_thread_region, get_loop_ranges, hybrid_t
+use dimensions_mod,   only: np, npsq, nelemd, nlev, nc, qsize, ntrac, fv_nphys
 
-use dof_mod,        only: UniquePoints, PutUniquePoints
-use element_mod,    only: element_t
+use dof_mod,          only: UniquePoints, PutUniquePoints
+use element_mod,      only: element_t
 
 implicit none
 private
@@ -55,6 +53,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    use gravity_waves_sources,  only: gws_src_fnct
    use hycoef,                 only: hyai, ps0
    use test_fvm_mapping,       only: test_mapping_overwrite_dyn_state, test_mapping_output_phys_state
+   use cam_ccpp_cap,           only: cam_constituents_array
+   use cam_constituents,       only: const_name
 
    !SE dycore:
    use fvm_mapping,            only: dyn2phys_vector, dyn2phys_all_vars
@@ -81,6 +81,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    real(r8),  allocatable :: uv_tmp(:,:,:,:)     ! temp array to hold u and v
    real(r8),  allocatable :: q_tmp(:,:,:,:)      ! temp to hold advected constituents
    real(r8),  allocatable :: omega_tmp(:,:,:)    ! temp array to hold omega
+   real(kind=kind_phys),  pointer :: const_data_ptr(:,:,:) ! pointer to constituent array
 
    ! Frontogenesis
    real (kind=r8),  allocatable :: frontgf(:,:,:)     ! temp arrays to hold frontogenesis
@@ -95,6 +96,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    integer               :: tl_f, tl_qdp_np0, tl_qdp_np1
 
    character(len=*), parameter :: subname = 'd_p_coupling'
+   character(len=200) :: stdname_test
 
    !----------------------------------------------------------------------------
 
@@ -109,12 +111,14 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    if (fv_nphys > 0) then
       nphys = fv_nphys
    else
-     allocate(qgll(np,np,nlev,pcnst), stat=ierr)
-     call check_allocate(ierr, subname, 'qgll(np,np,nlev,pcnst)', &
+     allocate(qgll(np,np,nlev,num_advected), stat=ierr)
+     call check_allocate(ierr, subname, 'qgll(np,np,nlev,num_advected)', &
                          file=__FILE__, line=__LINE__)
 
      nphys = np
    end if
+
+   const_data_ptr => cam_constituents_array()
 
    ! Allocate temporary arrays to hold data for physics decomposition
    allocate(ps_tmp(nphys_pts,nelemd), stat=ierr)
@@ -141,8 +145,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(q_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
-   call check_allocate(ierr, subname, 'q_tmp(nphys_pts,pver,pcnst,nelemd)', &
+   allocate(q_tmp(nphys_pts,pver,num_advected,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'q_tmp(nphys_pts,pver,num_advected,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
    allocate(omega_tmp(nphys_pts,pver,nelemd), stat=ierr)
@@ -181,7 +185,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          ! note that the fvm halo has been filled in prim_run_subcycle
          ! if physics grid resolution is not equal to fvm resolution
          call dyn2phys_all_vars(1,nelemd,elem, dyn_out%fvm,&
-              pcnst,hyai(1)*ps0,tl_f,                      &
+              num_advected,hyai(1)*ps0,tl_f,               &
               ! output
               dp3d_tmp, ps_tmp, q_tmp, T_tmp,              &
               omega_tmp, phis_tmp                          &
@@ -198,14 +202,14 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          ! physics decomposition
          !******************************************************************
 
-         if (qsize < pcnst) then
+         if (qsize < num_advected) then
             call endrun('d_p_coupling: Fewer GLL tracers advected than required')
          end if
 
          call t_startf('UniquePoints')
          do ie = 1, nelemd
            inv_dp3d(:,:,:) = 1.0_r8/elem(ie)%state%dp3d(:,:,:,tl_f)
-           do m=1,pcnst
+           do m = 1, num_advected
              qgll(:,:,:,m) = elem(ie)%state%Qdp(:,:,:,m,tl_qdp_np0)*inv_dp3d(:,:,:)
            end do
             ncols = elem(ie)%idxP%NumUniquePts
@@ -216,7 +220,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
             call UniquePoints(elem(ie)%idxV, nlev, elem(ie)%derived%omega, omega_tmp(1:ncols,:,ie))
 
             call UniquePoints(elem(ie)%idxP, elem(ie)%state%phis, phis_tmp(1:ncols,ie))
-            call UniquePoints(elem(ie)%idxP, nlev, pcnst, qgll,q_tmp(1:ncols,:,:,ie))
+            call UniquePoints(elem(ie)%idxP, nlev, num_advected, qgll,q_tmp(1:ncols,:,:,ie))
 
          end do
          call t_stopf('UniquePoints')
@@ -248,8 +252,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! q_prev is for saving the tracer fields for calculating tendencies
    if (.not. allocated(q_prev)) then
-      allocate(q_prev(pcols,pver,pcnst), stat=ierr)
-      call check_allocate(ierr, subname, 'q_prev(pcols,pver,pcnst)', &
+      allocate(q_prev(pcols,pver,num_advected), stat=ierr)
+      call check_allocate(ierr, subname, 'q_prev(pcols,pver,num_advected)', &
                           file=__FILE__, line=__LINE__)
    end if
    q_prev = 0.0_r8
@@ -273,9 +277,9 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          end if
       end do
 
-      do m = 1, pcnst
+      do m = 1, num_advected
          do ilyr = 1, pver
-            phys_state%q(icol, ilyr,m) = real(q_tmp(blk_ind(1), ilyr,m, ie), kind_phys)
+            const_data_ptr(icol, ilyr,m) = real(q_tmp(blk_ind(1), ilyr,m, ie), kind_phys)
          end do
       end do
    end do
@@ -284,7 +288,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! Save the tracer fields input to physics package for calculating tendencies
    ! The mixing ratios are all dry at this point.
-   q_prev(1:pcols,1:pver,:) = real(phys_state%q(1:pcols,1:pver,1:3), r8)
+   q_prev(1:pcols,1:pver,:) = real(const_data_ptr(1:pcols,1:pver,1:num_advected), r8)
 
    call test_mapping_output_phys_state(phys_state,dyn_out%fvm)
 
@@ -312,6 +316,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    ! Convert the physics output state into the dynamics input state.
    use test_fvm_mapping, only: test_mapping_overwrite_tendencies
    use test_fvm_mapping, only: test_mapping_output_mapped_tendencies
+   use cam_ccpp_cap,     only: cam_constituents_array
 
    ! SE dycore:
    use bndry_mod,        only: bndry_exchange
@@ -332,6 +337,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    integer                  :: ie               ! index for elements
    integer                  :: blk_ind(1)       ! element offset
    integer                  :: icol, ilyr       ! indices for column, layer
+   real(kind=kind_phys),  pointer :: const_data_ptr(:,:,:) ! constituent data pointer
 
    real(r8),  allocatable   :: dp_phys(:,:,:)   ! temp array to hold dp on physics grid
    real(r8),  allocatable   :: T_tmp(:,:,:)     ! temp array to hold T
@@ -366,8 +372,8 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-   allocate(dq_tmp(nphys_pts,pver,pcnst,nelemd), stat=ierr)
-   call check_allocate(ierr, subname, 'dq_tmp(nphys_pts,pver,pcnst,nelemd)', &
+   allocate(dq_tmp(nphys_pts,pver,num_advected,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'dq_tmp(nphys_pts,pver,num_advected,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
    allocate(dp_phys(nphys_pts,pver,nelemd), stat=ierr)
@@ -378,44 +384,12 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    uv_tmp = 0.0_r8
    dq_tmp = 0.0_r8
 
+   ! Grab pointer to constituent array
+   const_data_ptr => cam_constituents_array()
+
    if (.not. allocated(q_prev)) then
       call endrun('p_d_coupling: q_prev not allocated')
    end if
-
-!Remove once constituents are implemented in the CCPP framework -JN:
-#if 0
-   ! Convert wet to dry mixing ratios and modify the physics temperature
-   ! tendency to be thermodynamically consistent with the dycore.
-   !$omp parallel do num_threads(max_num_threads) private (lchnk, ncols, icol, ilyr, m, factor)
-   do lchnk = begchunk, endchunk
-      ncols = get_ncols_p(lchnk)
-      do icol = 1, ncols
-         do ilyr = 1, pver
-            ! convert wet mixing ratios to dry
-            factor = phys_state(lchnk)%pdel(icol,ilyr)/phys_state(lchnk)%pdeldry(icol,ilyr)
-            do m = 1, pcnst
-               if (cnst_type(m) == 'wet') then
-                  phys_state(lchnk)%q(icol,ilyr,m) = factor*phys_state(lchnk)%q(icol,ilyr,m)
-               end if
-            end do
-         end do
-      end do
-      call thermodynamic_consistency( &
-           phys_state(lchnk), phys_tend(lchnk), ncols, pver)
-   end do
-#else
-   do ilyr = 1, pver
-      do icol=1, pcols
-         !Apply adjustment only to water vapor:
-         factor = phys_state%pdel(icol,ilyr)/phys_state%pdeldry(icol,ilyr)
-         phys_state%q(icol,ilyr,ix_qv) = factor*phys_state%q(icol,ilyr,ix_qv)
-         phys_state%q(icol,ilyr,ix_cld_liq) = factor*phys_state%q(icol,ilyr,ix_cld_liq)
-         phys_state%q(icol,ilyr,ix_rain) = factor*phys_state%q(icol,ilyr,ix_rain)
-      end do
-   end do
-   call thermodynamic_consistency(phys_state, phys_tend, pcols, pver)
-#endif
-
    call t_startf('pd_copy')
    !$omp parallel do num_threads(max_num_threads) private (icol, ie, blk_ind, ilyr, m)
    do icol = 1, pcols
@@ -431,9 +405,9 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
          T_tmp(blk_ind(1),ilyr,ie)    = real(phys_tend%dTdt_total(icol,ilyr), r8)
          uv_tmp(blk_ind(1),1,ilyr,ie) = real(phys_tend%dudt_total(icol,ilyr), r8)
          uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt_total(icol,ilyr), r8)
-         do m = 1, pcnst
+         do m = 1, num_advected
             dq_tmp(blk_ind(1),ilyr,m,ie) =                                    &
-                 (real(phys_state%q(icol,ilyr,m), r8) - q_prev(icol,ilyr,m))
+                 (real(const_data_ptr(icol,ilyr,m), r8) - q_prev(icol,ilyr,m))
          end do
       end do
    end do
@@ -478,7 +452,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
                elem(ie)%derived%fT(:,:,:))
             call putUniquePoints(elem(ie)%idxV, 2, nlev, uv_tmp(1:ncols,:,:,ie), &
                elem(ie)%derived%fM(:,:,:,:))
-            call putUniquePoints(elem(ie)%idxV, nlev, pcnst, dq_tmp(1:ncols,:,:,ie), &
+            call putUniquePoints(elem(ie)%idxV, nlev, num_advected, dq_tmp(1:ncols,:,:,ie), &
                elem(ie)%derived%fQ(:,:,:,:))
          end do
          call t_stopf('putUniquePoints')
@@ -573,10 +547,12 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Finally compute energy and water column integrals of the physics input state.
 
 !   use constituents,   only: qmin
+   use cam_ccpp_cap,   only: cam_constituents_array
+   use cam_constituents, only: const_get_index
    use physics_types,  only: lagrangian_vertical
    use physconst,      only: cpair, gravit, zvir, cappa
    use cam_thermo,     only: cam_thermo_update
-   use air_composition,only: rairv, zvirv
+   use physics_types,  only: rairv, zvirv
    use shr_const_mod,  only: shr_const_rwv
    use geopotential_t, only: geopotential_t_run
 !   use check_energy,   only: check_energy_timestep_init
@@ -593,8 +569,10 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
    ! local variables
    real(kind_phys) :: factor_array(pcols,nlev)
+   real(kind_phys), pointer :: const_data_ptr(:,:,:)
 
    integer :: m, i, k
+   integer :: ix_q, ix_cld_liq, ix_rain
 
    !Needed for "geopotential_t" CCPP scheme:
    integer :: errflg
@@ -607,6 +585,14 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
     real(r8), parameter :: mmrMin=1.e-20_r8  ! lower limit of o2, o, and h mixing ratios
     real(r8), parameter :: N2mmrMin=1.e-6_r8 ! lower limit of o2, o, and h mixing ratios
    !----------------------------------------------------------------------------
+
+   ! Set constituent indices
+   call const_get_index('specific_humidity', ix_q)
+   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
+   call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
+
+   ! Grab pointer to constituent array
+   const_data_ptr => cam_constituents_array()
 
    ! Evaluate derived quantities
 
@@ -648,7 +634,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       do i=1, pcols
          ! to be consistent with total energy formula in physic's check_energy module only
          ! include water vapor in in moist dp
-         factor_array(i,k) = 1._kind_phys+phys_state%q(i,k,ix_qv)
+         factor_array(i,k) = 1._kind_phys+const_data_ptr(i,k,ix_q)
          phys_state%pdel(i,k) = phys_state%pdeldry(i,k)*factor_array(i,k)
       end do
    end do
@@ -688,27 +674,14 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! physics expect water variables moist
    factor_array(:,1:nlev) = 1._kind_phys/factor_array(:,1:nlev)
 
-!Remove once constituents are enabled in the CCPP framework:
-#if 0
-   do m = 1,pcnst
-      if (cnst_type(m) == 'wet') then
-         do k = 1, nlev
-            do i = 1, ncol
-               phys_state(lchnk)%q(i,k,m) = factor_array(i,k)*phys_state(lchnk)%q(i,k,m)
-            end do
-         end do
-      end if
-   end do
-#else
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
    do k = 1, nlev
       do i=1, pcols
-         phys_state%q(i,k,ix_qv) = factor_array(i,k)*phys_state%q(i,k,ix_qv)
-         phys_state%q(i,k,ix_cld_liq) = factor_array(i,k)*phys_state%q(i,k,ix_cld_liq)
-         phys_state%q(i,k,ix_rain) = factor_array(i,k)*phys_state%q(i,k,ix_rain)
+         const_data_ptr(i,k,ix_q) = factor_array(i,k)*const_data_ptr(i,k,ix_q)
+         const_data_ptr(i,k,ix_cld_liq) = factor_array(i,k)*const_data_ptr(i,k,ix_cld_liq)
+         const_data_ptr(i,k,ix_rain) = factor_array(i,k)*const_data_ptr(i,k,ix_rain)
       end do
    end do
-#endif
 
    !------------------------------------------------------------
    ! Ensure O2 + O + H (N2) mmr greater than one.
@@ -720,23 +693,23 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       do i=1,pcols
          do k=1,pver
 
-            if (phys_state%q(i,k,ixo) < mmrMin) phys_state%q(i,k,ixo) = mmrMin
-            if (phys_state%q(i,k,ixo2) < mmrMin) phys_state%q(i,k,ixo2) = mmrMin
+            if (const_data_ptr(i,k,ixo) < mmrMin) const_data_ptr(i,k,ixo) = mmrMin
+            if (const_data_ptr(i,k,ixo2) < mmrMin) const_data_ptr(i,k,ixo2) = mmrMin
 
-            mmrSum_O_O2_H = phys_state%q(i,k,ixo)+phys_state%q(i,k,ixo2)+phys_state%q(i,k,ixh)
+            mmrSum_O_O2_H = const_data_ptr(i,k,ixo)+const_data_ptr(i,k,ixo2)+const_data_ptr(i,k,ixh)
 
             if ((1._r8-mmrMin-mmrSum_O_O2_H) < 0._r8) then
 
-               phys_state%q(i,k,ixo) = phys_state%q(i,k,ixo) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
+               const_data_ptr(i,k,ixo) = const_data_ptr(i,k,ixo) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
-               phys_state%q(i,k,ixo2) = phys_state%q(i,k,ixo2) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
+               const_data_ptr(i,k,ixo2) = const_data_ptr(i,k,ixo2) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
-               phys_state%q(i,k,ixh) = phys_state%q(i,k,ixh) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
+               const_data_ptr(i,k,ixh) = const_data_ptr(i,k,ixh) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
             endif
 
-            if(phys_state%q(i,k,ixh2) .gt. 6.e-5_r8) then
-               phys_state%q(i,k,ixh2) = 6.e-5_r8
+            if(const_data_ptr(i,k,ixh2) .gt. 6.e-5_r8) then
+               const_data_ptr(i,k,ixh2) = 6.e-5_r8
             endif
 
          end do
@@ -748,16 +721,16 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! returns .true., cam_thermo_update will compute cpairv, rairv, mbarv, and cappav as
    ! constituent dependent variables. It will also:
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
-   ! Update air_composition zvirv variable; calculated for WACCM-X.
+   ! Update zvirv registry variable; calculated for WACCM-X.
    !-----------------------------------------------------------------------------
-   call cam_thermo_update(phys_state%q, phys_state%t, pcols, &
+   call cam_thermo_update(const_data_ptr, phys_state%t, pcols, &
         cam_runtime_opts%update_thermodynamic_variables())
 
    !Call geopotential_t CCPP scheme:
    call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
                            pverp, 1, phys_state%lnpint, phys_state%pint, &
                            phys_state%pmid, phys_state%pdel, &
-                           phys_state%rpdel, phys_state%t,  phys_state%q(:,:,ix_qv), &
+                           phys_state%rpdel, phys_state%t,  const_data_ptr(:,:,ix_q), &
                            rairv, gravit, zvirv, phys_state%zi, phys_state%zm, pcols, &
                            errflg, errmsg)
 
@@ -775,7 +748,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 #if 0
       ! Ensure tracers are all positive
       call qneg3('D_P_COUPLING',lchnk  ,ncol    ,pcols   ,pver    , &
-           1, pcnst, qmin  ,phys_state%q)
+           1, num_advected, qmin  ,const_data_ptr)
 #endif
 
 !Remove once check_energy scheme exists in CAMDEN:
@@ -788,7 +761,7 @@ end subroutine derived_phys_dry
 
 !=========================================================================================
 
-subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
+subroutine thermodynamic_consistency(phys_state, const_data_ptr, phys_tend, ncols, pver)
   !
    ! Adjust the physics temperature tendency for thermal energy consistency with the
    ! dynamics.
@@ -802,6 +775,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
    use control_mod,       only: phys_dyn_cp
 
    type(physics_state), intent(in)    :: phys_state
+   real(kind_phys), pointer           :: const_data_ptr(:,:,:)
    type(physics_tend ), intent(inout) :: phys_tend
    integer,  intent(in)               :: ncols, pver
 
@@ -816,7 +790,7 @@ subroutine thermodynamic_consistency(phys_state, phys_tend, ncols, pver)
      ! note that if lcp_moist=.false. then there is thermal energy increment
      ! consistency (not taking into account dme adjust)
      !
-     call get_cp(phys_state%q(1:ncols,1:pver,:),.true.,inv_cp)
+     call get_cp(const_data_ptr(1:ncols,1:pver,1:num_advected),.true.,inv_cp)
 
      phys_tend%dTdt_total(1:ncols,1:pver) = phys_tend%dTdt_total(1:ncols,1:pver)*cpair*inv_cp
    end if

@@ -28,12 +28,15 @@ module cam_logfile
 !-----------------------------------------------------------------------
 ! Public data ----------------------------------------------------------
 !-----------------------------------------------------------------------
-   integer, public, protected :: iulog = 6
    integer, public, parameter :: DEBUGOUT_NONE    = 0
    integer, public, parameter :: DEBUGOUT_INFO    = 1
    integer, public, parameter :: DEBUGOUT_VERBOSE = 2
    integer, public, parameter :: DEBUGOUT_DEBUG   = 3
    integer, public, protected :: debug_output = DEBUGOUT_NONE
+   !> \section arg_table_cam_logfile  Argument Table
+   !! \htmlinclude cam_logfile.html
+   integer, public, protected :: iulog = 6
+   logical, public, protected :: log_output = .false.
 
 !-----------------------------------------------------------------------
 ! Private data ---------------------------------------------------------
@@ -68,9 +71,9 @@ CONTAINS
    end subroutine cam_set_log_unit
 
    subroutine cam_logfile_readnl(nlfile)
-      use shr_nl_mod,   only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,   only: mpicom, masterprocid, masterproc
-      use mpi,          only: mpi_integer
+      use mpi,        only: mpi_integer
+      use shr_nl_mod, only: find_group_name => shr_nl_find_group_name
+      use spmd_utils, only: mpicom, masterprocid, masterproc
 
       ! nlfile: filepath for file containing namelist input
       character(len=*), intent(in) :: nlfile
@@ -83,6 +86,10 @@ CONTAINS
 
       namelist /cam_logfile_nl/ debug_output
       !------------------------------------------------------------------------
+
+      ! Since cam_set_log_unit is called before spmd_init is called,
+      !    set log_output flag here
+      log_output = masterproc
 
       if (masterproc) then
          open(newunit=unitn, file=trim(nlfile), status='old')

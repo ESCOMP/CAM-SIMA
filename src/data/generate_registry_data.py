@@ -25,6 +25,7 @@ __SPINSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
 if __SPINSCRIPTS not in sys.path:
     sys.path.append(__SPINSCRIPTS)
 # end if
+_ALL_STRINGS_REGEX = re.compile(r'[A-Za-z][A-Za-z_0-9]+')
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
@@ -152,6 +153,7 @@ class VarBase:
         self.__standard_name = elem_node.get('standard_name')
         self.__long_name = ''
         self.__initial_value = ''
+        self.__initial_val_vars = set()
         self.__ic_names = None
         self.__elements = []
         self.__protected = protected
@@ -159,6 +161,7 @@ class VarBase:
         self.__local_index_name = local_index_name
         self.__local_index_name_str = local_index_name_str
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
+        self.__advected = elem_node.get("advected", default=False)
         self.__tstep_init = elem_node.get("phys_timestep_init_zero",
                                           default=tstep_init_default)
         if self.__allocatable == "none":
@@ -206,8 +209,11 @@ class VarBase:
             outfile.write(f'  type = {self.var_type}\n')
         # end if
         outfile.write(f'  dimensions = {self.dimension_string}\n')
+        if self.is_advected:
+            outfile.write('  advected = true\n')
+        # end if
 
-    def write_initial_value(self, outfile, indent, init_var, ddt_str,
+    def write_initial_value(self, outfile, indent, init_var, ddt_str, physconst_vars,
                             tstep_init=False):
         """Write the code for the initial value of this variable
         and/or one of its array elements."""
@@ -276,8 +282,15 @@ class VarBase:
         elif init_val:
             outfile.write(f"if ({init_var}) then", indent)
             outfile.write(f"{var_name} = {init_val}", indent+1)
+            if self.initial_val_vars and self.initial_val_vars.issubset(physconst_vars):
+               outfile.write(f"call mark_as_initialized('{self.standard_name}')", indent+1)
+            # end if
             outfile.write("end if", indent)
         # end if
+
+    def set_initial_val_vars(self, init_vars):
+        """Set the initial value variable set"""
+        self.__initial_val_vars = init_vars
 
     @property
     def local_name(self):
@@ -323,6 +336,11 @@ class VarBase:
     def initial_value(self):
         """Return the initial_value for this variable"""
         return self.__initial_value
+
+    @property
+    def initial_val_vars(self):
+        """Return the initial_val_var_array for this variable"""
+        return self.__initial_val_vars
 
     @property
     def ic_names(self):
@@ -371,6 +389,11 @@ class VarBase:
     def is_ddt(self):
         """Return True iff this variable is a derived type"""
         return self.__type.ddt
+
+    @property
+    def is_advected(self):
+        """Return True if this variable is advected"""
+        return self.__advected
 
     @property
     def tstep_init(self):
@@ -475,9 +498,10 @@ class Variable(VarBase):
     # Constant dimensions
     __CONSTANT_DIMENSIONS = {'ccpp_constant_one' : 1, 'ccpp_constant_zero' : 0}
 
-    __VAR_ATTRIBUTES = ["access", "allocatable", "dycore", "extends",
-                        "kind", "local_name", "name", "standard_name",
-                        "type", "units", "version", "phys_timestep_init_zero"]
+    __VAR_ATTRIBUTES = ["access", "advected", "allocatable", "dycore",
+                        "extends", "kind", "local_name", "name",
+                        "phys_timestep_init_zero", "standard_name",
+                        "type", "units", "version"]
 
     def __init__(self, var_node, known_types, vdict, logger):
         # pylint: disable=too-many-locals
@@ -653,14 +677,13 @@ class Variable(VarBase):
         # end if
         type_str = self.type_string + tpad
         # Initial value
+        init_str = ""
         if self.initial_value:
             if self.allocatable == "pointer":
                 init_str = f" => {self.initial_value}"
             elif not (self.allocatable[0:11] == 'allocatable'):
                 init_str = f" = {self.initial_value}"
             # end if (no else, do not initialize allocatable fields)
-        else:
-            init_str = ""
         # end if
         if self.long_name:
             comment = ' ! ' + self.local_name + ": " + self.long_name
@@ -674,7 +697,7 @@ class Variable(VarBase):
         outfile.write(var_dec_str, indent)
 
     def write_allocate_routine(self, outfile, indent,
-                               init_var, reall_var, ddt_str):
+                               init_var, reall_var, ddt_str, physconst_vars):
         """Write the code to allocate and initialize this Variable
         <init_var> is a string to use to write initialization test code.
         <reall_var> is a string to use to write reallocate test code.
@@ -697,7 +720,7 @@ class Variable(VarBase):
             # end if
             for var in my_ddt.variable_list():
                 var.write_allocate_routine(outfile, subi,
-                                           init_var, reall_var, sub_ddt_str)
+                                           init_var, reall_var, sub_ddt_str, physconst_vars)
         else:
             # Do we need to allocate this variable?
             lname = f'{ddt_str}{self.local_name}'
@@ -725,17 +748,17 @@ class Variable(VarBase):
             # end if
             if self.allocatable != "parameter":
                 # Initialize the variable
-                self.write_initial_value(outfile, indent, init_var, ddt_str)
+                self.write_initial_value(outfile, indent, init_var, ddt_str, physconst_vars)
                 for elem in self.elements:
                     if elem.initial_value:
                         elem.write_initial_value(outfile, indent,
-                                                 init_var, ddt_str)
+                                                 init_var, ddt_str, physconst_vars)
                     # end if
                 # end for
             # end if
 
     def write_tstep_init_routine(self, outfile, indent,
-                                 ddt_str, init_val=False):
+                                 ddt_str, physconst_vars, init_val=False):
         """
         Write the code to iniitialize this variable to zero at the
         start of each physics timestep.
@@ -762,7 +785,7 @@ class Variable(VarBase):
                 raise ParseInternalError(emsg)
             # end if
             for var in my_ddt.variable_list():
-                var.write_tstep_init_routine(outfile, subi, sub_ddt_str,
+                var.write_tstep_init_routine(outfile, subi, sub_ddt_str, physconst_vars,
                                              init_val=self.tstep_init)
         else:
 
@@ -784,7 +807,7 @@ class Variable(VarBase):
                 outfile.write(comment, indent)
 
                 # Initialize the variable:
-                self.write_initial_value(outfile, indent, "", ddt_str,
+                self.write_initial_value(outfile, indent, "", ddt_str, physconst_vars,
                                          tstep_init=True)
 
             # end if
@@ -822,6 +845,7 @@ class VarDict(OrderedDict):
         self.__logger = logger
         self.__standard_names = []
         self.__dimensions = set() # All known dimensions for this dictionary
+        self.__initial_value_vars = set() # All known initial value variables for this dict
 
     @property
     def name(self):
@@ -837,6 +861,11 @@ class VarDict(OrderedDict):
     def known_dimensions(self):
         """Return the set of known dimensions for this dictionary"""
         return self.__dimensions
+
+    @property
+    def known_initial_value_vars(self):
+        """Return the set of known initial value variables for this dictionary"""
+        return self.__initial_value_vars
 
     def add_variable(self, newvar):
         """Add a variable if it does not conflict with existing entries"""
@@ -879,6 +908,18 @@ class VarDict(OrderedDict):
                 # end if
             # end for
         # end for
+        # Parse out all strings from initial value
+        all_strings = _ALL_STRINGS_REGEX.findall(newvar.initial_value)
+        init_val_vars = set()
+        excluded_initializations = {'null', 'nan', 'false', 'true'}
+        # Exclude NULL and nan variables
+        for var in all_strings:
+            if var.lower() not in excluded_initializations:
+               init_val_vars.add(var)
+            # end if
+        # end if
+        self.__initial_value_vars.update(init_val_vars)
+        newvar.set_initial_val_vars(init_val_vars)
 
     def find_variable_by_local_name(self, local_name):
         """Return this dictionary's variable matching local name, <local_name>.
@@ -967,6 +1008,18 @@ class VarDict(OrderedDict):
             var.write_definition(outfile, access, indent, maxtyp=maxtyp,
                                  maxacc=maxacc, maxall=maxall,
                                  has_protect=has_prot)
+        # end for
+
+
+    def check_initial_values(self, physconst_vars):
+        """Raise an error if there are any initial values that are set to
+        non-"used" and/or non-"physconst" variables"""
+        for var in self.known_initial_value_vars:
+            if var not in physconst_vars:
+                emsg = f"Initial value '{var}' is not a physconst variable"
+                emsg += " or does not have necessary use statement"
+                raise CCPPError(emsg)
+            # end if
         # end for
 
 ###############################################################################
@@ -1216,7 +1269,7 @@ class File:
         # end if
         return File.__dim_order[dim_name]
 
-    def write_source(self, outdir, indent, logger):
+    def write_source(self, outdir, indent, logger, physconst_vars):
         """Write out source code for the variables in this file"""
         ofilename = os.path.join(outdir, f"{self.name}.F90")
         logger.info(f"Writing registry source file, {ofilename}")
@@ -1273,8 +1326,8 @@ class File:
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
-            self.write_allocate_routine(outfile)
-            self.write_tstep_init_routine(outfile)
+            self.write_allocate_routine(outfile, physconst_vars)
+            self.write_tstep_init_routine(outfile, physconst_vars)
 
         # end with
 
@@ -1286,7 +1339,7 @@ class File:
         """Return the name of the physics timestep init routine for this module"""
         return f"{self.name}_tstep_init"
 
-    def write_allocate_routine(self, outfile):
+    def write_allocate_routine(self, outfile, physconst_vars):
         """Write a subroutine to allocate all the data in this module"""
         subname = self.allocate_routine_name()
         args = list(self.__var_dict.known_dimensions)
@@ -1332,11 +1385,11 @@ class File:
         outfile.write('end if', 2)
         outfile.write('', 0)
         for var in self.__var_dict.variable_list():
-            var.write_allocate_routine(outfile, 2, init_var, reall_var, '')
+            var.write_allocate_routine(outfile, 2, init_var, reall_var, '', physconst_vars)
         # end for
         outfile.write(f'end subroutine {subname}', 1)
 
-    def write_tstep_init_routine(self, outfile):
+    def write_tstep_init_routine(self, outfile, physconst_vars):
         """
         Write a subroutine to initialize registered variables
         to zero at the beginning of each physics timestep.
@@ -1349,7 +1402,7 @@ class File:
         subn_str = f'character(len=*), parameter :: subname = "{subname}"'
         outfile.write(subn_str, 2)
         for var in self.__var_dict.variable_list():
-            var.write_tstep_init_routine(outfile, 2, '')
+            var.write_tstep_init_routine(outfile, 2, '', physconst_vars)
         # end for
         outfile.write('', 0)
         outfile.write(f'end subroutine {subname}', 1)
@@ -1378,6 +1431,11 @@ class File:
     def generate_code(self):
         """Return True if code and metadata should be generated for this File"""
         return self.__generate_code
+
+    @property
+    def use_statements(self):
+        """Return list of use statements"""
+        return self.__use_statements
 
     @property
     def file_path(self):
@@ -1575,11 +1633,22 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     # end if
-    # Write metadata
     for file_ in files:
+        # Check to see if any initial values for variables aren't "used" physconst vars
+        # First pull out the physconst variables used for this file
+        physconst_vars = set()
+        for ref in file_.use_statements:
+            if ref[0] == 'physconst':
+                physconst_vars.add(ref[1])
+            # end if
+        # end for
+        # Then check against the initial values in the variable dictionary
+        # Check will raise an exception if there is a rogue variable
+        file_.var_dict.check_initial_values(physconst_vars)
+        # Generate metadata and source
         if file_.generate_code:
             file_.write_metadata(outdir, logger)
-            file_.write_source(outdir, indent, logger)
+            file_.write_source(outdir, indent, logger, physconst_vars)
         # end if
     # end for
 

@@ -19,6 +19,7 @@ module time_manager
    use string_utils,   only: to_upper
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
+   use runtime_obj,    only: unset_int
 
    implicit none
    private
@@ -58,7 +59,7 @@ public ::&
 
 ! Private module data
 
-integer, parameter :: uninit_int = -999999999
+integer, parameter :: uninit_int = unset_int
 
 integer :: dtime = uninit_int               ! timestep in seconds
 
@@ -416,41 +417,60 @@ end subroutine init_calendar
 subroutine timemgr_print()
 
 ! Local variables
+   integer                 :: rc
+   integer                 :: yr, mon, day
+   integer                 :: nstep                  ! current step number
+   integer                 :: step_sec               ! timestep size in seconds
+   integer                 :: start_yr               ! start year
+   integer                 :: start_mon              ! start month
+   integer                 :: start_day              ! start day of month
+   integer                 :: start_tod              ! start time of day
+   integer                 :: stop_yr                ! stop year
+   integer                 :: stop_mon               ! stop month
+   integer                 :: stop_day               ! stop day of month
+   integer                 :: stop_tod               ! stop time of day
+   integer                 :: ref_yr                 ! reference year
+   integer                 :: ref_mon                ! reference month
+   integer                 :: ref_day                ! reference day of month
+   integer                 :: ref_tod                ! reference time of day
+   integer                 :: curr_yr                ! current year
+   integer                 :: curr_mon               ! current month
+   integer                 :: curr_day               ! current day of month
+   integer                 :: curr_tod               ! current time of day
+   integer(ESMF_KIND_I8)   :: step_no                ! current ESMF Clock step number
+   type(ESMF_Time)         :: start_date             ! start date for run
+   type(ESMF_Time)         :: stop_date              ! stop date for run
+   type(ESMF_Time)         :: curr_date              ! current date for run
+   type(ESMF_Time)         :: ref_date               ! reference date
+   type(ESMF_TimeInterval) :: step                   ! Time-step
    character(len=*), parameter :: sub = 'timemgr_print'
-   integer :: rc
-   integer :: yr, mon, day
-   integer ::&
-      nstep     = uninit_int,  &! current step number
-      step_sec  = uninit_int,  &! timestep size seconds
-      start_yr  = uninit_int,  &! start year
-      start_mon = uninit_int,  &! start month
-      start_day = uninit_int,  &! start day of month
-      start_tod = uninit_int,  &! start time of day
-      stop_yr   = uninit_int,  &! stop year
-      stop_mon  = uninit_int,  &! stop month
-      stop_day  = uninit_int,  &! stop day of month
-      stop_tod  = uninit_int,  &! stop time of day
-      ref_yr    = uninit_int,  &! reference year
-      ref_mon   = uninit_int,  &! reference month
-      ref_day   = uninit_int,  &! reference day of month
-      ref_tod   = uninit_int,  &! reference time of day
-      curr_yr   = uninit_int,  &! current year
-      curr_mon  = uninit_int,  &! current month
-      curr_day  = uninit_int,  &! current day of month
-      curr_tod  = uninit_int    ! current time of day
-   integer(ESMF_KIND_I8) :: step_no
-   type(ESMF_Time) :: start_date! start date for run
-   type(ESMF_Time) :: stop_date ! stop date for run
-   type(ESMF_Time) :: curr_date ! current date for run
-   type(ESMF_Time) :: ref_date  ! reference date
-   type(ESMF_TimeInterval) :: step ! Time-step
-!-----------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+
+   !Initialize variables
+   nstep = uninit_int
+   step_sec = uninit_int
+   start_yr = uninit_int
+   start_mon = uninit_int
+   start_day = uninit_int
+   start_tod = uninit_int
+   stop_yr = uninit_int
+   stop_mon = uninit_int
+   stop_day = uninit_int
+   stop_tod = uninit_int
+   ref_yr = uninit_int
+   ref_mon = uninit_int
+   ref_day = uninit_int
+   ref_tod = uninit_int
+   curr_yr = uninit_int
+   curr_mon = uninit_int
+   curr_day = uninit_int
+   curr_tod = uninit_int
 
    call ESMF_ClockGet( tm_clock, startTime=start_date, currTime=curr_date, &
                        refTime=ref_date, stopTime=stop_date, timeStep=step, &
                        advanceCount=step_no, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
-   nstep = step_no
+   nstep = int(step_no)
 
    write(iulog,*)' ********** Time Manager Configuration **********'
 
@@ -543,7 +563,7 @@ integer function get_nstep()
 
    call ESMF_ClockGet(tm_clock, advanceCount=step_no, rc=rc)
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
-   get_nstep = step_no
+   get_nstep = int(step_no)
 
 end function get_nstep
 !=========================================================================================
@@ -985,7 +1005,7 @@ logical function is_first_step()
 
    call ESMF_ClockGet( tm_clock, advanceCount=step_no, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
-   nstep = step_no
+   nstep = int(step_no)
    is_first_step = (nstep == 0)
 
 end function is_first_step

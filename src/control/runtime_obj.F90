@@ -24,7 +24,10 @@ module runtime_obj
       ! update_thermo_variables: update thermo "constants" to composition-dependent thermo variables
       logical,           private :: update_thermo_variables = .false.
    contains
+      ! General runtime access
       procedure, public :: physics_suite
+      procedure, public :: suite_as_list
+      ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
       procedure, public :: waccmx_option
       procedure, public :: gw_front
@@ -41,41 +44,48 @@ module runtime_obj
 
 CONTAINS
 
-   character(len=CS) function physics_suite(self)
+   pure character(len=CS) function physics_suite(self)
       class(runtime_options), intent(in) :: self
 
       physics_suite = trim(self%phys_suite)
    end function physics_suite
 
-   logical function waccmx_on(self)
+   pure function suite_as_list(self) result(slist)
+      class(runtime_options), intent(in) :: self
+      character(len=CS) :: slist(1)
+
+      slist = (/ trim(self%phys_suite) /)
+   end function suite_as_list
+
+   pure logical function waccmx_on(self)
       class(runtime_options), intent(in) :: self
 
       waccmx_on = trim(self%waccmx_opt) /= unset_str
 
    end function waccmx_on
 
-   character(len=16) function waccmx_option(self)
+   pure character(len=16) function waccmx_option(self)
       class(runtime_options), intent(in) :: self
 
       waccmx_option = trim(self%waccmx_opt)
 
    end function waccmx_option
 
-   logical function gw_front(self)
+   pure logical function gw_front(self)
       class(runtime_options), intent(in) :: self
 
       gw_front = self%use_gw_front
 
    end function gw_front
 
-   logical function gw_front_igw(self)
+   pure logical function gw_front_igw(self)
       class(runtime_options), intent(in) :: self
 
       gw_front_igw = self%use_gw_front_igw
 
    end function gw_front_igw
 
-   logical function update_thermodynamic_variables(self)
+   pure logical function update_thermodynamic_variables(self)
       class(runtime_options), intent(in) :: self
 
       update_thermodynamic_variables = self%update_thermo_variables

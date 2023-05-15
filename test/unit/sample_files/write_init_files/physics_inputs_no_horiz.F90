@@ -33,8 +33,10 @@ CONTAINS
       use cam_abortutils,                only: endrun
       use shr_kind_mod,                  only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,                  only: read_field, find_input_name_idx, no_exist_idx
-      use physics_data,                  only: init_mark_idx, prot_no_init_idx
+      use physics_data,                  only: init_mark_idx, prot_no_init_idx, const_idx
       use cam_ccpp_cap,                  only: ccpp_physics_suite_variables
+      use cam_ccpp_cap,                  only: cam_constituents_array
+      use ccpp_kinds,                    only: kind_phys
       use phys_vars_init_check_no_horiz, only: phys_var_stdnames, input_var_names, std_name_len
       use physics_types_no_horiz,        only: slp, theta
 
@@ -53,14 +55,16 @@ CONTAINS
       character(len=SHR_KIND_CL) :: missing_required_vars
       character(len=SHR_KIND_CL) :: protected_non_init_vars
 
-      character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message
-      integer                    :: errflg    !CCPP framework error flag
-      integer                    :: name_idx  !Input variable array index
-      integer                    :: req_idx   !Required variable array index
-      integer                    :: suite_idx !Suite array index
-      character(len=2)           :: sep  = '' !String separator used to print error messages
-      character(len=2)           :: sep2 = '' !String separator used to print error messages
-      character(len=2)           :: sep3 = '' !String separator used to print error messages
+      character(len=SHR_KIND_CX) :: errmsg          !CCPP framework error message
+      integer                    :: errflg          !CCPP framework error flag
+      integer                    :: name_idx        !Input variable array index
+      integer                    :: constituent_idx !Constituent table index
+      integer                    :: req_idx         !Required variable array index
+      integer                    :: suite_idx       !Suite array index
+      character(len=2)           :: sep             !String separator used to print err messages
+      character(len=2)           :: sep2            !String separator used to print err messages
+      character(len=2)           :: sep3            !String separator used to print err messages
+      real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
 
       ! Logical to default optional argument to False:
       logical                    :: use_init_variables
@@ -68,6 +72,9 @@ CONTAINS
       ! Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
       protected_non_init_vars = ' '
+      sep = ''
+      sep2 = ''
+      sep3 = ''
 
       ! Initialize use_init_variables based on whether it was input to function:
       if (present(read_initialized_variables)) then
@@ -88,7 +95,8 @@ CONTAINS
          do req_idx = 1, size(ccpp_required_data, 1)
 
             ! Find IC file input name array index for required variable:
-            name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables)
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables,       &
+                 constituent_idx)
 
             ! Check for special index values:
             select case (name_idx)
@@ -118,6 +126,15 @@ CONTAINS
                   ! Update character separator to now include comma:
                   sep2 = ', '
 
+               case (const_idx)
+
+                  ! If an index was found in the constituent hash table, then read in the data
+                  ! to that index of the constituent array
+
+                  field_data_ptr => cam_constituents_array()
+                  call read_field(file, ccpp_required_data(req_idx),                              &
+                       [ccpp_required_data(req_idx)], 'lev', timestep,                            &
+                       field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)
                case default
 
                   ! Read variable from IC file:
@@ -162,8 +179,10 @@ CONTAINS
       use cam_abortutils,                only: endrun
       use shr_kind_mod,                  only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,                  only: check_field, find_input_name_idx, no_exist_idx
-      use physics_data,                  only: init_mark_idx, prot_no_init_idx
+      use physics_data,                  only: init_mark_idx, prot_no_init_idx, const_idx
       use cam_ccpp_cap,                  only: ccpp_physics_suite_variables
+      use cam_ccpp_cap,                  only: cam_advected_constituents_array
+      use cam_constituents,              only: const_get_index
       use ccpp_kinds,                    only: kind_phys
       use cam_logfile,                   only: iulog
       use spmd_utils,                    only: masterproc
@@ -193,12 +212,15 @@ CONTAINS
       character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message
       integer                    :: errflg    !CCPP framework error flag
       integer                    :: name_idx  !Input variable array index
+      integer                    :: constituent_idx !Index of variable in constituent array
       integer                    :: req_idx   !Required variable array index
       integer                    :: suite_idx !Suite array index
       character(len=SHR_KIND_CL) :: ncdata_check_loc
       type(file_desc_t), pointer :: file
       logical                    :: file_found
       logical                    :: is_first
+      logical                    :: is_read
+      real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
 
       ! Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
@@ -239,13 +261,28 @@ CONTAINS
          ! Loop over all required variables as specified by CCPP suite:
          do req_idx = 1, size(ccpp_required_data, 1)
 
-            ! Find IC file input name array index for required variable:
-            if (.not. is_read_from_file(ccpp_required_data(req_idx), name_idx)) then
-               continue
-            end if
-            ! Check variable vs input check file:
+            ! First check if the required variable is a constituent:
+            call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false.,     &
+                 warning=.false.)
+            if (constituent_idx > -1) then
+               ! The required variable is a constituent. Call check variable routine on the
+               ! relevant index of the constituent array
+               field_data_ptr => cam_advected_constituents_array()
+               call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep,             &
+                    field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx),             &
+                    min_difference, min_relative_value, is_first)
+            else
+               ! The required variable is not a constituent. Check if the variable was read from
+               ! a file
+               ! Find IC file input name array index for required variable:
+               call is_read_from_file(ccpp_required_data(req_idx), is_read,                       &
+                    stdnam_idx_out=name_idx)
+               if (.not. is_read) then
+                  cycle
+               end if
+               ! Check variable vs input check file:
 
-            select case (trim(phys_var_stdnames(name_idx)))
+               select case (trim(phys_var_stdnames(name_idx)))
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta,     &
                        'potential_temperature', min_difference, min_relative_value, is_first)
@@ -253,7 +290,8 @@ CONTAINS
                case ('air_pressure_at_sea_level')
                   call endrun('Cannot check status of slp'//', slp has no horizontal dimension')
 
-            end select !check variables
+               end select !check variables
+            end if !check if constituent
          end do !Suite-required variables
 
          ! Deallocate required variables array for use in next suite:
@@ -266,12 +304,16 @@ CONTAINS
       deallocate(file)
       nullify(file)
       if (is_first) then
-         write(iulog,*) ''
-         write(iulog,*) 'No differences found!'
+         if (masterproc) then
+            write(iulog,*) ''
+            write(iulog,*) 'No differences found!'
+         end if
       end if
-      write(iulog,*) ''
-      write(iulog,*) '********** End Physics Check Data Results **********'
-      write(iulog,*) ''
+      if (masterproc) then
+         write(iulog,*) ''
+         write(iulog,*) '********** End Physics Check Data Results **********'
+         write(iulog,*) ''
+      end if
    end subroutine physics_check_data
 
 end module physics_inputs_no_horiz

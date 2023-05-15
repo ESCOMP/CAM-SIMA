@@ -100,6 +100,34 @@ def new_entry_from_xml(item):
     # end if
     return new_entry
 
+###############################################################################
+def clean_xml_text(item):
+###############################################################################
+    """Return a 'clean' (stripped) version of <item>.text or an empty
+       string if <item>.text is None or not a string-type variable
+
+       doctests
+
+       1. Test that the function works as expected when passed a string.
+       >>> test_xml = ET.Element("text")
+       >>> test_xml.text = " THIS IS A test "
+       >>> clean_xml_text(test_xml)
+       'THIS IS A test'
+
+       2. Verify that the function returns an empty string when not passed a string.
+       >>> test_xml = ET.Element("text")
+       >>> test_xml.text = 2
+       >>> clean_xml_text(test_xml)
+       ''
+
+    """
+    itext = item.text
+    iret = ""
+    if isinstance(itext, str):
+        iret = itext.strip()
+    # end if
+    return iret
+
 class FileStatus:
     """Class to hold full path and SHA hash of a file"""
 
@@ -219,13 +247,14 @@ class BuildCacheCAM:
                         elif item.tag == 'config':
                             self.__config = item.text
                         elif item.tag == 'reg_gen_file':
-                            self.__reg_gen_files.append(item.text.strip())
+                            self.__reg_gen_files.append(clean_xml_text(item))
                         elif item.tag == 'ic_name_entry':
                             stdname = item.get('standard_name')
                             if stdname not in self.__ic_names:
                                 self.__ic_names[stdname] = []
                             # end if
-                            self.__ic_names[stdname].append(item.text.strip())
+                            itext = clean_xml_text(item)
+                            self.__ic_names[stdname].append(itext)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -248,16 +277,29 @@ class BuildCacheCAM:
                             new_entry = new_entry_from_xml(item)
                             self.__xml_files[new_entry.key] = new_entry
                         elif item.tag == 'scheme_namelist_meta_file':
-                            self.__scheme_nl_metadata.append(item.text.strip())
+                            if isinstance(item.text, str):
+                                if item.text:
+                                    self.__scheme_nl_metadata.append(item.text.strip())
+                                # end if
+                            # end if
                         elif item.tag == 'scheme_namelist_groups':
-                            group_list = [x for x in
-                                          item.text.strip().split(' ') if x]
+                            group_list = []
+                            if isinstance(item.text, str):
+                                if item.text:
+                                    group_list = [x for x in
+                                                  item.text.strip().split(' ') if x]
+                                # end if
+                            # end if
                             self.__scheme_nl_groups = group_list
                         elif item.tag == 'preproc_defs':
-                            self.__preproc_defs = item.text.strip()
+                            self.__preproc_defs = clean_xml_text(item)
                         elif item.tag == 'kind_type':
-                            kname, ktype = item.text.strip().split('=')
-                            self.__kind_types[kname.strip()] = ktype.strip()
+                            if isinstance(item.text, str):
+                                if item.text:
+                                    kname, ktype = item.text.strip().split('=')
+                                    self.__kind_types[kname.strip()] = ktype.strip()
+                                # end if
+                            # end if
                         else:
                             emsg = "ERROR: Unknown CCPP tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
