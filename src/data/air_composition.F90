@@ -30,7 +30,6 @@ module air_composition
 
    ! composition of air
    !
-   integer, parameter          :: num_names_max = 30
    logical, protected, public, allocatable  :: const_is_water_species(:)
    integer, protected, public  :: dry_air_species_num
    integer, protected, public  :: water_species_in_air_num
