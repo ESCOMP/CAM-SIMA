@@ -41,7 +41,6 @@ CONTAINS
       use phys_vars_init_check, only: is_initialized
       use phys_vars_init_check, only: is_read_from_file
       use cam_constituents,     only: const_get_index
-      use cam_constituents,     only: const_is_initialized_in_physics
 
       ! Dummy arguments
       ! Variable standard name being checked:
@@ -106,13 +105,8 @@ CONTAINS
          if (find_input_name_idx < 0) then
             find_input_name_idx = no_exist_idx
          else
-            ! Check if constituent is initialized in a physics init routine
-            if (const_is_initialized_in_physics(find_input_name_idx)) then
-               find_input_name_idx = init_mark_idx
-            else
-               constituent_index = find_input_name_idx
-               find_input_name_idx = const_idx
-            end if
+            constituent_index = find_input_name_idx
+            find_input_name_idx = const_idx
          end if
       end if
 

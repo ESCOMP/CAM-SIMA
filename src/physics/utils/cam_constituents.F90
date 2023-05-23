@@ -18,7 +18,6 @@ module cam_constituents
    public :: const_is_moist
    public :: const_is_wet
    public :: const_qmin
-   public :: const_is_initialized_in_physics
 
    ! Private array of constituent properties (for property interface functions)
    type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:) => NULL()
@@ -57,11 +56,6 @@ module cam_constituents
       module procedure const_qmin_obj
       module procedure const_qmin_index
    end interface const_qmin
-
-   interface const_is_initialized_in_physics
-      module procedure const_is_initialized_in_physics_obj
-      module procedure const_is_initialized_in_physics_index
-   end interface const_is_initialized_in_physics
 
    ! Private interfaces
    private :: check_index_bounds
@@ -483,44 +477,5 @@ CONTAINS
    end function const_qmin_index
 
    !#######################################################################
-
-   logical function const_is_initialized_in_physics_obj(const_obj) result(is_initialized)
-      use cam_abortutils, only: endrun
-      use string_utils,   only: to_str
-
-      ! Return true iff <const_obj> is initialized in physics
-      ! Dummy argument
-      type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
-      ! Local variables
-      integer                     :: err_code
-      character(len=256)          :: err_msg
-      character(len=*), parameter :: subname =  'const_is_initialized_in_physics_obj: '
-
-      call const_obj%is_initialized_in_physics(is_initialized, errcode=err_code, errmsg=err_msg)
-      if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
-              trim(err_msg), file=__FILE__, line=__LINE__)
-      end if
-
-   end function const_is_initialized_in_physics_obj
-
-   !#######################################################################
-
-   logical function const_is_initialized_in_physics_index(const_ind) result(is_initialized)
-      use cam_ccpp_cap, only: cam_model_const_properties
-      ! Return true iff the  constituent at <index> is initialized in physics
-      ! Dummy argument
-      integer, intent(in) :: const_ind
-      ! Local variable
-      type(ccpp_constituent_prop_ptr_t), pointer :: const_properties(:)
-      character(len=*), parameter                :: subname = 'const_is_initialized_in_physics_index: '
-
-      const_properties => NULL()
-      if (check_index_bounds(const_ind, subname)) then
-         const_properties => cam_model_const_properties()
-         is_initialized = const_is_initialized_in_physics(const_properties(const_ind))
-      end if
-
-   end function const_is_initialized_in_physics_index
 
 end module cam_constituents
