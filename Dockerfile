@@ -79,8 +79,7 @@ RUN cd pnetcdf-1.12.3 && \
 ###################################################
 
 # create a user to run the case
-RUN dnf install -y  \
-    && adduser cam_sima_user \
+RUN adduser cam_sima_user \
     && echo "cam_sima_user ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/cam_sima_user \
     && chmod 0440 /etc/sudoers.d/cam_sima_user
 
