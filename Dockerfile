@@ -75,7 +75,7 @@ RUN cd pnetcdf-1.12.3 && \
      ldconfig
 
 ###################################################
-## Build CAMDEN
+## Build CAM-SIMA
 ###################################################
 
 # create a user to run the case
@@ -84,15 +84,16 @@ RUN dnf install -y  \
     && echo "cam_sima_user ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/cam_sima_user \
     && chmod 0440 /etc/sudoers.d/cam_sima_user
 
-COPY --chown=cam_sima_user . /home/cam_sima_user/CAMDEN
+# copy in the CAM-SIMA code and give the proper user permissions
+COPY --chown=cam_sima_user . /home/cam_sima_user/CAM-SIMA
 
 USER cam_sima_user
-WORKDIR /home/cam_sima_user/CAMDEN
+WORKDIR /home/cam_sima_user/CAM-SIMA
 
 # pull the dependencies
 RUN ./manage_externals/checkout_externals
 # Copy in the machine information for the container
-RUN cp /home/cam_sima_user/CAMDEN/docker_camden_config_files/config_machines.xml /home/cam_sima_user/CAMDEN/ccs_config/machines/
+RUN cp /home/cam_sima_user/CAM-SIMA/docker_camden_config_files/config_machines.xml /home/cam_sima_user/CAM-SIMA/ccs_config/machines/
 
 # Set environment variables needed to create and build the case
 ENV USER=$(whoami)
