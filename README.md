@@ -21,3 +21,16 @@ git checkout development
 
 Good luck, and have a great day!
 
+## Build the docker file
+1. Build the docker image
+```
+docker build -t camden .
+```
+2. Run the image
+```
+docker run --rm -it camden
+```
+3. Submit the case
+```
+./case.submit
+```

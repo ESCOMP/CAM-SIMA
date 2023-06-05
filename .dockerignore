@@ -1,0 +1,11 @@
+# blacklist all
+*
+
+# whitelist things to copy
+!Externals*
+!src/
+!cime_config/
+!manage_externals/
+!test/
+!.config_files.xml
+!docker_camden_config_files
