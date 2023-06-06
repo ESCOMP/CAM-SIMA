@@ -1,5 +1,5 @@
 name: Bug Report
-description: File a bug report - for CAMDEN developers' use only (all other users should use the CESM forum)
+description: File a bug report - for CAM-SIMA developers' use only (all other users should use the CESM forum)
 title: "Put brief (<65 char) bug title here!"
 labels: ["bug"]
 body:
@@ -22,7 +22,7 @@ body:
   - type: input
     id: cam-tag
     attributes:
-      label: What CAMDEN hash were you using?
+      label: What CAM-SIMA hash were you using?
       description: Type "git rev-parse --short HEAD" to see the hash
       placeholder: ex. abc123
     validations:
@@ -30,7 +30,7 @@ body:
   - type: dropdown
     id: machine
     attributes:
-      label: What machine were you running CAMDEN on?
+      label: What machine were you running CAM-SIMA on?
       multiple: true
       options:
         - CISL machine (e.g. cheyenne)
@@ -80,6 +80,6 @@ body:
     attributes:
       label: Extra info
       description: Please provide any additional information here that you think might be relevant
-      placeholder: ex. I am running CAMDEN on izumi and I don't know what compiler I'm using.
+      placeholder: ex. I am running CAM-SIMA on izumi and I don't know what compiler I'm using.
     validations:
       required: false
