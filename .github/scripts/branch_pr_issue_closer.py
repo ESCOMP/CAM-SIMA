@@ -138,10 +138,10 @@ def _main_prog():
     ghub = Github(token)
 
     #+++++++++++++++++++++
-    #Open NCAR/CAMDEN repo
+    #Open ESCOMP/CAM-SIMA repo
     #+++++++++++++++++++++
 
-    cam_repo = ghub.get_repo("NCAR/CAMDEN")
+    cam_repo = ghub.get_repo("ESCOMP/CAM-SIMA")
 
     #+++++++++++++++++++++++++++++
     #Get triggering commit message
