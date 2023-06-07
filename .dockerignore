@@ -8,4 +8,4 @@
 !manage_externals/
 !test/
 !.config_files.xml
-!docker_camden_config_files
+!docker

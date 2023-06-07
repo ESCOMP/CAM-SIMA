@@ -22,15 +22,21 @@ git checkout development
 Good luck, and have a great day!
 
 ## Build the docker file
-1. Build the docker image
+1. First, build the esmf docker image. You must tag the build with `esmf`
 ```
-docker build -t camden .
+cd docker
+docker build -f Dockerfile.esmf -t esmf .
 ```
-2. Run the image
+2. Build the CAM-SIMA iamge
 ```
-docker run --rm -it camden
+cd ../
+docker build -t cam-sima .
 ```
-3. Submit the case
+3. Run the image
+```
+docker run --rm -it cam-sima
+```
+4. Submit the case
 ```
 ./case.submit
 ```
