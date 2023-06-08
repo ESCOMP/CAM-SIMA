@@ -24,6 +24,7 @@ RUN dnf -y update \
       python \
       sudo \
       svn \
+      tree \
       vim \
       wget \
     && dnf clean all
@@ -80,3 +81,7 @@ WORKDIR $CASE_NAME
 
 RUN ./case.setup
 RUN ./case.build
+
+# now add the mam3 grid by hand since it's not downloaded automatically for some reason
+RUN mkdir -p /home/cam_sima_user/cesm_data/inputdata/atm/cam/inic/homme/
+RUN cp /home/cam_sima_user/CAM-SIMA/docker/cami-mam3_0000-01_ne5np4_L30.140707.nc /home/cam_sima_user/cesm_data/inputdata/atm/cam/inic/homme/
