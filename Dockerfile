@@ -81,7 +81,7 @@ WORKDIR $CASE_NAME
 
 RUN ./case.setup
 
-RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics suites held_suarez_1994"
+RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites held_suarez_1994"
 RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5
@@ -93,4 +93,4 @@ RUN cp /home/cam_sima_user/CAM-SIMA/docker/cami-mam3_0000-01_ne5np4_L30.140707.n
 # add the snapshot file
 RUN echo "ncdata='/home/cam_sima_user/CAM-SIMA/docker/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
 
-# RUN ./case.build
+RUN ./case.build
