@@ -75,13 +75,22 @@ ENV CIME_MODEL=cesm
 ENV ESMFMKFILE=/usr/local/lib/esmf.mk
 
 # Create a case
-RUN ./cime/scripts/create_newcase --case $CASE_NAME  --compset FKESSLER --res ne5_ne5_mg37 --run-unsupported
+RUN ./cime/scripts/create_newcase --case $CASE_NAME  --compset FPHYStest --res ne5_ne5_mg37 --run-unsupported
 
 WORKDIR $CASE_NAME 
 
 RUN ./case.setup
-RUN ./case.build
+
+RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics suites held_suarez_1994"
+RUN ./xmlchange ROF_NCPL=48
+RUN ./xmlchange STOP_OPTION=nsteps
+RUN ./xmlchange STOP_N=5
 
 # now add the mam3 grid by hand since it's not downloaded automatically for some reason
 RUN mkdir -p /home/cam_sima_user/cesm_data/inputdata/atm/cam/inic/homme/
 RUN cp /home/cam_sima_user/CAM-SIMA/docker/cami-mam3_0000-01_ne5np4_L30.140707.nc /home/cam_sima_user/cesm_data/inputdata/atm/cam/inic/homme/
+
+# add the snapshot file
+RUN echo "ncdata='/home/cam_sima_user/CAM-SIMA/docker/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
+
+# RUN ./case.build
