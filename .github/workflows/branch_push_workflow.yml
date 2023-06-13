@@ -16,7 +16,7 @@ jobs:
   #This job is designed to close any issues or pull requests specified
   #in the body of a pull request merged into a non-default branch.
   issue_closer:
-    if: github.repository == 'NCAR/CAMDEN' # Only run on main repo
+    if: github.repository == 'ESCOMP/CAM-SIMA' # Only run on main repo
     runs-on: ubuntu-latest
     steps:
     # Acquire github action routines

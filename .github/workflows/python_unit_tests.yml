@@ -16,7 +16,7 @@ jobs:
   #a PR is either opened or synced (i.e. additional commits are pushed
   #to branch involved in PR).
   python_unit_tests:
-    if: github.event_name == 'pull_request' || github.repository == 'NCAR/CAMDEN'
+    if: github.event_name == 'pull_request' || github.repository == 'ESCOMP/CAM-SIMA'
     runs-on: ubuntu-latest
     strategy:
       matrix:
