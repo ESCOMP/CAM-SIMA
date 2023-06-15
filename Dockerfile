@@ -81,7 +81,7 @@ WORKDIR $CASE_NAME
 
 RUN ./case.setup
 
-RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites held_suarez_1994"
+RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites musica"
 RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5
