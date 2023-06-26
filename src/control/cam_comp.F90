@@ -10,25 +10,28 @@ module cam_comp
 !
 !-----------------------------------------------------------------------
 
-   use shr_kind_mod,    only: r8 => SHR_KIND_R8
-   use shr_kind_mod,    only: cl=>SHR_KIND_CL, cs=>SHR_KIND_CS
-   use shr_sys_mod,     only: shr_sys_flush
+   use shr_kind_mod,              only: r8 => SHR_KIND_R8
+   use shr_kind_mod,              only: cl=>SHR_KIND_CL, cs=>SHR_KIND_CS, cx=>SHR_KIND_CX
+   use shr_sys_mod,               only: shr_sys_flush
 
-   use spmd_utils,      only: masterproc, mpicom
-   use cam_control_mod, only: cam_ctrl_init, cam_ctrl_set_orbit, cam_ctrl_set_physics_type
-   use cam_control_mod, only: caseid, ctitle
-   use runtime_opts,    only: read_namelist
-   use runtime_obj,     only: cam_runtime_opts
-   use time_manager,    only: timemgr_init, get_step_size
-   use time_manager,    only: get_nstep, is_first_step, is_first_restart_step
+   use spmd_utils,                only: masterproc, mpicom
+   use cam_control_mod,           only: cam_ctrl_init, cam_ctrl_set_orbit
+   use cam_control_mod,           only: cam_ctrl_set_physics_type
+   use cam_control_mod,           only: caseid, ctitle
+   use runtime_opts,              only: read_namelist
+   use runtime_obj,               only: cam_runtime_opts
+   use time_manager,              only: timemgr_init, get_step_size
+   use time_manager,              only: get_nstep
+   use time_manager,              only: is_first_step, is_first_restart_step
 
-   use camsrfexch,      only: cam_out_t, cam_in_t
-   use physics_types,   only: phys_state, phys_tend
-   use dyn_comp,        only: dyn_import_t, dyn_export_t
+   use camsrfexch,                only: cam_out_t, cam_in_t
+   use physics_types,             only: phys_state, phys_tend
+   use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
-   use perf_mod,        only: t_barrierf, t_startf, t_stopf
-   use cam_logfile,     only: iulog
-   use cam_abortutils,  only: endrun
+   use perf_mod,                  only: t_barrierf, t_startf, t_stopf
+   use cam_logfile,               only: iulog
+   use cam_abortutils,            only: endrun
+   use ccpp_constituent_prop_mod, only: ccpp_constituent_properties_t
 
    implicit none
    private
@@ -46,6 +49,16 @@ module cam_comp
    real(r8) :: dtime_phys         ! Time step for physics tendencies.
 
    logical  :: BFB_CAM_SCAM_IOP = .false.
+
+   ! Currently, the host (CAM) only adds water vapor (specific_humidity)
+   !    as a constituent.
+   ! Does this need to be a configurable variable?
+   integer, parameter :: num_host_advected = 1
+   type(ccpp_constituent_properties_t), target :: host_constituents(num_host_advected)
+
+   ! Private interface (here to avoid circular dependency)
+   private :: cam_register_constituents
+
 
 !-----------------------------------------------------------------------
 CONTAINS
@@ -79,7 +92,10 @@ CONTAINS
       use cam_instance,         only: inst_suffix
 !      use history_defaults,     only: initialize_iop_history
       use stepon,               only: stepon_init
-      use physconst,            only: composition_init
+      use air_composition,      only: air_composition_init
+      use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
+      use physics_grid,         only: columns_on_task
+      use vert_coord,           only: pver
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -122,6 +138,8 @@ CONTAINS
 
                                                 ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
+      integer                  :: errflg
+      character(len=cx)        :: errmsg
       !-----------------------------------------------------------------------
 
       call init_pio_subsystem()
@@ -153,11 +171,19 @@ CONTAINS
       ! Open initial or restart file, and topo file if specified.
       call cam_initfiles_open()
 
+      ! Initialize constituent information
+      !    This will set the total number of constituents and the
+      !    number of advected constituents.
+      call cam_register_constituents(cam_runtime_opts)
+
+      ! Initialize composition-dependent constants:
+      call air_composition_init()
+
       ! Initialize model grids and decompositions
       call model_grid_init()
 
-      ! Initialize composition-dependent constants:
-      call composition_init()
+      ! Initialize constituent data
+      call cam_ccpp_initialize_constituents(columns_on_task, pver, errflg, errmsg)
 
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
@@ -460,6 +486,60 @@ CONTAINS
       end if
 
    end subroutine cam_final
+
+!-----------------------------------------------------------------------
+
+   subroutine cam_register_constituents(cam_runtime_opts)
+      ! Call the CCPP interface to register all constituents for the
+      ! physics suite being invoked during this run.
+      use cam_abortutils,            only: endrun
+      use runtime_obj,               only: runtime_options
+      use cam_constituents,          only: cam_constituents_init
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use cam_ccpp_cap,              only: cam_ccpp_register_constituents
+      use cam_ccpp_cap,              only: cam_ccpp_number_constituents
+      use cam_ccpp_cap,              only: cam_model_const_properties
+      use cam_ccpp_cap,              only: cam_const_get_index
+
+      ! Dummy arguments
+      type(runtime_options), intent(in) :: cam_runtime_opts
+      ! Local variables
+      integer                                        :: index
+      integer                                        :: num_advect
+      integer,                           allocatable :: ind_water_spec(:)
+      integer                                        :: errflg
+      character(len=cx)                              :: errmsg
+      type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
+      character(len=*), parameter :: subname = 'cam_register_constituents: '
+
+      ! Register the constituents to find out what needs advecting
+      call host_constituents(1)%instantiate(std_name="specific_humidity",      &
+           long_name="Specific humidity", units="kg kg-1",                    &
+           vertical_dim="vertical_layer_dimension", advected=.true.,          &
+           errcode=errflg, errmsg=errmsg)
+      if (errflg /= 0) then
+         call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
+      end if
+      call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),      &
+           host_constituents, errcode=errflg, errmsg=errmsg)
+
+      if (errflg /= 0) then
+         call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
+      end if
+      call cam_ccpp_number_constituents(num_advect, advected=.true., &
+           errcode=errflg, errmsg=errmsg)
+
+      if (errflg /= 0) then
+         call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
+      end if
+
+      ! Grab a pointer to the constituent array
+      const_props => cam_model_const_properties()
+
+      ! Finally, initialize the constituents module
+      call cam_constituents_init(const_props, num_advect)
+
+   end subroutine cam_register_constituents
 
 !-----------------------------------------------------------------------
 

@@ -50,12 +50,10 @@ contains
 
   subroutine bc_dry_jw06_set_ic(vcoord, latvals, lonvals, U, V, T, PS, PHIS, &
                                 Q, m_cnst, mask, verbose)
-    use dyn_tests_utils, only: vc_moist_pressure, vc_dry_pressure, vc_height
+    use dyn_tests_utils,  only: vc_moist_pressure, vc_dry_pressure, vc_height
+    use cam_constituents, only: const_get_index
     !use constituents,    only: cnst_name
     !use const_init,      only: cnst_init_default
-
-    !Remove once constituents are enabled -JN
-    use physics_types,   only: ix_cld_liq, ix_rain
 
     !-----------------------------------------------------------------------
     !
@@ -86,6 +84,7 @@ contains
     integer                           :: nlev
     integer                           :: ncnst
     integer                           :: iret
+    integer                           :: ix_rain, ix_cld_liq
     character(len=*), parameter       :: subname = 'BC_DRY_JW06_SET_IC'
     real(r8)                          :: tmp
     real(r8)                          :: r(size(latvals))
@@ -116,6 +115,10 @@ contains
     else
       verbose_use = .true.
     end if
+
+    !set constituent indices
+    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
+    call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
 
     ncol = size(latvals, 1)
     nlev = -1

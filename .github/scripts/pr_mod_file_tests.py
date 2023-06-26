@@ -155,7 +155,7 @@ def _main_prog():
     #++++++++++++++++++++
 
     #Official CAM repo:
-    cam_repo = ghub.get_repo("NCAR/CAMDEN")
+    cam_repo = ghub.get_repo("ESCOMP/CAM-SIMA")
 
     #++++++++++++++++++++++++++++++++++++++++++
     #Open Pull Request which triggered workflow

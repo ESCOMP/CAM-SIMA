@@ -1,0 +1,31 @@
+[ccpp-table-properties]
+  name = air_composition
+  type = module
+[ccpp-arg-table]
+  name  = air_composition
+  type  = module
+[ mmro2 ]
+  standard_name = molecular_oxygen_mixing_ratio_wrt_dry_air
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ mmrn2 ]
+  standard_name = molecular_nitrogen_mixing_ratio_wrt_dry_air
+  units = kg kg-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ o2_mwi ]
+  standard_name = inverse_molecular_oxygen_weight
+  units = mol g-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ n2_mwi ]
+  standard_name = inverse_molecular_nitrogen_weight
+  units = mol g-1
+  type = real | kind = kind_phys
+  dimensions = ()
+[ mbar ]
+  standard_name = mean_molecular_dry_air_weight
+  units = g mol-1
+  type = real | kind = kind_phys
+  dimensions = ()

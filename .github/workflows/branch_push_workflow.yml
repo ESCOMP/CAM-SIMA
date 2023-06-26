@@ -16,14 +16,14 @@ jobs:
   #This job is designed to close any issues or pull requests specified
   #in the body of a pull request merged into a non-default branch.
   issue_closer:
-    if: github.repository == 'NCAR/CAMDEN' # Only run on main repo
+    if: github.repository == 'ESCOMP/CAM-SIMA' # Only run on main repo
     runs-on: ubuntu-latest
     steps:
     # Acquire github action routines
     - uses: actions/checkout@v3
     # Acquire specific version of python
     - name: Set up Python 3.10
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: '3.10' # Semantic version range syntax or exact version of a Python version
     # Install required python packages

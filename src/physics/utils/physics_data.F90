@@ -13,6 +13,7 @@ module physics_data
    integer, public, parameter :: no_exist_idx     = -1
    integer, public, parameter :: init_mark_idx    = -2
    integer, public, parameter :: prot_no_init_idx = -3
+   integer, public, parameter :: const_idx        = -4
 
    interface read_field
       module procedure read_field_2d
@@ -28,28 +29,36 @@ module physics_data
 CONTAINS
 !==============================================================================
 
-   integer function find_input_name_idx(stdname, use_init_variables)
+   integer function find_input_name_idx(stdname, use_init_variables, constituent_index)
 
       !Finds the 'input_var_names' array index for a given
       !variable standard name.
 
       use phys_vars_init_check, only: protected_vars
       use phys_vars_init_check, only: phys_var_stdnames
-      use phys_vars_init_check, only: phys_var_num
+      use phys_vars_init_check, only: phys_const_stdnames
+      use phys_vars_init_check, only: phys_var_num, phys_const_num
       use phys_vars_init_check, only: is_initialized
       use phys_vars_init_check, only: is_read_from_file
+      use cam_constituents,     only: const_get_index
 
-      !Variable standard name being checked:
-      character(len=*),  intent(in) :: stdname
+      ! Dummy arguments
+      ! Variable standard name being checked:
+      character(len=*),  intent(in)  :: stdname
+      ! Logical for whether or not to read initialized variables
+      logical,           intent(in)  :: use_init_variables
+      ! Variable to store constituent index if necessary:
+      integer,           intent(out) :: constituent_index
 
-      !Logical for whether or not to read initialized variables
-      logical,           intent(in) :: use_init_variables
-
-      !standard names array index:
+      ! Local variables
+      ! standard names array index:
       integer                       :: idx
+      ! to test read_from_file status
+      logical                       :: is_read
 
       !Initialize function:
       find_input_name_idx = no_exist_idx
+      constituent_index = no_exist_idx
 
       !Loop through physics variable standard names:
       do idx = 1, phys_var_num
@@ -58,7 +67,12 @@ CONTAINS
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (is_initialized(stdname)) then
-               if (use_init_variables.and.is_read_from_file(stdname)) then
+               if (use_init_variables) then
+                  call is_read_from_file(stdname, is_read)
+               else
+                  is_read = .false.
+               end if
+               if (is_read) then
                   !If reading initialized variables, set to idx:
                   find_input_name_idx = idx
                else
@@ -75,6 +89,27 @@ CONTAINS
             exit
          end if
       end do
+      ! If not found, loop through the excluded variable standard names
+      if (find_input_name_idx == no_exist_idx) then
+         do idx = 1, phys_const_num
+            if (trim(phys_const_stdnames(idx)) == trim(stdname)) then
+               ! Set to initialized because we can't check here.
+               ! The relevant modules (e.g., cam_constituents) will check.
+               find_input_name_idx = init_mark_idx
+            end if
+         end do
+      end if
+      ! If still not found, look in the constituent hash table
+      if (find_input_name_idx == no_exist_idx) then
+         call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
+         if (find_input_name_idx < 0) then
+            find_input_name_idx = no_exist_idx
+         else
+            constituent_index = find_input_name_idx
+            find_input_name_idx = const_idx
+         end if
+      end if
+
 
    end function find_input_name_idx
 
@@ -100,7 +135,7 @@ CONTAINS
    end function arr2str
 
 
-   subroutine read_field_2d(file, std_name, var_names, timestep, buffer)
+   subroutine read_field_2d(file, std_name, var_names, timestep, buffer, mark_as_read)
       use shr_assert_mod,       only: shr_assert_in_domain
       use shr_sys_mod,          only: shr_sys_flush
       use pio,                  only: file_desc_t, var_desc_t
@@ -112,7 +147,7 @@ CONTAINS
       use phys_vars_init_check, only: mark_as_read_from_file
 
       !Max possible length of variable name in input (IC) file:
-      use phys_vars_init_check, only: ic_name_len
+      use phys_vars_init_check, only: std_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -120,13 +155,24 @@ CONTAINS
       character(len=*),  intent(in)    :: var_names(:) ! var name on file
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:)
+      logical, optional, intent(in)    :: mark_as_read
       ! Local variables
+      logical                          :: mark_as_read_local
       logical                          :: var_found
-      character(len=ic_name_len)       :: found_name
+      character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_2d: '
 
+      if (present(mark_as_read)) then
+         mark_as_read_local = mark_as_read
+      else
+         mark_as_read_local = .true.
+      end if
+
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+      if (.not. var_found) then
+          call cam_pio_find_var(file, [std_name], found_name, vardesc, var_found)
+      end if
 
       if (var_found) then
          if (masterproc) then
@@ -135,7 +181,9 @@ CONTAINS
          end if
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep)
-         call mark_as_read_from_file(std_name)
+         if (mark_as_read_local) then
+            call mark_as_read_from_file(std_name)
+         end if
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
@@ -149,7 +197,7 @@ CONTAINS
    end subroutine read_field_2d
 
    subroutine read_field_3d(file, std_name, var_names, vcoord_name,           &
-        timestep, buffer)
+        timestep, buffer, mark_as_read)
       use shr_assert_mod,       only: shr_assert_in_domain
       use shr_sys_mod,          only: shr_sys_flush
       use pio,                  only: file_desc_t, var_desc_t
@@ -162,7 +210,7 @@ CONTAINS
       use phys_vars_init_check, only: mark_as_read_from_file
 
       !Max possible length of variable name in input (IC) file:
-      use phys_vars_init_check,  only: ic_name_len
+      use phys_vars_init_check, only: std_name_len
 
       ! Dummy arguments
       type(file_desc_t), intent(inout) :: file
@@ -171,15 +219,26 @@ CONTAINS
       character(len=*),  intent(in)    :: vcoord_name
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:,:)
+      logical, optional, intent(in)    :: mark_as_read
       ! Local variables
+      logical                          :: mark_as_read_local
       logical                          :: var_found
       integer                          :: num_levs
-      character(len=ic_name_len)       :: found_name
+      character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_3d: '
 
+      if (present(mark_as_read)) then
+         mark_as_read_local = mark_as_read
+      else
+         mark_as_read_local = .true.
+      end if
+
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
+      if (.not. var_found) then
+         call cam_pio_find_var(file, [std_name], found_name, vardesc, var_found)
+      end if
       if (var_found) then
          if (trim(vcoord_name) == 'lev') then
             num_levs = pver
@@ -195,7 +254,9 @@ CONTAINS
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=(/1, num_levs/))
-         call mark_as_read_from_file(std_name)
+         if (mark_as_read_local) then
+            call mark_as_read_from_file(std_name)
+         end if
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
@@ -204,7 +265,7 @@ CONTAINS
               varname=trim(found_name),                                       &
               msg=subname//'NaN found in '//trim(found_name))
       else
-         call endrun(subname//'Mismatch variable found in '//arr2str(var_names))
+         call endrun(subname//'Mismatch variable found in '//found_name)
       end if
    end subroutine read_field_3d
 
@@ -219,7 +280,7 @@ CONTAINS
       use spmd_utils,     only: mpicom
 
       !Max possible length of variable name in file:
-      use phys_vars_init_check, only: ic_name_len
+      use phys_vars_init_check, only: std_name_len
 
       !Dummy arguments:
       real(kind_phys),   intent(in)    :: current_value(:)
@@ -233,7 +294,7 @@ CONTAINS
 
       !Local variables:
       logical                          :: var_found
-      character(len=ic_name_len)       :: found_name
+      character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_2d'
       real(kind_phys)                  :: diff
@@ -304,7 +365,7 @@ CONTAINS
       use vert_coord,     only: pver, pverp
 
       !Max possible length of variable name in file:
-      use phys_vars_init_check, only: ic_name_len
+      use phys_vars_init_check, only: std_name_len
 
       !Dummy arguments:
       real(kind_phys),   intent(in)    :: current_value(:,:)
@@ -319,7 +380,7 @@ CONTAINS
 
       !Local variables:
       logical                          :: var_found = .true.
-      character(len=ic_name_len)       :: found_name
+      character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_3d'
       real(kind_phys)                  :: diff
@@ -405,7 +466,6 @@ CONTAINS
       !Local variables:
       character(len=24)            :: fmt_str
       integer                      :: slen
-      integer                      :: row
       integer, parameter           :: indent_level = 50
 
       slen = len_trim(stdname)

@@ -4,12 +4,15 @@
   <!-- CAMDEN Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/physics/utils/constituents.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
   <!-- Variables registered to physics_types -->
@@ -17,22 +20,11 @@
     <use module="ccpp_kinds" reference="kind_phys"/>
     <use module="runtime_obj" reference="unset_str"/>
     <use module="runtime_obj" reference="unset_int"/>
-    <!-- Constituent indices -->
-    <variable local_name="ix_qv"
-              standard_name="index_of_water_vapor_specific_humidity"
-              units="index" type="integer">
-      <initial_value>1</initial_value>
-    </variable>
-    <variable local_name="ix_cld_liq"
-              standard_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
-              units="index" type="integer">
-      <initial_value>2</initial_value>
-    </variable>
-    <variable local_name="ix_rain"
-              standard_name="index_of_rain_water_mixing_ratio"
-              units="index" type="integer">
-      <initial_value>3</initial_value>
-    </variable>
+    <use module="phys_vars_init_check" reference="mark_as_initialized"/>
+    <use module="physconst" reference="cpair"/>
+    <use module="physconst" reference="rair"/>
+    <use module="physconst" reference="mwdry"/>
+    <use module="physconst" reference="zvir"/>
     <!-- State variables -->
     <variable local_name="ps" standard_name="surface_air_pressure"
               units="Pa" type="real" kind="kind_phys"
@@ -176,28 +168,13 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>zm state_zm</ic_file_input_names>
     </variable>
-    <array local_name="q" standard_name="constituent_mixing_ratio"
-              units="kg kg-1"
-              type="real" kind="kind_phys"
+    <variable local_name = "water_vapor"
+              standard_name="specific_humidity"
+              units="kg kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
-      <dimensions>horizontal_dimension vertical_layer_dimension
-      number_of_constituents</dimensions>
-      <element standard_name="water_vapor_specific_humidity"
-               index_name="index_of_water_vapor_specific_humidity"
-               index_pos="number_of_constituents">
-               <ic_file_input_names>Q cnst_Q</ic_file_input_names>
-      </element>
-      <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
-               index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
-               index_pos="number_of_constituents">
-               <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
-      </element>
-      <element standard_name="rain_water_mixing_ratio"
-               index_name="index_of_rain_water_mixing_ratio"
-               index_pos="number_of_constituents">
-               <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
-      </element>
-    </array>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>Q cnst_Q</ic_file_input_names>
+    </variable>
     <variable local_name="pint" standard_name="air_pressure_at_interface"
               units="Pa"
               type="real" kind="kind_phys"
@@ -313,7 +290,6 @@
       <data>x_wind</data>
       <data>y_wind</data>
       <data>lagrangian_tendency_of_air_pressure</data>
-      <data>constituent_mixing_ratio</data>
       <data>pressure_thickness</data>
       <data>pressure_thickness_of_dry_air</data>
       <data>reciprocal_of_pressure_thickness</data>
@@ -350,6 +326,47 @@
               units="None" type="physics_tend"
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
+    </variable>
+    <!-- Composition-dependent Variables -->
+    <variable local_name="cpairv"
+              standard_name="composition_dependent_specific_heat_of_dry_air_at_constant_pressure"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent specific heat of dry air at constant pressure</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>cpair</initial_value>
+    </variable>
+    <variable local_name="rairv"
+              standard_name="composition_dependent_gas_constant_of_dry_air"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent gas constant of dry air</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>rair</initial_value>
+    </variable>
+    <variable local_name="cappav"
+              standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>rair/cpair</initial_value>
+    </variable>
+    <variable local_name="mbarv"
+              standard_name="composition_dependent_mean_molecular_dry_air_weight_at_mid_level"
+              units="g mol-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent mean molecular dry air weight at mid-level</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>mwdry</initial_value>
+    </variable>
+    <variable local_name="zvirv"
+              standard_name="composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent ratio of water vapor to dry air gas constants minus one</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>zvir</initial_value>
     </variable>
   </file>
 </registry>

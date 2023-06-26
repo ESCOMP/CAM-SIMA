@@ -1,0 +1,50 @@
+[ccpp-table-properties]
+  name = one_banana
+  type = scheme
+[ccpp-arg-table]
+  name  = one_banana
+  type  = scheme
+[ rayk0 ]
+  standard_name = banana_center_vertical_index
+  type = integer
+  units = 1
+  dimensions = ()
+  protected = True
+[ raykrange ]
+  standard_name = banana_profile_width
+  type = real | kind = kind_phys
+  units = 1
+  dimensions = ()
+  protected = True
+[ raytau0 ]
+  standard_name = banana_decay_time
+  type = real | kind = kind_phys
+  units = days
+  dimensions = ()
+  protected = True
+
+#########################################################
+[ccpp-table-properties]
+  name = two_banana
+  type = scheme
+[ccpp-arg-table]
+  name  = two_banana
+  type  = scheme
+[ rayk0 ]
+  standard_name = banana_center_vertical_index
+  type = integer
+  units = 1
+  dimensions = ()
+  protected = True
+[ raykrange ]
+  standard_name = banana_profile_width
+  type = real | kind = kind_phys
+  units = 1
+  dimensions = ()
+  protected = True
+[ raytau0 ]
+  standard_name = banana_decay_time
+  type = real | kind = kind_phys
+  units = days
+  dimensions = ()
+  protected = True

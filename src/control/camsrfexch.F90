@@ -6,7 +6,6 @@ module camsrfexch
    !-----------------------------------------------------------------------
 
    use shr_kind_mod,    only: r8 => shr_kind_r8, r4 => shr_kind_r4
-   use constituents,    only: pcnst
    use shr_infnan_mod,  only: posinf => shr_infnan_posinf, assignment(=)
    use cam_abortutils,  only: endrun
    use string_utils,    only: to_str
@@ -155,7 +154,6 @@ CONTAINS
       use physics_types,    only: physics_state
       use vert_coord,       only: pver
       use physconst,        only: rair, mwdry, mwco2, gravit
-      use constituents,     only: pcnst
 
       ! Input arguments
       type(physics_state), intent(in)    :: state

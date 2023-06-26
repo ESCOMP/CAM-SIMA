@@ -138,7 +138,7 @@ CONTAINS
 
       adiabatic = trim(suite_name) == 'adiabatic'
       ideal_phys = trim(suite_name) == 'held_suarez'
-      kessler_phys = trim(suite_name) == 'kessler_cam'
+      kessler_phys = trim(suite_name) == 'kessler'
       tj2016_phys = trim(suite_name) == 'tj2016'
 
       simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys

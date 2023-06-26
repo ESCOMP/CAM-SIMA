@@ -127,18 +127,17 @@ CONTAINS
    end subroutine phys_readnl
 
    subroutine phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
-      use pio,            only: file_desc_t
-      use cam_abortutils, only: endrun
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
-      use camsrfexch,     only: cam_out_t
-      use physics_grid,   only: columns_on_task
-      use vert_coord,     only: pver, pverp
-      use physconst,      only: physconst_init
-      use physics_types,  only: allocate_physics_types_fields
-      use constituents,   only: pcnst
-      use cam_ccpp_cap,   only: cam_ccpp_physics_initialize
-      use cam_ccpp_cap,   only: ccpp_physics_suite_part_list
+      use pio,              only: file_desc_t
+      use cam_abortutils,   only: endrun
+      use runtime_obj,      only: runtime_options
+      use physics_types,    only: physics_state, physics_tend
+      use camsrfexch,       only: cam_out_t
+      use physics_grid,     only: columns_on_task
+      use vert_coord,       only: pver, pverp
+      use cam_thermo,       only: cam_thermo_init
+      use physics_types,    only: allocate_physics_types_fields
+      use cam_ccpp_cap,     only: cam_ccpp_physics_initialize
+      use cam_ccpp_cap,     only: ccpp_physics_suite_part_list
 
       ! Dummy arguments
       type(runtime_options), intent(in)    :: cam_runtime_opts
@@ -152,10 +151,10 @@ CONTAINS
       integer                    :: errcode
 
       errcode = 0
-      call physconst_init(columns_on_task, pver, pverp)
+      call cam_thermo_init(columns_on_task, pver, pverp)
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
-           pcnst, set_init_val_in=.true., reallocate_in=.false.)
+           set_init_val_in=.true., reallocate_in=.false.)
       call cam_ccpp_physics_initialize(phys_suite_name, dtime_phys,           &
            errmsg, errcode)
       if (errcode /= 0) then

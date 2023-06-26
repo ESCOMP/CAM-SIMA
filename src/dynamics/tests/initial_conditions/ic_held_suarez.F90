@@ -25,8 +25,7 @@ CONTAINS
   subroutine hs94_set_ic(latvals, lonvals, U, V, T, PS, PHIS,           &
        Q, m_cnst, mask, verbose)
     !use const_init,    only: cnst_init_default
-    !use constituents,  only: cnst_name
-    use physics_types, only: ix_cld_liq, ix_rain !Remove once constituents are enabled -JN
+    use cam_constituents, only: const_get_index
 
     !-----------------------------------------------------------------------
     !
@@ -51,6 +50,7 @@ CONTAINS
     logical, allocatable              :: mask_use(:)
     logical                           :: verbose_use
     integer                           :: i, k, m
+    integer                           :: ix_cld_liq, ix_rain
     integer                           :: ncol
     integer                           :: nlev
     integer                           :: ncnst
@@ -75,6 +75,10 @@ CONTAINS
     else
       verbose_use = .true.
     end if
+
+    !set constituent indices
+    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
+    call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
 
     ncol = size(latvals, 1)
     nlev = -1

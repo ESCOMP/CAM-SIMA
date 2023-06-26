@@ -9,7 +9,7 @@
       <config />
    </registry>
    <CCPP>
-      <SDF file_path="$TEST_SOURCE_MODS_DIR/simple_suite.xml" hash="1d90bde78b8740d08cb530748a3ddb346497bf1a" />
+      <SDF file_path="$TEST_SOURCE_MODS_DIR/suite_simple.xml" hash="1d90bde78b8740d08cb530748a3ddb346497bf1a" />
       <scheme file_path="$TEST_SOURCE_MODS_DIR/temp_adjust_scalar.meta" hash="5db7656773842759b12d6f9aea0821bf53559c73" />
       TAG3
       <preproc_defs>UNSET</preproc_defs>

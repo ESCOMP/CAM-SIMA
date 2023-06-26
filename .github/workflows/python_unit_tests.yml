@@ -1,0 +1,59 @@
+name: Python Unit Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    # Run the tests one more time, after the PR changes
+    # have been pushed.  The if-statement below prevents
+    # the push from running on other repos.
+    branches:
+      #Trigger workflow on push to any branch or branch heirarchy:
+      - '**'
+
+jobs:
+  #This job is designed to run all python unit and doctests whenever
+  #a PR is either opened or synced (i.e. additional commits are pushed
+  #to branch involved in PR).
+  python_unit_tests:
+    if: github.event_name == 'pull_request' || github.repository == 'ESCOMP/CAM-SIMA'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        #All of these python versions will be used to run tests:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+      fail-fast: false
+    steps:
+    # Acquire github action routines:
+    - uses: actions/checkout@v3
+    # Acquire specific version of python:
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    # Install xmllint so tests pass:
+    - name: Install xmllint
+      run: |
+        sudo apt-get update
+        sudo apt-get install libxml2-utils
+    # Install pytest so that certain doctests can be caught correctly:
+    - name: install pytest
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+    # Run "checkout_externals":
+    - name: Checkout externals
+      run: |
+        manage_externals/checkout_externals --externals Externals_CAM.cfg ccpp-framework
+        manage_externals/checkout_externals --externals Externals.cfg cime
+    # Run python unit and doctests:
+    - name: python unit tests
+      run: |
+        # Run all python doctests in cime_config:
+        pytest cime_config --doctest-modules
+
+        # Run all python doctests in src/data:
+        pytest src/data --doctest-modules
+
+        # Run all python unit tests:
+        pytest test/unit

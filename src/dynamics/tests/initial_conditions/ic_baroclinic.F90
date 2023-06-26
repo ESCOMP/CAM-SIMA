@@ -11,11 +11,9 @@ module ic_baroclinic
   use cam_abortutils,      only: endrun
   use spmd_utils,          only: masterproc
 
-  use physconst, only : rair, gravit, rearth, pi, omega, epsilo
-  use hycoef,    only : hyai, hybi, hyam, hybm, ps0
-
-  !Remove once constituents are enabled -JN
-  use physics_types, only : ix_cld_liq, ix_rain
+  use physconst,           only : rair, gravit, rearth, pi, omega, epsilo
+  use hycoef,              only : hyai, hybi, hyam, hybm, ps0
+  use cam_constituents,    only: const_get_index
 
   implicit none
   private
@@ -109,6 +107,7 @@ contains
     ! Local variables
     logical, allocatable              :: mask_use(:)
     logical                           :: verbose_use
+    integer                           :: ix_cld_liq, ix_rain
     integer                           :: i, k, m
     integer                           :: ncol
     integer                           :: nlev
@@ -159,6 +158,9 @@ contains
     else
       mask_use = .true.
     end if
+
+    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
+    call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
 
     if (present(verbose)) then
       verbose_use = verbose

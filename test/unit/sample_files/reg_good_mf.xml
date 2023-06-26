@@ -3,6 +3,8 @@
 <registry name="cam_registry" version="1.0">
   <file name="physics_types_ddt" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
+    <use module="physconst" reference="cpair"/>
+    <use module="physconst" reference="rair"/>
     <variable local_name="ncol" standard_name="horizontal_dimension"
               units="count" type="integer" access="protected">
       <long_name>Number of horizontal columns</long_name>
@@ -19,6 +21,14 @@
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>lon</ic_file_input_names>
+    </variable>
+    <variable local_name="cappav"
+              standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>rair/cpair</initial_value>
     </variable>
     <ddt type="physics_state">
       <data dycore="FV,EUL,SE">horizontal_dimension</data>

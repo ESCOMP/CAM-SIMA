@@ -27,7 +27,7 @@ contains
 
 #ifdef debug_coupling
     use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
-    use constituents,       only: cnst_get_ind,cnst_name
+    use cam_constituents,   only: const_name
     character(LEN=128) :: name
     integer :: nq,m_cnst
 
@@ -69,37 +69,37 @@ contains
 
     do nq=ntrac,ntrac
       m_cnst = nq
-      name = 'f2p_'//trim(cnst_name(m_cnst))//'_fvm'
+      name = 'f2p_'//trim(const_name(m_cnst))//'_fvm'
       call addfld(trim(name),   (/ 'lev' /),  'I','','Exact water tracer on fvm grid',gridname='FVM')
       call add_default (trim(name), 1, ' ')
-      name = 'f2p_'//trim(cnst_name(m_cnst))//'_err'
+      name = 'f2p_'//trim(const_name(m_cnst))//'_err'
       call addfld(trim(name),   (/ 'lev' /),  'I','','Error in water tracer on physics grid (mapped from fvm grid)')
       call add_default (trim(name), 1, ' ')
-      name = 'f2p_'//trim(cnst_name(m_cnst))//''
+      name = 'f2p_'//trim(const_name(m_cnst))//''
       call addfld(trim(name),   (/ 'lev' /),  'I','','Water tracer on physics grid (mapped from fvm grid')
       call add_default (trim(name), 1, ' ')
       !
       ! physgrid to gll (condensate loading tracers)
       !
-      name = 'p2d_'//trim(cnst_name(m_cnst))//''
+      name = 'p2d_'//trim(const_name(m_cnst))//''
       call addfld(trim(name),   (/ 'lev' /),  'I','','Water tracer on physics grid')
       !call add_default (trim(name), 1, ' ')
-      name = 'p2d_'//trim(cnst_name(m_cnst))//'_gll'
+      name = 'p2d_'//trim(const_name(m_cnst))//'_gll'
       call addfld(trim(name),   (/ 'lev' /),  'I','','Water tracer on GLL grid',gridname='GLL')
       !call add_default (trim(name), 1, ' ')
-      name = 'p2d_'//trim(cnst_name(m_cnst))//'_err_gll'
+      name = 'p2d_'//trim(const_name(m_cnst))//'_err_gll'
       call addfld(trim(name),   (/ 'lev' /),  'I','','Error in water tracer mapped to GLL grid',gridname='GLL')
       !call add_default (trim(name), 1, ' ')
       !
       ! physgrid to fvm (condensate loading tracers)
       !
-      name = 'p2f_'//trim(cnst_name(m_cnst))//''
+      name = 'p2f_'//trim(const_name(m_cnst))//''
       call addfld(trim(name),   (/ 'lev' /),  'I','','Water tracer on physics grid')
       call add_default (trim(name), 1, ' ')
-      name = 'p2f_'//trim(cnst_name(m_cnst))//'_fvm'
+      name = 'p2f_'//trim(const_name(m_cnst))//'_fvm'
       call addfld(trim(name),   (/ 'lev' /),  'I','','Water tracer on FVM grid',gridname='FVM')
       call add_default (trim(name), 1, ' ')
-      name = 'p2f_'//trim(cnst_name(m_cnst))//'_err_fvm'
+      name = 'p2f_'//trim(const_name(m_cnst))//'_err_fvm'
       call addfld(trim(name),   (/ 'lev' /),  'I','','Error in water tracer mapped to FVM grid',gridname='FVM')
       call add_default (trim(name), 1, ' ')
     end do
@@ -130,14 +130,14 @@ contains
          gridname='GLL')
     !call add_default ('p2d_v_gll_err', 1, ' ')
 
-!      name = 'phys2dyn_'//trim(cnst_name(m_cnst))//'_physgrid'
+!      name = 'phys2dyn_'//trim(const_name(m_cnst))//'_physgrid'
 !      call outfld(trim(name),phys_state%q(:ncols,:,m_cnst),ncols,lchnk)
 #endif
   end subroutine test_mapping_addfld
 
   subroutine test_mapping_overwrite_tendencies(phys_state,phys_tend,ncols,q_prev,fvm)
-!    use constituents,           only: cnst_get_ind,pcnst,cnst_name
-    use physics_types,  only: physics_state, physics_tend
+    use cam_constituents, only: const_name
+    use physics_types,    only: physics_state, physics_tend
 
     !SE dycore:
     use dimensions_mod,         only: fv_nphys
@@ -165,9 +165,9 @@ contains
           phys_state%q(icol,k,m_cnst)   = test_func(phys_state%lat(icol), phys_state%lon(icol), k, k)
         end do
       enddo
-      name = 'p2f_'//trim(cnst_name(m_cnst))//''
+      name = 'p2f_'//trim(const_name(m_cnst))//''
       call outfld(trim(name),phys_state%q(:ncols,:,m_cnst),ncols,lchnk)
-      name = 'p2d_'//trim(cnst_name(m_cnst))//''
+      name = 'p2d_'//trim(const_name(m_cnst))//''
       call outfld(trim(name),phys_state%q(:ncols,:,m_cnst),ncols,lchnk)
     end do
 
@@ -197,7 +197,7 @@ contains
   end subroutine test_mapping_overwrite_tendencies
 
   subroutine test_mapping_output_mapped_tendencies(fvm,elem,nets,nete,tl_f,tl_qdp)
-!    use constituents,           only: cnst_get_ind,cnst_name
+    use cam_constituents,       only: const_name
 
     !SE dycore:
     use dimensions_mod,         only: fv_nphys,nlev,nc
@@ -236,7 +236,7 @@ contains
     do ie = nets,nete
       do nq=ntrac,ntrac
         m_cnst = nq
-        name = 'p2d_'//trim(cnst_name(m_cnst))//'_gll'
+        name = 'p2d_'//trim(const_name(m_cnst))//'_gll'
         call outfld(TRIM(name), RESHAPE(elem(ie)%derived%fq(:,:,:,nq),(/npsq,nlev/)), npsq, ie)
         !        call outfld(trim(name),&
         !             RESHAPE(fvm(ie)%fc(1:nc,1:nc,:,m_cnst),&
@@ -249,13 +249,13 @@ contains
             end do
           end do
         end do
-        name = 'p2d_'//trim(cnst_name(m_cnst))//'_err_gll'
+        name = 'p2d_'//trim(const_name(m_cnst))//'_err_gll'
         call outfld(TRIM(name), RESHAPE(elem(ie)%derived%fq(:,:,:,nq),(/npsq,nlev/)), npsq, ie)
       end do
       if (ntrac>0) then
         do nq=ntrac,ntrac
           m_cnst = nq
-          name = 'p2f_'//trim(cnst_name(m_cnst))//'_fvm'
+          name = 'p2f_'//trim(const_name(m_cnst))//'_fvm'
           !
           ! cly
           !
@@ -273,7 +273,7 @@ contains
               end do
             end do
           end do
-          name = 'p2f_'//trim(cnst_name(m_cnst))//'_err_fvm'
+          name = 'p2f_'//trim(const_name(m_cnst))//'_err_fvm'
           call outfld(TRIM(name), RESHAPE(diff(:,:,:,m_cnst),(/nc*nc,nlev/)), nc*nc, ie)
 
         end do
@@ -283,7 +283,7 @@ contains
   end subroutine test_mapping_output_mapped_tendencies
 
   subroutine test_mapping_overwrite_dyn_state(elem,fvm)
-!    use constituents,           only: cnst_name
+    use cam_constituents,       only: const_name
 
     !SE dycore:
     use fvm_control_volume_mod, only: fvm_struct
@@ -306,7 +306,7 @@ contains
     do ie=nets,nete
       do nq=ntrac,ntrac
         m_cnst = nq
-        name = 'f2p_'//trim(cnst_name(m_cnst))//'_fvm'
+        name = 'f2p_'//trim(const_name(m_cnst))//'_fvm'
         do k=1,num_fnc
           do j=1,nc
             do i=1,nc
@@ -372,9 +372,9 @@ contains
   end subroutine test_mapping_overwrite_dyn_state
 
   subroutine test_mapping_output_phys_state(phys_state,fvm)
-    use physics_types, only: physics_state
-!    use ppgrid,        only: begchunk, endchunk, pver, pcols
-!    use constituents,  only: cnst_get_ind,cnst_name
+    use physics_types,    only: physics_state
+!    use ppgrid,           only: begchunk, endchunk, pver, pcols
+    use cam_constituents, only: const_name
 
     type(physics_state), intent(inout) :: phys_state
     type(fvm_struct), pointer:: fvm(:)
@@ -393,7 +393,7 @@ contains
       if (ntrac>0) then
         do nq=ntrac,ntrac
           m_cnst = nq
-          name = 'f2p_'//trim(cnst_name(m_cnst))
+          name = 'f2p_'//trim(const_name(m_cnst))
           !
           ! cly
           !
@@ -412,7 +412,7 @@ contains
                    -test_func(phys_state(lchnk)%lat(icol), phys_state(lchnk)%lon(icol), k,k)
             end do
           enddo
-          name = 'f2p_'//trim(cnst_name(m_cnst))//'_err'
+          name = 'f2p_'//trim(const_name(m_cnst))//'_err'
           call outfld(TRIM(name), phys_state(lchnk)%q(1:pcols,1:pver,m_cnst), pcols, lchnk)
           phys_state(lchnk)%q(1:pcols,1:pver,m_cnst) = 0.0_r8
         end do

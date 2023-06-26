@@ -23,8 +23,8 @@ CONTAINS
 !Un-comment once constitutents are enabled -JN:
 !    use constituents,           only: cnst_name
     use string_utils,           only: to_str !Remove once constituents are enabled -JN
-    use physconst,              only: thermodynamic_active_species_idx_dycore, dry_air_species_num
-    use physconst,              only: thermodynamic_active_species_num,thermodynamic_active_species_idx
+    use air_composition,        only: thermodynamic_active_species_idx_dycore, dry_air_species_num
+    use air_composition,        only: thermodynamic_active_species_num,thermodynamic_active_species_idx
     use cam_control_mod,        only: initial_run
     use time_mod,               only: tstep
     use control_mod,            only: rsplit, qsplit
