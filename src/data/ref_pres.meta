@@ -28,12 +28,6 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ psurf_ref ]
-  standard_name = reference_pressure_at_surface
-  units = Pa
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
 [ num_pr_lev ]
   standard_name = number_of_pure_pressure_levels_at_top
   units = count

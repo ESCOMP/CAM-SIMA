@@ -25,10 +25,10 @@ module ref_pres
    real(kind_phys), protected, allocatable :: pref_edge(:)      ! Layer edges
    real(kind_phys), protected, allocatable :: pref_mid(:)       ! Layer midpoints
    real(kind_phys), protected, allocatable :: pref_mid_norm(:)  ! Layer midpoints normalized by
-                                                             ! surface pressure ('eta' coordinate)
+                                                                ! surface pressure ('eta' coordinate)
 
-   real(kind_phys), protected :: ptop_ref             ! Top of model
-   real(kind_phys), protected :: psurf_ref            ! Surface pressure
+   real(kind_phys), protected :: ptop_ref                       ! air pressure at top of model
+                                                                ! reference profile
 
    ! Number of top levels using pure pressure representation
    integer, protected :: num_pr_lev
@@ -117,12 +117,11 @@ contains
       ! arguments
       real(kind_phys), intent(in) :: pref_edge_in(:) ! reference pressure at layer edges (Pa)
       real(kind_phys), intent(in) :: pref_mid_in(:)  ! reference pressure at layer midpoints (Pa)
-      integer,  intent(in) :: num_pr_lev_in   ! number of top levels using pure pressure representation
+      integer,  intent(in) :: num_pr_lev_in          ! number of top levels using pure pressure representation
 
       ! local variables
-
+      real(kind_phys) :: psurf_ref                   ! air pressure at bottom of model reference profile
       integer :: iret ! return status integer
-
       character(len=*), parameter :: subname = 'ref_pres_init'
 
       !---------------------------------------------------------------------------
@@ -177,8 +176,6 @@ contains
       call mark_as_initialized("reference_pressure_normalized_by_surface_pressure")
       ! ptop_ref
       call mark_as_initialized("air_pressure_at_top_of_atmosphere_model")
-      ! psurf_ref
-      call mark_as_initialized("reference_pressure_at_surface")
       ! num_pr_lev
       call mark_as_initialized("number_of_pure_pressure_levels_at_top")
       ! trop_cloud_top_lev

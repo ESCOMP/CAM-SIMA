@@ -67,14 +67,8 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ ps_base ]
-  standard_name = base_state_surface_pressure_for_hybrid_vertical_coordinate
-  units = Pa
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ ps_ref ]
-  standard_name = reference_pressure_at_surface0
+[ pref ]
+  standard_name = reference_pressure_at_surface
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
