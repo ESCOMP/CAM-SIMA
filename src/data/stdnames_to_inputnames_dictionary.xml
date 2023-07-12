@@ -34,7 +34,7 @@
       <ic_file_input_name>state_psdry</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="geopotential_at_surface">
+  <entry stdname="surface_geopotential">
     <ic_file_input_names>
       <ic_file_input_name>phis</ic_file_input_name>
       <ic_file_input_name>state_phis</ic_file_input_name>
@@ -46,13 +46,13 @@
       <ic_file_input_name>state_t</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="x_wind">
+  <entry stdname="eastward_wind">
     <ic_file_input_names>
       <ic_file_input_name>u</ic_file_input_name>
       <ic_file_input_name>state_u</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="y_wind">
+  <entry stdname="northward_wind">
     <ic_file_input_names>
       <ic_file_input_name>v</ic_file_input_name>
       <ic_file_input_name>state_v</ic_file_input_name>
@@ -82,37 +82,37 @@
       <ic_file_input_name>state_pmiddry</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="pressure_thickness">
+  <entry stdname="air_pressure_thickness">
     <ic_file_input_names>
       <ic_file_input_name>pdel</ic_file_input_name>
       <ic_file_input_name>state_pdel</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="pressure_thickness_of_dry_air">
+  <entry stdname="air_pressure_thickness_of_dry_air">
     <ic_file_input_names>
       <ic_file_input_name>pdeldry</ic_file_input_name>
       <ic_file_input_name>state_pdeldry</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="reciprocal_of_pressure_thickness">
+  <entry stdname="reciprocal_of_air_pressure_thickness">
     <ic_file_input_names>
       <ic_file_input_name>rpdel</ic_file_input_name>
       <ic_file_input_name>state_rpdel</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="reciprocal_of_pressure_thickness_of_dry_air">
+  <entry stdname="reciprocal_of_air_pressure_thickness_of_dry_air">
     <ic_file_input_names>
       <ic_file_input_name>rpdeldry</ic_file_input_name>
       <ic_file_input_name>state_rpdeldry</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="ln_of_air_pressure">
+  <entry stdname="ln_air_pressure">
     <ic_file_input_names>
       <ic_file_input_name>lnpmid</ic_file_input_name>
       <ic_file_input_name>state_lnpmid</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="ln_of_air_pressure_of_dry_air">
+  <entry stdname="ln_air_pressure_of_dry_air">
     <ic_file_input_names>
       <ic_file_input_name>lnpmiddry</ic_file_input_name>
       <ic_file_input_name>state_lnpmiddry</ic_file_input_name>
@@ -124,7 +124,7 @@
       <ic_file_input_name>state_exner</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="geopotential_height">
+  <entry stdname="geopotential_height_wrt_surface">
     <ic_file_input_names>
       <ic_file_input_name>zm</ic_file_input_name>
       <ic_file_input_name>state_zm</ic_file_input_name>
@@ -142,43 +142,43 @@
       <ic_file_input_name>state_pintdry</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="ln_of_air_pressure_at_interface">
+  <entry stdname="ln_air_pressure_at_interface">
     <ic_file_input_names>
       <ic_file_input_name>lnpint</ic_file_input_name>
       <ic_file_input_name>state_lnpint</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="ln_of_air_pressure_of_dry_air_at_interface">
+  <entry stdname="ln_air_pressure_of_dry_air_at_interface">
     <ic_file_input_names>
       <ic_file_input_name>lnpintdry</ic_file_input_name>
       <ic_file_input_name>state_lnpintdry</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="geopotential_height_at_interface">
+  <entry stdname="geopotential_height_wrt_surface_at_interface">
     <ic_file_input_names>
       <ic_file_input_name>zi</ic_file_input_name>
       <ic_file_input_name>state_zi</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="column_integrated_total_kinetic_and_static_energy_of_initial_state">
+  <entry stdname="vertically_integrated_energies_of_initial_state_in_cam">
     <ic_file_input_names>
       <ic_file_input_name>te_ini</ic_file_input_name>
       <ic_file_input_name>state_te_ini</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="column_integrated_total_kinetic_and_static_energy_of_current_state">
+  <entry stdname="vertically_integrated_energies_of_current_state_in_cam">
     <ic_file_input_names>
       <ic_file_input_name>te_cur</ic_file_input_name>
       <ic_file_input_name>state_te_cur</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="column_integrated_total_water_of_initial_state">
+  <entry stdname="vertically_integrated_total_water_of_initial_state">
     <ic_file_input_names>
       <ic_file_input_name>tw_ini</ic_file_input_name>
       <ic_file_input_name>state_tw_ini</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="column_integrated_total_water_of_current_state">
+  <entry stdname="vertically_integrated_total_water_of_current_state">
     <ic_file_input_names>
       <ic_file_input_name>tw_cur</ic_file_input_name>
       <ic_file_input_name>state_tw_cur</ic_file_input_name>
@@ -196,13 +196,13 @@
       <ic_file_input_name>tend_dtdt</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="tendency_of_x_wind_due_to_model_physics">
+  <entry stdname="tendency_of_eastward_wind_due_to_model_physics">
     <ic_file_input_names>
       <ic_file_input_name>dudt</ic_file_input_name>
       <ic_file_input_name>tend_dudt</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="tendency_of_y_wind_due_to_model_physics">
+  <entry stdname="tendency_of_northward_wind_due_to_model_physics">
     <ic_file_input_names>
       <ic_file_input_name>dvdt</ic_file_input_name>
       <ic_file_input_name>tend_dvdt</ic_file_input_name>
@@ -226,13 +226,13 @@
       <ic_file_input_name>cnst_CLDICE</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="rain_water_mixing_ratio_wrt_moist_air">
+  <entry stdname="rain_mixing_ratio_wrt_moist_air_and_condensed_water">
     <ic_file_input_names>
       <ic_file_input_name>RAINQM</ic_file_input_name>
       <ic_file_input_name>cnst_RAINQM</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="snow_water_mixing_ratio_wrt_moist_air">
+  <entry stdname="snow_mixing_ratio_wrt_moist_air_and_condensed_water">
     <ic_file_input_names>
       <ic_file_input_name>SNOWQM</ic_file_input_name>
       <ic_file_input_name>cnst_SNOWQM</ic_file_input_name>

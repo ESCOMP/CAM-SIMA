@@ -332,8 +332,8 @@ CONTAINS
             !
             ! RAINQM
             !
-         case('rain_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('rain_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('rain_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -346,8 +346,8 @@ CONTAINS
             !
             ! SNOWQM
             !
-         case('snow_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('snow_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('snow_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('snow_mixing_ratio_wrt_moist_air_and_condensed_water', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice

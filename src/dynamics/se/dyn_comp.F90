@@ -1812,9 +1812,9 @@ subroutine read_inidat(dyn_in)
    !Finally, mark variables as initialized so that physics doesn't try to set
    !the initial values itself:
    call mark_as_initialized("surface_air_pressure")
-   call mark_as_initialized("pressure_thickness")
-   call mark_as_initialized("x_wind") !eastward wind
-   call mark_as_initialized("y_wind") !northward wind
+   call mark_as_initialized("air_pressure_thickness")
+   call mark_as_initialized("eastward_wind")  !eastward wind
+   call mark_as_initialized("northward_wind") !northward wind
    call mark_as_initialized("air_temperature")
 
    !Mark all constituents as initialized
@@ -1824,28 +1824,28 @@ subroutine read_inidat(dyn_in)
 
    !These calls may be removed if geopotential_t is only allowed to run
    !in a CCPP physics suite:
-   call mark_as_initialized("geopotential_height")
-   call mark_as_initialized("geopotential_height_at_interface")
+   call mark_as_initialized("geopotential_height_wrt_surface")
+   call mark_as_initialized("geopotential_height_wrt_surface_at_interface")
    call mark_as_initialized("dry_static_energy")
 
    !These variables are calculated in d_p_coupling, but need to be marked here:
    call mark_as_initialized("air_pressure")
-   call mark_as_initialized("ln_of_air_pressure")
+   call mark_as_initialized("ln_air_pressure")
    call mark_as_initialized("air_pressure_at_interface")
-   call mark_as_initialized("ln_of_air_pressure_at_interface")
-   call mark_as_initialized("pressure_thickness_of_dry_air")
+   call mark_as_initialized("ln_air_pressure_at_interface")
+   call mark_as_initialized("air_pressure_thickness_of_dry_air")
    call mark_as_initialized("surface_pressure_of_dry_air")
    call mark_as_initialized("air_pressure_of_dry_air")
    call mark_as_initialized("air_pressure_of_dry_air_at_interface")
-   call mark_as_initialized("ln_of_air_pressure_of_dry_air_at_interface")
-   call mark_as_initialized("ln_of_air_pressure_of_dry_air")
-   call mark_as_initialized("reciprocal_of_pressure_thickness_of_dry_air")
-   call mark_as_initialized("reciprocal_of_pressure_thickness")
+   call mark_as_initialized("ln_air_pressure_of_dry_air_at_interface")
+   call mark_as_initialized("ln_air_pressure_of_dry_air")
+   call mark_as_initialized("reciprocal_of_air_pressure_thickness_of_dry_air")
+   call mark_as_initialized("reciprocal_of_air_pressure_thickness")
    call mark_as_initialized("inverse_exner_function_wrt_surface_pressure")
    call mark_as_initialized("lagrangian_tendency_of_air_pressure")
    call mark_as_initialized("tendency_of_air_temperature_due_to_model_physics")
-   call mark_as_initialized("tendency_of_x_wind_due_to_model_physics")
-   call mark_as_initialized("tendency_of_y_wind_due_to_model_physics")
+   call mark_as_initialized("tendency_of_eastward_wind_due_to_model_physics")
+   call mark_as_initialized("tendency_of_northward_wind_due_to_model_physics")
 
 end subroutine read_inidat
 
@@ -2112,7 +2112,7 @@ subroutine set_phis(dyn_in)
 
    !Mark phis as initialized so that physics doesn't try to set
    !the initial values itself:
-   call mark_as_initialized("geopotential_at_surface")
+   call mark_as_initialized("surface_geopotential")
 
 end subroutine set_phis
 

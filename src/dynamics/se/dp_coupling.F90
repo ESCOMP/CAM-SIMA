@@ -589,7 +589,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Set constituent indices
    call const_get_index('specific_humidity', ix_q)
    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
-   call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
+   call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix_rain)
 
    ! Grab pointer to constituent array
    const_data_ptr => cam_constituents_array()
