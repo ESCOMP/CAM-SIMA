@@ -45,6 +45,41 @@ RUN cd pnetcdf-1.12.3 && \
      make -j 8 install && \
      ldconfig
 
+ENV FC=gfortran
+
+###################################################
+## Build and install json-fortran
+###################################################
+RUN curl -LO https://github.com/jacobwilliams/json-fortran/archive/8.2.0.tar.gz \
+    && tar -zxvf 8.2.0.tar.gz \
+    && cd json-fortran-8.2.0 \
+    && mkdir build \
+    && cd build \
+    && cmake -D SKIP_DOC_GEN:BOOL=TRUE .. \
+    && make install -j 8
+
+###################################################
+## Build and install MUSICA
+###################################################
+
+RUN echo "asdf"
+
+RUN git clone https://github.com/NCAR/musica.git
+RUN mkdir /musica/build \
+    && cd /musica/build \
+    && export JSON_FORTRAN_HOME="/usr/local/jsonfortran-gnu-8.2.0" \
+    && cmake \
+             -D ENABLE_TESTS=OFF \
+             -D ENABLE_TUVX=OFF \
+          .. \
+    && make install -j 8
+
+###################################################
+## Add symlinks
+###################################################
+RUN ln -s /usr/local/jsonfortran-gnu-8.2.0/lib/libjsonfortran.a /usr/local/lib/libjsonfortran.a
+RUN ln -s /usr/local/musica-0.3.0/lib64/libmusica.a /usr/local/lib/libmusica.a
+
 ###################################################
 ## Build CAM-SIMA
 ###################################################
