@@ -58,11 +58,12 @@ RUN curl -LO https://github.com/jacobwilliams/json-fortran/archive/8.2.0.tar.gz 
     && cmake -D SKIP_DOC_GEN:BOOL=TRUE .. \
     && make install -j 8
 
+# add a symlink
+RUN ln -s /usr/local/jsonfortran-gnu-8.2.0/lib/libjsonfortran.a /usr/local/lib/libjsonfortran.a
+
 ###################################################
 ## Build and install MUSICA
 ###################################################
-
-RUN echo "asdf"
 
 RUN git clone https://github.com/NCAR/musica.git
 RUN mkdir /musica/build \
@@ -74,10 +75,7 @@ RUN mkdir /musica/build \
           .. \
     && make install -j 8
 
-###################################################
-## Add symlinks
-###################################################
-RUN ln -s /usr/local/jsonfortran-gnu-8.2.0/lib/libjsonfortran.a /usr/local/lib/libjsonfortran.a
+# add a symlink
 RUN ln -s /usr/local/musica-0.3.0/lib64/libmusica.a /usr/local/lib/libmusica.a
 
 ###################################################
