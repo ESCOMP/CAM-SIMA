@@ -819,10 +819,12 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_constituents_array"]],
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_constituents_array", "cam_model_const_properties"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  [phys_check_fname_str, ["phys_var_stdnames",
-                                         "input_var_names", "std_name_len"]]]
+                                         "input_var_names", "std_name_len"]],
+                 ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]],
+                 ["cam_logfile", ["iulog"]]]
 
     # Add in host model data use statements
     use_stmts.extend(host_imports)
@@ -860,6 +862,14 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("character(len=2)           :: sep2            !String separator used to print err messages", 2)
     outfile.write("character(len=2)           :: sep3            !String separator used to print err messages", 2)
     outfile.write("real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)", 2)
+    outfile.write("logical                    :: var_found       !Bool to determine if consituent found in data files", 2)
+    outfile.blank_line()
+    outfile.comment("Fields needed for getting default data value for constituents", 2)
+    outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
+    outfile.write("real(kind=kind_phys)                       :: constituent_default_value", 2)
+    outfile.write("integer                                    :: constituent_errflg", 2)
+    outfile.write("character(len=SHR_KIND_CX)                 :: constituent_errmsg", 2)
+    outfile.write("logical                                    :: constituent_has_default", 2)
     outfile.blank_line()
     outfile.comment("Logical to default optional argument to False:", 2)
     outfile.write("logical                    :: use_init_variables", 2)
@@ -949,8 +959,27 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.comment("If an index was found in the constituent hash table, then read in the data to that index of the constituent array", 6)
     outfile.blank_line()
+    outfile.write("var_found = .false.", 6)
     outfile.write("field_data_ptr => cam_constituents_array()", 6)
-    outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 6)
+    outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 6)
+    outfile.write("if(.not. var_found) then", 6)
+    outfile.write("const_props => cam_model_const_properties()", 7)
+    outfile.write("constituent_has_default = .false.", 7)
+    outfile.write("call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)", 7)
+    outfile.write("if (constituent_has_default) then", 7)
+    outfile.write("call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)", 8)
+    outfile.write("field_data_ptr(:,:,constituent_idx) = constituent_default_value", 8)
+    outfile.write("if (masterproc) then", 8)
+    outfile.write("write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx), ' initialized from file: ', constituent_default_value", 9)
+    outfile.write("end if", 8)
+    outfile.write("else", 7)
+    outfile.write("field_data_ptr(:,:,constituent_idx) = 0._kind_phys", 8)
+    outfile.write("if (masterproc) then", 8)
+    outfile.write("write(iulog,*) 'Constituent ', ccpp_required_data(req_idx), ' default value not configured.  Setting to 0.'", 9)
+    outfile.write("end if", 8)
+    outfile.write("end if", 7)
+    outfile.write("end if", 6)
+    outfile.blank_line()
 
     # start default case steps:
     outfile.write("case default", 5)

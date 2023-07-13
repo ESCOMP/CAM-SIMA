@@ -135,7 +135,7 @@ CONTAINS
    end function arr2str
 
 
-   subroutine read_field_2d(file, std_name, var_names, timestep, buffer, mark_as_read)
+   subroutine read_field_2d(file, std_name, var_names, timestep, buffer, mark_as_read, error_on_not_found, var_found)
       use shr_assert_mod,       only: shr_assert_in_domain
       use shr_sys_mod,          only: shr_sys_flush
       use pio,                  only: file_desc_t, var_desc_t
@@ -156,9 +156,12 @@ CONTAINS
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:)
       logical, optional, intent(in)    :: mark_as_read
+      logical, optional, intent(in)    :: error_on_not_found
+      logical, optional, intent(out)   :: var_found
       ! Local variables
       logical                          :: mark_as_read_local
-      logical                          :: var_found
+      logical                          :: error_on_not_found_local
+      logical                          :: var_found_local
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_2d: '
@@ -169,35 +172,52 @@ CONTAINS
          mark_as_read_local = .true.
       end if
 
-      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
-      if (.not. var_found) then
-          call cam_pio_find_var(file, [std_name], found_name, vardesc, var_found)
+      if (present(error_on_not_found)) then
+         error_on_not_found_local = error_on_not_found
+      else
+         error_on_not_found_local = .true.
       end if
 
-      if (var_found) then
+      var_found_local = .false.
+      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found_local)
+      if (.not. var_found_local) then
+          call cam_pio_find_var(file, [std_name], found_name, vardesc, var_found_local)
+      end if
+
+      if (var_found_local) then
          if (masterproc) then
             write(iulog, *) 'Reading input field, ', trim(found_name)
             call shr_sys_flush(iulog)
          end if
-         call cam_read_field(found_name, file, buffer, var_found,             &
+         call cam_read_field(found_name, file, buffer, var_found_local,             &
               timelevel=timestep)
+
          if (mark_as_read_local) then
             call mark_as_read_from_file(std_name)
+         end if
+
+         if (var_found_local) then
+            call shr_assert_in_domain(buffer, is_nan=.false.,                    &
+                 varname=trim(found_name),                                       &
+                 msg=subname//'NaN found in '//trim(found_name))
+         else
+            call endrun(subname//'Mismatch variable found in '//arr2str(var_names))
+         end if
+      else if (.not. error_on_not_found_local) then
+         if (masterproc) then
+            write(iulog, *) 'Var not found AND not failing when not found reading ', trim(arr2str(var_names)), ' and ', trim(std_name)
+            call shr_sys_flush(iulog)
          end if
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
-      if (var_found) then
-         call shr_assert_in_domain(buffer, is_nan=.false.,                    &
-              varname=trim(found_name),                                       &
-              msg=subname//'NaN found in '//trim(found_name))
-      else
-         call endrun(subname//'Mismatch variable found in '//arr2str(var_names))
-      end if
+      if (present(var_found)) then
+         var_found = var_found_local
+     end if
    end subroutine read_field_2d
 
    subroutine read_field_3d(file, std_name, var_names, vcoord_name,           &
-        timestep, buffer, mark_as_read)
+        timestep, buffer, mark_as_read, error_on_not_found, var_found)
       use shr_assert_mod,       only: shr_assert_in_domain
       use shr_sys_mod,          only: shr_sys_flush
       use pio,                  only: file_desc_t, var_desc_t
@@ -220,9 +240,12 @@ CONTAINS
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:,:)
       logical, optional, intent(in)    :: mark_as_read
+      logical, optional, intent(in)    :: error_on_not_found
+      logical, optional, intent(out)   :: var_found
       ! Local variables
       logical                          :: mark_as_read_local
-      logical                          :: var_found
+      logical                          :: error_on_not_found_local
+      logical                          :: var_found_local
       integer                          :: num_levs
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
@@ -234,12 +257,20 @@ CONTAINS
          mark_as_read_local = .true.
       end if
 
-      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
-
-      if (.not. var_found) then
-         call cam_pio_find_var(file, [std_name], found_name, vardesc, var_found)
+      if (present(error_on_not_found)) then
+         error_on_not_found_local = error_on_not_found
+      else
+         error_on_not_found_local = .true.
       end if
-      if (var_found) then
+
+      var_found_local = .false.
+      call cam_pio_find_var(file, var_names, found_name, vardesc, var_found_local)
+
+      if (.not. var_found_local) then
+         call cam_pio_find_var(file, [std_name], found_name, vardesc, var_found_local)
+      end if
+
+      if (var_found_local) then
          if (trim(vcoord_name) == 'lev') then
             num_levs = pver
          else if (trim(vcoord_name) == 'ilev') then
@@ -251,21 +282,30 @@ CONTAINS
             write(iulog, *) 'Reading input field, ', trim(found_name)
             call shr_sys_flush(iulog)
          end if
-         call cam_read_field(found_name, file, buffer, var_found,             &
+         call cam_read_field(found_name, file, buffer, var_found_local,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=(/1, num_levs/))
+
          if (mark_as_read_local) then
             call mark_as_read_from_file(std_name)
+         end if
+         if (var_found_local) then
+            call shr_assert_in_domain(buffer, is_nan=.false.,                    &
+                 varname=trim(found_name),                                       &
+                 msg=subname//'NaN found in '//trim(found_name))
+         else
+            call endrun(subname//'Mismatch variable found in '//trim(std_name))
+         end if
+      else if (.not. error_on_not_found_local) then
+         if (masterproc) then
+            write(iulog, *) 'Var not found AND not failing when not found reading ', trim(arr2str(var_names)), ' and ', trim(std_name)
+            call shr_sys_flush(iulog)
          end if
       else
          call endrun(subname//'No variable found in '//arr2str(var_names))
       end if
-      if (var_found) then
-         call shr_assert_in_domain(buffer, is_nan=.false.,                    &
-              varname=trim(found_name),                                       &
-              msg=subname//'NaN found in '//trim(found_name))
-      else
-         call endrun(subname//'Mismatch variable found in '//found_name)
+      if (present(var_found)) then
+         var_found = var_found_local
       end if
    end subroutine read_field_3d
 

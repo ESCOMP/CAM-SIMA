@@ -1843,9 +1843,9 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("reciprocal_of_pressure_thickness")
    call mark_as_initialized("inverse_exner_function_wrt_surface_pressure")
    call mark_as_initialized("lagrangian_tendency_of_air_pressure")
-   call mark_as_initialized("total_tendency_of_air_temperature")
-   call mark_as_initialized("total_tendency_of_x_wind")
-   call mark_as_initialized("total_tendency_of_y_wind")
+   call mark_as_initialized("tendency_of_air_temperature_due_to_model_physics")
+   call mark_as_initialized("tendency_of_x_wind_due_to_model_physics")
+   call mark_as_initialized("tendency_of_y_wind_due_to_model_physics")
 
 end subroutine read_inidat
 
