@@ -208,19 +208,19 @@
       <ic_file_input_name>tend_dvdt</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="specific_humidity">
+  <entry stdname="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water">
     <ic_file_input_names>
       <ic_file_input_name>Q</ic_file_input_name>
       <ic_file_input_name>cnst_Q</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="cloud_liquid_water_mixing_ratio_wrt_moist_air">
+  <entry stdname="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water">
     <ic_file_input_names>
       <ic_file_input_name>CLDLIQ</ic_file_input_name>
       <ic_file_input_name>cnst_CLDLIQ</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="cloud_ice_mixing_ratio_wrt_moist_air">
+  <entry stdname="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water">
     <ic_file_input_names>
       <ic_file_input_name>CLDICE</ic_file_input_name>
       <ic_file_input_name>cnst_CLDICE</ic_file_input_name>

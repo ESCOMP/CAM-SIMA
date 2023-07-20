@@ -50,11 +50,12 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    ! Note that all pressures and tracer mixing ratios coming from the dycore are based on
    ! dry air mass.
 
-   use gravity_waves_sources,  only: gws_src_fnct
-   use hycoef,                 only: hyai, ps0
-   use test_fvm_mapping,       only: test_mapping_overwrite_dyn_state, test_mapping_output_phys_state
-   use cam_ccpp_cap,           only: cam_constituents_array
-   use cam_constituents,       only: const_name
+   use gravity_waves_sources,     only: gws_src_fnct
+   use hycoef,                    only: hyai, ps0
+   use test_fvm_mapping,          only: test_mapping_overwrite_dyn_state, test_mapping_output_phys_state
+   use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+   use cam_ccpp_cap,              only: cam_constituents_array
+   use cam_constituents,          only: const_name
 
    !SE dycore:
    use fvm_mapping,            only: dyn2phys_vector, dyn2phys_all_vars
@@ -82,6 +83,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    real(r8),  allocatable :: q_tmp(:,:,:,:)      ! temp to hold advected constituents
    real(r8),  allocatable :: omega_tmp(:,:,:)    ! temp array to hold omega
    real(kind=kind_phys),  pointer :: const_data_ptr(:,:,:) ! pointer to constituent array
+
+   type(ccpp_constituent_prop_ptr_t), pointer :: cprops_ptr(:) !pointer to constituent properties
 
    ! Frontogenesis
    real (kind=r8),  allocatable :: frontgf(:,:,:)     ! temp arrays to hold frontogenesis
@@ -547,20 +550,22 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Finally compute energy and water column integrals of the physics input state.
 
 !   use constituents,   only: qmin
-   use cam_ccpp_cap,   only: cam_constituents_array
-   use cam_constituents, only: const_get_index
-   use physics_types,  only: lagrangian_vertical
-   use physconst,      only: cpair, gravit, zvir, cappa
-   use cam_thermo,     only: cam_thermo_update
-   use physics_types,  only: rairv, zvirv
-   use shr_const_mod,  only: shr_const_rwv
-   use geopotential_t, only: geopotential_t_run
+   use cam_ccpp_cap,      only: cam_constituents_array
+   use cam_ccpp_cap,      only: cam_model_const_properties
+   use cam_constituents,  only: const_get_index
+   use physics_types,     only: lagrangian_vertical
+   use physconst,         only: cpair, gravit, zvir, cappa
+   use cam_thermo,        only: cam_thermo_update
+   use physics_types,     only: rairv, zvirv
+   use shr_const_mod,     only: shr_const_rwv
+   use geopotential_temp, only: geopotential_temp_run
+   use static_energy,     only: update_dry_static_energy_run
+!   use qneg,              only: qneg_run
 !   use check_energy,   only: check_energy_timestep_init
-   use hycoef,         only: hyai, ps0
-   use shr_vmath_mod,  only: shr_vmath_log
-   use shr_kind_mod,   only: shr_kind_cx
-!   use qneg_module,    only: qneg3
-   use dyn_comp,       only: ixo, ixo2, ixh, ixh2
+   use hycoef,            only: hyai, ps0
+   use shr_vmath_mod,     only: shr_vmath_log
+   use shr_kind_mod,      only: shr_kind_cx
+   use dyn_comp,          only: ixo, ixo2, ixh, ixh2
 
    ! arguments
    type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
@@ -571,10 +576,13 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    real(kind_phys) :: factor_array(pcols,nlev)
    real(kind_phys), pointer :: const_data_ptr(:,:,:)
 
+   !constituent properties pointer
+   type(ccpp_constituent_prop_ptr_t), pointer :: const_prop_ptr(:)
+
    integer :: m, i, k
    integer :: ix_q, ix_cld_liq, ix_rain
 
-   !Needed for "geopotential_t" CCPP scheme:
+   !Needed for "geopotential_temp" CCPP scheme
    integer :: errflg
    character(len=shr_kind_cx) :: errmsg
 
@@ -586,13 +594,18 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
     real(r8), parameter :: N2mmrMin=1.e-6_r8 ! lower limit of o2, o, and h mixing ratios
    !----------------------------------------------------------------------------
 
+   ! Nullify pointers
+   nullify(const_data_ptr)
+   nullify(const_prop_ptr)
+
    ! Set constituent indices
-   call const_get_index('specific_humidity', ix_q)
-   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
+   call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ix_q)
+   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ix_cld_liq)
    call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix_rain)
 
-   ! Grab pointer to constituent array
+   ! Grab pointer to constituent and properties arrays
    const_data_ptr => cam_constituents_array()
+   const_prop_ptr => cam_model_const_properties()
 
    ! Evaluate derived quantities
 
@@ -726,29 +739,25 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call cam_thermo_update(const_data_ptr, phys_state%t, pcols, &
         cam_runtime_opts%update_thermodynamic_variables())
 
-   !Call geopotential_t CCPP scheme:
-   call geopotential_t_run(pver, lagrangian_vertical, pver, 1, &
-                           pverp, 1, phys_state%lnpint, phys_state%pint, &
-                           phys_state%pmid, phys_state%pdel, &
-                           phys_state%rpdel, phys_state%t,  const_data_ptr(:,:,ix_q), &
-                           rairv, gravit, zvirv, phys_state%zi, phys_state%zm, pcols, &
-                           errflg, errmsg)
-
-   !NOTE:  Should dry static energy be done in CCPP physics suite? -JN:
+   !Call geopotential_temp CCPP scheme:
+   call geopotential_temp_run(pver, lagrangian_vertical, pver, 1,                        &
+                              pverp, 1, num_advected, phys_state%lnpint,                 &
+                              phys_state%pint, phys_state%pmid, phys_state%pdel,         &
+                              phys_state%rpdel, phys_state%t, const_data_ptr(:,:,ix_q),  &
+                              const_data_ptr, const_prop_ptr, rairv, gravit, zvirv,      &
+                              phys_state%zi, phys_state%zm, ncol, errflg, errmsg)
 
    ! Compute initial dry static energy, include surface geopotential
-   do k = 1, pver
-      do i = 1, pcols
-         phys_state%dse(i,k) = cpair*phys_state%t(i,k) &
-            + gravit*phys_state%zm(i,k) + phys_state%phis(i)
-      end do
-   end do
+   call update_dry_static_energy_run(pver, phys_state%t, phys_state%zm, phys_state%phis, &
+                                     phys_state%dse, cpairv, errflg, errmsg)
 
-!Remove once constituents (and QNEG) are enabled in CAMDEN:
+   ! Ensure tracers are all positive
+   ! Please note this cannot be used until the 'qmin'
+   ! array is publicly provided by the CCPP constituent object. -JN
 #if 0
-      ! Ensure tracers are all positive
-      call qneg3('D_P_COUPLING',lchnk  ,ncol    ,pcols   ,pver    , &
-           1, num_advected, qmin  ,const_data_ptr)
+   call qneg_run('D_P_COUPLING', ncol, pver, &
+                 qmin, const_data_ptr,       &
+                 errflg, errmsg)
 #endif
 
 !Remove once check_energy scheme exists in CAMDEN:

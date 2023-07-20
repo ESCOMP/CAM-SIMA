@@ -911,10 +911,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    end if
    call phys_getopts(history_budget_out=history_budget, history_budget_histfile_num_out=budget_hfile_num)
    if ( history_budget ) then
-      call const_get_index('specific_humidity', ixq)
-      call const_get_index('cloud_liquid_water_mixing_ratio_wrt_total_mass',  &
+      call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ixq)
+      call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water',  &
            ixcldliq)
-      call const_get_index('cloud_ice_water_mixing_ratio_wrt_total_mass', ixcldice)
+      call const_get_index('cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldice)
       call add_default(tottnam(     ixq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldliq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldice), budget_hfile_num, ' ')

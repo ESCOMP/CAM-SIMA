@@ -36,6 +36,10 @@ _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
 # Include files to insert in the module body
 _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
 
+# Increase allowed line lengths needed to fit extra-long CCPP standard names:
+_LINE_FILL_LEN = 150
+_MAX_LINE_LEN = 200
+
 ##############
 #Main function
 ##############
@@ -150,7 +154,8 @@ def write_init_files(cap_database, ic_names, outdir,
     # Open file using CCPP's FortranWriter:
     file_desc = "Initialization-checking source file"
     with FortranWriter(ofilename, "w", file_desc,
-                       phys_check_fname_str, indent=indent) as outfile:
+                       phys_check_fname_str,
+                       indent=indent) as outfile:
 
         # Add boilerplate code:
         outfile.write_preamble()
@@ -202,8 +207,11 @@ def write_init_files(cap_database, ic_names, outdir,
 
     # Open file using CCPP's FortranWriter:
     file_desc = f"Initial conditions source file, {phys_input_filename}"
-    with FortranWriter(ofilename, "w", file_desc, phys_input_fname_str,
-                       indent=indent) as outfile:
+    with FortranWriter(ofilename, "w", file_desc,
+                       phys_input_fname_str,
+                       indent=indent,
+                       line_fill=_LINE_FILL_LEN,
+                       line_max=_MAX_LINE_LEN) as outfile:
 
         # Add boilerplate code:
         outfile.write_preamble()

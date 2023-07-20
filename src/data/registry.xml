@@ -163,7 +163,7 @@
       <ic_file_input_names>zm state_zm</ic_file_input_names>
     </variable>
     <variable local_name = "water_vapor"
-              standard_name="specific_humidity"
+              standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -339,7 +339,7 @@
       <initial_value>rair</initial_value>
     </variable>
     <variable local_name="cappav"
-              standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure"
+              standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_of_dry_air_at_constant_pressure"
               units="1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
@@ -355,7 +355,7 @@
       <initial_value>mwdry</initial_value>
     </variable>
     <variable local_name="zvirv"
-              standard_name="composition_dependent_ratio_of_water_vapor_to_dry_air_gas_constants_minus_one"
+              standard_name="ratio_of_water_vapor_gas_constant_to_composition_dependent_dry_air_gas_constant_minus_one"
               units="J kg-1 K-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <long_name>Composition-dependent ratio of water vapor to dry air gas constants minus one</long_name>

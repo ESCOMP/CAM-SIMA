@@ -246,6 +246,9 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! O2
             !
@@ -260,6 +263,9 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! H
             !
@@ -275,6 +281,9 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! N2
             !
@@ -287,12 +296,16 @@ CONTAINS
             thermodynamic_active_species_R  (icnst) = r_universal / mw
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
-            thermodynamic_active_species_kc(icnst)  = kc2
+            thermodynamic_active_species_kc(icnst)  = kc2a
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! Q
             !
-         case('specific_humidity')
-            call air_species_info('specific_humidity', ix, mw)
+         case('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpwv
             thermodynamic_active_species_cv (icnst) = cv3 / mw
@@ -300,12 +313,15 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! CLDLIQ
             !
-         case('cloud_liquid_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air', &
-                 ix, mw)
+         case('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -315,11 +331,15 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_liq = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! CLDICE
             !
-         case('cloud_ice_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('cloud_ice_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('cloud_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('cloud_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -329,6 +349,9 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_ice = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! RAINQM
             !
@@ -343,6 +366,9 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_liq = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! SNOWQM
             !
@@ -357,11 +383,15 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_ice = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! GRAUQM
             !
-         case('graupel_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('graupel_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('graupel_water_mixing_ratio_wrt_moist_air_and_conedensed_water')
+            call air_species_info('graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -371,6 +401,9 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_ice = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! If support for more major species is to be included add code here
             !

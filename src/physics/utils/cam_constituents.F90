@@ -17,6 +17,8 @@ module cam_constituents
    public :: const_is_dry
    public :: const_is_moist
    public :: const_is_wet
+   public :: const_is_thermo_active
+   public :: const_set_thermo_active
    public :: const_qmin
 
    ! Private array of constituent properties (for property interface functions)
@@ -51,6 +53,16 @@ module cam_constituents
       module procedure const_is_wet_obj
       module procedure const_is_wet_index
    end interface const_is_wet
+
+   interface const_is_thermo_active
+      module procedure const_is_thermo_active_obj
+      module procedure const_is_thermo_active_index
+   end interface const_is_thermo_active
+
+   interface const_set_thermo_active
+      module procedure const_set_thermo_active_obj
+      module procedure const_set_thermo_active_index
+   end interface const_set_thermo_active
 
    interface const_qmin
       module procedure const_qmin_obj
@@ -437,6 +449,87 @@ CONTAINS
       end if
 
    end function const_is_wet_index
+
+   !#######################################################################
+
+   logical function const_is_thermo_active_obj(const_obj)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
+      ! Return .true. if the constituent object, <const_obj>, is
+      ! thermodynamically-active
+      ! Dummy argument
+      type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_is_thermo_active_obj: '
+
+      call const_obj%is_thermo_active(const_is_thermo_active_obj, err_code, err_msg)
+      if (err_code /= 0) then
+         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+              trim(err_msg), file=__FILE__, line=__LINE__)
+      end if
+
+   end function const_is_thermo_active_obj
+
+   !#######################################################################
+
+   logical function const_is_thermo_active_index(const_ind)
+
+      ! Return .true. if the constituent at <index> is wet
+      ! Dummy argument
+      integer, intent(in) :: const_ind
+      ! Local variable
+      character(len=*), parameter :: subname = 'const_is_thermo_active_index: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         const_is_thermo_active_index = const_is_thermo_active(const_props(const_ind))
+      end if
+
+   end function const_is_thermo_active_index
+
+   !#######################################################################
+
+   subroutine const_set_thermo_active_obj(const_obj, thermo_active)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
+      ! Set the value for the 'thermo_active' property for the constituent
+      !object, <const_obj>.
+      ! Dummy argument
+      type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
+      logical, intent(in)                           :: thermo_active
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_set_thermo_active_obj: '
+
+      call const_obj%set_thermo_active(thermo_active, err_code, err_msg)
+      if (err_code /= 0) then
+         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+              trim(err_msg), file=__FILE__, line=__LINE__)
+      end if
+
+   end subroutine const_set_thermo_active_obj
+
+   !#######################################################################
+
+   subroutine const_set_thermo_active_index(const_ind, thermo_active)
+
+      ! Set the value for the 'thermo_active' property for the constituent
+      !object index, <const_ind>.
+      ! Dummy argument
+      integer, intent(in) :: const_ind
+      logical, intent(in) :: thermo_active
+      ! Local variable
+      character(len=*), parameter :: subname = 'const_set_thermo_active_index: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         const_is_thermo_active_index = const_set_thermo_active(const_props(const_ind))
+      end if
+
+   end subroutine const_set_thermo_active_index
 
    !#######################################################################
 
