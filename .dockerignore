@@ -1,7 +1,7 @@
-# blacklist all
+# ignore all
 *
 
-# whitelist things to copy
+# include things to copy
 !Externals*
 !src/
 !cime_config/
