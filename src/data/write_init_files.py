@@ -868,7 +868,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
     outfile.write("real(kind=kind_phys)                       :: constituent_default_value", 2)
     outfile.write("integer                                    :: constituent_errflg", 2)
-    outfile.write("character(len=SHR_KIND_CX)                 :: constituent_errmsg", 2)
+    outfile.write("character(len=512)                         :: constituent_errmsg", 2)
     outfile.write("logical                                    :: constituent_has_default", 2)
     outfile.blank_line()
     outfile.comment("Logical to default optional argument to False:", 2)
