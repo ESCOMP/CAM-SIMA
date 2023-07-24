@@ -133,6 +133,7 @@ CONTAINS
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
       use cam_constituents,     only: const_name, num_advected
+      use cam_constituents,     only: const_set_thermo_active
 
       integer  :: icnst, ix, ierr, idx
       integer  :: liq_num, ice_num, water_species_num, dry_species_num
@@ -296,7 +297,7 @@ CONTAINS
             thermodynamic_active_species_R  (icnst) = r_universal / mw
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
-            thermodynamic_active_species_kc(icnst)  = kc2a
+            thermodynamic_active_species_kc(icnst)  = kc2
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)

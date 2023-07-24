@@ -498,8 +498,8 @@ CONTAINS
       ! Set the value for the 'thermo_active' property for the constituent
       !object, <const_obj>.
       ! Dummy argument
-      type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
-      logical, intent(in)                           :: thermo_active
+      type(ccpp_constituent_prop_ptr_t), intent(inout) :: const_obj
+      logical, intent(in)                              :: thermo_active
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
@@ -526,7 +526,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_set_thermo_active_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_thermo_active_index = const_set_thermo_active(const_props(const_ind))
+         call const_set_thermo_active(const_props(const_ind), thermo_active)
       end if
 
    end subroutine const_set_thermo_active_index
