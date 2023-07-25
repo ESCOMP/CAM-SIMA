@@ -979,7 +979,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end if", 8)
     outfile.write("field_data_ptr(:,:,constituent_idx) = constituent_default_value", 8)
     outfile.write("if (masterproc) then", 8)
-    outfile.write("write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx), ' initialized from file: ', constituent_default_value", 9)
+    outfile.write("write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx), ' initialized to default value: ', constituent_default_value", 9)
     outfile.write("end if", 8)
     outfile.write("else", 7)
     outfile.write("field_data_ptr(:,:,constituent_idx) = 0._kind_phys", 8)
