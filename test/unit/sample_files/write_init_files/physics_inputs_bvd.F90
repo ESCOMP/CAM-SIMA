@@ -74,7 +74,7 @@ CONTAINS
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
       real(kind=kind_phys)                       :: constituent_default_value
       integer                                    :: constituent_errflg
-      character(len=SHR_KIND_CX)                 :: constituent_errmsg
+      character(len=512)                         :: constituent_errmsg
       logical                                    :: constituent_has_default
 
       ! Logical to default optional argument to False:
@@ -153,14 +153,20 @@ CONTAINS
                      constituent_has_default = .false.
                      call const_props(constituent_idx)%has_default(constituent_has_default,       &
                           constituent_errflg, constituent_errmsg)
+                     if (constituent_errflg .ne. 0) then
+                        call endrun(constituent_errmsg)
+                     end if
                      if (constituent_has_default) then
                         call                                                                      &
                              const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg,&
                              constituent_errmsg)
+                        if (constituent_errflg .ne. 0) then
+                           call endrun(constituent_errmsg)
+                        end if
                         field_data_ptr(:,:,constituent_idx) = constituent_default_value
                         if (masterproc) then
                            write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx),           &
-                                ' initialized from file: ', constituent_default_value
+                                ' initialized to default value: ', constituent_default_value
                         end if
                      else
                         field_data_ptr(:,:,constituent_idx) = 0._kind_phys
