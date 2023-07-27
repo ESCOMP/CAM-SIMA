@@ -13,6 +13,7 @@ FILES_TO_DOWNLOAD=(
 # Download the file using FTP
 ftp -inv $FTP_HOST << EOF
 user $FTP_USER $FTP_PASS
+binary
 cd $(dirname ${FILES_TO_DOWNLOAD[0]})
 get $(basename ${FILES_TO_DOWNLOAD[0]}) /home/cam_sima_user/$(basename ${FILES_TO_DOWNLOAD[0]})
 get $(basename ${FILES_TO_DOWNLOAD[1]}) /home/cam_sima_user/$(basename ${FILES_TO_DOWNLOAD[1]})
