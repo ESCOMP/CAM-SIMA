@@ -78,9 +78,6 @@ RUN ./xmlchange STOP_N=5
 # Copy in the grid files and a snapshot file
 RUN chmod +x /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 RUN /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
-# now move the mam3 grid
-RUN mkdir -p /home/cam_sima_user/cesm_data/inputdata/atm/cam/inic/homme/
-RUN cp /home/cam_sima_user/cami-mam3_0000-01_ne5np4_L30.140707.nc /home/cam_sima_user/cesm_data/inputdata/atm/cam/inic/homme/
 
 # # add the snapshot file
 RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
