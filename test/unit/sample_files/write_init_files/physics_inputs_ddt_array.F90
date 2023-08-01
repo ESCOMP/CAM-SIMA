@@ -154,15 +154,15 @@ CONTAINS
                      constituent_has_default = .false.
                      call const_props(constituent_idx)%has_default(constituent_has_default,       &
                           constituent_errflg, constituent_errmsg)
-                     if (constituent_errflg .ne. 0) then
-                        call endrun(constituent_errmsg)
+                     if (constituent_errflg /= 0) then
+                        call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
                      end if
                      if (constituent_has_default) then
                         call                                                                      &
                              const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg,&
                              constituent_errmsg)
-                        if (constituent_errflg .ne. 0) then
-                           call endrun(constituent_errmsg)
+                        if (constituent_errflg /= 0) then
+                           call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
                         end if
                         field_data_ptr(:,:,constituent_idx) = constituent_default_value
                         if (masterproc) then
