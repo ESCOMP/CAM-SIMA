@@ -45,7 +45,7 @@ Follow the installation instructions for Mac [here](https://docs.docker.com/desk
 cd docker
 docker build -f Dockerfile.esmf -t esmf .
 ```
-2. Build the CAM-SIMA iamge
+2. Build the CAM-SIMA image
 ```
 cd ../
 docker build -t cam-sima .
