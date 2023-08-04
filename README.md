@@ -21,13 +21,31 @@ git checkout development
 
 Good luck, and have a great day!
 
-## Build the docker file
+## Docker
+
+If you don't want to worry about installing our dependencies, 
+you can create a build of CAM-SIMA using docker. To do so, you will need to 
+download and install [docker desktop](https://docs.docker.com/desktop/).
+
+#### Windows
+Follow the installation instructions for Windows [here](https://docs.docker.com/desktop/install/windows-install/)
+
+
+#### Linux
+Follow the installation instructions for Linux [here](https://docs.docker.com/desktop/install/linux-install/)
+
+#### MacOS
+Follow the installation instructions for Mac [here](https://docs.docker.com/desktop/install/mac-install/)
+
+### Download docker
+
+### Build the docker file
 1. First, build the esmf docker image. You must tag the build with `esmf`
 ```
 cd docker
 docker build -f Dockerfile.esmf -t esmf .
 ```
-2. Build the CAM-SIMA iamge
+2. Build the CAM-SIMA image
 ```
 cd ../
 docker build -t cam-sima .
