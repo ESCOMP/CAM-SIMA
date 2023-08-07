@@ -81,6 +81,7 @@ COPY --chown=cam_sima_user . /home/cam_sima_user/CAM-SIMA
 
 USER cam_sima_user
 WORKDIR /home/cam_sima_user/CAM-SIMA
+RUN cp docker/config_component.xml.musica cime_config/config_component.xml
 
 # pull the dependencies
 RUN ./manage_externals/checkout_externals
