@@ -48,7 +48,6 @@ docker build -f docker/Dockerfile.esmf -t esmf .
 
 1. Build the CAM-SIMA image
 ```
-cd ../
 docker build -f docker/Dockerfile -t cam-sima .
 ```
 3. Run the image
@@ -65,7 +64,6 @@ You can include musica chemistry by using the correct docker file
 
 1. Build the MUSICA image
 ```
-cd ../
 docker build -f docker/Dockerfile.musica -t musica .
 ```
 3. Run the image
