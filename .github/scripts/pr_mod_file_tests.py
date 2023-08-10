@@ -71,10 +71,10 @@ def _file_is_python(filename):
 
                             #Check that first non-blank
                             #line is a shabang:
-                            if line[0:2] == '#!':
+                            if line.startswith("#!"):
                                 #If so, then check that the word
                                 #"python" is also present:
-                                if line.find("python") != -1:
+                                if "python" in line:
                                     #If the word exists, then assume
                                     #it is a python file:
                                     is_python = True
