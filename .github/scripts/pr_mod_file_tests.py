@@ -80,11 +80,11 @@ def _file_is_python(filename):
                                     is_python = True
                                 #End if
                             #End if
-                        #End if
 
-                        #Exit loop, as only the first non-blank
-                        #line should be examined:
-                        break
+                            #Exit loop, as only the first non-blank
+                            #line should be examined:
+                            break
+                        #End if
                     #End for
                 #End with
             except UnicodeDecodeError:
