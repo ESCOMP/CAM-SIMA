@@ -22,14 +22,14 @@ git checkout development
 Good luck, and have a great day!
 
 ## Docker
-
 If you don't want to worry about installing our dependencies, 
-you can create a build of CAM-SIMA using docker. To do so, you will need to 
-download and install [docker desktop](https://docs.docker.com/desktop/).
+you can create a build of CAM-SIMA using docker.
+
+### Download docker
+Download and install [docker desktop](https://docs.docker.com/desktop/).
 
 #### Windows
 Follow the installation instructions for Windows [here](https://docs.docker.com/desktop/install/windows-install/)
-
 
 #### Linux
 Follow the installation instructions for Linux [here](https://docs.docker.com/desktop/install/linux-install/)
@@ -37,22 +37,38 @@ Follow the installation instructions for Linux [here](https://docs.docker.com/de
 #### MacOS
 Follow the installation instructions for Mac [here](https://docs.docker.com/desktop/install/mac-install/)
 
-### Download docker
 
-### Build the docker file
-1. First, build the esmf docker image. You must tag the build with `esmf`
+### Build the base docker file
+1. First, build the esmf docker image. You must tag the build with `esmf`. This will take quite some time.
 ```
-cd docker
-docker build -f Dockerfile.esmf -t esmf .
+docker build -f docker/Dockerfile.esmf -t esmf .
 ```
-2. Build the CAM-SIMA image
+
+### CAM-SIMA
+
+1. Build the CAM-SIMA image
 ```
-cd ../
-docker build -t cam-sima .
+docker build -f docker/Dockerfile -t cam-sima .
 ```
 3. Run the image
 ```
 docker run --rm -it cam-sima
+```
+4. Submit the case
+```
+./case.submit
+```
+
+### MUSICA
+You can include musica chemistry by using the correct docker file
+
+1. Build the MUSICA image
+```
+docker build -f docker/Dockerfile.musica -t musica .
+```
+3. Run the image
+```
+docker run --rm -it musica
 ```
 4. Submit the case
 ```

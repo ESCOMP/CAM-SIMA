@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Script name:  pr_mod_file_tests.py
@@ -59,28 +59,45 @@ def _file_is_python(filename):
             is_python = True
         else:
             #If no ".py" extension exists, then
-            #open the file and look for a shabang
-            #that contains the word "python".
-            with open(filename, "r", encoding='utf-8') as mod_file:
-                #Loop over lines in file:
-                for line in mod_file:
+            #try to open the file and look for
+            #a shabang that contains the word "python".
+            try:
+                with open(filename, "r", encoding='utf-8') as mod_file:
+                    #Loop over lines in file:
+                    for line in mod_file:
 
-                    #Ignore blank lines:
-                    if line.strip():
+                        #Ignore blank lines:
+                        if line.strip():
 
-                        #Check that first non-blank
-                        #line is a shabang:
-                        if line[0:2] == '#!':
-                            #If so, then check that the word
-                            #"python" is also present:
-                            if line.find("python") != -1:
-                                #If the word exists, then assume
-                                #it is a python file:
-                                is_python = True
+                            #Check that first non-blank
+                            #line is a shabang:
+                            if line.startswith("#!"):
+                                #If so, then check that the word
+                                #"python" is also present:
+                                if "python" in line:
+                                    #If the word exists, then assume
+                                    #it is a python file:
+                                    is_python = True
+                                #End if
+                            #End if
 
-                        #Exit loop, as only the first non-blank
-                        #line should be examined:
-                        break
+                            #Exit loop, as only the first non-blank
+                            #line should be examined:
+                            break
+                        #End if
+                    #End for
+                #End with
+            except UnicodeDecodeError:
+                #Binary files, which we do not care about here,
+                #can result in a decode error, so if that error
+                #is raised just skip the file with a message stating
+                #that it is being skipped (just in case):
+                wmsg = f"WARNING: The file '{filename}' cannot currently be opened,\n"
+                wmsg += "so skipping any attempt at analysing."
+                print(wmsg)
+            #End except
+        #End if
+    #End if
 
     #Return file type result:
     return is_python
