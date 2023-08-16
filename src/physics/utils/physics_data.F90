@@ -205,7 +205,7 @@ CONTAINS
          end if
       else if (.not. error_on_not_found_local) then
          if (masterproc) then
-            write(iulog, *) 'Var not found AND not failing when not found reading ', trim(arr2str(var_names)), ' and ', trim(std_name)
+            write(iulog, *) trim(std_name), ' not found, also looked for: ', trim(arr2str(var_names))
             call shr_sys_flush(iulog)
          end if
       else
@@ -298,7 +298,7 @@ CONTAINS
          end if
       else if (.not. error_on_not_found_local) then
          if (masterproc) then
-            write(iulog, *) 'Var not found AND not failing when not found reading ', trim(arr2str(var_names)), ' and ', trim(std_name)
+            write(iulog, *) trim(std_name), ' not found, also looked for: ', trim(arr2str(var_names))
             call shr_sys_flush(iulog)
          end if
       else
