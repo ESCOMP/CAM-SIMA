@@ -201,7 +201,9 @@ CONTAINS
                  varname=trim(found_name),                                       &
                  msg=subname//'NaN found in '//trim(found_name))
          else
-            call endrun(subname//'Mismatch variable found in '//arr2str(var_names))
+            call endrun(subname//'Unable to properly check the found variable "',trim(found_name),'" in the IC file.  ' &
+                                 'Please double-check if the variable exists in the file, '                             &
+                                 'and that the file is not corrupted or damaged.')
          end if
       else if (.not. error_on_not_found_local) then
          if (masterproc) then
@@ -294,7 +296,9 @@ CONTAINS
                  varname=trim(found_name),                                       &
                  msg=subname//'NaN found in '//trim(found_name))
          else
-            call endrun(subname//'Mismatch variable found in '//trim(std_name))
+            call endrun(subname//'Unable to properly check the found variable "',trim(found_name),'" in the IC file.  ' &
+                                 'Please double-check if the variable exists in the file, '                             &
+                                 'and that the file is not corrupted or damaged.')
          end if
       else if (.not. error_on_not_found_local) then
          if (masterproc) then
