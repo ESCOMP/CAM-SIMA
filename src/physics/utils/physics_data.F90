@@ -155,9 +155,9 @@ CONTAINS
       character(len=*),  intent(in)    :: var_names(:) ! var name on file
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:)
-      logical, optional, intent(in)    :: mark_as_read
-      logical, optional, intent(in)    :: error_on_not_found
-      logical, optional, intent(out)   :: var_found
+      logical, optional, intent(in)    :: mark_as_read       ! Mark field as read if found
+      logical, optional, intent(in)    :: error_on_not_found ! Flag to error and exit if not found
+      logical, optional, intent(out)   :: var_found          ! Flag to mark variable was found
       ! Local variables
       logical                          :: mark_as_read_local
       logical                          :: error_on_not_found_local
@@ -239,9 +239,9 @@ CONTAINS
       character(len=*),  intent(in)    :: vcoord_name
       integer,           intent(in)    :: timestep
       real(kind_phys),   intent(inout) :: buffer(:,:)
-      logical, optional, intent(in)    :: mark_as_read
-      logical, optional, intent(in)    :: error_on_not_found
-      logical, optional, intent(out)   :: var_found
+      logical, optional, intent(in)    :: mark_as_read       ! Mark field as read if found
+      logical, optional, intent(in)    :: error_on_not_found ! Flag to error and exit if not found
+      logical, optional, intent(out)   :: var_found          ! Flag to mark variable was found
       ! Local variables
       logical                          :: mark_as_read_local
       logical                          :: error_on_not_found_local
