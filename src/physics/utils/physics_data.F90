@@ -1,6 +1,7 @@
 module physics_data
 
    use ccpp_kinds,   only: kind_phys
+   use shr_kind_mod, only: cl=>shr_kind_cl
 
    implicit none
    private
@@ -165,6 +166,7 @@ CONTAINS
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_2d: '
+      character(len=cl)                :: strerr
 
       if (present(mark_as_read)) then
          mark_as_read_local = mark_as_read
@@ -201,9 +203,9 @@ CONTAINS
                  varname=trim(found_name),                                       &
                  msg=subname//'NaN found in '//trim(found_name))
          else
-            call endrun(subname//'Unable to properly check the found variable "'//trim(found_name)//'" in the IC file.  '// &
-                                 'Please double-check if the variable exists in the file, '//                               &
-                                 'and that the file is not corrupted or damaged.')
+            write(strerr,*) subname//'Unable to properly check the found variable "', trim(found_name), '" in the IC file. &
+                           &Please double-check if the variable exists in the file and that the file is not corrupted or damaged.'
+            call endrun(strerr)
          end if
       else if (.not. error_on_not_found_local) then
          if (masterproc) then
@@ -252,6 +254,7 @@ CONTAINS
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*), parameter      :: subname = 'read_field_3d: '
+      character(len=cl)                :: strerr
 
       if (present(mark_as_read)) then
          mark_as_read_local = mark_as_read
@@ -291,14 +294,15 @@ CONTAINS
          if (mark_as_read_local) then
             call mark_as_read_from_file(std_name)
          end if
+
          if (var_found_local) then
             call shr_assert_in_domain(buffer, is_nan=.false.,                    &
                  varname=trim(found_name),                                       &
                  msg=subname//'NaN found in '//trim(found_name))
          else
-            call endrun(subname//'Unable to properly check the found variable "'//trim(found_name)//'" in the IC file.  '// &
-                                 'Please double-check if the variable exists in the file, '//                               &
-                                 'and that the file is not corrupted or damaged.')
+            write(strerr,*) subname//'Unable to properly check the found variable "', trim(found_name), '" in the IC file. &
+                           &Please double-check if the variable exists in the file and that the file is not corrupted or damaged.'
+            call endrun(strerr)
          end if
       else if (.not. error_on_not_found_local) then
          if (masterproc) then
