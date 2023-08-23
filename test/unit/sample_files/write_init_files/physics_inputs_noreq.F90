@@ -35,8 +35,11 @@ CONTAINS
       use physics_data,               only: read_field, find_input_name_idx, no_exist_idx
       use physics_data,               only: init_mark_idx, prot_no_init_idx, const_idx
       use cam_ccpp_cap,               only: ccpp_physics_suite_variables, cam_constituents_array
+      use cam_ccpp_cap,               only: cam_model_const_properties
       use ccpp_kinds,                 only: kind_phys
       use phys_vars_init_check_noreq, only: phys_var_stdnames, input_var_names, std_name_len
+      use ccpp_constituent_prop_mod,  only: ccpp_constituent_prop_ptr_t
+      use cam_logfile,                only: iulog
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -63,6 +66,15 @@ CONTAINS
       character(len=2)           :: sep2            !String separator used to print err messages
       character(len=2)           :: sep3            !String separator used to print err messages
       real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
+      logical                    :: var_found       !Bool to determine if consituent found in
+      ! data files
+
+      ! Fields needed for getting default data value for constituents
+      type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
+      real(kind=kind_phys)                       :: constituent_default_value
+      integer                                    :: constituent_errflg
+      character(len=512)                         :: constituent_errmsg
+      logical                                    :: constituent_has_default
 
       ! Logical to default optional argument to False:
       logical                    :: use_init_variables
@@ -129,10 +141,41 @@ CONTAINS
                   ! If an index was found in the constituent hash table, then read in the data
                   ! to that index of the constituent array
 
+                  var_found = .false.
                   field_data_ptr => cam_constituents_array()
                   call read_field(file, ccpp_required_data(req_idx),                              &
                        [ccpp_required_data(req_idx)], 'lev', timestep,                            &
-                       field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)
+                       field_data_ptr(:,:,constituent_idx), mark_as_read=.false.,                 &
+                       error_on_not_found=.false., var_found=var_found)
+                  if(.not. var_found) then
+                     const_props => cam_model_const_properties()
+                     constituent_has_default = .false.
+                     call const_props(constituent_idx)%has_default(constituent_has_default,       &
+                          constituent_errflg, constituent_errmsg)
+                     if (constituent_errflg /= 0) then
+                        call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
+                     end if
+                     if (constituent_has_default) then
+                        call                                                                      &
+                             const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg,&
+                             constituent_errmsg)
+                        if (constituent_errflg /= 0) then
+                           call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
+                        end if
+                        field_data_ptr(:,:,constituent_idx) = constituent_default_value
+                        if (masterproc) then
+                           write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx),           &
+                                ' initialized to default value: ', constituent_default_value
+                        end if
+                     else
+                        field_data_ptr(:,:,constituent_idx) = 0._kind_phys
+                        if (masterproc) then
+                           write(iulog,*) 'Constituent ', ccpp_required_data(req_idx),            &
+                                ' default value not configured.  Setting to 0.'
+                        end if
+                     end if
+                  end if
+
                case default
 
                   ! Read variable from IC file:
