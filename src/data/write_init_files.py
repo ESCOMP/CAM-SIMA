@@ -825,6 +825,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # Add use statements:
     use_stmts = [["pio", ["file_desc_t"]],
                  ["cam_abortutils", ["endrun"]],
+                 ["spmd_utils", ["masterproc"]],
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",

@@ -50,11 +50,10 @@ module cam_comp
 
    logical  :: BFB_CAM_SCAM_IOP = .false.
 
-   ! Currently, the host (CAM) only adds water vapor (specific_humidity)
-   !    as a constituent.
-   ! Does this need to be a configurable variable?
-   integer, parameter :: num_host_advected = 1
-   type(ccpp_constituent_properties_t), target :: host_constituents(num_host_advected)
+   ! Currently, the host (CAM-SIMA) adds only water vapor (specific humidity)
+   ! as a constituent when not requested by the physics.  However, it is
+   ! unclear if this is actually necessary.
+   type(ccpp_constituent_properties_t), allocatable, target :: host_constituents(:)
 
    ! Private interface (here to avoid circular dependency)
    private :: cam_register_constituents
@@ -492,44 +491,84 @@ CONTAINS
    subroutine cam_register_constituents(cam_runtime_opts)
       ! Call the CCPP interface to register all constituents for the
       ! physics suite being invoked during this run.
-      use cam_abortutils,            only: endrun
+      use cam_abortutils,            only: endrun, check_allocate
       use runtime_obj,               only: runtime_options
       use cam_constituents,          only: cam_constituents_init
+      use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_ccpp_cap,              only: cam_ccpp_register_constituents
       use cam_ccpp_cap,              only: cam_ccpp_number_constituents
       use cam_ccpp_cap,              only: cam_model_const_properties
-      use cam_ccpp_cap,              only: cam_const_get_index
+      use cam_ccpp_cap,              only: cam_ccpp_is_scheme_constituent
 
       ! Dummy arguments
       type(runtime_options), intent(in) :: cam_runtime_opts
       ! Local variables
-      integer                                        :: index
+      logical                                        :: is_const
       integer                                        :: num_advect
       integer,                           allocatable :: ind_water_spec(:)
       integer                                        :: errflg
-      character(len=cx)                              :: errmsg
+      character(len=512)                             :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
-      ! Register the constituents to find out what needs advecting
-      call host_constituents(1)%instantiate( &
-           std_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",    &
-           long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
-           units="kg kg-1",                                                          &
-           vertical_dim="vertical_layer_dimension",                                  &
-           advected=.true.,                                                          &
-           errcode=errflg, errmsg=errmsg)
+      ! Initalize error flag and message:
+      errflg = 0
+      errmsg = ''
+
+      ! Check if water vapor is already marked as a constituent by the
+      ! physics:
+      call cam_ccpp_is_scheme_constituent(                                              &
+           "water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",                &
+           is_const, errflg, errmsg)
+
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
       end if
-      call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),      &
+
+      !If not requested by the physics, then add water vapor to the
+      !constituents object:
+      !-------------------------------------------
+      if (.not. is_const) then
+
+         ! Allocate host_constituents object:
+         allocate(host_constituents(1), stat=errflg)
+         call check_allocate(errflg, subname, 'host_constituents(1)',                   &
+                             file=__FILE__, line=__LINE__)
+
+         ! Register the constituents to find out what needs advecting
+         call host_constituents(1)%instantiate( &
+              std_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",    &
+              long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
+              units="kg kg-1",                                                          &
+              default_value=0._kind_phys,                                               &
+              vertical_dim="vertical_layer_dimension",                                  &
+              advected=.true.,                                                          &
+           errcode=errflg, errmsg=errmsg)
+
+         if (errflg /= 0) then
+            call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
+         end if
+      else
+         ! Allocate zero-size object so nothing is added
+         ! to main constituents object:
+         allocate(host_constituents(0), stat=errflg)
+         call check_allocate(errflg, subname, 'host_constituents(0)',                   &
+                             file=__FILE__, line=__LINE__)
+      end if
+      !-------------------------------------------
+
+      !Combine host and physics constituents into a single
+      !constituents object:
+      call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),             &
            host_constituents, errcode=errflg, errmsg=errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
       end if
-      call cam_ccpp_number_constituents(num_advect, advected=.true., &
+
+      !Determine total number of advected constituents:
+      call cam_ccpp_number_constituents(num_advect, advected=.true.,                    &
            errcode=errflg, errmsg=errmsg)
 
       if (errflg /= 0) then
