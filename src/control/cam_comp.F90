@@ -493,7 +493,9 @@ CONTAINS
       ! physics suite being invoked during this run.
       use cam_abortutils,            only: endrun, check_allocate
       use runtime_obj,               only: runtime_options
+      use phys_comp,                 only: phys_suite_name
       use cam_constituents,          only: cam_constituents_init
+      use cam_constituents,          only: const_set_qmin, const_get_index
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_ccpp_cap,              only: cam_ccpp_register_constituents
@@ -506,7 +508,7 @@ CONTAINS
       ! Local variables
       logical                                        :: is_const
       integer                                        :: num_advect
-      integer,                           allocatable :: ind_water_spec(:)
+      integer                                        :: const_idx
       integer                                        :: errflg
       character(len=512)                             :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
@@ -578,8 +580,24 @@ CONTAINS
       ! Grab a pointer to the constituent array
       const_props => cam_model_const_properties()
 
-      ! Finally, initialize the constituents module
+      ! Initialize the constituents module
       call cam_constituents_init(const_props, num_advect)
+
+      ! Finally, for CAM moist physics, one will need to use a
+      ! non-zero minimum value for water vapor, so update that
+      ! value here:
+      !-------------------------------------------
+      if (phys_suite_name /= 'held_suarez_1994') then !Held-Suarez is "dry" physics
+
+         ! Get constituent index for water vapor:
+         call const_get_index("water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water", &
+                              const_idx)
+
+         ! Set new minimum value:
+         call const_set_qmin(const_idx, 1.E-12_kind_phys)
+      end if
+      !-------------------------------------------
+
 
    end subroutine cam_register_constituents
 
