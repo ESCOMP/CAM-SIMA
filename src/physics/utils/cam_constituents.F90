@@ -18,7 +18,9 @@ module cam_constituents
    public :: const_is_moist
    public :: const_is_wet
    public :: const_is_thermo_active
+   public :: const_is_water_species
    public :: const_set_thermo_active
+   public :: const_set_water_species
    public :: const_qmin
    public :: const_set_qmin
 
@@ -60,10 +62,20 @@ module cam_constituents
       module procedure const_is_thermo_active_index
    end interface const_is_thermo_active
 
+   interface const_is_water_species
+      module procedure const_is_water_species_obj
+      module procedure const_is_water_species_index
+   end interface const_is_water_species
+
    interface const_set_thermo_active
       module procedure const_set_thermo_active_obj
       module procedure const_set_thermo_active_index
    end interface const_set_thermo_active
+
+   interface const_set_water_species
+      module procedure const_set_water_species_obj
+      module procedure const_set_water_species_index
+   end interface const_set_water_species
 
    interface const_qmin
       module procedure const_qmin_obj
@@ -483,7 +495,8 @@ CONTAINS
 
    logical function const_is_thermo_active_index(const_ind)
 
-      ! Return .true. if the constituent at <index> is wet
+      ! Return .true. if the constituent at <index> is
+      ! thermodynamically-active
       ! Dummy argument
       integer, intent(in) :: const_ind
       ! Local variable
@@ -494,6 +507,46 @@ CONTAINS
       end if
 
    end function const_is_thermo_active_index
+
+   !#######################################################################
+
+   logical function const_is_water_species_obj(const_obj)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
+      ! Return .true. if the constituent object, <const_obj>, is
+      ! a type (species) of water
+      ! Dummy argument
+      type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_is_water_species_obj: '
+
+      call const_obj%is_water_species(const_is_water_species_obj, err_code, err_msg)
+      if (err_code /= 0) then
+         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+              trim(err_msg), file=__FILE__, line=__LINE__)
+      end if
+
+   end function const_is_water_species_obj
+
+   !#######################################################################
+
+   logical function const_is_water_species_index(const_ind)
+
+      ! Return .true. if the constituent at <index> is
+      ! a type (species) of water
+      ! Dummy argument
+      integer, intent(in) :: const_ind
+      ! Local variable
+      character(len=*), parameter :: subname = 'const_is_water_species_index: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         const_is_water_species_index = const_is_water_species(const_props(const_ind))
+      end if
+
+   end function const_is_water_species_index
 
    !#######################################################################
 
@@ -539,6 +592,48 @@ CONTAINS
 
    !#######################################################################
 
+   subroutine const_set_water_species_obj(const_obj, water_species)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
+      ! Set the value for the 'water_species' property for the constituent
+      !object, <const_obj>.
+      ! Dummy argument
+      type(ccpp_constituent_prop_ptr_t), intent(inout) :: const_obj
+      logical, intent(in)                              :: water_species
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_set_water_species_obj: '
+
+      call const_obj%set_water_species(water_species, err_code, err_msg)
+      if (err_code /= 0) then
+         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+              trim(err_msg), file=__FILE__, line=__LINE__)
+      end if
+
+   end subroutine const_set_water_species_obj
+
+   !#######################################################################
+
+   subroutine const_set_water_species_index(const_ind, water_species)
+
+      ! Set the value for the 'water_species' property for the constituent
+      !object index, <const_ind>.
+      ! Dummy argument
+      integer, intent(in) :: const_ind
+      logical, intent(in) :: water_species
+      ! Local variable
+      character(len=*), parameter :: subname = 'const_set_water_species_index: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         call const_set_water_species(const_props(const_ind), water_species)
+      end if
+
+   end subroutine const_set_water_species_index
+
+   !#######################################################################
+
    real(kind_phys) function const_qmin_obj(const_obj)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
@@ -581,7 +676,7 @@ CONTAINS
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
-      ! Set the 'minimum value' property for the constituent
+      ! Set the minimum value property for the constituent
       !object, <const_obj>.
       ! Dummy argument
       type(ccpp_constituent_prop_ptr_t), intent(inout) :: const_obj
@@ -603,7 +698,7 @@ CONTAINS
 
    subroutine const_set_qmin_index(const_ind, qmin_val)
 
-      ! Set the value for the 'thermo_active' property for the constituent
+      ! Set the value for the minimu value property for the constituent
       !object index, <const_ind>.
       ! Dummy argument
       integer, intent(in)         :: const_ind

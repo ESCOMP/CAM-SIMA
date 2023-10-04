@@ -134,6 +134,7 @@ CONTAINS
       use vert_coord,           only: pver
       use cam_constituents,     only: const_name, num_advected
       use cam_constituents,     only: const_set_thermo_active
+      use cam_constituents,     only: const_set_water_species
 
       integer  :: icnst, ix, ierr, idx
       integer  :: liq_num, ice_num, water_species_num, dry_species_num
@@ -317,6 +318,9 @@ CONTAINS
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! CLDLIQ
             !
@@ -335,6 +339,9 @@ CONTAINS
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! CLDICE
             !
@@ -353,6 +360,10 @@ CONTAINS
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
+
             !
             ! RAINQM
             !
@@ -370,6 +381,9 @@ CONTAINS
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! SNOWQM
             !
@@ -387,6 +401,9 @@ CONTAINS
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! GRAUQM
             !
@@ -405,6 +422,9 @@ CONTAINS
             !Notify constituent object that this species is
             !thermodynamically active
             call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! If support for more major species is to be included add code here
             !

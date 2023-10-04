@@ -92,7 +92,7 @@
   dimensions = ()
   protected = True
 [ rhoh2o ]
-  standard_name = density_of_fresh_liquid_water_at_0c
+  standard_name = fresh_liquid_water_density_at_0c
   long_name = Density of fresh liquid water at 0C
   units = kg m-3
   type = real | kind = kind_phys
