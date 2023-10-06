@@ -550,13 +550,15 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Finally compute energy and water column integrals of the physics input state.
 
 !   use constituents,   only: qmin
+   use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use cam_ccpp_cap,      only: cam_constituents_array
    use cam_ccpp_cap,      only: cam_model_const_properties
    use cam_constituents,  only: const_get_index
    use physics_types,     only: lagrangian_vertical
    use physconst,         only: cpair, gravit, zvir, cappa
    use cam_thermo,        only: cam_thermo_update
-   use physics_types,     only: rairv, zvirv
+   use physics_types,     only: cpairv, rairv, zvirv
+   use physics_grid,      only: columns_on_task
    use shr_const_mod,     only: shr_const_rwv
    use geopotential_temp, only: geopotential_temp_run
    use static_energy,     only: update_dry_static_energy_run
@@ -600,8 +602,10 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
    ! Set constituent indices
    call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ix_q)
-   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ix_cld_liq)
-   call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix_rain)
+   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                        ix_cld_liq, abort=.false.)
+   call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                        ix_rain, abort=.false.)
 
    ! Grab pointer to constituent and properties arrays
    const_data_ptr => cam_constituents_array()
@@ -691,8 +695,12 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    do k = 1, nlev
       do i=1, pcols
          const_data_ptr(i,k,ix_q) = factor_array(i,k)*const_data_ptr(i,k,ix_q)
-         const_data_ptr(i,k,ix_cld_liq) = factor_array(i,k)*const_data_ptr(i,k,ix_cld_liq)
-         const_data_ptr(i,k,ix_rain) = factor_array(i,k)*const_data_ptr(i,k,ix_rain)
+         if (ix_cld_liq /= -1) then
+            const_data_ptr(i,k,ix_cld_liq) = factor_array(i,k)*const_data_ptr(i,k,ix_cld_liq)
+         end if
+         if (ix_rain /= -1) then
+            const_data_ptr(i,k,ix_rain) = factor_array(i,k)*const_data_ptr(i,k,ix_rain)
+         end if
       end do
    end do
 
@@ -745,17 +753,19 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
                               phys_state%pint, phys_state%pmid, phys_state%pdel,         &
                               phys_state%rpdel, phys_state%t, const_data_ptr(:,:,ix_q),  &
                               const_data_ptr, const_prop_ptr, rairv, gravit, zvirv,      &
-                              phys_state%zi, phys_state%zm, ncol, errflg, errmsg)
+                              phys_state%zi, phys_state%zm, columns_on_task, errflg,     &
+                              errmsg)
 
    ! Compute initial dry static energy, include surface geopotential
-   call update_dry_static_energy_run(pver, phys_state%t, phys_state%zm, phys_state%phis, &
-                                     phys_state%dse, cpairv, errflg, errmsg)
+   call update_dry_static_energy_run(pver, gravit, phys_state%t, phys_state%zm,          &
+                                     phys_state%phis, phys_state%dse, cpairv,            &
+                                     errflg, errmsg)
 
    ! Ensure tracers are all positive
    ! Please note this cannot be used until the 'qmin'
    ! array is publicly provided by the CCPP constituent object. -JN
 #if 0
-   call qneg_run('D_P_COUPLING', ncol, pver, &
+   call qneg_run('D_P_COUPLING', columns_on_task, pver, &
                  qmin, const_data_ptr,       &
                  errflg, errmsg)
 #endif

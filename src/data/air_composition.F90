@@ -634,7 +634,7 @@ CONTAINS
       use string_utils,    only: to_str
 
       ! Dummy arguments
-      ! tracedr: Tracer array
+      ! tracer: Tracer array
       real(kind_phys),           intent(in)  :: tracer(:,:,:)
       real(kind_phys), optional, intent(in)  :: dp_dry(:,:)
       ! inv_cp: output inverse cp instead of cp
@@ -657,9 +657,9 @@ CONTAINS
          if (SIZE(active_species_idx_dycore) /=                               &
               thermodynamic_active_species_num) then
             call endrun(subname//"SIZE mismatch "//                           &
-                 to_str(SIZE(active_species_idx_dycore))//' /= '//           &
+                 to_str(SIZE(active_species_idx_dycore))//' /= '//            &
                  to_str(thermodynamic_active_species_num))
-        end if
+         end if
          idx_local = active_species_idx_dycore
       else
          idx_local = thermodynamic_active_species_idx
@@ -677,15 +677,14 @@ CONTAINS
               (tracer(:,:,itrac) * factor(:,:))
       end do
 
-      if (dry_air_species_num == 0) then
-         sum_cp = thermodynamic_active_species_cp(0)
-      else
-         call get_cp_dry(tracer, idx_local, sum_cp, fact=factor)
-      end if
+      ! Get Cp for dry air:
+      call get_cp_dry(tracer, idx_local, sum_cp, fact=factor)
+
+      ! Add water species to Cp:
       do qdx = dry_air_species_num + 1, thermodynamic_active_species_num
          itrac = idx_local(qdx)
          sum_cp(:,:) = sum_cp(:,:) +                                      &
-              (thermodynamic_active_species_cp(qdx) * tracer(:,:,itrac) *   &
+              (thermodynamic_active_species_cp(qdx) * tracer(:,:,itrac) * &
               factor(:,:))
       end do
       if (inv_cp) then
