@@ -197,10 +197,15 @@ def _main_prog():
         #PR itself, so don't check its file type:
         if os.path.exists(file_obj.filename):
 
-            #Check if it is a python file:
-            if _file_is_python(file_obj.filename):
-                #If so, then add to python list:
-                pyfiles.append(file_obj.filename)
+            #Don't analyze 'manage_externals' files,
+            #as they are an external repo and thus
+            #not our responsibility:
+            if not 'manage_externals' in file_obj.filename:
+
+                #Check if it is a python file:
+                if _file_is_python(file_obj.filename):
+                    #If so, then add to python list:
+                    pyfiles.append(file_obj.filename)
 
     #++++++++++++++++++++++++++++++++++++++++++++
     #Check if any python files are being modified:
