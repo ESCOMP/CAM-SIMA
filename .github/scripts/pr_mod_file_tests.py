@@ -200,7 +200,7 @@ def _main_prog():
             #Don't analyze 'manage_externals' files,
             #as they are an external repo and thus
             #not our responsibility:
-            if not 'manage_externals' in file_obj.filename:
+            if 'manage_externals' not in file_obj.filename:
 
                 #Check if it is a python file:
                 if _file_is_python(file_obj.filename):
