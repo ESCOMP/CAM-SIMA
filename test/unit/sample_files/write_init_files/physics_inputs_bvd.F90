@@ -31,11 +31,10 @@ CONTAINS
    subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
       use pio,                       only: file_desc_t
       use cam_abortutils,            only: endrun
+      use spmd_utils,                only: masterproc
       use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,              only: read_field, find_input_name_idx, no_exist_idx
-      use physics_data,              only: init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array
-      use cam_ccpp_cap,              only: cam_model_const_properties
+      use physics_data,              only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                only: kind_phys
       use phys_vars_init_check_bvd,  only: phys_var_stdnames, input_var_names, std_name_len
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -67,8 +66,7 @@ CONTAINS
       character(len=2)           :: sep2            !String separator used to print err messages
       character(len=2)           :: sep3            !String separator used to print err messages
       real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
-      logical                    :: var_found       !Bool to determine if consituent found in
-      ! data files
+      logical                    :: var_found       !Bool to determine if consituent found in data files
 
       ! Fields needed for getting default data value for constituents
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
@@ -97,17 +95,14 @@ CONTAINS
       ! Loop over CCPP physics/chemistry suites:
       do suite_idx = 1, size(suite_names, 1)
 
-         ! Search for all needed CCPP input variables, so that they can be read from input file
-         ! if need be:
-            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data,         &
-                 errmsg, errflg, input_vars=.true., output_vars=.false.)
+         ! Search for all needed CCPP input variables, so that they can be read from input file if need be:
+            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.true., output_vars=.false.)
 
          ! Loop over all required variables and read from file if uninitialized:
          do req_idx = 1, size(ccpp_required_data, 1)
 
             ! Find IC file input name array index for required variable:
-            name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables,       &
-                 constituent_idx)
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)
 
             ! Check for special index values:
             select case (name_idx)
@@ -118,61 +113,50 @@ CONTAINS
 
                case (no_exist_idx)
 
-                  ! If an index was never found, then save variable name and check the rest of
-                  ! the variables, after which the model simulation will end:
-                     missing_required_vars(len_trim(missing_required_vars)+1:) =                  &
-                          trim(sep)//trim(ccpp_required_data(req_idx))
+                  ! If an index was never found, then save variable name and check the rest of the variables, after which the model simulation will
+                  ! end:
+                     missing_required_vars(len_trim(missing_required_vars)+1:) = trim(sep)//trim(ccpp_required_data(req_idx))
 
                   ! Update character separator to now include comma:
                   sep = ', '
 
                case (prot_no_init_idx)
 
-                  ! If an index was found for a protected variable, but that variable was never
-                  ! marked as initialized, then save the variable name and check the rest of the
-                  ! variables, after which the model simulation will end:
-                     protected_non_init_vars(len_trim(protected_non_init_vars)+1:) =              &
-                          trim(sep2)//trim(ccpp_required_data(req_idx))
+                  ! If an index was found for a protected variable, but that variable was never marked as initialized, then save the variable name
+                  ! and check the rest of the variables, after which the model simulation will end:
+                     protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = trim(sep2)//trim(ccpp_required_data(req_idx))
 
                   ! Update character separator to now include comma:
                   sep2 = ', '
 
                case (const_idx)
 
-                  ! If an index was found in the constituent hash table, then read in the data
-                  ! to that index of the constituent array
+                  ! If an index was found in the constituent hash table, then read in the data to that index of the constituent array
 
                   var_found = .false.
                   field_data_ptr => cam_constituents_array()
-                  call read_field(file, ccpp_required_data(req_idx),                              &
-                       [ccpp_required_data(req_idx)], 'lev', timestep,                            &
-                       field_data_ptr(:,:,constituent_idx), mark_as_read=.false.,                 &
-                       error_on_not_found=.false., var_found=var_found)
+                  call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep,                                   &
+                       field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
                   if(.not. var_found) then
                      const_props => cam_model_const_properties()
                      constituent_has_default = .false.
-                     call const_props(constituent_idx)%has_default(constituent_has_default,       &
-                          constituent_errflg, constituent_errmsg)
+                     call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)
                      if (constituent_errflg /= 0) then
                         call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
                      end if
                      if (constituent_has_default) then
-                        call                                                                      &
-                             const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg,&
-                             constituent_errmsg)
+                        call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
                         if (constituent_errflg /= 0) then
                            call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
                         end if
                         field_data_ptr(:,:,constituent_idx) = constituent_default_value
                         if (masterproc) then
-                           write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx),           &
-                                ' initialized to default value: ', constituent_default_value
+                           write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx), ' initialized to default value: ', constituent_default_value
                         end if
                      else
                         field_data_ptr(:,:,constituent_idx) = 0._kind_phys
                         if (masterproc) then
-                           write(iulog,*) 'Constituent ', ccpp_required_data(req_idx),            &
-                                ' default value not configured.  Setting to 0.'
+                           write(iulog,*) 'Constituent ', ccpp_required_data(req_idx), ' default value not configured.  Setting to 0.'
                         end if
                      end if
                   end if
@@ -183,13 +167,10 @@ CONTAINS
 
                   select case (trim(phys_var_stdnames(name_idx)))
                      case ('potential_temperature')
-                        call read_field(file, 'potential_temperature',                            &
-                             input_var_names(:,name_idx), 'lev', timestep, theta)
+                        call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call                                                                      &
-                             endrun('Cannot read slp from file'//                                 &
-                             ', slp has unsupported dimension, band_number.')
+                        call endrun('Cannot read slp from file'//', slp has unsupported dimension, band_number.')
 
                   end select !read variables
                end select !special indices
@@ -215,15 +196,12 @@ CONTAINS
 
    end subroutine physics_read_data
 
-   subroutine physics_check_data(file_name, suite_names, timestep, min_difference,                &
-        min_relative_value)
+   subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value)
       use pio,                       only: file_desc_t, pio_nowrite
       use cam_abortutils,            only: endrun
       use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,              only: check_field, find_input_name_idx, no_exist_idx
-      use physics_data,              only: init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,              only: ccpp_physics_suite_variables
-      use cam_ccpp_cap,              only: cam_advected_constituents_array
+      use physics_data,              only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_advected_constituents_array
       use cam_constituents,          only: const_get_index
       use ccpp_kinds,                only: kind_phys
       use cam_logfile,               only: iulog
@@ -278,16 +256,13 @@ CONTAINS
          write(iulog,*) 'TIMESTEP: ', timestep
       end if
       if (file_name == 'UNSET') then
-         write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET.',                      &
-              ' Model will run, but physics check data will not be printed'
+         write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET.', ' Model will run, but physics check data will not be printed'
          return
       end if
       ! Open check file:
-      call cam_get_file(file_name, ncdata_check_loc, allow_fail=.true., lexist=file_found,        &
-           log_info=.false.)
+      call cam_get_file(file_name, ncdata_check_loc, allow_fail=.true., lexist=file_found, log_info=.false.)
       if (.not. file_found) then
-         write(iulog,*) 'WARNING: Check file ', trim(file_name),                                  &
-              ' not found. Model will run, but physics check data will not be printed'
+         write(iulog,*) 'WARNING: Check file ', trim(file_name), ' not found. Model will run, but physics check data will not be printed'
          return
       end if
       allocate(file)
@@ -295,30 +270,23 @@ CONTAINS
       ! Loop over CCPP physics/chemistry suites:
       do suite_idx = 1, size(suite_names, 1)
 
-         ! Search for all needed CCPP input variables, so that they can be read from input file
-         ! if need be:
-            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data,         &
-                 errmsg, errflg, input_vars=.true., output_vars=.false.)
+         ! Search for all needed CCPP input variables, so that they can be read from input file if need be:
+            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.true., output_vars=.false.)
 
          ! Loop over all required variables as specified by CCPP suite:
          do req_idx = 1, size(ccpp_required_data, 1)
 
             ! First check if the required variable is a constituent:
-            call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false.,     &
-                 warning=.false.)
+            call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)
             if (constituent_idx > -1) then
-               ! The required variable is a constituent. Call check variable routine on the
-               ! relevant index of the constituent array
+               ! The required variable is a constituent. Call check variable routine on the relevant index of the constituent array
                field_data_ptr => cam_advected_constituents_array()
-               call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep,             &
-                    field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx),             &
-                    min_difference, min_relative_value, is_first)
+               call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx),                             &
+                    ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
             else
-               ! The required variable is not a constituent. Check if the variable was read from
-               ! a file
+               ! The required variable is not a constituent. Check if the variable was read from a file
                ! Find IC file input name array index for required variable:
-               call is_read_from_file(ccpp_required_data(req_idx), is_read,                       &
-                    stdnam_idx_out=name_idx)
+               call is_read_from_file(ccpp_required_data(req_idx), is_read, stdnam_idx_out=name_idx)
                if (.not. is_read) then
                   cycle
                end if
@@ -326,13 +294,11 @@ CONTAINS
 
                select case (trim(phys_var_stdnames(name_idx)))
                case ('potential_temperature')
-                  call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta,     &
-                       'potential_temperature', min_difference, min_relative_value, is_first)
+                  call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,                 &
+                       min_relative_value, is_first)
 
                case ('air_pressure_at_sea_level')
-                  call                                                                            &
-                       endrun('Cannot check status of slp'//                                      &
-                       ', slp has unsupported dimension, band_number.')
+                  call endrun('Cannot check status of slp'//', slp has unsupported dimension, band_number.')
 
                end select !check variables
             end if !check if constituent
