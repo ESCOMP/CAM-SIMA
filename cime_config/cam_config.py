@@ -165,10 +165,9 @@ class ConfigCAM:
         and associated dictionary.
         """
 
-        # Check if using python 3.7 or later.  If not,
-        # then end build here:
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 7):
-            emsg = "CAM requires python 3.7 or later, currently using python version"
+        # Check if using python 3.8 or later. If not, then end build here:
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 8):
+            emsg = "SIMA requires python 3.8 or later, currently using python version"
             emsg += f" {sys.version_info[0]}.{sys.version_info[1]}"
             raise SystemError(emsg)
         #End if
