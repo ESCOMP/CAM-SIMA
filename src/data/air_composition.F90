@@ -677,7 +677,7 @@ CONTAINS
               (tracer(:,:,itrac) * factor(:,:))
       end do
 
-      ! Get Cp for dry air:
+      ! Get heat capacity at constant pressure (Cp) for dry air:
       call get_cp_dry(tracer, idx_local, sum_cp, fact=factor)
 
       ! Add water species to Cp:

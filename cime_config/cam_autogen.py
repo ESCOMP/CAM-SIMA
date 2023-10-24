@@ -601,7 +601,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         # Copy all utility source files to the build directory
         atm_phys_util_files = glob.glob(os.path.join(atm_phys_util_dir, "*.F90"))
         for util_file in atm_phys_util_files:
-            shutil.copy2(util_file, physics_blddir)
+            shutil.copy(util_file, physics_blddir)
         # end for
     # end if
 

@@ -506,7 +506,7 @@ CONTAINS
       ! Dummy arguments
       type(runtime_options), intent(in) :: cam_runtime_opts
       ! Local variables
-      logical                                        :: is_const
+      logical                                        :: is_constituent
       integer                                        :: num_advect
       integer                                        :: const_idx
       integer                                        :: errflg
@@ -522,7 +522,7 @@ CONTAINS
       ! physics:
       call cam_ccpp_is_scheme_constituent(                                              &
            "water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",                &
-           is_const, errflg, errmsg)
+           is_constituent, errflg, errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
@@ -531,7 +531,7 @@ CONTAINS
       !If not requested by the physics, then add water vapor to the
       !constituents object:
       !-------------------------------------------
-      if (.not. is_const) then
+      if (.not. is_constituent) then
 
          ! Allocate host_constituents object:
          allocate(host_constituents(1), stat=errflg)

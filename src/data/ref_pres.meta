@@ -11,7 +11,7 @@
   dimensions = (vertical_interface_dimension)
   protected = True
 [ pref_mid ]
-  standard_name = reference_pressure_of_atmosphere_layer
+  standard_name = reference_pressure_in_atmosphere_layer
   units = Pa
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
