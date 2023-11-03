@@ -538,7 +538,7 @@ CONTAINS
          call check_allocate(errflg, subname, 'host_constituents(1)',                   &
                              file=__FILE__, line=__LINE__)
 
-         ! Register the constituents to find out what needs advecting
+         ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
               std_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",    &
               long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &

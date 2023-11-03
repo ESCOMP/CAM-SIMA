@@ -98,7 +98,7 @@ subroutine hycoef_init(file, psdry)
 
    !-----------------------------------------------------------------------
 
-   ! Initalize reference pressures:
+   ! Initalize reference pressure:
    ps0 = real(pref, r8)  ! Reference pressure (pascals)
 
    ! Allocate public variables:

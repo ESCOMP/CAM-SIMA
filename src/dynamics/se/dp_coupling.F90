@@ -559,7 +559,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use cam_thermo,        only: cam_thermo_update
    use physics_types,     only: cpairv, rairv, zvirv
    use physics_grid,      only: columns_on_task
-   use shr_const_mod,     only: shr_const_rwv
    use geopotential_temp, only: geopotential_temp_run
    use static_energy,     only: update_dry_static_energy_run
 !   use qneg,              only: qneg_run
