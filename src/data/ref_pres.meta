@@ -11,25 +11,19 @@
   dimensions = (vertical_interface_dimension)
   protected = True
 [ pref_mid ]
-  standard_name = reference_pressure
+  standard_name = reference_pressure_in_atmosphere_layer
   units = Pa
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
   protected = True
 [ pref_mid_norm ]
-  standard_name = reference_pressure_normalized_by_surface_pressure
+  standard_name = reference_pressure_in_atmosphere_layer_normalized_by_reference_pressure
   units = 1
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
   protected = True
 [ ptop_ref ]
   standard_name = air_pressure_at_top_of_atmosphere_model
-  units = Pa
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True
-[ psurf_ref ]
-  standard_name = reference_pressure_at_surface
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()

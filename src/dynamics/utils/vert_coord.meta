@@ -19,28 +19,28 @@
   type = integer
   protected = True
 [ index_top_layer ]
-  standard_name = index_of_top_vertical_layer
+  standard_name = vertical_index_at_top_adjacent_layer
   long_name = Vertical coordinate index for uppermost layer
   units = index
   dimensions = ()
   type = integer
   protected = True
 [ index_bottom_layer ]
-  standard_name = index_of_bottom_vertical_layer
+  standard_name = vertical_index_at_surface_adjacent_layer
   long_name = Vertical coordinate index for lowest layer
   units = index
   dimensions = ()
   type = integer
   protected = True
 [ index_top_interface ]
-  standard_name = index_of_top_vertical_interface
+  standard_name = vertical_index_at_top_interface
   long_name = Vertical coordinate index for uppermost interface
   units = index
   dimensions = ()
   type = integer
   protected = True
 [ index_bottom_interface ]
-  standard_name = index_of_bottom_vertical_interface
+  standard_name = vertical_index_at_surface_interface
   long_name = Vertical coordinate index for lowest interface
   units = index
   dimensions = ()

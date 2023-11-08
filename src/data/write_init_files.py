@@ -20,11 +20,11 @@ from var_props import is_horizontal_dimension, is_vertical_dimension
 # Some are from the CCPP framework (e.g., ccpp_num_constituents)
 # Some are for efficiency and to avoid dependency loops (e.g., log_output_unit)
 _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
-                          'ccpp_num_constituents',
-                          'ccpp_num_advected_constituents',
-                          'ccpp_constituent_array',
-                          'ccpp_constituent_properties_array',
-                          'ccpp_constituent_array_minimum_values',
+                          'number_of_ccpp_constituents',
+                          'number_of_ccpp_advected_constituents',
+                          'ccpp_constituents',
+                          'ccpp_constituent_properties',
+                          'ccpp_constituent_minimum_values',
                           'log_output_unit', 'do_log_output',
                           'mpi_communicator', 'mpi_root', 'mpi_rank',
                           'number_of_mpi_tasks'}
@@ -35,6 +35,10 @@ _INPUT_TYPES = set(['in', 'inout'])
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
 # Include files to insert in the module body
 _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
+
+# Increase allowed line lengths needed to fit extra-long CCPP standard names:
+_LINE_FILL_LEN = 150
+_MAX_LINE_LEN = 200
 
 ##############
 #Main function
@@ -150,7 +154,10 @@ def write_init_files(cap_database, ic_names, outdir,
     # Open file using CCPP's FortranWriter:
     file_desc = "Initialization-checking source file"
     with FortranWriter(ofilename, "w", file_desc,
-                       phys_check_fname_str, indent=indent) as outfile:
+                       phys_check_fname_str,
+                       line_fill=_LINE_FILL_LEN,
+                       line_max=_MAX_LINE_LEN,
+                       indent=indent) as outfile:
 
         # Add boilerplate code:
         outfile.write_preamble()
@@ -202,8 +209,11 @@ def write_init_files(cap_database, ic_names, outdir,
 
     # Open file using CCPP's FortranWriter:
     file_desc = f"Initial conditions source file, {phys_input_filename}"
-    with FortranWriter(ofilename, "w", file_desc, phys_input_fname_str,
-                       indent=indent) as outfile:
+    with FortranWriter(ofilename, "w", file_desc,
+                       phys_input_fname_str,
+                       indent=indent,
+                       line_fill=_LINE_FILL_LEN,
+                       line_max=_MAX_LINE_LEN) as outfile:
 
         # Add boilerplate code:
         outfile.write_preamble()
@@ -815,6 +825,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # Add use statements:
     use_stmts = [["pio", ["file_desc_t"]],
                  ["cam_abortutils", ["endrun"]],
+                 ["spmd_utils", ["masterproc"]],
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",

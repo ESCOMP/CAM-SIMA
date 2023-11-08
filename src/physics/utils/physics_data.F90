@@ -321,11 +321,12 @@ CONTAINS
       stdname, min_difference, min_relative_value, is_first)
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
+      use spmd_utils,     only: mpicom, iam
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun, check_allocate
       use cam_field_read, only: cam_read_field
-      use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
-      use spmd_utils,     only: mpicom
+      use mpi,            only: mpi_maxloc, mpi_sum, mpi_status_size
+      use mpi,            only: mpi_2double_precision, mpi_integer
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: std_name_len
@@ -348,19 +349,24 @@ CONTAINS
       real(kind_phys)                  :: diff
       integer                          :: col
       integer                          :: ierr      !For MPI
+      integer                          :: mpi_stat(mpi_status_size) !For MPI
       real(kind_phys), allocatable     :: buffer(:)
       integer                          :: diff_count
-      real(kind_phys)                  :: max_diff
-      real(kind_phys)                  :: max_diff_gl
+      real(kind_phys)                  :: max_diff(2)    !Stores the local max diff and its MPI rank
+      integer                          :: max_diff_col
+      real(kind_phys)                  :: max_diff_gl(2) !Stores the global max diff and its MPI rank
+      integer                          :: max_diff_gl_col
       integer                          :: diff_count_gl
 
       !Initialize output variables
       ierr = 0
       allocate(buffer(size(current_value)), stat=ierr)
       call check_allocate(ierr, subname, 'buffer')
-      diff_count = 0
-      diff = 0._kind_phys
-      max_diff = 0._kind_phys
+      max_diff_col  = 0
+      diff_count    = 0
+      diff          = 0._kind_phys
+      max_diff(1) = 0._kind_phys
+      max_diff(2) = real(iam, kind_phys) !MPI rank for this task
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (var_found) then
@@ -376,22 +382,47 @@ CONTAINS
                   diff = abs(current_value(col) - buffer(col)) /              &
                      abs(current_value(col))
                end if
-               if (diff > max_diff) then
-                  max_diff = diff
+               if (diff > max_diff(1)) then
+                  max_diff(1)  = diff
+                  max_diff_col = col
                end if
                if (diff > min_difference) then
                   diff_count = diff_count + 1
                end if
             end do
             !Gather results across all nodes to get global values
-            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
-                 mpi_sum, masterprocid,  mpicom, ierr)
-            call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
-                 masterprocid, mpicom, ierr)
+            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,        &
+                            mpi_sum, masterprocid,  mpicom, ierr)
+
+            call mpi_allreduce(max_diff, max_diff_gl, 1,                      &
+                               MPI_2DOUBLE_PRECISION,                         &
+                               mpi_maxloc, mpicom, ierr)
+
+            if (iam == int(max_diff_gl(2)) .and. .not. masterproc) then
+               !The largest diff happened on this task, so the local max is
+               !is the global max. So send the local max value's dimension
+               !index (usually column index) to the root task:
+               call mpi_send(max_diff_col, 1, mpi_integer, masterprocid, 0,   &
+                             mpicom, ierr)
+            else if (iam /= int(max_diff_gl(2)) .and. masterproc) then
+               !The root task needs to receive the relevant max diff index
+               !from a different task:
+               call mpi_recv(max_diff_gl_col, 1, mpi_integer,                 &
+                             int(max_diff_gl(2)), 0, mpicom,                &
+                             mpi_stat, ierr)
+            else if (masterprocid == int(max_diff_gl(2))) then
+               !The biggest difference is on the root MPI task already,
+               !so just set directly:
+               max_diff_gl_col = max_diff_col
+            end if
+
+            !Print difference stats to log file
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
-                     max_diff_gl, is_first)
+                                               max_diff_gl(1),              &
+                                               int(max_diff_gl(2)),         &
+                                               max_diff_gl_col, is_first)
                   is_first = .false.
                end if
             end if
@@ -405,11 +436,12 @@ CONTAINS
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
+      use spmd_utils,     only: mpicom, iam
       use cam_pio_utils,  only: cam_pio_find_var
       use cam_abortutils, only: endrun, check_allocate
       use cam_field_read, only: cam_read_field
-      use mpi,            only: mpi_max, mpi_sum, mpi_real8, mpi_integer
-      use spmd_utils,     only: mpicom
+      use mpi,            only: mpi_maxloc, mpi_sum, mpi_status_size
+      use mpi,            only: mpi_2double_precision, mpi_integer
       use vert_coord,     only: pver, pverp
 
       !Max possible length of variable name in file:
@@ -432,14 +464,19 @@ CONTAINS
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_3d'
       real(kind_phys)                  :: diff
-      integer                          :: ierr      !For MPI
+      integer                          :: ierr                      !For MPI
+      integer                          :: mpi_stat(mpi_status_size) !For MPI
       integer                          :: num_levs
       integer                          :: col
       integer                          :: lev
       real(kind_phys), allocatable     :: buffer(:,:)
       integer                          :: diff_count
-      real(kind_phys)                  :: max_diff
-      real(kind_phys)                  :: max_diff_gl
+      real(kind_phys)                  :: max_diff(2)    !Stores the local max diff and its MPI rank
+      integer                          :: max_diff_col
+      integer                          :: max_diff_lev
+      real(kind_phys)                  :: max_diff_gl(2) !Stores the global max diff and its MPI rank
+      integer                          :: max_diff_gl_col
+      integer                          :: max_diff_gl_lev
       integer                          :: diff_count_gl
 
       !Initialize output variables
@@ -447,9 +484,12 @@ CONTAINS
       allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
         stat=ierr)
       call check_allocate(ierr, subname, 'buffer')
-      diff = 0._kind_phys
-      diff_count = 0
-      max_diff = 0._kind_phys
+      max_diff_col  = 0
+      max_diff_lev  = 0
+      diff_count    = 0
+      diff          = 0._kind_phys
+      max_diff(1)   = 0._kind_phys
+      max_diff(2)   = real(iam, kind_phys) !MPI rank for this task
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
 
@@ -475,8 +515,10 @@ CONTAINS
                      diff = abs(current_value(col, lev) - buffer(col, lev)) / &
                         abs(current_value(col, lev))
                   end if
-                  if (diff > max_diff) then
-                     max_diff = diff
+                  if (diff > max_diff(1)) then
+                     max_diff(1) = diff
+                     max_diff_col = col
+                     max_diff_lev = lev
                   end if
                   !Determine if diff is large enough to be considered a "hit"
                   if (diff > min_difference) then
@@ -484,14 +526,48 @@ CONTAINS
                   end if
                end do
             end do
-            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,     &
+
+            !Make relevant MPI calls to get global values:
+            call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,        &
                  mpi_sum, masterprocid, mpicom, ierr)
-            call mpi_reduce(max_diff, max_diff_gl, 1, mpi_real8, mpi_max,  &
-                 masterprocid, mpicom, ierr)
+
+            call mpi_allreduce(max_diff, max_diff_gl, 1,                      &
+                               MPI_2DOUBLE_PRECISION,                         &
+                               mpi_maxloc, mpicom, ierr)
+
+            if (iam == int(max_diff_gl(2)) .and. .not. masterproc) then
+               !The largest diff happened on this task, so the local max is
+               !is the global max. So send the local max value's dimension
+               !indices (usually column and level index) to the root task:
+               call mpi_send(max_diff_col, 1, mpi_integer, masterprocid, 0,   &
+                             mpicom, ierr)
+               call mpi_send(max_diff_lev, 1, mpi_integer, masterprocid, 0,   &
+                             mpicom, ierr)
+            else if (iam /= int(max_diff_gl(2)) .and. masterproc) then
+               !The root task needs to receive the relevant max diff indices
+               !from a different task:
+               call mpi_recv(max_diff_gl_col, 1, mpi_integer,                 &
+                             int(max_diff_gl(2)), 0, mpicom,                &
+                             mpi_stat, ierr)
+               call mpi_recv(max_diff_gl_lev, 1, mpi_integer,                 &
+                             int(max_diff_gl(2)), 0, mpicom,                &
+                             mpi_stat, ierr)
+            else if (masterprocid == int(max_diff_gl(2))) then
+               !The biggest difference is on the root MPI task already, so just
+               !set directly:
+               max_diff_gl_col = max_diff_col
+               max_diff_gl_lev = max_diff_lev
+            end if
+
+            !Print difference stats to log file
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
-                     max_diff_gl, is_first)
+                                               max_diff_gl(1),              &
+                                               int(max_diff_gl(2)),         &
+                                               max_diff_gl_col,               &
+                                               is_first,                      &
+                                               max_diff_lev=max_diff_gl_lev)
                   is_first = .false.
                end if
             end if
@@ -501,36 +577,54 @@ CONTAINS
 
    end subroutine check_field_3d
 
-   subroutine write_check_field_entry(stdname, diff_count, max_diff, is_first)
+   subroutine write_check_field_entry(stdname,      diff_count,               &
+                                      max_diff,     max_diff_rank,            &
+                                      max_diff_col, is_first,                 &
+                                      max_diff_lev)
 
       use cam_logfile, only: iulog
+      use shr_kind_mod, only: cs=>shr_kind_cs
 
       !Dummy variables:
-      character(len=*), intent(in) :: stdname
-      integer,          intent(in) :: diff_count
-      real(kind_phys),  intent(in) :: max_diff
-      logical,          intent(in) :: is_first
+      character(len=*),  intent(in) :: stdname
+      integer,           intent(in) :: diff_count
+      real(kind_phys),   intent(in) :: max_diff
+      integer,           intent(in) :: max_diff_rank !MPI rank max diff occurred on
+      integer,           intent(in) :: max_diff_col  !max diff column (1st) dimension value
+      integer, optional, intent(in) :: max_diff_lev  !max diff level (2nd) dimension value
+      logical,           intent(in) :: is_first
 
       !Local variables:
-      character(len=24)            :: fmt_str
+      character(len=cs)            :: fmt_str
+      character(len=cs)            :: index_str
       integer                      :: slen
       integer, parameter           :: indent_level = 50
 
       slen = len_trim(stdname)
 
+      !Write check_field log header:
       if (is_first) then
          write(iulog, *) ''
-         write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a)"
-         write(iulog, fmt_str) 'Variable', '# Diffs', 'Max Diff'
-         write(iulog, fmt_str) '--------', '-------', '--------'
+         write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,2x,a,3x,a)"
+         write(iulog, fmt_str) 'Variable', '# Diffs', 'Max Diff', 'Max Diff loc (rank, col, lev)'
+         write(iulog, fmt_str) '--------', '-------', '--------', '-----------------------------'
       end if
 
+      !Write standard name separately if longer
+      !than the indent level:
       if (slen > indent_level) then
          write(iulog, '(a)') trim(stdname)
          slen = 0
       end if
-      write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2)"
-      write(iulog, fmt_str) stdname(1:slen), diff_count, max_diff
+
+      !Write out difference and index valuesa:
+      if (present(max_diff_lev)) then
+         write(index_str, '(a,i0,a,i0,a,i0,a)') "(",max_diff_rank,",",max_diff_col,",",max_diff_lev,")"
+      else
+         write(index_str, '(a,i0,a,i0,a)') "(",max_diff_rank,",",max_diff_col,")"
+      end if
+      write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2,3x,a)"
+      write(iulog, fmt_str) stdname(1:slen), diff_count, max_diff, index_str
 
    end subroutine write_check_field_entry
 

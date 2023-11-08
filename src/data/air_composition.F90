@@ -133,6 +133,8 @@ CONTAINS
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
       use cam_constituents,     only: const_name, num_advected
+      use cam_constituents,     only: const_set_thermo_active
+      use cam_constituents,     only: const_set_water_species
 
       integer  :: icnst, ix, ierr, idx
       integer  :: liq_num, ice_num, water_species_num, dry_species_num
@@ -246,6 +248,9 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc3
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! O2
             !
@@ -260,6 +265,9 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = kc1
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! H
             !
@@ -275,6 +283,9 @@ CONTAINS
             thermodynamic_active_species_kc(icnst)  = 0.0_kind_phys
             icnst = icnst + 1
             dry_species_num = dry_species_num + 1
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! N2
             !
@@ -288,11 +299,15 @@ CONTAINS
             thermodynamic_active_species_mwi(icnst) = 1.0_kind_phys / mw
             thermodynamic_active_species_kv(icnst)  = kv2
             thermodynamic_active_species_kc(icnst)  = kc2
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
             !
             ! Q
             !
-         case('specific_humidity')
-            call air_species_info('specific_humidity', ix, mw)
+         case('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpwv
             thermodynamic_active_species_cv (icnst) = cv3 / mw
@@ -300,12 +315,18 @@ CONTAINS
             icnst = icnst + 1
             water_species_num = water_species_num + 1
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! CLDLIQ
             !
-         case('cloud_liquid_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air', &
-                 ix, mw)
+         case('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -315,11 +336,18 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_liq = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! CLDICE
             !
-         case('cloud_ice_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('cloud_ice_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('cloud_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('cloud_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -329,11 +357,18 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_ice = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
+
             !
             ! RAINQM
             !
-         case('rain_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('rain_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('rain_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -343,11 +378,17 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_liq = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! SNOWQM
             !
-         case('snow_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('snow_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('snow_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('snow_mixing_ratio_wrt_moist_air_and_condensed_water', ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -357,11 +398,18 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_ice = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! GRAUQM
             !
-         case('graupel_water_mixing_ratio_wrt_moist_air')
-            call air_species_info('graupel_water_mixing_ratio_wrt_moist_air', ix, mw)
+         case('graupel_water_mixing_ratio_wrt_moist_air_and_conedensed_water')
+            call air_species_info('graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                                  ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
             thermodynamic_active_species_cv (icnst) = cpice
@@ -371,6 +419,12 @@ CONTAINS
             water_species_num = water_species_num + 1
             has_ice = .true.
             const_is_water_species(ix) = .true.
+            !Notify constituent object that this species is
+            !thermodynamically active
+            call const_set_thermo_active(idx, .true.)
+            !Notify constituent object that this species is
+            !a water species
+            call const_set_water_species(idx, .true.)
             !
             ! If support for more major species is to be included add code here
             !
@@ -580,7 +634,7 @@ CONTAINS
       use string_utils,    only: to_str
 
       ! Dummy arguments
-      ! tracedr: Tracer array
+      ! tracer: Tracer array
       real(kind_phys),           intent(in)  :: tracer(:,:,:)
       real(kind_phys), optional, intent(in)  :: dp_dry(:,:)
       ! inv_cp: output inverse cp instead of cp
@@ -603,9 +657,9 @@ CONTAINS
          if (SIZE(active_species_idx_dycore) /=                               &
               thermodynamic_active_species_num) then
             call endrun(subname//"SIZE mismatch "//                           &
-                 to_str(SIZE(active_species_idx_dycore))//' /= '//           &
+                 to_str(SIZE(active_species_idx_dycore))//' /= '//            &
                  to_str(thermodynamic_active_species_num))
-        end if
+         end if
          idx_local = active_species_idx_dycore
       else
          idx_local = thermodynamic_active_species_idx
@@ -623,15 +677,14 @@ CONTAINS
               (tracer(:,:,itrac) * factor(:,:))
       end do
 
-      if (dry_air_species_num == 0) then
-         sum_cp = thermodynamic_active_species_cp(0)
-      else
-         call get_cp_dry(tracer, idx_local, sum_cp, fact=factor)
-      end if
+      ! Get heat capacity at constant pressure (Cp) for dry air:
+      call get_cp_dry(tracer, idx_local, sum_cp, fact=factor)
+
+      ! Add water species to Cp:
       do qdx = dry_air_species_num + 1, thermodynamic_active_species_num
          itrac = idx_local(qdx)
          sum_cp(:,:) = sum_cp(:,:) +                                      &
-              (thermodynamic_active_species_cp(qdx) * tracer(:,:,itrac) *   &
+              (thermodynamic_active_species_cp(qdx) * tracer(:,:,itrac) * &
               factor(:,:))
       end do
       if (inv_cp) then

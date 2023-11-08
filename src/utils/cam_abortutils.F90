@@ -1,7 +1,7 @@
 module cam_abortutils
 
    use shr_sys_mod,  only: shr_sys_abort, shr_sys_flush
-   use shr_kind_mod, only: max_chars=>shr_kind_cl, msg_len=>SHR_KIND_CS
+   use shr_kind_mod, only: max_chars=>shr_kind_cx, msg_len=>SHR_KIND_CS
    use shr_kind_mod, only: r8 => shr_kind_r8
    use shr_mem_mod,  only: shr_mem_getusage
    use pio,          only: file_desc_t

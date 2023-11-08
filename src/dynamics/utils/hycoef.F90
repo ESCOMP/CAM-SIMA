@@ -36,7 +36,6 @@ real(r8), public, allocatable :: hypm(:)    ! reference pressures at midpoints
 real(r8), public, allocatable :: hypd(:)    ! reference pressure layer thickness
 
 real(r8), public, protected :: ps0    ! Base state surface pressure (pascals)
-real(r8), public, protected :: psr    ! Reference surface pressure (pascals)
 
 real(r8), allocatable, target :: alev(:)   ! level values (pascals) for 'lev' coord
 real(r8), allocatable, target :: ailev(:)  ! interface level values for 'ilev' coord
@@ -55,7 +54,7 @@ contains
 subroutine hycoef_init(file, psdry)
 
 !   use cam_history_support, only: add_hist_coord, add_vert_coord, formula_terms_t
-   use physconst,    only: ps_base, ps_ref
+   use physconst,    only: pref
    use string_utils, only: to_str
 
    !-----------------------------------------------------------------------
@@ -99,9 +98,8 @@ subroutine hycoef_init(file, psdry)
 
    !-----------------------------------------------------------------------
 
-   ! Initalize reference pressures:
-   ps0 = real(ps_base, r8) ! Base state surface pressure (pascals)
-   psr = real(ps_ref, r8)  ! Reference surface pressure (pascals)
+   ! Initalize reference pressure:
+   ps0 = real(pref, r8)  ! Reference pressure (pascals)
 
    ! Allocate public variables:
 
@@ -191,13 +189,13 @@ subroutine hycoef_init(file, psdry)
    ! pressures
    do k=1,pver
       hybd(k) = hybi(k+1) - hybi(k)
-      hypm(k) = hyam(k)*ps0 + hybm(k)*psr
+      hypm(k) = hyam(k)*ps0 + hybm(k)*ps0
       etamid(k) = hyam(k) + hybm(k)
    end do
 
    ! Reference state interface pressures
    do k=1,pverp
-      hypi(k) = hyai(k)*ps0 + hybi(k)*psr
+      hypi(k) = hyai(k)*ps0 + hybi(k)*ps0
    end do
 
    ! Reference state layer thicknesses
@@ -437,12 +435,9 @@ subroutine hycoef_read(File)
       if (ierr /= PIO_NOERR) then
          call endrun(routine//': reading P0.')
       end if
-      psr = ps0
-
       if (masterproc) then
          write(iulog,*) routine//': read P0 value: ', ps0
       end if
-
    end if
 
    ! Put the error handling back the way it was

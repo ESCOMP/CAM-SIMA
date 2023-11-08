@@ -437,8 +437,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         os.makedirs(physics_blddir)
     # End if
     # Collect all source directories
-    source_search = [source_mods_dir,
-                     os.path.join(atm_root, "src", "physics", "ncar_ccpp")]
+    atm_phys_src_dir = os.path.join(atm_root, "src", "physics", "ncar_ccpp")
+    source_search = [source_mods_dir, atm_phys_src_dir]
     # Find all metadata files, organize by scheme name
     all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
 
@@ -449,8 +449,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     for sdf in phys_suites_str.split(';'):
         sdf_path = _find_file(f"suite_{sdf}.xml", source_search)
         if not sdf_path:
-            emsg = "ERROR: Unable to find SDF for suite '{}'"
-            raise CamAutoGenError(emsg.format(sdf))
+            emsg = f"ERROR: Unable to find SDF for suite '{sdf}'"
+            raise CamAutoGenError(emsg)
         # End if
         sdfs.append(sdf_path)
         # Given an SDF, find all the schemes it calls
@@ -579,6 +579,30 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         capgen_db = capgen(run_env, return_db=True)
     else:
         capgen_db = None
+    # end if
+
+    # Several SIMA dycores need some of the physics schemes
+    # located in the "utilities" CCPP physics directory,
+    # even if the actual physics suites don't need them.
+    # So go-ahead and copy all of the source code from
+    # there to the bld directory:
+    if do_gen_ccpp:
+        # Set CCPP physics "utilities" path
+        atm_phys_util_dir = os.path.join(atm_phys_src_dir, "utilities")
+
+        # Check that directory exists
+        if not os.path.isdir(atm_phys_util_dir):
+            #CAM-SIMA will likely not run without this, so raise an error
+            emsg = "ERROR: Unable to find CCPP physics utilities directory:\n"
+            emsg += f" {atm_phys_util_dir}\n Have you run 'checkout_externals'?"
+            raise CamAutoGenError(emsg)
+        # end if
+
+        # Copy all utility source files to the build directory
+        atm_phys_util_files = glob.glob(os.path.join(atm_phys_util_dir, "*.F90"))
+        for util_file in atm_phys_util_files:
+            shutil.copy(util_file, physics_blddir)
+        # end for
     # end if
 
     if do_gen_ccpp or do_gen_nl:
