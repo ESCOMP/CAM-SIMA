@@ -1,6 +1,6 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
 # esmf is am image you are expected to have built. Read the README file for instructions
-FROM esmf:latest
+FROM --platform=linux/amd64 esmf:latest
 
 ###################################################
 ## Install necessary packages
