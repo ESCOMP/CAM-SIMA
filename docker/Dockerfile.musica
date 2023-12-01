@@ -1,6 +1,9 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
 # esmf is am image you are expected to have built. Read the README file for instructions
-FROM esmf:latest
+
+# TODO(jiwon): Update readme and remove system architecture
+# FROM esmf:latest
+FROM --platform=linux/amd64 esmf:latest
 
 ###################################################
 ## Install necessary packages
@@ -11,12 +14,19 @@ RUN dnf -y update \
       git \
       hostname \
       m4 \
-      python \
+      python3.11 \
       sudo \
       svn \
       tree \
       vim \
+      json-devel \
     && dnf clean all
+
+###################################################
+## Set symlink to the specific python version
+## that supports a deprecated pacakge for cime (distuitls)
+###################################################
+RUN ln -fs /usr/bin/python3.11 /usr/bin/python3
 
 ###################################################
 ## Make sure the mpi compilers can be found
@@ -53,8 +63,9 @@ RUN ln -s /usr/local/jsonfortran-gnu-8.2.0/lib/libjsonfortran.a /usr/local/lib/l
 ###################################################
 ## Build and install MUSICA
 ###################################################
-
-RUN git clone https://github.com/NCAR/musica.git
+# TODO(jiwon): specified branch
+# RUN git clone https://github.com/NCAR/musica.git
+RUN git clone -b update_for_ccpp_wrapper https://github.com/NCAR/musica.git
 RUN mkdir /musica/build \
     && cd /musica/build \
     && export JSON_FORTRAN_HOME="/usr/local/jsonfortran-gnu-8.2.0" \
@@ -65,7 +76,7 @@ RUN mkdir /musica/build \
     && make install -j 8
 
 # add a symlink
-RUN ln -s /usr/local/musica-0.3.0/lib64/libmusica.a /usr/local/lib/libmusica.a
+RUN ln -s /usr/local/musica-0.4.0/lib64/libmusica.a /usr/local/lib/libmusica.a
 
 ###################################################
 ## Build CAM-SIMA
