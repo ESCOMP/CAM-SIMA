@@ -97,7 +97,8 @@ def _build_cam():
                               case.get_value("COMP_INTERFACE")),
                  os.path.join(atm_root, "src", "dynamics", "utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
-                 os.path.join(atm_root, "src", "utils")]
+                 os.path.join(atm_root, "src", "utils"),
+                 os.path.join("/usr/local/musica-0.4.0/fortran_include/")]
         for path in phys_dirs:
             if path not in paths:
                 paths.append(path)
