@@ -1,0 +1,110 @@
+ifeq ($(strip $(CASEROOT)),)
+    $(warning `CASEROOT` should not be empty. Defaulting to `.`)
+
+    CASEROOT = .
+endif
+
+ifeq ($(strip $(LIBROOT)),)
+    $(warning `LIBROOT` should not be empty. Defaulting to `..`)
+
+    LIBROOT = ..
+endif
+
+#
+# Define and export variables used by MPAS build infrastructure.
+#
+
+export CP = cp -afv
+export RM = rm -frv
+
+# Constants.
+export AUTOCLEAN       = false
+export BUILD_TARGET    = N/A
+export CORE            = atmosphere
+export EXE_NAME        = atmosphere_model
+export GEN_F90         = false
+export GIT_VERSION     = N/A
+export NAMELIST_SUFFIX = atmosphere
+
+# Read variables (e.g., build options) from `Macros.make`.
+include $(CASEROOT)/Macros.make
+
+# Translate variables (e.g., build options) from `Macros.make` to their equivalent ones used by MPAS build infrastructure.
+export AR             := ar
+export ARFLAGS        := -M
+export CC             := $(strip $(MPICC))
+export CFLAGS         := $(strip $(CFLAGS))
+export CPP            := cpp -P -traditional
+export CPPFLAGS       := -D_MPI \
+                         -DMPAS_BUILD_TARGET="$(BUILD_TARGET)" \
+                         -DMPAS_CAM_DYCORE \
+                         -DMPAS_EXE_NAME="$(EXE_NAME)" \
+                         -DMPAS_EXTERNAL_ESMF_LIB \
+                         -DMPAS_GIT_VERSION="$(GIT_VERSION)" \
+                         -DMPAS_NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
+                         -DMPAS_NATIVE_TIMERS \
+                         -DMPAS_NO_ESMF_INIT \
+                         -DMPAS_PIO_SUPPORT \
+                         -DUSE_PIO2
+export CPPINCLUDES    := $(strip $(CPPINCLUDES))
+export CXX            := $(strip $(MPICXX))
+export CXXFLAGS       := $(strip $(CXXFLAGS))
+export FC             := $(strip $(MPIFC))
+export FCINCLUDES     := $(strip $(FCINCLUDES))
+export FFLAGS         := $(strip $(FC_AUTO_R8) $(FFLAGS) $(FREEFLAGS))
+export LDFLAGS        := $(strip $(LDFLAGS))
+export LIBS           := $(strip $(LIBS))
+export LINKER         := $(strip $(MPIFC))
+export SCC            := $(strip $(SCC))
+export SCXX           := $(strip $(SCXX))
+export SFC            := $(strip $(SFC))
+
+#
+# Targets.
+#
+
+.PHONY: all
+all:
+	@echo 'Supplemental Makefile for MPAS Dynamical Core in CESM'
+	@echo ''
+	@echo 'Variables (e.g., build options) will be read from `$${CASEROOT}/Macros.make`.'
+	@echo 'MPAS will be built as a static library located at `$${LIBROOT}/libmpas.a`.'
+	@echo ''
+	@echo 'Usage hints:'
+	@echo '    `make libmpas-prepare ESM="CESM" CASEROOT="..." LIBROOT="..."`'
+	@echo '    `make libmpas-build ESM="CESM" CASEROOT="..." LIBROOT="..."`'
+	@echo '    `make libmpas-clean ESM="CESM" CASEROOT="..." LIBROOT="..."`'
+
+.PHONY: libmpas-prepare
+libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics
+
+# Combine multiple static libraries into `libmpas.a` via archiver/MRI script. This requires GNU or GNU-like archiver (`ar`) program.
+libmpas-archiver-script.txt:
+	@echo "create libmpas.a"       > $(@)
+	@echo "addlib libdycore.a"    >> $(@)
+	@echo "addlib libframework.a" >> $(@)
+	@echo "addlib libops.a"       >> $(@)
+	@echo "save"                  >> $(@)
+	@echo "end"                   >> $(@)
+
+# Do not use built-in MPAS/WRF physics.
+.PHONY: libmpas-no-physics
+libmpas-no-physics:
+	@sed -E -i -e "s/^ *PHYSICS=.+$$/PHYSICS=/g" core_atmosphere/Makefile
+
+.PHONY: libmpas-build
+libmpas-build: $(LIBROOT)/libmpas.a
+
+$(LIBROOT)/libmpas.a: libmpas.a
+	$(CP) $(<) $(@)
+
+libmpas.a: $(AUTOCLEAN_DEPS) dycore externals frame ops
+	$(AR) $(ARFLAGS) < libmpas-archiver-script.txt
+
+.PHONY: libmpas-clean
+libmpas-clean: clean
+	$(RM) $(LIBROOT)/libmpas.a libmpas.a
+
+.PHONY: externals
+externals: $(AUTOCLEAN_DEPS)
+	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" ezxml-lib )
