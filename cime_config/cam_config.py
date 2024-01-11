@@ -310,7 +310,7 @@ class ConfigCAM:
                          "src/dynamics, with a slash ('/') indicating directory hierarchy."]
 
 
-        #Determine dynmaical core and grid-matching regex to use for validation:
+        #Determine dynamical core and grid-matching regex to use for validation:
         dycore, grid_regex = get_atm_hgrid(atm_grid)
 
         #Add dynamical core to config object:
@@ -370,6 +370,11 @@ class ConfigCAM:
             self.create_config("trm", trm_desc, 1, (1, None))
             self.create_config("trn", trn_desc, 1, (1, None))
             self.create_config("trk", trk_desc, 1, (1, None))
+        elif dycore == "mpas":
+            # This only includes the driver and interface code between CAM-SIMA and MPAS dynamical core.
+            # MPAS dynamical core relies on its upstream build infrastructure for compilation instead of CIME to take advantage of future upstream changes automatically.
+            self.create_config("dyn_src_dirs", dyn_dirs_desc, ["mpas"],
+                               valid_list_type="str")
         elif dycore == "none":
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["none"],
@@ -865,7 +870,7 @@ class ConfigCAM:
                                           capgen_db, ic_names)
 
         #Add registry path to config object:
-        init_dir_desc = "Location of auto-generated physics initilazation code."
+        init_dir_desc = "Location of auto-generated physics initialization code."
         self.create_config("init_dir", init_dir_desc, init_dir)
 
         #--------------------------------------------------------------

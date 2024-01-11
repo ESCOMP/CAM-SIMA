@@ -3,10 +3,11 @@ ccpp_framework
 ccs_config
 chem_proc
 cime
-share
-libraries
 components
+libraries
 manage_externals.log
+share
+src/dynamics/mpas/dycore
 src/physics/carma/base
 src/physics/clubb
 src/physics/cosp2/src
@@ -14,18 +15,17 @@ src/physics/ncar_ccpp
 src/physics/silhs
 src/utils/history_output
 
-
 # Ignore compiled python
-buildnmlc
 *.pyc
+buildnmlc
 
 # Ignore test output
-test/unit/tmp
 test/include/*.mod
 test/include/*.o
+test/unit/tmp
 
 # Ignore editor temporaries and backups
+*.swp
 *~
 .#*
 \#*#
-*.swp
