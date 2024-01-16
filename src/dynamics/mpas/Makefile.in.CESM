@@ -15,6 +15,7 @@ endif
 #
 
 export CP = cp -afv
+export MKDIR = mkdir -pv
 export RM = rm -frv
 
 # Constants.
@@ -96,6 +97,7 @@ libmpas-no-physics:
 libmpas-build: $(LIBROOT)/libmpas.a
 
 $(LIBROOT)/libmpas.a: libmpas.a
+	$(MKDIR) $(LIBROOT)
 	$(CP) $(<) $(@)
 
 libmpas.a: $(AUTOCLEAN_DEPS) dycore externals frame ops
