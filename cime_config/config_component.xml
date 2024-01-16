@@ -103,11 +103,11 @@
 
   <entry id="CAM_DYCORE">
     <type>char</type>
-    <valid_values>eul,fv,mpasa,se,none</valid_values>
+    <valid_values>eul,fv,mpas,se,none</valid_values>
     <default_value>fv</default_value>
     <values match="last">
       <value grid="a%T[1-9]">eul</value>
-      <value grid="a%mpasa[0-9]+">mpasa</value>
+      <value grid="a%mpasa[0-9]+">mpas</value>
       <value grid="a%ne[0-9]">se</value>
     </values>
     <group>build_component_cam</group>
