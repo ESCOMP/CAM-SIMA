@@ -216,15 +216,11 @@ def _copy2_as_needed(src: str, dst: str) -> None:
             if int(os.path.getmtime(src)) != int(os.path.getmtime(dst)) or os.path.getsize(src) != os.path.getsize(dst):
                 # `src` and `dst` are both files but their modification time or size differ.
                 # Example scenario: User modified some existing source code files.
-                print("1. Copy from", src, "to", dst)
-                print(os.path.getmtime(src), os.path.getmtime(dst))
-                print(os.path.getsize(src), os.path.getsize(dst))
                 shutil.copy2(src, dst)
         else:
             if os.path.isdir(dst) or os.path.isdir(os.path.dirname(dst)):
                 # `src` is a new file that does not exist at `dst`.
                 # Example scenario: User added some new source code files.
-                print("2. Copy from", src, "to", dst)
                 shutil.copy2(src, dst)
 
 ###############################################################################
