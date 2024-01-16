@@ -187,9 +187,8 @@ def _build_mpas(case: Case) -> None:
     if os.path.isfile(mpas_dycore_bld_root):
         raise FileExistsError(1, "Unexpected file", mpas_dycore_bld_root)
 
-    if not os.path.isdir(mpas_dycore_bld_root):
-        shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root)
-        shutil.copy2(os.path.normpath(os.path.join(mpas_dycore_src_root, "../../Makefile.in.CESM")), os.path.join(mpas_dycore_bld_root, "Makefile.in.CESM"))
+    shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, "../../Makefile.in.CESM")), os.path.join(mpas_dycore_bld_root, "Makefile.in.CESM"))
 
     # Invoke makefile target `libmpas-prepare`.
     mpas_dycore_make_command  = f'{gmake} -C {mpas_dycore_bld_root} libmpas-prepare ESM="CESM" CASEROOT="{case_root}" LIBROOT="{lib_root}" '
@@ -206,6 +205,27 @@ def _build_mpas(case: Case) -> None:
     (sta, out, err) = run_cmd(mpas_dycore_make_command, from_dir=mpas_dycore_bld_root)
     _LOGGER.info("* Command %s:\n\n  Output:\n%s\n\n  Error:\n%s\n\n", mpas_dycore_make_command, out, err)
     expect(sta == 0, f"Command {mpas_dycore_make_command} failed with status {sta}")
+
+def _copy2_as_needed(src: str, dst: str) -> None:
+    """
+    Wrapper around `shutil.copy2`. Copy the file `src` to the file or directory `dst` as needed.
+    """
+
+    if os.path.isfile(src):
+        if os.path.isfile(dst):
+            if int(os.path.getmtime(src)) != int(os.path.getmtime(dst)) or os.path.getsize(src) != os.path.getsize(dst):
+                # `src` and `dst` are both files but their modification time or size differ.
+                # Example scenario: User modified some existing source code files.
+                print("1. Copy from", src, "to", dst)
+                print(os.path.getmtime(src), os.path.getmtime(dst))
+                print(os.path.getsize(src), os.path.getsize(dst))
+                shutil.copy2(src, dst)
+        else:
+            if os.path.isdir(dst) or os.path.isdir(os.path.dirname(dst)):
+                # `src` is a new file that does not exist at `dst`.
+                # Example scenario: User added some new source code files.
+                print("2. Copy from", src, "to", dst)
+                shutil.copy2(src, dst)
 
 ###############################################################################
 
