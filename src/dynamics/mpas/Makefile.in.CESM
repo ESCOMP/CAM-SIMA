@@ -1,9 +1,3 @@
-ifeq ($(strip $(CASEROOT)),)
-    $(warning `CASEROOT` should not be empty. Defaulting to `.`)
-
-    CASEROOT = .
-endif
-
 ifeq ($(strip $(LIBROOT)),)
     $(warning `LIBROOT` should not be empty. Defaulting to `..`)
 
@@ -27,14 +21,9 @@ export GEN_F90         = false
 export GIT_VERSION     = N/A
 export NAMELIST_SUFFIX = atmosphere
 
-# Read variables (e.g., build options) from `Macros.make`.
-include $(CASEROOT)/Macros.make
-
-# Translate variables (e.g., build options) from `Macros.make` to their equivalent ones used by MPAS build infrastructure.
+# Customize variables (e.g., build options) for use with CESM.
 export AR             := ar
 export ARFLAGS        := -M
-export CC             := $(strip $(MPICC))
-export CFLAGS         := $(strip $(CFLAGS))
 export CPP            := cpp -P -traditional
 export CPPFLAGS       := -D_MPI \
                          -DMPAS_BUILD_TARGET="$(BUILD_TARGET)" \
@@ -45,20 +34,15 @@ export CPPFLAGS       := -D_MPI \
                          -DMPAS_NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
                          -DMPAS_NATIVE_TIMERS \
                          -DMPAS_NO_ESMF_INIT \
-                         -DMPAS_PIO_SUPPORT \
-                         -DUSE_PIO2
-export CPPINCLUDES    := $(strip $(CPPINCLUDES))
-export CXX            := $(strip $(MPICXX))
-export CXXFLAGS       := $(strip $(CXXFLAGS))
-export FC             := $(strip $(MPIFC))
-export FCINCLUDES     := $(strip $(FCINCLUDES))
-export FFLAGS         := $(strip $(FC_AUTO_R8) $(FFLAGS) $(FREEFLAGS))
-export LDFLAGS        := $(strip $(LDFLAGS))
-export LIBS           := $(strip $(LIBS))
-export LINKER         := $(strip $(MPIFC))
-export SCC            := $(strip $(SCC))
-export SCXX           := $(strip $(SCXX))
-export SFC            := $(strip $(SFC))
+                         -DMPAS_PIO_SUPPORT
+# `PIODEF` is defined by CIME Makefile (i.e., `cime/CIME/Tools/Makefile`). Its value can be empty or `-DUSE_PIO2`.
+ifneq ($(strip $(PIODEF)),)
+    export CPPFLAGS   += $(strip $(PIODEF))
+endif
+export LINKER         := $(strip $(FC))
+export SCC            := $(strip $(CC))
+export SCXX           := $(strip $(CXX))
+export SFC            := $(strip $(FC))
 
 #
 # Targets.
@@ -68,16 +52,16 @@ export SFC            := $(strip $(SFC))
 all:
 	@echo 'Supplemental Makefile for MPAS Dynamical Core in CESM'
 	@echo ''
-	@echo 'Variables (e.g., build options) will be read from `$${CASEROOT}/Macros.make`.'
 	@echo 'MPAS will be built as a static library located at `$${LIBROOT}/libmpas.a`.'
+	@echo 'Users are responsible to provide all necessary build options via environment variables or command line arguments.'
 	@echo ''
 	@echo 'Usage hints:'
-	@echo '    `make libmpas-prepare ESM="CESM" CASEROOT="..." LIBROOT="..."`'
-	@echo '    `make libmpas-build ESM="CESM" CASEROOT="..." LIBROOT="..."`'
-	@echo '    `make libmpas-clean ESM="CESM" CASEROOT="..." LIBROOT="..."`'
+	@echo '    `make libmpas-prepare ESM="CESM" LIBROOT="..."`'
+	@echo '    `make libmpas-build ESM="CESM" LIBROOT="..."`'
+	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..."`'
 
 .PHONY: libmpas-prepare
-libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics
+libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics libmpas-preview
 
 # Combine multiple static libraries into `libmpas.a` via archiver/MRI script. This requires GNU or GNU-like archiver (`ar`) program.
 libmpas-archiver-script.txt:
@@ -92,6 +76,28 @@ libmpas-archiver-script.txt:
 .PHONY: libmpas-no-physics
 libmpas-no-physics:
 	@sed -E -i -e "s/^ *PHYSICS=.+$$/PHYSICS=/g" core_atmosphere/Makefile
+
+.PHONY: libmpas-preview
+libmpas-preview:
+	@echo "Previewing build options for $(LIBROOT)/libmpas.a:"
+	@echo "AR = $(AR)"
+	@echo "ARFLAGS = $(ARFLAGS)"
+	@echo "CC = $(CC)"
+	@echo "CFLAGS = $(CFLAGS)"
+	@echo "CPP = $(CPP)"
+	@echo "CPPFLAGS = $(CPPFLAGS)"
+	@echo "CPPINCLUDES = $(CPPINCLUDES)"
+	@echo "CXX = $(CXX)"
+	@echo "CXXFLAGS = $(CXXFLAGS)"
+	@echo "FC = $(FC)"
+	@echo "FCINCLUDES = $(FCINCLUDES)"
+	@echo "FFLAGS = $(FFLAGS)"
+	@echo "LDFLAGS = $(LDFLAGS)"
+	@echo "LIBS = $(LIBS)"
+	@echo "LINKER = $(LINKER)"
+	@echo "SCC = $(SCC)"
+	@echo "SCXX = $(SCXX)"
+	@echo "SFC = $(SFC)"
 
 .PHONY: libmpas-build
 libmpas-build: $(LIBROOT)/libmpas.a
