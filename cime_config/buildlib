@@ -141,6 +141,11 @@ def _build_cam():
         #-------------------------------------------------------
         # build the library
         #-------------------------------------------------------
+
+        # If dynamical core is MPAS, setup its build infrastructure so it can be built along with CAM below.
+        if dycore == "mpas":
+            _setup_mpas(case)
+
         complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
 
@@ -156,22 +161,13 @@ def _build_cam():
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
-        # If dynamical core is MPAS, build it after CAM due to dependencies.
-        if dycore == "mpas":
-            _build_mpas(case)
-
-def _build_mpas(case: Case) -> None:
+def _setup_mpas(case: Case) -> None:
     """
-    Build MPAS by invoking its build infrastructure.
+    Setup MPAS build infrastructure.
     """
 
-    case_root    = os.path.normpath(case.get_value("CASEROOT"))
     atm_src_root = os.path.normpath(case.get_value("COMP_ROOT_DIR_ATM"))
     atm_bld_root = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj"))
-    lib_root     = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "lib"))
-
-    gmake   = case.get_value("GMAKE")
-    gmake_j = case.get_value("GMAKE_J")
 
     mpas_dycore_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas", "dycore", "src")
     mpas_dycore_bld_root = os.path.join(atm_bld_root, "mpas")
@@ -188,23 +184,9 @@ def _build_mpas(case: Case) -> None:
         raise FileExistsError(1, "Unexpected file", mpas_dycore_bld_root)
 
     shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
-    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, "../../Makefile.in.CESM")), os.path.join(mpas_dycore_bld_root, "Makefile.in.CESM"))
-
-    # Invoke makefile target `libmpas-prepare`.
-    mpas_dycore_make_command  = f'{gmake} -C {mpas_dycore_bld_root} libmpas-prepare ESM="CESM" CASEROOT="{case_root}" LIBROOT="{lib_root}" '
-    mpas_dycore_make_command += f'FCINCLUDES="-I{atm_bld_root}"'
-
-    (sta, out, err) = run_cmd(mpas_dycore_make_command, from_dir=mpas_dycore_bld_root)
-    _LOGGER.info("* Command %s:\n\n  Output:\n%s\n\n  Error:\n%s\n\n", mpas_dycore_make_command, out, err)
-    expect(sta == 0, f"Command {mpas_dycore_make_command} failed with status {sta}")
-
-    # Invoke makefile target `libmpas-build`.
-    mpas_dycore_make_command  = f'{gmake} -C {mpas_dycore_bld_root} -j {gmake_j} libmpas-build ESM="CESM" CASEROOT="{case_root}" LIBROOT="{lib_root}" '
-    mpas_dycore_make_command += f'FCINCLUDES="-I{atm_bld_root}"'
-
-    (sta, out, err) = run_cmd(mpas_dycore_make_command, from_dir=mpas_dycore_bld_root)
-    _LOGGER.info("* Command %s:\n\n  Output:\n%s\n\n  Error:\n%s\n\n", mpas_dycore_make_command, out, err)
-    expect(sta == 0, f"Command {mpas_dycore_make_command} failed with status {sta}")
+    shutil.move(os.path.join(mpas_dycore_bld_root, "Makefile"), os.path.join(mpas_dycore_bld_root, "Makefile.CESM"))
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile")), os.path.join(mpas_dycore_bld_root, "Makefile"))
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile.in.CESM")), os.path.join(mpas_dycore_bld_root, "Makefile.in.CESM"))
 
 def _copy2_as_needed(src: str, dst: str) -> None:
     """
