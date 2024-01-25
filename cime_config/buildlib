@@ -141,6 +141,11 @@ def _build_cam():
         #-------------------------------------------------------
         # build the library
         #-------------------------------------------------------
+
+        # If dynamical core is MPAS, setup its build infrastructure so it can be built along with CAM below.
+        if dycore == "mpas":
+            _setup_mpas(case)
+
         complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
 
@@ -155,6 +160,50 @@ def _build_cam():
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
+
+def _setup_mpas(case: Case) -> None:
+    """
+    Setup MPAS build infrastructure.
+    """
+
+    atm_src_root = os.path.normpath(case.get_value("COMP_ROOT_DIR_ATM"))
+    atm_bld_root = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj"))
+
+    mpas_dycore_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas", "dycore", "src")
+    mpas_dycore_bld_root = os.path.join(atm_bld_root, "mpas")
+
+    # Make sure `mpas_dycore_src_root` exists. If not, it is likely that `./manage_externals/checkout_externals` did not succeed.
+    if os.path.isfile(mpas_dycore_src_root):
+        raise FileExistsError(1, "Unexpected file", mpas_dycore_src_root)
+
+    if not os.path.isdir(mpas_dycore_src_root):
+        raise FileNotFoundError(1, "No such directory", mpas_dycore_src_root)
+
+    # MPAS supports "in-source" build only. Copy source code to `mpas_dycore_bld_root` to avoid polluting `mpas_dycore_src_root`.
+    if os.path.isfile(mpas_dycore_bld_root):
+        raise FileExistsError(1, "Unexpected file", mpas_dycore_bld_root)
+
+    shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
+    shutil.move(os.path.join(mpas_dycore_bld_root, "Makefile"), os.path.join(mpas_dycore_bld_root, "Makefile.CESM"))
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile")), os.path.join(mpas_dycore_bld_root, "Makefile"))
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile.in.CESM")), os.path.join(mpas_dycore_bld_root, "Makefile.in.CESM"))
+
+def _copy2_as_needed(src: str, dst: str) -> None:
+    """
+    Wrapper around `shutil.copy2`. Copy the file `src` to the file or directory `dst` as needed.
+    """
+
+    if os.path.isfile(src):
+        if os.path.isfile(dst):
+            if int(os.path.getmtime(src)) != int(os.path.getmtime(dst)) or os.path.getsize(src) != os.path.getsize(dst):
+                # `src` and `dst` are both files but their modification time or size differ.
+                # Example scenario: User modified some existing source code files.
+                shutil.copy2(src, dst)
+        else:
+            if os.path.isdir(dst) or os.path.isdir(os.path.dirname(dst)):
+                # `src` is a new file that does not exist at `dst`.
+                # Example scenario: User added some new source code files.
+                shutil.copy2(src, dst)
 
 ###############################################################################
 

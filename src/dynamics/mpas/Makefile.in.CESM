@@ -1,0 +1,118 @@
+ifeq ($(strip $(LIBROOT)),)
+    $(warning `LIBROOT` should not be empty. Defaulting to `..`)
+
+    LIBROOT = ..
+endif
+
+#
+# Define and export variables used by MPAS build infrastructure.
+#
+
+export CP = cp -afv
+export MKDIR = mkdir -pv
+export RM = rm -frv
+
+# Constants.
+export AUTOCLEAN       = false
+export BUILD_TARGET    = N/A
+export CORE            = atmosphere
+export EXE_NAME        = atmosphere_model
+export GEN_F90         = false
+export GIT_VERSION     = N/A
+export NAMELIST_SUFFIX = atmosphere
+
+# Customize variables (e.g., build options) for use with CESM.
+export AR             := ar
+export ARFLAGS        := -M
+export CPP            := cpp -P -traditional
+export CPPFLAGS       := -D_MPI \
+                         -DMPAS_BUILD_TARGET="$(BUILD_TARGET)" \
+                         -DMPAS_CAM_DYCORE \
+                         -DMPAS_EXE_NAME="$(EXE_NAME)" \
+                         -DMPAS_EXTERNAL_ESMF_LIB \
+                         -DMPAS_GIT_VERSION="$(GIT_VERSION)" \
+                         -DMPAS_NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
+                         -DMPAS_NATIVE_TIMERS \
+                         -DMPAS_NO_ESMF_INIT \
+                         -DMPAS_PIO_SUPPORT
+# `PIODEF` is defined by CIME Makefile (i.e., `cime/CIME/Tools/Makefile`). Its value can be empty or `-DUSE_PIO2`.
+ifneq ($(strip $(PIODEF)),)
+    export CPPFLAGS   += $(strip $(PIODEF))
+endif
+export LINKER         := $(strip $(FC))
+export SCC            := $(strip $(CC))
+export SCXX           := $(strip $(CXX))
+export SFC            := $(strip $(FC))
+
+#
+# Targets.
+#
+
+.PHONY: all
+all:
+	@echo 'Supplemental Makefile for MPAS Dynamical Core in CESM'
+	@echo ''
+	@echo 'MPAS will be built as a static library located at `$${LIBROOT}/libmpas.a`.'
+	@echo 'Users are responsible to provide all necessary build options via environment variables or command line arguments.'
+	@echo ''
+	@echo 'Usage hints:'
+	@echo '    `make libmpas-prepare ESM="CESM" LIBROOT="..."`'
+	@echo '    `make libmpas-build ESM="CESM" LIBROOT="..."`'
+	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..."`'
+
+.PHONY: libmpas-prepare
+libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics libmpas-preview
+
+# Combine multiple static libraries into `libmpas.a` via archiver/MRI script. This requires GNU or GNU-like archiver (`ar`) program.
+libmpas-archiver-script.txt:
+	@echo "create libmpas.a"       > $(@)
+	@echo "addlib libdycore.a"    >> $(@)
+	@echo "addlib libframework.a" >> $(@)
+	@echo "addlib libops.a"       >> $(@)
+	@echo "save"                  >> $(@)
+	@echo "end"                   >> $(@)
+
+# Do not use built-in MPAS/WRF physics.
+.PHONY: libmpas-no-physics
+libmpas-no-physics:
+	@sed -E -i -e "s/^ *PHYSICS=.+$$/PHYSICS=/g" core_atmosphere/Makefile
+
+.PHONY: libmpas-preview
+libmpas-preview:
+	@echo "Previewing build options for $(LIBROOT)/libmpas.a:"
+	@echo "AR = $(AR)"
+	@echo "ARFLAGS = $(ARFLAGS)"
+	@echo "CC = $(CC)"
+	@echo "CFLAGS = $(CFLAGS)"
+	@echo "CPP = $(CPP)"
+	@echo "CPPFLAGS = $(CPPFLAGS)"
+	@echo "CPPINCLUDES = $(CPPINCLUDES)"
+	@echo "CXX = $(CXX)"
+	@echo "CXXFLAGS = $(CXXFLAGS)"
+	@echo "FC = $(FC)"
+	@echo "FCINCLUDES = $(FCINCLUDES)"
+	@echo "FFLAGS = $(FFLAGS)"
+	@echo "LDFLAGS = $(LDFLAGS)"
+	@echo "LIBS = $(LIBS)"
+	@echo "LINKER = $(LINKER)"
+	@echo "SCC = $(SCC)"
+	@echo "SCXX = $(SCXX)"
+	@echo "SFC = $(SFC)"
+
+.PHONY: libmpas-build
+libmpas-build: $(LIBROOT)/libmpas.a
+
+$(LIBROOT)/libmpas.a: libmpas.a
+	$(MKDIR) $(LIBROOT)
+	$(CP) $(<) $(@)
+
+libmpas.a: $(AUTOCLEAN_DEPS) dycore externals frame ops
+	$(AR) $(ARFLAGS) < libmpas-archiver-script.txt
+
+.PHONY: libmpas-clean
+libmpas-clean: clean
+	$(RM) $(LIBROOT)/libmpas.a libmpas.a
+
+.PHONY: externals
+externals: $(AUTOCLEAN_DEPS)
+	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" ezxml-lib )
