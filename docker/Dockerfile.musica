@@ -20,7 +20,7 @@ RUN dnf -y update \
     && dnf clean all
 
 ##################################################
-# Set symlink to the specific python version
+# Set a symlink to the specific python version
 # that supports a deprecated pacakge for cime (distuitls)
 ##################################################
 RUN ln -fs /usr/bin/python3.11 /usr/bin/python3
@@ -56,26 +56,25 @@ RUN curl -LO https://github.com/jacobwilliams/json-fortran/archive/8.2.0.tar.gz 
 
 # add a symlink
 RUN ln -s /usr/local/jsonfortran-gnu-8.2.0/lib/libjsonfortran.a /usr/local/lib/libjsonfortran.a
+ENV JSON_FORTRAN_HOME="/usr/local/jsonfortran-gnu-8.2.0"
 
-###################################################
-## Build and install MUSICA
-###################################################
-
-# TODO(jiwon): update after musica & atmospheric_phys PRs are approved
-# RUN git clone https://github.com/NCAR/musica.git
-RUN git clone -b update_for_ccpp_wrapper --depth 1 https://github.com/NCAR/musica.git
-RUN mkdir /musica/build \
-    && cd /musica/build \
-    && export JSON_FORTRAN_HOME="/usr/local/jsonfortran-gnu-8.2.0" \
+##################################################
+# Build and install MUSICA
+##################################################
+RUN git clone --depth 1 --branch v.0.5.0 https://github.com/NCAR/musica.git
+RUN cd musica \
     && cmake \
-            -D MAKE_MUSICA_FORTRAN_INSTALLABLE=ON \
-            -D ENABLE_TESTS=OFF \
-            -D ENABLE_TUVX=OFF \
-            .. \
+        -S . \
+        -B build \
+        -D MAKE_MUSICA_FORTRAN_INSTALLABLE=ON \
+        -D ENABLE_TESTS=OFF \
+        -D ENABLE_TUVX=OFF \
+    && cd build \
     && make install -j 8
 
-# add a symlink
-RUN ln -s /usr/local/musica-0.4.0/lib64/libmusica.a /usr/local/lib/libmusica.a
+# add a symlinks
+RUN ln -s /usr/local/musica-0.5.0/lib64/libmusica.a /usr/local/lib/libmusica.a
+ENV MUSICA_FORTRAN_INCLUDE=/usr/local/musica-0.5.0/fortran-include
 
 ###################################################
 ## Build CAM-SIMA
