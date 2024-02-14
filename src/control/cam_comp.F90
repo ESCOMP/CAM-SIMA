@@ -512,6 +512,7 @@ CONTAINS
       integer                                        :: errflg
       character(len=512)                             :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
+      type(ccpp_constituent_properties_t), allocatable, target :: dynamic_constituents(:)
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
       ! Initalize error flag and message:
@@ -563,7 +564,7 @@ CONTAINS
       !Combine host and physics constituents into a single
       !constituents object:
       call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),             &
-           host_constituents, errcode=errflg, errmsg=errmsg)
+           host_constituents, dynamic_constituents, errcode=errflg, errmsg=errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
