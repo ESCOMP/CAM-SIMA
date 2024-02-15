@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <entry_id_pg version="0.1">
   <!-- MPAS dycore -->
-  <entry id="mpas_time_integration">
+  <entry id="config_time_integration">
     <type>char*256</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -15,7 +15,7 @@
       <value>SRK3</value>
     </values>
   </entry>
-  <entry id="mpas_time_integration_order">
+  <entry id="config_time_integration_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -29,7 +29,7 @@
       <value>2</value>
     </values>
   </entry>
-  <entry id="mpas_dt">
+  <entry id="config_dt">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -43,7 +43,7 @@
       <value>720.0</value>
     </values>
   </entry>
-  <entry id="mpas_split_dynamics_transport">
+  <entry id="config_split_dynamics_transport">
     <type>logical</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -57,7 +57,7 @@
       <value>true</value>
     </values>
   </entry>
-  <entry id="mpas_number_of_sub_steps">
+  <entry id="config_number_of_sub_steps">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -72,7 +72,7 @@
       <value>2</value>
     </values>
   </entry>
-  <entry id="mpas_dynamics_split_steps">
+  <entry id="config_dynamics_split_steps">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -87,7 +87,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_h_mom_eddy_visc2">
+  <entry id="config_h_mom_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -101,7 +101,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_h_mom_eddy_visc4">
+  <entry id="config_h_mom_eddy_visc4">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -116,7 +116,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_v_mom_eddy_visc2">
+  <entry id="config_v_mom_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -130,7 +130,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_h_theta_eddy_visc2">
+  <entry id="config_h_theta_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -144,7 +144,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_h_theta_eddy_visc4">
+  <entry id="config_h_theta_eddy_visc4">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -158,7 +158,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_v_theta_eddy_visc2">
+  <entry id="config_v_theta_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -172,7 +172,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_horiz_mixing">
+  <entry id="config_horiz_mixing">
     <type>char*256</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -186,7 +186,7 @@
       <value>2d_smagorinsky</value>
     </values>
   </entry>
-  <entry id="mpas_len_disp">
+  <entry id="config_len_disp">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -202,7 +202,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_visc4_2dsmag">
+  <entry id="config_visc4_2dsmag">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -217,7 +217,7 @@
       <value>0.05</value>
     </values>
   </entry>
-  <entry id="mpas_del4u_div_factor">
+  <entry id="config_del4u_div_factor">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -232,7 +232,7 @@
       <value>10.0</value>
     </values>
   </entry>
-  <entry id="mpas_w_adv_order">
+  <entry id="config_w_adv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -246,7 +246,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_theta_adv_order">
+  <entry id="config_theta_adv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -260,7 +260,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_scalar_adv_order">
+  <entry id="config_scalar_adv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -274,7 +274,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_u_vadv_order">
+  <entry id="config_u_vadv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -288,7 +288,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_w_vadv_order">
+  <entry id="config_w_vadv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -302,7 +302,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_theta_vadv_order">
+  <entry id="config_theta_vadv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -316,7 +316,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_scalar_vadv_order">
+  <entry id="config_scalar_vadv_order">
     <type>integer</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -330,7 +330,7 @@
       <value>3</value>
     </values>
   </entry>
-  <entry id="mpas_scalar_advection">
+  <entry id="config_scalar_advection">
     <type>logical</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -344,7 +344,7 @@
       <value>true</value>
     </values>
   </entry>
-  <entry id="mpas_positive_definite">
+  <entry id="config_positive_definite">
     <type>logical</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -358,7 +358,7 @@
       <value>false</value>
     </values>
   </entry>
-  <entry id="mpas_monotonic">
+  <entry id="config_monotonic">
     <type>logical</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -372,7 +372,7 @@
       <value>true</value>
     </values>
   </entry>
-  <entry id="mpas_coef_3rd_order">
+  <entry id="config_coef_3rd_order">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -386,7 +386,7 @@
       <value>0.25</value>
     </values>
   </entry>
-  <entry id="mpas_smagorinsky_coef">
+  <entry id="config_smagorinsky_coef">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -401,7 +401,7 @@
       <value>0.125</value>
     </values>
   </entry>
-  <entry id="mpas_mix_full">
+  <entry id="config_mix_full">
     <type>logical</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -416,7 +416,7 @@
       <value>true</value>
     </values>
   </entry>
-  <entry id="mpas_epssm">
+  <entry id="config_epssm">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -431,7 +431,7 @@
       <value>0.1</value>
     </values>
   </entry>
-  <entry id="mpas_smdiv">
+  <entry id="config_smdiv">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -445,7 +445,7 @@
       <value>0.1</value>
     </values>
   </entry>
-  <entry id="mpas_apvm_upwinding">
+  <entry id="config_apvm_upwinding">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -459,7 +459,7 @@
       <value>0.5</value>
     </values>
   </entry>
-  <entry id="mpas_h_ScaleWithMesh">
+  <entry id="config_h_ScaleWithMesh">
     <type>logical</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -474,7 +474,7 @@
       <value>true</value>
     </values>
   </entry>
-  <entry id="mpas_relax_zone_divdamp_coef">
+  <entry id="config_relax_zone_divdamp_coef">
     <type>real</type>
     <category>mpas</category>
     <group>nhyd_model</group>
@@ -489,7 +489,7 @@
       <value>6.0</value>
     </values>
   </entry>
-  <entry id="mpas_zd">
+  <entry id="config_zd">
     <type>real</type>
     <category>mpas</category>
     <group>damping</group>
@@ -503,7 +503,7 @@
       <value>22000.0</value>
     </values>
   </entry>
-  <entry id="mpas_xnutr">
+  <entry id="config_xnutr">
     <type>real</type>
     <category>mpas</category>
     <group>damping</group>
@@ -517,7 +517,7 @@
       <value>0.2</value>
     </values>
   </entry>
-  <entry id="mpas_mpas_cam_coef">
+  <entry id="config_mpas_cam_coef">
     <type>real</type>
     <category>mpas</category>
     <group>damping</group>
@@ -533,7 +533,7 @@
       <value>0.0</value>
     </values>
   </entry>
-  <entry id="mpas_number_cam_damping_levels">
+  <entry id="config_number_cam_damping_levels">
     <type>integer</type>
     <category>mpas</category>
     <group>damping</group>
@@ -549,7 +549,7 @@
       <value>4</value>
     </values>
   </entry>
-  <entry id="mpas_rayleigh_damp_u">
+  <entry id="config_rayleigh_damp_u">
     <type>logical</type>
     <category>mpas</category>
     <group>damping</group>
@@ -566,7 +566,7 @@
       <value>false</value>
     </values>
   </entry>
-  <entry id="mpas_rayleigh_damp_u_timescale_days">
+  <entry id="config_rayleigh_damp_u_timescale_days">
     <type>real</type>
     <category>mpas</category>
     <group>damping</group>
@@ -581,7 +581,7 @@
       <value>5.0</value>
     </values>
   </entry>
-  <entry id="mpas_number_rayleigh_damp_u_levels">
+  <entry id="config_number_rayleigh_damp_u_levels">
     <type>integer</type>
     <category>mpas</category>
     <group>damping</group>
@@ -597,7 +597,7 @@
       <value>6</value>
     </values>
   </entry>
-  <entry id="mpas_apply_lbcs">
+  <entry id="config_apply_lbcs">
     <type>logical</type>
     <category>mpas</category>
     <group>limited_area</group>
@@ -612,7 +612,7 @@
       <value>false</value>
     </values>
   </entry>
-  <entry id="mpas_block_decomp_file_prefix">
+  <entry id="config_block_decomp_file_prefix">
     <type>char*256</type>
     <category>mpas</category>
     <group>decomposition</group>
@@ -627,7 +627,7 @@
       <value>x1.40962.graph.info.part.</value>
     </values>
   </entry>
-  <entry id="mpas_do_restart">
+  <entry id="config_do_restart">
     <type>logical</type>
     <category>mpas</category>
     <group>restart</group>
@@ -642,7 +642,7 @@
       <value>false</value>
     </values>
   </entry>
-  <entry id="mpas_print_global_minmax_vel">
+  <entry id="config_print_global_minmax_vel">
     <type>logical</type>
     <category>mpas</category>
     <group>printout</group>
@@ -657,7 +657,7 @@
       <value>true</value>
     </values>
   </entry>
-  <entry id="mpas_print_detailed_minmax_vel">
+  <entry id="config_print_detailed_minmax_vel">
     <type>logical</type>
     <category>mpas</category>
     <group>printout</group>
@@ -673,7 +673,7 @@
       <value>false</value>
     </values>
   </entry>
-  <entry id="mpas_print_global_minmax_sca">
+  <entry id="config_print_global_minmax_sca">
     <type>logical</type>
     <category>mpas</category>
     <group>printout</group>
@@ -688,7 +688,7 @@
       <value>false</value>
     </values>
   </entry>
-  <entry id="mpas_jedi_da">
+  <entry id="config_jedi_da">
     <type>logical</type>
     <category>mpas</category>
     <group>assimilation</group>
