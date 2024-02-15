@@ -174,7 +174,7 @@ contains
                 stringify = ''
 
                 return
-            end select
+        end select
 
         stringify = trim(buffer)
     end function stringify
