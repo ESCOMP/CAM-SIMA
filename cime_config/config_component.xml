@@ -308,7 +308,7 @@
     <default_value>-lmusica -ljsonfortran</default_value>
     <values match="last" modifier="additive">
       <!-- Turn off for physics testbed -->
-      <value compset="_CAM%PHYSTEST"></value>
+      <!-- <value compset="_CAM%PHYSTEST"></value> -->
       <value grid="a%mpasa[0-9]+">-lmpas</value>
     </values>
     <group>build_component_cam</group>
