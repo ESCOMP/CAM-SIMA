@@ -83,7 +83,7 @@ contains
             integer, intent(in) :: sec
             integer :: hour_min_sec(3)
 
-            ! These are all intended to be integer divisions.
+            ! These are all intended to be integer arithmetics.
             hour_min_sec(1) = sec / 3600
             hour_min_sec(2) = sec / 60 - hour_min_sec(1) * 60
             hour_min_sec(3) = sec - hour_min_sec(1) * 3600 - hour_min_sec(2) * 60
