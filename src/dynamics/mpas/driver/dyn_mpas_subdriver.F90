@@ -353,7 +353,7 @@ contains
         ! CAM-SIMA seems to follow "NetCDF Climate and Forecast (CF) Metadata Conventions" for calendar names. See
         ! CF-1.11, section "4.4.1. Calendar".
         ! However, this is not the case for MPAS. Translate calendar names between CF and MPAS.
-        select case(trim(adjustl(cf_calendar)))
+        select case (trim(adjustl(cf_calendar)))
             case ('360_day')
                 mpas_calendar = '360day'
             case ('365_day', 'noleap')
