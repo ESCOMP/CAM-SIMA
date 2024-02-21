@@ -90,19 +90,18 @@ contains
         end function sec_to_hour_min_sec
     end subroutine dyn_readnl
 
-! Called by `cam_init` in `src/control/cam_comp.F90`.
-subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-    type(runtime_options), intent(in)  :: cam_runtime_opts
-    type(dyn_import_t),    intent(out) :: dyn_in
-    type(dyn_export_t),    intent(out) :: dyn_out
-end subroutine dyn_init
+    ! Called by `cam_init` in `src/control/cam_comp.F90`.
+    subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+        type(runtime_options), intent(in)  :: cam_runtime_opts
+        type(dyn_import_t),    intent(out) :: dyn_in
+        type(dyn_export_t),    intent(out) :: dyn_out
+    end subroutine dyn_init
 
-! Not used for now. Intended to be called by `stepon_run*` in `src/dynamics/mpas/stepon.F90`.
-! subroutine dyn_run()
-! end subroutine dyn_run
+    ! Not used for now. Intended to be called by `stepon_run*` in `src/dynamics/mpas/stepon.F90`.
+    ! subroutine dyn_run()
+    ! end subroutine dyn_run
 
-! Not used for now. Intended to be called by `stepon_final` in `src/dynamics/mpas/stepon.F90`.
-! subroutine dyn_final()
-! end subroutine dyn_final
-
+    ! Not used for now. Intended to be called by `stepon_final` in `src/dynamics/mpas/stepon.F90`.
+    ! subroutine dyn_final()
+    ! end subroutine dyn_final
 end module dyn_comp
