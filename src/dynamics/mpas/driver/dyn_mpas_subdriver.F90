@@ -70,6 +70,7 @@ contains
         character(*), intent(in) :: message
         class(*), optional, intent(in) :: variable(:)
 
+#ifndef NDEBUG
         if (present(variable)) then
             write(self % log_unit, '(a)') 'dyn_mpas_debug_print (' // stringify([self % mpi_rank]) // '): ' // &
                 message // stringify(variable)
@@ -77,6 +78,7 @@ contains
             write(self % log_unit, '(a)') 'dyn_mpas_debug_print (' // stringify([self % mpi_rank]) // '): ' // &
                 message
         end if
+#endif
     end subroutine dyn_mpas_debug_print
 
     !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
