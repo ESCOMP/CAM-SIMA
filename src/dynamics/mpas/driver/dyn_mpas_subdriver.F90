@@ -64,13 +64,25 @@ module dyn_mpas_subdriver
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
 contains
     !> Print a debug message with optionally the value(s) of a variable.
+    !> If `printer` is not supplied, the MPI master rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
-    subroutine dyn_mpas_debug_print(self, message, variable)
+    subroutine dyn_mpas_debug_print(self, message, variable, printer)
         class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: message
         class(*), optional, intent(in) :: variable(:)
+        integer, optional, intent(in) :: printer
 
 #ifndef NDEBUG
+        if (present(printer)) then
+            if (self % mpi_rank /= printer) then
+                return
+            end if
+        else
+            if (.not. self % mpi_rank_master) then
+                return
+            end if
+        end if
+
         if (present(variable)) then
             write(self % log_unit, '(a)') 'dyn_mpas_debug_print (' // stringify([self % mpi_rank]) // '): ' // &
                 message // stringify(variable)
@@ -220,13 +232,9 @@ contains
         self % mpi_rank_master = (self % mpi_rank == 0)
         self % log_unit = log_unit
 
-        if (self % mpi_rank_master) then
-            call self % debug_print(subname // ' entered')
-        end if
+        call self % debug_print(subname // ' entered')
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Allocating core')
-        end if
+        call self % debug_print('Allocating core')
 
         allocate(self % corelist, stat=ierr)
 
@@ -236,9 +244,7 @@ contains
 
         nullify(self % corelist % next)
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Allocating domain')
-        end if
+        call self % debug_print('Allocating domain')
 
         allocate(self % corelist % domainlist, stat=ierr)
 
@@ -255,28 +261,20 @@ contains
 
         self % domain_ptr % domainid = 0
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Calling mpas_framework_init_phase1')
-        end if
+        call self % debug_print('Calling mpas_framework_init_phase1')
 
         ! Initialize MPAS framework with supplied MPI communicator group.
         call mpas_framework_init_phase1(self % domain_ptr % dminfo, mpi_comm=self % mpi_comm)
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Setting up core')
-        end if
+        call self % debug_print('Setting up core')
 
         call atm_setup_core(self % corelist)
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Setting up domain')
-        end if
+        call self % debug_print('Setting up domain')
 
         call atm_setup_domain(self % domain_ptr)
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Setting up log')
-        end if
+        call self % debug_print('Setting up log')
 
         ! Set up the log manager as early as possible so we can use it for any errors/messages during subsequent
         ! initialization steps.
@@ -292,9 +290,7 @@ contains
         end if
 
         ! At this point, we should be ready to read namelist in `dyn_comp::dyn_readnl`.
-        if (self % mpi_rank_master) then
-            call self % debug_print(subname // ' completed')
-        end if
+        call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_init_phase1
 
     !-------------------------------------------------------------------------------
@@ -324,13 +320,9 @@ contains
         integer :: ierr
         logical, pointer :: config_value_l => null()
 
-        if (self % mpi_rank_master) then
-            call self % debug_print(subname // ' entered')
-        end if
+        call self % debug_print(subname // ' entered')
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Reading namelist at ', [namelist_path])
-        end if
+        call self % debug_print('Reading namelist at ', [namelist_path])
 
         ! Override namelist filename so that we can rely on upstream MPAS functionality for reading its own namelist.
         ! The case of missing namelist groups (i.e., `iostat == iostat_end` or `iostat == iostat_eor`) will be handled gracefully.
@@ -348,9 +340,7 @@ contains
         ! Override designated namelist variables according to information provided from CAM-SIMA.
         ! These include runtime settings that cannot be determined beforehand.
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Overriding designated namelist variables')
-        end if
+        call self % debug_print('Overriding designated namelist variables')
 
         ! CAM-SIMA seems to follow "NetCDF Climate and Forecast (CF) Metadata Conventions" for calendar names. See
         ! CF-1.11, section "4.4.1. Calendar".
@@ -371,9 +361,7 @@ contains
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_calendar_type', config_value_c)
         config_value_c = trim(adjustl(mpas_calendar))
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('config_calendar_type = ', [config_value_c])
-        end if
+        call self % debug_print('config_calendar_type = ', [config_value_c])
 
         nullify(config_value_c)
 
@@ -383,18 +371,14 @@ contains
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_start_time', config_value_c)
         config_value_c = stringify(start_date_time(1:3), '-') // '_' // stringify(start_date_time(4:6), ':')
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('config_start_time = ', [config_value_c])
-        end if
+        call self % debug_print('config_start_time = ', [config_value_c])
 
         nullify(config_value_c)
 
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_stop_time', config_value_c)
         config_value_c = stringify(stop_date_time(1:3), '-') // '_' // stringify(stop_date_time(4:6), ':')
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('config_stop_time = ', [config_value_c])
-        end if
+        call self % debug_print('config_stop_time = ', [config_value_c])
 
         nullify(config_value_c)
 
@@ -402,9 +386,7 @@ contains
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_run_duration', config_value_c)
         config_value_c = stringify([run_duration(1)]) // '_' // stringify(run_duration(2:4), ':')
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('config_run_duration = ', [config_value_c])
-        end if
+        call self % debug_print('config_run_duration = ', [config_value_c])
 
         nullify(config_value_c)
 
@@ -419,15 +401,11 @@ contains
             config_value_l = .true.
         end if
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('config_do_restart = ', [config_value_l])
-        end if
+        call self % debug_print('config_do_restart = ', [config_value_l])
 
         nullify(config_value_l)
 
-        if (self % mpi_rank_master) then
-            call self % debug_print(subname // ' completed')
-        end if
+        call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_read_namelist
 
     !-------------------------------------------------------------------------------
@@ -452,13 +430,9 @@ contains
         integer :: ierr
         logical :: pio_iosystem_active
 
-        if (self % mpi_rank_master) then
-            call self % debug_print(subname // ' entered')
-        end if
+        call self % debug_print(subname // ' entered')
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Checking PIO system descriptor')
-        end if
+        call self % debug_print('Checking PIO system descriptor')
 
         if (.not. associated(pio_iosystem)) then
             call self % model_error('Invalid PIO system descriptor', subname, __LINE__)
@@ -470,9 +444,7 @@ contains
             call self % model_error('Invalid PIO system descriptor', subname, __LINE__)
         end if
 
-        if (self % mpi_rank_master) then
-            call self % debug_print('Calling mpas_framework_init_phase2')
-        end if
+        call self % debug_print('Calling mpas_framework_init_phase2')
 
         ! Initialize MPAS framework with supplied PIO system descriptor.
         call mpas_framework_init_phase2(self % domain_ptr, io_system=pio_iosystem)
@@ -508,8 +480,6 @@ contains
 
         ! At this point, we should be ready to set up decompositions, build halos, allocate blocks, etc.
         ! in `dyn_grid::model_grid_init`.
-        if (self % mpi_rank_master) then
-            call self % debug_print(subname // ' completed')
-        end if
+        call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_init_phase2
 end module dyn_mpas_subdriver
