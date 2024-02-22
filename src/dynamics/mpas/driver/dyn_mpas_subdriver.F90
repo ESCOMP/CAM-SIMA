@@ -24,7 +24,7 @@ module dyn_mpas_subdriver
     implicit none
 
     private
-    public :: mpas_dynamical_core_type, mpas_dynamical_core
+    public :: mpas_dynamical_core_type
 
     abstract interface
         ! This interface is compatible with `endrun` from CAM-SIMA.
@@ -59,9 +59,6 @@ module dyn_mpas_subdriver
         procedure, pass, public :: read_namelist => dyn_mpas_read_namelist
         procedure, pass, public :: init_phase2 => dyn_mpas_init_phase2
     end type mpas_dynamical_core_type
-
-    !> The "instance/object" of MPAS dynamical core.
-    type(mpas_dynamical_core_type) :: mpas_dynamical_core
 contains
     !> Print a debug message with optionally the value(s) of a variable.
     !> If `printer` is not supplied, the MPI master rank will print. Otherwise, the designated MPI rank will print instead.

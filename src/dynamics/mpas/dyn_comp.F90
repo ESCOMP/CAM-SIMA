@@ -1,5 +1,5 @@
 module dyn_comp
-    use dyn_mpas_subdriver, only: mpas_dynamical_core
+    use dyn_mpas_subdriver, only: mpas_dynamical_core_type
 
     ! Modules from CAM.
     use cam_abortutils, only: endrun
@@ -28,12 +28,16 @@ module dyn_comp
     public :: dyn_init
     ! public :: dyn_run
     ! public :: dyn_final
+    public :: mpas_dynamical_core
 
-    type dyn_import_t
+    type :: dyn_import_t
     end type dyn_import_t
 
-    type dyn_export_t
+    type :: dyn_export_t
     end type dyn_export_t
+
+    !> The "instance/object" of MPAS dynamical core.
+    type(mpas_dynamical_core_type) :: mpas_dynamical_core
 contains
     !> Read MPAS namelist from supplied path.
     !> Additionally, perform early initialization of MPAS dynamical core.
