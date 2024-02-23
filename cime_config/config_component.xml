@@ -305,11 +305,12 @@
   <entry id="CAM_LINKED_LIBS">
     <type>char</type>
     <valid_values></valid_values>
-    <default_value>-lmusica -ljsonfortran</default_value>
+    <default_value> </default_value>
     <values match="last" modifier="additive">
-      <!-- Turn off for physics testbed -->
-      <value compset="_CAM%PHYSTEST"></value>
-      <value grid="a%mpasa[0-9]+">-lmpas</value>
+      <!-- Turn on chemistry if not using physics testbed -->
+      <value compset="^((?!_CAM%PHYSTEST).)*$">-lmusica -ljsonfortran</value>
+      <!-- Add MPAS if using mpas grid and not using physics testbed -->
+      <value compset="^((?!_CAM%PHYSTEST).)*$" grid="a%mpasa[0-9]+">-lmpas</value>
     </values>
     <group>build_component_cam</group>
     <file>env_build.xml</file>
