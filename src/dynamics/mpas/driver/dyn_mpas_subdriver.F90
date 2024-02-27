@@ -44,7 +44,7 @@ module dyn_mpas_subdriver
         integer :: log_unit = output_unit
         integer :: mpi_comm = mpi_comm_null
         integer :: mpi_rank = 0
-        logical :: mpi_rank_master = .false.
+        logical :: mpi_rank_root = .false.
 
         ! Actual implementation is supplied at runtime.
         procedure(model_error_if), nopass, pointer :: model_error => null()
@@ -61,7 +61,7 @@ module dyn_mpas_subdriver
     end type mpas_dynamical_core_type
 contains
     !> Print a debug message with optionally the value(s) of a variable.
-    !> If `printer` is not supplied, the MPI master rank will print. Otherwise, the designated MPI rank will print instead.
+    !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
     subroutine dyn_mpas_debug_print(self, message, variable, printer)
         class(mpas_dynamical_core_type), intent(in) :: self
@@ -75,7 +75,7 @@ contains
                 return
             end if
         else
-            if (.not. self % mpi_rank_master) then
+            if (.not. self % mpi_rank_root) then
                 return
             end if
         end if
@@ -226,7 +226,7 @@ contains
             call self % model_error('Invalid MPI communicator group', subname, __LINE__)
         end if
 
-        self % mpi_rank_master = (self % mpi_rank == 0)
+        self % mpi_rank_root = (self % mpi_rank == 0)
         self % log_unit = log_unit
 
         call self % debug_print(subname // ' entered')
