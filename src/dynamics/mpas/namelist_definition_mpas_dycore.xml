@@ -4,7 +4,7 @@
   <entry id="config_time_integration">
     <type>char*256</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Time integration scheme in MPAS.
 
@@ -18,7 +18,7 @@
   <entry id="config_time_integration_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Order for RK time integration in MPAS.
 
@@ -32,7 +32,7 @@
   <entry id="config_dt">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Model time step, seconds in MPAS.
 
@@ -46,7 +46,7 @@
   <entry id="config_split_dynamics_transport">
     <type>logical</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Whether to super-cycle scalar transport in MPAS.
 
@@ -60,7 +60,7 @@
   <entry id="config_number_of_sub_steps">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Number of acoustic steps per full RK step in MPAS.
 
@@ -75,7 +75,7 @@
   <entry id="config_dynamics_split_steps">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       When config_split_dynamics_transport = T, the number of RK steps per
       transport step in MPAS.
@@ -90,7 +90,7 @@
   <entry id="config_h_mom_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       $\nabla^2$ eddy viscosity for horizontal diffusion of momentum in MPAS.
 
@@ -104,7 +104,7 @@
   <entry id="config_h_mom_eddy_visc4">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       $\nabla^4$ eddy hyper-viscosity for horizontal diffusion of momentum in
       MPAS.
@@ -119,7 +119,7 @@
   <entry id="config_v_mom_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       $\nabla^2$ eddy viscosity for vertical diffusion of momentum in MPAS.
 
@@ -133,7 +133,7 @@
   <entry id="config_h_theta_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       $\nabla^2$ eddy viscosity for horizontal diffusion of theta in MPAS.
 
@@ -147,7 +147,7 @@
   <entry id="config_h_theta_eddy_visc4">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       $\nabla^4$ eddy hyper-viscosity for horizontal diffusion of theta in MPAS.
 
@@ -161,7 +161,7 @@
   <entry id="config_v_theta_eddy_visc2">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       $\nabla^2$ eddy viscosity for vertical diffusion of theta in MPAS.
 
@@ -175,7 +175,7 @@
   <entry id="config_horiz_mixing">
     <type>char*256</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Formulation of horizontal mixing in MPAS.
 
@@ -189,7 +189,7 @@
   <entry id="config_len_disp">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Horizontal length scale, used by the Smagorinsky formulation of horizontal
       diffusion and by 3-d divergence damping in MPAS.
@@ -205,7 +205,7 @@
   <entry id="config_visc4_2dsmag">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Scaling coefficient of $\delta x^3$ to obtain $\nabla^4$ diffusion
       coefficient in MPAS.
@@ -220,7 +220,7 @@
   <entry id="config_del4u_div_factor">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Scaling factor for the divergent component of $\nabla^4 u$ calculation in
       MPAS.
@@ -235,7 +235,7 @@
   <entry id="config_w_adv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Horizontal advection order for w in MPAS.
 
@@ -249,7 +249,7 @@
   <entry id="config_theta_adv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Horizontal advection order for theta in MPAS.
 
@@ -263,7 +263,7 @@
   <entry id="config_scalar_adv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Horizontal advection order for scalars in MPAS.
 
@@ -277,7 +277,7 @@
   <entry id="config_u_vadv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Vertical advection order for normal velocities (u) in MPAS.
 
@@ -291,7 +291,7 @@
   <entry id="config_w_vadv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Vertical advection order for w in MPAS.
 
@@ -305,7 +305,7 @@
   <entry id="config_theta_vadv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Vertical advection order for theta in MPAS.
 
@@ -319,7 +319,7 @@
   <entry id="config_scalar_vadv_order">
     <type>integer</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Vertical advection order for scalars in MPAS.
 
@@ -333,7 +333,7 @@
   <entry id="config_scalar_advection">
     <type>logical</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Whether to advect scalar fields in MPAS.
 
@@ -347,7 +347,7 @@
   <entry id="config_positive_definite">
     <type>logical</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Whether to enable positive-definite advection of scalars in MPAS.
 
@@ -361,7 +361,7 @@
   <entry id="config_monotonic">
     <type>logical</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Whether to enable monotonic limiter in scalar advection in MPAS.
 
@@ -375,7 +375,7 @@
   <entry id="config_coef_3rd_order">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Upwinding coefficient in the 3rd order advection scheme in MPAS.
 
@@ -389,7 +389,7 @@
   <entry id="config_smagorinsky_coef">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Dimensionless empirical parameter relating the strain tensor to the eddy
       viscosity in the Smagorinsky turbulence model in MPAS.
@@ -404,7 +404,7 @@
   <entry id="config_mix_full">
     <type>logical</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Mix full $\theta$ and $u$ fields, or mix perturbation from intitial state
       in MPAS.
@@ -419,7 +419,7 @@
   <entry id="config_epssm">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Off-centering parameter for the vertically implicit acoustic integration
       in MPAS.
@@ -434,7 +434,7 @@
   <entry id="config_smdiv">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       3-d divergence damping coefficient in MPAS.
 
@@ -448,7 +448,7 @@
   <entry id="config_apvm_upwinding">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Amount of upwinding in APVM in MPAS.
 
@@ -462,7 +462,7 @@
   <entry id="config_h_ScaleWithMesh">
     <type>logical</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Scale eddy viscosities with mesh-density function for horizontal diffusion
       in MPAS.
@@ -477,7 +477,7 @@
   <entry id="config_relax_zone_divdamp_coef">
     <type>real</type>
     <category>mpas</category>
-    <group>nhyd_model</group>
+    <group>mpas_nhyd_model</group>
     <desc>
       Coefficient for the divergent component of the Laplacian filter of
       momentum in the relaxation zone in MPAS.
@@ -492,7 +492,7 @@
   <entry id="config_zd">
     <type>real</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Height MSL to begin w-damping profile in MPAS.
 
@@ -506,7 +506,7 @@
   <entry id="config_xnutr">
     <type>real</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Maximum w-damping coefficient at model top in MPAS.
 
@@ -520,7 +520,7 @@
   <entry id="config_mpas_cam_coef">
     <type>real</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Coefficient for scaling the 2nd-order horizontal mixing in the mpas_cam
       absorbing layer in MPAS.
@@ -536,7 +536,7 @@
   <entry id="config_number_cam_damping_levels">
     <type>integer</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Number of layers in which to apply cam 2nd-order horizontal filter top of
       model; viscosity linearly ramps to zero by layer number from the top in
@@ -552,7 +552,7 @@
   <entry id="config_rayleigh_damp_u">
     <type>logical</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Whether to apply Rayleigh damping on horizontal velocity in the top-most
       model levels.  The number of levels is specified by the
@@ -569,7 +569,7 @@
   <entry id="config_rayleigh_damp_u_timescale_days">
     <type>real</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Timescale, in days (86400 s), for the Rayleigh damping on horizontal
       velocity in the top-most model levels.  in MPAS.
@@ -584,7 +584,7 @@
   <entry id="config_number_rayleigh_damp_u_levels">
     <type>integer</type>
     <category>mpas</category>
-    <group>damping</group>
+    <group>mpas_damping</group>
     <desc>
       Number of layers in which to apply Rayleigh damping on horizontal velocity
       at top of model; damping linearly ramps to zero by layer number from the
@@ -600,7 +600,7 @@
   <entry id="config_apply_lbcs">
     <type>logical</type>
     <category>mpas</category>
-    <group>limited_area</group>
+    <group>mpas_limited_area</group>
     <desc>
       Whether to apply lateral boundary conditions in MPAS.
 
@@ -615,7 +615,7 @@
   <entry id="config_block_decomp_file_prefix">
     <type>char*256</type>
     <category>mpas</category>
-    <group>decomposition</group>
+    <group>mpas_decomposition</group>
     <desc>
       Prefix of graph decomposition file, to be suffixed with the MPI task count
       in MPAS.
@@ -630,7 +630,7 @@
   <entry id="config_do_restart">
     <type>logical</type>
     <category>mpas</category>
-    <group>restart</group>
+    <group>mpas_restart</group>
     <desc>
       Whether this run of the model is to restart from a previous restart file
       or not in MPAS.
@@ -645,7 +645,7 @@
   <entry id="config_print_global_minmax_vel">
     <type>logical</type>
     <category>mpas</category>
-    <group>printout</group>
+    <group>mpas_printout</group>
     <desc>
       Whether to print the global min/max of horizontal normal velocity and
       vertical velocity each timestep in MPAS.
@@ -660,7 +660,7 @@
   <entry id="config_print_detailed_minmax_vel">
     <type>logical</type>
     <category>mpas</category>
-    <group>printout</group>
+    <group>mpas_printout</group>
     <desc>
       Whether to print the global min/max of horizontal normal velocity and
       vertical velocity each timestep, along with the location in the domain
@@ -676,7 +676,7 @@
   <entry id="config_print_global_minmax_sca">
     <type>logical</type>
     <category>mpas</category>
-    <group>printout</group>
+    <group>mpas_printout</group>
     <desc>
       Whether to print the global min/max of scalar fields each timestep in
       MPAS.
@@ -691,7 +691,7 @@
   <entry id="config_jedi_da">
     <type>logical</type>
     <category>mpas</category>
-    <group>assimilation</group>
+    <group>mpas_assimilation</group>
     <desc>
       Whether this run is within the JEDI data assimilation framework; used to
       add temperature and specific humidity as diagnostics in MPAS.
