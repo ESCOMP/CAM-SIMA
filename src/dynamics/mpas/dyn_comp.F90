@@ -5,7 +5,7 @@ module dyn_comp
     use cam_abortutils, only: endrun
     use cam_control_mod, only: initial_run
     use cam_instance, only: atm_id
-    use cam_logfile, only: iulog
+    use cam_logfile, only: debug_output, debugout_none, iulog
     use runtime_obj, only: runtime_options
     use spmd_utils, only: mpicom
     use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
@@ -54,6 +54,9 @@ contains
                    run_duration(4),    & ! DD, hh, mm, ss.
                    sec_since_midnight    ! Second(s) since midnight.
         type(iosystem_desc_t), pointer :: pio_iosystem => null()
+
+        ! Enable/disable the debug output of MPAS dynamical core according to the debug verbosity level of CAM-SIMA.
+        mpas_dynamical_core % debug_output = (debug_output > debugout_none)
 
         ! Get free units for MPAS so it can write its own log files, e.g., `log.atmosphere.0000.{out,err}`.
         log_unit(1) = shr_file_getunit()

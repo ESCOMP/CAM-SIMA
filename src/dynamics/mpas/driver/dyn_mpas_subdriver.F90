@@ -41,6 +41,8 @@ module dyn_mpas_subdriver
     type :: mpas_dynamical_core_type
         private
 
+        logical, public :: debug_output = .false.
+
         integer :: log_unit = output_unit
         integer :: mpi_comm = mpi_comm_null
         integer :: mpi_rank = 0
@@ -69,7 +71,11 @@ contains
         class(*), optional, intent(in) :: variable(:)
         integer, optional, intent(in) :: printer
 
-#ifdef DEBUG
+        ! Bail out early if debug output is not requested.
+        if (.not. self % debug_output) then
+            return
+        end if
+
         if (present(printer)) then
             if (self % mpi_rank /= printer) then
                 return
@@ -87,7 +93,6 @@ contains
             write(self % log_unit, '(a)') 'dyn_mpas_debug_print (' // stringify([self % mpi_rank]) // '): ' // &
                 message
         end if
-#endif
     end subroutine dyn_mpas_debug_print
 
     !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
