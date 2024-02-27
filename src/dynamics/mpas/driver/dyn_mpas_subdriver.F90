@@ -69,7 +69,7 @@ contains
         class(*), optional, intent(in) :: variable(:)
         integer, optional, intent(in) :: printer
 
-#ifndef NDEBUG
+#ifdef DEBUG
         if (present(printer)) then
             if (self % mpi_rank /= printer) then
                 return
