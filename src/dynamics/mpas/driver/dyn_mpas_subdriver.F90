@@ -94,6 +94,7 @@ contains
     !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
     !> If `value` contains exactly one element, the element will be stringified without using `separator`.
     !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
+    !> If `separator` is not supplied, it defaults to `, ` (i.e., a comma and a space).
     !> (KCW, 2024-02-04)
     pure function stringify(value, separator)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
