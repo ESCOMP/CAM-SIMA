@@ -62,6 +62,8 @@ contains
         log_unit(1) = shr_file_getunit()
         log_unit(2) = shr_file_getunit()
 
+        ! Initialize MPAS framework with supplied MPI communicator group and log units.
+        ! See comment blocks in `src/dynamics/mpas/driver/dyn_mpas_subdriver.F90` for details.
         call mpas_dynamical_core % init_phase1(mpicom, endrun, iulog, log_unit)
 
         cam_calendar = timemgr_get_calendar_cf()
@@ -75,11 +77,15 @@ contains
         call get_run_duration(run_duration(1), sec_since_midnight)
         run_duration(2:4) = sec_to_hour_min_sec(sec_since_midnight)
 
+        ! Read MPAS-related namelist variables from `namelist_path`, e.g., `atm_in`.
+        ! See comment blocks in `src/dynamics/mpas/driver/dyn_mpas_subdriver.F90` for details.
         call mpas_dynamical_core % read_namelist(namelist_path, &
             cam_calendar, start_date_time, stop_date_time, run_duration, initial_run)
 
         pio_iosystem => shr_pio_getiosys(atm_id)
 
+        ! Initialize MPAS framework with supplied PIO system descriptor.
+        ! See comment blocks in `src/dynamics/mpas/driver/dyn_mpas_subdriver.F90` for details.
         call mpas_dynamical_core % init_phase2(pio_iosystem)
 
         nullify(pio_iosystem)
