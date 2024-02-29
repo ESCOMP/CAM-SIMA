@@ -856,6 +856,7 @@ CONTAINS
    subroutine DataInitialize(gcomp, rc)
       use string_utils, only: to_str
       use cam_comp,     only: cam_run1
+      use cam_comp,     only: cam_timestep_init
 
       ! Dummy arguments
       type(ESMF_GridComp)  :: gcomp
@@ -991,6 +992,7 @@ CONTAINS
          if (stepno == 0) then
             call import_fields(gcomp, cam_in, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
+            call cam_timestep_init (cam_in, cam_out)
             call cam_run1 (cam_in, cam_out)
             call export_fields(gcomp, cam_out, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
@@ -999,6 +1001,7 @@ CONTAINS
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
             call import_fields(gcomp, cam_in, restart_init=.true., rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
+            call cam_timestep_init (cam_in, cam_out)
             call cam_run1 (cam_in, cam_out)
             call export_fields(gcomp, cam_out, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
@@ -1072,6 +1075,7 @@ CONTAINS
       else  ! mediator is not present
       !---------------------------------------------------------------
 
+         call cam_timestep_init (cam_in, cam_out)
          call cam_run1 (cam_in, cam_out)
 
          call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete",    &
@@ -1101,6 +1105,8 @@ CONTAINS
       use cam_comp, only: cam_run1
 
       use cam_comp, only: cam_run2, cam_run3, cam_run4
+      use cam_comp, only: cam_timestep_init
+      use cam_comp, only: cam_timestep_final
 
       ! Run CAM
 
@@ -1275,10 +1281,12 @@ CONTAINS
               mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
          call t_stopf  ('CAM_run4')
 
+         call cam_timestep_final(cam_in, cam_out)
          ! Advance cam time step
          call t_startf ('CAM_adv_timestep')
          call advance_timestep()
          call t_stopf  ('CAM_adv_timestep')
+         call cam_timestep_init(cam_in, cam_out)
 
          ! Run CAM4,5,6 radiation/clouds (run1 / tphysbc)
          call t_startf ('CAM_run1')
@@ -1521,6 +1529,7 @@ CONTAINS
    !==========================================================================
    subroutine ModelFinalize(gcomp, rc)
       use cam_comp,  only: cam_final
+      use cam_comp,  only: cam_timestep_final
 
       ! Dummy arguments
       type(ESMF_GridComp)  :: gcomp
@@ -1564,6 +1573,7 @@ CONTAINS
          call t_stopf('CAM_import')
       end if
 
+      call cam_timestep_final(cam_in, cam_out)
       call cam_final(cam_out, cam_in)
 
       !CAMDEN TODO: export output state? Needed for finalize?

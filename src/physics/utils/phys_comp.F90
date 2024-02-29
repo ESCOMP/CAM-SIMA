@@ -2,15 +2,19 @@ module phys_comp
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
-   use runtime_obj,  only: unset_str
+   use runtime_obj,  only: unset_str, unset_int, unset_real
+   use physics_types, only: errmsg, errcode, physics_timestep
+   use physics_types, only: column_start, column_end
 
    implicit none
    private
 
    public :: phys_readnl
    public :: phys_init
+   public :: phys_timestep_init
    public :: phys_run1
    public :: phys_run2
+   public :: phys_timestep_final
    public :: phys_final
 
    ! Public module data
@@ -19,6 +23,7 @@ module phys_comp
 
    ! Private module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
+   character(len=SHR_KIND_CS) :: suite_parts_expect(2) = (/"physics_before_coupler", "physics_after_coupler "/)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    character(len=SHR_KIND_CL)              :: ncdata_check = unset_str
    character(len=SHR_KIND_CL)              :: cam_physics_mesh = unset_str
@@ -26,6 +31,11 @@ module phys_comp
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = unset_str
    real(kind_phys)                         :: min_difference = HUGE(1.0_kind_phys)
    real(kind_phys)                         :: min_relative_value = HUGE(1.0_kind_phys)
+!   integer :: column_start = unset_int
+!   integer :: column_end = unset_int
+!   real(kind_phys) :: physics_timestep = unset_real
+!   integer :: errcode = 0
+!   character(len=512) :: errmsg = ''
 
 !==============================================================================
 CONTAINS
@@ -138,6 +148,7 @@ CONTAINS
       use physics_types,    only: allocate_physics_types_fields
       use cam_ccpp_cap,     only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,     only: ccpp_physics_suite_part_list
+      use phys_vars_init_check, only: mark_as_initialized
 
       ! Dummy arguments
       type(runtime_options), intent(in)    :: cam_runtime_opts
@@ -147,16 +158,23 @@ CONTAINS
 
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
-      character(len=512)         :: errmsg
-      integer                    :: errcode
+      integer                    :: i_group
+      logical                    :: match
 
       errcode = 0
+      errmsg = ''
+      ! Threading vars
+      column_start = 1
+      column_end = columns_on_task
+      physics_timestep = dtime_phys
+      call mark_as_initialized('horizontal_loop_begin')
+      call mark_as_initialized('horizontal_loop_end')
+      call mark_as_initialized('timestep_for_physics')
       call cam_thermo_init(columns_on_task, pver, pverp)
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
            set_init_val_in=.true., reallocate_in=.false.)
-      call cam_ccpp_physics_initialize(phys_suite_name, dtime_phys,           &
-           errmsg, errcode)
+      call cam_ccpp_physics_initialize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
       end if
@@ -165,65 +183,65 @@ CONTAINS
       if (errcode /= 0) then
          call endrun('cam_ccpp_suite_part_list: '//trim(errmsg))
       end if
+      ! Confirm that the suite parts are as expected
+      match = .false.
+      if (size(suite_parts) > size(suite_parts_expect)) then
+         write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
+             'only `physics_before_coupler` and/or `physics_after_coupler`'
+         call endrun(errmsg)
+      else if (size(suite_parts) < size(suite_parts_expect)) then
+         if (any(suite_parts(1) == suite_parts_expect)) then
+            match = .true.
+         else
+            write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
+                '`physics_before_coupler` and/or `physics_after_coupler`'
+            call endrun(errmsg)
+         end if
+      else
+         do i_group = 1, size(suite_parts_expect)
+            if (any(suite_parts_expect(i_group) == suite_parts)) then
+               match = .true.
+            else
+               match = .false.
+            end if
+         end do
+         if (.not. match) then
+            write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
+                'ONLY `physics_before_coupler` and/or `physics_after_coupler`'
+            call endrun(errmsg)
+         end if
+      end if
 
    end subroutine phys_init
 
-   subroutine phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
-        cam_in, cam_out)
-      use cam_abortutils, only: endrun
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
-      use camsrfexch,     only: cam_in_t, cam_out_t
-
-      ! Dummy arguments
-      real(kind_phys),       intent(in)    :: dtime_phys
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_in_t),        intent(inout) :: cam_in
-      type(cam_out_t),       intent(inout) :: cam_out
-
-   end subroutine phys_run1
-
-   !> \section arg_table_phys_run2  Argument Table
-   !! \htmlinclude arg_table_phys_run2.html
-   !!
-   subroutine phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
+   subroutine phys_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
         cam_in, cam_out)
       use pio,            only: file_desc_t
+      use cam_initfiles,  only: initial_file_get_id
+      use physics_types,  only: physics_types_tstep_init
+      use physics_inputs, only: physics_read_data
+      use time_manager,   only: is_first_restart_step
+      use time_manager,   only: get_nstep
       use cam_abortutils, only: endrun
       use runtime_obj,    only: runtime_options
       use physics_types,  only: physics_state, physics_tend
-      use physics_types,  only: physics_types_tstep_init
-      use physics_grid,   only: columns_on_task
-      use camsrfexch,     only: cam_in_t, cam_out_t
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
-      use cam_ccpp_cap,   only: cam_ccpp_physics_run
-      use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
-      use physics_inputs, only: physics_read_data
-      use cam_initfiles,  only: initial_file_get_id, unset_path_str
-      use time_manager,   only: get_nstep
+      use camsrfexch,     only: cam_in_t, cam_out_t
       use time_manager,   only: is_first_step
-      use time_manager,   only: is_first_restart_step
-      use physics_inputs, only: physics_check_data
 
       ! Dummy arguments
       real(kind_phys),       intent(in)    :: dtime_phys
       type(runtime_options), intent(in)    :: cam_runtime_opts
       type(physics_state),   intent(inout) :: phys_state
       type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_out_t),       intent(inout) :: cam_out
       type(cam_in_t),        intent(inout) :: cam_in
+      type(cam_out_t),       intent(inout) :: cam_out
       ! Local variables
       type(file_desc_t), pointer :: ncdata
-      character(len=512) :: errmsg
-      integer            :: errcode
-      integer                            :: part_ind
-      integer                            :: col_start
-      integer                            :: col_end
       integer                            :: data_frame
       logical                            :: use_init_variables
 
+      physics_timestep = dtime_phys
       errcode = 0
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
@@ -245,31 +263,105 @@ CONTAINS
            read_initialized_variables=use_init_variables)
 
       ! Initialize the physics time step
-      call cam_ccpp_physics_timestep_initial(phys_suite_name, dtime_phys,     &
-           errmsg, errcode)
+      call cam_ccpp_physics_timestep_initial(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_timestep_initial: '//trim(errmsg))
       end if
 
-      ! Threading vars
-      col_start = 1
-      col_end = columns_on_task
+   end subroutine phys_timestep_init
 
-      ! Run CCPP suite
-      do part_ind = 1, size(suite_parts, 1)
-         call cam_ccpp_physics_run(phys_suite_name, suite_parts(part_ind),    &
-              col_start, col_end, dtime_phys, errmsg, errcode)
+   subroutine phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
+        cam_in, cam_out)
+      use runtime_obj,    only: runtime_options
+      use physics_types,  only: physics_state, physics_tend
+      use cam_ccpp_cap,   only: cam_ccpp_physics_run
+      use camsrfexch,     only: cam_in_t, cam_out_t
+      use cam_abortutils, only: endrun
+
+      ! Dummy arguments
+      real(kind_phys),       intent(in)    :: dtime_phys
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
+      type(cam_in_t),        intent(inout) :: cam_in
+      type(cam_out_t),       intent(inout) :: cam_out
+
+      physics_timestep = dtime_phys
+      errcode = 0
+
+      ! Run before coupler group if it exists
+      if (any('physics_before_coupler' == suite_parts)) then
+         call cam_ccpp_physics_run(phys_suite_name, 'physics_before_coupler')
          if (errcode /= 0) then
             call endrun('cam_ccpp_physics_run: '//trim(errmsg))
          end if
-      end do
+      end if
 
+   end subroutine phys_run1
+
+   subroutine phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
+        cam_in, cam_out)
+      use runtime_obj,    only: runtime_options
+      use physics_types,  only: physics_state, physics_tend
+      use camsrfexch,     only: cam_in_t, cam_out_t
+      use cam_ccpp_cap,   only: cam_ccpp_physics_run
+      use cam_abortutils, only: endrun
+
+      ! Dummy arguments
+      real(kind_phys),       intent(in)    :: dtime_phys
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
+      type(cam_out_t),       intent(inout) :: cam_out
+      type(cam_in_t),        intent(inout) :: cam_in
+
+      physics_timestep = dtime_phys
+      errcode = 0
+
+      ! Run after coupler group if it exists
+      if (any('physics_after_coupler' == suite_parts)) then
+         call cam_ccpp_physics_run(phys_suite_name, 'physics_after_coupler')
+         if (errcode /= 0) then
+            call endrun('cam_ccpp_physics_run: '//trim(errmsg))
+         end if
+      end if
+
+   end subroutine phys_run2
+
+   subroutine phys_timestep_final(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
+        cam_in, cam_out)
+      use time_manager,   only: get_nstep
+      use cam_abortutils, only: endrun
+      use runtime_obj,    only: runtime_options
+      use physics_types,  only: physics_state, physics_tend
+      use camsrfexch,     only: cam_in_t, cam_out_t
+      use cam_initfiles,  only: unset_path_str
+      use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
+      use physics_inputs, only: physics_check_data
+
+      ! Dummy arguments
+      real(kind_phys),       intent(in)    :: dtime_phys
+      type(runtime_options), intent(in)    :: cam_runtime_opts
+      type(physics_state),   intent(inout) :: phys_state
+      type(physics_tend),    intent(inout) :: phys_tend
+      type(cam_in_t),        intent(inout) :: cam_in
+      type(cam_out_t),       intent(inout) :: cam_out
+      ! Local variables
+      integer                              :: data_frame
+
+      errcode = 0
+      physics_timestep = dtime_phys
       ! Finalize the time step
-      call cam_ccpp_physics_timestep_final(phys_suite_name, dtime_phys,       &
-           errmsg, errcode)
+      call cam_ccpp_physics_timestep_final(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
       end if
+
+      ! data_frame is the next input frame for physics input fields
+      ! Frame 1 is skipped for snapshot files
+      !!XXgoldyXX: This section needs to have better logic once we know if
+      !!           this is a physics test bench run.
+      data_frame = get_nstep() + 2
 
       ! Determine if physics_check should be run:
       if (trim(ncdata_check) /= trim(unset_path_str)) then
@@ -277,7 +369,7 @@ CONTAINS
             min_difference, min_relative_value)
       end if
 
-   end subroutine phys_run2
+   end subroutine phys_timestep_final
 
    subroutine phys_final(cam_runtime_opts, phys_state, phys_tend)
       use cam_abortutils, only: endrun
@@ -292,13 +384,8 @@ CONTAINS
       type(physics_tend),    intent(inout) :: phys_tend
       ! Local variables
       real(kind_phys)    :: dtime_phys = 0.0_kind_phys ! Not used
-      character(len=512) :: errmsg
-      integer            :: errcode
 
-      errcode = 0
-
-      call cam_ccpp_physics_finalize(phys_suite_name, dtime_phys,             &
-           errmsg, errcode)
+      call cam_ccpp_physics_finalize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_finalize: '//trim(errmsg))
       end if

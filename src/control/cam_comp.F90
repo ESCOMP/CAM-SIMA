@@ -36,12 +36,14 @@ module cam_comp
    implicit none
    private
 
-   public cam_init      ! First phase of CAM initialization
-   public cam_run1      ! CAM run method phase 1
-   public cam_run2      ! CAM run method phase 2
-   public cam_run3      ! CAM run method phase 3
-   public cam_run4      ! CAM run method phase 4
-   public cam_final     ! CAM Finalization
+   public cam_init           ! First phase of CAM initialization
+   public cam_timestep_init  ! CAM timestep initialization
+   public cam_run1           ! CAM run method phase 1
+   public cam_run2           ! CAM run method phase 2
+   public cam_run3           ! CAM run method phase 3
+   public cam_run4           ! CAM run method phase 4
+   public cam_timestep_final ! CAM timestep finalization
+   public cam_final          ! CAM Finalization
 
    type(dyn_import_t) :: dyn_in   ! Dynamics import container
    type(dyn_export_t) :: dyn_out  ! Dynamics export container
@@ -236,6 +238,30 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
+   subroutine cam_timestep_init(cam_in, cam_out)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose:   Timestep init runs at the start of each timestep
+      !
+      !-----------------------------------------------------------------------
+
+      use phys_comp, only: phys_timestep_init
+
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
+
+      !
+      !----------------------------------------------------------
+      ! PHYS_TIMESTEP_INIT Call the Physics package
+      !----------------------------------------------------------
+      !
+      call phys_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
+           cam_in, cam_out)
+
+   end subroutine cam_timestep_init
+   !
+   !-----------------------------------------------------------------------
+   !
    subroutine cam_run1(cam_in, cam_out)
       !-----------------------------------------------------------------------
       !
@@ -425,6 +451,31 @@ CONTAINS
       call shr_sys_flush(iulog)
 
    end subroutine cam_run4
+
+   !
+   !-----------------------------------------------------------------------
+   !
+   subroutine cam_timestep_final(cam_in, cam_out)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose:   Timestep final runs at the start of each timestep
+      !
+      !-----------------------------------------------------------------------
+
+      use phys_comp, only: phys_timestep_final
+
+      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
+      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
+
+      !
+      !----------------------------------------------------------
+      ! PHYS_TIMESTEP_FINAL Call the Physics package
+      !----------------------------------------------------------
+      !
+      call phys_timestep_final(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
+           cam_in, cam_out)
+
+   end subroutine cam_timestep_final
 
    !
    !-----------------------------------------------------------------------
