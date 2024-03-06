@@ -106,7 +106,7 @@
     </variable>
     <variable local_name="rpdel"
               standard_name="reciprocal_of_air_pressure_thickness"
-              units="Pa" type="real" kind="kind_phys"
+              units="Pa-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>rpdel state_rpdel</ic_file_input_names>
@@ -260,7 +260,7 @@
       <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
     </variable>
     <variable local_name="lagrangian_vertical"
-              standard_name="lagrangian_vertical_coordinate"
+              standard_name="do_lagrangian_vertical_coordinate"
               units="flag" type="logical" access="protected">
       <long_name>flag indicating if vertical coordinate is lagrangian</long_name>
       <initial_value>.false.</initial_value>
@@ -334,13 +334,13 @@
     </variable>
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
-              units="flag" type="integer">
+              units="1" type="integer">
       <long_name>ccpp error code</long_name>
       <initial_value>0</initial_value>
     </variable>
     <variable local_name="errmsg"
               standard_name="ccpp_error_message"
-              units="1" type="character" kind="len=512">
+              units="none" type="character" kind="len=512">
       <long_name>ccpp error message</long_name>
       <initial_value>''</initial_value>
     </variable>
@@ -379,7 +379,7 @@
     </variable>
     <variable local_name="zvirv"
               standard_name="ratio_of_water_vapor_gas_constant_to_composition_dependent_dry_air_gas_constant_minus_one"
-              units="J kg-1 K-1" type="real" kind="kind_phys"
+              units="1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <long_name>Composition-dependent ratio of water vapor to dry air gas constants minus one</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>

@@ -375,6 +375,10 @@ class ConfigCAM:
             # MPAS dynamical core relies on its upstream build infrastructure for compilation instead of CIME to take advantage of future upstream changes automatically.
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["mpas"],
                                valid_list_type="str")
+
+            # Add XML namelist definition file for MPAS dynamical core.
+            mpas_dyn_nml_path = os.path.normpath(os.path.join(cime_conf_path, os.pardir, "src", "dynamics", "mpas"))
+            self._add_xml_nml_file(mpas_dyn_nml_path, "namelist_definition_mpas_dycore.xml")
         elif dycore == "none":
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["none"],

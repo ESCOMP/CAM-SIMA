@@ -68,7 +68,7 @@
   dimensions = ()
   protected = True
 [ pref ]
-  standard_name = reference_pressure
+  standard_name = surface_reference_pressure
   units = Pa
   type = real | kind = kind_phys
   dimensions = ()
