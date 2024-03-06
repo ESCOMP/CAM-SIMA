@@ -173,7 +173,7 @@ contains
       ! pref_mid_in
       call mark_as_initialized("reference_pressure_in_atmosphere_layer")
       ! pref_mid_norm
-      call mark_as_initialized("reference_pressure_in_atmosphere_layer_normalized_by_reference_pressure")
+      call mark_as_initialized("reference_pressure_in_atmosphere_layer_normalized_by_surface_reference_pressure")
       ! ptop_ref
       call mark_as_initialized("air_pressure_at_top_of_atmosphere_model")
       ! num_pr_lev

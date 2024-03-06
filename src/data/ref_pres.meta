@@ -17,7 +17,7 @@
   dimensions = (vertical_layer_dimension)
   protected = True
 [ pref_mid_norm ]
-  standard_name = reference_pressure_in_atmosphere_layer_normalized_by_reference_pressure
+  standard_name = reference_pressure_in_atmosphere_layer_normalized_by_surface_reference_pressure
   units = 1
   type = real | kind = kind_phys
   dimensions = (vertical_layer_dimension)
