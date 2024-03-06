@@ -14,6 +14,7 @@ module string_utils
    public :: increment_string ! increments a string
    public :: last_sig_char    ! Position of last significant character in string
    public :: to_str           ! convert integer to left justified string
+   public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
    ! Private module variables
    integer, parameter :: lower_to_upper = iachar("A") - iachar("a")
@@ -229,6 +230,109 @@ character(len=10) function to_str(n)
    write(to_str,'(i0)') n
 
 end function to_str
+
+!=========================================================================================
+
+   !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
+   !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
+   !> If `value` contains exactly one element, the element will be stringified without using `separator`.
+   !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
+   !> If `separator` is not supplied, it defaults to `, ` (i.e., a comma and a space).
+   !> (KCW, 2024-02-04)
+   pure function stringify(value, separator)
+      use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
+
+      class(*), intent(in) :: value(:)
+      character(*), optional, intent(in) :: separator
+      character(:), allocatable :: stringify
+
+      integer, parameter :: sizelimit = 1024
+
+      character(:), allocatable :: buffer, delimiter, format
+      integer :: i, n, offset
+
+      if (present(separator)) then
+         delimiter = separator
+      else
+         delimiter = ', '
+      end if
+
+      n = min(size(value), sizelimit)
+
+      if (n == 0) then
+         stringify = ''
+
+         return
+      end if
+
+      select type (value)
+         type is (character(*))
+            allocate(character(len(value) * n + len(delimiter) * (n - 1)) :: buffer)
+
+            buffer(:) = ''
+            offset = 0
+
+            do i = 1, n
+               if (len(delimiter) > 0 .and. i > 1) then
+                  buffer(offset + 1:offset + len(delimiter)) = delimiter
+                  offset = offset + len(delimiter)
+               end if
+
+               if (len_trim(adjustl(value(i))) > 0) then
+                  buffer(offset + 1:offset + len_trim(adjustl(value(i)))) = trim(adjustl(value(i)))
+                  offset = offset + len_trim(adjustl(value(i)))
+               end if
+            end do
+         type is (integer(int32))
+            allocate(character(11 * n + len(delimiter) * (n - 1)) :: buffer)
+            allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+
+            write(format, '(a, i0, 3a)') '(ss, ', n, '(i0, :, "', delimiter, '"))'
+            write(buffer, format) value
+         type is (integer(int64))
+            allocate(character(20 * n + len(delimiter) * (n - 1)) :: buffer)
+            allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+
+            write(format, '(a, i0, 3a)') '(ss, ', n, '(i0, :, "', delimiter, '"))'
+            write(buffer, format) value
+         type is (logical)
+            allocate(character(1 * n + len(delimiter) * (n - 1)) :: buffer)
+            allocate(character(13 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+
+            write(format, '(a, i0, 3a)') '(', n, '(l1, :, "', delimiter, '"))'
+            write(buffer, format) value
+         type is (real(real32))
+            allocate(character(13 * n + len(delimiter) * (n - 1)) :: buffer)
+
+            if (maxval(abs(value)) < 1.0e5_real32) then
+               allocate(character(20 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+               write(format, '(a, i0, 3a)') '(ss, ', n, '(f13.6, :, "', delimiter, '"))'
+            else
+               allocate(character(23 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+               write(format, '(a, i0, 3a)') '(ss, ', n, '(es13.6e2, :, "', delimiter, '"))'
+            end if
+
+            write(buffer, format) value
+         type is (real(real64))
+            allocate(character(13 * n + len(delimiter) * (n - 1)) :: buffer)
+
+            if (maxval(abs(value)) < 1.0e5_real64) then
+               allocate(character(20 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+               write(format, '(a, i0, 3a)') '(ss, ', n, '(f13.6, :, "', delimiter, '"))'
+            else
+               allocate(character(23 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+               write(format, '(a, i0, 3a)') '(ss, ', n, '(es13.6e2, :, "', delimiter, '"))'
+            end if
+
+            write(buffer, format) value
+         class default
+            stringify = ''
+
+            return
+      end select
+
+      stringify = trim(buffer)
+   end function stringify
 
 !=========================================================================================
 

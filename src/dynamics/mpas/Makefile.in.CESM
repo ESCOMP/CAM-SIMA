@@ -9,6 +9,7 @@ endif
 #
 
 export CP = cp -afv
+export LN = ln -fsv
 export MKDIR = mkdir -pv
 export RM = rm -frv
 
@@ -61,21 +62,28 @@ all:
 	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..."`'
 
 .PHONY: libmpas-prepare
-libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics libmpas-preview
+libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics libmpas-prefix-namelist-groups libmpas-preview
 
 # Combine multiple static libraries into `libmpas.a` via archiver/MRI script. This requires GNU or GNU-like archiver (`ar`) program.
 libmpas-archiver-script.txt:
-	@echo "create libmpas.a"       > $(@)
-	@echo "addlib libdycore.a"    >> $(@)
-	@echo "addlib libframework.a" >> $(@)
-	@echo "addlib libops.a"       >> $(@)
-	@echo "save"                  >> $(@)
-	@echo "end"                   >> $(@)
+	@echo "create libmpas.a"             > $(@)
+	@echo "addlib libdycore.a"          >> $(@)
+	@echo "addlib libframework.a"       >> $(@)
+	@echo "addlib libops.a"             >> $(@)
+	@echo "addmod dyn_mpas_subdriver.o" >> $(@)
+	@echo "save"                        >> $(@)
+	@echo "end"                         >> $(@)
 
 # Do not use built-in MPAS/WRF physics.
 .PHONY: libmpas-no-physics
 libmpas-no-physics:
 	@sed -E -i -e "s/^ *PHYSICS=.+$$/PHYSICS=/g" core_atmosphere/Makefile
+
+# Prefix `mpas_` to MPAS namelist groups to avoid naming collisions.
+.PHONY: libmpas-prefix-namelist-groups
+libmpas-prefix-namelist-groups:
+	@sed -E -i -e "s/(^ *< *nml_record.+name=)\"(mpas_)?(\w+)\"/\1\"mpas_\3\"/g" core_atmosphere/Registry.xml
+	@sed -E -i -e "s/(^ *< *nml_record.+name=)\"(mpas_)?(\w+)\"/\1\"mpas_\3\"/g" core_atmosphere/diagnostics/Registry_*.xml
 
 .PHONY: libmpas-preview
 libmpas-preview:
@@ -106,13 +114,21 @@ $(LIBROOT)/libmpas.a: libmpas.a
 	$(MKDIR) $(LIBROOT)
 	$(CP) $(<) $(@)
 
-libmpas.a: $(AUTOCLEAN_DEPS) dycore externals frame ops
+libmpas.a: $(AUTOCLEAN_DEPS) dycore externals frame ops subdrv
 	$(AR) $(ARFLAGS) < libmpas-archiver-script.txt
+	@find -P . -name "*.mod" -type f -exec $(LN) "{}" . ";"
 
 .PHONY: libmpas-clean
 libmpas-clean: clean
-	$(RM) $(LIBROOT)/libmpas.a libmpas.a
+	$(RM) $(LIBROOT)/libmpas.a libmpas.a *.mod *.o
 
 .PHONY: externals
 externals: $(AUTOCLEAN_DEPS)
 	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" ezxml-lib )
+
+.PHONY: subdrv
+subdrv: driver/dyn_mpas_subdriver.o
+
+%.o: %.F90 dycore frame ops
+	( cd $(<D); $(FC) $(CPPFLAGS) $(FFLAGS) -c $(<F) $(CPPINCLUDES) $(FCINCLUDES) -I../framework -I../operators -I../core_$(CORE) )
+	$(LN) $(@) .

@@ -35,10 +35,12 @@ public ::&
    get_curr_date,            &! return date components at end of current timestep
    get_prev_date,            &! return date components at beginning of current timestep
    get_start_date,           &! return components of the start date
+   get_stop_date,            &! return components of the stop date
    get_ref_date,             &! return components of the reference date
    get_perp_date,            &! return components of the perpetual date, and current time of day
    get_curr_time,            &! return components of elapsed time since reference date at end of current timestep
    get_prev_time,            &! return components of elapsed time since reference date at beg of current timestep
+   get_run_duration,         &! return run duration in whole days and remaining seconds
    get_curr_calday,          &! return calendar day at end of current timestep
    get_calday,               &! return calendar day from input date
    is_first_step,            &! return true on first step of initial run
@@ -712,6 +714,32 @@ subroutine get_start_date(yr, mon, day, tod)
 end subroutine get_start_date
 !=========================================================================================
 
+subroutine get_stop_date(yr, mon, day, tod)
+
+! Return date components valid at end of run.
+
+! Arguments
+   integer, intent(out) ::&
+      yr,    &! year
+      mon,   &! month
+      day,   &! day of month
+      tod     ! time of day (seconds past 0Z)
+
+! Local variables
+   character(len=*), parameter :: sub = 'get_stop_date'
+   integer :: rc
+   type(ESMF_Time) :: date
+!-----------------------------------------------------------------------------------------
+
+   call ESMF_ClockGet(tm_clock, stopTime=date, rc=rc)
+   call chkrc(rc, sub//': error return from ESMF_ClockGet')
+
+   call ESMF_TimeGet(date, yy=yr, mm=mon, dd=day, s=tod, rc=rc)
+   call chkrc(rc, sub//': error return from ESMF_TimeGet')
+
+end subroutine get_stop_date
+!=========================================================================================
+
 subroutine get_ref_date(yr, mon, day, tod)
 
 ! Return date components of the reference date.
@@ -792,9 +820,36 @@ subroutine get_prev_time(days, seconds)
    call chkrc(rc, sub//': error return from ESMF_ClockGet for refTime')
    diff = date - ref_date
    call ESMF_TimeIntervalGet( diff, d=days, s=seconds, rc=rc )
-   call chkrc(rc, sub//': error return from ESMF_TimeintervalGet')
+   call chkrc(rc, sub//': error return from ESMF_TimeIntervalGet')
 
 end subroutine get_prev_time
+!=========================================================================================
+
+subroutine get_run_duration(days, seconds)
+
+! Return run duration in days and seconds.
+
+! Arguments
+   integer, intent(out) ::&
+      days,   &! number of whole days in time interval
+      seconds  ! remaining seconds in time interval
+
+! Local variables
+   character(len=*), parameter :: sub = 'get_run_duration'
+   integer :: rc
+   type(ESMF_Time) :: start_time, stop_time
+   type(ESMF_TimeInterval) :: diff
+!-----------------------------------------------------------------------------------------
+
+   call ESMF_ClockGet(tm_clock, startTime=start_time, stopTime=stop_time, rc=rc)
+   call chkrc(rc, sub//': error return from ESMF_ClockGet')
+
+   diff = stop_time - start_time
+
+   call ESMF_TimeIntervalGet(diff, d=days, s=seconds, rc=rc)
+   call chkrc(rc, sub//': error return from ESMF_TimeIntervalGet')
+
+end subroutine get_run_duration
 !=========================================================================================
 
 function get_curr_calday(offset)
