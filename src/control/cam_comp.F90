@@ -26,6 +26,7 @@ module cam_comp
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
+   use physics_types,             only: dtime_phys
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -47,8 +48,6 @@ module cam_comp
 
    type(dyn_import_t) :: dyn_in   ! Dynamics import container
    type(dyn_export_t) :: dyn_out  ! Dynamics export container
-
-   real(r8) :: dtime_phys         ! Time step for physics tendencies.
 
    logical  :: BFB_CAM_SCAM_IOP = .false.
 
@@ -97,6 +96,7 @@ CONTAINS
       use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
+      use phys_vars_init_check, only: mark_as_initialized
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -142,6 +142,9 @@ CONTAINS
       integer                  :: errflg
       character(len=cx)        :: errmsg
       !-----------------------------------------------------------------------
+
+      dtime_phys = 0.0_r8
+      call mark_as_initialized('timestep_for_physics')
 
       call init_pio_subsystem()
 

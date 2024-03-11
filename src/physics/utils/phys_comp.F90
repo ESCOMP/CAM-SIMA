@@ -1,10 +1,10 @@
 module phys_comp
 
-   use ccpp_kinds,   only: kind_phys
-   use shr_kind_mod, only: SHR_KIND_CS, SHR_KIND_CL
-   use runtime_obj,  only: unset_str, unset_int, unset_real
-   use physics_types, only: errmsg, errcode, physics_timestep
-   use physics_types, only: column_start, column_end
+   use ccpp_kinds,    only: kind_phys
+   use shr_kind_mod,  only: SHR_KIND_CS, SHR_KIND_CL
+   use runtime_obj,   only: unset_str
+   use physics_types, only: errmsg, errcode
+   use physics_grid,  only: col_start, col_end
 
    implicit none
    private
@@ -31,11 +31,6 @@ module phys_comp
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = unset_str
    real(kind_phys)                         :: min_difference = HUGE(1.0_kind_phys)
    real(kind_phys)                         :: min_relative_value = HUGE(1.0_kind_phys)
-!   integer :: column_start = unset_int
-!   integer :: column_end = unset_int
-!   real(kind_phys) :: physics_timestep = unset_real
-!   integer :: errcode = 0
-!   character(len=512) :: errmsg = ''
 
 !==============================================================================
 CONTAINS
@@ -137,17 +132,16 @@ CONTAINS
    end subroutine phys_readnl
 
    subroutine phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
-      use pio,              only: file_desc_t
-      use cam_abortutils,   only: endrun
-      use runtime_obj,      only: runtime_options
-      use physics_types,    only: physics_state, physics_tend
-      use camsrfexch,       only: cam_out_t
-      use physics_grid,     only: columns_on_task
-      use vert_coord,       only: pver, pverp
-      use cam_thermo,       only: cam_thermo_init
-      use physics_types,    only: allocate_physics_types_fields
-      use cam_ccpp_cap,     only: cam_ccpp_physics_initialize
-      use cam_ccpp_cap,     only: ccpp_physics_suite_part_list
+      use cam_abortutils,       only: endrun
+      use runtime_obj,          only: runtime_options
+      use physics_types,        only: physics_state, physics_tend
+      use camsrfexch,           only: cam_out_t
+      use physics_grid,         only: columns_on_task
+      use vert_coord,           only: pver, pverp
+      use cam_thermo,           only: cam_thermo_init
+      use physics_types,        only: allocate_physics_types_fields
+      use cam_ccpp_cap,         only: cam_ccpp_physics_initialize
+      use cam_ccpp_cap,         only: ccpp_physics_suite_part_list
       use phys_vars_init_check, only: mark_as_initialized
 
       ! Dummy arguments
@@ -159,17 +153,7 @@ CONTAINS
       ! Local variables
       real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       integer                    :: i_group
-      logical                    :: match
 
-      errcode = 0
-      errmsg = ''
-      ! Threading vars
-      column_start = 1
-      column_end = columns_on_task
-      physics_timestep = dtime_phys
-      call mark_as_initialized('horizontal_loop_begin')
-      call mark_as_initialized('horizontal_loop_end')
-      call mark_as_initialized('timestep_for_physics')
       call cam_thermo_init(columns_on_task, pver, pverp)
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
@@ -183,34 +167,15 @@ CONTAINS
       if (errcode /= 0) then
          call endrun('cam_ccpp_suite_part_list: '//trim(errmsg))
       end if
+
       ! Confirm that the suite parts are as expected
-      match = .false.
-      if (size(suite_parts) > size(suite_parts_expect)) then
-         write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
-             'only `physics_before_coupler` and/or `physics_after_coupler`'
-         call endrun(errmsg)
-      else if (size(suite_parts) < size(suite_parts_expect)) then
-         if (any(suite_parts(1) == suite_parts_expect)) then
-            match = .true.
-         else
-            write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
-                '`physics_before_coupler` and/or `physics_after_coupler`'
-            call endrun(errmsg)
-         end if
-      else
-         do i_group = 1, size(suite_parts_expect)
-            if (any(suite_parts_expect(i_group) == suite_parts)) then
-               match = .true.
-            else
-               match = .false.
-            end if
-         end do
-         if (.not. match) then
+      do i_group = 1, size(suite_parts)
+         if (.not. any(suite_parts(i_group) == suite_parts_expect)) then
             write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
                 'ONLY `physics_before_coupler` and/or `physics_after_coupler`'
             call endrun(errmsg)
          end if
-      end if
+      end do
 
    end subroutine phys_init
 
@@ -237,12 +202,10 @@ CONTAINS
       type(cam_in_t),        intent(inout) :: cam_in
       type(cam_out_t),       intent(inout) :: cam_out
       ! Local variables
-      type(file_desc_t), pointer :: ncdata
-      integer                            :: data_frame
-      logical                            :: use_init_variables
+      type(file_desc_t),     pointer       :: ncdata
+      integer                              :: data_frame
+      logical                              :: use_init_variables
 
-      physics_timestep = dtime_phys
-      errcode = 0
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
@@ -286,9 +249,6 @@ CONTAINS
       type(cam_in_t),        intent(inout) :: cam_in
       type(cam_out_t),       intent(inout) :: cam_out
 
-      physics_timestep = dtime_phys
-      errcode = 0
-
       ! Run before coupler group if it exists
       if (any('physics_before_coupler' == suite_parts)) then
          call cam_ccpp_physics_run(phys_suite_name, 'physics_before_coupler')
@@ -314,9 +274,6 @@ CONTAINS
       type(physics_tend),    intent(inout) :: phys_tend
       type(cam_out_t),       intent(inout) :: cam_out
       type(cam_in_t),        intent(inout) :: cam_in
-
-      physics_timestep = dtime_phys
-      errcode = 0
 
       ! Run after coupler group if it exists
       if (any('physics_after_coupler' == suite_parts)) then
@@ -349,8 +306,6 @@ CONTAINS
       ! Local variables
       integer                              :: data_frame
 
-      errcode = 0
-      physics_timestep = dtime_phys
       ! Finalize the time step
       call cam_ccpp_physics_timestep_final(phys_suite_name)
       if (errcode /= 0) then

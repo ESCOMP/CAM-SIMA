@@ -8,7 +8,6 @@
   <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
-<!--  <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file> -->
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
@@ -314,24 +313,13 @@
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
-    <!-- Physics run variables -->
-    <variable local_name="column_start"
-              standard_name="horizontal_loop_begin"
-              units="count" type="integer">
-      <long_name>horizontal loop begin</long_name>
-      <initial_value>-1</initial_value>
-    </variable>
-    <variable local_name="column_end"
-              standard_name="horizontal_loop_end"
-              units="count" type="integer">
-      <long_name>horizontal loop end</long_name>
-      <initial_value>-1</initial_value>
-    </variable>
-    <variable local_name="physics_timestep"
+    <!-- Physics timestep -->
+    <variable local_name="dtime_phys"
               standard_name="timestep_for_physics"
               units="s" type="real" kind="kind_phys">
       <long_name>timestep for physics</long_name>
     </variable>
+    <!-- Error handling variables -->
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
               units="1" type="integer">
