@@ -38,10 +38,8 @@ CONTAINS
 
    subroutine phys_readnl(nlfilename)
       ! Read physics options, such as suite to run
-      use shr_kind_mod,    only: r8 => shr_kind_r8
       use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
-      use shr_flux_mod,    only: shr_flux_adjust_constants
-      use mpi,             only: mpi_character, mpi_real8, mpi_logical
+      use mpi,             only: mpi_character, mpi_real8
       use spmd_utils,      only: masterproc, masterprocid, mpicom
       use cam_logfile,     only: iulog
       use cam_abortutils,  only: endrun
@@ -131,27 +129,16 @@ CONTAINS
 
    end subroutine phys_readnl
 
-   subroutine phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
+   subroutine phys_init()
       use cam_abortutils,       only: endrun
-      use runtime_obj,          only: runtime_options
-      use physics_types,        only: physics_state, physics_tend
-      use camsrfexch,           only: cam_out_t
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver, pverp
       use cam_thermo,           only: cam_thermo_init
       use physics_types,        only: allocate_physics_types_fields
       use cam_ccpp_cap,         only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,         only: ccpp_physics_suite_part_list
-      use phys_vars_init_check, only: mark_as_initialized
-
-      ! Dummy arguments
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_out_t),       intent(inout) :: cam_out
 
       ! Local variables
-      real(kind_phys)            :: dtime_phys = 0.0_kind_phys ! Not set yet
       integer                    :: i_group
 
       call cam_thermo_init(columns_on_task, pver, pverp)
@@ -179,8 +166,7 @@ CONTAINS
 
    end subroutine phys_init
 
-   subroutine phys_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
-        cam_in, cam_out)
+   subroutine phys_timestep_init(dtime_phys)
       use pio,            only: file_desc_t
       use cam_initfiles,  only: initial_file_get_id
       use physics_types,  only: physics_types_tstep_init
@@ -188,19 +174,11 @@ CONTAINS
       use time_manager,   only: is_first_restart_step
       use time_manager,   only: get_nstep
       use cam_abortutils, only: endrun
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
-      use camsrfexch,     only: cam_in_t, cam_out_t
       use time_manager,   only: is_first_step
 
       ! Dummy arguments
       real(kind_phys),       intent(in)    :: dtime_phys
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_in_t),        intent(inout) :: cam_in
-      type(cam_out_t),       intent(inout) :: cam_out
       ! Local variables
       type(file_desc_t),     pointer       :: ncdata
       integer                              :: data_frame
@@ -233,21 +211,12 @@ CONTAINS
 
    end subroutine phys_timestep_init
 
-   subroutine phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
-        cam_in, cam_out)
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
+   subroutine phys_run1(dtime_phys)
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
-      use camsrfexch,     only: cam_in_t, cam_out_t
       use cam_abortutils, only: endrun
 
       ! Dummy arguments
       real(kind_phys),       intent(in)    :: dtime_phys
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_in_t),        intent(inout) :: cam_in
-      type(cam_out_t),       intent(inout) :: cam_out
 
       ! Run before coupler group if it exists
       if (any('physics_before_coupler' == suite_parts)) then
@@ -259,21 +228,12 @@ CONTAINS
 
    end subroutine phys_run1
 
-   subroutine phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
-        cam_in, cam_out)
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
-      use camsrfexch,     only: cam_in_t, cam_out_t
+   subroutine phys_run2(dtime_phys)
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_abortutils, only: endrun
 
       ! Dummy arguments
       real(kind_phys),       intent(in)    :: dtime_phys
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_out_t),       intent(inout) :: cam_out
-      type(cam_in_t),        intent(inout) :: cam_in
 
       ! Run after coupler group if it exists
       if (any('physics_after_coupler' == suite_parts)) then
@@ -285,24 +245,15 @@ CONTAINS
 
    end subroutine phys_run2
 
-   subroutine phys_timestep_final(dtime_phys, cam_runtime_opts, phys_state, phys_tend,  &
-        cam_in, cam_out)
+   subroutine phys_timestep_final(dtime_phys)
       use time_manager,   only: get_nstep
       use cam_abortutils, only: endrun
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
-      use camsrfexch,     only: cam_in_t, cam_out_t
       use cam_initfiles,  only: unset_path_str
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
       use physics_inputs, only: physics_check_data
 
       ! Dummy arguments
       real(kind_phys),       intent(in)    :: dtime_phys
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      type(cam_in_t),        intent(inout) :: cam_in
-      type(cam_out_t),       intent(inout) :: cam_out
       ! Local variables
       integer                              :: data_frame
 
@@ -326,19 +277,9 @@ CONTAINS
 
    end subroutine phys_timestep_final
 
-   subroutine phys_final(cam_runtime_opts, phys_state, phys_tend)
-      use cam_abortutils, only: endrun
-      use runtime_obj,    only: runtime_options
-      use physics_types,  only: physics_state, physics_tend
-      use camsrfexch,     only: cam_in_t, cam_out_t
+   subroutine phys_final()
       use cam_ccpp_cap,   only: cam_ccpp_physics_finalize
-
-      ! Dummy arguments
-      type(runtime_options), intent(in)    :: cam_runtime_opts
-      type(physics_state),   intent(inout) :: phys_state
-      type(physics_tend),    intent(inout) :: phys_tend
-      ! Local variables
-      real(kind_phys)    :: dtime_phys = 0.0_kind_phys ! Not used
+      use cam_abortutils, only: endrun
 
       call cam_ccpp_physics_finalize(phys_suite_name)
       if (errcode /= 0) then

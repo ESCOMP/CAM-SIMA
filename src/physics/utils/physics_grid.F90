@@ -166,7 +166,7 @@ CONTAINS
 
       ! Calculate number of columns on tasks:
       columns_on_task = size(dyn_columns)
-      col_end = size(dyn_columns)
+      col_end = columns_on_task
 
       ! Allocate phys_columns:
       allocate(phys_columns(columns_on_task), stat=ierr)

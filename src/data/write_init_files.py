@@ -25,10 +25,11 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'ccpp_constituents',
                           'ccpp_constituent_properties',
                           'ccpp_constituent_minimum_values',
+                          'ccpp_error_message',
+                          'ccpp_error_code',
                           'log_output_unit', 'do_log_output',
                           'mpi_communicator', 'mpi_root', 'mpi_rank',
-                          'number_of_mpi_tasks', 'ccpp_error_message',
-                          'ccpp_error_code'}
+                          'number_of_mpi_tasks'}
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
 

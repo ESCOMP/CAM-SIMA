@@ -221,7 +221,7 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
       end if
 
-      call phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
+      call phys_init()
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
@@ -258,8 +258,7 @@ CONTAINS
       ! PHYS_TIMESTEP_INIT Call the Physics package
       !----------------------------------------------------------
       !
-      call phys_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
-           cam_in, cam_out)
+      call phys_timestep_init(dtime_phys)
 
    end subroutine cam_timestep_init
    !
@@ -303,8 +302,7 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run1', mpicom)
       call t_startf('phys_run1')
-      call phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
-           cam_in, cam_out)
+      call phys_run1(dtime_phys)
       call t_stopf('phys_run1')
 
    end subroutine cam_run1
@@ -336,8 +334,7 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run2', mpicom)
       call t_startf('phys_run2')
-      call phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
-           cam_in, cam_out)
+      call phys_run2(dtime_phys)
       call t_stopf('phys_run2')
 
       !
@@ -461,7 +458,7 @@ CONTAINS
    subroutine cam_timestep_final(cam_in, cam_out)
       !-----------------------------------------------------------------------
       !
-      ! Purpose:   Timestep final runs at the start of each timestep
+      ! Purpose:   Timestep final runs at the end of each timestep
       !
       !-----------------------------------------------------------------------
 
@@ -475,8 +472,7 @@ CONTAINS
       ! PHYS_TIMESTEP_FINAL Call the Physics package
       !----------------------------------------------------------
       !
-      call phys_timestep_final(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
-           cam_in, cam_out)
+      call phys_timestep_final(dtime_phys)
 
    end subroutine cam_timestep_final
 
@@ -509,7 +505,7 @@ CONTAINS
       integer                  :: nstep   ! Current timestep number.
       !-----------------------------------------------------------------------
 
-      call phys_final(cam_runtime_opts, phys_state, phys_tend)
+      call phys_final()
       call stepon_final(cam_runtime_opts, dyn_in, dyn_out)
 !      call ionosphere_final()
 
