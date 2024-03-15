@@ -1,6 +1,7 @@
 module hycoef
 
 use shr_kind_mod,     only: r8 => shr_kind_r8
+use ccpp_kinds,       only: kind_phys
 use spmd_utils,       only: masterproc
 use vert_coord,       only: pver, pverp
 use cam_logfile,      only: iulog
@@ -28,8 +29,6 @@ real(r8), public, allocatable, target :: hyam(:)  ! ps0 component of hybrid coor
 real(r8), public, allocatable, target :: hybi(:)  ! ps component of hybrid coordinate - interfaces
 real(r8), public, allocatable, target :: hybm(:)  ! ps component of hybrid coordinate - midpoints
 
-real(r8), public, allocatable :: etamid(:)  ! hybrid coordinate - midpoints
-
 real(r8), public, allocatable :: hybd(:)    ! difference  in b (hybi) across layers
 real(r8), public, allocatable :: hypi(:)    ! reference pressures at interfaces
 real(r8), public, allocatable :: hypm(:)    ! reference pressures at midpoints
@@ -46,6 +45,10 @@ public hycoef_init
 
 type(var_desc_t) :: hyam_desc, hyai_desc, hybm_desc, hybi_desc, p0_desc
 public init_restart_hycoef, write_restart_hycoef
+
+!> \section arg_table_hycoef  Argument Table
+!! \htmlinclude hycoef.html
+real(kind_phys), public, :: etamid(pver)  ! hybrid coordinate - midpoints
 
 !=======================================================================
 contains
@@ -123,10 +126,10 @@ subroutine hycoef_init(file, psdry)
       call endrun(subname//': allocate hybm(pver) failed with stat: '//to_str(iret))
    end if
 
-   allocate(etamid(pver), stat=iret)
-   if (iret /= 0) then
-      call endrun(subname//': allocate etamid(pver) failed with stat: '//to_str(iret))
-   end if
+   !allocate(etamid(pver), stat=iret)
+   !if (iret /= 0) then
+   !   call endrun(subname//': allocate etamid(pver) failed with stat: '//to_str(iret))
+   !end if
 
    allocate(hybd(pver), stat=iret)
    if (iret /= 0) then
