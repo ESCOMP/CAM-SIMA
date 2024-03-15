@@ -272,7 +272,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_molec_weight: '
 
       if (check_index_bounds(const_ind, subname)) then
-         call const_props(const_ind)%molec_weight(const_molec_weight,         &
+         call const_props(const_ind)%molar_mass(const_molec_weight,         &
               err_code, err_msg)
          if (err_code /= 0) then
             call endrun(subname//"Error "//to_str(err_code)//": "//           &

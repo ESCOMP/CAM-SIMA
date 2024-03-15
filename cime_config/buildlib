@@ -185,8 +185,9 @@ def _setup_mpas(case: Case) -> None:
 
     shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
     shutil.move(os.path.join(mpas_dycore_bld_root, "Makefile"), os.path.join(mpas_dycore_bld_root, "Makefile.CESM"))
-    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile")), os.path.join(mpas_dycore_bld_root, "Makefile"))
-    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile.in.CESM")), os.path.join(mpas_dycore_bld_root, "Makefile.in.CESM"))
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "driver", "dyn_mpas_subdriver.F90")), os.path.join(mpas_dycore_bld_root, "driver"))
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile")), mpas_dycore_bld_root)
+    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile.in.CESM")), mpas_dycore_bld_root)
 
 def _copy2_as_needed(src: str, dst: str) -> None:
     """
@@ -199,6 +200,9 @@ def _copy2_as_needed(src: str, dst: str) -> None:
                 # `src` and `dst` are both files but their modification time or size differ.
                 # Example scenario: User modified some existing source code files.
                 shutil.copy2(src, dst)
+        elif os.path.isdir(dst) and os.path.isfile(os.path.join(dst, os.path.basename(src))):
+            dst = os.path.join(dst, os.path.basename(src))
+            _copy2_as_needed(src, dst)
         else:
             if os.path.isdir(dst) or os.path.isdir(os.path.dirname(dst)):
                 # `src` is a new file that does not exist at `dst`.
