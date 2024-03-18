@@ -166,7 +166,7 @@ CONTAINS
 
    end subroutine phys_init
 
-   subroutine phys_timestep_init(dtime_phys)
+   subroutine phys_timestep_init()
       use pio,            only: file_desc_t
       use cam_initfiles,  only: initial_file_get_id
       use physics_types,  only: physics_types_tstep_init
@@ -177,8 +177,6 @@ CONTAINS
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
       use time_manager,   only: is_first_step
 
-      ! Dummy arguments
-      real(kind_phys),       intent(in)    :: dtime_phys
       ! Local variables
       type(file_desc_t),     pointer       :: ncdata
       integer                              :: data_frame
@@ -211,12 +209,9 @@ CONTAINS
 
    end subroutine phys_timestep_init
 
-   subroutine phys_run1(dtime_phys)
+   subroutine phys_run1()
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_abortutils, only: endrun
-
-      ! Dummy arguments
-      real(kind_phys),       intent(in)    :: dtime_phys
 
       ! Run before coupler group if it exists
       if (any('physics_before_coupler' == suite_parts)) then
@@ -228,12 +223,9 @@ CONTAINS
 
    end subroutine phys_run1
 
-   subroutine phys_run2(dtime_phys)
+   subroutine phys_run2()
       use cam_ccpp_cap,   only: cam_ccpp_physics_run
       use cam_abortutils, only: endrun
-
-      ! Dummy arguments
-      real(kind_phys),       intent(in)    :: dtime_phys
 
       ! Run after coupler group if it exists
       if (any('physics_after_coupler' == suite_parts)) then
@@ -245,15 +237,13 @@ CONTAINS
 
    end subroutine phys_run2
 
-   subroutine phys_timestep_final(dtime_phys)
+   subroutine phys_timestep_final()
       use time_manager,   only: get_nstep
       use cam_abortutils, only: endrun
       use cam_initfiles,  only: unset_path_str
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
       use physics_inputs, only: physics_check_data
 
-      ! Dummy arguments
-      real(kind_phys),       intent(in)    :: dtime_phys
       ! Local variables
       integer                              :: data_frame
 

@@ -258,7 +258,7 @@ CONTAINS
       ! PHYS_TIMESTEP_INIT Call the Physics package
       !----------------------------------------------------------
       !
-      call phys_timestep_init(dtime_phys)
+      call phys_timestep_init()
 
    end subroutine cam_timestep_init
    !
@@ -302,7 +302,7 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run1', mpicom)
       call t_startf('phys_run1')
-      call phys_run1(dtime_phys)
+      call phys_run1()
       call t_stopf('phys_run1')
 
    end subroutine cam_run1
@@ -334,7 +334,7 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run2', mpicom)
       call t_startf('phys_run2')
-      call phys_run2(dtime_phys)
+      call phys_run2()
       call t_stopf('phys_run2')
 
       !
@@ -472,7 +472,7 @@ CONTAINS
       ! PHYS_TIMESTEP_FINAL Call the Physics package
       !----------------------------------------------------------
       !
-      call phys_timestep_final(dtime_phys)
+      call phys_timestep_final()
 
    end subroutine cam_timestep_final
 
