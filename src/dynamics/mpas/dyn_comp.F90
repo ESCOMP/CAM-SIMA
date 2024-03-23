@@ -47,6 +47,7 @@ contains
     subroutine dyn_readnl(namelist_path)
         character(*), intent(in) :: namelist_path
 
+        character(*), parameter :: subname = 'dyn_comp::dyn_readnl'
         character(shr_kind_cs) :: cam_calendar
         integer :: log_unit(2)
         integer :: start_date_time(6), & ! YYYY, MM, DD, hh, mm, ss.
