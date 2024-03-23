@@ -561,50 +561,71 @@ contains
         end select
 
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_calendar_type', config_pointer_c)
+
+        if (.not. associated(config_pointer_c)) then
+            call self % model_error('Failed to find config', subname, __LINE__)
+        end if
+
         config_pointer_c = trim(adjustl(mpas_calendar))
-
         call self % debug_print('config_calendar_type = ', [config_pointer_c])
-
         nullify(config_pointer_c)
 
         ! MPAS represents date and time in ISO 8601 format. However, the separator between date and time is `_`
         ! instead of standard `T`.
         ! Format in `YYYY-MM-DD_hh:mm:ss` is acceptable.
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_start_time', config_pointer_c)
+
+        if (.not. associated(config_pointer_c)) then
+            call self % model_error('Failed to find config', subname, __LINE__)
+        end if
+
         config_pointer_c = stringify(start_date_time(1:3), '-') // '_' // stringify(start_date_time(4:6), ':')
-
         call self % debug_print('config_start_time = ', [config_pointer_c])
-
         nullify(config_pointer_c)
 
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_stop_time', config_pointer_c)
+
+        if (.not. associated(config_pointer_c)) then
+            call self % model_error('Failed to find config', subname, __LINE__)
+        end if
+
         config_pointer_c = stringify(stop_date_time(1:3), '-') // '_' // stringify(stop_date_time(4:6), ':')
-
         call self % debug_print('config_stop_time = ', [config_pointer_c])
-
         nullify(config_pointer_c)
 
         ! Format in `DD_hh:mm:ss` is acceptable.
         call mpas_pool_get_config(self % domain_ptr % configs, 'config_run_duration', config_pointer_c)
+
+        if (.not. associated(config_pointer_c)) then
+            call self % model_error('Failed to find config', subname, __LINE__)
+        end if
+
         config_pointer_c = stringify([run_duration(1)]) // '_' // stringify(run_duration(2:4), ':')
-
         call self % debug_print('config_run_duration = ', [config_pointer_c])
-
         nullify(config_pointer_c)
 
         ! Reflect current run type to MPAS.
         if (initial_run) then
             ! Run type is initial run.
             call mpas_pool_get_config(self % domain_ptr % configs, 'config_do_restart', config_pointer_l)
+
+            if (.not. associated(config_pointer_l)) then
+                call self % model_error('Failed to find config', subname, __LINE__)
+            end if
+
             config_pointer_l = .false.
         else
             ! Run type is branch or restart run.
             call mpas_pool_get_config(self % domain_ptr % configs, 'config_do_restart', config_pointer_l)
+
+            if (.not. associated(config_pointer_l)) then
+                call self % model_error('Failed to find config', subname, __LINE__)
+            end if
+
             config_pointer_l = .true.
         end if
 
         call self % debug_print('config_do_restart = ', [config_pointer_l])
-
         nullify(config_pointer_l)
 
         call self % debug_print(subname // ' completed')
