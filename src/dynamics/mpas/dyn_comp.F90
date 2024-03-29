@@ -7,7 +7,8 @@ module dyn_comp
     use cam_instance, only: atm_id
     use cam_logfile, only: debug_output, debugout_none, iulog
     use runtime_obj, only: runtime_options
-    use spmd_utils, only: mpicom
+    use spmd_utils, only: iam, masterproc, mpicom
+    use string_utils, only: stringify
     use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
 
     ! Modules from CESM Share.
@@ -28,6 +29,8 @@ module dyn_comp
     public :: dyn_init
     ! public :: dyn_run
     ! public :: dyn_final
+
+    public :: dyn_debug_print
     public :: mpas_dynamical_core
 
     type :: dyn_import_t
@@ -39,6 +42,38 @@ module dyn_comp
     !> The "instance/object" of MPAS dynamical core.
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
 contains
+    !> Print a debug message with optionally the value(s) of a variable.
+    !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
+    !> (KCW, 2024-02-03)
+    subroutine dyn_debug_print(message, variable, printer)
+        character(*), intent(in) :: message
+        class(*), optional, intent(in) :: variable(:)
+        integer, optional, intent(in) :: printer
+
+        ! Bail out early if debug output is not requested.
+        if (.not. (debug_output > debugout_none)) then
+            return
+        end if
+
+        if (present(printer)) then
+            if (iam /= printer) then
+                return
+            end if
+        else
+            if (.not. masterproc) then
+                return
+            end if
+        end if
+
+        if (present(variable)) then
+            write(iulog, '(a)') 'dyn_debug_print (' // stringify([iam]) // '): ' // &
+                message // stringify(variable)
+        else
+            write(iulog, '(a)') 'dyn_debug_print (' // stringify([iam]) // '): ' // &
+                message
+        end if
+    end subroutine dyn_debug_print
+
     !> Read MPAS namelist from supplied path.
     !> Additionally, perform early initialization of MPAS dynamical core.
     !> (KCW, 2024-02-09)
