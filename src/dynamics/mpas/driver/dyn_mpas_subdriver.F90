@@ -509,7 +509,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_read_namelist(self, namelist_path, &
             cf_calendar, start_date_time, stop_date_time, run_duration, initial_run)
-        class(mpas_dynamical_core_type), intent(inout) :: self
+        class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: namelist_path, cf_calendar
         integer, intent(in) :: start_date_time(6), & ! YYYY, MM, DD, hh, mm, ss.
                                stop_date_time(6),  & ! YYYY, MM, DD, hh, mm, ss.
@@ -646,7 +646,7 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase2(self, pio_iosystem)
-        class(mpas_dynamical_core_type), intent(inout) :: self
+        class(mpas_dynamical_core_type), intent(in) :: self
         type(iosystem_desc_t), pointer, intent(in) :: pio_iosystem
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase2'
