@@ -288,5 +288,9 @@
       <ic_file_input_name>n2ovmr</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-
+  <entry stdname="standard_gravitational_acceleration">
+    <ic_file_input_names>
+      <ic_file_input_name>gravit</ic_file_input_name>
+    </ic_file_input_names>
+  </entry>
 </entries>

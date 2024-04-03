@@ -48,7 +48,7 @@ public init_restart_hycoef, write_restart_hycoef
 
 !> \section arg_table_hycoef  Argument Table
 !! \htmlinclude hycoef.html
-real(kind_phys), public, :: etamid(pver)  ! hybrid coordinate - midpoints
+real(kind_phys), allocatable, public :: etamid(:)  ! hybrid coordinate - midpoints
 
 !=======================================================================
 contains
@@ -59,6 +59,7 @@ subroutine hycoef_init(file, psdry)
 !   use cam_history_support, only: add_hist_coord, add_vert_coord, formula_terms_t
    use physconst,    only: pref
    use string_utils, only: to_str
+   use phys_vars_init_check, only: mark_as_initialized
 
    !-----------------------------------------------------------------------
    !
@@ -126,10 +127,10 @@ subroutine hycoef_init(file, psdry)
       call endrun(subname//': allocate hybm(pver) failed with stat: '//to_str(iret))
    end if
 
-   !allocate(etamid(pver), stat=iret)
-   !if (iret /= 0) then
-   !   call endrun(subname//': allocate etamid(pver) failed with stat: '//to_str(iret))
-   !end if
+   allocate(etamid(pver), stat=iret)
+   if (iret /= 0) then
+      call endrun(subname//': allocate etamid(pver) failed with stat: '//to_str(iret))
+   end if
 
    allocate(hybd(pver), stat=iret)
    if (iret /= 0) then
@@ -329,6 +330,11 @@ subroutine hycoef_init(file, psdry)
       write(iulog,9830) pverp, hypi(pverp)
     end if
 
+    ! Mark etamid (input name) as initialized (by standard name sum_of_sigma_...)
+    call mark_as_initialized( &
+      'sum_of_sigma_pressure_hybrid_coordinate_a_coefficient_and_sigma_pressure_hybrid_coordinate_b_coefficient')
+
+
 9800 format( 1x, i3, 3p, 3(f10.4,10x) )
 9810 format( 1x, 3x, 3p, 3(10x,f10.4) )
 9820 format(1x,'reference pressures (Pa)')
@@ -397,9 +403,18 @@ subroutine hycoef_read(File)
    character(len=*), parameter :: routine = 'hycoef_read'
    !----------------------------------------------------------------------------
 
+   ! Set PIO to return error codes.
+   call pio_seterrorhandling(file, PIO_BCAST_ERROR, pio_errtype)
+
    ! PIO traps errors internally, no need to check ierr
 
    ierr = PIO_Inq_DimID(File, 'lev', lev_dimid)
+   if (ierr /= PIO_NOERR) then
+      ierr = PIO_Inq_DimID(File, 'reference_pressure_in_atmosphere_layer', lev_dimid)
+      if (ierr /= PIO_NOERR) then
+         call endrun(routine//': reading lev')
+      end if
+   end if
    ierr = PIO_Inq_dimlen(File, lev_dimid, flev)
    if (pver /= flev) then
       write(iulog,*) routine//': ERROR: file lev does not match model. lev (file, model):',flev, pver
@@ -407,6 +422,12 @@ subroutine hycoef_read(File)
    end if
 
    ierr = PIO_Inq_DimID(File, 'ilev', lev_dimid)
+   if (ierr /= PIO_NOERR) then
+      ierr = PIO_Inq_DimID(File, 'reference_pressure_in_atmosphere_layer_at_interface', lev_dimid)
+      if (ierr /= PIO_NOERR) then
+         call endrun(routine//': reading ilev')
+      end if
+   end if
    ierr = PIO_Inq_dimlen(File, lev_dimid, filev)
    if (pverp /= filev) then
       write(iulog,*) routine//':ERROR: file ilev does not match model ilev (file, model):',filev, pverp
@@ -414,9 +435,36 @@ subroutine hycoef_read(File)
    end if
 
    ierr = pio_inq_varid(File, 'hyai', hyai_desc)
+   if (ierr /= PIO_NOERR) then
+      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_a_coefficient_at_interface', hyai_desc)
+      if (ierr /= PIO_NOERR) then
+         call endrun(routine//': reading hyai')
+      end if
+   end if
+
    ierr = pio_inq_varid(File, 'hyam', hyam_desc)
+   if (ierr /= PIO_NOERR) then
+      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_a_coefficient', hyam_desc)
+      if (ierr /= PIO_NOERR) then
+         call endrun(routine//': reading hyam')
+      end if
+   end if
+
    ierr = pio_inq_varid(File, 'hybi', hybi_desc)
+   if (ierr /= PIO_NOERR) then
+      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_b_coefficient_at_interface', hybi_desc)
+      if (ierr /= PIO_NOERR) then
+         call endrun(routine//': reading hybi')
+      end if
+   end if
+
    ierr = pio_inq_varid(File, 'hybm', hybm_desc)
+   if (ierr /= PIO_NOERR) then
+      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_b_coefficient', hybm_desc)
+      if (ierr /= PIO_NOERR) then
+         call endrun(routine//': reading hybm')
+      end if
+   end if
 
    ierr = pio_get_var(File, hyai_desc, hyai)
    ierr = pio_get_var(File, hybi_desc, hybi)
@@ -428,11 +476,13 @@ subroutine hycoef_read(File)
    end if
 
    ! Check whether file contains value for P0.  If it does then use it
-
-   ! Set PIO to return error codes.
-   call pio_seterrorhandling(file, PIO_BCAST_ERROR, pio_errtype)
-
    ierr = pio_inq_varid(file, 'P0', p0_desc)
+   if (ierr /= PIO_NOERR) then
+      ierr = pio_inq_varid(File, 'reference_pressure', p0_desc)
+      !if (ierr /= PIO_NOERR) then
+      !   call endrun(routine//': reading P0')
+      !end if
+   end if
    if (ierr == PIO_NOERR) then
       ierr = pio_get_var(file, p0_desc, ps0)
       if (ierr /= PIO_NOERR) then
