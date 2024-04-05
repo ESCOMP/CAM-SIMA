@@ -361,28 +361,24 @@
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Water vapor mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>Q cnst_Q</ic_file_input_names>
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
     </variable>
     <variable local_name="cldice"
               standard_name="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud ice mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>rain mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
     </variable>
   </file>

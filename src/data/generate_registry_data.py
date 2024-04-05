@@ -161,9 +161,10 @@ class VarBase:
         self.__local_index_name = local_index_name
         self.__local_index_name_str = local_index_name_str
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
-        self.__advected = elem_node.get("advected", default=False)
-        self.__tstep_init = elem_node.get("phys_timestep_init_zero",
-                                          default=tstep_init_default)
+        self.__constituent = elem_node.get("constituent", default=False)
+        self.__advected    = elem_node.get("advected", default=False)
+        self.__tstep_init  = elem_node.get("phys_timestep_init_zero",
+                                           default=tstep_init_default)
         if self.__allocatable == "none":
             self.__allocatable = ""
         # end if
@@ -391,6 +392,11 @@ class VarBase:
         return self.__type.ddt
 
     @property
+    def is_constituent(self):
+        """Return True if this variable is a constituent"""
+        return self.__constituent
+
+    @property
     def is_advected(self):
         """Return True if this variable is advected"""
         return self.__advected
@@ -498,8 +504,9 @@ class Variable(VarBase):
     # Constant dimensions
     __CONSTANT_DIMENSIONS = {'ccpp_constant_one' : 1, 'ccpp_constant_zero' : 0}
 
-    __VAR_ATTRIBUTES = ["access", "advected", "allocatable", "dycore",
-                        "extends", "kind", "local_name", "name",
+    __VAR_ATTRIBUTES = ["access", "advected", "allocatable",
+                        "constituent", "dycore", "extends",
+                        "kind", "local_name", "name",
                         "phys_timestep_init_zero", "standard_name",
                         "type", "units", "version"]
 
@@ -613,6 +620,11 @@ class Variable(VarBase):
 
     def write_metadata(self, outfile):
         """Write out this variable as CCPP metadata"""
+        #If variable is a constituent,
+        #then don't add to metadata file:
+        if self.is_constituent:
+            return
+        # end if
         if self.access != "private":
             super().write_metadata(outfile)
             if (self.allocatable == "parameter") or self.protected:
@@ -636,6 +648,11 @@ class Variable(VarBase):
             attribute is suppressed (e.g., for a DDT, even 'protected'
             variables cannot have the protected attribute.
         """
+        #If variable is a constituent, then don't add
+        #to source file:
+        if self.is_constituent:
+            return
+        # end if
         # Protected string
         if has_protect and self.protected:
             pro_str = "protected"
@@ -703,6 +720,11 @@ class Variable(VarBase):
         <reall_var> is a string to use to write reallocate test code.
         <ddt_str> is a prefix string (e.g., state%).
         """
+        #If variable is a constituent, then don't add
+        #to source file:
+        if self.is_constituent:
+            return
+        # end if
         # Be careful about dimensions, scalars have none, not '()'
         if self.dimensions:
             dimension_string = self.dimension_string
@@ -768,7 +790,11 @@ class Variable(VarBase):
                    of the variable initiliazation code even if not
                    directly specified in the registry itself.
         """
-
+        #If variable is a constituent, then don't add
+        #to source file:
+        if self.is_constituent:
+            return
+        # end if
         # Be careful about dimensions, scalars have none, not '()'
         if self.dimensions:
             dimension_string = self.dimension_string
@@ -899,15 +925,17 @@ class VarDict(OrderedDict):
         # end if
         self[local_name.lower()] = newvar
         self.__standard_names.append(std_name.lower())
-        for dim in newvar.dimensions:
-            dimstrs = [x.strip() for x in dim.split(':')]
-            for ddim in dimstrs:
-                lname = Variable.constant_dimension(ddim)
-                if not lname:
-                    self.__dimensions.add(dim.lower())
-                # end if
+        if not newvar.is_constituent: #Don't add dimensions if a constituent
+            for dim in newvar.dimensions:
+                dimstrs = [x.strip() for x in dim.split(':')]
+                for ddim in dimstrs:
+                    lname = Variable.constant_dimension(ddim)
+                    if not lname:
+                        self.__dimensions.add(dim.lower())
+                    # end if
+                # end for
             # end for
-        # end for
+        # end if (constituent)
         # Parse out all strings from initial value
         all_strings = _ALL_STRINGS_REGEX.findall(newvar.initial_value)
         init_val_vars = set()
@@ -1662,13 +1690,18 @@ def _grab_initial_value(var_node):
           and ic_names for the variable or array element, <var_node>."""
     stdname = None
     ic_names = None
+    constituent = False
     for attrib in var_node:
         if attrib.tag == 'ic_file_input_names':
             stdname = var_node.get('standard_name')
             ic_names = [x.strip() for x in attrib.text.split(' ') if x]
+        elif attrib.tag == 'constituent':
+            if attrib.text.lower() == "true":
+                constituent = True
+            # end if
         # end if (ignore other tags for ic_names)
     # end for
-    return stdname, ic_names
+    return stdname, ic_names, constituent
 
 ###############################################################################
 def _create_ic_name_dict(registry):
@@ -1683,22 +1716,31 @@ def _create_ic_name_dict(registry):
            from the registry which have the initial_value property.
     """
     ic_name_dict = {}
+    cnst_ic_name_dict = {}
     for section in registry:
         if section.tag == 'file':
             for obj in section:
                 if obj.tag == 'variable':
-                    stdname, ic_names = _grab_initial_value(obj)
+                    stdname, ic_names, constituent = _grab_initial_value(obj)
                     # Skip duplicate check (done elsewhere for registry)
                     if stdname:
-                        ic_name_dict[stdname] = ic_names
+                        if constituent:
+                            cnst_ic_name_dict[stdname] = ic_names
+                        else:
+                            ic_name_dict[stdname] = ic_names
+                        # end if
                     # end if
                 elif obj.tag == 'array':
                     for subobj in obj:
                         if subobj.tag == 'element':
-                            stdname, ic_names = _grab_initial_value(subobj)
+                            stdname, ic_names, constituent = _grab_initial_value(subobj)
                             # Skip duplicate check (see above)
                             if stdname:
-                                ic_name_dict[stdname] = ic_names
+                                if constituent:
+                                    cnst_ic_name_dict[stdname] = ic_names
+                                else:
+                                    ic_name_dict[stdname] = ic_names
+                                # end if
                             # end if
                         # end if
                     # end for
@@ -1706,7 +1748,7 @@ def _create_ic_name_dict(registry):
             # end for
         # end if (ignore other node types)
     # end for
-    return ic_name_dict
+    return ic_name_dict, cnst_ic_name_dict
 
 ###############################################################################
 def gen_registry(registry_file, dycore, config, outdir, indent,
@@ -1785,10 +1827,10 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         files = write_registry_files(registry, dycore, config, outdir, src_mod,
                                      src_root, reg_dir, indent, logger)
         # See comment in _create_ic_name_dict
-        ic_names = _create_ic_name_dict(registry)
+        ic_names, cnst_ic_names = _create_ic_name_dict(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names
+    return retcode, files, ic_names, cnst_ic_names
 
 def main():
     """Function to execute when module called as a script"""

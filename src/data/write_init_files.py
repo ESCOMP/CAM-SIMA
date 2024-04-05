@@ -44,7 +44,7 @@ _MAX_LINE_LEN = 200
 #Main function
 ##############
 
-def write_init_files(cap_database, ic_names, outdir,
+def write_init_files(cap_database, ic_names, cnst_ic_names, outdir,
                      file_find_func, source_paths, indent, logger,
                      phys_check_filename=None, phys_input_filename=None):
 
@@ -171,12 +171,15 @@ def write_init_files(cap_database, ic_names, outdir,
         # end for
 
         # Write public parameters:
-        retvals = write_ic_params(outfile, host_vars, ic_names)
-        ic_names, ic_max_len, stdname_max_len = retvals
+        retvals = write_ic_params(outfile, host_vars, ic_names, cnst_ic_names)
+        ic_names, ic_max_len, stdname_max_len,
+        cnst_ic_max_len, cnst_stdname_max_len = retvals
 
         # Write initial condition arrays:
-        write_ic_arrays(outfile, ic_names, ic_max_len,
-                        stdname_max_len, host_vars)
+        write_ic_arrays(outfile, ic_names, cnst_ic_names,
+                        ic_max_len, stdname_max_len,
+                        cnst_ic_max_len, cnst_stdname_max_len,
+                        host_vars)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -359,7 +362,7 @@ def gather_ccpp_req_vars(cap_database):
 #FORTRAN WRITING FUNCTIONS
 ##########################
 
-def write_ic_params(outfile, host_vars, ic_names):
+def write_ic_params(outfile, host_vars, ic_names, const_ic_names):
 
     """
     Write public parameter declarations needed
@@ -369,7 +372,7 @@ def write_ic_params(outfile, host_vars, ic_names):
     """
 
     #Create new Fortran integer parameter to store total number of variables:
-    outfile.write("!Total number of physics-related variables:", 1)
+    outfile.comment("Total number of physics-related variables:", 1)
     num_pvars = len(host_vars)
     outfile.write(f"integer, public, parameter :: phys_var_num = {num_pvars}",
                   1)
@@ -394,7 +397,7 @@ def write_ic_params(outfile, host_vars, ic_names):
 
     #Create final Fortran integer parameter to store max length of
     #input variable name string:
-    outfile.write("!Max length of input (IC) file variable names:", 1)
+    outfile.comment("Max length of input (IC) file variable names:", 1)
     # We need to look either in ic_names or the host variable
     max_loclen = 0
     for hvar in host_vars:
@@ -414,12 +417,36 @@ def write_ic_params(outfile, host_vars, ic_names):
 
     outfile.blank_line()
 
-    return ic_names, max_loclen, max_slen
+    # Exit function now if no constituent IC names  exist:
+    if not const_ic_names:
+        return ic_names, max_loclen, max_slen, None, None
+    # end if
+
+    # If constituent IC names exist, them do the same as above,
+    # but specifically for constituent variables:
+    outfile.comment("Max length of registered constituent standard names:", 1)
+    max_const_slen = max(len(stdname) for stdname in const_ic_names.keys())
+    outfile.write(f"integer, public, parameter :: const_std_name_len = {max_const_slen}", 1)
+
+    outfile.blank_line()
+
+    outfile.comment("Max length of input (IC) file variable names for registered constituents:", 1)
+    max_const_loclen = 0
+    for input_names in const_ic_names.value():
+        max_const_loclen = max(max_loclen,
+                               max(len(name) for name in input_names))
+    #end for
+
+    outfile.blank_line()
+
+    return ic_names, max_loclen, max_slen, max_const_loclen, max_const_slen
 
 ######
 
-def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
-                    stdname_max_len, host_vars):
+def write_ic_arrays(outfile, ic_name_dict,
+                    cnst_ic_name_dict, ic_max_len,
+                    stdname_max_len, cnst_ic_max_len,
+                    cnst_stdname_max_len, host_vars):
 
     """
     Write initial condition arrays to store
@@ -464,6 +491,11 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
         #Append new ic_names to string list:
         ic_name_strs.append(', '.join(f"'{n}'" for n in ic_names_with_spaces))
     # end for
+
+    #Create constituent arrays, if necessary:
+    if cnst_ic_names:
+        cnst_num_input_vars = #CONTINUE HERE!!!!!!!
+    # end if
 
     #Write arrays to Fortran file:
     #----------------------------
@@ -867,6 +899,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("integer                    :: errflg          !CCPP framework error flag", 2)
     outfile.write("integer                    :: name_idx        !Input variable array index", 2)
     outfile.write("integer                    :: constituent_idx !Constituent table index", 2)
+    outfile.write("integer                    :: const_input_idx !input_var_names index for a consituent", 2)
     outfile.write("integer                    :: req_idx         !Required variable array index", 2)
     outfile.write("integer                    :: suite_idx       !Suite array index", 2)
     outfile.write("character(len=2)           :: sep             !String separator used to print err messages", 2)
@@ -972,7 +1005,15 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.write("var_found = .false.", 6)
     outfile.write("field_data_ptr => cam_constituents_array()", 6)
-    outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 6)
+    outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 6)
+    outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 6)
+    outfile.comment("Find array index to extract coorect input names:", 7)
+    outfile.write("const_input_idx = findloc(phys_var_stdnames, ccpp_required_data(req_idx))", 7)
+    outfile.write("call read_field(file, ccpp_required_data(req_idx), input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 7)
+    outfile.write("else", 6)
+    outfile.comment("If not in standard names list, then just use constituent name as input file name:",7)
+    outfile.write("call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 7)
+    outfile.write("end if", 6)
     outfile.write("if(.not. var_found) then", 6)
     outfile.write("const_props => cam_model_const_properties()", 7)
     outfile.write("constituent_has_default = .false.", 7)
