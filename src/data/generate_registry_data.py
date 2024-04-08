@@ -1690,18 +1690,13 @@ def _grab_initial_value(var_node):
           and ic_names for the variable or array element, <var_node>."""
     stdname = None
     ic_names = None
-    constituent = False
     for attrib in var_node:
         if attrib.tag == 'ic_file_input_names':
             stdname = var_node.get('standard_name')
             ic_names = [x.strip() for x in attrib.text.split(' ') if x]
-        elif attrib.tag == 'constituent':
-            if attrib.text.lower() == "true":
-                constituent = True
-            # end if
         # end if (ignore other tags for ic_names)
     # end for
-    return stdname, ic_names, constituent
+    return stdname, ic_names
 
 ###############################################################################
 def _create_ic_name_dict(registry):
@@ -1716,31 +1711,22 @@ def _create_ic_name_dict(registry):
            from the registry which have the initial_value property.
     """
     ic_name_dict = {}
-    cnst_ic_name_dict = {}
     for section in registry:
         if section.tag == 'file':
             for obj in section:
                 if obj.tag == 'variable':
-                    stdname, ic_names, constituent = _grab_initial_value(obj)
+                    stdname, ic_names = _grab_initial_value(obj)
                     # Skip duplicate check (done elsewhere for registry)
                     if stdname:
-                        if constituent:
-                            cnst_ic_name_dict[stdname] = ic_names
-                        else:
-                            ic_name_dict[stdname] = ic_names
-                        # end if
+                        ic_name_dict[stdname] = ic_names
                     # end if
                 elif obj.tag == 'array':
                     for subobj in obj:
                         if subobj.tag == 'element':
-                            stdname, ic_names, constituent = _grab_initial_value(subobj)
+                            stdname, ic_names = _grab_initial_value(subobj)
                             # Skip duplicate check (see above)
                             if stdname:
-                                if constituent:
-                                    cnst_ic_name_dict[stdname] = ic_names
-                                else:
-                                    ic_name_dict[stdname] = ic_names
-                                # end if
+                                ic_name_dict[stdname] = ic_names
                             # end if
                         # end if
                     # end for
@@ -1748,7 +1734,7 @@ def _create_ic_name_dict(registry):
             # end for
         # end if (ignore other node types)
     # end for
-    return ic_name_dict, cnst_ic_name_dict
+    return ic_name_dict
 
 ###############################################################################
 def gen_registry(registry_file, dycore, config, outdir, indent,
@@ -1827,10 +1813,10 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         files = write_registry_files(registry, dycore, config, outdir, src_mod,
                                      src_root, reg_dir, indent, logger)
         # See comment in _create_ic_name_dict
-        ic_names, cnst_ic_names = _create_ic_name_dict(registry)
+        ic_names = _create_ic_name_dict(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, cnst_ic_names
+    return retcode, files, ic_names
 
 def main():
     """Function to execute when module called as a script"""
