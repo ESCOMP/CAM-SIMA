@@ -128,7 +128,7 @@ def write_init_files(cap_database, ic_names, outdir,
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    host_vars, retmsg = gather_ccpp_req_vars(cap_database)
+    host_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -236,13 +236,13 @@ def write_init_files(cap_database, ic_names, outdir,
 
         # Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
-                                   phys_check_fname_str)
+                                   phys_check_fname_str, constituent_set)
 
         outfile.blank_line()
 
         # Write physics_check_data subroutine:
         write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
-                                    phys_check_fname_str)
+                                    phys_check_fname_str, constituent_set)
 
     # --------------------------------------
 
@@ -309,8 +309,9 @@ def _find_and_add_host_variable(stdname, host_dict, const_dicts, var_dict):
 ##############################################################################
 def gather_ccpp_req_vars(cap_database):
     """
-    Generate a list of host-model variables required by the CCPP physics
-       suites potentially being used in this model run.
+    Generate a list of host-model and constituent variables
+    required by the CCPP physics suites potentially being used
+    in this model run.
     <cap_database> is the database object returned by capgen.
     It is an error if any physics suite variable is not accessible in
        the host model.
@@ -323,6 +324,7 @@ def gather_ccpp_req_vars(cap_database):
     # Key is standard name, value is host-model or constituent variable
     req_vars = {}
     missing_vars = set()
+    constituent_vars = set()
     retmsg = ""
     # Host model dictionary
     host_dict = cap_database.host_model_dict()
@@ -336,13 +338,23 @@ def gather_ccpp_req_vars(cap_database):
         for cvar in cap_database.call_list(phase).variable_list():
             stdname = cvar.get_prop_value('standard_name')
             intent = cvar.get_prop_value('intent')
+            is_const = cvar.get_prop_value('advected')
             if ((intent in _INPUT_TYPES) and
                 (stdname not in req_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
-                # We need to work with the host model version of this variable
-                missing = _find_and_add_host_variable(stdname, host_dict,
-                                                      const_dicts, req_vars)
-                missing_vars.update(missing)
+                if is_const:
+                    #Variable is a constituent, so may not be known
+                    #until runtime, but still need variable names in order
+                    #to read from a file if need be:
+                    req_vars[stdname] = cvar
+
+                    #Add variable to constituent set:
+                    constituent_vars.add(stdname)
+                else:
+                    # We need to work with the host model version of this variable
+                    missing = _find_and_add_host_variable(stdname, host_dict,
+                                                          const_dicts, req_vars)
+                    missing_vars.update(missing)
                 # end if
             # end if (do not include output variables)
         # end for (loop over call list)
@@ -353,7 +365,7 @@ def gather_ccpp_req_vars(cap_database):
         retmsg = f"Error: Missing required host variables: {mvlist}"
     # end if
     # Return the required variables as a list
-    return list(req_vars.values()), retmsg
+    return list(req_vars.values()), constituent_vars, retmsg
 
 ##########################
 #FORTRAN WRITING FUNCTIONS
@@ -754,7 +766,7 @@ def get_dimension_info(hvar):
     return vdim_name, legal_dims, fail_reason
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
-                               phys_check_fname_str):
+                               phys_check_fname_str, constituent_set):
 
     """
     Write the "physics_read_data" subroutine, which
@@ -781,6 +793,12 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         # end if
         var_stdname = hvar.get_prop_value('standard_name')
         var_locname = hvar.call_string(host_dict)
+
+        # Ignore any variable that is listed as a constiutuent,
+        # as they will be handled separately by the constituents object:
+        if var_stdname in constituent_set:
+            continue
+        # end if
 
         # Set "if-statement" call string:
         call_string_key = f"case ('{var_stdname}')"
@@ -973,6 +991,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.write("var_found = .false.", 6)
     outfile.write("field_data_ptr => cam_constituents_array()", 6)
+    outfile.blank_line()
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 6)
     outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 6)
     outfile.comment("Find array index to extract coorect input names:", 7)
@@ -1063,7 +1082,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 #####
 
 def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
-                                phys_check_fname_str):
+                                phys_check_fname_str, constituent_set):
 
     """
     Write the "physics_check_data" subroutine, which
@@ -1088,6 +1107,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         # end if
         var_stdname = hvar.get_prop_value('standard_name')
         var_locname = hvar.call_string(host_dict)
+
+        # Ignore any variable that is listed as a constiutuent,
+        # as they will be handled separately by the constituents object:
+        if var_stdname in constituent_set:
+            continue
+        # end if
 
         # Set "if-statement" call string:
         call_string_key = f"case ('{var_stdname}')"
@@ -1170,6 +1195,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
     outfile.write("integer                    :: name_idx  !Input variable array index", 2)
     outfile.write("integer                    :: constituent_idx !Index of variable in constituent array", 2)
+    outfile.write("integer                    :: const_input_idx !input_var_names index for a consituent", 2)
     outfile.write("integer                    :: req_idx   !Required variable array index", 2)
     outfile.write("integer                    :: suite_idx !Suite array index", 2)
     outfile.write("character(len=SHR_KIND_CL) :: ncdata_check_loc", 2)
@@ -1243,6 +1269,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("if (constituent_idx > -1) then", 4)
     outfile.comment("The required variable is a constituent. Call check variable routine on the relevant index of the constituent array", 5)
     outfile.write("field_data_ptr => cam_advected_constituents_array()", 5)
+    outfile.blank_line()
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 5)
     outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 5)
     outfile.comment("Find array index to extract coorect input names:", 6)
@@ -1250,7 +1277,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 6)
     outfile.write("else", 5)
     outfile.comment("If not in standard names list, then just use constituent name as input file name:",6)
-    outfile.write("call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 5)
+    outfile.write("call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 6)
     outfile.write("end if", 5)
 
     outfile.write("else", 4)

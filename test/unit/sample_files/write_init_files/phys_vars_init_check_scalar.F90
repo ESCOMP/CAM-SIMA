@@ -32,14 +32,14 @@ module phys_vars_init_check_scalar
    integer, public, parameter ::    INITIALIZED = 1
    integer, public, parameter ::          PARAM = 2
    integer, public, parameter :: READ_FROM_FILE = 3
-   !Total number of physics-related variables:
+   ! Total number of physics-related variables:
    integer, public, parameter :: phys_var_num = 2
    integer, public, parameter :: phys_const_num = 13
 
    !Max length of physics-related variable standard names:
    integer, public, parameter :: std_name_len = 25
 
-   !Max length of input (IC) file variable names:
+   ! Max length of input (IC) file variable names:
    integer, public, parameter :: ic_name_len = 5
 
    ! Physics-related input variable standard names:

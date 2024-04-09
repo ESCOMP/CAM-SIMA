@@ -217,7 +217,7 @@ class WriteInitTest(unittest.TestCase):
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_cnst.meta")
-        cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
+        cap_datafile = os.path.join(_TMP_DIR, "datatable_cnst.xml")
 
         host_files = [model_host, out_meta]
 
