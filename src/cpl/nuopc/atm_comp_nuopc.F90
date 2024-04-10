@@ -992,20 +992,16 @@ CONTAINS
          if (stepno == 0) then
             call import_fields(gcomp, cam_in, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            call cam_timestep_init (cam_in, cam_out)
-            call cam_run1 (cam_in, cam_out)
-            call export_fields(gcomp, cam_out, rc=rc)
-            if (ChkErr(rc, __LINE__, u_FILE_u)) return
          else
             call cam_read_srfrest(gcomp, clock, rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
             call import_fields(gcomp, cam_in, restart_init=.true., rc=rc)
             if (ChkErr(rc, __LINE__, u_FILE_u)) return
-            call cam_timestep_init (cam_in, cam_out)
-            call cam_run1 (cam_in, cam_out)
-            call export_fields(gcomp, cam_out, rc=rc)
-            if (ChkErr(rc, __LINE__, u_FILE_u)) return
          end if
+         call cam_timestep_init ()
+         call cam_run1 (cam_in, cam_out)
+         call export_fields(gcomp, cam_out, rc=rc)
+         if (ChkErr(rc, __LINE__, u_FILE_u)) return
 
          !CAMDEN TODO Remove once radiation has been fully implemented. -JN
          ! Also note that this will need to be refactored to reflect the
@@ -1075,7 +1071,7 @@ CONTAINS
       else  ! mediator is not present
       !---------------------------------------------------------------
 
-         call cam_timestep_init (cam_in, cam_out)
+         call cam_timestep_init ()
          call cam_run1 (cam_in, cam_out)
 
          call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete",    &
@@ -1281,12 +1277,12 @@ CONTAINS
               mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
          call t_stopf  ('CAM_run4')
 
-         call cam_timestep_final(cam_in, cam_out)
+         call cam_timestep_final()
          ! Advance cam time step
          call t_startf ('CAM_adv_timestep')
          call advance_timestep()
          call t_stopf  ('CAM_adv_timestep')
-         call cam_timestep_init(cam_in, cam_out)
+         call cam_timestep_init()
 
          ! Run CAM4,5,6 radiation/clouds (run1 / tphysbc)
          call t_startf ('CAM_run1')
@@ -1573,7 +1569,7 @@ CONTAINS
          call t_stopf('CAM_import')
       end if
 
-      call cam_timestep_final(cam_in, cam_out)
+      call cam_timestep_final()
       call cam_final(cam_out, cam_in)
 
       !CAMDEN TODO: export output state? Needed for finalize?

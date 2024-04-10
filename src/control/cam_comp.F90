@@ -241,7 +241,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_init(cam_in, cam_out)
+   subroutine cam_timestep_init()
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep init runs at the start of each timestep
@@ -249,9 +249,6 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       use phys_comp, only: phys_timestep_init
-
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !
       !----------------------------------------------------------
@@ -455,7 +452,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final(cam_in, cam_out)
+   subroutine cam_timestep_final()
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
@@ -463,9 +460,6 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       use phys_comp, only: phys_timestep_final
-
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !
       !----------------------------------------------------------
