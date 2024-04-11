@@ -1,0 +1,4 @@
+ncdata=/project/amp02/cam_snapshot_files/kessler/cam_ne3pg3_kessler_snapshot_derecho_gnu_before.nc
+ncdata_check=/project/amp02/cam_snapshot_files/kessler/cam_ne3pg3_kessler_snapshot_derecho_gnu_after.nc
+debug_output=0
+pver=30
