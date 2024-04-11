@@ -232,7 +232,7 @@ def write_init_files(cap_database, ic_names, outdir,
         host_dict = cap_database.host_model_dict()
 
         # Collect imported host variables
-        host_imports = collect_host_var_imports(host_vars, host_dict)
+        host_imports = collect_host_var_imports(host_vars, host_dict, constituent_set)
 
         # Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
@@ -633,7 +633,7 @@ def _get_host_model_import(hvar, import_dict, host_dict):
         raise CamInitWriteError(f"Missing host indices: {mi_str}.")
     # end if
 
-def collect_host_var_imports(host_vars, host_dict):
+def collect_host_var_imports(host_vars, host_dict, constituent_set):
     """Construct a dictionary of host-model variables to import keyed by
        host-model module name.
        <host_dict> is used to look up array-reference indices.
@@ -650,6 +650,11 @@ def collect_host_var_imports(host_vars, host_dict):
         #    passed to physics via the argument list.
         # As such, they are also always considered initialized.
         if hvar.source.ptype == 'host':
+            continue
+        # end if
+        # We also do not want to import constituent variables, as they
+        # should be automatically handled by the constituents object:
+        if hvar.get_prop_value('standard_name') in constituent_set:
             continue
         # end if
         _get_host_model_import(hvar, use_vars_write_dict, host_dict)
@@ -850,7 +855,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "prot_no_init_idx", "const_idx"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables", "cam_constituents_array", "cam_model_const_properties"]],
                  ["ccpp_kinds", ["kind_phys"]],
-                 [phys_check_fname_str, ["phys_var_stdnames",
+                 [phys_check_fname_str, ["phys_var_num", "phys_var_stdnames",
                                          "input_var_names", "std_name_len"]],
                  ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]],
                  ["cam_logfile", ["iulog"]]]
@@ -883,6 +888,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.write("character(len=SHR_KIND_CX) :: errmsg          !CCPP framework error message", 2)
     outfile.write("integer                    :: errflg          !CCPP framework error flag", 2)
+    outfile.write("integer                    :: n               !Loop control variable", 2)
     outfile.write("integer                    :: name_idx        !Input variable array index", 2)
     outfile.write("integer                    :: constituent_idx !Constituent table index", 2)
     outfile.write("integer                    :: const_input_idx !input_var_names index for a consituent", 2)
@@ -995,7 +1001,12 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 6)
     outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 6)
     outfile.comment("Find array index to extract coorect input names:", 7)
-    outfile.write("const_input_idx = findloc(phys_var_stdnames, ccpp_required_data(req_idx))", 7)
+    outfile.write("do n=1, phys_var_num", 7)
+    outfile.write("if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then", 8)
+    outfile.write("const_input_idx = n", 9)
+    outfile.write("exit", 9)
+    outfile.write("end if", 8)
+    outfile.write("end do", 7)
     outfile.write("call read_field(file, ccpp_required_data(req_idx), input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 7)
     outfile.write("else", 6)
     outfile.comment("If not in standard names list, then just use constituent name as input file name:",7)
@@ -1158,9 +1169,10 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["phys_vars_init_check", ["is_read_from_file"]],
                  ["ioFileMod", ["cam_get_file"]],
                  ["cam_pio_utils", ["cam_pio_openfile", "cam_pio_closefile"]],
-                 [f"{phys_check_fname_str}", ["phys_var_stdnames",
-                                              "input_var_names",
-                                              "std_name_len"]]]
+                 [phys_check_fname_str, ["phys_var_num",
+                                         "phys_var_stdnames",
+                                         "input_var_names",
+                                         "std_name_len"]]]
 
     # Add in host model data use statements
     use_stmts.extend(host_imports)
@@ -1193,6 +1205,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.write("character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message", 2)
     outfile.write("integer                    :: errflg    !CCPP framework error flag", 2)
+    outfile.write("integer                    :: n         !Loop control variable", 2)
     outfile.write("integer                    :: name_idx  !Input variable array index", 2)
     outfile.write("integer                    :: constituent_idx !Index of variable in constituent array", 2)
     outfile.write("integer                    :: const_input_idx !input_var_names index for a consituent", 2)
@@ -1273,7 +1286,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 5)
     outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 5)
     outfile.comment("Find array index to extract coorect input names:", 6)
-    outfile.write("const_input_idx = findloc(phys_var_stdnames, ccpp_required_data(req_idx))", 6)
+    outfile.write("do n=1, phys_var_num", 6)
+    outfile.write("if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then", 7)
+    outfile.write("const_input_idx = n", 8)
+    outfile.write("exit", 8)
+    outfile.write("end if", 7)
+    outfile.write("end do", 6)
     outfile.write("call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 6)
     outfile.write("else", 5)
     outfile.comment("If not in standard names list, then just use constituent name as input file name:",6)
