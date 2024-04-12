@@ -370,6 +370,11 @@ CONTAINS
       max_diff(2) = real(iam, kind_phys) !MPI rank for this task
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+      if (.not. var_found) then
+         !Try searching again using the variable standard name:
+         call cam_pio_find_var(file, [stdname], found_name, vardesc, var_found)
+      end if
+
       if (var_found) then
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, log_output=.false.)
@@ -493,6 +498,10 @@ CONTAINS
       max_diff(2)   = real(iam, kind_phys) !MPI rank for this task
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+      if (.not. var_found) then
+         !Try searching again using the variable standard name:
+         call cam_pio_find_var(file, [stdname], found_name, vardesc, var_found)
+      end if
 
       if (var_found) then
          if (trim(vcoord_name) == 'lev') then
