@@ -26,6 +26,7 @@ module cam_comp
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
+   use physics_types,             only: dtime_phys
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -36,17 +37,17 @@ module cam_comp
    implicit none
    private
 
-   public cam_init      ! First phase of CAM initialization
-   public cam_run1      ! CAM run method phase 1
-   public cam_run2      ! CAM run method phase 2
-   public cam_run3      ! CAM run method phase 3
-   public cam_run4      ! CAM run method phase 4
-   public cam_final     ! CAM Finalization
+   public cam_init           ! First phase of CAM initialization
+   public cam_timestep_init  ! CAM timestep initialization
+   public cam_run1           ! CAM run method phase 1
+   public cam_run2           ! CAM run method phase 2
+   public cam_run3           ! CAM run method phase 3
+   public cam_run4           ! CAM run method phase 4
+   public cam_timestep_final ! CAM timestep finalization
+   public cam_final          ! CAM Finalization
 
    type(dyn_import_t) :: dyn_in   ! Dynamics import container
    type(dyn_export_t) :: dyn_out  ! Dynamics export container
-
-   real(r8) :: dtime_phys         ! Time step for physics tendencies.
 
    logical  :: BFB_CAM_SCAM_IOP = .false.
 
@@ -95,6 +96,7 @@ CONTAINS
       use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
+      use phys_vars_init_check, only: mark_as_initialized
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -140,6 +142,9 @@ CONTAINS
       integer                  :: errflg
       character(len=cx)        :: errmsg
       !-----------------------------------------------------------------------
+
+      dtime_phys = 0.0_r8
+      call mark_as_initialized('timestep_for_physics')
 
       call init_pio_subsystem()
 
@@ -216,7 +221,7 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
       end if
 
-      call phys_init(cam_runtime_opts, phys_state, phys_tend, cam_out)
+      call phys_init()
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
@@ -233,6 +238,26 @@ CONTAINS
 
    end subroutine cam_init
 
+   !
+   !-----------------------------------------------------------------------
+   !
+   subroutine cam_timestep_init()
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose:   Timestep init runs at the start of each timestep
+      !
+      !-----------------------------------------------------------------------
+
+      use phys_comp, only: phys_timestep_init
+
+      !
+      !----------------------------------------------------------
+      ! PHYS_TIMESTEP_INIT Call the Physics package
+      !----------------------------------------------------------
+      !
+      call phys_timestep_init()
+
+   end subroutine cam_timestep_init
    !
    !-----------------------------------------------------------------------
    !
@@ -274,8 +299,7 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run1', mpicom)
       call t_startf('phys_run1')
-      call phys_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
-           cam_in, cam_out)
+      call phys_run1()
       call t_stopf('phys_run1')
 
    end subroutine cam_run1
@@ -307,8 +331,7 @@ CONTAINS
       !
       call t_barrierf('sync_phys_run2', mpicom)
       call t_startf('phys_run2')
-      call phys_run2(dtime_phys, cam_runtime_opts, phys_state, phys_tend,     &
-           cam_in, cam_out)
+      call phys_run2()
       call t_stopf('phys_run2')
 
       !
@@ -429,6 +452,27 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
+   subroutine cam_timestep_final()
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose:   Timestep final runs at the end of each timestep
+      !
+      !-----------------------------------------------------------------------
+
+      use phys_comp, only: phys_timestep_final
+
+      !
+      !----------------------------------------------------------
+      ! PHYS_TIMESTEP_FINAL Call the Physics package
+      !----------------------------------------------------------
+      !
+      call phys_timestep_final()
+
+   end subroutine cam_timestep_final
+
+   !
+   !-----------------------------------------------------------------------
+   !
 
    subroutine cam_final(cam_out, cam_in)
       !-----------------------------------------------------------------------
@@ -455,7 +499,7 @@ CONTAINS
       integer                  :: nstep   ! Current timestep number.
       !-----------------------------------------------------------------------
 
-      call phys_final(cam_runtime_opts, phys_state, phys_tend)
+      call phys_final()
       call stepon_final(cam_runtime_opts, dyn_in, dyn_out)
 !      call ionosphere_final()
 
