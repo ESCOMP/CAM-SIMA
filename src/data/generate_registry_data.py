@@ -50,8 +50,8 @@ def write_ccpp_table_header(name, outfile):
 ###############################################################################
     """Write the standard Fortran comment block for a CCPP header
     (module, type, scheme)."""
-    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name), 0)
-    outfile.write(r"!! \htmlinclude {}.html".format(name), 0)
+    outfile.write(rf"!> \section arg_table_{name}  Argument Table", 0)
+    outfile.write(rf"!! \htmlinclude {name}.html", 0)
 
 ###############################################################################
 class TypeEntry:
@@ -284,7 +284,7 @@ class VarBase:
             outfile.write(f"if ({init_var}) then", indent)
             outfile.write(f"{var_name} = {init_val}", indent+1)
             if self.initial_val_vars and self.initial_val_vars.issubset(physconst_vars):
-               outfile.write(f"call mark_as_initialized('{self.standard_name}')", indent+1)
+                outfile.write(f"call mark_as_initialized('{self.standard_name}')", indent+1)
             # end if
             outfile.write("end if", indent)
         # end if
@@ -698,7 +698,7 @@ class Variable(VarBase):
         if self.initial_value:
             if self.allocatable == "pointer":
                 init_str = f" => {self.initial_value}"
-            elif not (self.allocatable[0:11] == 'allocatable'):
+            elif not self.allocatable[0:11] == 'allocatable':
                 init_str = f" = {self.initial_value}"
             # end if (no else, do not initialize allocatable fields)
         # end if
@@ -943,7 +943,7 @@ class VarDict(OrderedDict):
         # Exclude NULL and nan variables
         for var in all_strings:
             if var.lower() not in excluded_initializations:
-               init_val_vars.add(var)
+                init_val_vars.add(var)
             # end if
         # end if
         self.__initial_value_vars.update(init_val_vars)
@@ -1055,17 +1055,16 @@ class DDT:
 ###############################################################################
     """Registry DDT"""
 
-    def __init__(self, ddt_node, known_types, var_dict, dycore, config, logger):
+    def __init__(self, ddt_node, known_types, var_dict, dycore):
         """Initialize a DDT from registry XML (<ddt_node>)
         <var_dict> is the dictionary where variables referenced in <ddt_node>
         must reside. Each DDT variable is removed from <var_dict>
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state"><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None, None) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state"><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul') #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: Unknown DDT element type, 'dessert', in 'physics_state'
         """
         self.__type = ddt_node.get('type')
-        self.__logger = logger
         self.__data = []
         extends = ddt_node.get('extends', default=None)
         if extends is None:
@@ -1136,7 +1135,7 @@ class DDT:
     def write_definition(self, outfile, access, indent):
         """Write out the Fortran definition for this DDT
 
-        >>> DDT(ET.fromstring('<ddt type="physics_state">></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul', None, None).write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> DDT(ET.fromstring('<ddt type="physics_state">></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul').write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         CCPPError: DDT, 'physics_state', has no member variables
         """
@@ -1196,13 +1195,13 @@ class File:
 ###############################################################################
     """Object describing a file object in a registry file
 
-    >>> File(ET.fromstring('<file name="physics_types" type="module"><use module="ccpp_kinds"/></file>'), TypeRegistry(), 'eul', "", None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> File(ET.fromstring('<file name="physics_types" type="module"><use module="ccpp_kinds"/></file>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Illegal use entry, no reference
-    >>> File(ET.fromstring('<file name="physics_types" type="module"><use reference="kind_phys"/></file>'), TypeRegistry(), 'eul', "", None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> File(ET.fromstring('<file name="physics_types" type="module"><use reference="kind_phys"/></file>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Illegal use entry, no module
-    >>> File(ET.fromstring('<file name="physics_types" type="module"><user reference="kind_phys"/></file>'), TypeRegistry(), 'eul', "", None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> File(ET.fromstring('<file name="physics_types" type="module"><user reference="kind_phys"/></file>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Unknown registry File element, 'user'
     """
@@ -1214,7 +1213,7 @@ class File:
                    'number_of_constituents' : 4}
     __min_dim_key = 5 # For sorting unknown dimensions
 
-    def __init__(self, file_node, known_types, dycore, config,
+    def __init__(self, file_node, known_types, dycore,
                  logger, gen_code=True, file_path=None):
         """Initialize a File object from a registry node (XML)"""
         self.__var_dict = VarDict(file_node.get('name'), file_node.get('type'),
@@ -1230,8 +1229,7 @@ class File:
             if obj.tag in ['variable', 'array']:
                 self.add_variable(obj, logger)
             elif obj.tag == 'ddt':
-                newddt = DDT(obj, self.__known_types, self.__var_dict,
-                             dycore, config, logger)
+                newddt = DDT(obj, self.__known_types, self.__var_dict, dycore)
                 self.add_ddt(newddt, logger=logger)
             elif obj.tag == 'use':
                 module = obj.get('module', default=None)
@@ -1509,7 +1507,7 @@ def parse_command_line(args, description):
     return pargs
 
 ###############################################################################
-def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
+def metadata_file_to_files(file_path, known_types, dycore, run_env):
 ###############################################################################
     """Read the metadata file at <relative_file_path> and convert it to a
     registry File object.
@@ -1535,8 +1533,8 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
         # end if
         section = f'<file name="{hname}" type="{htype}"></file>'
         sect_xml = ET.fromstring(section)
-        mfile = File(sect_xml, known_types, dycore, config,
-                     run_env.logger, gen_code=False, file_path=file_path)
+        mfile = File(sect_xml, known_types, dycore, run_env.logger,
+                     gen_code=False, file_path=file_path)
         # Add variables
         # Note, we only support one section per table for host variables
         sections = mtable.sections()
@@ -1589,8 +1587,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
             # end for
             vnode_str += '\n</ddt>'
             var_node = ET.fromstring(vnode_str)
-            new_ddt = DDT(var_node, known_types, mfile.var_dict,
-                          dycore, config, run_env.logger)
+            new_ddt = DDT(var_node, known_types, mfile.var_dict, dycore)
             mfile.add_ddt(new_ddt, logger=run_env.logger)
         # end if
         mfiles.append(mfile)
@@ -1598,7 +1595,7 @@ def metadata_file_to_files(file_path, known_types, dycore, config, run_env):
     return mfiles
 
 ###############################################################################
-def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
+def write_registry_files(registry, dycore, outdir, src_mod, src_root,
                          reg_dir, indent, logger):
 ###############################################################################
     """Write metadata and source files for <registry> to <outdir>
@@ -1607,7 +1604,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
     <src_root> is useful if a metadata file path has "$SRCROOT"
     <reg_dir> is used as a parent path if a metadata file is a relative path.
 
-    >>> File(ET.fromstring('<variable name="physics_types" type="module"><user reference="kind_phys"/></variable>'), TypeRegistry(), 'eul', "", None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> File(ET.fromstring('<variable name="physics_types" type="module"><user reference="kind_phys"/></variable>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Unknown registry object type, 'variable'
     """
@@ -1622,7 +1619,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
             logger.info(f"Parsing {section.tag}, {sec_name}, from registry")
         # end if
         if section.tag == 'file':
-            files.append(File(section, known_types, dycore, config, logger))
+            files.append(File(section, known_types, dycore, logger))
         elif section.tag == 'metadata_file':
             # Find the correct file path and parse that metadata file
             relative_file_path = section.text
@@ -1650,7 +1647,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
                 # end if
             # end if
             meta_files = metadata_file_to_files(file_path, known_types,
-                                                dycore, config, run_env)
+                                                dycore, run_env)
             files.extend(meta_files)
         else:
             emsg = "Unknown registry object type, '{}'"
@@ -1737,7 +1734,7 @@ def _create_ic_name_dict(registry):
     return ic_name_dict
 
 ###############################################################################
-def gen_registry(registry_file, dycore, config, outdir, indent,
+def gen_registry(registry_file, dycore, outdir, indent,
                  src_mod, src_root, loglevel=None, logger=None,
                  schema_paths=None, error_on_no_validate=False):
 ###############################################################################
@@ -1810,7 +1807,7 @@ def gen_registry(registry_file, dycore, config, outdir, indent,
         emsg = f"Parsing registry, {library_name}"
         logger.debug(emsg)
         reg_dir = os.path.dirname(registry_file)
-        files = write_registry_files(registry, dycore, config, outdir, src_mod,
+        files = write_registry_files(registry, dycore, outdir, src_mod,
                                      src_root, reg_dir, indent, logger)
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
@@ -1835,7 +1832,7 @@ def main():
     # end if
 
     retvals = gen_registry(args.registry_file, args.dycore.lower(),
-                           args.config, outdir, args.indent, args.source_mods,
+                           outdir, args.indent, args.source_mods,
                            args.source_root, loglevel=loglevel)
     return retvals
 

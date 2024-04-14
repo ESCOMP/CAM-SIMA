@@ -83,12 +83,12 @@ class FakeBuildCache:
         pass
 
     def update_registry(self, gen_reg_file, registry_files,
-                        dycore, reg_config):
+                        dycore):
 
         """Fake version of 'update_regsitry' method"""
 
     def registry_mismatch(self, gen_reg_file, registry_files,
-                          dycore, reg_config):
+                          dycore):
 
         """
         Fake version of 'registry_mismatch' method.
