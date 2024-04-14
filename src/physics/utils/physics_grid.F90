@@ -74,6 +74,8 @@ module physics_grid
    !!
    integer,          protected, public :: num_global_phys_cols = 0
    integer,          protected, public :: columns_on_task = 0
+   integer,          protected, public :: col_start = 1
+   integer,          protected, public :: col_end = 0
    logical,          protected, public :: phys_grid_initialized = .false.
 
    real(kind_phys), protected, allocatable, public :: lat_rad(:)
@@ -164,6 +166,7 @@ CONTAINS
 
       ! Calculate number of columns on tasks:
       columns_on_task = size(dyn_columns)
+      col_end = columns_on_task
 
       ! Allocate phys_columns:
       allocate(phys_columns(columns_on_task), stat=ierr)
