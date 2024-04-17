@@ -1251,6 +1251,7 @@ contains
         character(*), intent(in) :: stream_name
         type(var_info_type), allocatable :: var_info_list(:)
 
+        character(64), allocatable :: var_name_list(:)
         integer :: i, n, offset
         type(var_info_type), allocatable :: var_info_list_append(:)
 
@@ -1300,9 +1301,11 @@ contains
         var_info_list = [var_info_list, var_info_list_append]
 
         ! Discard duplicate variable information by names.
-        var_info_list = var_info_list(index_unique(var_info_list(:) % name))
+        var_name_list = var_info_list(:) % name
+        var_info_list = var_info_list(index_unique(var_name_list))
 
         deallocate(var_info_list_append)
+        deallocate(var_name_list)
     end function parse_stream_name
 
     !> Return the index of unique elements in `array`, which can be any intrinsic data types, as an integer array.
@@ -1314,6 +1317,7 @@ contains
         class(*), intent(in) :: array(:)
         integer, allocatable :: index_unique(:)
 
+        character(:), allocatable :: array_c(:)
         integer :: i, n
         logical :: mask_unique(size(array))
 
@@ -1329,11 +1333,20 @@ contains
 
         select type (array)
             type is (character(*))
+                ! Workaround for a bug in Cray wrapper compiler for GNU Fortran.
+                ! When a character string array is passed as the actual argument to the unlimited polymorphic dummy argument,
+                ! its array indexing is mishandled.
+                allocate(character(len(array)) :: array_c(size(array)))
+
+                array_c(:) = array(:)
+
                 do i = 1, n
-                    if (.not. any(array(i) == array .and. mask_unique)) then
+                    if (.not. any(array_c(i) == array_c .and. mask_unique)) then
                         mask_unique(i) = .true.
                     end if
                 end do
+
+                deallocate(array_c)
             type is (integer(int32))
                 do i = 1, n
                     if (.not. any(array(i) == array .and. mask_unique)) then
@@ -1348,7 +1361,7 @@ contains
                 end do
             type is (logical)
                 do i = 1, n
-                    if (.not. any(array(i) == array .and. mask_unique)) then
+                    if (.not. any((array(i) .eqv. array) .and. mask_unique)) then
                         mask_unique(i) = .true.
                     end if
                 end do
@@ -1552,6 +1565,7 @@ contains
         integer, intent(out) :: ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max
         real(rkind), intent(out) :: sphere_radius
 
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_global_mesh_dimension'
         integer, allocatable :: maxedges_value
         integer, allocatable :: ncellssolve_value
         integer, allocatable :: nedgessolve_value

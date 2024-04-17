@@ -12,11 +12,13 @@ module dyn_grid
     use physics_column_type, only: kind_pcol, physics_column_t
     use physics_grid, only: phys_grid_init
     use ref_pres, only: ref_pres_init
-    use shr_kind_mod, only: kind_r8 => shr_kind_r8
     use spmd_utils, only: iam
     use std_atm_profile, only: std_atm_pres
     use string_utils, only: stringify
     use vert_coord, only: pver, pverp, vert_coord_init
+
+    ! Modules from CESM Share.
+    use shr_kind_mod, only: kind_r8 => shr_kind_r8
 
     ! Modules from external libraries.
     use pio, only: file_desc_t
@@ -32,7 +34,7 @@ module dyn_grid
 
     ! Grid names that are to be registered with CAM-SIMA by calling `cam_grid_register`.
     ! Grid ids can be determined by calling `dyn_grid_id`.
-    character(max_hcoordname_len), parameter :: dyn_grid_name(*) = [ &
+    character(*), parameter :: dyn_grid_name(*) = [ character(max_hcoordname_len) :: &
         'mpas_cell',  &
         'cam_cell',   &
         'mpas_edge',  &
@@ -309,7 +311,7 @@ contains
 
         allocate(global_grid_index(ncells_solve))
 
-        global_grid_index(:) = int(indextocellid, kind_imap)
+        global_grid_index(:) = int(indextocellid(1:ncells_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latCell', 'nCells', ncells_global, 'latitude', 'degrees_north', &
             1, ncells_solve, latcell * rad_to_deg, map=global_grid_index)
@@ -371,7 +373,7 @@ contains
 
         allocate(global_grid_index(nedges_solve))
 
-        global_grid_index(:) = int(indextoedgeid, kind_imap)
+        global_grid_index(:) = int(indextoedgeid(1:nedges_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latEdge', 'nEdges', nedges_global, 'latitude', 'degrees_north', &
             1, nedges_solve, latedge * rad_to_deg, map=global_grid_index)
@@ -406,7 +408,7 @@ contains
 
         allocate(global_grid_index(nvertices_solve))
 
-        global_grid_index(:) = int(indextovertexid, kind_imap)
+        global_grid_index(:) = int(indextovertexid(1:nvertices_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latVertex', 'nVertices', nvertices_global, 'latitude', 'degrees_north', &
             1, nvertices_solve, latvertex * rad_to_deg, map=global_grid_index)
