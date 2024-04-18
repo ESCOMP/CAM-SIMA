@@ -140,7 +140,7 @@ CONTAINS
 
                   ! Check if constituent standard name in registered SIMA standard names list:
                   if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                     ! Find array index to extract coorect input names:
+                     ! Find array index to extract correct input names:
                      do n=1, phys_var_num
                         if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
                            const_input_idx = n
@@ -300,7 +300,7 @@ CONTAINS
 
                ! Check if constituent standard name in registered SIMA standard names list:
                if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                  ! Find array index to extract coorect input names:
+                  ! Find array index to extract correct input names:
                   do n=1, phys_var_num
                      if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
                         const_input_idx = n

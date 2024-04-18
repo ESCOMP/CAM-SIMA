@@ -268,11 +268,9 @@ class CamInitWriteError(ValueError):
 #################
 
 ##############################################################################
-def _find_and_add_host_variable(stdname, host_dict, const_dicts, var_dict):
+def _find_and_add_host_variable(stdname, host_dict, var_dict):
     """Find <stdname> in <host_dict> and add it to <var_dict> if found and
           not of type, 'host'.
-       If <stdname> is not in <host_dict> but is in one of the <const_dicts>,
-          it is considered found but not added to <var_dict>.
        If not found, add <stdname> to <missing_vars>.
        If found and added to <var_dict>, also process the standard names of
           any intrinsic sub-elements of <stdname>.
@@ -289,22 +287,13 @@ def _find_and_add_host_variable(stdname, host_dict, const_dicts, var_dict):
         if isinstance(ielem, list):
             for sname in ielem:
                 smissing = _find_and_add_host_variable(sname, host_dict,
-                                                       const_dicts, var_dict)
+                                                       var_dict)
                 missing_vars.extend(smissing)
             # end for
         # end if
     # end if
     if not hvar:
-        cvar = None
-        for cdict in const_dicts:
-            cvar = cdict.find_variable(stdname)
-            if cvar:
-                break
-            # end if
-        # end for
-        if not cvar:
-            missing_vars.append(stdname)
-        # end if
+        missing_vars.append(stdname)
     # end if
     return missing_vars
 
@@ -330,9 +319,6 @@ def gather_ccpp_req_vars(cap_database):
     retmsg = ""
     # Host model dictionary
     host_dict = cap_database.host_model_dict()
-    # Constituent dictionaries
-    const_dicts = [cap_database.constituent_dictionary(s)
-                   for s in cap_database.suite_list()]
 
     # Create CCPP datatable required variables-listing object:
     # XXgoldyXX: Choose only some phases here?
@@ -355,7 +341,7 @@ def gather_ccpp_req_vars(cap_database):
                 else:
                     # We need to work with the host model version of this variable
                     missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          const_dicts, req_vars)
+                                                          req_vars)
                     missing_vars.update(missing)
                 # end if
             # end if (do not include output variables)
@@ -1002,7 +988,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 6)
     outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 6)
-    outfile.comment("Find array index to extract coorect input names:", 7)
+    outfile.comment("Find array index to extract correct input names:", 7)
     outfile.write("do n=1, phys_var_num", 7)
     outfile.write("if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then", 8)
     outfile.write("const_input_idx = n", 9)
@@ -1287,7 +1273,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 5)
     outfile.write("if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then", 5)
-    outfile.comment("Find array index to extract coorect input names:", 6)
+    outfile.comment("Find array index to extract correct input names:", 6)
     outfile.write("do n=1, phys_var_num", 6)
     outfile.write("if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then", 7)
     outfile.write("const_input_idx = n", 8)
