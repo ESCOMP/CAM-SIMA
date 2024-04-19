@@ -3,11 +3,6 @@
 <registry name="cam_registry" version="1.0">
   <file name="physics_types_bad_vertdim" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
-    <variable local_name="ncol" standard_name="horizontal_dimension"
-              units="count" type="integer" access="protected">
-      <long_name>Number of horizontal columns</long_name>
-      <initial_value>0</initial_value>
-    </variable>
     <variable local_name="band_no" standard_name="band_number"
               units="count" type="integer" access="protected">
     </variable>

@@ -359,8 +359,7 @@ def _update_genccpp_dir(utility_files, genccpp_dir):
 
 ###############################################################################
 def generate_registry(data_search, build_cache, atm_root, bldroot,
-                      source_mods_dir, dycore, gen_fort_indent,
-                      reg_config=None):
+                      source_mods_dir, dycore, gen_fort_indent):
 ###############################################################################
     """
     Generate the CAM data source and metadata from the registry,
@@ -382,14 +381,14 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
     if os.path.exists(genreg_dir):
         do_gen_registry = build_cache.registry_mismatch(gen_reg_file,
                                                         registry_files,
-                                                        dycore, reg_config)
+                                                        dycore)
     else:
         os.makedirs(genreg_dir)
         do_gen_registry = True
     # End if
     if do_gen_registry:
         for reg_file in registry_files:
-            retvals = gen_registry(reg_file, dycore, reg_config, genreg_dir,
+            retvals = gen_registry(reg_file, dycore, genreg_dir,
                                    gen_fort_indent, source_mods_dir, atm_root,
                                    logger=_LOGGER, schema_paths=data_search,
                                    error_on_no_validate=True)
@@ -407,7 +406,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         # Save build details in the build cache
         reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
-                                    reg_config, reg_file_paths, ic_names)
+                                    reg_file_paths, ic_names)
     else:
         # If we did not run the registry generator, retrieve info from cache
         reg_file_paths = build_cache.reg_file_list()

@@ -94,7 +94,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
         # Run test
-        retcode, files, _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -136,7 +136,7 @@ class RegistryTest(unittest.TestCase):
             out_meta = os.path.join(_TMP_DIR, out_meta_name)
             remove_files([out_source, out_meta])
             # Run dycore
-            retcode, files, _ = gen_registry(filename, dycore, {}, _TMP_DIR, 2,
+            retcode, files, _ = gen_registry(filename, dycore, _TMP_DIR, 2,
                                              _SRC_MOD_DIR, _CAM_ROOT,
                                              loglevel=logging.ERROR,
                                              error_on_no_validate=True)
@@ -183,7 +183,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -223,7 +223,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -261,7 +261,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
         # generate registry
-        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -315,7 +315,7 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, tmp_src_dir)
 
         # Generate registry
-        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _TMP_DIR,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -372,7 +372,7 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, source_mod_file)
 
         # Generate registry
-        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          tmp_src_dir, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -423,7 +423,7 @@ class RegistryTest(unittest.TestCase):
         remove_files([out_source, out_meta])
 
         # Run test
-        retcode, files, _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -484,7 +484,7 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'se', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -530,7 +530,7 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode, files, _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+        retcode, files, _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -576,7 +576,7 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -620,7 +620,7 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'fv', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -664,7 +664,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -710,7 +710,7 @@ class RegistryTest(unittest.TestCase):
         # Run test
 
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -756,7 +756,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -807,7 +807,7 @@ class RegistryTest(unittest.TestCase):
         # Run test
         vmsg = 'Failed to flag a duplicate DDT type'
         with self.assertRaises(ValueError, msg=vmsg) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -849,7 +849,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -891,7 +891,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -934,7 +934,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -984,7 +984,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -1029,7 +1029,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul',_TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -1073,7 +1073,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -1119,7 +1119,7 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -1167,7 +1167,7 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', {}, _TMP_DIR, 2,
+            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)
@@ -1191,8 +1191,7 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},
-                                   run_env)
+            metadata_file_to_files(infilename, TypeRegistry(), 'eul', run_env)
         # Check exception message
         emsg = "module, 'physics_types_simple', table already contains "
         emsg += f"'physics_types_simple', at {infilename}:36"
@@ -1211,8 +1210,7 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            metadata_file_to_files(infilename, TypeRegistry(), 'eul', {},
-                                   run_env)
+            metadata_file_to_files(infilename, TypeRegistry(), 'eul', run_env)
         # Check exception message
         emsg = "Missing metadata section ([ccpp-arg-table]) for physics_types_simple"
         self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
