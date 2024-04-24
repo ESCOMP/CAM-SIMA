@@ -13,7 +13,7 @@
 
   <xs:simpleType name="fortran_id_type">
     <xs:restriction base="xs:string">
-      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,63}"/>
+      <xs:pattern value="[A-Za-z][A-Za-z0-9_=]{0,63}"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -106,6 +106,15 @@
   <xs:attribute name="units"                   type="units_type"/>
   <xs:attribute name="version"                 type="version_type"/>
 
+  <!-- optional logical attributes -->
+
+  <xs:attribute name="constituent"             type="xs:boolean"
+                default="false"/>
+  <xs:attribute name="advected"                type="xs:boolean"
+                default="false"/>
+  <xs:attribute name="phys_timestep_init_zero" type="xs:boolean"
+                default="false"/>
+
   <!-- definition of simple types -->
 
   <xs:simpleType name="dimensions">
@@ -132,17 +141,16 @@
       <xs:element name="initial_value" type="initial_value"  minOccurs="0"/>
       <xs:element name="ic_file_input_names" type="ic_file_input_names" minOccurs="0"/>
     </xs:sequence>
-    <xs:attribute name="standard_name" type="standard_name_type"
-                  use="required"/>
+    <xs:attribute ref="standard_name" use="required"/>
+    <xs:attribute ref="units"         use="optional"/>
+    <xs:attribute ref="constituent"   use="optional"/>
+    <xs:attribute ref="advected"      use="optional"/>
+    <xs:attribute ref="phys_timestep_init_zero" use="optional"/>
+    <!-- array element-specific attributes -->
     <xs:attribute name="index_name"    type="standard_name_type"
                   use="required"/>
     <xs:attribute name="index_pos"     type="standard_name_type"
                   use="required"/>
-    <xs:attribute ref="units"          use="optional"/>
-    <xs:attribute name="advected"      use="optional"
-                  type="xs:boolean" default="false"/>
-    <xs:attribute name="phys_timestep_init_zero" use="optional"
-                  type="xs:boolean" default="false"/>
   </xs:complexType>
 
   <xs:complexType name="variable_type">
@@ -159,10 +167,9 @@
     <xs:attribute ref="kind"          use="optional" default=""/>
     <xs:attribute ref="allocatable"   use="optional" default="none"/>
     <xs:attribute ref="access"        use="optional" default="public"/>
-    <xs:attribute name="advected"     use="optional"
-                  type="xs:boolean" default="false"/>
-    <xs:attribute name="phys_timestep_init_zero" use="optional"
-                  type="xs:boolean" default="false"/>
+    <xs:attribute ref="constituent"   use="optional"/>
+    <xs:attribute ref="advected"      use="optional"/>
+    <xs:attribute ref="phys_timestep_init_zero" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="array_type">
@@ -195,15 +202,16 @@
       <xs:element name="data"  type="data_type"
                   minOccurs="1" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="type"    use="required" type="fortran_id_type"/>
-    <xs:attribute name="private" use="optional" type="xs:boolean"
-                  default="false"/>
+    <xs:attribute ref="type"          use="required"/>
+    <xs:attribute ref="access"        use="optional" default="public"/>
+    <!-- DDT-specific attributes -->
     <xs:attribute name="bindC"   use="optional" type="xs:boolean"
                   default="false"/>
     <xs:attribute ref="extends"  use="optional" default=""/>
   </xs:complexType>
 
   <xs:complexType name="use_type">
+    <!-- use-specific attributes -->
     <xs:attribute name="module"    type="fortran_id_type" use="required"/>
     <xs:attribute name="reference" type="reference_type"  use="required"/>
   </xs:complexType>
@@ -237,8 +245,9 @@
           <xs:element name="metadata_file" type="xs:string"/>
         </xs:choice>
       </xs:sequence>
-      <xs:attribute name="name"    type="xs:string"    use="required"/>
-      <xs:attribute name="version" type="version_type" use="required"/>
+      <xs:attribute ref="version" use="required"/>
+      <!-- registry-specific attributes -->
+      <xs:attribute name="name"   type="xs:string"     use="required"/>
     </xs:complexType>
   </xs:element>
 

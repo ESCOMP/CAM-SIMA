@@ -108,7 +108,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
 
         #Set path to test registry file, which will be used in
-        #various tests below as a stand-in for all teeded files:
+        #various tests below as a stand-in for all needed files:
         test_reg_file = os.path.join(_WRITE_INIT_DIR, "param_reg.xml")
 
         #Copy test registry file to local "tmp" directory:
@@ -427,7 +427,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
         #Update registry fields:
         test_cache.update_registry(tmp_test_reg, [tmp_test_reg],
-                                   dycore, None, [tmp_test_reg], ic_names)
+                                   dycore, [tmp_test_reg], ic_names)
 
         #Write updated fields to build cache file:
         test_cache.write()
@@ -462,7 +462,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         test_cache = BuildCacheCAM(cache_file)
 
         #Run registry_mismatch function:
-        reg_match = test_cache.registry_mismatch(reg_file, [reg_file], "none", None)
+        reg_match = test_cache.registry_mismatch(reg_file, [reg_file], "none")
 
         #Check that function returns False:
         self.assertFalse(reg_match)
@@ -492,7 +492,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         new_dycore = "se"
 
         #Run registry_mismatch function:
-        reg_match = test_cache.registry_mismatch(reg_file, [reg_file], new_dycore, None)
+        reg_match = test_cache.registry_mismatch(reg_file, [reg_file], new_dycore)
 
         #Check that function returns True:
         self.assertTrue(reg_match)
@@ -522,7 +522,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         test_cache = BuildCacheCAM(cache_file)
 
         #Run registry_mismatch function:
-        reg_match = test_cache.registry_mismatch(reg_file, [new_file], "none", None)
+        reg_match = test_cache.registry_mismatch(reg_file, [new_file], "none")
 
         #Check that function returns True:
         self.assertTrue(reg_match)
@@ -553,35 +553,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         test_cache = BuildCacheCAM(cache_file)
 
         #Run registry_mismatch function:
-        reg_match = test_cache.registry_mismatch(new_file, [reg_file], "none", None)
-
-        #Check that function returns True:
-        self.assertTrue(reg_match)
-
-    #++++++++++++++++
-
-    def test_registry_mismatch_diff_config(self):
-
-        """
-        Check that the 'registry_mismatch'
-        function returns True when the there is
-        a change in the registry config options
-        being used.
-        """
-
-        #Set path to already-existing cache file used by test_write_init_files:
-        cache_file = os.path.join(_WRITE_INIT_DIR, "simple_build_cache_template.xml")
-
-        #Set path to registry generator file listed in build_cache file.
-        #Please note that in this sample file the registry XML file is listed,
-        #and not a python file as would normally be the case:
-        reg_file = os.path.join(_WRITE_INIT_DIR, "simple_reg.xml")
-
-        #Create new  build cache object:
-        test_cache = BuildCacheCAM(cache_file)
-
-        #Run registry_mismatch function:
-        reg_match = test_cache.registry_mismatch(reg_file, [reg_file], "none", "banana")
+        reg_match = test_cache.registry_mismatch(new_file, [reg_file], "none")
 
         #Check that function returns True:
         self.assertTrue(reg_match)

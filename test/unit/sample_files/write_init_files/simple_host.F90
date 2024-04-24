@@ -29,11 +29,15 @@ CONTAINS
     character(len=128), allocatable :: part_names(:)
     character(len=512)              :: errmsg
     integer                         :: errflg
+    integer                         :: pcols
     integer                         :: col_start
     integer                         :: col_end
     integer                         :: ncols
     integer, protected              :: pver
     real(kind_phys)                 :: dtime_phys
+
+    ! Declare a horizontal dimension:
+    pcols = 5
 
     ! Initialize our 'data'
     call init_temp()

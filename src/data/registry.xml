@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
-  <!-- CAMDEN Host model meta files -->
+  <!-- CAM-SIMA Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/physics/utils/phys_comp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
@@ -314,6 +313,25 @@
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
+    <!-- Physics timestep -->
+    <variable local_name="dtime_phys"
+              standard_name="timestep_for_physics"
+              units="s" type="real" kind="kind_phys">
+      <long_name>timestep for physics</long_name>
+    </variable>
+    <!-- Error handling variables -->
+    <variable local_name="errcode"
+              standard_name="ccpp_error_code"
+              units="1" type="integer">
+      <long_name>ccpp error code</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="errmsg"
+              standard_name="ccpp_error_message"
+              units="none" type="character" kind="len=512">
+      <long_name>ccpp error message</long_name>
+      <initial_value>''</initial_value>
+    </variable>
     <!-- Composition-dependent Variables -->
     <variable local_name="cpairv"
               standard_name="composition_dependent_specific_heat_of_dry_air_at_constant_pressure"
@@ -354,6 +372,32 @@
       <long_name>Composition-dependent ratio of water vapor to dry air gas constants minus one</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>zvir</initial_value>
+    </variable>
+    <!-- Constituent Variables -->
+    <!-- These are only used to set possible IC file input names, as the constituents object handles allocation. -->
+    <variable local_name="q"
+              standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>Water vapor mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>Q cnst_Q</ic_file_input_names>
+    </variable>
+    <variable local_name="cldliq"
+              standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
+    </variable>
+    <variable local_name="cldice"
+              standard_name="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>Cloud ice mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
+    </variable>
+    <variable local_name="rainqm"
+              standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>rain mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
     </variable>
   </file>
 </registry>

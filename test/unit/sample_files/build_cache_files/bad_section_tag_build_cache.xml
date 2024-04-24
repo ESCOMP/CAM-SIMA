@@ -5,7 +5,6 @@
       <generate_registry_file file_path="/under/the/rainbow/generate_registry_data.py" hash="59f353246bdb856b5ab7d728db510dce07870d55"/>
       <registry_file file_path="in/the/rainbow/registry.xml" hash="010e4f5c69298bc3e519dae0aa17aee1f8232d09"/>
       <dycore>none</dycore>
-      <config/>
       <reg_gen_file>/yellow/brick/road/munchkin.meta</reg_gen_file>
       <ic_name_entry standard_name="Only_had_a">brain</ic_name_entry>
       <ic_name_entry standard_name="Only_had_a">heart</ic_name_entry>

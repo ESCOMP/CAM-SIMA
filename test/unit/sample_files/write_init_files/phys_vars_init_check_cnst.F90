@@ -15,7 +15,7 @@
 !! @brief Auto-generated Initialization-checking source file
 !!
 !
-module phys_vars_init_check_param
+module phys_vars_init_check_cnst
 
 
    implicit none
@@ -37,16 +37,16 @@ module phys_vars_init_check_param
    integer, public, parameter :: phys_const_num = 15
 
    !Max length of physics-related variable standard names:
-   integer, public, parameter :: std_name_len = 26
+   integer, public, parameter :: std_name_len = 25
 
    ! Max length of input (IC) file variable names:
-   integer, public, parameter :: ic_name_len = 5
+   integer, public, parameter :: ic_name_len = 13
 
    ! Physics-related input variable standard names:
-   character(len=26), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
-      'potential_temperature     ', &
-      'air_pressure_at_sea_level ', &
-      'gravitational_acceleration' /)
+   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
+      'potential_temperature    ', &
+      'air_pressure_at_sea_level', &
+      'super_cool_cat_const     ' /)
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = (/ &
       "ccpp_constituent_minimum_values     ", &
@@ -65,22 +65,22 @@ module phys_vars_init_check_param
       "suite_name                          ", &
       "suite_part                          " /)
    !Array storing all registered IC file input names for each variable:
-   character(len=5), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
-      'theta', &
-      'slp  ', &
-      'g    ' /), (/1, phys_var_num/))
+   character(len=13), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
+      'theta        ', 'pot_temp     ', &
+      'slp          ', 'sea_lev_pres ', &
+      'COOL_CAT     ', 'cnst_COOL_CAT' /), (/2, phys_var_num/))
 
    ! Array indicating whether or not variable is protected:
    logical, public, protected :: protected_vars(phys_var_num)= (/ &
       .false., &
       .false., &
-      .true. /)
+      .false. /)
 
    ! Variable state (UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE):
    integer, public, protected :: initialized_vars(phys_var_num)= (/ &
       UNINITIALIZED, &
       UNINITIALIZED, &
-      PARAM /)
+      UNINITIALIZED /)
 
 
 CONTAINS
@@ -241,4 +241,4 @@ CONTAINS
 
    end subroutine is_read_from_file
 
-end module phys_vars_init_check_param
+end module phys_vars_init_check_cnst
