@@ -18,6 +18,18 @@
   dimensions = ()
   type = integer
   protected = True
+[ col_start ]
+  standard_name = horizontal_loop_begin
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
+[ col_end ]
+  standard_name = horizontal_loop_end
+  units = count
+  dimensions = ()
+  type = integer
+  protected = True
 [ phys_grid_initialized ]
   standard_name = flag_for_physics_grid_initialization
   units = flag

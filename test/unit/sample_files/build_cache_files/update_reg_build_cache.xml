@@ -5,7 +5,6 @@
       <generate_registry_file file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
       <registry_file file_path="tmp/cam_build_cache/test_reg.xml" hash="584c7f0992d4af811afb2069c752f279c51a1ac4"/>
       <dycore>banana</dycore>
-      <config/>
       <reg_gen_file>tmp/cam_build_cache/test_reg.xml</reg_gen_file>
       <ic_name_entry standard_name="Only_had_a">heart</ic_name_entry>
       <ic_name_entry standard_name="Only_had_a">brain</ic_name_entry>

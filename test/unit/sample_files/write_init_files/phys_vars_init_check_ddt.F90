@@ -32,14 +32,14 @@ module phys_vars_init_check_ddt
    integer, public, parameter ::    INITIALIZED = 1
    integer, public, parameter ::          PARAM = 2
    integer, public, parameter :: READ_FROM_FILE = 3
-   !Total number of physics-related variables:
+   ! Total number of physics-related variables:
    integer, public, parameter :: phys_var_num = 2
-   integer, public, parameter :: phys_const_num = 13
+   integer, public, parameter :: phys_const_num = 15
 
    !Max length of physics-related variable standard names:
    integer, public, parameter :: std_name_len = 25
 
-   !Max length of input (IC) file variable names:
+   ! Max length of input (IC) file variable names:
    integer, public, parameter :: ic_name_len = 5
 
    ! Physics-related input variable standard names:
@@ -51,6 +51,8 @@ module phys_vars_init_check_ddt
       "ccpp_constituent_minimum_values     ", &
       "ccpp_constituent_properties         ", &
       "ccpp_constituents                   ", &
+      "ccpp_error_code                     ", &
+      "ccpp_error_message                  ", &
       "do_log_output                       ", &
       "log_output_unit                     ", &
       "mpi_communicator                    ", &

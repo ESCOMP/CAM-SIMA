@@ -61,6 +61,18 @@ CONTAINS
       find_input_name_idx = no_exist_idx
       constituent_index = no_exist_idx
 
+      !First check if quantity is a constituent:
+      call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
+      if (find_input_name_idx < 0) then
+         find_input_name_idx = no_exist_idx
+      else
+         constituent_index = find_input_name_idx
+         find_input_name_idx = const_idx
+         !Return from function here,
+         !as variable has already been found:
+         return
+      end if
+
       !Loop through physics variable standard names:
       do idx = 1, phys_var_num
          !Check if provided name is in required names array:
@@ -86,7 +98,7 @@ CONTAINS
                !If not already initialized, then pass on the real array index:
                find_input_name_idx = idx
             end if
-            !Exit function:
+            !Exit physics variable name loop:
             exit
          end if
       end do
@@ -100,22 +112,11 @@ CONTAINS
             end if
          end do
       end if
-      ! If still not found, look in the constituent hash table
-      if (find_input_name_idx == no_exist_idx) then
-         call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
-         if (find_input_name_idx < 0) then
-            find_input_name_idx = no_exist_idx
-         else
-            constituent_index = find_input_name_idx
-            find_input_name_idx = const_idx
-         end if
-      end if
-
 
    end function find_input_name_idx
 
 
-   function arr2str(name_array)
+   pure function arr2str(name_array)
       ! Dummy arguments
       character(len=*), intent(in) :: name_array(:)
       character(len=256)           :: arr2str
@@ -369,6 +370,11 @@ CONTAINS
       max_diff(2) = real(iam, kind_phys) !MPI rank for this task
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+      if (.not. var_found) then
+         !Try searching again using the variable standard name:
+         call cam_pio_find_var(file, [stdname], found_name, vardesc, var_found)
+      end if
+
       if (var_found) then
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, log_output=.false.)
@@ -492,6 +498,10 @@ CONTAINS
       max_diff(2)   = real(iam, kind_phys) !MPI rank for this task
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
+      if (.not. var_found) then
+         !Try searching again using the variable standard name:
+         call cam_pio_find_var(file, [stdname], found_name, vardesc, var_found)
+      end if
 
       if (var_found) then
          if (trim(vcoord_name) == 'lev') then

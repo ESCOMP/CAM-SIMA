@@ -12,10 +12,10 @@
 
 
 !>
-!! @brief Auto-generated Initial conditions source file, physics_inputs_no_horiz.F90
+!! @brief Auto-generated Initial conditions source file, physics_inputs_cnst.F90
 !!
 !
-module physics_inputs_no_horiz
+module physics_inputs_cnst
 
 
    implicit none
@@ -29,17 +29,17 @@ module physics_inputs_no_horiz
 CONTAINS
 
    subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
-      use pio,                           only: file_desc_t
-      use cam_abortutils,                only: endrun
-      use spmd_utils,                    only: masterproc
-      use shr_kind_mod,                  only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,                  only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,                  only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
-      use ccpp_kinds,                    only: kind_phys
-      use phys_vars_init_check_no_horiz, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use ccpp_constituent_prop_mod,     only: ccpp_constituent_prop_ptr_t
-      use cam_logfile,                   only: iulog
-      use physics_types_no_horiz,        only: slp, theta
+      use pio,                       only: file_desc_t
+      use cam_abortutils,            only: endrun
+      use spmd_utils,                only: masterproc
+      use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,              only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
+      use ccpp_kinds,                only: kind_phys
+      use phys_vars_init_check_cnst, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use cam_logfile,               only: iulog
+      use physics_types_simple,      only: slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -187,7 +187,7 @@ CONTAINS
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call endrun('Cannot read slp from file'//', slp has no horizontal dimension')
+                        call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, slp)
 
                   end select !read variables
                end select !special indices
@@ -214,20 +214,20 @@ CONTAINS
    end subroutine physics_read_data
 
    subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value)
-      use pio,                           only: file_desc_t, pio_nowrite
-      use cam_abortutils,                only: endrun
-      use shr_kind_mod,                  only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,                  only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,                  only: ccpp_physics_suite_variables, cam_advected_constituents_array
-      use cam_constituents,              only: const_get_index
-      use ccpp_kinds,                    only: kind_phys
-      use cam_logfile,                   only: iulog
-      use spmd_utils,                    only: masterproc
-      use phys_vars_init_check,          only: is_read_from_file
-      use ioFileMod,                     only: cam_get_file
-      use cam_pio_utils,                 only: cam_pio_openfile, cam_pio_closefile
-      use phys_vars_init_check_no_horiz, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_no_horiz,        only: slp, theta
+      use pio,                       only: file_desc_t, pio_nowrite
+      use cam_abortutils,            only: endrun
+      use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,              only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_advected_constituents_array
+      use cam_constituents,          only: const_get_index
+      use ccpp_kinds,                only: kind_phys
+      use cam_logfile,               only: iulog
+      use spmd_utils,                only: masterproc
+      use phys_vars_init_check,      only: is_read_from_file
+      use ioFileMod,                 only: cam_get_file
+      use cam_pio_utils,             only: cam_pio_openfile, cam_pio_closefile
+      use phys_vars_init_check_cnst, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
+      use physics_types_simple,      only: slp, theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -332,7 +332,8 @@ CONTAINS
                        min_relative_value, is_first)
 
                case ('air_pressure_at_sea_level')
-                  call endrun('Cannot check status of slp'//', slp has no horizontal dimension')
+                  call check_field(file, input_var_names(:,name_idx), timestep, slp, 'air_pressure_at_sea_level', min_difference, min_relative_value,  &
+                       is_first)
 
                end select !check variables
             end if !check if constituent
@@ -360,4 +361,4 @@ CONTAINS
       end if
    end subroutine physics_check_data
 
-end module physics_inputs_no_horiz
+end module physics_inputs_cnst
