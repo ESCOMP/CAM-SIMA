@@ -1597,36 +1597,36 @@ contains
         real(rkind), intent(out) :: sphere_radius
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_global_mesh_dimension'
-        integer, allocatable :: maxedges_value
-        integer, allocatable :: ncellssolve_value
-        integer, allocatable :: nedgessolve_value
-        integer, allocatable :: nverticessolve_value
-        integer, allocatable :: nvertlevels_value
+        integer, pointer :: maxedges_pointer => null()
+        integer, pointer :: ncellssolve_pointer => null()
+        integer, pointer :: nedgessolve_pointer => null()
+        integer, pointer :: nverticessolve_pointer => null()
+        integer, pointer :: nvertlevels_pointer => null()
 
-        call self % get_variable_value(maxedges_value, 'dim', 'maxEdges')
-        call self % get_variable_value(ncellssolve_value, 'dim', 'nCellsSolve')
-        call self % get_variable_value(nedgessolve_value, 'dim', 'nEdgesSolve')
-        call self % get_variable_value(nverticessolve_value, 'dim', 'nVerticesSolve')
-        call self % get_variable_value(nvertlevels_value, 'dim', 'nVertLevels')
+        call self % get_variable_pointer(maxedges_pointer, 'dim', 'maxEdges')
+        call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
+        call self % get_variable_pointer(nedgessolve_pointer, 'dim', 'nEdgesSolve')
+        call self % get_variable_pointer(nverticessolve_pointer, 'dim', 'nVerticesSolve')
+        call self % get_variable_pointer(nvertlevels_pointer, 'dim', 'nVertLevels')
 
-        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, ncellssolve_value, ncells_global)
-        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nedgessolve_value, nedges_global)
-        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nverticessolve_value, nvertices_global)
+        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, ncellssolve_pointer, ncells_global)
+        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nedgessolve_pointer, nedges_global)
+        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nverticessolve_pointer, nvertices_global)
 
         ! Vertical levels are not decomposed.
         ! All tasks have the same number of vertical levels.
-        nvertlevels = nvertlevels_value
+        nvertlevels = nvertlevels_pointer
 
-        call mpas_dmpar_max_int(self % domain_ptr % dminfo, ncellssolve_value, ncells_max)
+        call mpas_dmpar_max_int(self % domain_ptr % dminfo, ncellssolve_pointer, ncells_max)
 
-        nedges_max = maxedges_value
+        nedges_max = maxedges_pointer
         sphere_radius = self % domain_ptr % sphere_radius
 
-        deallocate(maxedges_value)
-        deallocate(ncellssolve_value)
-        deallocate(nedgessolve_value)
-        deallocate(nverticessolve_value)
-        deallocate(nvertlevels_value)
+        nullify(maxedges_pointer)
+        nullify(ncellssolve_pointer)
+        nullify(nedgessolve_pointer)
+        nullify(nverticessolve_pointer)
+        nullify(nvertlevels_pointer)
     end subroutine dyn_mpas_get_global_mesh_dimension
 
     !> Helper subroutine for returning a pointer of `mpas_pool_type` to the named pool.

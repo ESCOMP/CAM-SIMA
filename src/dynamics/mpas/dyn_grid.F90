@@ -57,7 +57,9 @@ contains
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine model_grid_init()
         character(*), parameter :: subname = 'dyn_grid::model_grid_init'
-        integer, allocatable :: ncellssolve, nedgessolve, nverticessolve
+        integer, pointer :: ncellssolve => null()
+        integer, pointer :: nedgessolve => null()
+        integer, pointer :: nverticessolve => null()
         type(file_desc_t), pointer :: pio_file => null()
 
         ! Initialize mathematical and physical constants for dynamics.
@@ -85,17 +87,17 @@ contains
         ! Inquire local and global mesh dimensions and save them as module variables.
         call dyn_debug_print('Inquiring local and global mesh dimensions')
 
-        call mpas_dynamical_core % get_variable_value(ncellssolve, 'dim', 'nCellsSolve')
-        call mpas_dynamical_core % get_variable_value(nedgessolve, 'dim', 'nEdgesSolve')
-        call mpas_dynamical_core % get_variable_value(nverticessolve, 'dim', 'nVerticesSolve')
+        call mpas_dynamical_core % get_variable_pointer(ncellssolve, 'dim', 'nCellsSolve')
+        call mpas_dynamical_core % get_variable_pointer(nedgessolve, 'dim', 'nEdgesSolve')
+        call mpas_dynamical_core % get_variable_pointer(nverticessolve, 'dim', 'nVerticesSolve')
 
         ncells_solve = ncellssolve
         nedges_solve = nedgessolve
         nvertices_solve = nverticessolve
 
-        deallocate(ncellssolve)
-        deallocate(nedgessolve)
-        deallocate(nverticessolve)
+        nullify(ncellssolve)
+        nullify(nedgessolve)
+        nullify(nverticessolve)
 
         call mpas_dynamical_core % get_global_mesh_dimension( &
             ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
@@ -148,16 +150,18 @@ contains
         ! `zw` denotes zeta at w-wind levels (i.e., at layer interfaces).
         ! `dzw` denotes the delta/difference between `zw`.
         ! `rdzw` denotes the reciprocal of `dzw`.
-        real(kind_r8), allocatable :: zu(:)
-        real(kind_r8), allocatable :: zw(:), dzw(:), rdzw(:)
+        real(kind_r8), allocatable :: zu(:), zw(:), dzw(:)
+        real(kind_r8), pointer :: rdzw(:) => null()
 
         ! Compute reference height.
-        call mpas_dynamical_core % get_variable_value(rdzw, 'all', 'rdzw', time_level=1)
+        call mpas_dynamical_core % get_variable_pointer(rdzw, 'mesh', 'rdzw')
 
         allocate(dzw(pver), stat=ierr)
         call check_allocate(ierr, 'init_reference_pressure', 'dzw', 'dyn_grid', __LINE__)
 
         dzw(:) = 1.0_kind_r8 / rdzw
+
+        nullify(rdzw)
 
         allocate(zw(pverp), stat=ierr)
         call check_allocate(ierr, 'init_reference_pressure', 'zw', 'dyn_grid', __LINE__)
@@ -216,10 +220,10 @@ contains
         integer :: hdim1_d, hdim2_d
         integer :: i
         integer :: ierr
-        integer, allocatable :: indextocellid(:)  ! Global indexes of cell centers.
-        real(kind_r8), allocatable :: areacell(:) ! Cell areas (square meters).
-        real(kind_r8), allocatable :: latcell(:)  ! Cell center latitudes (radians).
-        real(kind_r8), allocatable :: loncell(:)  ! Cell center longitudes (radians).
+        integer, pointer :: indextocellid(:) => null()  ! Global indexes of cell centers.
+        real(kind_r8), pointer :: areacell(:) => null() ! Cell areas (square meters).
+        real(kind_r8), pointer :: latcell(:) => null()  ! Cell center latitudes (radians).
+        real(kind_r8), pointer :: loncell(:) => null()  ! Cell center longitudes (radians).
         type(physics_column_t), allocatable :: dyn_column(:) ! Grid and mapping information between global and local indexes.
 
         hdim1_d = ncells_global
@@ -227,10 +231,10 @@ contains
         ! Setting `hdim2_d` to `1` indicates unstructured grid.
         hdim2_d = 1
 
-        call mpas_dynamical_core % get_variable_value(areacell, 'mesh', 'areaCell')
-        call mpas_dynamical_core % get_variable_value(indextocellid, 'mesh', 'indexToCellID')
-        call mpas_dynamical_core % get_variable_value(latcell, 'mesh', 'latCell')
-        call mpas_dynamical_core % get_variable_value(loncell, 'mesh', 'lonCell')
+        call mpas_dynamical_core % get_variable_pointer(areacell, 'mesh', 'areaCell')
+        call mpas_dynamical_core % get_variable_pointer(indextocellid, 'mesh', 'indexToCellID')
+        call mpas_dynamical_core % get_variable_pointer(latcell, 'mesh', 'latCell')
+        call mpas_dynamical_core % get_variable_pointer(loncell, 'mesh', 'lonCell')
 
         allocate(dyn_column(ncells_solve), stat=ierr)
         call check_allocate(ierr, 'init_physics_grid', 'dyn_column', 'dyn_grid', __LINE__)
@@ -261,6 +265,11 @@ contains
             call check_allocate(ierr, 'init_physics_grid', 'dyn_column % dyn_block_index', 'dyn_grid', __LINE__)
         end do
 
+        nullify(areacell)
+        nullify(indextocellid)
+        nullify(latcell)
+        nullify(loncell)
+
         ! `phys_grid_init` expects to receive the `area` attribute from dynamics.
         ! However, do not let it because dynamics grid is different from physics grid.
         allocate(dyn_attribute_name(0), stat=ierr)
@@ -279,16 +288,16 @@ contains
     subroutine define_cam_grid()
         integer :: i
         integer :: ierr
-        integer, allocatable :: indextocellid(:)   ! Global indexes of cell centers.
-        integer, allocatable :: indextoedgeid(:)   ! Global indexes of edge nodes.
-        integer, allocatable :: indextovertexid(:) ! Global indexes of vertex nodes.
-        real(kind_r8), allocatable :: areacell(:)  ! Cell areas (square meters).
-        real(kind_r8), allocatable :: latcell(:)   ! Cell center latitudes (radians).
-        real(kind_r8), allocatable :: latedge(:)   ! Edge node latitudes (radians).
-        real(kind_r8), allocatable :: latvertex(:) ! Vertex node latitudes (radians).
-        real(kind_r8), allocatable :: loncell(:)   ! Cell center longitudes (radians).
-        real(kind_r8), allocatable :: lonedge(:)   ! Edge node longitudes (radians).
-        real(kind_r8), allocatable :: lonvertex(:) ! Vertex node longitudes (radians).
+        integer, pointer :: indextocellid(:) => null()   ! Global indexes of cell centers.
+        integer, pointer :: indextoedgeid(:) => null()   ! Global indexes of edge nodes.
+        integer, pointer :: indextovertexid(:) => null() ! Global indexes of vertex nodes.
+        real(kind_r8), pointer :: areacell(:) => null()  ! Cell areas (square meters).
+        real(kind_r8), pointer :: latcell(:) => null()   ! Cell center latitudes (radians).
+        real(kind_r8), pointer :: latedge(:) => null()   ! Edge node latitudes (radians).
+        real(kind_r8), pointer :: latvertex(:) => null() ! Vertex node latitudes (radians).
+        real(kind_r8), pointer :: loncell(:) => null()   ! Cell center longitudes (radians).
+        real(kind_r8), pointer :: lonedge(:) => null()   ! Edge node longitudes (radians).
+        real(kind_r8), pointer :: lonvertex(:) => null() ! Vertex node longitudes (radians).
 
         ! Global grid indexes. CAN be safely deallocated because its values are copied into
         ! `cam_grid_attribute_*_t` and `horiz_coord_t`.
@@ -314,11 +323,10 @@ contains
         ! Construct coordinate and grid objects for cell center grid (i.e., "mpas_cell").
         ! Standard MPAS coordinate and dimension names are used.
 
-        call mpas_dynamical_core % get_variable_value(areacell, 'mesh', 'areaCell')
-
-        call mpas_dynamical_core % get_variable_value(indextocellid, 'mesh', 'indexToCellID')
-        call mpas_dynamical_core % get_variable_value(latcell, 'mesh', 'latCell')
-        call mpas_dynamical_core % get_variable_value(loncell, 'mesh', 'lonCell')
+        call mpas_dynamical_core % get_variable_pointer(areacell, 'mesh', 'areaCell')
+        call mpas_dynamical_core % get_variable_pointer(indextocellid, 'mesh', 'indexToCellID')
+        call mpas_dynamical_core % get_variable_pointer(latcell, 'mesh', 'latCell')
+        call mpas_dynamical_core % get_variable_pointer(loncell, 'mesh', 'lonCell')
 
         allocate(global_grid_index(ncells_solve), stat=ierr)
         call check_allocate(ierr, 'define_cam_grid', 'global_grid_index', 'dyn_grid', __LINE__)
@@ -373,6 +381,11 @@ contains
         call cam_grid_register('cam_cell', dyn_grid_id('cam_cell'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
 
+        nullify(areacell)
+        nullify(indextocellid)
+        nullify(latcell)
+        nullify(loncell)
+
         deallocate(global_grid_index)
         nullify(global_grid_index)
         nullify(global_grid_map)
@@ -382,9 +395,9 @@ contains
         ! Construct coordinate and grid objects for edge node grid (i.e., "mpas_edge").
         ! Standard MPAS coordinate and dimension names are used.
 
-        call mpas_dynamical_core % get_variable_value(indextoedgeid, 'mesh', 'indexToEdgeID')
-        call mpas_dynamical_core % get_variable_value(latedge, 'mesh', 'latEdge')
-        call mpas_dynamical_core % get_variable_value(lonedge, 'mesh', 'lonEdge')
+        call mpas_dynamical_core % get_variable_pointer(indextoedgeid, 'mesh', 'indexToEdgeID')
+        call mpas_dynamical_core % get_variable_pointer(latedge, 'mesh', 'latEdge')
+        call mpas_dynamical_core % get_variable_pointer(lonedge, 'mesh', 'lonEdge')
 
         allocate(global_grid_index(nedges_solve), stat=ierr)
         call check_allocate(ierr, 'define_cam_grid', 'global_grid_index', 'dyn_grid', __LINE__)
@@ -410,6 +423,10 @@ contains
         call cam_grid_register('mpas_edge', dyn_grid_id('mpas_edge'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
 
+        nullify(indextoedgeid)
+        nullify(latedge)
+        nullify(lonedge)
+
         deallocate(global_grid_index)
         nullify(global_grid_index)
         nullify(global_grid_map)
@@ -419,9 +436,9 @@ contains
         ! Construct coordinate and grid objects for vertex node grid (i.e., "mpas_vertex").
         ! Standard MPAS coordinate and dimension names are used.
 
-        call mpas_dynamical_core % get_variable_value(indextovertexid, 'mesh', 'indexToVertexID')
-        call mpas_dynamical_core % get_variable_value(latvertex, 'mesh', 'latVertex')
-        call mpas_dynamical_core % get_variable_value(lonvertex, 'mesh', 'lonVertex')
+        call mpas_dynamical_core % get_variable_pointer(indextovertexid, 'mesh', 'indexToVertexID')
+        call mpas_dynamical_core % get_variable_pointer(latvertex, 'mesh', 'latVertex')
+        call mpas_dynamical_core % get_variable_pointer(lonvertex, 'mesh', 'lonVertex')
 
         allocate(global_grid_index(nvertices_solve), stat=ierr)
         call check_allocate(ierr, 'define_cam_grid', 'global_grid_index', 'dyn_grid', __LINE__)
@@ -446,6 +463,10 @@ contains
 
         call cam_grid_register('mpas_vertex', dyn_grid_id('mpas_vertex'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
+
+        nullify(indextovertexid)
+        nullify(latvertex)
+        nullify(lonvertex)
 
         deallocate(global_grid_index)
         nullify(global_grid_index)
