@@ -10,7 +10,7 @@ module dyn_grid
     use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
     use dynconst, only: dynconst_init, pi
     use physics_column_type, only: kind_pcol, physics_column_t
-    use physics_grid, only: phys_grid_init
+    use physics_grid, only: phys_decomp, phys_grid_init
     use ref_pres, only: ref_pres_init
     use spmd_utils, only: iam
     use std_atm_profile, only: std_atm_pres
@@ -460,12 +460,13 @@ contains
         character(*), intent(in) :: name
         integer :: dyn_grid_id
 
-        integer, parameter :: dyn_grid_id_offset = 0
         integer :: i
 
         do i = 1, size(dyn_grid_name)
             if (trim(adjustl(dyn_grid_name(i))) == trim(adjustl(name))) then
-                dyn_grid_id = dyn_grid_id_offset + i
+                ! Grid ids count from `phys_decomp` + 1.
+                ! This avoids id collisions between dynamics and physics grids.
+                dyn_grid_id = phys_decomp + i
 
                 return
             end if
