@@ -12,7 +12,7 @@ cat << EOF1
 NAME
 
 	archive_baseline.sh - archive pretag baselines to set locations on
-                              hobart, izumi and derecho.
+                              izumi and derecho.
 
 
 SYNOPSIS
@@ -24,13 +24,13 @@ SYNOPSIS
 ENVIROMENT VARIABLES
 
 	CESM_TESTDIR - Directory that contains the CESM finished results you wish to archive.
-	CAM_FC      - Compiler used, only used on hobart and izumi (PGI,NAG), where the compiler
+	CAM_FC      - Compiler used, only used on izumi (GNU,NAG), where the compiler
                       name is appended to the archive directory.
 
 
 BASELINE ARCHIVED LOCATION
 
-	hobart, izumi:     /fs/cgd/csm/models/atm/cam/pretag_bl/TAGNAME_pgi
+	izumi:     /fs/cgd/csm/models/atm/cam/pretag_bl/TAGNAME_gnu
 	                   /fs/cgd/csm/models/atm/cam/pretag_bl/TAGNAME_nag
         derecho:  /glade/campaign/cesm/community/amwg/cam_baselines/TAGNAME
 
@@ -43,19 +43,19 @@ HOW TO USE ARCHIVE BASELINES
 
 WORK FLOW
 
-	This is an example for hobart or izumi.
+	This is an example for izumi.
 
 	Modify your sandbox with the changes you want.
-        setenv CAM_FC PGI
+        setenv CAM_FC GNU
         setenv CAM_TESTDIR /scratch/cluster/fischer/cam5_2_06
         Run the cam test suite.
         Make your trunk tag
 	archive_baseline.sh cam5_2_06
 
 	Create a new sandbox.
-        setenv CAM_FC PGI
+        setenv CAM_FC GNU
 	setenv CAM_TESTDIR /scratch/cluster/fischer/cam5_2_07
-        setenv BL_TESTDIR /fs/cgd/csm/models/atm/cam/pretag_bl/cam5_2_06_pgi
+        setenv BL_TESTDIR /fs/cgd/csm/models/atm/cam/pretag_bl/cam5_2_06_gnu
         Run the cam test suite.
         Make your trunk tag
         archive_baseline.sh cam5_2_07
@@ -73,20 +73,10 @@ fi
 hostname=`hostname`
 case $hostname in
 
-  ho*)
-    echo "server: hobart"
-    if [ -z "$CAM_FC" ]; then
-      CAM_FC="PGI"
-    fi
-    test_file_list="tests_pretag_hobart_${CAM_FC,,}"
-    cam_tag=$1_${CAM_FC,,}
-    baselinedir="/fs/cgd/csm/models/atm/cam/pretag_bl/$cam_tag"
-  ;;
-
   iz*)
     echo "server: izumi"
     if [ -z "$CAM_FC" ]; then
-      CAM_FC="PGI"
+      CAM_FC="GNU"
     fi
     test_file_list="tests_pretag_izumi_${CAM_FC,,}"
     cam_tag=$1_${CAM_FC,,}
@@ -130,7 +120,7 @@ fi
 
 case $hostname in
 
-    ch* | hobart | izumi)
+    ch* | izumi)
 	if [ -z "$CESM_TESTDIR" ]; then
 	    echo '***********************************************************************************'
 	    echo 'INFO: The aux_cam and test_cam tests were NOT archived'
