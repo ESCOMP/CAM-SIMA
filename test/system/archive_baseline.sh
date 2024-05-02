@@ -24,15 +24,15 @@ SYNOPSIS
 ENVIROMENT VARIABLES
 
 	CESM_TESTDIR - Directory that contains the CESM finished results you wish to archive.
-	CAM_FC      - Compiler used, only used on izumi (GNU,NAG), where the compiler
+	CAM_FC      - Compiler used, used on izumi and derecho (GNU,NAG), where the compiler
                       name is appended to the archive directory.
 
 
 BASELINE ARCHIVED LOCATION
 
-	izumi:     /fs/cgd/csm/models/atm/cam/pretag_bl/TAGNAME_gnu
-	                   /fs/cgd/csm/models/atm/cam/pretag_bl/TAGNAME_nag
-        derecho:  /glade/campaign/cesm/community/amwg/cam_baselines/TAGNAME
+	izumi:     /fs/cgd/csm/models/atm/sima/pretag_bl/TAGNAME_gnu
+	           /fs/cgd/csm/models/atm/sima/pretag_bl/TAGNAME_nag
+        derecho:  /glade/campaign/cesm/community/amwg/sima_baselines/TAGNAME
 
 
 
@@ -55,7 +55,7 @@ WORK FLOW
 	Create a new sandbox.
         setenv CAM_FC GNU
 	setenv CAM_TESTDIR /scratch/cluster/fischer/cam5_2_07
-        setenv BL_TESTDIR /fs/cgd/csm/models/atm/cam/pretag_bl/cam5_2_06_gnu
+        setenv BL_TESTDIR /fs/cgd/csm/models/atm/sima/pretag_bl/cam5_2_06_gnu
         Run the cam test suite.
         Make your trunk tag
         archive_baseline.sh cam5_2_07
@@ -80,7 +80,7 @@ case $hostname in
     fi
     test_file_list="tests_pretag_izumi_${CAM_FC,,}"
     cam_tag=$1_${CAM_FC,,}
-    baselinedir="/fs/cgd/csm/models/atm/cam/pretag_bl/$cam_tag"
+    baselinedir="/fs/cgd/csm/models/atm/sima/pretag_bl/$cam_tag"
   ;;
 
   de*)
@@ -90,7 +90,7 @@ case $hostname in
     fi
     test_file_list="tests_pretag_derecho"
     cam_tag=$1
-    baselinedir="/glade/campaign/cesm/community/amwg/cam_baselines/$cam_tag"
+    baselinedir="/glade/campaign/cesm/community/amwg/sima_baselines/$cam_tag"
   ;;
 
   * ) echo "ERROR: machine $hostname not currently supported"; exit 1 ;;
@@ -120,7 +120,7 @@ fi
 
 case $hostname in
 
-    ch* | izumi)
+    de* | izumi)
 	if [ -z "$CESM_TESTDIR" ]; then
 	    echo '***********************************************************************************'
 	    echo 'INFO: The aux_cam and test_cam tests were NOT archived'
