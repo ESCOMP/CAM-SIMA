@@ -137,7 +137,7 @@ while [ "${1:0:1}" == "-" ]; do
 
         --cesm )
             if [ $# -lt 2 ]; then
-                perr "${1} requires a CESM test name or test suite name (e.g., aux_cam_sima)"
+                perr "${1} requires a CESM test name or test suite name (e.g., aux_sima)"
             fi
             if [ "${2:0:1}" == "-" ]; then
                 perr "Invalid CESM test name, '${2}'"
