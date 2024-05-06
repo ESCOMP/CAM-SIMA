@@ -1,0 +1,11 @@
+# ignore all
+*
+
+# include things to copy
+!Externals*
+!src/
+!cime_config/
+!manage_externals/
+!test/
+!.config_files.xml
+!docker

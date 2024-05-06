@@ -165,10 +165,9 @@ class ConfigCAM:
         and associated dictionary.
         """
 
-        # Check if using python 3.7 or later.  If not,
-        # then end build here:
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 7):
-            emsg = "CAM requires python 3.7 or later, currently using python version"
+        # Check if using python 3.8 or later. If not, then end build here:
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 8):
+            emsg = "SIMA requires python 3.8 or later, currently using python version"
             emsg += f" {sys.version_info[0]}.{sys.version_info[1]}"
             raise SystemError(emsg)
         #End if
@@ -311,7 +310,7 @@ class ConfigCAM:
                          "src/dynamics, with a slash ('/') indicating directory hierarchy."]
 
 
-        #Determine dynmaical core and grid-matching regex to use for validation:
+        #Determine dynamical core and grid-matching regex to use for validation:
         dycore, grid_regex = get_atm_hgrid(atm_grid)
 
         #Add dynamical core to config object:
@@ -371,6 +370,15 @@ class ConfigCAM:
             self.create_config("trm", trm_desc, 1, (1, None))
             self.create_config("trn", trn_desc, 1, (1, None))
             self.create_config("trk", trk_desc, 1, (1, None))
+        elif dycore == "mpas":
+            # This only includes the driver and interface code between CAM-SIMA and MPAS dynamical core.
+            # MPAS dynamical core relies on its upstream build infrastructure for compilation instead of CIME to take advantage of future upstream changes automatically.
+            self.create_config("dyn_src_dirs", dyn_dirs_desc, ["mpas"],
+                               valid_list_type="str")
+
+            # Add XML namelist definition file for MPAS dynamical core.
+            mpas_dyn_nml_path = os.path.normpath(os.path.join(cime_conf_path, os.pardir, "src", "dynamics", "mpas"))
+            self._add_xml_nml_file(mpas_dyn_nml_path, "namelist_definition_mpas_dycore.xml")
         elif dycore == "none":
             # Source code directories
             self.create_config("dyn_src_dirs", dyn_dirs_desc, ["none"],
@@ -866,7 +874,7 @@ class ConfigCAM:
                                           capgen_db, ic_names)
 
         #Add registry path to config object:
-        init_dir_desc = "Location of auto-generated physics initilazation code."
+        init_dir_desc = "Location of auto-generated physics initialization code."
         self.create_config("init_dir", init_dir_desc, init_dir)
 
         #--------------------------------------------------------------

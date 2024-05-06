@@ -66,7 +66,7 @@ module atm_comp_nuopc
    use cam_control_mod,   only: cam_ctrl_set_orbit
    use cam_pio_utils,     only: cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, cam_pio_newdecomp
    use cam_initfiles,     only: cam_initfiles_get_caseid, cam_initfiles_get_restdir
-   use filenames,         only: interpret_filename_spec
+   use cam_filenames,     only: interpret_filename_spec
    use pio,               only: file_desc_t, io_desc_t, var_desc_t, pio_double, pio_def_dim, PIO_MAX_NAME
    use pio,               only: pio_freedecomp
    use pio,               only: pio_closefile, pio_inq_varid, pio_put_att, pio_enddef

@@ -103,10 +103,11 @@
 
   <entry id="CAM_DYCORE">
     <type>char</type>
-    <valid_values>eul,fv,se,none</valid_values>
+    <valid_values>eul,fv,mpas,se,none</valid_values>
     <default_value>fv</default_value>
     <values match="last">
-      <value grid="a%T[1-9]" >eul</value>
+      <value grid="a%T[1-9]">eul</value>
+      <value grid="a%mpasa[0-9]+">mpas</value>
       <value grid="a%ne[0-9]">se</value>
     </values>
     <group>build_component_cam</group>
@@ -165,7 +166,7 @@
       <value compset="_CAM%HS94">-phys held_suarez</value>
       <value compset="_CAM%KESSLER">-phys kessler -chem terminator -analytic_ic</value> -->
       <value compset="_CAM%KESSLER">--physics-suites kessler --analytic_ic</value>
-      <value compset="_CAM%FHS94">--physics-suites held_suarez_1994 --analytic_ic</value>
+      <value compset="_CAM%HS94">--physics-suites held_suarez_1994 --analytic_ic</value>
       <value compset="_CAM%PHYSTEST">--dyn none --physics-suites adiabatic</value>
 
       <!-- Aquaplanet -->
@@ -299,6 +300,25 @@
     <group>run_component_cam</group>
     <file>env_case.xml</file>
     <desc>User mods to apply to specific compset matches. </desc>
+  </entry>
+
+  <entry id="CAM_LINKED_LIBS">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value> </default_value>
+    <values match="last" modifier="additive">
+      <!-- Turn on chemistry if not using physics testbed -->
+      <value compset="^((?!_CAM%PHYSTEST).)*$">-lmusica -ljsonfortran</value>
+      <!-- Add MPAS if using mpas grid and not using physics testbed -->
+      <value compset="^((?!_CAM%PHYSTEST).)*$" grid="a%mpasa[0-9]+">-lmpas</value>
+    </values>
+    <group>build_component_cam</group>
+    <file>env_build.xml</file>
+    <desc>
+      CAM-SIMA linked libraries. The libraries are built by
+      CAM-SIMA's buildlib script and should be included
+      during linking of the model executable.
+    </desc>
   </entry>
 
   <help>

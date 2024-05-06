@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+
+<!--
+
+===============================================================
+COMPILER and COMPILERS
+===============================================================
+If a machine supports multiple compilers - then
+- the settings for COMPILERS should reflect the supported compilers
+as a comma separated string
+- the setting for COMPILER should be the default compiler
+(which is one of the values in COMPILERS)
+
+===============================================================
+MPILIB and MPILIBS
+===============================================================
+If a machine supports only one MPILIB is supported - then
+the setting for  MPILIB and MPILIBS should be blank ("")
+If a machine supports multiple mpi libraries (e.g. mpich and openmpi)
+- the settings for MPILIBS should reflect the supported mpi libraries
+as a comma separated string
+
+The default settings for COMPILERS and MPILIBS is blank (in config_machines.xml)
+
+Normally variable substitutions are not made until the case scripts are run, however variables
+of the form $ENV{VARIABLE_NAME} are substituted in create_newcase from the environment
+variable of the same name if it exists.
+
+===============================================================
+PROJECT_REQUIRED
+===============================================================
+A machine may need the PROJECT xml variable to be defined either because it is
+used in some paths, or because it is used to give an account number in the job
+submission script. If either of these are the case, then PROJECT_REQUIRED
+should be set to TRUE for the given machine.
+
+
+mpirun: the mpirun command that will be used to actually launch the model.
+The attributes used to choose the mpirun command are:
+
+mpilib: can either be 'default' the name of an mpi library, or a compiler name so one can choose the mpirun
+based on the mpi library in use.
+
+the 'executable' tag must have arguments required for the chosen mpirun, as well as the executable name.
+
+unit_testing: can be 'true' or 'false'.
+This allows using a different mpirun command to launch unit tests
+
+-->
+
+<config_machines version="2.0">
+
+  <machine MACH="container">
+    <DESC>
+      Containerized development environment (Docker/Singularity) for CESM w/ GNU compilers
+    </DESC>
+    <OS>LINUX</OS>
+    <COMPILERS>gnu</COMPILERS>
+    <MPILIBS>mpich</MPILIBS>
+    <CIME_OUTPUT_ROOT>$ENV{HOME}/scratch</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>$ENV{CESMDATAROOT}/inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>$DIN_LOC_ROOT/atm/datm7</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>$ENV{HOME}/archive/$CASE</DOUT_S_ROOT>
+    <GMAKE>make</GMAKE>
+    <GMAKE_J>4</GMAKE_J>
+    <BATCH_SYSTEM>none</BATCH_SYSTEM>
+    <SUPPORTED_BY>cgd</SUPPORTED_BY>
+    <MAX_TASKS_PER_NODE>4</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>4</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="mpich">
+      <executable>mpiexec</executable>
+      <arguments>
+        <arg name="anum_tasks"> -n {{ total_tasks }}</arg>
+      </arguments>
+    </mpirun>
+    <module_system type="none">
+    </module_system>
+    <environment_variables>
+      <env name="NETCDF_PATH">/usr/local</env>
+      <env name="PNETCDF_PATH">/usr/local</env>
+      <env name="FPATH">/usr/lib64</env>
+      <env name="CPATH">/usr/lib64</env>
+    </environment_variables>
+    <resource_limits>
+      <resource name="RLIMIT_STACK">-1</resource>
+    </resource_limits>
+  </machine>
+
+  <default_run_suffix>
+    <default_run_exe>${EXEROOT}/cesm.exe </default_run_exe>
+    <default_run_misc_suffix> >> cesm.log.$LID 2>&amp;1 </default_run_misc_suffix>
+  </default_run_suffix>
+
+</config_machines>

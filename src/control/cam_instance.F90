@@ -4,6 +4,8 @@ module cam_instance
    private
    save
 
+   public :: cam_instance_init
+
    integer,           public :: atm_id
    integer,           public :: inst_index
    character(len=16), public :: inst_name

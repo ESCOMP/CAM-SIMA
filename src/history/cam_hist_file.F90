@@ -7,7 +7,8 @@ module cam_hist_file
    use ISO_FORTRAN_ENV,     only: REAL64, REAL32
    use pio,                 only: file_desc_t
    use cam_history_support, only: max_fldlen=>max_fieldname_len
-   use cam_interp_mod,      only: interp_info_t=>hist_interp_info_t
+   use cam_history_support, only: interp_info_t
+   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -187,7 +188,7 @@ CONTAINS
       this%output_freq_type = UNSET_C
       this%hfile_type = hfile_type_default
       if (associated(this%interp_info)) then
-         call this%interp_info%reset()
+!         call this%interp_info%reset()
          deallocate(this%interp_info)
          nullify(this%interp_info)
       end if
@@ -339,6 +340,7 @@ CONTAINS
       use string_utils,   only: to_str
       use cam_abortutils, only: endrun
       use spmd_utils,     only: masterproc, masterprocid, mpicom
+      use shr_nl_mod,     only: shr_nl_find_group_name
       ! Read a history file configuration from <unitn> and process it into
       ! <hfile_config>.
       ! <hist_inst_fields>, <avg_fields>, <min_fields>, <max_fields>, & <var_fields>
@@ -400,12 +402,21 @@ CONTAINS
       hist_interp_type = UNSET_C
       file_type = hfile_type_default
       hist_filename_spec = UNSET_C
+      write(iulog,*) 'reading in hist_file_config_nl'
       ! Read namelist entry
       if (masterproc) then
-         read(unitn, hist_file_config_nl, iostat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//"ERROR "//trim(to_str(ierr))//               &
-                 " reading namelist", file=__FILE__, line=__LINE__)
+         rewind(unitn)
+         call shr_nl_find_group_name(unitn, 'hist_file_config_nl', ierr)
+         if (ierr == 0) then
+            read(unitn, hist_file_config_nl, iostat=ierr)
+            if (ierr /= 0) then
+               call endrun(subname//"ERROR "//trim(to_str(ierr))//               &
+                    " reading namelist", file=__FILE__, line=__LINE__)
+            end if
+         else
+            write(iulog,*) ierr
+            write(iulog, *) subname, ": WARNING, no hist_file_config_nl ",  &
+                 "namelist found"
          end if
          ! Translate <file_type>
          select case(trim(hist_file_type))
@@ -541,6 +552,7 @@ CONTAINS
       if (allocated(hist_var_fields)) then
          deallocate(hist_var_fields)
       end if
+      write(iulog,*) 'reading hist_config_arrays_nl'
       if (masterproc) then
          rewind(unitn)
          call shr_nl_find_group_name(unitn, 'hist_config_arrays_nl', ierr)

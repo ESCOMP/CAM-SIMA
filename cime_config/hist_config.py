@@ -343,7 +343,7 @@ class HistFieldList():
         A list is only output if there are members in the list
         """
         if self.__field_names:
-            lhs = f"  {field_varname} = "
+            lhs = f"    {field_varname} = "
             blank_lhs = ' '*(len(field_varname) + 5)
             # Break up output into lines
             num_fields = self.num_fields()
@@ -369,6 +369,7 @@ class HistFieldList():
                 quotelist = ["'{}{}'".format(x, ' '*(self.max_len - len(x)))
                              for x in self.__field_names[fld_beg:fld_end+1]]
                 outfile.write(f"{lhs}{', '.join(quotelist)}{comma}\n")
+#                outfile.write(f'{lhs}\"{", ".join(self.__field_names[fld_beg:fld_end+1])}{comma}\"\n')
                 lhs = blank_lhs
             # end while
         # end if
@@ -829,17 +830,17 @@ class HistoryVolConfig():
         """Write the fortran namelist object for this HistoryVolConfig
         object"""
         outfile.write("\n&hist_file_config_nl\n")
-        outfile.write(f"  hist_volume = '{self.volume}'\n")
+        outfile.write(f"    hist_volume = '{self.volume}'\n")
         self.__inst_fields.output_nl_fieldlist(outfile, "hist_inst_fields")
         self.__avg_fields.output_nl_fieldlist(outfile, "hist_avg_fields")
         self.__min_fields.output_nl_fieldlist(outfile, "hist_min_fields")
         self.__max_fields.output_nl_fieldlist(outfile, "hist_max_fields")
         self.__var_fields.output_nl_fieldlist(outfile, "hist_var_fields")
-        outfile.write(f"  hist_max_frames = {self.__max_frames}\n")
-        outfile.write(f"  hist_output_frequency = '{self.outfreq_str()}'\n")
-        outfile.write(f"  hist_precision = '{self.__precision}'\n")
-        outfile.write(f"  hist_file_type = '{self.__file_type}'\n")
-        outfile.write(f"  hist_filename_spec = '{self.__filename_spec}'\n")
+        outfile.write(f"    hist_max_frames = {self.__max_frames}\n")
+        outfile.write(f"    hist_output_frequency = '{self.outfreq_str()}'\n")
+        outfile.write(f"    hist_precision = '{self.__precision}'\n")
+        outfile.write(f"    hist_file_type = '{self.__file_type}'\n")
+        outfile.write(f"    hist_filename_spec = '{self.__filename_spec}'\n")
         outfile.write("/\n")
 
 ##############################################################################
@@ -1058,15 +1059,15 @@ class HistoryConfig(dict):
         """Write the master class namelist (e.g., num fields)"""
         ofile.write("\n&hist_config_arrays_nl\n");
         num_fields = self.max_num_fields('inst')
-        ofile.write(" hist_num_inst_fields = {}\n".format(num_fields));
+        ofile.write("    hist_num_inst_fields = {}\n".format(num_fields));
         num_fields = self.max_num_fields('avg')
-        ofile.write(" hist_num_avg_fields = {}\n".format(num_fields));
+        ofile.write("    hist_num_avg_fields = {}\n".format(num_fields));
         num_fields = self.max_num_fields('min')
-        ofile.write(" hist_num_min_fields = {}\n".format(num_fields));
+        ofile.write("    hist_num_min_fields = {}\n".format(num_fields));
         num_fields = self.max_num_fields('max')
-        ofile.write(" hist_num_max_fields = {}\n".format(num_fields));
+        ofile.write("    hist_num_max_fields = {}\n".format(num_fields));
         num_fields = self.max_num_fields('var')
-        ofile.write(" hist_num_var_fields = {}\n".format(num_fields));
+        ofile.write("    hist_num_var_fields = {}\n".format(num_fields));
         ofile.write("/\n");
 
 ##############################################################################

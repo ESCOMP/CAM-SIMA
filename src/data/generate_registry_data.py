@@ -572,6 +572,8 @@ class Variable(VarBase):
                 pass # picked up in parent
             elif attrib.tag == 'ic_file_input_names':
                 pass # picked up in parent
+            elif attrib.tag == 'diagnostic':
+                pass # picked up in parent
             else:
                 emsg = "Unknown Variable content, '{}'"
                 raise CCPPError(emsg.format(attrib.tag))

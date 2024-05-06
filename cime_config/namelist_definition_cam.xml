@@ -373,4 +373,17 @@
     </values>
   </entry>
 
+<!-- History -->
+  <entry id="hist_add_avg_fields;h0">
+    <type>char*256</type>
+    <category>diagnostics</category>
+    <group>hist_config_arrays_user_nl</group>
+    <desc>
+      TBD
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
 </entry_id_pg>

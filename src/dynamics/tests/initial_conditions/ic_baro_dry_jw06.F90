@@ -117,8 +117,8 @@ contains
     end if
 
     !set constituent indices
-    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air', ix_cld_liq)
-    call const_get_index('rain_water_mixing_ratio_wrt_moist_air', ix_rain)
+    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ix_cld_liq)
+    call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix_rain)
 
     ncol = size(latvals, 1)
     nlev = -1

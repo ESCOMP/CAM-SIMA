@@ -18,7 +18,7 @@
   dimensions = ()
   protected = True
 [ masterproc ]
-  standard_name = is_mpi_root
+  standard_name = flag_for_mpi_root
   units = flag
   type = logical
   dimensions = ()
