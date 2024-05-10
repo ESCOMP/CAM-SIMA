@@ -140,6 +140,8 @@
       <value dyn="se" hgrid="ne30np4" nlev="70" sim_year="1850">${DIN_LOC_ROOT}/atm/waccm/ic/waccm5_1850_ne30np4_L70_0001-01-11-00000_c151217.nc</value>
       <value dyn="se" hgrid="ne30np4" nlev="70">${DIN_LOC_ROOT}/atm/waccm/ic/fw2000_ne30np4_L70_c181221.nc</value>
       <value hgrid="64x128" nlev="30" scam="1">${DIN_LOC_ROOT}/atm/cam/inic/gaus/cami_0000-09-01_64x128_L30_c031210.nc</value>
+      <value dyn="mpas" hgrid="mpasa120" nlev="32" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120_L32_notopo_coords_c201216.nc</value>
+      <value dyn="mpas" hgrid="mpasa480" nlev="32" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa480_L32_notopo_coords_c201125.nc</value>
     </values>
   </entry>
   <entry id="pertlim">
@@ -350,6 +352,7 @@
       <value phys_suite="cam4">26</value>
       <value phys_suite="cam5">30</value>
       <value phys_suite="cam6">32</value>
+      <value dyn="mpas" analytic_ic="1">32</value>
     </values>
   </entry>
 
