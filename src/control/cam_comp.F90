@@ -66,7 +66,8 @@ CONTAINS
 
    subroutine cam_init(caseid, ctitle, model_doi_url,                         &
         initial_run_in, restart_run_in, branch_run_in,                        &
-        calendar, brnch_retain_casename, aqua_planet,                         &
+        post_assim_in, calendar,                                              &
+        brnch_retain_casename, aqua_planet,                                   &
         single_column, scmlat, scmlon,                                        &
         eccen, obliqr, lambm0, mvelpp,                                        &
         perpetual_run, perpetual_ymd,                                         &
@@ -105,6 +106,7 @@ CONTAINS
       logical,           intent(in) :: initial_run_in        ! is inital run?
       logical,           intent(in) :: restart_run_in        ! is restart run?
       logical,           intent(in) :: branch_run_in         ! is branch run?
+      logical,           intent(in) :: post_assim_in         ! true => resume mode
       character(len=cs), intent(in) :: calendar              ! Calendar type
       ! brnch_retain_casename is a flag to allow a branch to use the same
       ! caseid as the run being branched from.
@@ -155,6 +157,7 @@ CONTAINS
            initial_run_in=initial_run_in,                                     &
            restart_run_in=restart_run_in,                                     &
            branch_run_in=branch_run_in,                                       &
+           post_assim_in=post_assim_in,                                       &
            aqua_planet_in=aqua_planet,                                        &
            brnch_retain_casename_in=brnch_retain_casename)
 
