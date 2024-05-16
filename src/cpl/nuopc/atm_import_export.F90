@@ -460,15 +460,16 @@ contains
 
     use camsrfexch        , only : cam_in_t
     use shr_const_mod     , only : shr_const_stebol
-    use co2_cycle         , only : c_i, co2_readFlux_ocn, co2_readFlux_fuel
-    use co2_cycle         , only : co2_transport, co2_time_interp_ocn, co2_time_interp_fuel
-    use co2_cycle         , only : data_flux_ocn, data_flux_fuel
+!CAM-SIMA NOTE: Need to uncomment these once carbon cycling is enabled in SIMA.
+!    use co2_cycle         , only : c_i, co2_readFlux_ocn, co2_readFlux_fuel
+!    use co2_cycle         , only : co2_transport, co2_time_interp_ocn, co2_time_interp_fuel
+!    use co2_cycle         , only : data_flux_ocn, data_flux_fuel
     use physconst         , only : mwco2
     use time_manager      , only : is_first_step, get_nstep
 
     ! input/output variabes
     type(ESMF_GridComp)               :: gcomp
-    type(cam_in_t)    , intent(inout) :: cam_in(:)
+    type(cam_in_t)    , intent(inout) :: cam_in
     logical, optional , intent(in)    :: restart_init
     integer           , intent(out)   :: rc
 

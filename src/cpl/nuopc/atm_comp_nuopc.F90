@@ -45,19 +45,19 @@ module atm_comp_nuopc
    use cam_comp            , only : cam_timestep_init, cam_timestep_final
    use camsrfexch          , only : cam_out_t, cam_in_t
 !   use radiation           , only : nextsw_cday  !uncomment once radiation has been CCPP-ized -JN
-   use cam_logfile         , only : iulog
+   use cam_logfile         , only : cam_set_log_unit, iulog
    use cam_abortutils      , only : check_allocate
-   use spmd_utils          , only : spmdinit, masterproc, iam, mpicom
+   use spmd_utils          , only : spmd_init, masterproc, iam, mpicom
    use time_manager        , only : get_curr_calday, advance_timestep, get_curr_date, get_nstep, get_step_size
    use atm_import_export   , only : read_surface_fields_namelists, advertise_fields, realize_fields
    use atm_import_export   , only : import_fields, export_fields
    use nuopc_shr_methods   , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
    use nuopc_shr_methods   , only : set_component_logging, get_component_instance, log_clock_advance
    use perf_mod            , only : t_startf, t_stopf
-   use dyn_grid            , only : get_horiz_grid_dim_d
    use physics_grid        , only : global_index_p, get_rlon_all_p, get_rlat_all_p
    use physics_grid        , only : ngcols => num_global_phys_cols
-   use physics_grid        , only : columns_on_task => lsize
+   use physics_grid        , only : lsize  => columns_on_task
+   use physics_grid        , only : hdim1_d, hdim2_d
    use cam_control_mod     , only : cam_ctrl_set_orbit
    use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
    use cam_initfiles       , only : cam_initfiles_get_caseid, cam_initfiles_get_restdir
@@ -69,7 +69,7 @@ module atm_comp_nuopc
    use pio                 , only : pio_read_darray, pio_write_darray
    use pio                 , only : pio_noerr, pio_bcast_error, pio_internal_error, pio_seterrorhandling
    use pio                 , only : pio_def_var, pio_get_var, pio_put_var, PIO_INT
-   use ioFileMod
+   use ioFileMod           , only : cam_get_file
    !$use omp_lib           , only : omp_set_num_threads
 
   implicit none
@@ -107,8 +107,8 @@ module atm_comp_nuopc
   integer                      :: nthrds
   integer                      :: ierr                ! allocate status
   integer         , parameter  :: dbug_flag = 0
-  type(cam_in_t)  , pointer    :: cam_in(:)
-  type(cam_out_t) , pointer    :: cam_out(:)
+  type(cam_in_t)  , pointer    :: cam_in
+  type(cam_out_t) , pointer    :: cam_out
   integer         , pointer    :: dof(:)              ! global index space decomposition
   character(len=256)           :: rsfilename_spec_cam ! Filename specifier for restart surface file
   character(*)    ,parameter   :: modName =  "(atm_comp_nuopc)"
@@ -226,6 +226,7 @@ contains
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
     integer           :: shrlogunit          ! original log unit
+    integer           :: newlogunit          ! new log unit
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -243,10 +244,12 @@ contains
     ! reset shr logging to my log file
     !----------------------------------------------------------------------------
 
-    call set_component_logging(gcomp, localpet==0, iulog, shrlogunit, rc)
+    call set_component_logging(gcomp, localpet==0, newlogunit, shrlogunit, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_log_setLogUnit (iulog)
+    call shr_log_setLogUnit(newlogunit)
+    !Set CAM-SIMA log unit to new unit value:
+    call cam_set_log_unit(newlogunit)
 
     !----------------------------------------------------------------------------
     ! advertise import/export fields
@@ -350,11 +353,10 @@ contains
     integer                 :: spatialDim
     integer                 :: numOwnedElements
     real(r8), allocatable   :: ownedElemCoords(:)
-    real(r8)                :: lat(columns_on_task)
-    real(r8)                :: latMesh(columns_on_task)
-    real(r8)                :: lon(columns_on_task)
-    real(r8)                :: lonMesh(columns_on_task)
-    integer                 :: hdim1_d, hdim2_d                  ! dims of rect horizontal grid data (If 1D data struct, hdim2_d==1)
+    real(r8)                :: lat(lsize)
+    real(r8)                :: latMesh(lsize)
+    real(r8)                :: lon(lsize)
+    real(r8)                :: lonMesh(lsize)
     integer                 :: ncols                             ! number of local columns
     integer                 :: start_ymd                         ! Start date (YYYYMMDD)
     integer                 :: start_tod                         ! Start time of day (sec)
@@ -457,7 +459,7 @@ contains
     ! initialize cam mpi (needed for masterproc below)
     !----------------------------------------------------------------------------
 
-    call spmdinit(lmpicom)
+    call spmd_init(lmpicom)
 
     !----------------------
     ! Initialize cam - needed in realize phase to get grid information
@@ -716,9 +718,6 @@ contains
           allocate(ownedElemCoords(spatialDim*numOwnedElements), stat=ierr)
           call check_allocate(ierr, subname, 'ownedElemCoords(spatialDim*numOwnedElements)', &
                               file=__FILE__, line=__LINE__)
-          allocate(lonMesh(lsize), latMesh(lsize), stat=ierr)
-          call check_allocate(ierr, subname, 'lonMesh(lsize), latMesh(lsize)', &
-                              file=__FILE__, line=__LINE__)
           call ESMF_MeshGet(model_mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do n = 1,lsize
@@ -768,7 +767,6 @@ contains
        call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call get_horiz_grid_dim_d(hdim1_d, hdim2_d)
        call State_SetScalar(dble(hdim1_d), flds_scalar_index_nx, exportState, &
             flds_scalar_name, flds_scalar_num, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1608,6 +1606,7 @@ contains
     character(len=8)                   :: cvalue
     integer                            :: nloop
     character(len=4)                   :: prefix
+    character(len=*), parameter        :: subname = "cam_read_srfrest"
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1628,7 +1627,7 @@ contains
     fname_srf_cam = interpret_filename_spec( rsfilename_spec_cam, case=cam_initfiles_get_caseid(), &
          yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
     pname_srf_cam = trim(cam_initfiles_get_restdir() )//fname_srf_cam
-    call getfil(pname_srf_cam, fname_srf_cam)
+    call cam_get_file(pname_srf_cam, fname_srf_cam)
 
     ! ------------------------------
     ! Open restart file
@@ -1780,6 +1779,7 @@ contains
     character(len=4)                   :: prefix
     integer                            :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
     integer                            :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
+    character(len=*), parameter        :: subname = "cam_write_srfrest"
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
