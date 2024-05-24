@@ -33,14 +33,15 @@ module cam_control_mod
    logical, protected :: ideal_phys        ! true => run Held-Suarez (1994) physics
    logical, protected :: kessler_phys      ! true => run Kessler physics
    logical, protected :: tj2016_phys       ! true => run tj2016 physics
+   logical, protected :: grayrad_phys      ! true => run gray radiation (frierson) physics
    logical, protected :: simple_phys       ! true => adiabatic or ideal_phys or kessler_phys
-   !         or tj2016
+                                           !         or tj2016 or grayrad
    logical, protected :: aqua_planet       ! Flag to run model in "aqua planet" mode
    logical, protected :: moist_physics     ! true => moist physics enabled, i.e.,
-   ! (.not. ideal_phys) .and. (.not. adiabatic)
+                                           ! (.not. ideal_phys) .and. (.not. adiabatic)
 
    logical, protected :: brnch_retain_casename ! true => branch run may use same caseid as
-   !         the run being branched from
+                                               !         the run being branched from
 
    real(r8), protected :: eccen       ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
    real(r8), protected :: obliqr      ! Earth's obliquity in radians
@@ -143,11 +144,12 @@ CONTAINS
       suite_name = suite_names(1)
 
       adiabatic = trim(suite_name) == 'adiabatic'
-      ideal_phys = trim(suite_name) == 'held_suarez'
+      ideal_phys = trim(suite_name) == 'held_suarez_1994'
       kessler_phys = trim(suite_name) == 'kessler'
       tj2016_phys = trim(suite_name) == 'tj2016'
+      grayrad_phys = trim(suite_name) == 'grayrad'
 
-      simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys
+      simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys .or.  grayrad_phys
 
       moist_physics = .not. (adiabatic .or. ideal_phys)
 
@@ -165,6 +167,8 @@ CONTAINS
             write(iulog,*) 'Run model with Kessler warm-rain physics forcing'
          else if (tj2016_phys) then
             write(iulog,*) 'Run model with Thatcher-Jablonowski (2016) physics forcing (moist Held-Suarez)'
+         else if (grayrad_phys) then
+            write(iulog,*) 'Run model with Frierson (2006) gray radiation physics'
          end if
       end if
 
