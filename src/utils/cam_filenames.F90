@@ -49,7 +49,7 @@ CONTAINS
 
    !===========================================================================
 
-   character(len=cl) function interpret_filename_spec(filename_spec, unit,    &
+   character(len=cl) function interpret_filename_spec(filename_spec, unit, accum_type, &
         prev, case, instance, yr_spec, mon_spec, day_spec, sec_spec, incomplete_ok)
 
       ! Create a filename from a filename specifier. The
@@ -61,6 +61,7 @@ CONTAINS
       !      %c for case (<case>)
       !      %i for instance specification (<instance>)
       !      %u for unit specification (<unit>)
+      !        - accum_type, if present, is appended to <unit>
       !      %y for year (<yr_spec>)
       !      %m for month (<mon_spec>)
       !      %d for day (<day_spec>)
@@ -75,6 +76,7 @@ CONTAINS
       ! Dummy Arguments
       character(len=*),           intent(in) :: filename_spec
       character(len=*), optional, intent(in) :: unit
+      character(len=*), optional, intent(in) :: accum_type
       logical,          optional, intent(in) :: prev
       character(len=*), optional, intent(in) :: case
       character(len=*), optional, intent(in) :: instance
@@ -163,7 +165,11 @@ CONTAINS
                end if
             case('u')   ! unit description (e.g., h2)
                if (present(unit)) then
-                  string = trim(unit)
+                  if (present(accum_type)) then
+                     string = trim(unit) // trim(accum_type)
+                  else
+                     string = trim(unit)
+                  end if
                else if (incomplete_ok_use) then
                   string = "%u"
                else

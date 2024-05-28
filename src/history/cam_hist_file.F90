@@ -5,19 +5,38 @@ module cam_hist_file
    !          of special code to cleanly return after an endrun call.
 
    use ISO_FORTRAN_ENV,     only: REAL64, REAL32
-   use pio,                 only: file_desc_t
-   use cam_history_support, only: max_fldlen=>max_fieldname_len
-   use cam_history_support, only: interp_info_t
-   use cam_logfile, only: iulog
+   use pio,                 only: file_desc_t, var_desc_t
+   use cam_history_support, only: max_fldlen=>max_fieldname_len, fieldname_len
+   use cam_history_support, only: fieldname_suffix_len
+   use cam_history_support, only: interp_info_t, max_chars
+   use cam_logfile,         only: iulog
+   use shr_kind_mod,        only: r8 => shr_kind_r8, CS => SHR_KIND_CS, CL => SHR_KIND_CL
+   use shr_kind_mod,        only: r4 => shr_kind_r4
+   use hist_field,          only: hist_field_info_t
+   use physics_grid,        only: columns_on_task
+   use vert_coord,          only: pver
+   use hist_hash_table,     only: hist_hash_table_t
+   use hist_hashable,       only: hist_hashable_t
+   use cam_grid_support,    only: max_split_files
+   use cam_abortutils,      only: endrun, check_allocate
+   use cam_logfile,         only: iulog
+   use spmd_utils,          only: masterproc
+   use perf_mod,            only: t_startf, t_stopf
 
    implicit none
    private
 
    public :: hist_file_t
    public :: hist_read_namelist_config
+   public :: AvgflagToString
+   public :: strip_suffix
 
    character(len=*), parameter :: hist_nl_group_name = 'hist_file_config_nl'
    integer,          parameter :: nl_gname_len = len(hist_nl_group_name)
+   integer, public,  parameter :: instantaneous_file_index = 1
+   integer, public,  parameter :: accumulated_file_index   = 2
+   character(len=fieldname_suffix_len ) :: fieldname_suffix = '&IC' ! Suffix appended to field names for IC file
+   character(len=22) ,parameter :: LT_DESC = 'mean (over local time)' ! local time description
 
    logical, parameter, private             :: PATCH_DEF = .true.
    integer, parameter, private             :: OUTPUT_DEF = REAL64
@@ -26,6 +45,7 @@ module cam_hist_file
    integer, parameter, private             :: tlen = 16
    integer, parameter, private             :: UNSET_I = -1
    character(len=vlen), parameter, private :: UNSET_C = 'UNSET'
+   real(kind=r8), parameter, private       :: UNSET_R8 = -HUGE(1.0_r8)
 
    integer, parameter, private             :: hfile_type_default    = -1
    integer, parameter, private             :: hfile_type_history    =  1
@@ -36,30 +56,95 @@ module cam_hist_file
    type :: hist_file_t
       ! History file configuration information
       character(len=vlen),           private :: volume = UNSET_C
+      type(file_desc_t),             private :: hist_files(max_split_files) ! PIO file ids
       integer,                       private :: rl_kind = OUTPUT_DEF
       integer,                       private :: max_frames = UNSET_I
       integer,                       private :: output_freq_mult = UNSET_I
       character(len=8),              private :: output_freq_type = UNSET_C
+      integer,                       private :: num_samples = 0
+      real(kind=r8),                 private :: beg_time = UNSET_R8
+      real(kind=r8),                 private :: end_time = UNSET_R8
       character(len=:), allocatable, private :: filename_spec
+      character(len=max_fldlen), allocatable, private :: field_names(:)
+      character(len=3), allocatable, private :: accumulate_types(:)
+      integer, allocatable,          private :: grids(:)
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
+      logical,                       private :: split_file = .false.
+      logical,                       private :: write_nstep0 = .false.
       type(interp_info_t), pointer,  private :: interp_info => NULL()
-      ! History file information
-      type(file_desc_t),            private  :: hist_file
+      character(len=CL), allocatable, private :: file_names(:)
+      ! PIO IDs
+      type(var_desc_t),              private :: timeid
+      type(var_desc_t),              private :: dateid
+      type(var_desc_t),              private :: bdateid
+      type(var_desc_t),              private :: datesecid
+      type(var_desc_t),              private :: tbndid
+      type(var_desc_t),              private :: date_writtenid
+      type(var_desc_t),              private :: time_writtenid
+      type(var_desc_t),              private :: ndbaseid
+      type(var_desc_t),              private :: nsbaseid
+      type(var_desc_t),              private :: nbdateid
+      type(var_desc_t),              private :: nbsecid
+      type(var_desc_t),              private :: mdtid
+      type(var_desc_t),              private :: ndcurid
+      type(var_desc_t),              private :: nscurid
+      type(var_desc_t),              private :: co2vmrid
+      type(var_desc_t),              private :: ch4vmrid
+      type(var_desc_t),              private :: n2ovmrid
+      type(var_desc_t),              private :: f11vmrid
+      type(var_desc_t),              private :: f12vmrid
+      type(var_desc_t),              private :: sol_tsiid
+      type(var_desc_t),              private :: f107id
+      type(var_desc_t),              private :: f107aid
+      type(var_desc_t),              private :: f107pid
+      type(var_desc_t),              private :: kpid
+      type(var_desc_t),              private :: apid
+      type(var_desc_t),              private :: byimfid
+      type(var_desc_t),              private :: bzimfid
+      type(var_desc_t),              private :: swvelid
+      type(var_desc_t),              private :: swdenid
+      type(var_desc_t),              private :: colat_crit1_id
+      type(var_desc_t),              private :: colat_crit2_id
+      type(var_desc_t),              private :: tsecid
+      type(var_desc_t),              private :: nstephid
+
+
+      ! Field lists
+      type(hist_field_info_t), allocatable, private :: field_list(:)
+      type(hist_hash_table_t),          private :: field_list_hash_table
    contains
       ! Accessors
       procedure :: filename => config_filename
+      procedure :: get_filenames => config_get_filenames
+      procedure :: get_filename_spec => config_get_filename_spec
       procedure :: precision => config_precision
       procedure :: max_frame => config_max_frame
+      procedure :: get_num_samples => config_get_num_samples
+      procedure :: get_beg_time => config_get_beg_time
       procedure :: output_freq => config_output_freq
+      procedure :: output_freq_separate => config_output_freq_separate
       procedure :: is_history_file => config_history_file
       procedure :: is_initial_value_file => config_init_value_file
       procedure :: is_satellite_file => config_satellite_file
       procedure :: is_hist_restart_file => config_restart_file
+      procedure :: is_split_file => config_is_split_file
+      procedure :: do_write_nstep0 => config_do_write_nstep0
+      procedure :: file_is_setup => config_file_is_setup
       ! Actions
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
       procedure :: print_config => config_print_config
+      procedure :: increment_samples => config_increment_samples
+      procedure :: set_beg_time => config_set_beg_time
+      procedure :: set_end_time => config_set_end_time
+      procedure :: set_filenames => config_set_filenames
+      procedure :: set_up_fields => config_set_up_fields
+      procedure :: find_in_field_list => config_find_in_field_list
+      procedure :: define_file => config_define_file
+      procedure :: write_time_dependent_variables => config_write_time_dependent_variables
+      procedure :: write_field => config_write_field
+      procedure :: close_files => config_close_files
    end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
@@ -69,17 +154,72 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_filename(this) result(cfile)
-      use shr_kind_mod,  only: CL => SHR_KIND_CL
+   function config_filename(this) result(cfiles)
       use cam_filenames, only: interpret_filename_spec
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
-      character(len=CL)              :: cfile
+      character(len=CL), allocatable :: cfiles(:)
 
-      cfile = interpret_filename_spec(this%filename_spec, unit=this%volume, &
-           incomplete_ok=.true.)
+      character(len=1) :: accum_types(max_split_files)
+      integer :: file_idx
+
+      accum_types(instantaneous_file_index) = 'i'
+      accum_types(accumulated_file_index)   = 'a'
+!      accum_types = (/ 'i', 'a' /)
+      allocate(cfiles(max_split_files))
+
+      do file_idx = 1, size(cfiles, 1)
+         cfiles(file_idx) = interpret_filename_spec(this%filename_spec, &
+           unit=this%volume, accum_type=accum_types(file_idx),          &
+           incomplete_ok=.false.)
+      end do
 
    end function config_filename
+
+   ! ========================================================================
+
+   subroutine config_set_filenames(this)
+      use cam_filenames, only: interpret_filename_spec
+      ! Dummy argument
+      class(hist_file_t), intent(inout) :: this
+      
+      character(len=1) :: accum_types(max_split_files)
+      integer          :: file_idx
+
+      if (allocated(this%file_names)) then
+         return
+      end if
+      accum_types = (/ 'i', 'a' /)
+      allocate(this%file_names(max_split_files))
+      do file_idx = 1, size(this%file_names, 1)
+         this%file_names(file_idx) = interpret_filename_spec(this%filename_spec, &
+           unit=this%volume, accum_type=accum_types(file_idx),          &
+           incomplete_ok=.false.)
+      end do
+
+   end subroutine config_set_filenames
+
+   ! ========================================================================
+
+   function config_get_filenames(this) result(cfiles)
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=CL)              :: cfiles(max_split_files)
+
+      cfiles = this%file_names
+
+   end function config_get_filenames
+
+   ! ========================================================================
+
+   function config_get_filename_spec(this) result(filename_spec)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+      character(len=:), allocatable  :: filename_spec
+
+      filename_spec = this%filename_spec
+
+   end function config_get_filename_spec
 
    ! ========================================================================
 
@@ -105,6 +245,24 @@ CONTAINS
 
       config_max_frame = this%max_frames
    end function config_max_frame
+
+   ! ========================================================================
+
+   integer function config_get_num_samples(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_get_num_samples = this%num_samples
+   end function config_get_num_samples
+
+   ! ========================================================================
+
+   integer function config_get_beg_time(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_get_beg_time = this%beg_time
+   end function config_get_beg_time
 
    ! ========================================================================
 
@@ -134,6 +292,21 @@ CONTAINS
       write(out_freq, '(i0,1x,2a)') this%output_freq_mult, trim(out_opt), plural
 
    end function config_output_freq
+
+   ! ========================================================================
+
+   subroutine config_output_freq_separate(this, out_freq_mult, out_freq_type)
+      use shr_kind_mod,   only: CL => SHR_KIND_CL, CS => SHR_KIND_CS
+      use shr_string_mod, only: to_lower => shr_string_toLower
+      ! Dummy arguments
+      class(hist_file_t), intent(in)  :: this
+      integer,            intent(out) :: out_freq_mult
+      character(len=8),   intent(out) :: out_freq_type
+
+      out_freq_mult = this%output_freq_mult
+      out_freq_type = this%output_freq_type
+
+   end subroutine config_output_freq_separate
 
    ! ========================================================================
 
@@ -177,6 +350,36 @@ CONTAINS
 
    ! ========================================================================
 
+   logical function config_is_split_file(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_is_split_file = this%split_file
+
+   end function config_is_split_file
+
+   ! ========================================================================
+
+   logical function config_do_write_nstep0(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_do_write_nstep0 = this%write_nstep0
+
+   end function config_do_write_nstep0
+
+   ! ========================================================================
+
+   logical function config_file_is_setup(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_file_is_setup = allocated(this%grids)
+
+   end function config_file_is_setup
+
+   ! ========================================================================
+
    subroutine config_reset(this)
       ! Dummy argument
       class(hist_file_t), intent(inout) :: this
@@ -186,7 +389,13 @@ CONTAINS
       this%max_frames = UNSET_I
       this%output_freq_mult = UNSET_I
       this%output_freq_type = UNSET_C
+      this%num_samples = 0
+      this%beg_time = UNSET_R8
+      this%end_time = UNSET_R8
       this%hfile_type = hfile_type_default
+      if (allocated(this%file_names)) then
+         deallocate(this%file_names)
+      end if
       if (associated(this%interp_info)) then
 !         call this%interp_info%reset()
          deallocate(this%interp_info)
@@ -198,10 +407,11 @@ CONTAINS
 
    subroutine config_configure(this, volume, out_prec, max_frames,            &
         output_freq, file_type, filename_spec, collect_patch_out,             &
-        interp_out, interp_nlat, interp_nlon, interp_grid, interp_type)
+        inst_fields, avg_fields, min_fields, max_fields, var_fields,          &
+        write_nstep0, interp_out, interp_nlat, interp_nlon, interp_grid,      &
+        interp_type, split_file)
       use shr_kind_mod,   only: CL=>SHR_KIND_CL
       use shr_string_mod, only: to_lower => shr_string_toLower
-      use cam_abortutils, only: endrun
       use string_utils,   only: parse_multiplier
       ! Dummy arguments
       class(hist_file_t),         intent(inout) :: this
@@ -212,14 +422,25 @@ CONTAINS
       integer,                    intent(in)    :: file_type
       character(len=*),           intent(in)    :: filename_spec
       logical,                    intent(in)    :: collect_patch_out
+      character(len=*),           intent(in)    :: inst_fields(:)
+      character(len=*),           intent(in)    :: avg_fields(:)
+      character(len=*),           intent(in)    :: min_fields(:)
+      character(len=*),           intent(in)    :: max_fields(:)
+      character(len=*),           intent(in)    :: var_fields(:)
+      logical,                    intent(in)    :: write_nstep0
       logical,          optional, intent(in)    :: interp_out
       integer,          optional, intent(in)    :: interp_nlat
       integer,          optional, intent(in)    :: interp_nlon
       character(len=*), optional, intent(in)    :: interp_grid
       character(len=*), optional, intent(in)    :: interp_type
+      logical,          optional, intent(in)    :: split_file
       ! Local variables
       character(len=CL) :: errmsg
       integer           :: last_char
+      integer           :: ierr
+      integer           :: num_fields
+      integer           :: field_index
+      integer           :: idx
       character(len=*), parameter :: subname = 'config_configure: '
 
       call this%reset()
@@ -235,7 +456,8 @@ CONTAINS
            'nminutes', 'nminute ', 'nhours  ', 'nhour   ', 'ndays   ',        &
            'nday    ', 'monthly ', 'nmonths ', 'nmonth  ', 'nyears  ',        &
            'nyear   ', 'steps   ', 'seconds ', 'minutes ', 'hours   ',        &
-           'days    ', 'months  ', 'years   ' /))
+           'days    ', 'months  ', 'years   ', 'step    ', 'second  ',        &
+           'minute  ', 'hour    ', 'day     ', 'month   ', 'year    '/))
       if (this%output_freq_mult < 1) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__-6)
       end if
@@ -249,6 +471,8 @@ CONTAINS
       end if
       this%hfile_type = file_type
       this%collect_patch_output = collect_patch_out
+      this%write_nstep0 = write_nstep0
+      ! Append accumulation to volume of filename spec
       this%filename_spec = filename_spec
       if (present(interp_out)) then
          if (interp_out) then
@@ -256,13 +480,60 @@ CONTAINS
             ! To do: write and call interp object creator
          end if
       end if
+      if (present(split_file) .and. split_file) then
+         this%split_file = .true.
+      end if
+
+      num_fields = count_array(inst_fields) + count_array(avg_fields) + &
+         count_array(min_fields) + count_array(max_fields) + count_array(var_fields)
+!      num_fields = size(inst_fields, 1) + size(avg_fields, 1) + &
+!         size(min_fields, 1) + size(max_fields, 1) + size(var_fields, 1)
+      allocate(this%field_names(num_fields), stat=ierr)
+      call check_allocate(ierr, subname, 'this%field_names',             &
+           file=__FILE__, line=__LINE__-1)
+      allocate(this%accumulate_types(num_fields), stat=ierr)
+      call check_allocate(ierr, subname, 'this%accumulate_types',             &
+           file=__FILE__, line=__LINE__-1)
+
+      call this%field_list_hash_table%initialize(num_fields)
+      allocate(this%field_list(num_fields), stat=ierr)
+      call check_allocate(ierr, subname, 'this%field_list',             &
+           file=__FILE__, line=__LINE__-1)
+
+      field_index = 1
+      ! Add the field names and associated accumulate types to the object
+      do idx = 1, count_array(inst_fields)
+         this%accumulate_types(field_index) = 'lst'
+         this%field_names(field_index) = inst_fields(idx)
+         field_index = field_index + 1
+      end do
+      do idx = 1, count_array(avg_fields)
+         this%accumulate_types(field_index) = 'avg'
+         this%field_names(field_index) = avg_fields(idx)
+         field_index = field_index + 1
+      end do
+      do idx = 1, count_array(min_fields)
+         this%accumulate_types(field_index) = 'min'
+         this%field_names(field_index) = min_fields(idx)
+         field_index = field_index + 1
+      end do
+      do idx = 1, count_array(max_fields)
+         this%accumulate_types(field_index) = 'max'
+         this%field_names(field_index) = max_fields(idx)
+         field_index = field_index + 1
+      end do
+      do idx = 1, count_array(var_fields)
+         this%accumulate_types(field_index) = 'var'
+         this%field_names(field_index) = var_fields(idx)
+         field_index = field_index + 1
+      end do
+
    end subroutine config_configure
 
    ! ========================================================================
 
    subroutine config_print_config(this)
       use string_utils,   only: to_str
-      use cam_abortutils, only: endrun
       use spmd_utils,     only: masterproc
       use cam_logfile,    only: iulog
       ! Dummy argument
@@ -271,6 +542,10 @@ CONTAINS
       if (masterproc) then
          write(iulog, '(2a)') "History configuration for volume = ",           &
               trim(this%volume)
+         if (this%split_file) then
+            write(iulog, '(5a)') " File will be split into two; ", trim(this%volume), &
+               "i for instantaneous and ", trim(this%volume), "a for accumulated"
+         end if
          select case(this%hfile_type)
          case (hfile_type_history)
             write(iulog, *) "File will contain model history (diagnostics) output"
@@ -315,6 +590,1007 @@ CONTAINS
 
    ! ========================================================================
 
+   subroutine config_increment_samples(this)
+      ! Dummy argument
+      class(hist_file_t), intent(inout) :: this
+
+      this%num_samples = this%num_samples + 1
+
+   end subroutine config_increment_samples
+
+   ! ========================================================================
+
+   subroutine config_set_beg_time(this, day, sec)
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      integer, intent(in) :: day
+      integer, intent(in) :: sec
+
+      this%beg_time = day + (sec/86400._r8)
+
+   end subroutine config_set_beg_time
+
+   ! ========================================================================
+
+   subroutine config_set_end_time(this, day, sec)
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      integer, intent(in) :: day
+      integer, intent(in) :: sec
+
+      this%end_time = day + (sec/86400._r8)
+
+   end subroutine config_set_end_time
+
+   ! ========================================================================
+
+   subroutine config_set_up_fields(this, possible_field_list)
+      use hist_api,         only: hist_new_field, hist_new_buffer
+      use cam_grid_support, only: cam_grid_num_grids
+      use hist_msg_handler, only: hist_have_error, hist_log_messages
+
+      ! Dummy arguments
+      class(hist_file_t),        intent(inout) :: this
+      type(hist_hash_table_t),   intent(in)    :: possible_field_list
+
+      integer :: idx
+      integer :: ierr
+      integer :: num_inst_fields, num_accum_fields
+      integer :: num_grids, grid_idx
+      integer, allocatable :: possible_grids(:)
+      class(hist_field_info_t), pointer :: field_info
+      class(hist_field_info_t), pointer :: field_ptr
+      class(hist_field_info_t), pointer :: field_list_entry
+      class(hist_hashable_t), pointer :: field_ptr_entry
+      character(len=*), parameter :: subname = 'hist:config_set_up_fields: '
+      character(len=max_chars) :: timeop
+      integer, allocatable :: dimensions(:)
+      integer, allocatable :: field_shape(:)
+      integer, allocatable :: beg_dim(:)
+      integer, allocatable :: end_dim(:)
+      type(hist_log_messages) :: errors
+
+
+      allocate(possible_grids(cam_grid_num_grids() + 1))
+      possible_grids = -1
+      num_grids = 0
+      do idx = 1, size(this%field_names)
+         ! Find the relevant field in the possible field list
+         field_ptr_entry => possible_field_list%table_value(this%field_names(idx))
+         select type(field_ptr_entry)
+         type is (hist_field_info_t)
+            field_ptr => field_ptr_entry
+         class default
+            ! some error message here
+            return
+         end select
+         ! peverwhee - TODO: check for duplicate field ?
+         call field_ptr%dimensions(dimensions)
+         call field_ptr%shape(field_shape)
+         call field_ptr%beg_dims(beg_dim)
+         call field_ptr%end_dims(end_dim)
+         field_info => hist_new_field(this%field_names(idx),     &
+            field_ptr%standard_name(), field_ptr%long_name(),    &
+            field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
+            dimensions, this%accumulate_types(idx), field_ptr%num_levels(), &
+            field_shape, beg_dims=beg_dim, end_dims=end_dim)
+         call hist_new_buffer(field_info, field_shape, &
+            this%rl_kind, 1, this%accumulate_types(idx), 1, errors=errors)
+         call errors%output(iulog)
+         call hist_new_buffer(field_info, field_shape, &
+            this%rl_kind, 1, this%accumulate_types(idx), 1)
+         ! Add to field list array and hash table
+         this%field_list(idx) = field_info
+!         call this%add_to_field_list(field_info, this%accumulate_types(idx))
+         call this%field_list_hash_table%add_hash_key(field_info)
+         ! Add grid to possible grids if it's not already there
+         do grid_idx = 1, size(possible_grids, 1)
+            if (field_ptr%decomp() == possible_grids(grid_idx)) then
+               exit
+            else if (possible_grids(grid_idx) < 0) then
+               possible_grids(grid_idx) = field_ptr%decomp()
+               num_grids = num_grids + 1
+               exit
+            end if
+         end do
+         deallocate(dimensions)
+         deallocate(field_shape)
+         if (allocated(beg_dim)) then
+            deallocate(beg_dim)
+         end if
+         if (allocated(end_dim)) then
+            deallocate(end_dim)
+         end if
+      end do
+      ! Finish set-up of grids for this volume
+      allocate(this%grids(num_grids))
+      do grid_idx = 1, num_grids
+         this%grids(grid_idx) = possible_grids(grid_idx)
+      end do
+
+   end subroutine config_set_up_fields
+
+   ! ========================================================================
+
+   subroutine config_find_in_field_list(this, diagnostic_name, field_info, errmsg)
+      ! Dummy arguments
+      class(hist_file_t), intent(in)                 :: this
+      character(len=*),   intent(in)                 :: diagnostic_name
+      class(hist_field_info_t), pointer, intent(out) :: field_info
+      character(len=*),   intent(out)                :: errmsg
+
+      ! Local variables
+      class(hist_field_info_t), pointer :: field_ptr
+      class(hist_hashable_t),   pointer :: field_ptr_entry
+      integer                           :: field_idx
+      character(len=3)                  :: accum_flag
+      logical                           :: found_field
+      character(len=*), parameter       :: subname = 'hist:find_in_field_list: '
+
+      nullify(field_info) 
+      errmsg = ''
+      found_field = .false.
+      ! Loop over field names
+      do field_idx = 1, size(this%field_names, 1)
+         if (this%field_names(field_idx) == trim(diagnostic_name)) then
+            ! Grab the associated accumulate flag
+            accum_flag = this%accumulate_types(field_idx)
+            found_field = .true.
+         end if
+      end do
+      if (.not. found_field) then
+         return
+      end if
+      found_field = .false.
+      
+      ! Grab the field info pointer from the hash table
+      field_ptr_entry => this%field_list_hash_table%table_value(diagnostic_name)
+      select type(field_ptr_entry)
+      type is (hist_field_info_t)
+         field_info => field_ptr_entry
+         found_field = .true.
+      class default
+         ! some error message here
+         return
+      end select
+
+      if (.not. found_field) then
+         ! Field not found - return an error
+         write(errmsg,*) subname//"Field not found in field list, '"//      &
+            trim(diagnostic_name)//"'"
+         return
+      end if
+
+   end subroutine config_find_in_field_list
+
+   !#######################################################################
+
+   subroutine AvgflagToString(avgflag, time_op)
+      ! Dummy arguments
+       character(len=3),           intent(in)  :: avgflag ! averaging flag
+       character(len=max_chars),   intent(out) :: time_op ! time op (e.g. max)
+
+       ! Local variable
+       character(len=*), parameter             :: subname = 'AvgflagToString'
+
+       select case (avgflag)
+       case ('avg')
+         time_op(:) = 'mean'
+       case ('B')
+         time_op(:) = 'mean00z'
+       case ('N')
+         time_op(:) = 'mean_over_nsteps'
+       case ('lst')
+         time_op(:) = 'point'
+       case ('max')
+         time_op(:) = 'maximum'
+       case ('min')
+         time_op(:) = 'minimum'
+       case('L')
+         time_op(:) = LT_DESC
+       case ('var')
+         time_op(:) = 'standard_deviation'
+       case default
+         call endrun(subname//': unknown avgflag = '//avgflag)
+    end select
+  end subroutine AvgflagToString
+
+  !#######################################################################
+
+   ! ========================================================================
+
+   subroutine config_define_file(this, restart, logname, host, model_doi_url)
+      use pio,                 only: PIO_CLOBBER, pio_file_is_open, pio_unlimited
+      use pio,                 only: pio_double, pio_def_var, pio_put_att, pio_int
+      use pio,                 only: PIO_GLOBAL, pio_char, pio_real, PIO_NOERR, pio_enddef
+      use pio,                 only: pio_put_var
+      use cam_pio_utils,       only: cam_pio_createfile, cam_pio_def_var
+      use cam_pio_utils,       only: cam_pio_def_dim, cam_pio_handle_error
+      use shr_kind_mod,        only: CL => SHR_KIND_CL
+      use cam_grid_support,    only: cam_grid_header_info_t, cam_grid_write_attr
+      use cam_grid_support,    only: cam_grid_write_var
+      use cam_history_support, only: write_hist_coord_attrs
+      use cam_history_support, only: write_hist_coord_vars
+      use time_manager,        only: get_ref_date, timemgr_get_calendar_cf
+      use time_manager,        only: get_step_size
+      use string_utils,        only: date2yyyymmdd, sec2hms
+      use cam_control_mod,     only: caseid
+      use cam_initfiles,       only: ncdata, bnd_topo
+!      use solar_parms_data,    only: solar_parms_on
+!      use solar_wind_data,     only: solar_wind_on
+!      use epotential_params,   only: epot_active
+      ! Define the metadata for the file(s) for this volume
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      logical,            intent(in)    :: restart
+      character(len=*),   intent(in)    :: logname
+      character(len=*),   intent(in)    :: host
+      character(len=*),   intent(in)    :: model_doi_url
+
+      ! Local variables
+      integer :: amode, ierr
+      integer :: grid_index, split_file_index, field_index, idx, jdx
+      integer :: dtime              ! timestep size
+      integer :: yr, mon, day       ! year, month, day components of a date
+      integer :: nbsec              ! time of day component of base date [seconds]
+      integer :: nbdate             ! base date in yyyymmdd format
+      integer :: nsbase = 0         ! seconds component of base time
+      integer :: ndbase = 0         ! days component of base time
+      integer :: ncreal             ! real data type for output
+      integer :: grd
+      integer :: mdimsize, num_hdims, fdims
+      integer :: num_patches
+      integer, allocatable :: mdims(:)
+
+      ! peverwhee - temporary flags - remove when enabled in CAM-SIMA
+      logical :: solar_parms_on     ! temporary solar parms flag
+      logical :: solar_wind_on      ! temporary solar wind flag
+      logical :: epot_active        ! temporary epotential params flag
+
+      logical                  :: is_satfile
+      logical                  :: is_initfile
+      logical                  :: varid_set
+      character(len=16)        :: time_per_freq
+      character(len=max_chars) :: str       ! character temporary
+      character(len=max_chars) :: calendar  ! Calendar type
+      character(len=max_chars) :: cell_methods ! For cell_methods attribute
+      character(len=max_chars) :: fname_tmp ! local copy of field name
+      character(len=128)       :: errmsg
+      type(var_desc_t)         :: varid
+      ! NetCDF dimensions
+      integer :: timdim             ! unlimited dimension id
+      integer :: bnddim             ! bounds dimension id
+      integer :: chardim            ! character dimension id
+      integer :: dimenchar(2)       ! character dimension ids
+      integer :: nacsdims(2)        ! dimension ids for nacs (used in restart file)
+
+      integer :: dimindex(8)        ! dimension ids for variable declaration
+      integer :: dimids_tmp(8)      ! dimension ids for variable declaration
+      ! A structure to hold the horizontal dimension and coordinate info
+      type(cam_grid_header_info_t), allocatable :: header_info(:)
+      integer,          allocatable    :: mdimids(:)
+      character(len=*), parameter :: subname = 'config_define_file: '
+
+      ! peverwhee - temporary flags - remove when enabled in SIMA
+      epot_active = .false.
+      solar_parms_on = .false.
+      solar_wind_on = .false.
+
+      is_initfile = (this%hfile_type == hfile_type_init_value)
+      is_satfile = (this%hfile_type == hfile_type_sat_track)
+      
+      ! Log what we're doing
+      if (this%is_split_file()) then
+         write(iulog,*)'Opening netcdf history files ', trim(this%file_names(accumulated_file_index)), &
+                           '  ', trim(this%file_names(instantaneous_file_index))
+      else
+         write(iulog,*) 'Opening netcdf history file ', trim(this%file_names(instantaneous_file_index))
+      end if
+
+      amode = PIO_CLOBBER
+
+      call cam_pio_createfile(this%hist_files(instantaneous_file_index),   &
+         this%file_names(instantaneous_file_index), amode)
+
+      if (this%is_split_file()) then
+         call cam_pio_createfile(this%hist_files(accumulated_file_index),  &
+            this%file_names(accumulated_file_index), amode)
+      end if
+
+      allocate(header_info(size(this%grids, 1)), stat=ierr)
+      call check_allocate(ierr, subname, 'header_info',             &
+           file=__FILE__, line=__LINE__-1)
+
+      do grid_index = 1, size(this%grids, 1)
+         do split_file_index = 1, max_split_files
+            if (pio_file_is_open(this%hist_files(split_file_index))) then
+               call cam_grid_write_attr(this%hist_files(split_file_index), &
+                  this%grids(grid_index), header_info(grid_index),         &
+                  file_index=split_file_index)
+            end if
+         end do
+      end do
+
+      ! Define the unlimited time dim
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(this%hist_files(split_file_index))) then
+            call cam_pio_def_dim(this%hist_files(split_file_index), 'time', pio_unlimited, timdim)
+            call cam_pio_def_dim(this%hist_files(split_file_index), 'nbnd', 2, bnddim, existOK=.true.)
+            call cam_pio_def_dim(this%hist_files(split_file_index), 'chars', 8, chardim)
+         end if
+      end do
+
+      call get_ref_date(yr, mon, day, nbsec)
+      nbdate = yr*10000 + mon*100 + day
+      calendar = timemgr_get_calendar_cf()
+      dtime = get_step_size()
+      ! v peverwhee - remove when patch output is set up
+      num_patches = 1
+      ! ^ peverwhee - remove when patch output is set up
+      ! Format frequency
+      write(time_per_freq,999) trim(this%output_freq_type), '_', this%output_freq_mult
+999   format(2a,i0)
+
+      do split_file_index = 1, max_split_files
+         if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
+            cycle
+         end if
+         ! Populate the history coordinate (well, mdims anyway) attributes
+         ! This routine also allocates the mdimids array
+         call write_hist_coord_attrs(this%hist_files(split_file_index), bnddim, mdimids, restart)
+         ! Define time variable
+         ierr=pio_def_var (this%hist_files(split_file_index),'time',pio_double,(/timdim/),this%timeid)
+         ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'long_name', 'time')
+         str = 'days since ' // date2yyyymmdd(nbdate) // ' ' // sec2hms(nbsec)
+         ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'units', trim(str))
+         ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'calendar', trim(calendar))
+
+         ! Define date variable
+         ierr=pio_def_var (this%hist_files(split_file_index),'date',pio_int,(/timdim/),this%dateid)
+         str = 'current date (YYYYMMDD)'
+         ierr=pio_put_att (this%hist_files(split_file_index), this%dateid, 'long_name', trim(str))
+
+         ! Define datesec variable
+         ierr=pio_def_var (this%hist_files(split_file_index),'datesec ',pio_int,(/timdim/), this%datesecid)
+         str = 'current seconds of current date'
+         ierr=pio_put_att (this%hist_files(split_file_index), this%datesecid, 'long_name', trim(str))
+
+         !
+         ! Character header information
+         !
+         str = 'CF-1.0'
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'Conventions', trim(str))
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'source', 'CAM')
+#if ( defined BFB_CAM_SCAM_IOP )
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL,'CAM_GENERATED_FORCING','create SCAM IOP dataset')
+#endif
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'case', caseid)
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'logname',logname)
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'host', host)
+
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'initial_file', ncdata)
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'topography_file', bnd_topo)
+         if (len_trim(model_doi_url) > 0) then
+            ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'model_doi_url', model_doi_url)
+         end if
+
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'time_period_freq', trim(time_per_freq))
+         if (.not. is_satfile) then
+            ! Define time_bounds variable
+            ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'bounds', 'time_bounds')
+            ierr=pio_def_var (this%hist_files(split_file_index),'time_bounds',pio_double,(/bnddim,timdim/),this%tbndid)
+            ierr=pio_put_att (this%hist_files(split_file_index), this%tbndid, 'long_name', 'time interval endpoints')
+            str = 'days since ' // date2yyyymmdd(nbdate) // ' ' // sec2hms(nbsec)
+            ierr=pio_put_att (this%hist_files(split_file_index), this%tbndid, 'units', trim(str))
+            ierr=pio_put_att (this%hist_files(split_file_index), this%tbndid, 'calendar', trim(calendar))
+
+            !
+            ! Character
+            !
+            dimenchar(1) = chardim
+            dimenchar(2) = timdim
+            ierr=pio_def_var (this%hist_files(split_file_index),'date_written',pio_char,dimenchar,this%date_writtenid)
+            ierr=pio_def_var (this%hist_files(split_file_index),'time_written',pio_char,dimenchar,this%time_writtenid)
+
+            !
+            ! Integer header
+            !
+            ! Define base day variables
+            ierr=pio_def_var (this%hist_files(split_file_index),'ndbase',PIO_INT,this%ndbaseid)
+            str = 'base day'
+            ierr=pio_put_att (this%hist_files(split_file_index), this%ndbaseid, 'long_name', trim(str))
+
+            ierr=pio_def_var (this%hist_files(split_file_index),'nsbase',PIO_INT,this%nsbaseid)
+            str = 'seconds of base day'
+            ierr=pio_put_att (this%hist_files(split_file_index), this%nsbaseid, 'long_name', trim(str))
+
+            ierr=pio_def_var (this%hist_files(split_file_index),'nbdate',PIO_INT,this%nbdateid)
+            str = 'base date (YYYYMMDD)'
+            ierr=pio_put_att (this%hist_files(split_file_index), this%nbdateid, 'long_name', trim(str))
+
+#if ( defined BFB_CAM_SCAM_IOP )
+            ierr=pio_def_var (this%hist_files(split_file_index),'bdate',PIO_INT,this%bdateid)
+            str = 'base date (YYYYMMDD)'
+            ierr=pio_put_att (this%hist_files(split_file_index), this%bdateid, 'long_name', trim(str))
+#endif
+            ierr=pio_def_var (this%hist_files(split_file_index),'nbsec',PIO_INT,this%nbsecid)
+            str = 'seconds of base date'
+            ierr=pio_put_att (this%hist_files(split_file_index), this%nbsecid, 'long_name', trim(str))
+
+            ierr=pio_def_var (this%hist_files(split_file_index),'mdt',PIO_INT,this%mdtid)
+            ierr=pio_put_att (this%hist_files(split_file_index), this%mdtid, 'long_name', 'timestep')
+            ierr=pio_put_att (this%hist_files(split_file_index), this%mdtid, 'units', 's')
+
+            !
+            ! Create variables for model timing and header information
+            !
+            if (split_file_index == instantaneous_file_index) then
+               ierr=pio_def_var (this%hist_files(split_file_index),'ndcur   ',pio_int,(/timdim/),this%ndcurid)
+               str = 'current day (from base day)'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%ndcurid, 'long_name', trim(str))
+
+               ierr=pio_def_var (this%hist_files(split_file_index),'nscur   ',pio_int,(/timdim/),this%nscurid)
+               str = 'current seconds of current day'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%nscurid, 'long_name', trim(str))
+            end if
+
+            if (.not. is_initfile .and. split_file_index == instantaneous_file_index) then
+               ! Don't write the GHG/Solar forcing data to the IC file.
+               ! Only write the GHG/Solar forcing data to the instantaneous file
+               ierr=pio_def_var (this%hist_files(split_file_index),'co2vmr  ',pio_double,(/timdim/),this%co2vmrid)
+               str = 'co2 volume mixing ratio'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%co2vmrid, 'long_name', trim(str))
+
+               ierr=pio_def_var (this%hist_files(split_file_index),'ch4vmr  ',pio_double,(/timdim/),this%ch4vmrid)
+               str = 'ch4 volume mixing ratio'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%ch4vmrid, 'long_name', trim(str))
+
+               ierr=pio_def_var (this%hist_files(split_file_index),'n2ovmr  ',pio_double,(/timdim/),this%n2ovmrid)
+               str = 'n2o volume mixing ratio'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%n2ovmrid, 'long_name', trim(str))
+
+               ierr=pio_def_var (this%hist_files(split_file_index),'f11vmr  ',pio_double,(/timdim/),this%f11vmrid)
+               str = 'f11 volume mixing ratio'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%f11vmrid, 'long_name', trim(str))
+
+               ierr=pio_def_var (this%hist_files(split_file_index),'f12vmr  ',pio_double,(/timdim/),this%f12vmrid)
+               str = 'f12 volume mixing ratio'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%f12vmrid, 'long_name', trim(str))
+
+               ierr=pio_def_var (this%hist_files(split_file_index),'sol_tsi ',pio_double,(/timdim/),this%sol_tsiid)
+               str = 'total solar irradiance'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%sol_tsiid, 'long_name', trim(str))
+               str = 'W/m2'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%sol_tsiid, 'units', trim(str))
+
+               if (solar_parms_on) then
+                  ! solar / geomagnetic activity indices...
+                  ierr=pio_def_var (this%hist_files(split_file_index),'f107',pio_double,(/timdim/),this%f107id)
+                  str = '10.7 cm solar radio flux (F10.7)'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%f107id, 'long_name', trim(str))
+                  str = '10^-22 W m^-2 Hz^-1'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%f107id, 'units', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'f107a',pio_double,(/timdim/),this%f107aid)
+                  str = '81-day centered mean of 10.7 cm solar radio flux (F10.7)'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%f107aid, 'long_name', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'f107p',pio_double,(/timdim/),this%f107pid)
+                  str = 'Pervious day 10.7 cm solar radio flux (F10.7)'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%f107pid, 'long_name', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'kp',pio_double,(/timdim/),this%kpid)
+                  str = 'Daily planetary K geomagnetic index'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%kpid, 'long_name', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'ap',pio_double,(/timdim/),this%apid)
+                  str = 'Daily planetary A geomagnetic index'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%apid, 'long_name', trim(str))
+               end if
+
+               if (solar_wind_on) then
+                  ierr=pio_def_var (this%hist_files(split_file_index),'byimf',pio_double,(/timdim/),this%byimfid)
+                  str = 'Y component of the interplanetary magnetic field'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%byimfid, 'long_name', trim(str))
+                  str = 'nT'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%byimfid, 'units', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'bzimf',pio_double,(/timdim/),this%bzimfid)
+                  str = 'Z component of the interplanetary magnetic field'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%bzimfid, 'long_name', trim(str))
+                  str = 'nT'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%bzimfid, 'units', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'swvel',pio_double,(/timdim/),this%swvelid)
+                  str = 'Solar wind speed'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%swvelid, 'long_name', trim(str))
+                  str = 'km/sec'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%swvelid, 'units', trim(str))
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'swden',pio_double,(/timdim/),this%swdenid)
+                  str = 'Solar wind ion number density'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%swdenid, 'long_name', trim(str))
+                  str = 'cm-3'
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%swdenid, 'units', trim(str))
+               end if
+
+               if (epot_active) then
+                  ierr=pio_def_var (this%hist_files(split_file_index),'colat_crit1',pio_double,(/timdim/),this%colat_crit1_id)
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%colat_crit1_id, 'long_name', &
+                                    'First co-latitude of electro-potential critical angle')
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%colat_crit1_id, 'units', 'degrees')
+
+                  ierr=pio_def_var (this%hist_files(split_file_index),'colat_crit2',pio_double,(/timdim/),this%colat_crit2_id)
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%colat_crit2_id, 'long_name', &
+                                    'Second co-latitude of electro-potential critical angle')
+                  ierr=pio_put_att (this%hist_files(split_file_index), this%colat_crit2_id, 'units', 'degrees')
+               end if
+            end if ! instantaneous, .not. initfile
+
+            if (split_file_index == instantaneous_file_index) then
+#if ( defined BFB_CAM_SCAM_IOP )
+               ierr=pio_def_var (this%hist_files(split_file_index),'tsec ',pio_int,(/timdim/),this%tsecid)
+               str = 'current seconds of current date needed for scam'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%tsecid, 'long_name', trim(str))
+#endif
+               ierr=pio_def_var (this%hist_files(split_file_index),'nsteph',pio_int,(/timdim/),this%nstephid)
+               str = 'current timestep'
+               ierr=pio_put_att (this%hist_files(split_file_index), this%nstephid, 'long_name', trim(str))
+            end if
+
+         end if ! .not. satfile
+
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !
+         ! Create variables and attributes for field list
+         !
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+         do field_index = 1, size(this%field_list)
+            if (.not. is_satfile .and. .not. restart .and. .not. is_initfile) then
+               if (split_file_index == accumulated_file_index) then
+                  ! this is the accumulated file of a potentially split
+                  ! history tape - skip instantaneous fields
+                  if (this%field_list(field_index)%accumulate_type() == 'lst') then
+                     cycle
+                  end if
+               else
+                  ! this is the instantaneous file of a potentially split
+                  ! history tape - skip accumulated fields
+                  if (this%field_list(field_index)%accumulate_type() /= 'lst') then
+                     cycle
+                  end if
+               end if
+            end if
+            !if ((this%field_list(field_index)%buffers(1)%buffer_type() == 8) .or. restart) then
+            !   ncreal = pio_double
+            !else
+            !   ncreal = pio_real
+            !end if
+            ncreal = pio_real
+            call this%field_list(field_index)%dimensions(mdims)
+            mdimsize = size(mdims,1)
+            fname_tmp = strip_suffix(this%field_list(field_index)%diag_name())
+            !
+            !  Create variables and atributes for fields written out as columns
+            !
+            varid_set = .true.
+            if(.not. this%field_list(field_index)%varid_set()) then
+               call this%field_list(field_index)%allocate_varid(num_patches)
+               varid_set = .false.
+            end if
+            !  Find appropriate grid in header_info
+            if (.not. allocated(header_info)) then
+               ! Safety check
+               call endrun('config_define_file: header_info not allocated')
+            end if
+            grd = -1
+            do idx = 1, size(header_info)
+              if (header_info(idx)%get_gridid() == this%field_list(field_index)%decomp()) then
+                 grd = idx
+                 exit
+              end if
+            end do
+            if (grd < 0) then
+               write(errmsg, '(a,i0,2a)') 'grid, ',this%field_list(field_index)%decomp(),', not found for ', &
+                  trim(fname_tmp)
+               call endrun('config_define_file: '//errmsg)
+            end if
+            num_hdims = header_info(grd)%num_hdims()
+            do idx = 1, num_hdims
+               dimindex(idx) = header_info(1)%get_hdimid(idx)
+               nacsdims(idx) = header_info(1)%get_hdimid(idx)
+            end do
+            do idx = 1, num_patches
+               varid = this%field_list(field_index)%varid(idx)
+               dimids_tmp = dimindex
+               ! Figure the dimension ID array for this field
+               ! We have defined the horizontal grid dimensions in dimindex
+               fdims = num_hdims
+               do jdx = 1, mdimsize
+                  write(iulog,*) 'adding an mdim'
+                  fdims = fdims + 1
+                  dimids_tmp(fdims) = mdimids(mdims(jdx))
+               end do
+               if(.not. restart) then
+                  ! Only add time dimension if this is not a restart history tape
+                  fdims = fdims + 1
+                  dimids_tmp(fdims) = timdim
+               end if
+               ! peverwhee - TODO: enable patch output
+               ! Define the variable
+               call cam_pio_def_var(this%hist_files(split_file_index), trim(fname_tmp), ncreal,           &
+                    dimids_tmp(1:fdims), varid)
+               if (.not. varid_set) then
+                  call this%field_list(field_index)%set_varid(idx, varid)
+               end if
+               if (mdimsize > 0) then
+                  ierr = pio_put_att(this%hist_files(split_file_index), varid, 'mdims', mdims(1:mdimsize))
+                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define mdims for '//trim(fname_tmp))
+               end if
+               str = this%field_list(field_index)%sampling_sequence()
+               if (len_trim(str) > 0) then
+                  ierr = pio_put_att(this%hist_files(split_file_index), varid, 'Sampling_Sequence', trim(str))
+                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define Sampling_Sequence for '//trim(fname_tmp))
+               end if
+               if (this%field_list(field_index)%flag_xyfill()) then
+                  ! peverwhee - TODO: implement fill values!
+                  call endrun('config_define_file: fill values not yet implemented!')
+               end if
+               str = this%field_list(field_index)%units()
+               if (len_trim(str) > 0) then
+                  ierr=pio_put_att (this%hist_files(split_file_index), varid, 'units', trim(str))
+                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define units for '//trim(fname_tmp))
+               end if
+               str = this%field_list(field_index)%mixing_ratio()
+               if (len_trim(str) > 0) then
+                  ierr=pio_put_att (this%hist_files(split_file_index), varid, 'mixing_ratio', trim(str))
+                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define mixing_ratio for '//trim(fname_tmp))
+               end if
+               str = this%field_list(field_index)%long_name()
+               ierr=pio_put_att (this%hist_files(split_file_index), varid, 'long_name', trim(str))
+               call cam_pio_handle_error(ierr, 'config_define_file: cannot define long_name for '//trim(fname_tmp))
+               ! Assign field attributes defining valid levels and averaging info
+               cell_methods = ''
+               if (len_trim(this%field_list(field_index)%cell_methods()) > 0) then
+                  if (len_trim(cell_methods) > 0) then
+                     cell_methods = trim(cell_methods)//' '//trim(this%field_list(field_index)%cell_methods())
+                  else
+                     cell_methods = trim(cell_methods)//trim(this%field_list(field_index)%cell_methods())
+                  end if
+               end if
+               ! Time cell methods is after field method because time averaging is
+               ! applied later (just before output) than field method which is applied
+               ! before outfld call.
+               call AvgflagToString(this%field_list(field_index)%accumulate_type(), str)
+               cell_methods = adjustl(trim(cell_methods)//' '//'time: '//str)
+               if (len_trim(cell_methods) > 0) then
+                  ierr = pio_put_att(this%hist_files(split_file_index), varid, 'cell_methods', trim(cell_methods))
+                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define cell_methods for '//trim(fname_tmp))
+               end if
+            end do ! end loop over patches
+            deallocate(mdims)
+         end do ! end loop over fields
+         deallocate(mdimids)
+         ierr = pio_enddef(this%hist_files(split_file_index))
+         if (ierr /= PIO_NOERR) then
+            call endrun('config_define_file: ERROR exiting define mode in PIO')
+         end if
+         if(masterproc) then
+            write(iulog,*)'config_define_file: Successfully opened netcdf file '
+         end if
+      end do ! end loop over files
+
+      !
+      ! Write time-invariant portion of history header
+      !
+      if(.not. is_satfile) then
+         do idx = 1, size(this%grids)
+            do split_file_index = 1, max_split_files
+               if (pio_file_is_open(this%hist_files(split_file_index))) then
+                  call cam_grid_write_var(this%hist_files(split_file_index), this%grids(idx), &
+                     file_index=split_file_index)
+               end if
+            end do
+         end do
+         do split_file_index = 1, max_split_files
+            if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
+               cycle
+            end if
+
+            ierr = pio_put_var(this%hist_files(split_file_index), this%mdtid, (/dtime/))
+            call cam_pio_handle_error(ierr, 'config_define_file: cannot put mdt')
+
+            !
+            ! Model date info
+            !
+            ierr = pio_put_var(this%hist_files(split_file_index), this%ndbaseid, (/ndbase/))
+            call cam_pio_handle_error(ierr, 'config_define_file: cannot put ndbase')
+            ierr = pio_put_var(this%hist_files(split_file_index), this%nsbaseid, (/nsbase/))
+            call cam_pio_handle_error(ierr, 'config_define_file: cannot put nsbase')
+
+            ierr = pio_put_var(this%hist_files(split_file_index), this%nbdateid, (/nbdate/))
+            call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbdate')
+#if ( defined BFB_CAM_SCAM_IOP )
+            ierr = pio_put_var(this%hist_files(split_file_index), this%bdateid, (/nbdate/))
+            call cam_pio_handle_error(ierr, 'config_define_file: cannot put bdate')
+#endif
+            ierr = pio_put_var(this%hist_files(split_file_index), this%nbsecid, (/nbsec/))
+            call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbsec')
+         end do
+      end if ! end is_satfile
+
+      if (allocated(header_info)) then
+         do idx = 1, size(header_info)
+            call header_info(idx)%deallocate()
+         end do
+         deallocate(header_info)
+      end if
+
+      ! Write the mdim variable data
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(this%hist_files(split_file_index))) then
+            call write_hist_coord_vars(this%hist_files(split_file_index), restart)
+         end if
+      end do
+
+   end subroutine config_define_file
+
+   ! ========================================================================
+
+   subroutine config_write_time_dependent_variables(this, volume_index, restart)
+      use pio,           only: pio_put_var, pio_file_is_open
+      use time_manager,  only: get_nstep, get_curr_date, get_curr_time
+      use time_manager,  only: set_date_from_time_float, get_step_size
+      use datetime_mod,  only: datetime
+      use hist_api,      only: hist_buffer_norm_value
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      integer,            intent(in)    :: volume_index
+      logical,            intent(in)    :: restart
+
+      ! Local variables
+      integer :: yr, mon, day      ! year, month, and day components of a date
+      integer :: yr_mid, mon_mid, day_mid ! year, month, and day components of midpoint date
+      integer :: nstep             ! current timestep number
+      integer :: ncdate(max_split_files) ! current (or midpoint) date in integer format [yyyymmdd]
+      integer :: ncsec(max_split_files)  ! current (or midpoint) time of day [seconds]
+      integer :: ndcur             ! day component of current time
+      integer :: nscur             ! seconds component of current time
+      real(r8) :: time             ! current (or midpoint) time
+      real(r8) :: time_interval(2) ! time interval boundaries
+      integer :: num_samples, ierr
+      integer :: split_file_index, field_idx
+      integer :: start, count1
+      integer :: startc(2)          ! start values required by nf_put_vara (character)
+      integer :: countc(2)          ! count values required by nf_put_vara (character)
+#if ( defined BFB_CAM_SCAM_IOP )
+      integer :: tsec             ! day component of current time
+      integer :: dtime            ! seconds component of current time
+#endif
+      logical :: is_initfile, is_satfile
+      character(len=8) :: cdate  ! system date
+      character(len=8) :: ctime  ! system time
+
+      nstep = get_nstep()
+      call get_curr_date(yr, mon, day, ncsec(instantaneous_file_index))
+      ncdate(instantaneous_file_index) = yr*10000 + mon*100 + day
+      call get_curr_time(ndcur, nscur)
+      time = ndcur + nscur/86400._r8
+      time_interval(1) = this%beg_time
+      time_interval(2) = time
+      call set_date_from_time_float((time_interval(1) + time_interval(2)) / 2._r8, &
+                                    yr_mid, mon_mid, day_mid, ncsec(accumulated_file_index))
+      ncdate(accumulated_file_index) = yr_mid*10000 + mon_mid*100 + day_mid
+      num_samples = this%num_samples
+      do split_file_index = 1, max_split_files
+         if (split_file_index == instantaneous_file_index) then
+            write(iulog,200) num_samples+1,'instantaneous',volume_index-1,yr,mon,day,ncsec(split_file_index)
+         else if (this%split_file) then
+            write(iulog,200) num_samples+1,'accumulated',volume_index-1,yr_mid,mon_mid,day_mid,ncsec(split_file_index)
+         end if
+200      format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
+              i1,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
+      end do
+      write(iulog,*)
+      call this%increment_samples()
+      is_initfile = (this%hfile_type == hfile_type_init_value)
+      is_satfile = (this%hfile_type == hfile_type_sat_track)
+      num_samples = this%num_samples
+      start = num_samples
+      count1 = 1
+      ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%ndcurid,(/start/),(/count1/),(/ndcur/))
+      ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
+
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(this%hist_files(split_file_index))) then
+            ierr = pio_put_var (this%hist_files(split_file_index),this%dateid,(/start/),(/count1/),(/ncdate(split_file_index)/))
+            ierr = pio_put_var (this%hist_files(split_file_index),this%datesecid,(/start/),(/count1/),(/ncsec(split_file_index)/))
+         end if
+      end do
+
+      ! peverwhee - TODO: GHG/solar forcing data on instantaneous file
+
+#if ( defined BFB_CAM_SCAM_IOP )
+      dtime = get_step_size()
+      tsec=dtime*nstep
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(tape(t)%Files(f))) then
+            ierr = pio_put_var (this%hist_files(split_file_index),this%tsecid,(/start/),(/count1/),(/tsec/))
+         end if
+      end do
+#endif
+
+      ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nstephid,(/start/),(/count1/),(/nstep/))
+      startc(1) = 1
+      startc(2) = start
+      countc(1) = 2
+      countc(2) = 1
+
+      do split_file_index = 1, max_split_files
+         if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
+            cycle
+         end if
+         if (split_file_index == accumulated_file_index .and. .not. restart .and. .not. is_initfile) then
+            ! accumulated tape - time is midpoint of time_bounds
+
+            ierr=pio_put_var (this%hist_files(split_file_index), this%timeid, (/start/),(/count1/), &
+               (/(time_interval(1) + time_interval(2)) / 2._r8/))
+         else
+            ! not an accumulated history tape - time is current time
+            ierr=pio_put_var (this%hist_files(split_file_index), this%timeid, (/start/),(/count1/),(/time/))
+         end if
+         ierr=pio_put_var (this%hist_files(split_file_index), this%tbndid, startc, countc, time_interval)
+      end do
+
+      if(.not.restart) this%beg_time = time  ! update beginning time of next interval
+      startc(1) = 1
+      startc(2) = start
+      countc(1) = 8
+      countc(2) = 1
+      call datetime (cdate, ctime)
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(this%hist_files(split_file_index))) then
+            ierr = pio_put_var (this%hist_files(split_file_index), this%date_writtenid, startc, countc, (/cdate/))
+            ierr = pio_put_var (this%hist_files(split_file_index), this%time_writtenid, startc, countc, (/ctime/))
+         end if
+      end do
+
+      ! peverwhee - TODO handle composed fields
+
+      call t_startf ('write_field')
+      do field_idx = 1, size(this%field_list)
+         do split_file_index = 1, max_split_files
+            if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
+               cycle
+            end if
+            ! we may have a history split, conditionally skip fields that are
+            ! for the other file
+            if ((this%field_list(field_idx)%accumulate_type() .eq. 'lst') .and. &
+               split_file_index == accumulated_file_index .and. .not. restart) then
+               cycle
+            else if ((this%field_list(field_idx)%accumulate_type() .ne. 'lst') .and. &
+               split_file_index == instantaneous_file_index .and. .not. restart) then
+               cycle
+            end if
+            call this%write_field(field_idx, split_file_index, restart)
+         end do
+      end do
+      call t_stopf  ('write_field')
+
+   end subroutine config_write_time_dependent_variables
+
+   ! ========================================================================
+
+   subroutine config_write_field(this, field_index, split_file_index, restart)
+      use pio,                 only: PIO_OFFSET_KIND, pio_setframe
+      use cam_history_support, only: hist_coords
+      use hist_buffer, only: hist_buffer_t, hist_buff_2dreal64_t, hist_buff_2dreal32_t
+      use hist_api, only: hist_buffer_norm_value
+      use cam_grid_support, only: cam_grid_write_dist_array
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      integer,            intent(in) :: field_index
+      integer,            intent(in) :: split_file_index
+      logical,            intent(in) :: restart
+
+      ! Local variables
+      integer, allocatable           :: field_shape(:) ! Field file dim sizes
+      integer                        :: frank          ! Field file rank
+      !type(dim_index_2d)             :: dimind2    ! 2-D dimension index
+      !type(dim_index_3d)             :: dimind     ! 3-D dimension index
+      integer, allocatable           :: dimind(:)
+      integer, allocatable           :: dim_sizes(:)
+      integer, allocatable           :: beg_dims(:)
+      integer, allocatable           :: end_dims(:)
+      integer                        :: patch_idx, num_patches
+      type(var_desc_t)               :: varid
+      integer                        :: samples_on_file
+      integer                        :: field_decomp
+      integer                        :: num_dims
+      integer                        :: idx
+      logical                        :: index_map(3)
+      real(REAL32), allocatable      :: field_data(:,:)
+      class(hist_buffer_t), pointer  :: buff_ptr
+      class(hist_buff_2dreal64_t), pointer :: buff_ptr_2d
+      class(hist_buff_2dreal32_t), pointer :: buff_ptr_2d_32
+
+      !!! Get the field's shape and decomposition
+      ! Shape on disk
+      call this%field_list(field_index)%shape(field_shape)
+      frank = size(field_shape)
+      allocate(field_data(field_shape(1), field_shape(2))) 
+      ! Shape of array
+      call this%field_list(field_index)%dimensions(dimind)
+
+      call this%field_list(field_index)%beg_dims(beg_dims)
+      call this%field_list(field_index)%end_dims(end_dims)
+      allocate(dim_sizes(size(beg_dims)))
+      do idx = 1, size(beg_dims)
+         dim_sizes(idx) = end_dims(idx) - beg_dims(idx) + 1
+      end do
+      num_dims = 0
+      index_map = .false.
+      do idx = 1, size(beg_dims)
+         if ((end_dims(idx) - beg_dims(idx)) > 1) then
+            num_dims = num_dims + 1
+            index_map(idx) = .true.
+         end if
+      end do
+      field_decomp = this%field_list(field_index)%decomp()
+
+      num_patches = 1
+      samples_on_file = mod(this%num_samples, this%max_frames)
+
+      do patch_idx = 1, num_patches
+         varid = this%field_list(field_index)%varid(patch_idx)
+         call pio_setframe(this%hist_files(split_file_index), varid, int(max(1,samples_on_file),kind=PIO_OFFSET_KIND))
+         buff_ptr => this%field_list(field_index)%buffers
+         call hist_buffer_norm_value(buff_ptr, field_data)
+         call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+              field_shape(1:frank), field_data, varid)
+      end do
+
+   end subroutine config_write_field
+
+   ! ========================================================================
+
+   subroutine config_close_files(this)
+      use pio,           only: pio_file_is_open
+      use cam_pio_utils, only: cam_pio_closefile
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+
+      ! Local variables
+      integer :: split_file_index, field_index
+
+      if (masterproc) then
+         do split_file_index = 1, max_split_files
+            if (pio_file_is_open(this%hist_files(split_file_index))) then
+               write(iulog,*)'config_close_files: nf_close(', this%volume,')=',&
+                  this%file_names(split_file_index)
+            end if
+         end do
+      end if
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(this%hist_files(split_file_index))) then
+            call cam_pio_closefile(this%hist_files(split_file_index))
+         end if
+      end do
+      if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
+                 pio_file_is_open(this%hist_files(instantaneous_file_index))) then
+         do field_index = 1, size(this%field_list)
+            call this%field_list(field_index)%reset_varid()
+         end do
+      end if
+      if (allocated(this%file_names)) then
+         deallocate(this%file_names)
+      end if
+
+   end subroutine config_close_files
+
+   ! ========================================================================
+
    integer function count_array(arr_in)
       ! Dummy argument
       character(len=*), intent(in) :: arr_in(:)
@@ -338,7 +1614,6 @@ CONTAINS
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_LOGICAL
       use shr_kind_mod,   only: CL=>SHR_KIND_CL
       use string_utils,   only: to_str
-      use cam_abortutils, only: endrun
       use spmd_utils,     only: masterproc, masterprocid, mpicom
       use shr_nl_mod,     only: shr_nl_find_group_name
       ! Read a history file configuration from <unitn> and process it into
@@ -363,11 +1638,13 @@ CONTAINS
       logical             :: hist_collect_patch_output
       character(len=flen) :: hist_file_type
       character(len=CL)   :: hist_filename_spec
+      logical             :: hist_write_nstep0
       ! Local variables (other)
       integer             :: ierr
       integer             :: num_fields
       integer             :: file_type
       integer             :: rl_kind
+      logical             :: has_acc
       ! XXgoldyXX: Add patch information
       logical             :: hist_interp_out
       integer             :: hist_interp_nlat
@@ -381,7 +1658,8 @@ CONTAINS
            hist_precision, hist_max_frames, hist_output_frequency,            &
            hist_file_type, hist_collect_patch_output,                         &
            hist_interp_out, hist_interp_nlat, hist_interp_nlon,               &
-           hist_interp_grid, hist_interp_type, hist_filename_spec
+           hist_interp_grid, hist_interp_type, hist_filename_spec,            &
+           hist_write_nstep0
 
       ! Initialize namelist entries to default values
       hist_inst_fields(:) = ''
@@ -402,22 +1680,24 @@ CONTAINS
       hist_interp_type = UNSET_C
       file_type = hfile_type_default
       hist_filename_spec = UNSET_C
-      write(iulog,*) 'reading in hist_file_config_nl'
+      hist_write_nstep0 = .false.
+
+      has_acc = .false.
       ! Read namelist entry
       if (masterproc) then
-         rewind(unitn)
-         call shr_nl_find_group_name(unitn, 'hist_file_config_nl', ierr)
-         if (ierr == 0) then
-            read(unitn, hist_file_config_nl, iostat=ierr)
-            if (ierr /= 0) then
-               call endrun(subname//"ERROR "//trim(to_str(ierr))//               &
-                    " reading namelist", file=__FILE__, line=__LINE__)
-            end if
-         else
-            write(iulog,*) ierr
-            write(iulog, *) subname, ": WARNING, no hist_file_config_nl ",  &
-                 "namelist found"
+!         rewind(unitn)
+!         call shr_nl_find_group_name(unitn, 'hist_file_config_nl', ierr)
+!         if (ierr == 0) then
+         read(unitn, hist_file_config_nl, iostat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname//"ERROR "//trim(to_str(ierr))//               &
+                 " reading namelist", file=__FILE__, line=__LINE__)
          end if
+!         else
+!            write(iulog,*) ierr
+!            write(iulog, *) subname, ": WARNING, no hist_file_config_nl ",  &
+!                 "namelist found"
+!         end if
          ! Translate <file_type>
          select case(trim(hist_file_type))
          case(UNSET_C, 'history')
@@ -452,26 +1732,31 @@ CONTAINS
       end if
       num_fields = count_array(hist_avg_fields)
       if (num_fields > 0) then
+         has_acc = .true.
          call MPI_Bcast(hist_avg_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       num_fields = count_array(hist_min_fields)
       if (num_fields > 0) then
+         has_acc = .true.
          call MPI_Bcast(hist_min_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       num_fields = count_array(hist_max_fields)
       if (num_fields > 0) then
+         has_acc = .true.
          call MPI_Bcast(hist_max_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       num_fields = count_array(hist_var_fields)
       if (num_fields > 0) then
+         has_acc = .true.
          call MPI_Bcast(hist_var_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       call MPI_Bcast(hist_volume, vlen, MPI_CHARACTER, masterprocid,          &
            mpicom, ierr)
+
       call MPI_Bcast(rl_kind, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_max_frames, 1, MPI_INTEGER, masterprocid,           &
            mpicom, ierr)
@@ -489,9 +1774,12 @@ CONTAINS
       ! Configure the history file
       call hfile_config%configure(hist_volume, rl_kind, hist_max_frames,      &
            hist_output_frequency, file_type, hist_filename_spec,              &
-           hist_collect_patch_output, interp_out=hist_interp_out,             &
+           hist_collect_patch_output, hist_inst_fields, hist_avg_fields,      &
+           hist_min_fields, hist_max_fields, hist_var_fields,                 &
+           hist_write_nstep0, interp_out=hist_interp_out,                     &
            interp_nlat=hist_interp_nlat, interp_nlon=hist_interp_nlon,        &
-           interp_grid=hist_interp_grid, interp_type=hist_interp_type)
+           interp_grid=hist_interp_grid, interp_type=hist_interp_type,        &
+           split_file=has_acc)
       call hfile_config%print_config()
 
    end subroutine read_namelist_entry
@@ -503,11 +1791,9 @@ CONTAINS
       use mpi,            only: MPI_INTEGER
       use shr_kind_mod,   only: SHR_KIND_CL
       use shr_nl_mod,     only: shr_nl_find_group_name
-      use cam_abortutils, only: endrun
       use string_utils,   only: to_str
       use cam_logfile,    only: iulog
       use spmd_utils,     only: mpicom, masterproc, masterprocid
-      use cam_abortutils, only: endrun, check_allocate
       ! Read the maximum sizes of field arrays from namelist file and allocate
       !  field arrays
       ! Dummy arguments
@@ -552,7 +1838,6 @@ CONTAINS
       if (allocated(hist_var_fields)) then
          deallocate(hist_var_fields)
       end if
-      write(iulog,*) 'reading hist_config_arrays_nl'
       if (masterproc) then
          rewind(unitn)
          call shr_nl_find_group_name(unitn, 'hist_config_arrays_nl', ierr)
@@ -601,11 +1886,10 @@ CONTAINS
 
    ! ========================================================================
 
-   function hist_read_namelist_config(filename) result(config_arr)
+   subroutine hist_read_namelist_config(filename, config_arr)
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER
       use shr_kind_mod,   only: max_str =>SHR_KIND_CXX, SHR_KIND_CS, SHR_KIND_CL
       use shr_nl_mod,     only: shr_nl_find_group_name
-      use cam_abortutils, only: endrun, check_allocate
       use spmd_utils,     only: masterproc, masterprocid, mpicom
       use string_utils,   only: to_str
       ! Read all the history configuration namelist groups from  <filename>
@@ -615,7 +1899,7 @@ CONTAINS
 
       ! Dummy arguments
       character(len=*), intent(in) :: filename
-      type(hist_file_t), pointer   :: config_arr(:)
+      type(hist_file_t), allocatable, intent(inout) :: config_arr(:)
       ! Local variables
       integer                                :: unitn
       integer                                :: read_status
@@ -634,7 +1918,7 @@ CONTAINS
       character(len=*),          parameter   :: subname = 'read_config_file'
       ! Variables for reading a namelist entry
 
-      nullify(config_arr)
+!      nullify(config_arr)
       unitn = -1 ! Prevent reads on error or wrong tasks
       ierr = 0
       errmsg = ''
@@ -764,6 +2048,40 @@ CONTAINS
       if (allocated(hist_var_fields)) then
          deallocate(hist_var_fields)
       end if
-   end function hist_read_namelist_config
+   end subroutine hist_read_namelist_config
+
+   character(len=max_fldlen) function strip_suffix (name)
+      !
+      !----------------------------------------------------------
+      !
+      ! Purpose:  Strip "&IC" suffix from fieldnames if it exists
+      !
+      !----------------------------------------------------------
+      !
+      ! Arguments
+      !
+      character(len=*), intent(in) :: name
+      !
+      ! Local workspace
+      !
+      integer :: n
+      !
+      !-----------------------------------------------------------------------
+      !
+      strip_suffix = ' '
+
+      do n = 1,fieldname_len
+         strip_suffix(n:n) = name(n:n)
+         if(name(n+1:n+1         ) == ' '                       ) return
+         if(name(n+1:n+fieldname_suffix_len) == fieldname_suffix) return
+      end do
+
+      strip_suffix(fieldname_len+1:max_fldlen) = name(fieldname_len+1:max_fldlen)
+
+     ! return
+
+  end function strip_suffix
+
+  !#######################################################################
 
 end module cam_hist_file

@@ -575,7 +575,7 @@ class SchemeNamelistInfo:
             schema_file = None
             for spath in schema_paths:
                 if logger:
-                    logger.info("Looking for namelist schema in '%s'", spath)
+                    logger.debug("Looking for namelist schema in '%s'", spath)
                 # end if
                 schema_file = os.path.join(spath, "entry_id_pg.xsd")
                 if os.path.isfile(schema_file):

@@ -241,6 +241,23 @@ def _is_string(entry):
     return fval, None
 
 ##############################################################################
+def _is_logical(entry):
+##############################################################################
+    """Return <entry> if it represents a valid history configuration
+    logical or None if it is invalid.
+    Also, return an error string or None if no error is found.
+    """
+    fval, _ = _is_string(entry)
+    possible_values = ['true','t','.true.','false','f','.false.']
+    errmsg = None
+    if fval.lower() not in possible_values:
+       fval = None
+       out_values = ", ".join(possible_values)
+       errmsg = "hist_write_nstep0 must be one of {}".format(out_values)
+    # end if
+    return fval, errmsg
+
+##############################################################################
 class HistFieldList():
 ##############################################################################
     """Class to store information about a history configuration field list.
@@ -416,8 +433,8 @@ class HistConfigEntry():
     a history configuration entry type
     """
 
-    __HIST_CONF_ENTRY_RE = re.compile(r"[a-z][a-z_]*")
-    __HIST_VOL = r"(?:[ ]*;[ ]*((?:h[0-9]*)|i))?[ ]*[:=][ ]*(.*)$"
+    __HIST_CONF_ENTRY_RE = re.compile(r"[a-z][a-z_0]*")
+    __HIST_VOL = r"(?:[ ]*;[ ]*((?:h[0-9]*)|i))?[ ]*[:][ ]*(.*)$"
 
     def __init__(self, entry_string, entry_check_fn, process_fn):
         """Set the entry string regular expression and value check function
@@ -556,6 +573,7 @@ class HistoryVolConfig():
         self.__interp_nlon = 0
         self.__interp_grid = self.__UNSET_C
         self.__interp_type = self.__UNSET_C
+        self.__write_nstep0 = ".false."
         # Utility variables
         self.__last_field_ok = True
         self.__last_field_only = False
@@ -684,6 +702,11 @@ class HistoryVolConfig():
         """Return the max_frames property for this HistoryVolConfig object"""
         return self.__max_frames
 
+    @property
+    def write_nstep0(self):
+        """Return the write_nstep0 property for this HistoryVolConfig object"""
+        return self.__write_nstep0
+
     def set_max_frames(self, nframes, pobj, logger):
         """Modify the max_frames property of this HistoryVolConfig object.
         Return True if <nframes> is a valid setting."""
@@ -703,6 +726,17 @@ class HistoryVolConfig():
             pobj.add_syntax_error(emsg.format(nframes))
         # end if
         return nframes_ok
+
+    def set_write_nstep0(self, write_nstep0, pobj, logger):
+        """Modify the write_nstep0 property of this HistoryVolConfig object.
+        Return True if valid"""
+        true_values = ["true", "t", ".true."]
+        if write_nstep0.lower() in true_values:
+           self.__write_nstep0 = ".true."
+        else:
+           self.__write_nstep0 = ".false."
+        # end if
+        return True
 
     def outfreq_str(self):
         """Return the output_frequency for this HistoryVolConfig object
@@ -841,6 +875,7 @@ class HistoryVolConfig():
         outfile.write(f"    hist_precision = '{self.__precision}'\n")
         outfile.write(f"    hist_file_type = '{self.__file_type}'\n")
         outfile.write(f"    hist_filename_spec = '{self.__filename_spec}'\n")
+        outfile.write(f"    hist_write_nstep0 = {self.__write_nstep0}\n")
         outfile.write("/\n")
 
 ##############################################################################
@@ -873,6 +908,8 @@ _HIST_CONFIG_ENTRY_TYPES = [HistConfigEntry(r"hist_add_avg_fields",
                                             HistoryVolConfig.set_precision),
                             HistConfigEntry(r"hist_diag_file", _is_string,
                                             None),
+                            HistConfigEntry(r"hist_write_nstep0", _is_logical,
+                                            HistoryVolConfig.set_write_nstep0),
                             HistConfigEntry(r"hist_filename_template", _is_string,
                                             HistoryVolConfig.set_filename_spec),
                             HistConfigEntry(r"hist_remove_fields",
@@ -1053,7 +1090,11 @@ class HistoryConfig(dict):
         """Return the maximum number of fields for <fld_type> on any history
         volume."""
         nums_flds = [x.num_fields(fld_type) for x in self.values()]
-        return max(nums_flds)
+        if len(nums_flds) == 0:
+            return 0
+        else:
+            return max(nums_flds)
+        # end if
 
     def output_class_namelist(self, ofile):
         """Write the master class namelist (e.g., num fields)"""

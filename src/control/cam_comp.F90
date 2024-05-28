@@ -16,7 +16,7 @@ module cam_comp
 
    use spmd_utils,                only: masterproc, mpicom
    use cam_control_mod,           only: cam_ctrl_init, cam_ctrl_set_orbit
-   use cam_control_mod,           only: cam_ctrl_set_physics_type
+   use cam_physics_control,       only: cam_ctrl_set_physics_type
    use cam_control_mod,           only: caseid, ctitle
    use runtime_opts,              only: read_namelist
    use runtime_obj,               only: cam_runtime_opts
@@ -26,6 +26,8 @@ module cam_comp
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
+   use physics_types,             only: physics_types_history_init
+   use physics_types,             only: physics_types_history_out
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -85,7 +87,7 @@ CONTAINS
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
       use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-!      use cam_history,          only: hist_init_files
+      use cam_history,          only: history_init_files
 !      use history_scam,         only: scm_intht
       use cam_pio_utils,        only: init_pio_subsystem
       use cam_instance,         only: inst_suffix
@@ -227,9 +229,8 @@ CONTAINS
       ! if (single_column) then
       !    call scm_intht()
       ! end if
-!!XXgoldyXX: v need to import this
-!      call hist_init_files(model_doi_url, caseid, ctitle)
-!!XXgoldyXX: ^ need to import this
+      call physics_types_history_init()
+      call history_init_files(model_doi_url, caseid, ctitle)
 
    end subroutine cam_init
 
@@ -371,7 +372,8 @@ CONTAINS
       !           file output.
       !
       !-----------------------------------------------------------------------
-!      use cam_history,  only: wshist, wrapup
+      use cam_history,  only: history_write_files
+      use cam_history,  only: history_wrap_up
 !      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
       use time_manager, only: is_last_step
@@ -393,7 +395,8 @@ CONTAINS
 !!XXgoldyXX: v need to import this
 !      call t_barrierf('sync_wshist', mpicom)
 !      call t_startf('wshist')
-!      call wshist()
+      call physics_types_history_out()
+      call history_write_files()
 !      call t_stopf('wshist')
 !!XXgoldyXX: ^ need to import this
 
@@ -418,7 +421,7 @@ CONTAINS
 
 !!XXgoldyXX: v need to import this
 !      call t_startf ('cam_run4_wrapup')
-!      call wrapup(rstwr, nlend)
+      call history_wrap_up(rstwr, nlend)
 !      call t_stopf  ('cam_run4_wrapup')
 !!XXgoldyXX: ^ need to import this
 

@@ -139,13 +139,14 @@ class VarBase:
     __pointer_def_init = "NULL()"
     __pointer_type_str = "pointer"
 
-    def __init__(self, elem_node, local_name, dimensions, known_types,
+    def __init__(self, elem_node, local_name, dimensions, diag_name, known_types,
                  type_default, units_default="", kind_default='',
                  protected=False, index_name='', local_index_name='',
                  local_index_name_str='', alloc_default='none',
                  tstep_init_default=False):
         self.__local_name = local_name
         self.__dimensions = dimensions
+        self.__diagnostic_name = diag_name
         self.__units = elem_node.get('units', default=units_default)
         ttype = elem_node.get('type', default=type_default)
         self.__type = known_types.known_type(ttype)
@@ -323,6 +324,11 @@ class VarBase:
         return self.__dimensions
 
     @property
+    def diagnostic_name(self):
+        """Return the diagnostic name for this variable"""
+        return self.__diagnostic_name
+
+    @property
     def dimension_string(self):
         """Return the dimension_string for this variable"""
         return '(' + ', '.join(self.dimensions) + ')'
@@ -406,8 +412,8 @@ class ArrayElement(VarBase):
     """Documented array element of a registry Variable"""
 
     def __init__(self, elem_node, parent_name, dimensions, known_types,
-                 parent_type, parent_kind, parent_units, parent_alloc,
-                 parent_tstep_init, vdict):
+                 diag_name, parent_type, parent_kind, parent_units,
+                 parent_alloc, parent_tstep_init, vdict):
         """Initialize the Arary Element information by identifying its
         metadata properties
         """
@@ -455,7 +461,7 @@ class ArrayElement(VarBase):
                                         ', '.join(dimensions)))
         # end if
         local_name = f'{parent_name}({self.index_string})'
-        super().__init__(elem_node, local_name, my_dimensions,
+        super().__init__(elem_node, local_name, my_dimensions, diag_name,
                                            known_types, parent_type,
                                            units_default=parent_units,
                                            kind_default=parent_kind,
@@ -508,6 +514,7 @@ class Variable(VarBase):
         """Initialize a Variable from registry XML"""
         local_name = var_node.get('local_name')
         allocatable = var_node.get('allocatable', default="none")
+        diagnostic_name = None
         # Check attributes
         for att in var_node.attrib:
             if att not in Variable.__VAR_ATTRIBUTES:
@@ -573,7 +580,7 @@ class Variable(VarBase):
             elif attrib.tag == 'ic_file_input_names':
                 pass # picked up in parent
             elif attrib.tag == 'diagnostic':
-                pass # picked up in parent
+                diagnostic_name = attrib.attrib['name']
             else:
                 emsg = "Unknown Variable content, '{}'"
                 raise CCPPError(emsg.format(attrib.tag))
@@ -581,7 +588,7 @@ class Variable(VarBase):
         # end for
         # Initialize the base class
         super().__init__(var_node, local_name,
-                                       my_dimensions, known_types, ttype,
+                                       my_dimensions, diagnostic_name, known_types, ttype,
                                        protected=protected)
 
         for attrib in var_node:
@@ -589,6 +596,7 @@ class Variable(VarBase):
             if attrib.tag == 'element':
                 self.elements.append(ArrayElement(attrib, local_name,
                                                   my_dimensions, known_types,
+                                                  diagnostic_name,
                                                   ttype, self.kind,
                                                   self.units, allocatable,
                                                   self.tstep_init, vdict))
@@ -813,6 +821,53 @@ class Variable(VarBase):
                                          tstep_init=True)
 
             # end if
+
+    def write_hist_init_routine(self, outfile, indent, ddt_str):
+        """
+        """
+        my_ddt = self.is_ddt
+        if my_ddt:
+            for var in my_ddt.variable_list():
+                subi = indent
+                sub_ddt_str = f'{ddt_str}{self.local_name}%'
+                if var.diagnostic_name:
+                    var.write_hist_init_routine(outfile, subi, sub_ddt_str)
+                # end if
+            # end if
+        else:
+            if self.diagnostic_name:
+                if 'vertical_layer_dimension' in self.dimensions:
+                   outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
+                      f"'lev', 'avg', '{self.units}')"
+                elif 'vertical_interface_dimension' in self.dimensions:
+                   outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
+                      f"'ilev', 'avg', '{self.units}')"
+                else:
+                   outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
+                      f"horiz_only, 'avg', '{self.units}')"
+                # endif
+                outfile.write(outstr, indent)
+            # end if
+        # end if
+
+    def write_hist_out_routine(self, outfile, indent, ddt_str):
+        """
+        """
+        my_ddt = self.is_ddt
+        if my_ddt:
+            for var in my_ddt.variable_list():
+                subi = indent
+                sub_ddt_str = f'{ddt_str}{self.local_name}%'
+                if var.diagnostic_name:
+                    var.write_hist_out_routine(outfile, subi, sub_ddt_str)
+                # end if
+            # end if
+        else:
+            if self.diagnostic_name:
+                outstr = f"call history_out_field('{self.diagnostic_name}', {ddt_str}{self.local_name}, size({ddt_str}{self.local_name}, 1))"
+                outfile.write(outstr, indent)
+            # end if
+        # end if
 
     @classmethod
     def constant_dimension(cls, dim):
@@ -1324,12 +1379,16 @@ class File:
             outfile.write('!! public interfaces', 0)
             outfile.write(f'public :: {self.allocate_routine_name()}', 1)
             outfile.write(f'public :: {self.tstep_init_routine_name()}', 1)
+            outfile.write(f'public :: {self.hist_init_routine_name()}', 1)
+            outfile.write(f'public :: {self.hist_out_routine_name()}', 1)
             # end of module header
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
             self.write_allocate_routine(outfile, physconst_vars)
             self.write_tstep_init_routine(outfile, physconst_vars)
+            self.write_hist_init_routine(outfile)
+            self.write_hist_out_routine(outfile)
 
         # end with
 
@@ -1340,6 +1399,14 @@ class File:
     def tstep_init_routine_name(self):
         """Return the name of the physics timestep init routine for this module"""
         return f"{self.name}_tstep_init"
+
+    def hist_init_routine_name(self):
+        """Return the name of the history init routine for this module"""
+        return f"{self.name}_history_init"
+
+    def hist_out_routine_name(self):
+        """Return the name of the history out routine for this module"""
+        return f"{self.name}_history_out"
 
     def write_allocate_routine(self, outfile, physconst_vars):
         """Write a subroutine to allocate all the data in this module"""
@@ -1405,6 +1472,45 @@ class File:
         outfile.write(subn_str, 2)
         for var in self.__var_dict.variable_list():
             var.write_tstep_init_routine(outfile, 2, '', physconst_vars)
+        # end for
+        outfile.write('', 0)
+        outfile.write(f'end subroutine {subname}', 1)
+
+    def write_hist_init_routine(self, outfile):
+        """
+        Write a subroutine to add all registry variables
+        to the master field list.
+        """
+        subname = self.hist_init_routine_name()
+        outfile.write('', 0)
+        outfile.write(f'subroutine {subname}()', 1)
+        outfile.write('use cam_history, only: history_add_field', 2)
+        outfile.write('use cam_history_support, only: horiz_only', 2)
+        outfile.write('', 0)
+        outfile.write('!! Local variables', 2)
+        subn_str = f'character(len=*), parameter :: subname = "{subname}"'
+        outfile.write(subn_str, 2)
+        for var in self.__var_dict.variable_list():
+           var.write_hist_init_routine(outfile, 2, '')
+        # end for
+        outfile.write('', 0)
+        outfile.write(f'end subroutine {subname}', 1)
+
+    def write_hist_out_routine(self, outfile):
+        """
+        Write a subroutine to add all registry variables
+        to the master field list.
+        """
+        subname = self.hist_out_routine_name()
+        outfile.write('', 0)
+        outfile.write(f'subroutine {subname}()', 1)
+        outfile.write('use cam_history, only: history_out_field', 2)
+        outfile.write('', 0)
+        outfile.write('!! Local variables', 2)
+        subn_str = f'character(len=*), parameter :: subname = "{subname}"'
+        outfile.write(subn_str, 2)
+        for var in self.__var_dict.variable_list():
+           var.write_hist_out_routine(outfile, 2, '')
         # end for
         outfile.write('', 0)
         outfile.write(f'end subroutine {subname}', 1)
