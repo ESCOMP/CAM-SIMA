@@ -483,7 +483,7 @@ contains
         ! We need:
         ! 1) `domain_ptr` to be allocated;
         ! 2) `dmpar_init` to be completed for accessing `dminfo`;
-        ! 3) `*_setup_core` to assign the `setup_log` function pointer.
+        ! 3) `*_setup_core` to assign the `setup_log` procedure pointer.
         ierr = self % domain_ptr % core % setup_log(self % domain_ptr % loginfo, self % domain_ptr, unitnumbers=mpas_log_unit)
 
         if (ierr /= 0) then
@@ -1193,7 +1193,7 @@ contains
             call add_stream_attribute('is_periodic', self % domain_ptr % is_periodic)
             call add_stream_attribute('mesh_spec', self % domain_ptr % mesh_spec)
             call add_stream_attribute('on_a_sphere', self % domain_ptr % on_a_sphere)
-            call add_stream_attribute('parent_id', self % domain_ptr %  parent_id)
+            call add_stream_attribute('parent_id', self % domain_ptr % parent_id)
             call add_stream_attribute('sphere_radius', self % domain_ptr % sphere_radius)
             call add_stream_attribute('x_period', self % domain_ptr % x_period)
             call add_stream_attribute('y_period', self % domain_ptr % y_period)
