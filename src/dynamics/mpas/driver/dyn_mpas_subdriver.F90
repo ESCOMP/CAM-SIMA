@@ -35,7 +35,7 @@ module dyn_mpas_subdriver
     use mpas_pool_routines, only: mpas_pool_create_pool, mpas_pool_destroy_pool, mpas_pool_get_subpool, &
                                   mpas_pool_add_config, mpas_pool_get_config, &
                                   mpas_pool_get_array, &
-                                  mpas_pool_get_dimension, &
+                                  mpas_pool_add_dimension, mpas_pool_get_dimension, &
                                   mpas_pool_get_field, mpas_pool_get_field_info
     use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
 
@@ -61,6 +61,7 @@ module dyn_mpas_subdriver
 
         logical, public :: debug_output = .false.
 
+        ! Initialized by `dyn_mpas_init_phase1`.
         integer :: log_unit = output_unit
         integer :: mpi_comm = mpi_comm_null
         integer :: mpi_rank = 0
@@ -71,6 +72,9 @@ module dyn_mpas_subdriver
 
         type(core_type), pointer :: corelist => null()
         type(domain_type), pointer :: domain_ptr => null()
+
+        ! Initialized by `dyn_mpas_init_phase3`.
+        integer :: number_of_constituents = 0
     contains
         private
 
@@ -702,37 +706,50 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase3
     !
-    !> \brief  Tracks `mpas_init` up to the point of calling `core_init`
+    !> \brief  Tracks `mpas_init` up to the point of calling `atm_core_init`
     !> \author Michael Duda
     !> \date   19 April 2019
     !> \details
     !>  This subroutine follows the stand-alone MPAS subdriver after the check on
     !>  the existence of the `streams.<core>` file up to, but not including,
-    !>  the point where `core_init` is called. It completes MPAS framework
+    !>  the point where `atm_core_init` is called. It completes MPAS framework
     !>  initialization, including the allocation of all blocks and fields managed
-    !>  by MPAS.
+    !>  by MPAS. However, scalars are allocated but not yet defined.
+    !>  `dyn_mpas_define_scalar` must be called afterwards. Also note that MPAS uses
+    !>  the term "scalar", but CAM-SIMA calls it "constituent".
     !> \addenda
     !>  Ported and refactored for CAM-SIMA. (KCW, 2024-03-06)
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_init_phase3(self, cam_pcnst, pio_file)
-        class(mpas_dynamical_core_type), intent(in) :: self
-        integer, intent(in) :: cam_pcnst
+    subroutine dyn_mpas_init_phase3(self, number_of_constituents, pio_file)
+        class(mpas_dynamical_core_type), intent(inout) :: self
+        integer, intent(in) :: number_of_constituents
         type(file_desc_t), pointer, intent(in) :: pio_file
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase3'
         character(strkind) :: mesh_filename
         integer :: mesh_format
+        integer, pointer :: num_scalars => null()
+        type(mpas_pool_type), pointer :: mpas_pool => null()
 
         call self % debug_print(subname // ' entered')
 
-        call self % debug_print('Number of constituents is ', [cam_pcnst])
+        ! In MPAS, there must be at least one constituent, `qv`, which denotes water vapor mixing ratio.
+        ! Because MPAS has some hard-coded array accesses through the `index_qv` index, it will crash
+        ! (i.e., segmentation fault due to invalid memory access) if `qv` is not allocated.
+        if (number_of_constituents < 1) then
+            self % number_of_constituents = 1
+        else
+            self % number_of_constituents = number_of_constituents
+        end if
+
+        call self % debug_print('Number of constituents is ', [self % number_of_constituents])
 
         ! Adding a config named `cam_pcnst` with the number of constituents will indicate to MPAS that
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
         ! from other Registry-defined fields. The special logic is located in `atm_setup_block`.
         ! This must be done before calling `mpas_bootstrap_framework_phase1`.
-        call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', cam_pcnst)
+        call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents)
 
         ! Not actually used because a PIO file descriptor is directly supplied.
         mesh_filename = 'external mesh'
@@ -757,6 +774,26 @@ contains
 
         ! Finish setting up fields.
         call mpas_bootstrap_framework_phase2(self % domain_ptr, pio_file_desc=pio_file)
+
+        ! `num_scalars` is a dimension variable, but it only exists in MPAS `state` pool.
+        ! Fix this inconsistency by also adding it to MPAS `dimension` pool.
+        call self % get_pool_pointer(mpas_pool, 'state')
+
+        call mpas_pool_get_dimension(mpas_pool, 'num_scalars', num_scalars)
+
+        if (.not. associated(num_scalars)) then
+            call self % model_error('Failed to find variable "num_scalars"', subname, __LINE__)
+        end if
+
+        ! While we are at it, check if its value is consistent.
+        if (num_scalars /= self % number_of_constituents) then
+            call self % model_error('Failed to allocate constituents', subname, __LINE__)
+        end if
+
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'num_scalars', num_scalars)
+
+        nullify(mpas_pool)
+        nullify(num_scalars)
 
         call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_init_phase3
