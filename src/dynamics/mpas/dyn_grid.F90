@@ -12,7 +12,7 @@ module dyn_grid
         ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
         sphere_radius, &
         deg_to_rad, rad_to_deg
-    use dynconst, only: dynconst_init, pi
+    use dynconst, only: constant_pi => pi, dynconst_init
     use physics_column_type, only: kind_pcol, physics_column_t
     use physics_grid, only: phys_decomp, phys_grid_init
     use ref_pres, only: ref_pres_init
@@ -76,6 +76,9 @@ contains
 
         ! Read time-invariant (e.g., grid/mesh) variables.
         call mpas_dynamical_core % read_write_stream(pio_file, 'r', 'invariant')
+
+        ! Compute local east, north and edge-normal unit vectors whenever time-invariant (e.g., grid/mesh) variables are read.
+        call mpas_dynamical_core % compute_unit_vector()
 
         ! Inquire local and global mesh dimensions and save them as module variables.
         call dyn_debug_print('Inquiring local and global mesh dimensions')
@@ -232,7 +235,7 @@ contains
             ! Cell areas normalized to unit sphere.
             dyn_column(i) % area    = real(areacell(i) / (sphere_radius ** 2), kind_pcol)
             ! Cell weights normalized to unity.
-            dyn_column(i) % weight  = real(areacell(i) / (4.0_kind_r8 * pi * sphere_radius ** 2), kind_pcol)
+            dyn_column(i) % weight  = real(areacell(i) / (4.0_kind_r8 * constant_pi * sphere_radius ** 2), kind_pcol)
 
             ! File decomposition.
             ! For unstructured grid, `coord_indices` is not used by `phys_grid_init`.
@@ -331,7 +334,7 @@ contains
 
         do i = 1, ncells_solve
             cell_area(i)   = areacell(i)
-            cell_weight(i) = areacell(i) / (4.0_kind_r8 * pi * sphere_radius ** 2)
+            cell_weight(i) = areacell(i) / (4.0_kind_r8 * constant_pi * sphere_radius ** 2)
 
             global_grid_map(1, i) = int(i, kind_imap)
             global_grid_map(2, i) = int(1, kind_imap)
