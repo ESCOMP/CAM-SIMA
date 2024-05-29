@@ -32,6 +32,10 @@ module dyn_comp
 
     public :: dyn_debug_print
     public :: mpas_dynamical_core
+    public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+    public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
+    public :: sphere_radius
+    public :: deg_to_rad, rad_to_deg
 
     type :: dyn_import_t
     end type dyn_import_t
@@ -41,6 +45,14 @@ module dyn_comp
 
     !> The "instance/object" of MPAS dynamical core.
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
+
+    ! Local and global mesh dimensions of MPAS dynamical core.
+    integer :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+    integer :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
+    real(kind_r8) :: sphere_radius
+
+    real(kind_r8), parameter :: deg_to_rad = constant_pi / 180.0_kind_r8 ! Convert degrees to radians.
+    real(kind_r8), parameter :: rad_to_deg = 180.0_kind_r8 / constant_pi ! Convert radians to degrees.
 contains
     !> Print a debug message with optionally the value(s) of a variable.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.

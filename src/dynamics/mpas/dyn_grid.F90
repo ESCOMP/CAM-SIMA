@@ -7,7 +7,11 @@ module dyn_grid
                                 max_hcoordname_len
     use cam_initfiles, only: initial_file_get_id
     use cam_map_utils, only: kind_imap => imap
-    use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
+    use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
+        ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
+        ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
+        sphere_radius, &
+        deg_to_rad, rad_to_deg
     use dynconst, only: dynconst_init, pi
     use physics_column_type, only: kind_pcol, physics_column_t
     use physics_grid, only: phys_decomp, phys_grid_init
@@ -40,14 +44,6 @@ module dyn_grid
         'mpas_edge',  &
         'mpas_vertex' &
     ]
-
-    real(kind_r8), parameter :: deg_to_rad = pi / 180.0_kind_r8 ! Convert degrees to radians.
-    real(kind_r8), parameter :: rad_to_deg = 180.0_kind_r8 / pi ! Convert radians to degrees.
-
-    ! Local and global mesh dimensions.
-    integer :: ncells_solve,  nedges_solve,  nvertices_solve
-    integer :: ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max
-    real(kind_r8) :: sphere_radius
 contains
     !> Initialize various model grids (e.g., dynamics, physics) in terms of dynamics decomposition.
     !> Additionally, MPAS framework initialization and reading time-invariant (e.g., grid/mesh) variables
@@ -57,9 +53,6 @@ contains
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine model_grid_init()
         character(*), parameter :: subname = 'dyn_grid::model_grid_init'
-        integer, pointer :: ncellssolve => null()
-        integer, pointer :: nedgessolve => null()
-        integer, pointer :: nverticessolve => null()
         type(file_desc_t), pointer :: pio_file => null()
 
         ! Initialize mathematical and physical constants for dynamics.
@@ -87,17 +80,8 @@ contains
         ! Inquire local and global mesh dimensions and save them as module variables.
         call dyn_debug_print('Inquiring local and global mesh dimensions')
 
-        call mpas_dynamical_core % get_variable_pointer(ncellssolve, 'dim', 'nCellsSolve')
-        call mpas_dynamical_core % get_variable_pointer(nedgessolve, 'dim', 'nEdgesSolve')
-        call mpas_dynamical_core % get_variable_pointer(nverticessolve, 'dim', 'nVerticesSolve')
-
-        ncells_solve = ncellssolve
-        nedges_solve = nedgessolve
-        nvertices_solve = nverticessolve
-
-        nullify(ncellssolve)
-        nullify(nedgessolve)
-        nullify(nverticessolve)
+        call mpas_dynamical_core % get_local_mesh_dimension( &
+            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
 
         call mpas_dynamical_core % get_global_mesh_dimension( &
             ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
