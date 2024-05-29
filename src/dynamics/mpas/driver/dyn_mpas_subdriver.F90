@@ -231,7 +231,6 @@ module dyn_mpas_subdriver
     type(var_info_type), parameter :: input_var_info_list(*) = [ &
         var_info_type('Time'                            , 'real'      , 1), &
         var_info_type('initial_time'                    , 'character' , 0), &
-        var_info_type('relhum'                          , 'real'      , 3), &
         var_info_type('rho'                             , 'real'      , 3), &
         var_info_type('rho_base'                        , 'real'      , 3), &
         var_info_type('scalars'                         , 'real'      , 3), &
