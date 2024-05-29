@@ -1,5 +1,5 @@
 module dyn_grid
-    ! Modules from CAM.
+    ! Modules from CAM-SIMA.
     use cam_abortutils, only: check_allocate, endrun
     use cam_constituents, only: num_advected
     use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register, &
@@ -30,7 +30,7 @@ module dyn_grid
     implicit none
 
     private
-    ! Provide APIs required by CAM Control.
+    ! Provide APIs required by CAM-SIMA.
     public :: model_grid_init
 
     public :: dyn_grid_id

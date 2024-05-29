@@ -1,7 +1,7 @@
 module dyn_comp
     use dyn_mpas_subdriver, only: mpas_dynamical_core_type
 
-    ! Modules from CAM.
+    ! Modules from CAM-SIMA.
     use air_composition, only: thermodynamic_active_species_num, &
                                thermodynamic_active_species_liq_num, &
                                thermodynamic_active_species_ice_num, &
@@ -41,7 +41,7 @@ module dyn_comp
     implicit none
 
     private
-    ! Provide APIs required by CAM Control.
+    ! Provide APIs required by CAM-SIMA.
     public :: dyn_import_t
     public :: dyn_export_t
     public :: dyn_readnl
@@ -57,14 +57,14 @@ module dyn_comp
     public :: deg_to_rad, rad_to_deg
 
     !> NOTE:
-    !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM Control requires it.
+    !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
     !> Developers/Maintainers/Users who wish to interact with MPAS dynamical core may do so by using the "instance/object"
     !> below.
     type :: dyn_import_t
     end type dyn_import_t
 
     !> NOTE:
-    !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM Control requires it.
+    !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
     !> Developers/Maintainers/Users who wish to interact with MPAS dynamical core may do so by using the "instance/object"
     !> below.
     type :: dyn_export_t

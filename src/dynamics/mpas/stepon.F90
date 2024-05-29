@@ -8,7 +8,7 @@ module stepon
     implicit none
 
     private
-    ! Provide APIs required by CAM Control.
+    ! Provide APIs required by CAM-SIMA.
     public :: stepon_init
     public :: stepon_run1
     public :: stepon_run2
