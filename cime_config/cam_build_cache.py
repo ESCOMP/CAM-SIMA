@@ -215,7 +215,6 @@ class BuildCacheCAM:
         self.__gen_init_file = None
         self.__registry_files = {}
         self.__dycore = None
-        self.__config = None
         self.__sdfs = {}
         self.__schemes = {}
         self.__host_files = {}
@@ -244,8 +243,6 @@ class BuildCacheCAM:
                             self.__registry_files[new_entry.key] = new_entry
                         elif item.tag == 'dycore':
                             self.__dycore = item.text
-                        elif item.tag == 'config':
-                            self.__config = item.text
                         elif item.tag == 'reg_gen_file':
                             self.__reg_gen_files.append(clean_xml_text(item))
                         elif item.tag == 'ic_name_entry':
@@ -316,11 +313,10 @@ class BuildCacheCAM:
         # end if
 
     def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, config, reg_file_list, ic_names):
+                        dycore, reg_file_list, ic_names):
         """Replace the registry cache data with input data
         """
         self.__dycore = dycore
-        self.__config = config
         self.__gen_reg_file = FileStatus(gen_reg_file, 'generate_registry_file')
         self.__registry_files = {}
         for rfile in registry_source_files:
@@ -393,8 +389,6 @@ class BuildCacheCAM:
         # end for
         dycore = ET.SubElement(registry, 'dycore')
         dycore.text = self.__dycore
-        config = ET.SubElement(registry, 'config')
-        config.text = self.__config
         for rgen_file in self.__reg_gen_files:
             rgen_entry = ET.SubElement(registry, 'reg_gen_file')
             rgen_entry.text = rgen_file
@@ -450,14 +444,13 @@ class BuildCacheCAM:
         #End with
 
     def registry_mismatch(self, gen_reg_file, registry_source_files,
-                          dycore, config):
+                          dycore):
         """
         Determine if the registry input data differs from the data
         stored in our cache. Return True if the data differs.
         """
         mismatch = False
         mismatch = (not self.__dycore) or (self.__dycore != dycore)
-        mismatch = mismatch or (self.__config != config)
         if not mismatch:
             mismatch = self.__gen_reg_file.hash_mismatch(gen_reg_file)
         # end if
@@ -467,7 +460,7 @@ class BuildCacheCAM:
             my_reg_keys = set(self.__registry_files.keys())
             test_reg_keys = {FileStatus.gen_key(x)
                              for x in registry_source_files}
-            mismatch = (my_reg_keys != test_reg_keys)
+            mismatch = my_reg_keys != test_reg_keys
             for ref_file in registry_source_files:
                 if mismatch:
                     break
@@ -522,7 +515,7 @@ class BuildCacheCAM:
         if not mismatch:
             my_scheme_keys = set(self.__schemes.keys())
             test_scheme_keys = {FileStatus.gen_key(x) for x in scheme_files}
-            mismatch = (my_scheme_keys != test_scheme_keys)
+            mismatch = my_scheme_keys != test_scheme_keys
             for ref_file in scheme_files:
                 if mismatch:
                     break
@@ -537,7 +530,7 @@ class BuildCacheCAM:
         if not mismatch:
             my_host_keys = set(self.__host_files.keys())
             test_host_keys = {FileStatus.gen_key(x) for x in host_files}
-            mismatch = (my_host_keys != test_host_keys)
+            mismatch = my_host_keys != test_host_keys
             for ref_file in host_files:
                 if mismatch:
                     break
@@ -564,7 +557,7 @@ class BuildCacheCAM:
             # Note that this method will ignore duplicated files.
             my_xml_keys = set(self.__xml_files.keys())
             test_xml_keys = {FileStatus.gen_key(x) for x in xml_files.values()}
-            mismatch = (my_xml_keys != test_xml_keys)
+            mismatch = my_xml_keys != test_xml_keys
             for ref_file in xml_files.values():
                 if mismatch:
                     break

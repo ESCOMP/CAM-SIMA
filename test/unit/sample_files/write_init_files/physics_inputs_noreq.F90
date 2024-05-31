@@ -36,7 +36,7 @@ CONTAINS
       use physics_data,               only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
       use cam_ccpp_cap,               only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                 only: kind_phys
-      use phys_vars_init_check_noreq, only: phys_var_stdnames, input_var_names, std_name_len
+      use phys_vars_init_check_noreq, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
       use ccpp_constituent_prop_mod,  only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                only: iulog
 
@@ -57,8 +57,10 @@ CONTAINS
 
       character(len=SHR_KIND_CX) :: errmsg          !CCPP framework error message
       integer                    :: errflg          !CCPP framework error flag
+      integer                    :: n               !Loop control variable
       integer                    :: name_idx        !Input variable array index
       integer                    :: constituent_idx !Constituent table index
+      integer                    :: const_input_idx !input_var_names index for a consituent
       integer                    :: req_idx         !Required variable array index
       integer                    :: suite_idx       !Suite array index
       character(len=2)           :: sep             !String separator used to print err messages
@@ -134,8 +136,23 @@ CONTAINS
 
                   var_found = .false.
                   field_data_ptr => cam_constituents_array()
-                  call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep,                                   &
-                       field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+
+                  ! Check if constituent standard name in registered SIMA standard names list:
+                  if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
+                     ! Find array index to extract correct input names:
+                     do n=1, phys_var_num
+                        if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
+                           const_input_idx = n
+                           exit
+                        end if
+                     end do
+                     call read_field(file, ccpp_required_data(req_idx), input_var_names(:,const_input_idx), 'lev', timestep,                           &
+                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+                  else
+                     ! If not in standard names list, then just use constituent name as input file name:
+                     call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep,                                &
+                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+                  end if
                   if(.not. var_found) then
                      const_props => cam_model_const_properties()
                      constituent_has_default = .false.
@@ -202,7 +219,7 @@ CONTAINS
       use phys_vars_init_check,       only: is_read_from_file
       use ioFileMod,                  only: cam_get_file
       use cam_pio_utils,              only: cam_pio_openfile, cam_pio_closefile
-      use phys_vars_init_check_noreq, only: phys_var_stdnames, input_var_names, std_name_len
+      use phys_vars_init_check_noreq, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -223,8 +240,10 @@ CONTAINS
 
       character(len=SHR_KIND_CX) :: errmsg    !CCPP framework error message
       integer                    :: errflg    !CCPP framework error flag
+      integer                    :: n         !Loop control variable
       integer                    :: name_idx  !Input variable array index
       integer                    :: constituent_idx !Index of variable in constituent array
+      integer                    :: const_input_idx !input_var_names index for a consituent
       integer                    :: req_idx   !Required variable array index
       integer                    :: suite_idx !Suite array index
       character(len=SHR_KIND_CL) :: ncdata_check_loc
@@ -273,8 +292,23 @@ CONTAINS
             if (constituent_idx > -1) then
                ! The required variable is a constituent. Call check variable routine on the relevant index of the constituent array
                field_data_ptr => cam_advected_constituents_array()
-               call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx),                             &
-                    ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
+
+               ! Check if constituent standard name in registered SIMA standard names list:
+               if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
+                  ! Find array index to extract correct input names:
+                  do n=1, phys_var_num
+                     if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
+                        const_input_idx = n
+                        exit
+                     end if
+                  end do
+                  call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                     &
+                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
+               else
+                  ! If not in standard names list, then just use constituent name as input file name:
+                  call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx),                          &
+                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
+               end if
             else
                ! The required variable is not a constituent. Check if the variable was read from a file
                ! Find IC file input name array index for required variable:
