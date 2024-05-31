@@ -26,8 +26,8 @@ module cam_comp
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
-   use physics_types,             only: physics_types_history_init
-   use physics_types,             only: physics_types_history_out
+   use physics_types_history,     only: physics_types_history_init
+   use physics_types_history,     only: physics_types_history_out
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf

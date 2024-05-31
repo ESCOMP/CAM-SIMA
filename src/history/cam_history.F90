@@ -612,6 +612,7 @@ CONTAINS
 
    subroutine history_out_field_1d(diagnostic_name, field_values, idim)
       use hist_api, only: hist_field_accumulate
+      use hist_msg_handler, only: hist_log_messages
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       integer,          intent(in) :: idim
@@ -622,6 +623,7 @@ CONTAINS
       character(len=3)  :: flag
       logical :: found
       character(len=cl) :: errmsg
+      type(hist_log_messages) :: logger
       character(len=*), parameter :: subname = 'history_out_field_1d: '
       class(hist_field_info_t), pointer :: field_info
 
@@ -643,7 +645,11 @@ CONTAINS
          end if
          ! Field is active on this file - accumulate!
          ! Accumulate the field
-         call hist_field_accumulate(field_info, real(field_values, REAL64), 1)
+         if (hist_configs(file_idx)%precision() == 'REAL32') then
+            call hist_field_accumulate(field_info, real(field_values, REAL32), 1, logger=logger)
+         else
+            call hist_field_accumulate(field_info, real(field_values, REAL64), 1, logger=logger)
+         end if
             
       end do
 
@@ -658,13 +664,13 @@ CONTAINS
       character(len=*), intent(in) :: diagnostic_name
       integer,          intent(in) :: idim
       real(r8),         intent(in) :: field_values(:,:)
-      type(hist_log_messages) :: logger
 
       ! Local variables
       integer :: file_idx, field_idx
       character(len=3)  :: flag
       logical :: found
       character(len=cl) :: errmsg
+      type(hist_log_messages) :: logger
       character(len=*), parameter :: subname = 'history_out_field_2d: '
       class(hist_field_info_t), pointer :: field_info
 
@@ -686,9 +692,12 @@ CONTAINS
          end if
          ! Field is active on this file - accumulate!
          ! Accumulate the field
-         call hist_field_accumulate(field_info, real(field_values, REAL32), 1, logger=logger)
+         if (hist_configs(file_idx)%precision() == 'REAL32') then
+            call hist_field_accumulate(field_info, real(field_values, REAL32), 1, logger=logger)
+         else
+            call hist_field_accumulate(field_info, real(field_values, REAL64), 1, logger=logger)
+         end if
          call logger%output(iulog)
-            
       end do
 
    end subroutine history_out_field_2d

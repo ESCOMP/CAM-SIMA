@@ -824,6 +824,7 @@ class Variable(VarBase):
 
     def write_hist_init_routine(self, outfile, indent, ddt_str):
         """
+        Write calls to history_add_field for registry variables
         """
         my_ddt = self.is_ddt
         if my_ddt:
@@ -852,6 +853,7 @@ class Variable(VarBase):
 
     def write_hist_out_routine(self, outfile, indent, ddt_str):
         """
+        Write calls to history_out_field for registry variables
         """
         my_ddt = self.is_ddt
         if my_ddt:
@@ -1379,17 +1381,39 @@ class File:
             outfile.write('!! public interfaces', 0)
             outfile.write(f'public :: {self.allocate_routine_name()}', 1)
             outfile.write(f'public :: {self.tstep_init_routine_name()}', 1)
-            outfile.write(f'public :: {self.hist_init_routine_name()}', 1)
-            outfile.write(f'public :: {self.hist_out_routine_name()}', 1)
+            #outfile.write(f'public :: {self.hist_init_routine_name()}', 1)
+            #outfile.write(f'public :: {self.hist_out_routine_name()}', 1)
             # end of module header
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
             self.write_allocate_routine(outfile, physconst_vars)
             self.write_tstep_init_routine(outfile, physconst_vars)
+
+        # end with
+
+    def write_history_source(self, outdir, indent, logger, physconst_vars):
+        """Write out source code for the variables in this file"""
+        module_name = f"{self.name}_history"
+        ofilename = os.path.join(outdir, f"{module_name}.F90")
+        logger.info(f"Writing registry history source file, {module_name}.F90")
+        file_desc = f"Interfaces for registry source file, {module_name}"
+        with FortranWriter(ofilename, "w", file_desc,
+                           module_name, indent=indent) as outfile:
+            outfile.write("", 0)
+            self.write_hist_use_statements(outfile)
+            outfile.write_preamble()
+            # Write data management subroutine declarations
+            outfile.write('', 0)
+            outfile.write('!! public interfaces', 0)
+            outfile.write(f'public :: {self.hist_init_routine_name()}', 1)
+            outfile.write(f'public :: {self.hist_out_routine_name()}', 1)
+            # end of module header
+            outfile.end_module_header()
+            outfile.write("", 0)
+            # Write data management subroutines
             self.write_hist_init_routine(outfile)
             self.write_hist_out_routine(outfile)
-
         # end with
 
     def allocate_routine_name(self):
@@ -1475,6 +1499,16 @@ class File:
         # end for
         outfile.write('', 0)
         outfile.write(f'end subroutine {subname}', 1)
+
+    def write_hist_use_statements(self, outfile):
+        """
+        Write the use statements for all variables and DDTs in self.name
+        """
+        outfile.write('', 0)
+        for var in self.__var_dict.variable_list():
+           outfile.write(f"use {self.name}, only: {var.local_name}", 1)
+        # end if
+        outfile.write('', 0)
 
     def write_hist_init_routine(self, outfile):
         """
@@ -1757,6 +1791,7 @@ def write_registry_files(registry, dycore, config, outdir, src_mod, src_root,
         if file_.generate_code:
             file_.write_metadata(outdir, logger)
             file_.write_source(outdir, indent, logger, physconst_vars)
+            file_.write_history_source(outdir, indent, logger, physconst_vars)
         # end if
     # end for
 

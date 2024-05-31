@@ -1162,11 +1162,7 @@ CONTAINS
                   end if
                end if
             end if
-            !if ((this%field_list(field_index)%buffers(1)%buffer_type() == 8) .or. restart) then
-            !   ncreal = pio_double
-            !else
-            !   ncreal = pio_real
-            !end if
+
             ncreal = pio_real
             call this%field_list(field_index)%dimensions(mdims)
             mdimsize = size(mdims,1)
@@ -1510,7 +1506,8 @@ CONTAINS
       integer                        :: num_dims
       integer                        :: idx
       logical                        :: index_map(3)
-      real(REAL32), allocatable      :: field_data(:,:)
+      real(REAL32), allocatable      :: field_data_32(:,:)
+      real(REAL64), allocatable      :: field_data_64(:,:)
       class(hist_buffer_t), pointer  :: buff_ptr
       class(hist_buff_2dreal64_t), pointer :: buff_ptr_2d
       class(hist_buff_2dreal32_t), pointer :: buff_ptr_2d_32
@@ -1519,7 +1516,11 @@ CONTAINS
       ! Shape on disk
       call this%field_list(field_index)%shape(field_shape)
       frank = size(field_shape)
-      allocate(field_data(field_shape(1), field_shape(2))) 
+      if (this%precision() == 'REAL32') then
+         allocate(field_data_32(field_shape(1), field_shape(2)))
+      else
+         allocate(field_data_64(field_shape(1), field_shape(2)))
+      end if
       ! Shape of array
       call this%field_list(field_index)%dimensions(dimind)
 
@@ -1546,9 +1547,15 @@ CONTAINS
          varid = this%field_list(field_index)%varid(patch_idx)
          call pio_setframe(this%hist_files(split_file_index), varid, int(max(1,samples_on_file),kind=PIO_OFFSET_KIND))
          buff_ptr => this%field_list(field_index)%buffers
-         call hist_buffer_norm_value(buff_ptr, field_data)
-         call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
-              field_shape(1:frank), field_data, varid)
+         if (this%precision() == 'REAL32') then
+            call hist_buffer_norm_value(buff_ptr, field_data_32)
+            call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+                 field_shape(1:frank), field_data_32, varid)
+         else
+            call hist_buffer_norm_value(buff_ptr, field_data_64)
+            call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+                 field_shape(1:frank), field_data_64, varid)
+         end if
       end do
 
    end subroutine config_write_field
@@ -1712,7 +1719,7 @@ CONTAINS
             call endrun(subname//"ERROR, Invalid history file type, '"//      &
                  trim(hist_file_type)//"'", file=__FILE__, line=__LINE__)
          end select
-         ! Translat<e precision into rl_kind
+         ! Translate precision into rl_kind
          rl_kind = UNSET_I
          select case(trim(hist_precision))
          case('REAL32')
