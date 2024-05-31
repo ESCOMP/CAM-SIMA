@@ -456,7 +456,6 @@ CONTAINS
       use cam_grid_support, only: cam_grid_get_array_bounds
       use cam_history_support, only: lookup_hist_coord_indices
       use cam_history_support, only: hist_coord_find_levels, hist_coords
-      !use cam_ccpp_cap, only: cam_const_get_index
 
       character(len=*), intent(in) :: diagnostic_name
       character(len=*), intent(in) :: standard_name

@@ -892,8 +892,18 @@ class Variable(VarBase):
             # end if
         else:
             if self.diagnostic_name:
-                outstr = f"call history_out_field('{self.diagnostic_name}', {ddt_str}{self.local_name}, size({ddt_str}{self.local_name}, 1))"
-                outfile.write(outstr, indent)
+                if self.is_constituent:
+                    outfile.write('', 0)
+                    outfile.write(f"call const_get_index('{self.standard_name}', const_index, abort=.false., warning=.false.)", indent)
+                    outfile.write("if (const_index >= 0) then", indent)
+                    outfile.write("const_data_ptr => cam_constituents_array()", indent+1)
+                    outstr = f"call history_out_field('{self.diagnostic_name}', const_data_ptr(:,:,const_index), size(const_data_ptr, 1))"
+                    outfile.write(outstr, indent+1)
+                    outfile.write("end if", indent)
+                else:
+                    outstr = f"call history_out_field('{self.diagnostic_name}', {ddt_str}{self.local_name}, size({ddt_str}{self.local_name}, 1))"
+                    outfile.write(outstr, indent)
+                # end if
             # end if
         # end if
 
@@ -1407,8 +1417,6 @@ class File:
             outfile.write('!! public interfaces', 0)
             outfile.write(f'public :: {self.allocate_routine_name()}', 1)
             outfile.write(f'public :: {self.tstep_init_routine_name()}', 1)
-            #outfile.write(f'public :: {self.hist_init_routine_name()}', 1)
-            #outfile.write(f'public :: {self.hist_out_routine_name()}', 1)
             # end of module header
             outfile.end_module_header()
             outfile.write("", 0)
@@ -1532,7 +1540,9 @@ class File:
         """
         outfile.write('', 0)
         for var in self.__var_dict.variable_list():
-           outfile.write(f"use {self.name}, only: {var.local_name}", 1)
+            if not var.is_constituent:
+                outfile.write(f"use {self.name}, only: {var.local_name}", 1)
+            # end fi
         # end if
         outfile.write('', 0)
 
@@ -1565,10 +1575,20 @@ class File:
         outfile.write('', 0)
         outfile.write(f'subroutine {subname}()', 1)
         outfile.write('use cam_history, only: history_out_field', 2)
+        outfile.write('use cam_ccpp_cap, only: cam_constituents_array', 2)
+        outfile.write('use cam_ccpp_cap, only: cam_model_const_properties', 2)
+        outfile.write('use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t', 2)
+        outfile.write('use cam_constituents, only: const_get_index', 2)
+        outfile.write('use ccpp_kinds, only: kind_phys', 2)
         outfile.write('', 0)
         outfile.write('!! Local variables', 2)
+        outfile.write('type(ccpp_constituent_prop_ptr_t), pointer :: const_prop_ptr(:)', 2)
+        outfile.write('real(kind_phys), pointer :: const_data_ptr(:,:,:)', 2)
+        outfile.write('character(len=512) :: standard_name', 2)
+        outfile.write('integer :: const_index', 2)
         subn_str = f'character(len=*), parameter :: subname = "{subname}"'
         outfile.write(subn_str, 2)
+        outfile.write('',0)
         for var in self.__var_dict.variable_list():
            var.write_hist_out_routine(outfile, 2, '')
         # end for
