@@ -1593,6 +1593,142 @@ contains
         end subroutine add_stream_attribute_1d
     end subroutine dyn_mpas_init_stream_with_pool
 
+    !> Parse a stream name, which consists of one or more stream name fragments, and return the corresponding variable information
+    !> as a list of `var_info_type`. Multiple stream name fragments should be separated by `+` (i.e., a plus, meaning "addition"
+    !> operation) or `-` (i.e., a minus, meaning "subtraction" operation).
+    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", "restart") or a single variable name.
+    !> Duplicate variable names in the resulting list are discarded.
+    !> (KCW, 2024-06-01)
+    pure function parse_stream_name(stream_name) result(var_info_list)
+        character(*), intent(in) :: stream_name
+        type(var_info_type), allocatable :: var_info_list(:)
+
+        character(*), parameter :: supported_stream_name_operator = '+-'
+        character(1) :: stream_name_operator
+        character(:), allocatable :: stream_name_fragment
+        character(len(invariant_var_info_list % name)), allocatable :: var_name_list(:)
+        integer :: i, j, n, offset
+        type(var_info_type), allocatable :: var_info_list_buffer(:)
+
+        n = len_trim(stream_name)
+
+        if (n == 0) then
+            ! Empty character string means empty list.
+            var_info_list = parse_stream_name_fragment('')
+
+            return
+        end if
+
+        i = scan(stream_name, supported_stream_name_operator)
+
+        if (i == 0) then
+            ! No operators are present in the stream name. It is just a single stream name fragment.
+            stream_name_fragment = stream_name
+            var_info_list = parse_stream_name_fragment(stream_name_fragment)
+
+            return
+        end if
+
+        offset = 0
+        var_info_list = parse_stream_name_fragment('')
+
+        do while (.true.)
+            ! Extract operator from the stream name.
+            if (offset > 0) then
+                stream_name_operator = stream_name(offset:offset)
+            else
+                stream_name_operator = '+'
+            end if
+
+            ! Extract stream name fragment from the stream name.
+            if (i > 1) then
+                stream_name_fragment = stream_name(offset + 1:offset + i - 1)
+            else
+                stream_name_fragment = ''
+            end if
+
+            ! Process the stream name fragment according to the operator.
+            if (len_trim(stream_name_fragment) > 0) then
+                var_info_list_buffer = parse_stream_name_fragment(stream_name_fragment)
+
+                select case (stream_name_operator)
+                    case ('+')
+                        var_info_list = [var_info_list, var_info_list_buffer]
+                    case ('-')
+                        do j = 1, size(var_info_list_buffer)
+                            var_name_list = var_info_list % name
+                            var_info_list = pack(var_info_list, var_name_list /= var_info_list_buffer(j) % name)
+                        end do
+                    case default
+                        ! Do nothing for unknown operators. Should not happen at all.
+                end select
+            end if
+
+            offset = offset + i
+
+            ! Terminate loop when everything in the stream name has been processed.
+            if (offset + 1 > n) then
+                exit
+            end if
+
+            i = scan(stream_name(offset + 1:), supported_stream_name_operator)
+
+            ! Run the loop one last time for the remaining stream name fragment.
+            if (i == 0) then
+                i = n - offset + 1
+            end if
+        end do
+
+        ! Discard duplicate variable information by names.
+        var_name_list = var_info_list % name
+        var_info_list = var_info_list(index_unique(var_name_list))
+    end function parse_stream_name
+
+    !> Parse a stream name fragment and return the corresponding variable information as a list of `var_info_type`.
+    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", "restart") or a single variable name.
+    !> (KCW, 2024-06-01)
+    pure function parse_stream_name_fragment(stream_name_fragment) result(var_info_list)
+        character(*), intent(in) :: stream_name_fragment
+        type(var_info_type), allocatable :: var_info_list(:)
+
+        character(len(invariant_var_info_list % name)), allocatable :: var_name_list(:)
+        type(var_info_type), allocatable :: var_info_list_buffer(:)
+
+        select case (trim(adjustl(stream_name_fragment)))
+            case ('')
+                allocate(var_info_list(0))
+            case ('invariant')
+                allocate(var_info_list, source=invariant_var_info_list)
+            case ('input')
+                allocate(var_info_list, source=input_var_info_list)
+            case ('restart')
+                allocate(var_info_list, source=restart_var_info_list)
+            case default
+                allocate(var_info_list(0))
+
+                var_name_list = invariant_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(invariant_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = input_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(input_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = restart_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(restart_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+        end select
+    end function parse_stream_name_fragment
+
     !> Return the index of unique elements in `array`, which can be any intrinsic data types, as an integer array.
     !> If `array` contains zero element or is of unsupported data types, an empty integer array is produced.
     !> (KCW, 2024-03-22)
