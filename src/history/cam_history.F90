@@ -16,27 +16,11 @@ module cam_history
    !   cam_hist_write_history_files
    !-----------------------------------------------------------------------
 
-   use ISO_FORTRAN_ENV,      only: REAL64, REAL32, INT32, INT64
-   use shr_kind_mod,         only: r8 => shr_kind_r8, r4 => shr_kind_r4
    use shr_kind_mod,         only: cl=>SHR_KIND_CL, cxx=>SHR_KIND_CXX
-   use shr_sys_mod,          only: shr_sys_flush
-   use perf_mod,             only: t_startf, t_stopf
-   use spmd_utils,           only: masterproc
-!   use cam_filenames,        only: interpret_filename_spec
-   use cam_instance,         only: inst_suffix
-!   use cam_initfiles,        only: ncdata, bnd_topo
-   use cam_abortutils,       only: endrun
-   use cam_logfile,          only: iulog
    use cam_hist_file,        only: hist_file_t
-   use cam_grid_support,     only: max_split_files
-   use cam_hist_file,        only: instantaneous_file_index, accumulated_file_index
-   use cam_hist_file,        only: strip_suffix
-   use cam_history_support,  only: pfiles, horiz_only
-   use cam_history_support,  only: max_fldlen=>max_fieldname_len, max_chars, fieldname_len
+   use cam_history_support,  only: pfiles
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
-   use hist_hashable,        only: hist_hashable_t
-   use time_manager,         only: get_nstep
 
    implicit none
    private
@@ -137,7 +121,12 @@ CONTAINS
    !===========================================================================
 
    subroutine history_write_files()
-      use time_manager,     only: set_date_from_time_float
+      use time_manager,     only: set_date_from_time_float, get_nstep
+      use cam_grid_support, only: max_split_files
+      use cam_logfile,      only: iulog
+      use cam_abortutils,   only: endrun
+      use spmd_utils,       only: masterproc
+      use shr_kind_mod,     only: r8 => shr_kind_r8
       character(len=cl) :: file_names(max_split_files)
       character(len=cl) :: prev_file_names(max_split_files)
       integer           :: yr, mon, day
@@ -219,17 +208,21 @@ CONTAINS
                do idx = 1, max_split_files
                   if (prev_file_names(idx) == file_names(idx)) then
                      duplicate = .true.
-                     write(iulog,*)'hist_write_files: New filename same as old file = ', trim(file_names(idx))
+                     if (masterproc) then
+                        write(iulog,*)'hist_write_files: New filename same as old file = ', trim(file_names(idx))
+                     end if
                   end if
                end do
             end do
             if (duplicate) then
                filename_spec = hist_configs(file_idx)%get_filename_spec()
                prev_filename_spec = hist_configs(prev_file_idx)%get_filename_spec()
-               write(iulog,*)'Is there an error in your filename specifiers?'
-               write(iulog,*)'filename_spec(', file_idx, ') = ', trim(filename_spec)
-               if ( prev_file_idx /= file_idx )then
-                 write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
+               if (masterproc) then
+                  write(iulog,*)'Is there an error in your filename specifiers?'
+                  write(iulog,*)'filename_spec(', file_idx, ') = ', trim(filename_spec)
+                  if ( prev_file_idx /= file_idx )then
+                    write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
+                  end if
                end if
                call endrun('hist_write_files: ERROR - see atm log file for information')
             end if
@@ -262,7 +255,7 @@ CONTAINS
       use time_manager,     only: get_prev_time, get_curr_time
 !      use cam_control_mod,  only: restart_run, branch_run
 !      use sat_hist,         only: sat_hist_init
-      use spmd_utils,       only: mpicom, masterprocid
+      use spmd_utils,       only: mpicom, masterprocid, masterproc
       use mpi,              only: mpi_character
       !
       !-----------------------------------------------------------------------
@@ -338,8 +331,9 @@ CONTAINS
    !===========================================================================
 
    subroutine print_field_list()
+      use cam_logfile, only: iulog
+      use spmd_utils,  only: masterproc
       ! Local variables
-      class(hist_hashable_t),   pointer :: field_ptr_value
       class(hist_field_info_t), pointer :: field_ptr
 
       character(len=4) :: avgflag
@@ -400,7 +394,8 @@ CONTAINS
 
    subroutine history_add_field_1d(diagnostic_name, standard_name, vdim_name, &
       avgflag, units, gridname)
-      use cam_history_support, only: get_hist_coord_index
+      use cam_history_support, only: get_hist_coord_index, max_chars, horiz_only
+      use cam_abortutils,      only: endrun
       !
       !-----------------------------------------------------------------------
       !
@@ -447,15 +442,18 @@ CONTAINS
    subroutine history_add_field_nd(diagnostic_name, standard_name, dimnames, avgflag, &
       units, gridname, flag_xyfill)
       ! Add field to possible field linked list
-      use hist_api, only: hist_new_field
-      use hist_hashable, only: hist_hashable_char_t
-      use hist_hashable, only: hist_hashable_int_t
-      use cam_grid_support, only: cam_grid_get_coord_names
-      use cam_grid_support, only: cam_grid_dimensions
-      use cam_grid_support, only: cam_grid_id, cam_grid_is_zonal
-      use cam_grid_support, only: cam_grid_get_array_bounds
+      use hist_api,            only: hist_new_field
+      use cam_grid_support,    only: cam_grid_get_coord_names
+      use cam_grid_support,    only: cam_grid_dimensions
+      use cam_grid_support,    only: cam_grid_id, cam_grid_is_zonal
+      use cam_grid_support,    only: cam_grid_get_array_bounds
       use cam_history_support, only: lookup_hist_coord_indices
       use cam_history_support, only: hist_coord_find_levels, hist_coords
+      use cam_history_support, only: max_fldlen=>max_fieldname_len, max_chars, fieldname_len
+      use cam_hist_file,       only: strip_suffix
+      use cam_logfile,         only: iulog
+      use cam_abortutils,      only: endrun, check_allocate
+      use spmd_utils,          only: masterproc
 
       character(len=*), intent(in) :: diagnostic_name
       character(len=*), intent(in) :: standard_name
@@ -475,13 +473,14 @@ CONTAINS
       integer,          allocatable     :: mdim_sizes(:)
       integer,          allocatable     :: field_shape(:)
       integer                           :: const_index
-      integer                           :: errcode
+      integer                           :: ierr
       integer                           :: dimbounds(2,2)
       character(len=512)                :: errmsg
       character(len=max_fldlen)         :: fname_tmp ! local copy of fname
       character(len=max_fldlen)         :: coord_name ! for cell_methods
       character(len=max_fldlen)         :: cell_methods
       character(len=3)                  :: mixing_ratio
+      character(len=*), parameter       :: subname = 'history_add_field_nd: '
 
       if (size(hist_configs) > 0 .and. hist_configs(1)%file_is_setup()) then
          call endrun ('history_add_field_nd: Attempt to add field '//trim(diagnostic_name)//' after history files set')
@@ -502,9 +501,11 @@ CONTAINS
       fname_tmp  = strip_suffix(fname_tmp)
 
       if (len_trim(fname_tmp) > fieldname_len) then
-         write(iulog,*)'history_add_field_nd: field name cannot be longer than ', fieldname_len,' characters long'
-         write(iulog,*)'Field name:  ',diagnostic_name
-         write(errmsg, *) 'Field name, "', trim(diagnostic_name), '" is too long'
+         if (masterproc) then
+            write(iulog,*)'history_add_field_nd: field name cannot be longer than ', fieldname_len,' characters long'
+            write(iulog,*)'Field name:  ',diagnostic_name
+            write(errmsg, *) 'Field name, "', trim(diagnostic_name), '" is too long'
+         end if
          call endrun('history_add_field_nd: '//trim(errmsg))
       end if
 
@@ -552,7 +553,8 @@ CONTAINS
 
       ! peverwhee - TODO: handle fill values
 
-      allocate(mdim_indices(size(dimnames, 1)))
+      allocate(mdim_indices(size(dimnames, 1)), stat=ierr)
+      call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1)
 
       call lookup_hist_coord_indices(dimnames, mdim_indices)
 
@@ -569,8 +571,10 @@ CONTAINS
       if (size(mdim_indices) > 0) then
          rank = rank + size(mdim_indices)
       end if
-      allocate(field_shape(rank))
-      allocate(mdim_sizes(size(mdim_indices)))
+      allocate(field_shape(rank), stat=ierr)
+      call check_allocate(ierr, subname, 'field_shape', file=__FILE__, line=__LINE__-1)
+      allocate(mdim_sizes(size(mdim_indices)), stat=ierr)
+      call check_allocate(ierr, subname, 'mdim_sizes', file=__FILE__, line=__LINE__-1)
       field_shape(1:pos) = grid_dims(1:pos)
       if (rank > pos) then
          do idx = 1, size(mdim_indices)
@@ -610,8 +614,12 @@ CONTAINS
 !===========================================================================
 
    subroutine history_out_field_1d(diagnostic_name, field_values, idim)
-      use hist_api, only: hist_field_accumulate
+      use hist_api,         only: hist_field_accumulate
       use hist_msg_handler, only: hist_log_messages
+      use cam_logfile,      only: iulog
+      use cam_abortutils,   only: endrun
+      use spmd_utils,       only: masterproc
+      use shr_kind_mod,     only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       integer,          intent(in) :: idim
@@ -643,11 +651,9 @@ CONTAINS
             cycle
          end if
          ! Field is active on this file - accumulate!
-         ! Accumulate the field
-         if (hist_configs(file_idx)%precision() == 'REAL32') then
-            call hist_field_accumulate(field_info, real(field_values, REAL32), 1, logger=logger)
-         else
-            call hist_field_accumulate(field_info, real(field_values, REAL64), 1, logger=logger)
+         call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         if (masterproc) then
+            call logger%output(iulog)
          end if
             
       end do
@@ -657,8 +663,12 @@ CONTAINS
 !===========================================================================
 
    subroutine history_out_field_2d(diagnostic_name, field_values, idim)
-      use hist_api, only: hist_field_accumulate
+      use hist_api,         only: hist_field_accumulate
       use hist_msg_handler, only: hist_log_messages
+      use cam_logfile,      only: iulog
+      use cam_abortutils,   only: endrun
+      use spmd_utils,       only: masterproc
+      use shr_kind_mod,     only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       integer,          intent(in) :: idim
@@ -690,13 +700,10 @@ CONTAINS
             cycle
          end if
          ! Field is active on this file - accumulate!
-         ! Accumulate the field
-         if (hist_configs(file_idx)%precision() == 'REAL32') then
-            call hist_field_accumulate(field_info, real(field_values, REAL32), 1, logger=logger)
-         else
-            call hist_field_accumulate(field_info, real(field_values, REAL64), 1, logger=logger)
+         call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         if (masterproc) then
+            call logger%output(iulog)
          end if
-         call logger%output(iulog)
       end do
 
    end subroutine history_out_field_2d
@@ -704,7 +711,11 @@ CONTAINS
 !===========================================================================
 
    subroutine history_out_field_3d(diagnostic_name, field_values, idim)
-      use hist_api, only: hist_field_accumulate
+      use hist_api,       only: hist_field_accumulate
+      use cam_logfile,    only: iulog
+      use cam_abortutils, only: endrun
+      use spmd_utils,     only: masterproc
+      use shr_kind_mod,   only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       integer,          intent(in) :: idim
@@ -735,8 +746,10 @@ CONTAINS
             cycle
          end if
          ! Field is active on this file - accumulate!
-         ! Accumulate the field
          !call hist_field_accumulate(field_info, real(field_values, REAL64), 1)
+         !if (masterproc) then
+         !   call logger%output(iulog)
+         !end if
             
       end do
 
@@ -745,7 +758,10 @@ CONTAINS
 !==========================================================================
 
    subroutine history_wrap_up(restart_write, last_timestep)
-     use time_manager,         only: get_curr_date, get_curr_time
+      use time_manager,   only: get_curr_date, get_curr_time, get_nstep
+      use cam_logfile,    only: iulog
+      use spmd_utils,     only: masterproc
+      use shr_kind_mod,   only: r8 => shr_kind_r8
       !
       !-----------------------------------------------------------------------
       !
