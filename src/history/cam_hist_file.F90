@@ -109,7 +109,6 @@ module cam_hist_file
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
       procedure :: print_config => config_print_config
-      procedure :: increment_samples => config_increment_samples
       procedure :: set_beg_time => config_set_beg_time
       procedure :: set_end_time => config_set_end_time
       procedure :: set_filenames => config_set_filenames
@@ -567,16 +566,6 @@ CONTAINS
          end if
       end if
    end subroutine config_print_config
-
-   ! ========================================================================
-
-   subroutine config_increment_samples(this)
-      ! Dummy argument
-      class(hist_file_t), intent(inout) :: this
-
-      this%num_samples = this%num_samples + 1
-
-   end subroutine config_increment_samples
 
    ! ========================================================================
 
@@ -1333,12 +1322,14 @@ CONTAINS
          end do
          write(iulog,*)
       end if
-      call this%increment_samples()
+      start = mod(num_samples, this%max_frames) + 1
+      count1 = 1
+      ! Increment samples
+      this%num_samples = this%num_samples + 1
+
       is_initfile = (this%hfile_type == hfile_type_init_value)
       is_satfile = (this%hfile_type == hfile_type_sat_track)
       num_samples = this%num_samples
-      start = num_samples
-      count1 = 1
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%ndcurid,(/start/),(/count1/),(/ndcur/))
       call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ndcur" variable')
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
@@ -1352,8 +1343,6 @@ CONTAINS
             call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncsec" variable')
          end if
       end do
-
-      ! peverwhee - TODO: GHG/solar forcing data on instantaneous file
 
 #if ( defined BFB_CAM_SCAM_IOP )
       dtime = get_step_size()
@@ -1386,7 +1375,7 @@ CONTAINS
          else
             ! not an accumulated history tape - time is current time
             ierr=pio_put_var (this%hist_files(split_file_index), this%timeid, (/start/),(/count1/),(/time/))
-           call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write instantaneous "time" variable')
+            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write instantaneous "time" variable')
          end if
          ierr=pio_put_var (this%hist_files(split_file_index), this%tbndid, startc, countc, time_interval)
          call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "time_bounds" variable')

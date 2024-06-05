@@ -3,17 +3,10 @@ module cam_history
    !
    ! The cam_history module provides the user interface for CAM's history
    !   output capabilities.
-   ! It maintains the lists of fields that are written to each history file,
-   !   and the associated metadata for those fields such as descriptive names,
-   !   physical units, time axis properties, etc.
    !
-   ! Public functions/subroutines:
-   !   cam_hist_init_files
-   !   cam_hist_write_history_state
-   !   cam_hist_write_restart
-   !   cam_hist_read_restart
-   !   cam_hist_capture_field
-   !   cam_hist_write_history_files
+   ! It maintains the list of possible fields and provides interfaces
+   !   to cam_hist_file hist_file_t object
+   !
    !-----------------------------------------------------------------------
 
    use shr_kind_mod,         only: cl=>SHR_KIND_CL, cxx=>SHR_KIND_CXX
@@ -26,46 +19,19 @@ module cam_history
    private
    save
 
-   integer           :: idx                ! index for nhtfrq initialization
    character(len=cl) :: model_doi_url = '' ! Model DOI
    character(len=cl) :: caseid = ''        ! case ID
    character(len=cl) :: ctitle = ''        ! case title
-   ! NB: history_namelist value must match the group name in namelist_definition.xml
-   character(len=*), parameter   :: history_namelist = 'cam_history_nl'
-   ! hrestpath:  Full history restart pathnames
-   character(len=cxx) :: hrestpath(pfiles) = (/(' ',idx=1,pfiles)/)
-   character(len=cxx) :: cpath(pfiles) ! Array of current pathnames
-   character(len=cxx) :: nhfil(pfiles) ! Array of current file names
-   character(len=16)  :: logname             ! user name
-   character(len=16)  :: host                ! host name
-!!XXgoldyXX: Change inithist to use same values as any other history file
-   character(len=8)   :: inithist = 'YEARLY' ! If set to '6-HOURLY, 'DAILY', 'MONTHLY' or
-   ! 'YEARLY' then write IC file
-
-!!XXgoldyXX: Do we need maxvarmdims anymore?
-   integer, private :: maxvarmdims = 1
-   !
-
-   integer :: lcltod_start(pfiles) ! start time of day for local time averaging (sec)
-   integer :: lcltod_stop(pfiles)  ! stop time of day for local time averaging, stop > start is wrap around (sec)
+   character(len=16) :: logname            ! user name
+   character(len=16) :: host               ! host name
 
    ! Functions
    public :: history_readnl         ! Namelist reader for CAM history
-!   public :: history_init_restart   ! Write restart history data
-!   public :: history_write_restart  ! Write restart history data
-!   public :: history_read_restart   ! Read restart history data
    public :: history_write_files    ! Write files out
    public :: history_init_files     ! Initialization
    public :: history_add_field      ! Write to list of possible history fields for this run
    public :: history_out_field      ! Accumulate field if its in use by one or more tapes
    public :: history_wrap_up        ! Process history files at end of timestep or run
-!   public :: history_finalize       ! process history files at end of run
-!   public :: history_write_IC       ! flag to dump of IC to IC file
-!   public :: history_define_fld     ! Add a field to history file
-!   public :: history_capture_fld    ! Capture current state of a model field
-!   public :: history_fld_active     ! .true. if a field is active on any history file
-!   public :: history_fld_col_active ! .true. for each column where a field is active on any history file
-!   public :: register_vector_field  ! Register vector field set for interpolated output
 
    interface history_out_field
       module procedure history_out_field_1d
@@ -87,6 +53,11 @@ module cam_history
 CONTAINS
 
    subroutine history_readnl(nlfile)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Read in history namelist and set hist_configs
+      !
+      !-----------------------------------------------------------------------
       use spmd_utils,    only: masterproc, masterprocid, mpicom
       use mpi,           only: mpi_integer, mpi_logical, mpi_character
       use cam_hist_file, only: hist_read_namelist_config
@@ -105,22 +76,17 @@ CONTAINS
       ! Read in CAM history configuration
       call hist_read_namelist_config(nlfile, hist_configs)
 
-      ! Setup the interpolate_info structures
-      !do t = 1, size(interpolate_info)
-      !   interpolate_info(fil_idx)%interp_type = interpolate_type(fil_idx)
-      !   interpolate_info(fil_idx)%interp_gridtype = interpolate_gridtype(fil_idx)
-      !   interpolate_info(fil_idx)%interp_nlat = interpolate_nlat(fil_idx)
-      !   interpolate_info(fil_idx)%interp_nlon = interpolate_nlon(fil_idx)
-      !end do
-
-      ! separate namelist reader for the satellite history file
-      !call sat_hist_readnl(nlfile, hfilename_spec, mfilt, fincl, hist_freq, avgflag_perfile)
-
    end subroutine history_readnl
 
    !===========================================================================
 
    subroutine history_write_files()
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Check if it's time to write any files and Write any active
+      !          fields to those files
+      !
+      !-----------------------------------------------------------------------
       use time_manager,     only: set_date_from_time_float, get_nstep
       use cam_grid_support, only: max_split_files
       use cam_logfile,      only: iulog
@@ -194,7 +160,7 @@ CONTAINS
          end if
          write_nstep0 = hist_configs(file_idx)%do_write_nstep0()
          if (nstep == 0 .and. .not. write_nstep0) then
-            ! Don't write the first step
+            ! Don't write the first nstep=0 sample
             cycle
          end if
          num_samples = hist_configs(file_idx)%get_num_samples()
@@ -209,7 +175,7 @@ CONTAINS
                   if (prev_file_names(idx) == file_names(idx)) then
                      duplicate = .true.
                      if (masterproc) then
-                        write(iulog,*)'hist_write_files: New filename same as old file = ', trim(file_names(idx))
+                        write(iulog,*)'history_write_files: New filename same as old file = ', trim(file_names(idx))
                      end if
                   end if
                end do
@@ -224,10 +190,9 @@ CONTAINS
                     write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
                   end if
                end if
-               call endrun('hist_write_files: ERROR - see atm log file for information')
+               call endrun('history_write_files: ERROR - see atm log file for information')
             end if
             call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
-        !    call hist_configs(file_idx)%write_time_dependent_variables(file_idx, restart)
          end if
          call hist_configs(file_idx)%write_time_dependent_variables(file_idx, restart)
       end do
@@ -238,23 +203,13 @@ CONTAINS
 
    subroutine history_init_files(model_doi_url_in, caseid_in, ctitle_in)
 
-      !
       !-----------------------------------------------------------------------
       !
-      ! Purpose: Initialize history file handler for initial or continuation
-      !          run.
-      !          For example, on an initial run, this routine initializes
-      !          the configured history files. On a restart run, this routine
-      !          only initializes history files declared beyond what existed
-      !          on the previous run.  Files which already existed on the
-      !          previous run have already been initialized (i.e. named and
-      !          opened) in routine, hist_initialize_restart
+      ! Purpose: Print master field list and initialize history files
       !
       !-----------------------------------------------------------------------
       use shr_sys_mod,      only: shr_sys_getenv
       use time_manager,     only: get_prev_time, get_curr_time
-!      use cam_control_mod,  only: restart_run, branch_run
-!      use sat_hist,         only: sat_hist_init
       use spmd_utils,       only: mpicom, masterprocid, masterproc
       use mpi,              only: mpi_character
       !
@@ -268,17 +223,9 @@ CONTAINS
       !
       ! Local workspace
       !
-      integer :: fil_idx, fld_ind  ! file, field indices
-      integer :: begdim1           ! on-node dim1 start index
-      integer :: enddim1           ! on-node dim1 end index
-      integer :: begdim2           ! on-node dim2 start index
-      integer :: enddim2           ! on-node dim2 end index
-      integer :: begdim3           ! on-node chunk or lat start index
-      integer :: enddim3           ! on-node chunk or lat end index
+      integer :: file_idx          ! file, field indices
       integer :: day, sec          ! day and seconds from base date
       integer :: rcode             ! shr_sys_getenv return code
-!      type(master_entry), pointer :: listentry
-      character(len=32) :: fldname
 
       !
       ! Save the DOI
@@ -309,20 +256,15 @@ CONTAINS
       call mpi_bcast(host,    len(host),    mpi_character,                    &
            masterprocid, mpicom, rcode)
 
-      ! peverwhee - override averaging flag if specified?
+      call get_curr_time(day, sec)  ! elapased time since reference date
 
-!      if (branch_run) then
-!         call get_prev_time(day, sec)  ! elapased time since reference date
-!      else
-       call get_curr_time(day, sec)  ! elapased time since reference date
-!      end if
-
-      do fil_idx = 1, size(hist_configs, 1)
+      ! Set up hist fields on each user-specified file
+      do file_idx = 1, size(hist_configs, 1)
          ! Time at beginning of current averaging interval.
-         call hist_configs(fil_idx)%set_beg_time(day, sec)
+         call hist_configs(file_idx)%set_beg_time(day, sec)
 
          ! Set up fields and buffers
-         call hist_configs(fil_idx)%set_up_fields(possible_field_list)
+         call hist_configs(file_idx)%set_up_fields(possible_field_list)
       end do
 
 
@@ -331,6 +273,11 @@ CONTAINS
    !===========================================================================
 
    subroutine print_field_list()
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Print master field list
+      !
+      !-----------------------------------------------------------------------
       use cam_logfile, only: iulog
       use spmd_utils,  only: masterproc
       ! Local variables
@@ -371,6 +318,11 @@ CONTAINS
 !===========================================================================
 
    subroutine set_up_field_list_hash_table()
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Populate field list hash table from linked list
+      !
+      !-----------------------------------------------------------------------
       ! Local variables
       class(hist_field_info_t), pointer :: field_ptr
 
@@ -393,17 +345,16 @@ CONTAINS
 !===========================================================================
 
    subroutine history_add_field_1d(diagnostic_name, standard_name, vdim_name, &
-      avgflag, units, gridname)
+      avgflag, units, gridname, flag_xyfill, mixing_ratio)
       use cam_history_support, only: get_hist_coord_index, max_chars, horiz_only
       use cam_abortutils,      only: endrun
-      !
       !-----------------------------------------------------------------------
       !
       ! Purpose: Add a field to the master field list
       !
       ! Method: Put input arguments of field name, units, number of levels,
-      !         averaging flag, and long name into a type entry in the global
-      !         master field list (masterlist).
+      !         averaging flag, and standard name into an entry in the global
+      !         field linked list (possible_field_list_head).
       !
       !-----------------------------------------------------------------------
 
@@ -416,6 +367,8 @@ CONTAINS
       character(len=*), intent(in) :: avgflag    ! averaging flag
       character(len=*), intent(in) :: units      ! units of fname (max_chars)
       character(len=*), optional, intent(in) :: gridname
+      logical,          optional, intent(in) :: flag_xyfill
+      character(len=*), optional, intent(in) :: mixing_ratio
 
       !
       ! Local workspace
@@ -433,15 +386,25 @@ CONTAINS
          allocate(dimnames(1))
          dimnames(1) = trim(vdim_name)
        end if
-       call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, gridname)
+       call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
+            gridname=gridname, flag_xyfill=flag_xyfill, mixing_ratio=mixing_ratio)
     
    end subroutine history_add_field_1d
 
 !===========================================================================
 
    subroutine history_add_field_nd(diagnostic_name, standard_name, dimnames, avgflag, &
-      units, gridname, flag_xyfill)
-      ! Add field to possible field linked list
+      units, gridname, flag_xyfill, mixing_ratio)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Add a field to the master field list - generic; called from
+      !          history_add_field_1d
+      !
+      ! Method: Put input arguments of field name, units, number of levels,
+      !         averaging flag, and standard name into an entry in the global
+      !         field linked list (possible_field_list_head).
+      !
+      !-----------------------------------------------------------------------
       use hist_api,            only: hist_new_field
       use cam_grid_support,    only: cam_grid_get_coord_names
       use cam_grid_support,    only: cam_grid_dimensions
@@ -462,24 +425,24 @@ CONTAINS
       character(len=*), intent(in) :: units      ! units of fname (max_chars)
       character(len=*), optional, intent(in) :: gridname
       logical,          optional, intent(in) :: flag_xyfill
+      character(len=*), optional, intent(in) :: mixing_ratio
 
       ! Local variables
       class(hist_field_info_t), pointer :: field_ptr
       class(hist_field_info_t), pointer :: listentry
       integer                           :: grid_decomp, rank, pos
       integer                           :: grid_dims(2)
-      integer                           :: dimcnt, num_levels
+      integer                           :: num_levels
       integer,          allocatable     :: mdim_indices(:)
       integer,          allocatable     :: mdim_sizes(:)
       integer,          allocatable     :: field_shape(:)
-      integer                           :: const_index
-      integer                           :: ierr
+      integer                           :: ierr, idx
       integer                           :: dimbounds(2,2)
       character(len=512)                :: errmsg
       character(len=max_fldlen)         :: fname_tmp ! local copy of fname
       character(len=max_fldlen)         :: coord_name ! for cell_methods
       character(len=max_fldlen)         :: cell_methods
-      character(len=3)                  :: mixing_ratio
+      character(len=3)                  :: mixing_ratio_loc
       character(len=*), parameter       :: subname = 'history_add_field_nd: '
 
       if (size(hist_configs) > 0 .and. hist_configs(1)%file_is_setup()) then
@@ -498,7 +461,7 @@ CONTAINS
       ! (strip "&IC" suffix if it exists)
       !
       fname_tmp = diagnostic_name
-      fname_tmp  = strip_suffix(fname_tmp)
+      fname_tmp = strip_suffix(fname_tmp)
 
       if (len_trim(fname_tmp) > fieldname_len) then
          if (masterproc) then
@@ -517,19 +480,11 @@ CONTAINS
          call endrun ('history_add_field_nd:  '//diagnostic_name//' already on list')
       end if
 
-      ! If the field is an advected constituent determine whether its concentration
-      ! is based on dry or wet air.
-      ! peverwhee - TODO: constituents handling requires SIMA  and/or framework update
-      !call cam_const_get_index(standard_name, const_index, errcode, errmsg)
-      !if (errcode /= 0) then
-      !   write(iulog,*) errmsg
-      !   call endrun('history_add_field_nd:  '//diagnostic_name//' failed in const_get_index')
-      !end if
-      mixing_ratio = ''
-      !if (const_index > 0) then
-      !   mixing_ratio = cnst_get_type_byind(idx)
-      !end if
-
+      if (present(mixing_ratio)) then
+         mixing_ratio_loc = mixing_ratio
+      else
+         mixing_ratio_loc = ''
+      end if
 
       if (present(gridname)) then
          grid_decomp = cam_grid_id(trim(gridname))
@@ -593,7 +548,7 @@ CONTAINS
             else
                field_ptr%next => hist_new_field(diagnostic_name, &
                   standard_name, standard_name, units, 'real', grid_decomp, &
-                  mdim_indices, avgflag, num_levels, field_shape, mixing_ratio=mixing_ratio, &
+                  mdim_indices, avgflag, num_levels, field_shape, mixing_ratio=mixing_ratio_loc, &
                   dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
                   flag_xyfill=flag_xyfill)
                exit
@@ -602,7 +557,7 @@ CONTAINS
       else
          possible_field_list_head => hist_new_field(diagnostic_name, &
             standard_name, standard_name, units, 'real', grid_decomp,   &
-            mdim_indices, avgflag, num_levels, field_shape, mixing_ratio=mixing_ratio, &
+            mdim_indices, avgflag, num_levels, field_shape, mixing_ratio=mixing_ratio_loc, &
             dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
             flag_xyfill=flag_xyfill)
       end if
@@ -614,6 +569,11 @@ CONTAINS
 !===========================================================================
 
    subroutine history_out_field_1d(diagnostic_name, field_values, idim)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Accumulate active fields - 1d fields
+      !
+      !-----------------------------------------------------------------------
       use hist_api,         only: hist_field_accumulate
       use hist_msg_handler, only: hist_log_messages
       use cam_logfile,      only: iulog
@@ -635,10 +595,6 @@ CONTAINS
       class(hist_field_info_t), pointer :: field_info
 
       errmsg = ''
-
-      ! peverwhee - TODO
-      !  - fill values
-      !  - different dimensions
 
       do file_idx = 1, size(hist_configs, 1)
          ! Check if the field is on the current file
@@ -663,6 +619,11 @@ CONTAINS
 !===========================================================================
 
    subroutine history_out_field_2d(diagnostic_name, field_values, idim)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Accumulate active fields - 2d fields
+      !
+      !-----------------------------------------------------------------------
       use hist_api,         only: hist_field_accumulate
       use hist_msg_handler, only: hist_log_messages
       use cam_logfile,      only: iulog
@@ -684,10 +645,6 @@ CONTAINS
       class(hist_field_info_t), pointer :: field_info
 
       errmsg = ''
-
-      ! peverwhee - TODO
-      !  - fill values
-      !  - different dimensions
 
       do file_idx = 1, size(hist_configs, 1)
          ! Check if the field is on the current file
@@ -711,6 +668,11 @@ CONTAINS
 !===========================================================================
 
    subroutine history_out_field_3d(diagnostic_name, field_values, idim)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Accumulate active fields - 3d fields
+      !
+      !-----------------------------------------------------------------------
       use hist_api,       only: hist_field_accumulate
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
@@ -730,10 +692,6 @@ CONTAINS
       class(hist_field_info_t), pointer :: field_info
 
       errmsg = ''
-
-      ! peverwhee - TODO
-      !  - fill values
-      !  - different dimensions
 
       do file_idx = 1, size(hist_configs, 1)
          ! Check if the field is on the current file
@@ -758,6 +716,12 @@ CONTAINS
 !==========================================================================
 
    subroutine history_wrap_up(restart_write, last_timestep)
+      !-----------------------------------------------------------------------
+      !
+      ! Purpose: Close files we're done with (either last timestep
+      !          or we've reached the max_frames cap for the file)
+      !
+      !-----------------------------------------------------------------------
       use time_manager,   only: get_curr_date, get_curr_time, get_nstep
       use cam_logfile,    only: iulog
       use spmd_utils,     only: masterproc
