@@ -59,7 +59,7 @@ CONTAINS
 
       integer, intent(in) :: unit_num
 
-      ! Change iulog to unit_num on this PE or log a waring
+      ! Change iulog to unit_num on this PE or log a warning
       ! The log unit number can be set at most once per run
       if (iulog_set) then
          write(iulog, *) 'cam_set_log_unit: Cannot change log unit during run'

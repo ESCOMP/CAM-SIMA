@@ -83,7 +83,6 @@ public ::         &
 public :: model_grid_init
 
 !!XXgoldyXX: v try to remove?
-public :: get_horiz_grid_dim_d
 public :: dyn_grid_get_colndx ! get element block/column and MPI process indices
 !!XXgoldyXX: ^ try to remove?
 public :: dyn_grid_get_elem_coords ! get coords of a specified block element
@@ -519,30 +518,6 @@ subroutine set_dyn_col_values()
    end do
 
    end subroutine set_dyn_col_values
-
-!==============================================================================
-
-subroutine get_horiz_grid_dim_d(hdim1_d,hdim2_d)
-
-   ! Returns declared horizontal dimensions of computational grid.
-   ! For non-lon/lat grids, declare grid to be one-dimensional,
-   ! i.e., (ngcols_d x 1)
-
-   !------------------------------Arguments--------------------------------
-   integer, intent(out)           :: hdim1_d ! first horizontal dimension
-   integer, intent(out), optional :: hdim2_d ! second horizontal dimension
-   !-----------------------------------------------------------------------
-
-   if (fv_nphys > 0) then
-      hdim1_d = fv_nphys*fv_nphys*nelem_d
-   else
-      hdim1_d = ngcols_d
-   end if
-   if (present(hdim2_d)) then
-      hdim2_d = 1
-   end if
-
-end subroutine get_horiz_grid_dim_d
 
 !=========================================================================================
 
