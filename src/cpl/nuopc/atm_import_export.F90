@@ -854,7 +854,6 @@ contains
 
     ! local variables
     type(ESMF_State)  :: exportState
-    type(ESMF_Clock)  :: clock
     integer           :: i ! index variable
     logical           :: exists
     real(r8)          :: scale_ndep
