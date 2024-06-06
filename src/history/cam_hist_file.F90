@@ -649,7 +649,8 @@ CONTAINS
             field_ptr%standard_name(), field_ptr%long_name(),    &
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
             dimensions, this%accumulate_types(idx), field_ptr%num_levels(), &
-            field_shape, beg_dims=beg_dim, end_dims=end_dim)
+            field_shape, beg_dims=beg_dim, end_dims=end_dim,     &
+            mixing_ratio=field_ptr%mixing_ratio())
          call hist_new_buffer(field_info, field_shape, &
             this%rl_kind, 1, this%accumulate_types(idx), 1, errors=errors)
          if (masterproc) then
@@ -1089,7 +1090,11 @@ CONTAINS
                end if
             end if
 
-            ncreal = pio_real
+            if (this%precision() == 'real32') then
+               ncreal = pio_real
+            else
+               ncreal = pio_double
+            end if
             call this%field_list(field_index)%dimensions(mdims)
             mdimsize = size(mdims,1)
             fname_tmp = strip_suffix(this%field_list(field_index)%diag_name())
@@ -1329,7 +1334,7 @@ CONTAINS
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
       is_satfile = (this%hfile_type == hfile_type_sat_track)
-      num_samples = this%num_samples
+
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%ndcurid,(/start/),(/count1/),(/ndcur/))
       call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ndcur" variable')
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
@@ -1413,7 +1418,7 @@ CONTAINS
                split_file_index == instantaneous_file_index .and. .not. restart) then
                cycle
             end if
-            call this%write_field(field_idx, split_file_index, restart)
+            call this%write_field(field_idx, split_file_index, restart, start)
          end do
       end do
       call t_stopf  ('write_field')
@@ -1422,7 +1427,8 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_write_field(this, field_index, split_file_index, restart)
+   subroutine config_write_field(this, field_index, split_file_index, restart, &
+      sample_index)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
       use cam_history_support, only: hist_coords
       use hist_buffer,         only: hist_buffer_t
@@ -1434,6 +1440,7 @@ CONTAINS
       integer,            intent(in) :: field_index
       integer,            intent(in) :: split_file_index
       logical,            intent(in) :: restart
+      integer,            intent(in) :: sample_index
 
       ! Local variables
       integer, allocatable           :: field_shape(:) ! Field file dim sizes
@@ -1444,7 +1451,6 @@ CONTAINS
       integer, allocatable           :: end_dims(:)
       integer                        :: patch_idx, num_patches, ierr
       type(var_desc_t)               :: varid
-      integer                        :: samples_on_file
       integer                        :: field_decomp
       integer                        :: num_dims
       integer                        :: idx
@@ -1480,11 +1486,10 @@ CONTAINS
       field_decomp = this%field_list(field_index)%decomp()
 
       num_patches = 1
-      samples_on_file = mod(this%num_samples, this%max_frames)
 
       do patch_idx = 1, num_patches
          varid = this%field_list(field_index)%varid(patch_idx)
-         call pio_setframe(this%hist_files(split_file_index), varid, int(max(1,samples_on_file),kind=PIO_OFFSET_KIND))
+         call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
          buff_ptr => this%field_list(field_index)%buffers
          call hist_buffer_norm_value(buff_ptr, field_data)
          call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &

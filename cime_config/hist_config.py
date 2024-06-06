@@ -434,7 +434,7 @@ class HistConfigEntry():
     """
 
     __HIST_CONF_ENTRY_RE = re.compile(r"[a-z][a-z_0]*")
-    __HIST_VOL = r"(?:[ ]*;[ ]*((?:h[0-9]*)|i))?[ ]*[:][ ]*(.*)$"
+    __HIST_VOL = r"(?:[ ]*;[ ]*((?:h[0-9]*)|i))?[ ]*[:=][ ]*(.*)$"
 
     def __init__(self, entry_string, entry_check_fn, process_fn):
         """Set the entry string regular expression and value check function

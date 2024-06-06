@@ -15,3 +15,4 @@ hist_add_inst_fields;h3: T, U, V
 hist_output_frequency;h3: 2*nsteps
 hist_precision;h3: REAL64
 hist_max_frames;h3: 24
+hist_write_nstep0;h3 = .true.

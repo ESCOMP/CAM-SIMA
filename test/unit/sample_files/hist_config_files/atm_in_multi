@@ -1,15 +1,15 @@
 
 &hist_config_arrays_nl
- hist_num_inst_fields = 3
- hist_num_avg_fields = 258
- hist_num_min_fields = 0
- hist_num_max_fields = 0
- hist_num_var_fields = 0
+    hist_num_inst_fields = 3
+    hist_num_avg_fields = 258
+    hist_num_min_fields = 0
+    hist_num_max_fields = 0
+    hist_num_var_fields = 0
 /
 
 &hist_file_config_nl
-  hist_volume = 'h0'
-  hist_avg_fields = 'SOLIN      ', 'SOLIN_d1   ', 'SOLIN_d2   ', 'SOLIN_d3   ', 'SOLIN_d4   ', 'SOLIN_d5   ',
+    hist_volume = 'h0'
+    hist_avg_fields = 'SOLIN      ', 'SOLIN_d1   ', 'SOLIN_d2   ', 'SOLIN_d3   ', 'SOLIN_d4   ', 'SOLIN_d5   ',
                     'SOLIN_d6   ', 'SOLIN_d7   ', 'SOLIN_d8   ', 'SOLIN_d9   ', 'SOLIN_d10  ', 'QRS        ',
                     'QRS_d1     ', 'QRS_d2     ', 'QRS_d3     ', 'QRS_d4     ', 'QRS_d5     ', 'QRS_d6     ',
                     'QRS_d7     ', 'QRS_d8     ', 'QRS_d9     ', 'QRS_d10    ', 'FSNT       ', 'FSNT_d1    ',
@@ -52,19 +52,21 @@
                     'FLNSC_d9   ', 'FLNSC_d10  ', 'FLDS       ', 'FLDS_d1    ', 'FLDS_d2    ', 'FLDS_d3    ',
                     'FLDS_d4    ', 'FLDS_d5    ', 'FLDS_d6    ', 'FLDS_d7    ', 'FLDS_d8    ', 'FLDS_d9    ',
                     'FLDS_d10   ', 'AODDUST1   ', 'AODDUST3   ', 'AODDUST    ', 'AODVIS     ', 'CCN3       '
-  hist_max_frames = 1
-  hist_output_frequency = '1*monthly'
-  hist_precision = 'REAL32'
-  hist_file_type = 'history'
-  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_max_frames = 1
+    hist_output_frequency = '1*monthly'
+    hist_precision = 'REAL32'
+    hist_file_type = 'history'
+    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_write_nstep0 = .false.
 /
 
 &hist_file_config_nl
-  hist_volume = 'h3'
-  hist_inst_fields = 'T', 'U', 'V'
-  hist_max_frames = 24
-  hist_output_frequency = '2*nsteps'
-  hist_precision = 'REAL64'
-  hist_file_type = 'history'
-  hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_volume = 'h3'
+    hist_inst_fields = 'T', 'U', 'V'
+    hist_max_frames = 24
+    hist_output_frequency = '2*nsteps'
+    hist_precision = 'REAL64'
+    hist_file_type = 'history'
+    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_write_nstep0 = .true.
 /

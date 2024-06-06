@@ -864,16 +864,33 @@ class Variable(VarBase):
         else:
             if self.diagnostic_name:
                 if 'vertical_layer_dimension' in self.dimensions:
-                   outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
-                      f"'lev', 'avg', '{self.units}')"
+                   vertical_dim_str = "'lev'"
                 elif 'vertical_interface_dimension' in self.dimensions:
-                   outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
-                      f"'ilev', 'avg', '{self.units}')"
+                   vertical_dim_str = "'ilev'"
+                else:
+                   vertical_dim_str = "horiz_only"
+                # endif
+                if self.is_constituent:
+                    outfile.write('', 0)
+                    outfile.write(f"call const_get_index('{self.standard_name}', const_index, abort=.false., warning=.false.)", indent)
+                    outfile.write("if (const_index >= 0) then", indent)
+                    outfile.write("const_props_ptr => cam_model_const_properties()", indent+1)
+                    outfile.write("call const_props_ptr(const_index)%is_dry(const_is_dry, errcode, errmsg)", indent + 1)
+                    outfile.write("if (const_is_dry) then", indent + 1)
+                    outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
+                       f"{vertical_dim_str}, 'avg', '{self.units}', mixing_ratio='dry')"
+                    outfile.write(outstr, indent + 2)
+                    outfile.write("else", indent + 1)
+                    outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
+                       f"{vertical_dim_str}, 'avg', '{self.units}', mixing_ratio='wet')"
+                    outfile.write(outstr, indent + 2)
+                    outfile.write("end if", indent + 1)
+                    outfile.write("end if", indent)
                 else:
                    outstr = f"call history_add_field('{self.diagnostic_name}', '{self.standard_name}', " \
-                      f"horiz_only, 'avg', '{self.units}')"
-                # endif
-                outfile.write(outstr, indent)
+                      f"{vertical_dim_str}, 'avg', '{self.units}')"
+                   outfile.write(outstr, indent)
+                # end if
             # end if
         # end if
 
@@ -1556,8 +1573,16 @@ class File:
         outfile.write(f'subroutine {subname}()', 1)
         outfile.write('use cam_history, only: history_add_field', 2)
         outfile.write('use cam_history_support, only: horiz_only', 2)
+        outfile.write('use cam_ccpp_cap, only: cam_model_const_properties', 2)
+        outfile.write('use cam_constituents, only: const_get_index', 2)
+        outfile.write('use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t', 2)
         outfile.write('', 0)
         outfile.write('!! Local variables', 2)
+        outfile.write('integer :: const_index', 2)
+        outfile.write('integer :: errcode', 2)
+        outfile.write('logical :: const_is_dry', 2)
+        outfile.write('character(len=256) :: errmsg', 2)
+        outfile.write('type(ccpp_constituent_prop_ptr_t), pointer :: const_props_ptr(:)', 2)
         subn_str = f'character(len=*), parameter :: subname = "{subname}"'
         outfile.write(subn_str, 2)
         for var in self.__var_dict.variable_list():
@@ -1576,13 +1601,11 @@ class File:
         outfile.write(f'subroutine {subname}()', 1)
         outfile.write('use cam_history, only: history_out_field', 2)
         outfile.write('use cam_ccpp_cap, only: cam_constituents_array', 2)
-        outfile.write('use cam_ccpp_cap, only: cam_model_const_properties', 2)
         outfile.write('use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t', 2)
         outfile.write('use cam_constituents, only: const_get_index', 2)
         outfile.write('use ccpp_kinds, only: kind_phys', 2)
         outfile.write('', 0)
         outfile.write('!! Local variables', 2)
-        outfile.write('type(ccpp_constituent_prop_ptr_t), pointer :: const_prop_ptr(:)', 2)
         outfile.write('real(kind_phys), pointer :: const_data_ptr(:,:,:)', 2)
         outfile.write('character(len=512) :: standard_name', 2)
         outfile.write('integer :: const_index', 2)

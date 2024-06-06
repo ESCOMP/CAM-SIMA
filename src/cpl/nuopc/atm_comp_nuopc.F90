@@ -73,6 +73,7 @@ module atm_comp_nuopc
    use pio,               only: pio_read_darray, pio_write_darray, pio_def_var, pio_inq_varid
    use pio,               only: pio_noerr, pio_bcast_error, pio_internal_error, pio_seterrorhandling
    use pio,               only: pio_def_var, pio_put_var, PIO_INT, PIO_OFFSET_KIND
+   use cam_history_support, only: fillvalue
    !$use omp_lib, only: omp_set_num_threads
 
    implicit none
@@ -129,9 +130,6 @@ module atm_comp_nuopc
    character(len=*), parameter :: orb_fixed_year       = 'fixed_year'
    character(len=*), parameter :: orb_variable_year    = 'variable_year'
    character(len=*), parameter :: orb_fixed_parameters = 'fixed_parameters'
-
-   !Remove once history output is developed for CAMDEN -JN:
-   real(r8) :: fillvalue = 9.87e36_r8
 
    real(R8), parameter         :: grid_tol = 1.e-2_r8 ! tolerance for calculated lat/lon vs read in
    integer :: local_iulog = 6 !Local iulog for use with NUOPC interfaces
