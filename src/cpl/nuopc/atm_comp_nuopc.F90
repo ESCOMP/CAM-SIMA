@@ -47,7 +47,7 @@ module atm_comp_nuopc
 !   use radiation           , only : nextsw_cday  !uncomment once radiation has been CCPP-ized -JN
    use cam_logfile         , only : cam_set_log_unit, iulog
    use cam_abortutils      , only : check_allocate
-   use spmd_utils          , only : spmd_init, masterproc, iam, mpicom
+   use spmd_utils          , only : spmd_init, masterproc, iam
    use time_manager        , only : get_curr_calday, advance_timestep, get_curr_date, get_nstep, get_step_size
    use atm_import_export   , only : read_surface_fields_namelists, advertise_fields, realize_fields
    use atm_import_export   , only : import_fields, export_fields

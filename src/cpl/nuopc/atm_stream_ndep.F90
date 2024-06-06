@@ -6,17 +6,9 @@ module atm_stream_ndep
   ! interpolation.
   !-----------------------------------------------------------------------
   !
-  use ESMF              , only : ESMF_Clock, ESMF_Mesh
-  use ESMF              , only : ESMF_SUCCESS, ESMF_LOGERR_PASSTHRU, ESMF_END_ABORT
-  use ESMF              , only : ESMF_Finalize, ESMF_LogFoundError
-  use nuopc_shr_methods , only : chkerr
+  use ESMF              , only : ESMF_Clock
   use dshr_strdata_mod  , only : shr_strdata_type
-  use shr_kind_mod      , only : r8 => shr_kind_r8, CL => shr_kind_cl, CS => shr_kind_cs
-  use shr_log_mod       , only : errMsg => shr_log_errMsg
-  use mpi               , only : mpi_character, mpi_integer
-  use spmd_utils        , only : mpicom, masterproc, iam
-  use cam_logfile       , only : iulog
-  use cam_abortutils    , only : endrun
+  use shr_kind_mod      , only : CS => shr_kind_cs
 
   implicit none
   private
@@ -43,9 +35,19 @@ contains
     ! Initialize data stream information.
 
     ! Uses:
+    use ESMF             , only: ESMF_Mesh
+    use ESMF             , only: ESMF_SUCCESS, ESMF_LOGERR_PASSTHRU, ESMF_END_ABORT
+    use ESMF             , only: ESMF_Finalize, ESMF_LogFoundError
     use cam_instance     , only: inst_suffix
     use shr_nl_mod       , only: shr_nl_find_group_name
+    use shr_kind_mod     , only: CL => shr_kind_cl
+    use shr_kind_mod     , only: r8 => shr_kind_r8
+    use shr_log_mod      , only: errMsg => shr_log_errMsg
     use dshr_strdata_mod , only: shr_strdata_init_from_inline
+    use mpi              , only: mpi_character, mpi_integer
+    use spmd_utils       , only: mpicom, masterproc, iam
+    use cam_logfile      , only: iulog
+    use cam_abortutils   , only: endrun
 
     ! input/output variables
     type(ESMF_CLock), intent(in)  :: model_clock
@@ -163,10 +165,12 @@ contains
     ! Check that units are correct on the file and if need any conversion
     !--------------------------------------------------------
 
-     use cam_pio_utils , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
-     use pio           , only : file_desc_t, io_desc_t, var_desc_t, pio_double, pio_def_dim
-     use pio           , only : pio_bcast_error, pio_seterrorhandling, pio_inq_varid, pio_get_att
-     use pio           , only : PIO_NOERR, PIO_NOWRITE
+     use cam_pio_utils  , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
+     use pio            , only : file_desc_t, io_desc_t, var_desc_t, pio_double, pio_def_dim
+     use pio            , only : pio_bcast_error, pio_seterrorhandling, pio_inq_varid, pio_get_att
+     use pio            , only : PIO_NOERR, PIO_NOWRITE
+     use shr_log_mod    , only : errMsg => shr_log_errMsg
+     use cam_abortutils , only : endrun
 
     ! Arguments
     character(len=*), intent(in)  :: stream_fldFileName_ndep  ! ndep filename
@@ -202,14 +206,18 @@ contains
   !================================================================
   subroutine stream_ndep_interp(cam_out, rc)
 
+    use ESMF             , only : ESMF_LOGERR_PASSTHRU, ESMF_END_ABORT
+    use ESMF             , only : ESMF_Finalize, ESMF_LogFoundError
     use dshr_methods_mod , only : dshr_fldbun_getfldptr
     use dshr_strdata_mod , only : shr_strdata_advance
+    use shr_kind_mod     , only : r8 => shr_kind_r8
     use camsrfexch       , only : cam_out_t
     use time_manager     , only : get_curr_date
     use physics_grid     , only : columns_on_task
+    use cam_logfile      , only : iulog
 
     ! input/output variables
-    type(cam_out_t) , intent(inout)  :: cam_out(:)
+    type(cam_out_t) , intent(inout)  :: cam_out
     integer         , intent(out)    :: rc
 
     ! local variables
@@ -244,8 +252,8 @@ contains
 !Un-comment once cam_out data structure has been populated -JN
 #if 0
     do i = 1, columns_on_task
-       cam_out(c)%nhx_nitrogen_flx(i) = dataptr1d_nhx(g)
-       cam_out(c)%noy_nitrogen_flx(i) = dataptr1d_noy(g)
+       cam_out%nhx_nitrogen_flx(i) = dataptr1d_nhx(g)
+       cam_out%noy_nitrogen_flx(i) = dataptr1d_noy(g)
     end do
 #endif
 

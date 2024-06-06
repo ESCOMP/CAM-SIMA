@@ -3,31 +3,10 @@ module atm_import_export
   use NUOPC             , only : NUOPC_CompAttributeGet, NUOPC_Advertise, NUOPC_IsConnected
   use NUOPC_Model       , only : NUOPC_ModelGet
   use ESMF              , only : ESMF_GridComp, ESMF_State, ESMF_Mesh, ESMF_StateGet, ESMF_Field
-  use ESMF              , only : ESMF_Clock
-  use ESMF              , only : ESMF_KIND_R8, ESMF_SUCCESS, ESMF_MAXSTR, ESMF_LOGMSG_INFO
-  use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LogFoundError
-  use ESMF              , only : ESMF_STATEITEM_NOTFOUND, ESMF_StateItem_Flag
+  use ESMF              , only : ESMF_SUCCESS, ESMF_LOGMSG_INFO
+  use ESMF              , only : ESMF_LogWrite
   use ESMF              , only : operator(/=), operator(==)
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs, cx=>shr_kind_cx
-  use shr_sys_mod       , only : shr_sys_abort
-  use shr_mpi_mod       , only : shr_mpi_min, shr_mpi_max
-  use nuopc_shr_methods , only : chkerr
-  use cam_logfile       , only : iulog
-  use spmd_utils        , only : masterproc, mpicom
-  use physics_grid      , only : columns_on_task
-  use cam_abortutils    , only : check_allocate
-  use srf_field_check   , only : set_active_Sl_ram1
-  use srf_field_check   , only : set_active_Sl_fv
-  use srf_field_check   , only : set_active_Sl_soilw
-  use srf_field_check   , only : set_active_Fall_flxdst1
-  use srf_field_check   , only : set_active_Fall_flxvoc
-  use srf_field_check   , only : set_active_Fall_flxfire
-  use srf_field_check   , only : set_active_Fall_fco2_lnd
-  use srf_field_check   , only : set_active_Faoo_fco2_ocn
-  use srf_field_check   , only : set_active_Faxa_nhx
-  use srf_field_check   , only : set_active_Faxa_noy
-  use srf_field_check   , only : active_Faxa_nhx, active_Faxa_noy
-  use atm_stream_ndep   , only : stream_ndep_init, stream_ndep_interp, stream_ndep_is_initialized
 
   implicit none
   private ! except
@@ -100,6 +79,22 @@ contains
   ! advertise fields
   !-----------------------------------------------------------
   subroutine advertise_fields(gcomp, flds_scalar_name, rc)
+
+    ! use statements
+    use ESMF              , only : ESMF_MAXSTR
+    use nuopc_shr_methods , only : chkerr
+    use srf_field_check   , only : set_active_Sl_ram1
+    use srf_field_check   , only : set_active_Sl_fv
+    use srf_field_check   , only : set_active_Sl_soilw
+    use srf_field_check   , only : set_active_Fall_flxdst1
+    use srf_field_check   , only : set_active_Fall_flxvoc
+    use srf_field_check   , only : set_active_Fall_flxfire
+    use srf_field_check   , only : set_active_Fall_fco2_lnd
+    use srf_field_check   , only : set_active_Faoo_fco2_ocn
+    use srf_field_check   , only : set_active_Faxa_nhx
+    use srf_field_check   , only : set_active_Faxa_noy
+    use spmd_utils        , only : masterproc
+    use cam_logfile       , only : iulog
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -310,9 +305,14 @@ contains
 
   subroutine realize_fields(gcomp, Emesh, flds_scalar_name, flds_scalar_num, single_column, rc)
 
-    use ESMF         , only : ESMF_MeshGet, ESMF_StateGet
-    use ESMF         , only : ESMF_FieldRegridGetArea,ESMF_FieldGet
-    use physics_grid , only : get_area_p
+    use ESMF              , only : ESMF_MeshGet, ESMF_StateGet
+    use ESMF              , only : ESMF_FieldRegridGetArea,ESMF_FieldGet
+    use nuopc_shr_methods , only : chkerr
+    use shr_mpi_mod       , only : shr_mpi_min, shr_mpi_max
+    use spmd_utils        , only : masterproc, mpicom
+    use physics_grid      , only : get_area_p
+    use cam_abortutils    , only : check_allocate
+    use cam_logfile       , only : iulog
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
@@ -460,12 +460,15 @@ contains
 
     use camsrfexch        , only : cam_in_t
     use shr_const_mod     , only : shr_const_stebol
+    use shr_sys_mod       , only : shr_sys_abort
+    use nuopc_shr_methods , only : chkerr
 !CAM-SIMA NOTE: Need to uncomment these once carbon cycling is enabled in SIMA.
 !    use co2_cycle         , only : c_i, co2_readFlux_ocn, co2_readFlux_fuel
 !    use co2_cycle         , only : co2_transport, co2_time_interp_ocn, co2_time_interp_fuel
 !    use co2_cycle         , only : data_flux_ocn, data_flux_fuel
     use physconst         , only : mwco2
     use time_manager      , only : is_first_step, get_nstep
+    use physics_grid      , only : columns_on_task
 
     ! input/output variabes
     type(ESMF_GridComp)               :: gcomp
@@ -829,9 +832,14 @@ contains
     ! Copy from CAM-SIMA array data structure into state fldptr
     ! -----------------------------------------------------
 
-    use camsrfexch   , only : cam_out_t
-    use time_manager , only : is_first_step, get_nstep
-    use spmd_utils   , only : masterproc
+    use ESMF              , only : ESMF_Clock
+    use nuopc_shr_methods , only : chkerr
+    use srf_field_check   , only : active_Faxa_nhx, active_Faxa_noy
+    use camsrfexch        , only : cam_out_t
+    use time_manager      , only : is_first_step, get_nstep
+    use physics_grid      , only : columns_on_task
+    use atm_stream_ndep   , only : stream_ndep_init, stream_ndep_interp
+    use atm_stream_ndep   , only : stream_ndep_is_initialized
 
     !-------------------------------
     ! Pack the export state
@@ -1041,6 +1049,9 @@ contains
 
   subroutine fldlist_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
 
+    ! use statements
+    use ESMF , only : ESMF_LOGMSG_ERROR
+
     ! input/otuput variables
     integer            , intent(inout) :: num
     type(fldlist_type) , intent(inout) :: fldlist(:)
@@ -1073,11 +1084,14 @@ contains
 
   subroutine fldlist_realize(state, fldList, numflds, flds_scalar_name, flds_scalar_num, mesh, tag, rc)
 
-    use NUOPC , only : NUOPC_IsConnected, NUOPC_Realize
-    use ESMF  , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
-    use ESMF  , only : ESMF_MAXSTR, ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
-    use ESMF  , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGERR_PASSTHRU
+    use NUOPC             , only : NUOPC_IsConnected, NUOPC_Realize
+    use ESMF              , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
+    use ESMF              , only : ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
+    use ESMF              , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF              , only : ESMF_LogWrite, ESMF_LOGERR_PASSTHRU
+    use nuopc_shr_methods , only : chkerr
+    use spmd_utils        , only : masterproc
+    use cam_logfile       , only : iulog
 
     ! input/output variables
     type(ESMF_State)    , intent(inout) :: state
@@ -1192,9 +1206,11 @@ contains
     ! Get pointer to a state field
     ! ----------------------------------------------
 
-    use ESMF , only : ESMF_State, ESMF_Field, ESMF_Mesh, ESMF_FieldStatus_Flag
-    use ESMF , only : ESMF_StateGet, ESMF_FieldGet, ESMF_MeshGet
-    use ESMF , only : ESMF_FIELDSTATUS_COMPLETE, ESMF_FAILURE
+    use ESMF              , only : ESMF_State, ESMF_Field, ESMF_Mesh, ESMF_FieldStatus_Flag
+    use ESMF              , only : ESMF_StateGet, ESMF_FieldGet, ESMF_MeshGet
+    use ESMF              , only : ESMF_FIELDSTATUS_COMPLETE, ESMF_FAILURE
+    use ESMF              , only : ESMF_STATEITEM_NOTFOUND, ESMF_StateItem_Flag
+    use nuopc_shr_methods , only : chkerr
 
     ! input/output variables
     type(ESMF_State)  , intent(in)    :: State
