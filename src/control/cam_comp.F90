@@ -26,8 +26,8 @@ module cam_comp
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend, dtime_phys
-   use physics_types_history,     only: physics_types_history_init
-   use physics_types_history,     only: physics_types_history_out
+   use physics_history,           only: physics_history_init
+   use physics_history,           only: physics_history_out
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -233,7 +233,7 @@ CONTAINS
       ! if (single_column) then
       !    call scm_intht()
       ! end if
-      call physics_types_history_init()
+      call physics_history_init()
       call history_init_files(model_doi_url, caseid, ctitle)
 
    end subroutine cam_init
@@ -417,7 +417,7 @@ CONTAINS
 !!XXgoldyXX: v need to import this
 !      call t_barrierf('sync_wshist', mpicom)
 !      call t_startf('wshist')
-      call physics_types_history_out()
+      call physics_history_out()
       call history_write_files()
 !      call t_stopf('wshist')
 !!XXgoldyXX: ^ need to import this

@@ -75,6 +75,7 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>s state_s</ic_file_input_names>
+      <diagnostic name="SE"></diagnostic>
     </variable>
     <variable local_name="omega" standard_name="lagrangian_tendency_of_air_pressure"
               units="Pa s-1" type="real" kind="kind_phys"
@@ -82,12 +83,14 @@
       <long_name>Vertical pressure velocity</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>omega state_omega</ic_file_input_names>
+      <diagnostic name="OMEGA"></diagnostic>
     </variable>
     <variable local_name="pmid" standard_name="air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pmid state_pmid</ic_file_input_names>
+      <diagnostic name="PMID"></diagnostic>
     </variable>
     <variable local_name="pmiddry" standard_name="air_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
@@ -108,6 +111,7 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pdeldry state_pdeldry</ic_file_input_names>
+      <diagnostic name="PDELDRY"></diagnostic>
     </variable>
     <variable local_name="rpdel"
               standard_name="reciprocal_of_air_pressure_thickness"
@@ -166,6 +170,7 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>zm state_zm</ic_file_input_names>
+      <diagnostic name="ZM"></diagnostic>
     </variable>
     <variable local_name="pint" standard_name="air_pressure_at_interface"
               units="Pa"
@@ -206,6 +211,7 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>zi state_zi</ic_file_input_names>
+      <diagnostic name="HEIGHT"></diagnostic>
     </variable>
     <variable local_name="te_ini"
               standard_name="vertically_integrated_energies_of_initial_state_in_cam"
@@ -247,6 +253,7 @@
       <long_name>Change in temperature from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dTdt tend_dtdt</ic_file_input_names>
+      <diagnostic name="TTEND"></diagnostic>
     </variable>
     <variable local_name="dudt_total"
               standard_name="tendency_of_eastward_wind_due_to_model_physics"
@@ -255,6 +262,7 @@
       <long_name>Change in eastward wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dudt tend_dudt</ic_file_input_names>
+      <diagnostic name="UTEND"></diagnostic>
     </variable>
     <variable local_name="dvdt_total"
               standard_name="tendency_of_northward_wind_due_to_model_physics"
@@ -263,6 +271,7 @@
       <long_name>Change in northward wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
+      <diagnostic name="VTEND"></diagnostic>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="do_lagrangian_vertical_coordinate"

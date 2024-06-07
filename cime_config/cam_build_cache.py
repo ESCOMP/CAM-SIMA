@@ -213,6 +213,7 @@ class BuildCacheCAM:
         # Set empty values sure to trigger processing
         self.__gen_reg_file = None
         self.__gen_init_file = None
+        self.__gen_hist_file = None
         self.__registry_files = {}
         self.__dycore = None
         self.__sdfs = {}
@@ -226,6 +227,7 @@ class BuildCacheCAM:
         self.__kind_types = {}
         self.__reg_gen_files = []
         self.__ic_names = {}
+        self.__diag_names = {}
         if os.path.exists(build_cache):
             # Initialize build cache state
             _, cache = read_xml_file(build_cache)
@@ -238,6 +240,9 @@ class BuildCacheCAM:
                         elif item.tag == 'generate_init_file':
                             new_entry = new_entry_from_xml(item)
                             self.__gen_init_file = new_entry
+                        elif item.tag == 'generate_hist_file':
+                            new_entry = new_entry_from_xml(item)
+                            self.__gen_hist_file = new_entry
                         elif item.tag == 'registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__registry_files[new_entry.key] = new_entry
@@ -252,6 +257,9 @@ class BuildCacheCAM:
                             # end if
                             itext = clean_xml_text(item)
                             self.__ic_names[stdname].append(itext)
+                        elif item.tag == 'diagnostic_name':
+                            stdname = item.get('standard_name')
+                            self.__diag_names[stdname] = clean_xml_text(item)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -313,7 +321,7 @@ class BuildCacheCAM:
         # end if
 
     def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, reg_file_list, ic_names):
+                        dycore, reg_file_list, ic_names, diag_names):
         """Replace the registry cache data with input data
         """
         self.__dycore = dycore
@@ -326,8 +334,10 @@ class BuildCacheCAM:
         # reg_file_list contains the files generated from the registry
         self.__reg_gen_files = reg_file_list
         # ic_names are the initial condition variable names from the registry,
-        # and should already be of type dict:
+        # diag_names are the diagnostic variable names from the registry,
+        # both should already be of type dict:
         self.__ic_names = ic_names
+        self.__diag_names = diag_names
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
                     xml_files, namelist_meta_files, namelist_groups,
@@ -367,10 +377,18 @@ class BuildCacheCAM:
     def update_init_gen(self, gen_init_file):
         """
         Replace the init_files writer
-        (generate_registry_data.py) cache
+        (write_init_files.py) cache
         data with input data
         """
         self.__gen_init_file = FileStatus(gen_init_file, 'generate_init_file')
+
+    def update_hist_gen(self, gen_hist_file):
+        """
+        Replace the hist_files writer
+        (write_hist_file.py) cache
+        data with input data
+        """
+        self.__gen_hist_file = FileStatus(gen_hist_file, 'generate_hist_file')
 
     def write(self):
         """Write out the current cache state"""
@@ -380,6 +398,9 @@ class BuildCacheCAM:
         new_xml_entry(registry, 'generate_init_file',
                       self.__gen_init_file.file_path,
                       self.__gen_init_file.file_hash)
+        new_xml_entry(registry, 'generate_hist_file',
+                      self.__gen_hist_file.file_path,
+                      self.__gen_hist_file.file_hash)
         new_xml_entry(registry, 'generate_registry_file',
                       self.__gen_reg_file.file_path,
                       self.__gen_reg_file.file_hash)
@@ -399,6 +420,11 @@ class BuildCacheCAM:
                 ic_entry.set('standard_name', stdname)
                 ic_entry.text = ic_name
             # end for
+        # end for
+        for stdname, diag_name in self.__diag_names.items():
+            diag_entry = ET.SubElement(registry, 'diagnostic_name')
+            diag_entry.set('standard_name', stdname)
+            diag_entry.text = diag_name
         # end for
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')
@@ -585,6 +611,22 @@ class BuildCacheCAM:
         #Return mismatch logical:
         return mismatch
 
+    def hist_write_mismatch(self, gen_hist_file):
+        """
+        Determine if the hist_file writer (write_hist_file.py)
+            differs from the data stored in our cache. Return True
+            if the data differs.
+        """
+
+        #Initialize variable:
+        mismatch = False
+
+        #Check file hash to see if mis-match exists:
+        mismatch = self.__gen_hist_file.hash_mismatch(gen_hist_file)
+
+        #Return mismatch logical:
+        return mismatch
+
     def scheme_nl_metadata(self):
         """Return the stored list of scheme namelist metadata files"""
         return self.__scheme_nl_metadata
@@ -602,6 +644,10 @@ class BuildCacheCAM:
     def ic_names(self):
         """Return a copy of the registry initial conditions dictionary"""
         return dict(self.__ic_names)
+
+    def diag_names(self):
+        """Return a copy of the registry diagnostic names dictionary"""
+        return dict(self.__diag_names)
 
 #############
 # End of file
