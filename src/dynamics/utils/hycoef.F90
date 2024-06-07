@@ -423,7 +423,7 @@ subroutine hycoef_read(File)
 
    ierr = PIO_Inq_DimID(File, 'ilev', lev_dimid)
    if (ierr /= PIO_NOERR) then
-      ierr = PIO_Inq_DimID(File, 'reference_pressure_in_atmosphere_layer_at_interface', lev_dimid)
+      ierr = PIO_Inq_DimID(File, 'reference_pressure_in_atmosphere_layer_at_interfaces', lev_dimid)
       if (ierr /= PIO_NOERR) then
          call endrun(routine//': reading ilev')
       end if
@@ -436,7 +436,7 @@ subroutine hycoef_read(File)
 
    ierr = pio_inq_varid(File, 'hyai', hyai_desc)
    if (ierr /= PIO_NOERR) then
-      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_a_coefficient_at_interface', hyai_desc)
+      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_a_coefficient_at_interfaces', hyai_desc)
       if (ierr /= PIO_NOERR) then
          call endrun(routine//': reading hyai')
       end if
@@ -452,7 +452,7 @@ subroutine hycoef_read(File)
 
    ierr = pio_inq_varid(File, 'hybi', hybi_desc)
    if (ierr /= PIO_NOERR) then
-      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_b_coefficient_at_interface', hybi_desc)
+      ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_b_coefficient_at_interfaces', hybi_desc)
       if (ierr /= PIO_NOERR) then
          call endrun(routine//': reading hybi')
       end if
