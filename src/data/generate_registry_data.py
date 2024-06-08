@@ -1769,9 +1769,9 @@ def _create_diag_name_dict(registry):
                 elif obj.tag == 'array':
                     for subobj in obj:
                         if subobj.tag == 'element':
-                            for attrib in obj:
+                            for attrib in subobj:
                                 if attrib.tag == 'diagnostic':
-                                    stdname = obj.get('standard_name')
+                                    stdname = subobj.get('standard_name')
                                     diag_name = attrib.attrib['name']
                                     # peverwhee - duplicate check?
                                     diag_name_dict[stdname] = diag_name

@@ -15,6 +15,7 @@
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>lat</ic_file_input_names>
+      <diagnostic name="lat"></diagnostic>
     </variable>
     <variable local_name="longitude" standard_name="longitude"
               units="radians" type="real" kind="kind_phys"
@@ -29,6 +30,7 @@
       <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>rair/cpair</initial_value>
+      <diagnostic name="cappav"></diagnostic>
     </variable>
     <ddt type="physics_state">
       <data dycore="FV,EUL,SE">horizontal_dimension</data>

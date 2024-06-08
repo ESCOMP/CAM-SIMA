@@ -423,11 +423,12 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
         #Set non-file update_registry inputs:
         ic_names = {"Only_had_a": ["heart", "brain"]}
+        diag_names = {"small_dog_wrt_dorothy": 'TOTO'}
         dycore = "banana"
 
         #Update registry fields:
         test_cache.update_registry(tmp_test_reg, [tmp_test_reg],
-                                   dycore, [tmp_test_reg], ic_names)
+                                   dycore, [tmp_test_reg], ic_names, diag_names)
 
         #Write updated fields to build cache file:
         test_cache.write()
@@ -449,7 +450,6 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         function returns False when there
         is no change in the registry.
         """
-
         #Set path to already-existing cache file used by test_write_init_files:
         cache_file = os.path.join(_WRITE_INIT_DIR, "simple_build_cache_template.xml")
 

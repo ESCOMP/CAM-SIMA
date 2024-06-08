@@ -17,6 +17,7 @@
               units="count" type="integer" access="protected">
       <long_name>Number of horizontal columns</long_name>
       <initial_value>0</initial_value>
+      <diagnostic name="ncol"></diagnostic>
     </variable>
     <variable local_name="latitude" standard_name="latitude"
               units="radians" type="real" kind="kind_phys"
@@ -29,6 +30,7 @@
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>lon</ic_file_input_names>
+      <diagnostic name="lon"></diagnostic>
     </variable>
     <array local_name="q" standard_name="constituent_mixing_ratio"
               units="kg kg-1"
@@ -45,6 +47,7 @@
                index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
                index_pos="number_of_constituents">
                <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>
+               <diagnostic name="CLDLIQ"></diagnostic>
       </element>
     </array>
     <ddt type="physics_state">

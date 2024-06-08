@@ -47,7 +47,7 @@ _MAX_LINE_LEN = 200
 ##############
 
 def write_hist_file(cap_database, diag_names, outdir, file_find_func,
-                     source_paths, indent, logger):
+                     source_paths, indent, logger, phys_hist_filename=None):
 
     """
     Create the physics history Fortran file using a database
@@ -84,8 +84,13 @@ def write_hist_file(cap_database, diag_names, outdir, file_find_func,
     # -----------------------------------------
 
     # Open new file:
-    ofilename = os.path.join(outdir, "physics_history.F90")
-    physics_history_fname_str = "physics_history"
+    if phys_hist_filename:
+        ofilename = os.path.join(outdir, phys_hist_filename)
+        # Get file name, ignoring file type:
+        physics_history_fname_str = os.path.splitext(phys_hist_filename)[0]
+    else:
+        ofilename = os.path.join(outdir, "physics_history.F90")
+        physics_history_fname_str = "physics_history"
     # end if
 
     # Log file creation:
@@ -229,7 +234,6 @@ def gather_ccpp_req_vars(cap_database):
             # end if (do not include output variables)
         # end for (loop over call list)
     # end for (loop over phases)
-
     if missing_vars:
         mvlist = ', '.join(sorted(missing_vars))
         retmsg = f"Error: Missing required host variables: {mvlist}"

@@ -601,7 +601,7 @@ CONTAINS
       use cam_history_support, only: max_chars
       use cam_logfile,         only: iulog
       use spmd_utils,          only: masterproc
-      use cam_abortutils,      only: check_allocate
+      use cam_abortutils,      only: check_allocate, endrun
 
       ! Dummy arguments
       class(hist_file_t),        intent(inout) :: this
@@ -622,6 +622,7 @@ CONTAINS
       integer, allocatable :: field_shape(:)
       integer, allocatable :: beg_dim(:)
       integer, allocatable :: end_dim(:)
+      character(len=128)   :: errmsg
       type(hist_log_messages) :: errors
 
 
@@ -630,6 +631,7 @@ CONTAINS
            file=__FILE__, line=__LINE__-1)
       possible_grids = -1
       num_grids = 0
+      errmsg = ''
       do idx = 1, size(this%field_names)
          ! Find the relevant field in the possible field list
          field_ptr_entry => possible_field_list%table_value(this%field_names(idx))
@@ -637,8 +639,8 @@ CONTAINS
          type is (hist_field_info_t)
             field_ptr => field_ptr_entry
          class default
-            ! some error message here
-            return
+            write(errmsg,'(3a)') 'ERROR Field : ',trim(this%field_names(idx)),' not available'
+            call endrun(subname//errmsg, file=__FILE__, line=__LINE__)
          end select
          ! peverwhee - TODO: check for duplicate field ?
          call field_ptr%dimensions(dimensions)

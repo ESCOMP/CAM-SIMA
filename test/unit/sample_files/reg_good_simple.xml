@@ -19,12 +19,14 @@
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>lon</ic_file_input_names>
+      <diagnostic name="lon"></diagnostic>
     </variable>
-    <!-- Constituene variable, should not show up in generated registry files -->
+    <!-- Constituent variable, should not show up in generated registry files -->
     <variable local_name="cool_cat_const" standard_name="super_cool_cat_const"
               units="kg kg-1" type="real" constituent="true">
       <long_name>The coolest constituent imaginable</long_name>
       <ic_file_input_names>COOL_CAT cnst_COOL_CAT</ic_file_input_names>
+      <diagnostic name="COOL_CAT"></diagnostic>
     </variable>
   </file>
 </registry>

@@ -158,6 +158,12 @@ class FakeBuildCache:
 
         return {}
 
+    def diag_names(self):
+
+        """Fake version of 'diag_names' property."""
+
+        return {}
+
     # pylint: enable=no-self-use
     # pylint: enable=unused-argument
 
@@ -515,7 +521,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         test_data_search = [os.path.join(_CAM_ROOT_DIR, "src", "data")]
 
         #Set expected output tuple:
-        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {})
+        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, {})
 
         #Run registry generation function:
         gen_results = generate_registry(test_data_search, self.test_cache, _CAM_ROOT_DIR,
