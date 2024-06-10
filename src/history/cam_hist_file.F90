@@ -118,6 +118,7 @@ module cam_hist_file
       procedure :: write_time_dependent_variables => config_write_time_dependent_variables
       procedure :: write_field => config_write_field
       procedure :: close_files => config_close_files
+      procedure :: clear_buffers => config_clear_buffers
    end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
@@ -597,7 +598,7 @@ CONTAINS
       use hist_api,            only: hist_new_field, hist_new_buffer
       use hist_hashable,       only: hist_hashable_t
       use cam_grid_support,    only: cam_grid_num_grids
-      use hist_msg_handler,    only: hist_have_error, hist_log_messages
+      use hist_msg_handler,    only: hist_log_messages
       use cam_history_support, only: max_chars
       use cam_logfile,         only: iulog
       use spmd_utils,          only: masterproc
@@ -625,7 +626,6 @@ CONTAINS
       character(len=128)   :: errmsg
       type(hist_log_messages) :: errors
 
-
       allocate(possible_grids(cam_grid_num_grids() + 1), stat=ierr)
       call check_allocate(ierr, subname, 'possible_grids',             &
            file=__FILE__, line=__LINE__-1)
@@ -642,7 +642,6 @@ CONTAINS
             write(errmsg,'(3a)') 'ERROR Field : ',trim(this%field_names(idx)),' not available'
             call endrun(subname//errmsg, file=__FILE__, line=__LINE__)
          end select
-         ! peverwhee - TODO: check for duplicate field ?
          call field_ptr%dimensions(dimensions)
          call field_ptr%shape(field_shape)
          call field_ptr%beg_dims(beg_dim)
@@ -658,11 +657,11 @@ CONTAINS
          if (masterproc) then
             call errors%output(iulog)
          end if
-         call hist_new_buffer(field_info, field_shape, &
-            this%rl_kind, 1, this%accumulate_types(idx), 1)
+         ! peverwhee - TODO: create additional buffer(s) for other accum types
+!         call hist_new_buffer(field_info, field_shape, &
+!            this%rl_kind, 1, this%accumulate_types(idx), 1)
          ! Add to field list array and hash table
          this%field_list(idx) = field_info
-!         call this%add_to_field_list(field_info, this%accumulate_types(idx))
          call this%field_list_hash_table%add_hash_key(field_info)
          ! Add grid to possible grids if it's not already there
          do grid_idx = 1, size(possible_grids, 1)
@@ -690,6 +689,9 @@ CONTAINS
       do grid_idx = 1, num_grids
          this%grids(grid_idx) = possible_grids(grid_idx)
       end do
+      ! We don't need the user-set fields arrays anymore
+      deallocate(this%accumulate_types)
+      deallocate(this%field_names)
 
    end subroutine config_set_up_fields
 
@@ -707,18 +709,16 @@ CONTAINS
       class(hist_field_info_t), pointer :: field_ptr
       class(hist_hashable_t),   pointer :: field_ptr_entry
       integer                           :: field_idx
-      character(len=3)                  :: accum_flag
       logical                           :: found_field
       character(len=*), parameter       :: subname = 'hist:find_in_field_list: '
 
       nullify(field_info) 
       errmsg = ''
       found_field = .false.
-      ! Loop over field names
-      do field_idx = 1, size(this%field_names, 1)
-         if (this%field_names(field_idx) == trim(diagnostic_name)) then
+      ! Loop over fields
+      do field_idx = 1, size(this%field_list, 1)
+         if (trim(this%field_list(field_idx)%diag_name()) == trim(diagnostic_name)) then
             ! Grab the associated accumulate flag
-            accum_flag = this%accumulate_types(field_idx)
             found_field = .true.
          end if
       end do
@@ -1336,7 +1336,6 @@ CONTAINS
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
       is_satfile = (this%hfile_type == hfile_type_sat_track)
-
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%ndcurid,(/start/),(/count1/),(/ndcur/))
       call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ndcur" variable')
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
@@ -1420,7 +1419,7 @@ CONTAINS
                split_file_index == instantaneous_file_index .and. .not. restart) then
                cycle
             end if
-            call this%write_field(field_idx, split_file_index, restart, start)
+            call this%write_field(this%field_list(field_idx), split_file_index, restart, start)
          end do
       end do
       call t_stopf  ('write_field')
@@ -1429,24 +1428,27 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_write_field(this, field_index, split_file_index, restart, &
+   subroutine config_write_field(this, field, split_file_index, restart, &
       sample_index)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
       use cam_history_support, only: hist_coords
       use hist_buffer,         only: hist_buffer_t
       use hist_api,            only: hist_buffer_norm_value
       use cam_grid_support,    only: cam_grid_write_dist_array
-      use cam_abortutils,      only: check_allocate
+      use cam_abortutils,      only: check_allocate, endrun
+      use hist_field,          only: hist_field_info_t
       ! Dummy arguments
-      class(hist_file_t), intent(inout) :: this
-      integer,            intent(in) :: field_index
-      integer,            intent(in) :: split_file_index
-      logical,            intent(in) :: restart
-      integer,            intent(in) :: sample_index
+      class(hist_file_t),      intent(inout) :: this
+      type(hist_field_info_t), intent(inout) :: field
+!      integer,                 intent(in)    :: field_index
+      integer,                 intent(in)    :: split_file_index
+      logical,                 intent(in)    :: restart
+      integer,                 intent(in)    :: sample_index
 
       ! Local variables
       integer, allocatable           :: field_shape(:) ! Field file dim sizes
       integer                        :: frank          ! Field file rank
+      integer                        :: field_shape_temp
       integer, allocatable           :: dimind(:)
       integer, allocatable           :: dim_sizes(:)
       integer, allocatable           :: beg_dims(:)
@@ -1456,6 +1458,7 @@ CONTAINS
       integer                        :: field_decomp
       integer                        :: num_dims
       integer                        :: idx
+      integer                        :: dim_size_temp
       logical                        :: index_map(3)
       real(r8), allocatable          :: field_data(:,:)
       class(hist_buffer_t), pointer  :: buff_ptr
@@ -1463,39 +1466,42 @@ CONTAINS
 
       !!! Get the field's shape and decomposition
       ! Shape on disk
-      call this%field_list(field_index)%shape(field_shape)
+      call field%shape(field_shape)
       frank = size(field_shape)
-      allocate(field_data(field_shape(1), field_shape(2)), stat=ierr)
-      call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
+      if (frank == 1) then
+         allocate(field_data(field_shape(1), 1), stat=ierr)
+         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
+      else
+         allocate(field_data(field_shape(1), field_shape(2)), stat=ierr)
+         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
+      end if
       ! Shape of array
-      call this%field_list(field_index)%dimensions(dimind)
+      call field%dimensions(dimind)
 
-      call this%field_list(field_index)%beg_dims(beg_dims)
-      call this%field_list(field_index)%end_dims(end_dims)
+      call field%beg_dims(beg_dims)
+      call field%end_dims(end_dims)
       allocate(dim_sizes(size(beg_dims)), stat=ierr)
       call check_allocate(ierr, subname, 'dim_sizes', file=__FILE__, line=__LINE__-1)
       do idx = 1, size(beg_dims)
          dim_sizes(idx) = end_dims(idx) - beg_dims(idx) + 1
       end do
-      num_dims = 0
-      index_map = .false.
-      do idx = 1, size(beg_dims)
-         if ((end_dims(idx) - beg_dims(idx)) > 1) then
-            num_dims = num_dims + 1
-            index_map(idx) = .true.
-         end if
-      end do
-      field_decomp = this%field_list(field_index)%decomp()
+      field_decomp = field%decomp()
 
       num_patches = 1
 
       do patch_idx = 1, num_patches
-         varid = this%field_list(field_index)%varid(patch_idx)
+         varid = field%varid(patch_idx)
          call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
-         buff_ptr => this%field_list(field_index)%buffers
-         call hist_buffer_norm_value(buff_ptr, field_data)
-         call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
-              field_shape(1:frank), field_data, varid)
+         buff_ptr => field%buffers
+         if (frank == 1) then
+            call hist_buffer_norm_value(buff_ptr, field_data(:,1))
+            call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+                 field_shape, field_data(:,1), varid)
+         else
+            call hist_buffer_norm_value(buff_ptr, field_data)
+            call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+                 field_shape, field_data, varid)
+         end if
       end do
 
    end subroutine config_write_field
@@ -1537,6 +1543,28 @@ CONTAINS
       end if
 
    end subroutine config_close_files
+
+   ! ========================================================================
+
+   subroutine config_clear_buffers(this)
+      use hist_msg_handler,    only: hist_log_messages
+      use spmd_utils,          only: masterproc
+      use cam_logfile,         only: iulog
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      ! Local variables
+      integer :: field_idx
+      type(hist_log_messages) :: errors
+
+
+      do field_idx = 1, size(this%field_list)
+         call this%field_list(field_idx)%clear_buffers(logger=errors)
+         if (masterproc) then
+            call errors%output(iulog)
+         end if
+      end do
+
+   end subroutine config_clear_buffers
 
    ! ========================================================================
 
@@ -1673,24 +1701,32 @@ CONTAINS
       end if
       num_fields = count_array(hist_avg_fields)
       if (num_fields > 0) then
+         call endrun(subname//"ERROR, average fields not yet implemented",     &
+               file=__FILE__, line=__LINE__)
          has_acc = .true.
          call MPI_Bcast(hist_avg_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       num_fields = count_array(hist_min_fields)
       if (num_fields > 0) then
+         call endrun(subname//"ERROR, minimum fields not yet implemented",     &
+               file=__FILE__, line=__LINE__)
          has_acc = .true.
          call MPI_Bcast(hist_min_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       num_fields = count_array(hist_max_fields)
       if (num_fields > 0) then
+         call endrun(subname//"ERROR, maximum fields not yet implemented",     &
+               file=__FILE__, line=__LINE__)
          has_acc = .true.
          call MPI_Bcast(hist_max_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       num_fields = count_array(hist_var_fields)
       if (num_fields > 0) then
+         call endrun(subname//"ERROR, standard deviation fields not yet implemented",     &
+               file=__FILE__, line=__LINE__)
          has_acc = .true.
          call MPI_Bcast(hist_var_fields(:), num_fields, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
@@ -1926,7 +1962,7 @@ CONTAINS
       end if
       allocate(config_arr(num_configs), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'config_arr',                        &
-           file=__FILE__, line=__LINE__-2)
+           file=__FILE__, line=__LINE__-1)
       ! This block is needed for testing
       if (ierr /= 0) then
          return

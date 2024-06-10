@@ -66,8 +66,8 @@ CONTAINS
       integer :: const_index
       character(len=*), parameter :: subname = "physics_history_out"
 
-      call history_out_field('THETA', phys_state%theta, size(phys_state%theta, 1))
-      call history_out_field('SLP', slp, size(slp, 1))
+      call history_out_field('THETA', phys_state%theta)
+      call history_out_field('SLP', slp)
 
    end subroutine physics_history_out
 

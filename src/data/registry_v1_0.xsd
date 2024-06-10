@@ -98,6 +98,12 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <xs:simpleType name="avgflag_type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z][A-Za-z_]{0,3}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- attributes -->
 
   <xs:attribute name="access"                  type="access_type"/>
@@ -149,6 +155,7 @@
     <xs:simpleContent>
       <xs:extension base="xs:string">
         <xs:attribute name="name" type="netcdf_name_type" />
+        <xs:attribute name="flag" type="netcdf_name_type" />
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

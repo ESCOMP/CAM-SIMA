@@ -259,7 +259,8 @@ class BuildCacheCAM:
                             self.__ic_names[stdname].append(itext)
                         elif item.tag == 'diagnostic_name':
                             stdname = item.get('standard_name')
-                            self.__diag_names[stdname] = clean_xml_text(item)
+                            flag = item.get('flag')
+                            self.__diag_names[stdname] = (clean_xml_text(item), flag)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -421,10 +422,11 @@ class BuildCacheCAM:
                 ic_entry.text = ic_name
             # end for
         # end for
-        for stdname, diag_name in self.__diag_names.items():
+        for stdname, diag_info in self.__diag_names.items():
             diag_entry = ET.SubElement(registry, 'diagnostic_name')
             diag_entry.set('standard_name', stdname)
-            diag_entry.text = diag_name
+            diag_entry.set('flag', diag_info[1])
+            diag_entry.text = diag_info[0]
         # end for
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')

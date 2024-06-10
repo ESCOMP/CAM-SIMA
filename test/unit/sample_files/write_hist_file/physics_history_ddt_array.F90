@@ -45,8 +45,8 @@ CONTAINS
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props_ptr(:)
       character(len=*), parameter :: subname = "physics_history_init"
 
-      call history_add_field('THETA', 'potential_temperature', 'lev', 'avg', 'K')
-      call history_add_field('SLP', 'air_pressure_at_sea_level', horiz_only, 'avg', 'Pa')
+      call history_add_field('THETA', 'potential_temperature', 'lev', 'lst', 'K')
+      call history_add_field('SLP', 'air_pressure_at_sea_level', horiz_only, 'lst', 'Pa')
 
    end subroutine physics_history_init
 
@@ -66,8 +66,8 @@ CONTAINS
       integer :: const_index
       character(len=*), parameter :: subname = "physics_history_out"
 
-      call history_out_field('THETA', phys_state%T(:, :, ix_theta), size(phys_state%T(:, :, ix_theta), 1))
-      call history_out_field('SLP', phys_state%slp, size(phys_state%slp, 1))
+      call history_out_field('THETA', phys_state%T(:, :, ix_theta))
+      call history_out_field('SLP', phys_state%slp)
 
    end subroutine physics_history_out
 

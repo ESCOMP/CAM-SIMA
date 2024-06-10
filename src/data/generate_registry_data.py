@@ -156,6 +156,7 @@ class VarBase:
         self.__initial_val_vars = set()
         self.__ic_names = None
         self.__diagnostic_name = None
+        self.__diagnostic_flag = None
         self.__elements = []
         self.__protected = protected
         self.__index_name = index_name
@@ -189,6 +190,11 @@ class VarBase:
                 self.__ic_names = [x.strip() for x in attrib.text.split(' ') if x]
             elif attrib.tag == 'diagnostic':
                 self.__diagnostic_name = attrib.attrib['name']
+                if 'flag' in attrib.attrib:
+                   self.__diagnostic_flag = attrib.attrib['flag']
+                else:
+                   self.__diagnostic_flag = 'avg'
+                # end if
             # end if (just ignore other tags)
         # end for
         if ((not self.initial_value) and
@@ -334,6 +340,11 @@ class VarBase:
     def diagnostic_name(self):
         """Return the diagnostic name for this variable"""
         return self.__diagnostic_name
+
+    @property
+    def diagnostic_flag(self):
+        """Return the diagnostic flag for this variable"""
+        return self.__diagnostic_flag
 
     @property
     def long_name(self):
@@ -1746,7 +1757,7 @@ def _create_ic_name_dict(registry):
 ###############################################################################
 def _create_diag_name_dict(registry):
 ###############################################################################
-    """ Build a dictionary of diagnostic names (key = standard_name)
+    """ Build a dictionary of diagnostic names and flags (key = standard_name)
         If this property is ever included in CCPP metadata, this
            section can be replaced by accessing the new metadata
            property and this routine will no longer be needed.
@@ -1760,10 +1771,16 @@ def _create_diag_name_dict(registry):
                 if obj.tag == 'variable':
                     for attrib in obj:
                         if attrib.tag == 'diagnostic':
+                            diags = {}
                             stdname = obj.get('standard_name')
                             diag_name = attrib.attrib['name']
                             # peverwhee - duplicate check?
-                            diag_name_dict[stdname] = diag_name
+                            if 'flag' in attrib.attrib:
+                                flag = attrib.attrib['flag']
+                            else:
+                                flag = 'avg'
+                            # end if
+                            diag_name_dict[stdname] = (diag_name, flag)
                         # end if
                     # end for
                 elif obj.tag == 'array':
@@ -1771,10 +1788,16 @@ def _create_diag_name_dict(registry):
                         if subobj.tag == 'element':
                             for attrib in subobj:
                                 if attrib.tag == 'diagnostic':
+                                    diags = {}
                                     stdname = subobj.get('standard_name')
                                     diag_name = attrib.attrib['name']
                                     # peverwhee - duplicate check?
-                                    diag_name_dict[stdname] = diag_name
+                                    if 'flag' in attrib.attrib:
+                                        flag = attrib.attrib['flag']
+                                    else:
+                                        flag = 'avg'
+                                    # end if
+                                    diag_name_dict[stdname] = (diag_name, flag)
                                 # end if
                             # end for
                         # end if

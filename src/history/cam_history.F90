@@ -568,7 +568,7 @@ CONTAINS
 
 !===========================================================================
 
-   subroutine history_out_field_1d(diagnostic_name, field_values, idim)
+   subroutine history_out_field_1d(diagnostic_name, field_values)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Accumulate active fields - 1d fields
@@ -582,7 +582,6 @@ CONTAINS
       use shr_kind_mod,     only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
-      integer,          intent(in) :: idim
       real(r8),         intent(in) :: field_values(:)
 
       ! Local variables
@@ -618,7 +617,7 @@ CONTAINS
 
 !===========================================================================
 
-   subroutine history_out_field_2d(diagnostic_name, field_values, idim)
+   subroutine history_out_field_2d(diagnostic_name, field_values)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Accumulate active fields - 2d fields
@@ -632,7 +631,6 @@ CONTAINS
       use shr_kind_mod,     only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
-      integer,          intent(in) :: idim
       real(r8),         intent(in) :: field_values(:,:)
 
       ! Local variables
@@ -667,7 +665,7 @@ CONTAINS
 
 !===========================================================================
 
-   subroutine history_out_field_3d(diagnostic_name, field_values, idim)
+   subroutine history_out_field_3d(diagnostic_name, field_values)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Accumulate active fields - 3d fields
@@ -680,7 +678,6 @@ CONTAINS
       use shr_kind_mod,   only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
-      integer,          intent(in) :: idim
       real(r8),         intent(in) :: field_values(:,:,:)
 
       ! Local variables
@@ -692,6 +689,7 @@ CONTAINS
       class(hist_field_info_t), pointer :: field_info
 
       errmsg = ''
+      call endrun('ERROR: '//subname//'3d history fields not implemented', file=__FILE__, line=__LINE__)
 
       do file_idx = 1, size(hist_configs, 1)
          ! Check if the field is on the current file
@@ -800,6 +798,7 @@ CONTAINS
                write(iulog,9004)
             end if
          end if
+         call hist_configs(file_idx)%clear_buffers()
       end do
 9003  format('    Output at NSTEP     = ',i10,/, &
              '    Number of time samples on this file = ',i10,/, &

@@ -189,8 +189,10 @@ module cam_grid_support
     procedure :: read_darray_3d_real    => cam_grid_read_darray_3d_real
     procedure :: write_darray_2d_int    => cam_grid_write_darray_2d_int
     procedure :: write_darray_3d_int    => cam_grid_write_darray_3d_int
+    procedure :: write_darray_1d_double => cam_grid_write_darray_1d_double
     procedure :: write_darray_2d_double => cam_grid_write_darray_2d_double
     procedure :: write_darray_3d_double => cam_grid_write_darray_3d_double
+    procedure :: write_darray_1d_real   => cam_grid_write_darray_1d_real
     procedure :: write_darray_2d_real   => cam_grid_write_darray_2d_real
     procedure :: write_darray_3d_real   => cam_grid_write_darray_3d_real
   end type cam_grid_t
@@ -352,8 +354,10 @@ module cam_grid_support
   interface cam_grid_write_dist_array
     module procedure cam_grid_write_dist_array_2d_int
     module procedure cam_grid_write_dist_array_3d_int
+    module procedure cam_grid_write_dist_array_1d_double
     module procedure cam_grid_write_dist_array_2d_double
     module procedure cam_grid_write_dist_array_3d_double
+    module procedure cam_grid_write_dist_array_1d_real
     module procedure cam_grid_write_dist_array_2d_real
     module procedure cam_grid_write_dist_array_3d_real
   end interface
@@ -1320,6 +1324,38 @@ contains
 
   !---------------------------------------------------------------------------
   !
+  !  cam_grid_write_dist_array_1d_double
+  !
+  !  Interface function for the grid%write_darray_1d_double method
+  !
+  !---------------------------------------------------------------------------
+  subroutine cam_grid_write_dist_array_1d_double(File, id, adims, fdims, hbuf, varid)
+    use pio, only: file_desc_t
+
+    ! Dummy arguments
+    type(file_desc_t),         intent(inout) :: File       ! PIO file handle
+    integer,                   intent(in)    :: id
+    integer,                   intent(in)    :: adims(:)
+    integer,                   intent(in)    :: fdims(:)
+    real(r8),                  intent(in)    :: hbuf(:)
+    type(var_desc_t),          intent(inout) :: varid
+
+    ! Local variable
+    integer                                  :: gridid
+    character(len=120)                       :: errormsg
+
+    gridid = get_cam_grid_index(id)
+    if (gridid > 0) then
+      call cam_grids(gridid)%write_darray_1d_double(File, adims, fdims, hbuf, varid)
+    else
+      write(errormsg, *) 'cam_grid_write_dist_array_1d_double: Bad grid ID, ', id
+      call endrun(errormsg)
+    end if
+
+  end subroutine cam_grid_write_dist_array_1d_double
+
+  !---------------------------------------------------------------------------
+  !
   !  cam_grid_write_dist_array_2d_double
   !
   !  Interface function for the grid%write_darray_2d_double method
@@ -1381,6 +1417,39 @@ contains
     end if
 
   end subroutine cam_grid_write_dist_array_3d_double
+
+  !---------------------------------------------------------------------------
+  !
+  !  cam_grid_write_dist_array_1d_real
+  !
+  !  Interface function for the grid%write_darray_1d_real method
+  !
+  !---------------------------------------------------------------------------
+  subroutine cam_grid_write_dist_array_1d_real(File, id, adims, fdims, hbuf, varid)
+    use pio, only: file_desc_t
+
+    ! Dummy arguments
+    type(file_desc_t),         intent(inout) :: File       ! PIO file handle
+    integer,                   intent(in)    :: id
+    integer,                   intent(in)    :: adims(:)
+    integer,                   intent(in)    :: fdims(:)
+    real(r4),                  intent(in)    :: hbuf(:)
+    type(var_desc_t),          intent(inout) :: varid
+
+    ! Local variable
+    integer                                  :: gridid
+    character(len=120)                       :: errormsg
+
+    gridid = get_cam_grid_index(id)
+    write(iulog,*) gridid
+    if (gridid > 0) then
+      call cam_grids(gridid)%write_darray_1d_real(File, adims, fdims, hbuf, varid)
+    else
+      write(errormsg, *) 'cam_grid_write_dist_array_1d_real: Bad grid ID, ', id
+      call endrun(errormsg)
+    end if
+
+  end subroutine cam_grid_write_dist_array_1d_real
 
   !---------------------------------------------------------------------------
   !
@@ -3392,6 +3461,33 @@ contains
 
   !---------------------------------------------------------------------------
   !
+  !  cam_grid_write_darray_1d_double: Write a variable defined on this grid
+  !
+  !---------------------------------------------------------------------------
+  subroutine cam_grid_write_darray_1d_double(this, File, adims, fdims, hbuf, varid)
+    use pio,           only: file_desc_t, io_desc_t
+    use pio,           only: pio_write_darray, PIO_DOUBLE
+    use cam_pio_utils, only: cam_pio_get_decomp
+
+    ! Dummy arguments
+    class(cam_grid_t)                        :: this
+    type(file_desc_t),         intent(inout) :: File       ! PIO file handle
+    integer,                   intent(in)    :: adims(:)
+    integer,                   intent(in)    :: fdims(:)
+    real(r8),                  intent(in)    :: hbuf(:)
+    type(var_desc_t),          intent(inout) :: varid
+
+    ! Local variables
+    type(io_desc_t), pointer                 :: iodesc
+    integer                                  :: ierr
+
+    call cam_pio_get_decomp(iodesc, adims, fdims, PIO_DOUBLE, this%map)
+    call pio_write_darray(File, varid, iodesc, hbuf, ierr)
+    call cam_pio_handle_error(ierr, 'cam_grid_write_darray_1d_double: Error writing variable')
+  end subroutine cam_grid_write_darray_1d_double
+
+  !---------------------------------------------------------------------------
+  !
   !  cam_grid_write_darray_2d_double: Write a variable defined on this grid
   !
   !---------------------------------------------------------------------------
@@ -3444,6 +3540,33 @@ contains
     call cam_pio_handle_error(ierr, 'cam_grid_write_darray_3d_double: Error writing variable')
 
   end subroutine cam_grid_write_darray_3d_double
+
+  !---------------------------------------------------------------------------
+  !
+  !  cam_grid_write_darray_2d_real: Write a variable defined on this grid
+  !
+  !---------------------------------------------------------------------------
+  subroutine cam_grid_write_darray_1d_real(this, File, adims, fdims, hbuf, varid)
+    use pio,           only: file_desc_t, io_desc_t
+    use pio,           only: pio_write_darray, PIO_REAL
+    use cam_pio_utils, only: cam_pio_get_decomp
+
+    ! Dummy arguments
+    class(cam_grid_t)                        :: this
+    type(file_desc_t),         intent(inout) :: File       ! PIO file handle
+    integer,                   intent(in)    :: adims(:)
+    integer,                   intent(in)    :: fdims(:)
+    real(r4),                  intent(in)    :: hbuf(:)
+    type(var_desc_t),          intent(inout) :: varid
+
+    ! Local variables
+    type(io_desc_t), pointer                 :: iodesc
+    integer                                  :: ierr
+
+    call cam_pio_get_decomp(iodesc, adims, fdims, PIO_REAL, this%map)
+    call pio_write_darray(File, varid, iodesc, hbuf, ierr)
+    call cam_pio_handle_error(ierr, 'cam_grid_write_darray_1d_real: Error writing variable')
+  end subroutine cam_grid_write_darray_1d_real
 
   !---------------------------------------------------------------------------
   !

@@ -75,11 +75,11 @@ CONTAINS
       integer :: const_index
       character(len=*), parameter :: subname = "physics_history_out"
 
-      call history_out_field('SLP', slp, size(slp, 1))
+      call history_out_field('SLP', slp)
       call const_get_index('super_cool_cat_const', const_index, abort=.false., warning=.false.)
       if (const_index >= 0) then
          const_data_ptr => cam_constituents_array()
-         call history_out_field('COOL_CAT', const_data_ptr(:,:,const_index), size(const_data_ptr, 1))
+         call history_out_field('COOL_CAT', const_data_ptr(:,:,const_index))
       end if
 
    end subroutine physics_history_out

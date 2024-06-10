@@ -189,7 +189,7 @@ class WriteHistTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_hist), msg=amsg)
 
         # For each output file, make sure it matches input file
-        amsg = f"{in_hist} does not match {out_hist}"
+        amsg = f"{out_hist} does not match {in_hist}"
         self.assertTrue(filecmp.cmp(in_hist, out_hist,
                                     shallow=False), msg=amsg)
 

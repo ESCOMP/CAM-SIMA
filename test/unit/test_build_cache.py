@@ -423,7 +423,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
         #Set non-file update_registry inputs:
         ic_names = {"Only_had_a": ["heart", "brain"]}
-        diag_names = {"small_dog_wrt_dorothy": 'TOTO'}
+        diag_names = {"small_dog_wrt_dorothy": ('TOTO', 'avg')}
         dycore = "banana"
 
         #Update registry fields:

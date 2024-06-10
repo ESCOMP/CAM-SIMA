@@ -483,7 +483,8 @@ def write_physics_history_init_subroutine(outfile, host_dict, host_vars, host_im
             continue
         # end if
 
-        diag_name = diag_dict[var_stdname]
+        diag_name = diag_dict[var_stdname][0]
+        diag_flag = diag_dict[var_stdname][1]
 
         # Ignore any variable that is listed as a constiutuent,
         # as they will be handled separately by the constituents object:
@@ -494,16 +495,16 @@ def write_physics_history_init_subroutine(outfile, host_dict, host_vars, host_im
             outfile.write("call const_props_ptr(const_index)%is_dry(const_is_dry, errcode, errmsg)", 3)
             outfile.write("if (const_is_dry) then", 3)
             outstr = f"call history_add_field('{diag_name}', '{var_stdname}', " \
-                     f"{vdim}, 'avg', '{var_units}', mixing_ratio='dry')"
+                     f"{vdim}, '{diag_flag}', '{var_units}', mixing_ratio='dry')"
             outfile.write(outstr, 4)
             outfile.write("else", 3)
             outstr = f"call history_add_field('{diag_name}', '{var_stdname}', " \
-                     f"{vdim}, 'avg', '{var_units}', mixing_ratio='wet')"
+                     f"{vdim}, '{diag_flag}', '{var_units}', mixing_ratio='wet')"
             outfile.write(outstr, 4)
             outfile.write("end if", 3)
             outfile.write("end if", 2)
         else:
-            outstr = f"call history_add_field('{diag_name}', '{var_stdname}', {vdim}, 'avg', '{var_units}')"
+            outstr = f"call history_add_field('{diag_name}', '{var_stdname}', {vdim}, '{diag_flag}', '{var_units}')"
             outfile.write(outstr, 2)
         # end if
     # end for
@@ -567,7 +568,7 @@ def write_physics_history_out_subroutine(outfile, host_dict, host_vars, host_imp
             continue
         # end if
 
-        diag_name = diag_dict[var_stdname]
+        diag_name = diag_dict[var_stdname][0]
 
         # Ignore any variable that is listed as a constiutuent,
         # as they will be handled separately by the constituents object:
@@ -575,11 +576,11 @@ def write_physics_history_out_subroutine(outfile, host_dict, host_vars, host_imp
             outfile.write(f"call const_get_index('{var_stdname}', const_index, abort=.false., warning=.false.)", 2)
             outfile.write("if (const_index >= 0) then", 2)
             outfile.write("const_data_ptr => cam_constituents_array()", 3)
-            outstr = f"call history_out_field('{diag_name}', const_data_ptr(:,:,const_index), size(const_data_ptr, 1))"
+            outstr = f"call history_out_field('{diag_name}', const_data_ptr(:,:,const_index))"
             outfile.write(outstr, 3)
             outfile.write("end if", 2)
         else:
-            outstr = f"call history_out_field('{diag_name}', {var_locname}, size({var_locname}, 1))"
+            outstr = f"call history_out_field('{diag_name}', {var_locname})"
             outfile.write(outstr, 2)
         # end if
     # end for
