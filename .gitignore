@@ -23,6 +23,8 @@ buildnmlc
 test/include/*.mod
 test/include/*.o
 test/unit/tmp
+test/system/*.log
+test/system/cime-tests.o*
 
 # Ignore editor temporaries and backups
 *.swp

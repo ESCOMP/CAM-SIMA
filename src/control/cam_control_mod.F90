@@ -26,10 +26,11 @@ module cam_control_mod
    logical, protected :: initial_run  ! startup mode which only requires a minimal initial file
    logical, protected :: restart_run  ! continue a previous run; requires a restart file
    logical, protected :: branch_run   ! branch from a previous run; requires a restart file
+   logical, protected :: post_assim   ! We are resuming after a pause
 
    logical, protected :: aqua_planet       ! Flag to run model in "aqua planet" mode
    logical, protected :: brnch_retain_casename ! true => branch run may use same caseid as
-   !         the run being branched from
+                                               !         the run being branched from
 
    real(r8), protected :: eccen       ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
    real(r8), protected :: obliqr      ! Earth's obliquity in radians
@@ -43,13 +44,15 @@ CONTAINS
 !==============================================================================
 
    subroutine cam_ctrl_init(caseid_in, ctitle_in, initial_run_in,             &
-        restart_run_in, branch_run_in, aqua_planet_in, brnch_retain_casename_in)
+        restart_run_in, branch_run_in, post_assim_in,                         &
+        aqua_planet_in,  brnch_retain_casename_in)
 
       character(len=cl), intent(in) :: caseid_in            ! case ID
       character(len=cl), intent(in) :: ctitle_in            ! case title
       logical,           intent(in) :: initial_run_in       ! true => inital run
       logical,           intent(in) :: restart_run_in       ! true => restart run
       logical,           intent(in) :: branch_run_in        ! true => branch run
+      logical,           intent(in) :: post_assim_in        ! true => resume mode
       logical,           intent(in) :: aqua_planet_in       ! Flag to run model in "aqua planet" mode
       logical,           intent(in) :: brnch_retain_casename_in ! Flag to allow a branch to use the same
       ! caseid as the run being branched from.
@@ -63,6 +66,7 @@ CONTAINS
       initial_run = initial_run_in
       restart_run = restart_run_in
       branch_run  = branch_run_in
+      post_assim  = post_assim_in
 
       aqua_planet = aqua_planet_in
 
@@ -77,6 +81,8 @@ CONTAINS
             write(iulog,*) '  Restart of an earlier run'
          else if (branch_run) then
             write(iulog,*) '  Branch of an earlier run'
+         else if (post_assim) then
+            write(iulog,*) '  DART run using CAM initial mode'
          else
             write(iulog,*) '         Initial run'
          end if
