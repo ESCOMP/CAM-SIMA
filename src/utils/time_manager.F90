@@ -528,6 +528,11 @@ subroutine advance_timestep()
    call ESMF_ClockAdvance( tm_clock, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockAdvance')
 
+! Write new timestep to CAM log file
+   write(iulog,*) '------------------------'
+   write(iulog,'(a,i8,a)') 'CAM-SIMA time step advanced (nstep = ',get_nstep(),')'
+   write(iulog,*) '------------------------'
+
 ! Set first step flag off.
 
    tm_first_restart_step = .false.
