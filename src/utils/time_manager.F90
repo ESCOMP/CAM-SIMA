@@ -520,6 +520,9 @@ subroutine advance_timestep()
 
 ! Increment the timestep number.
 
+! Use statements
+   use string_utils, only: stringify
+
 ! Local variables
    character(len=*), parameter :: sub = 'advance_timestep'
    integer :: rc
@@ -528,9 +531,10 @@ subroutine advance_timestep()
    call ESMF_ClockAdvance( tm_clock, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockAdvance')
 
-! Write new timestep to CAM log file
+! Write new timestep to CAM log file.
+
    write(iulog,*) '------------------------'
-   write(iulog,'(a,i8,a)') 'CAM-SIMA time step advanced (nstep = ',get_nstep(),')'
+   write(iulog,*) 'CAM-SIMA time step advanced (nstep = '//stringify([get_nstep()])//')'
    write(iulog,*) '------------------------'
 
 ! Set first step flag off.
