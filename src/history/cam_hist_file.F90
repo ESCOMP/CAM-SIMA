@@ -1618,7 +1618,11 @@ CONTAINS
       logical             :: hist_write_nstep0
       ! Local variables (other)
       integer             :: ierr
-      integer             :: num_fields
+      integer             :: num_fields_inst
+      integer             :: num_fields_avg
+      integer             :: num_fields_min
+      integer             :: num_fields_max
+      integer             :: num_fields_var
       integer             :: file_type
       integer             :: rl_kind
       logical             :: has_acc
@@ -1692,43 +1696,48 @@ CONTAINS
             call endrun(subname//"ERROR, Invalid precision, '"//              &
                  trim(hist_precision)//"'", file=__FILE__, line=__LINE__)
          end select
+         num_fields_inst = count_array(hist_inst_fields)
+         num_fields_avg = count_array(hist_avg_fields)
+         num_fields_min = count_array(hist_min_fields)
+         num_fields_max = count_array(hist_max_fields)
+         num_fields_var = count_array(hist_var_fields)
       end if
+      call MPI_Bcast(num_fields_inst, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      call MPI_Bcast(num_fields_avg, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      call MPI_Bcast(num_fields_min, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      call MPI_Bcast(num_fields_max, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      call MPI_Bcast(num_fields_var, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       ! Broadcast namelist data
-      num_fields = count_array(hist_inst_fields)
-      if (num_fields > 0) then
-         call MPI_Bcast(hist_inst_fields(:), num_fields, MPI_CHARACTER,       &
+      if (num_fields_inst > 0) then
+         call MPI_Bcast(hist_inst_fields(:), num_fields_inst, MPI_CHARACTER,       &
               masterprocid, mpicom, ierr)
       end if
-      num_fields = count_array(hist_avg_fields)
-      if (num_fields > 0) then
+      if (num_fields_avg > 0) then
          call endrun(subname//"ERROR, average fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
          has_acc = .true.
-         call MPI_Bcast(hist_avg_fields(:), num_fields, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_avg_fields(:), num_fields_avg, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
-      num_fields = count_array(hist_min_fields)
-      if (num_fields > 0) then
+      if (num_fields_min > 0) then
          call endrun(subname//"ERROR, minimum fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
          has_acc = .true.
-         call MPI_Bcast(hist_min_fields(:), num_fields, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_min_fields(:), num_fields_min, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
-      num_fields = count_array(hist_max_fields)
-      if (num_fields > 0) then
+      if (num_fields_max > 0) then
          call endrun(subname//"ERROR, maximum fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
          has_acc = .true.
-         call MPI_Bcast(hist_max_fields(:), num_fields, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_max_fields(:), num_fields_max, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
-      num_fields = count_array(hist_var_fields)
-      if (num_fields > 0) then
+      if (num_fields_var > 0) then
          call endrun(subname//"ERROR, standard deviation fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
          has_acc = .true.
-         call MPI_Bcast(hist_var_fields(:), num_fields, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_var_fields(:), num_fields_var, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       call MPI_Bcast(hist_volume, vlen, MPI_CHARACTER, masterprocid,          &
