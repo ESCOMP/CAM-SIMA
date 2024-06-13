@@ -455,7 +455,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final()
+   subroutine cam_timestep_final(do_ncdata_check)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
@@ -464,12 +464,15 @@ CONTAINS
 
       use phys_comp, only: phys_timestep_final
 
+      !Flag for whether a snapshot (ncdata) check should be run or not
+      logical, intent(in) :: do_ncdata_check
+
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_FINAL Call the Physics package
       !----------------------------------------------------------
       !
-      call phys_timestep_final()
+      call phys_timestep_final(do_ncdata_check)
 
    end subroutine cam_timestep_final
 

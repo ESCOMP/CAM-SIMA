@@ -313,11 +313,17 @@
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
-    <!-- Physics timestep -->
+    <!-- Timestep variables -->
     <variable local_name="dtime_phys"
               standard_name="timestep_for_physics"
               units="s" type="real" kind="kind_phys">
       <long_name>timestep for physics</long_name>
+    </variable>
+    <variable local_name="nstep"
+              standard_name="current_timestep_number"
+              units="count" type="integer">
+      <long_name>current timestep number</long_name>
+      <initial_value>0</initial_value>
     </variable>
     <!-- Error handling variables -->
     <variable local_name="errcode"
