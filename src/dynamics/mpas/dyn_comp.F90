@@ -18,9 +18,9 @@ module dyn_comp
     use cam_logfile, only: debug_output, debugout_none, iulog
     use cam_pio_utils, only: clean_iodesc_list
     use dyn_tests_utils, only: vc_height
-    use dynconst, only: constant_g => gravit, constant_pi => pi
+    use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, constant_pi => pi, &
+                        constant_rd => rair, constant_rv => rh2o
     use inic_analytic, only: analytic_ic_active, dyn_set_inic_col
-    use physconst, only: constant_cpd => cpair, constant_p0 => pref, constant_rd => rair, constant_rv => rh2o
     use runtime_obj, only: runtime_options
     use spmd_utils, only: iam, masterproc, mpicom
     use string_utils, only: stringify
