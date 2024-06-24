@@ -1226,7 +1226,9 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_stream_with_pool'
         character(strkind) :: stream_filename
         integer :: i, ierr, stream_format
+        ! Whether a variable is present on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_present(:)
+        ! Whether a variable is type, kind and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_tkr_compatible(:)
         type(field0dchar), pointer :: field_0d_char => null()
         type(field1dchar), pointer :: field_1d_char => null()
@@ -1807,7 +1809,7 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_check_variable_status
     !
-    !> \brief  Check and return variable status on the given file.
+    !> \brief  Check and return variable status on the given file
     !> \author Kuan-Chih Wang
     !> \date   2024-06-04
     !> \details
