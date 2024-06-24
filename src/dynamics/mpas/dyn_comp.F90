@@ -352,7 +352,7 @@ contains
     subroutine set_analytic_initial_condition()
         character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition'
         integer, allocatable :: global_grid_index(:)
-        real(kind_r8), allocatable :: buffer_1d_real(:), buffer_2d_real(:, :), buffer_3d_real(:, :, :)
+        real(kind_r8), allocatable :: buffer_2d_real(:, :), buffer_3d_real(:, :, :)
         real(kind_r8), allocatable :: lat_rad(:), lon_rad(:)
         real(kind_r8), allocatable :: z_int(:, :)       ! Geometric height (meters) at layer interfaces.
                                                         ! Dimension and vertical index orders follow CAM-SIMA convention.
@@ -571,21 +571,13 @@ contains
 
             call dyn_debug_print('Setting MPAS state "rho" and "theta"')
 
-            allocate(buffer_1d_real(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_1d_real(ncells_solve)', &
-                'dyn_comp', __LINE__)
-
             allocate(p_sfc(ncells_solve), stat=ierr)
             call check_allocate(ierr, 'set_analytic_initial_condition', 'p_sfc(ncells_solve)', &
                 'dyn_comp', __LINE__)
 
-            buffer_1d_real(:) = 0.0_kind_r8
+            p_sfc(:) = 0.0_kind_r8
 
-            call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, ps=buffer_1d_real)
-
-            p_sfc(:) = buffer_1d_real(:)
-
-            deallocate(buffer_1d_real)
+            call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, ps=p_sfc)
 
             allocate(buffer_2d_real(ncells_solve, pver), stat=ierr)
             call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_2d_real(ncells_solve, pver)', &
