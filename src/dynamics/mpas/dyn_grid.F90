@@ -144,16 +144,16 @@ contains
         call mpas_dynamical_core % get_variable_pointer(rdzw, 'mesh', 'rdzw')
 
         allocate(dzw(pver), stat=ierr)
-        call check_allocate(ierr, 'init_reference_pressure', 'dzw', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_reference_pressure', 'dzw(pver)', 'dyn_grid', __LINE__)
 
         dzw(:) = 1.0_kind_r8 / rdzw
 
         nullify(rdzw)
 
         allocate(zw(pverp), stat=ierr)
-        call check_allocate(ierr, 'init_reference_pressure', 'zw', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_reference_pressure', 'zw(pverp)', 'dyn_grid', __LINE__)
         allocate(zu(pver), stat=ierr)
-        call check_allocate(ierr, 'init_reference_pressure', 'zu', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_reference_pressure', 'zu(pver)', 'dyn_grid', __LINE__)
 
         ! In MPAS, zeta coordinates are stored in increasing order (i.e., bottom to top of atmosphere).
         ! In CAM-SIMA, however, index order is reversed (i.e., top to bottom of atmosphere).
@@ -167,12 +167,12 @@ contains
 
         ! Compute reference pressure from reference height.
         allocate(p_ref_int(pverp), stat=ierr)
-        call check_allocate(ierr, 'init_reference_pressure', 'p_ref_int', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_reference_pressure', 'p_ref_int(pverp)', 'dyn_grid', __LINE__)
 
         call std_atm_pres(zw, p_ref_int)
 
         allocate(p_ref_mid(pver), stat=ierr)
-        call check_allocate(ierr, 'init_reference_pressure', 'p_ref_mid', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_reference_pressure', 'p_ref_mid(pver)', 'dyn_grid', __LINE__)
 
         p_ref_mid(:) = 0.5_kind_r8 * (p_ref_int(1:pver) + p_ref_int(2:pverp))
 
@@ -224,7 +224,7 @@ contains
         call mpas_dynamical_core % get_variable_pointer(loncell, 'mesh', 'lonCell')
 
         allocate(dyn_column(ncells_solve), stat=ierr)
-        call check_allocate(ierr, 'init_physics_grid', 'dyn_column', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_physics_grid', 'dyn_column(ncells_solve)', 'dyn_grid', __LINE__)
 
         do i = 1, ncells_solve
             ! Column information.
@@ -249,7 +249,8 @@ contains
             dyn_column(i) % local_dyn_block  = i
             ! `dyn_block_index` is not used due to no dynamics block offset, but it still needs to be allocated.
             allocate(dyn_column(i) % dyn_block_index(0), stat=ierr)
-            call check_allocate(ierr, 'init_physics_grid', 'dyn_column % dyn_block_index', 'dyn_grid', __LINE__)
+            call check_allocate(ierr, 'init_physics_grid', 'dyn_column(' // stringify([i]) // ') % dyn_block_index(0)', &
+                'dyn_grid', __LINE__)
         end do
 
         nullify(areacell)
@@ -260,7 +261,7 @@ contains
         ! `phys_grid_init` expects to receive the `area` attribute from dynamics.
         ! However, do not let it because dynamics grid is different from physics grid.
         allocate(dyn_attribute_name(0), stat=ierr)
-        call check_allocate(ierr, 'init_physics_grid', 'dyn_attribute_name', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'init_physics_grid', 'dyn_attribute_name(0)', 'dyn_grid', __LINE__)
 
         call phys_grid_init(hdim1_d, hdim2_d, 'mpas', dyn_column, 'mpas_cell', dyn_attribute_name)
     end subroutine init_physics_grid
@@ -316,7 +317,7 @@ contains
         call mpas_dynamical_core % get_variable_pointer(loncell, 'mesh', 'lonCell')
 
         allocate(global_grid_index(ncells_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'global_grid_index', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'global_grid_index(ncells_solve)', 'dyn_grid', __LINE__)
 
         global_grid_index(:) = int(indextocellid(1:ncells_solve), kind_imap)
 
@@ -326,11 +327,11 @@ contains
             1, ncells_solve, loncell * rad_to_deg, map=global_grid_index)
 
         allocate(cell_area(ncells_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'cell_area', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'cell_area(ncells_solve)', 'dyn_grid', __LINE__)
         allocate(cell_weight(ncells_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'cell_weight', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'cell_weight(ncells_solve)', 'dyn_grid', __LINE__)
         allocate(global_grid_map(3, ncells_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'global_grid_map', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'global_grid_map(3, ncells_solve)', 'dyn_grid', __LINE__)
 
         do i = 1, ncells_solve
             cell_area(i)   = areacell(i)
@@ -387,7 +388,7 @@ contains
         call mpas_dynamical_core % get_variable_pointer(lonedge, 'mesh', 'lonEdge')
 
         allocate(global_grid_index(nedges_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'global_grid_index', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'global_grid_index(nedges_solve)', 'dyn_grid', __LINE__)
 
         global_grid_index(:) = int(indextoedgeid(1:nedges_solve), kind_imap)
 
@@ -397,7 +398,7 @@ contains
             1, nedges_solve, lonedge * rad_to_deg, map=global_grid_index)
 
         allocate(global_grid_map(3, nedges_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'global_grid_map', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'global_grid_map(3, nedges_solve)', 'dyn_grid', __LINE__)
 
         do i = 1, nedges_solve
             global_grid_map(1, i) = int(i, kind_imap)
@@ -428,7 +429,7 @@ contains
         call mpas_dynamical_core % get_variable_pointer(lonvertex, 'mesh', 'lonVertex')
 
         allocate(global_grid_index(nvertices_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'global_grid_index', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'global_grid_index(nvertices_solve)', 'dyn_grid', __LINE__)
 
         global_grid_index(:) = int(indextovertexid(1:nvertices_solve), kind_imap)
 
@@ -438,7 +439,7 @@ contains
             1, nvertices_solve, lonvertex * rad_to_deg, map=global_grid_index)
 
         allocate(global_grid_map(3, nvertices_solve), stat=ierr)
-        call check_allocate(ierr, 'define_cam_grid', 'global_grid_map', 'dyn_grid', __LINE__)
+        call check_allocate(ierr, 'define_cam_grid', 'global_grid_map(3, nvertices_solve)', 'dyn_grid', __LINE__)
 
         do i = 1, nvertices_solve
            global_grid_map(1, i) = int(i, kind_imap)

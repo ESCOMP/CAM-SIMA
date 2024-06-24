@@ -197,10 +197,10 @@ contains
         type(file_desc_t), pointer :: pio_topo_file => null()
 
         allocate(constituent_name(num_advected), stat=ierr)
-        call check_allocate(ierr, 'dyn_init', 'constituent_name', 'dyn_comp', __LINE__)
+        call check_allocate(ierr, 'dyn_init', 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
 
         allocate(is_water_species(num_advected), stat=ierr)
-        call check_allocate(ierr, 'dyn_init', 'is_water_species', 'dyn_comp', __LINE__)
+        call check_allocate(ierr, 'dyn_init', 'is_water_species(num_advected)', 'dyn_comp', __LINE__)
 
         do i = 1, num_advected
             constituent_name(i) = const_name(i)
@@ -311,10 +311,10 @@ contains
             end if
 
             allocate(surface_geopotential(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'check_topography_data', 'surface_geopotential', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'check_topography_data', 'surface_geopotential(ncells_solve)', 'dyn_comp', __LINE__)
 
             allocate(surface_geometric_height(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'check_topography_data', 'surface_geometric_height', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'check_topography_data', 'surface_geometric_height(ncells_solve)', 'dyn_comp', __LINE__)
 
             surface_geopotential(:) = 0.0_kind_r8
             surface_geometric_height(:) = 0.0_kind_r8
@@ -385,7 +385,7 @@ contains
             call dyn_debug_print('Preparing to set analytic initial condition')
 
             allocate(global_grid_index(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'global_grid_index', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'global_grid_index(ncells_solve)', 'dyn_comp', __LINE__)
 
             call mpas_dynamical_core % get_variable_pointer(indextocellid, 'mesh', 'indexToCellID')
 
@@ -394,10 +394,10 @@ contains
             nullify(indextocellid)
 
             allocate(lat_rad(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'lat_rad', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'lat_rad(ncells_solve)', 'dyn_comp', __LINE__)
 
             allocate(lon_rad(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'lon_rad', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'lon_rad(ncells_solve)', 'dyn_comp', __LINE__)
 
             ! "mpas_cell" is a registered grid name that is defined in `dyn_grid`.
             lat_deg => cam_grid_get_latvals(cam_grid_id('mpas_cell'))
@@ -418,7 +418,7 @@ contains
             nullify(lon_deg)
 
             allocate(z_int(ncells_solve, pverp), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'z_int', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'z_int(ncells_solve, pverp)', 'dyn_comp', __LINE__)
 
             call mpas_dynamical_core % get_variable_pointer(zgrid, 'mesh', 'zgrid')
 
@@ -439,7 +439,8 @@ contains
             call dyn_debug_print('Setting MPAS state "u"')
 
             allocate(buffer_2d_real(ncells_solve, pver), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_2d_real', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_2d_real(ncells_solve, pver)', &
+                'dyn_comp', __LINE__)
 
             call mpas_dynamical_core % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
             call mpas_dynamical_core % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
@@ -503,10 +504,12 @@ contains
             call dyn_debug_print('Setting MPAS state "scalars"')
 
             allocate(buffer_3d_real(ncells_solve, pver, num_advected), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_3d_real', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_3d_real(ncells_solve, pver, num_advected)', &
+                'dyn_comp', __LINE__)
 
             allocate(constituent_index(num_advected), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'constituent_index', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'constituent_index(num_advected)', &
+                'dyn_comp', __LINE__)
 
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
@@ -569,10 +572,12 @@ contains
             call dyn_debug_print('Setting MPAS state "rho" and "theta"')
 
             allocate(buffer_1d_real(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_1d_real', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_1d_real(ncells_solve)', &
+                'dyn_comp', __LINE__)
 
             allocate(p_sfc(ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'p_sfc', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'p_sfc(ncells_solve)', &
+                'dyn_comp', __LINE__)
 
             buffer_1d_real(:) = 0.0_kind_r8
 
@@ -583,10 +588,12 @@ contains
             deallocate(buffer_1d_real)
 
             allocate(buffer_2d_real(ncells_solve, pver), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_2d_real', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'buffer_2d_real(ncells_solve, pver)', &
+                'dyn_comp', __LINE__)
 
             allocate(t_mid(pver, ncells_solve), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 't_mid', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 't_mid(pver, ncells_solve)', &
+                'dyn_comp', __LINE__)
 
             buffer_2d_real(:, :) = 0.0_kind_r8
 
@@ -600,13 +607,13 @@ contains
             deallocate(buffer_2d_real)
 
             allocate(p_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'p_mid_col', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'p_mid_col(pver)', 'dyn_comp', __LINE__)
 
             allocate(qv_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'qv_mid_col', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'qv_mid_col(pver)', 'dyn_comp', __LINE__)
 
             allocate(tm_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'tm_mid_col', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'tm_mid_col(pver)', 'dyn_comp', __LINE__)
 
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(rho, 'diag', 'rho')
@@ -669,7 +676,7 @@ contains
             call dyn_debug_print('Setting MPAS state "rho_base" and "theta_base"')
 
             allocate(p_base(pver), stat=ierr)
-            call check_allocate(ierr, 'set_analytic_initial_condition', 'p_base', 'dyn_comp', __LINE__)
+            call check_allocate(ierr, 'set_analytic_initial_condition', 'p_base(pver)', 'dyn_comp', __LINE__)
 
             call mpas_dynamical_core % get_variable_pointer(rho_base, 'diag', 'rho_base')
             call mpas_dynamical_core % get_variable_pointer(theta_base, 'diag', 'theta_base')
