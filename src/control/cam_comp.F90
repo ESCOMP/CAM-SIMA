@@ -397,11 +397,8 @@ CONTAINS
       !           file output.
       !
       !-----------------------------------------------------------------------
-      use cam_history,  only: history_write_files
-      use cam_history,  only: history_wrap_up
 !      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
-      use time_manager, only: is_last_step
 
       type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
       type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
@@ -411,19 +408,6 @@ CONTAINS
       integer,         intent(in), optional :: mon_spec ! Simulation month
       integer,         intent(in), optional :: day_spec ! Simulation day
       integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
-
-      !----------------------------------------------------------
-      ! History and restart logic: Write and/or dispose history
-      !                            tapes if required
-      !----------------------------------------------------------
-      !
-!!XXgoldyXX: v need to import this
-!      call t_barrierf('sync_wshist', mpicom)
-!      call t_startf('wshist')
-      call physics_history_out()
-      call history_write_files()
-!      call t_stopf('wshist')
-!!XXgoldyXX: ^ need to import this
 
       !
       ! Write restart files
@@ -444,34 +428,35 @@ CONTAINS
          call t_stopf('cam_write_restart')
       end if
 
-!!XXgoldyXX: v need to import this
-!      call t_startf ('cam_run4_wrapup')
-      call history_wrap_up(rstwr, nlend)
-!      call t_stopf  ('cam_run4_wrapup')
-!!XXgoldyXX: ^ need to import this
-
-      call shr_sys_flush(iulog)
-
    end subroutine cam_run4
 
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final()
+   subroutine cam_timestep_final(rstwr, nlend)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp, only: phys_timestep_final
+      use phys_comp,    only: phys_timestep_final
+      use cam_history,  only: history_write_files
+      use cam_history,  only: history_wrap_up
+      logical, intent(in)  :: rstwr    ! write restart file
+      logical, intent(in)  :: nlend    ! this is final timestep
 
+      call physics_history_out()
+      call history_write_files()
+      ! peverwhee - todo: handle restarts
+      call history_wrap_up(rstwr, nlend)
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_FINAL Call the Physics package
       !----------------------------------------------------------
       !
       call phys_timestep_final()
+      call shr_sys_flush(iulog)
 
    end subroutine cam_timestep_final
 

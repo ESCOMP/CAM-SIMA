@@ -1163,7 +1163,7 @@ contains
        call cam_run4( cam_out, cam_in, rstwr, nlend, &
             yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
        call t_stopf  ('CAM_run4')
-       call cam_timestep_final()
+       call cam_timestep_final( rstwr, nlend )
 
        ! Advance cam time step
 
@@ -1388,6 +1388,17 @@ contains
 
     ! local variables
     integer :: shrlogunit            ! original log unit
+    logical :: rstwr, nlend
+    type(ESMF_Alarm)        :: alarm
+    type(ESMF_Clock)        :: clock
+    type(ESMF_Time)         :: currTime    ! Current time
+    type(ESMF_Time)         :: nextTime    ! Current time
+    type(ESMF_State)        :: importState
+    type(ESMF_State)        :: exportState
+    integer                 :: yr_sync     ! Sync current year
+    integer                 :: mon_sync    ! Sync current month
+    integer                 :: day_sync    ! Sync current day
+    integer                 :: tod_sync    ! Sync current time of day (sec)
     character(*), parameter :: F00   = "('(atm_comp_nuopc) ',8a)"
     character(*), parameter :: F91   = "('(atm_comp_nuopc) ',73('-'))"
     character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
@@ -1401,8 +1412,38 @@ contains
 
     call shr_log_getLogUnit (shrlogunit)
     call shr_log_setLogUnit (iulog)
+    call NUOPC_ModelGet(gcomp, modelClock=clock, importState=importState, exportState=exportState, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call cam_timestep_final()
+    ! Determine if time to write restart
+    call ESMF_ClockGet( clock, currTime=currTime)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(nexttime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       rstwr = .true.
+       call ESMF_AlarmRingerOff( alarm, rc=rc )
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       rstwr = .false.
+    endif
+
+    ! Determine if time to stop
+
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       nlend = .true.
+    else
+       nlend = .false.
+    endif
+    call cam_timestep_final(rstwr, nlend)
     call cam_final( cam_out, cam_in )
 
     if (masterproc) then

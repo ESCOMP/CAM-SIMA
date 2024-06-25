@@ -1273,7 +1273,6 @@ CONTAINS
       use time_manager,  only: get_nstep, get_curr_date, get_curr_time
       use time_manager,  only: set_date_from_time_float, get_step_size
       use datetime_mod,  only: datetime
-      use hist_api,      only: hist_buffer_norm_value
       use spmd_utils,    only: masterproc
       use cam_logfile,   only: iulog
       use perf_mod,      only: t_startf, t_stopf
@@ -1467,19 +1466,19 @@ CONTAINS
       !!! Get the field's shape and decomposition
       ! Shape on disk
       call field%shape(field_shape)
+      call field%beg_dims(beg_dims)
+      call field%end_dims(end_dims)
       frank = size(field_shape)
       if (frank == 1) then
-         allocate(field_data(field_shape(1), 1), stat=ierr)
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
       else
-         allocate(field_data(field_shape(1), field_shape(2)), stat=ierr)
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr)
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
       end if
       ! Shape of array
       call field%dimensions(dimind)
 
-      call field%beg_dims(beg_dims)
-      call field%end_dims(end_dims)
       allocate(dim_sizes(size(beg_dims)), stat=ierr)
       call check_allocate(ierr, subname, 'dim_sizes', file=__FILE__, line=__LINE__-1)
       do idx = 1, size(beg_dims)
