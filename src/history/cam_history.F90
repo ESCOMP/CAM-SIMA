@@ -774,7 +774,7 @@ CONTAINS
          full = .false.
          num_samples = hist_configs(file_idx)%get_num_samples()
          max_frames = hist_configs(file_idx)%max_frame()
-         if (mod(num_samples, max_frames) == 0) then
+         if (mod(num_samples, max_frames) == 0 .and. num_samples > 0) then
             full = .true.
          end if
          if (full .or. (last_timestep .and. num_samples >= 1)) then
@@ -789,10 +789,10 @@ CONTAINS
             !
             tday = ndcur + nscur/86400._r8
             if(masterproc) then
-               if (file_idx == 1) then
+               if (trim(hist_configs(file_idx)%get_volume()) == 'h0') then
                   write(iulog,*)'   Primary history file'
                else
-                  write(iulog,*)'   Auxiliary history file number ', file_idx-1
+                  write(iulog,*)'   Auxiliary history file ', hist_configs(file_idx)%get_volume()
                end if
                write(iulog,9003)nstep,mod(num_samples, max_frames),tday
                write(iulog,9004)

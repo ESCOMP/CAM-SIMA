@@ -90,6 +90,7 @@ module cam_hist_file
    contains
       ! Accessors
       procedure :: filename => config_filename
+      procedure :: get_volume => config_volume
       procedure :: get_filenames => config_get_filenames
       procedure :: get_filename_spec => config_get_filename_spec
       procedure :: precision => config_precision
@@ -218,6 +219,17 @@ CONTAINS
          write(cprec, '(i0)') this%rl_kind
       end if
    end function config_precision
+
+   ! ========================================================================
+
+   function config_volume(this) result(cvol)
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=vlen)            :: cvol
+
+      cvol = this%volume
+
+   end function config_volume
 
    ! ========================================================================
 
@@ -1521,7 +1533,7 @@ CONTAINS
       if (masterproc) then
          do split_file_index = 1, max_split_files
             if (pio_file_is_open(this%hist_files(split_file_index))) then
-               write(iulog,*)'config_close_files: nf_close(', this%volume,')=',&
+               write(iulog,*)'config_close_files: nf_close(', trim(this%volume),')=',&
                   this%file_names(split_file_index)
             end if
          end do

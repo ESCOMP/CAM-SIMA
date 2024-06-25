@@ -1047,6 +1047,7 @@ contains
     integer                 :: lbnum
     integer                 :: localPet, localPeCount
     logical                 :: first_time = .true.
+    logical                 :: do_ncdata_check  !Flag notifying SIMA if it is OK to perform a snapshot check
     character(len=*),parameter  :: subname=trim(modName)//':(ModelAdvance) '
     !-------------------------------------------------------------------------------
 
@@ -1115,6 +1116,7 @@ contains
     end if
 
     dosend = .false.
+    do_ncdata_check = .false.
     do while (.not. dosend)
 
        ! TODO: This is currently hard-wired - is there a better way for nuopc?
@@ -1122,6 +1124,7 @@ contains
        ! Note that the model clock is updated at the end of the time step not at the beginning
        if (get_nstep() > 0) then
           dosend = .true.
+          do_ncdata_check = .true.
        end if
 
        ! Determine if time to write restart
@@ -1150,6 +1153,7 @@ contains
        endif
 
        ! Run CAM (run2, run3, run4)
+       ! This includes the "physics_after_coupler" CCPP physics group.
 
        call t_startf ('CAM_run2')
        call cam_run2( cam_out, cam_in )
@@ -1163,7 +1167,7 @@ contains
        call cam_run4( cam_out, cam_in, rstwr, nlend, &
             yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
        call t_stopf  ('CAM_run4')
-       call cam_timestep_final( rstwr, nlend )
+       call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check)
 
        ! Advance cam time step
 
@@ -1172,7 +1176,8 @@ contains
        call t_stopf  ('CAM_adv_timestep')
        call cam_timestep_init()
 
-       ! Run cam radiation/clouds (run1)
+       ! Run CAM (run1)
+       ! This includes the "physics_before_coupler" CCPP physics group.
 
        call t_startf ('CAM_run1')
        call cam_run1 ( cam_in, cam_out )
@@ -1443,8 +1448,9 @@ contains
     else
        nlend = .false.
     endif
-    call cam_timestep_final(rstwr, nlend)
-    call cam_final( cam_out, cam_in )
+
+    call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false.)
+    call cam_final(cam_out, cam_in)
 
     if (masterproc) then
        write(iulog,F91)
