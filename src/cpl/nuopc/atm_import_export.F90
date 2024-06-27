@@ -1,38 +1,25 @@
 module atm_import_export
 
-  use NUOPC           , only : NUOPC_CompAttributeGet, NUOPC_Advertise, NUOPC_IsConnected
-  use NUOPC_Model     , only : NUOPC_ModelGet
-  use ESMF            , only : ESMF_GridComp, ESMF_State, ESMF_Mesh, ESMF_StateGet
-  use ESMF            , only : ESMF_KIND_R8, ESMF_SUCCESS, ESMF_MAXSTR, ESMF_LOGMSG_INFO
-  use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LogFoundError
-  use ESMF            , only : ESMF_STATEITEM_NOTFOUND, ESMF_StateItem_Flag
-  use ESMF            , only : operator(/=), operator(==)
-  use shr_kind_mod    , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs, cx=>shr_kind_cx
-  use shr_sys_mod     , only : shr_sys_abort
-  use nuopc_shr_methods , only : chkerr
-  use cam_logfile     , only : iulog
-  use srf_field_check , only : set_active_Sl_ram1
-  use srf_field_check , only : set_active_Sl_fv
-  use srf_field_check , only : set_active_Sl_soilw
-  use srf_field_check , only : set_active_Fall_flxdst1
-  use srf_field_check , only : set_active_Fall_flxvoc
-  use srf_field_check , only : set_active_Fall_flxfire
-  use srf_field_check , only : set_active_Fall_fco2_lnd
-  use srf_field_check , only : set_active_Faoo_fco2_ocn
-  use srf_field_check , only : set_active_Faxa_nhx
-  use srf_field_check , only : set_active_Faxa_noy
+  use NUOPC             , only : NUOPC_CompAttributeGet, NUOPC_Advertise, NUOPC_IsConnected
+  use NUOPC_Model       , only : NUOPC_ModelGet
+  use ESMF              , only : ESMF_GridComp, ESMF_State, ESMF_Mesh, ESMF_StateGet, ESMF_Field
+  use ESMF              , only : ESMF_SUCCESS, ESMF_LOGMSG_INFO
+  use ESMF              , only : ESMF_LogWrite
+  use ESMF              , only : operator(/=), operator(==)
+  use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs, cx=>shr_kind_cx
 
   implicit none
   private ! except
 
+  public  :: read_surface_fields_namelists
   public  :: advertise_fields
   public  :: realize_fields
   public  :: import_fields
   public  :: export_fields
-  public  :: state_getfldptr
 
   private :: fldlist_add
   private :: fldlist_realize
+  private :: state_getfldptr
 
   type fldlist_type
      character(len=128) :: stdname
@@ -46,31 +33,68 @@ module atm_import_export
   type (fldlist_type) , public, protected :: fldsToAtm(fldsMax)
   type (fldlist_type) , public, protected :: fldsFrAtm(fldsMax)
 
-  character(len=cx)      :: carma_fields     ! list of CARMA fields from lnd->atm
-  integer                :: drydep_nflds     ! number of dry deposition velocity fields lnd-> atm
-  integer                :: megan_nflds      ! number of MEGAN voc fields from lnd-> atm
-  integer                :: emis_nflds       ! number of fire emission fields from lnd-> atm
-  integer, public        :: ndep_nflds       ! number  of nitrogen deposition fields from atm->lnd/ocn
-  integer                :: dbug_flag = 0    ! ESMF log output
-  integer, parameter     :: debug_import = 0 ! internal debug level
-  integer, parameter     :: debug_export = 0 ! internal debug level
+  ! area correction factors for fluxes send and received from mediator
+  real(r8), allocatable :: mod2med_areacor(:)
+  real(r8), allocatable :: med2mod_areacor(:)
+
+  character(len=cx)      :: carma_fields = ' '      ! list of CARMA fields from lnd->atm
+  integer                :: drydep_nflds = -huge(1) ! number of dry deposition velocity fields lnd-> atm
+  integer                :: megan_nflds = -huge(1)  ! number of MEGAN voc fields from lnd-> atm
+  integer                :: emis_nflds = -huge(1)   ! number of fire emission fields from lnd-> atm
+  integer, public        :: ndep_nflds = -huge(1)   ! number of nitrogen deposition fields from atm->lnd/ocn
+  logical                :: atm_provides_lightning = .false. ! cld to grnd lightning flash freq (min-1)
   character(*),parameter :: F01 = "('(cam_import_export) ',a,i8,2x,i8,2x,d21.14)"
   character(*),parameter :: F02 = "('(cam_import_export) ',a,i8,2x,i8,2x,i8,2x,d21.14)"
-  character(*),parameter :: u_FILE_u = &
-       __FILE__
+  character(*),parameter :: u_FILE_u = __FILE__
 
 !===============================================================================
 contains
 !===============================================================================
 
-  subroutine advertise_fields(gcomp, flds_scalar_name, rc)
+  !-----------------------------------------------------------
+  ! read mediator fields namelist file
+  !-----------------------------------------------------------
+  subroutine read_surface_fields_namelists()
 
-    use spmd_utils        , only : masterproc
-    use seq_drydep_mod    , only : seq_drydep_readnl
+    use shr_drydep_mod    , only : shr_drydep_readnl
     use shr_megan_mod     , only : shr_megan_readnl
     use shr_fire_emis_mod , only : shr_fire_emis_readnl
     use shr_carma_mod     , only : shr_carma_readnl
     use shr_ndep_mod      , only : shr_ndep_readnl
+    use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
+
+    character(len=*), parameter :: nl_file_name = 'drv_flds_in'
+
+    ! read mediator fields options
+    call shr_ndep_readnl(nl_file_name, ndep_nflds)
+    call shr_drydep_readnl(nl_file_name, drydep_nflds)
+    call shr_megan_readnl(nl_file_name, megan_nflds)
+    call shr_fire_emis_readnl(nl_file_name, emis_nflds)
+    call shr_carma_readnl(nl_file_name, carma_fields)
+    call shr_lightning_coupling_readnl(nl_file_name, atm_provides_lightning)
+
+  end subroutine read_surface_fields_namelists
+
+  !-----------------------------------------------------------
+  ! advertise fields
+  !-----------------------------------------------------------
+  subroutine advertise_fields(gcomp, flds_scalar_name, rc)
+
+    ! use statements
+    use ESMF              , only : ESMF_MAXSTR
+    use nuopc_shr_methods , only : chkerr
+    use srf_field_check   , only : set_active_Sl_ram1
+    use srf_field_check   , only : set_active_Sl_fv
+    use srf_field_check   , only : set_active_Sl_soilw
+    use srf_field_check   , only : set_active_Fall_flxdst1
+    use srf_field_check   , only : set_active_Fall_flxvoc
+    use srf_field_check   , only : set_active_Fall_flxfire
+    use srf_field_check   , only : set_active_Fall_fco2_lnd
+    use srf_field_check   , only : set_active_Faoo_fco2_ocn
+    use srf_field_check   , only : set_active_Faxa_nhx
+    use srf_field_check   , only : set_active_Faxa_noy
+    use spmd_utils        , only : masterproc
+    use cam_logfile       , only : iulog
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -82,18 +106,15 @@ contains
     type(ESMF_State)       :: exportState
     character(ESMF_MAXSTR) :: stdname
     character(ESMF_MAXSTR) :: cvalue
-    character(len=2)       :: nec_str
     integer                :: n, num
     logical                :: flds_co2a      ! use case
     logical                :: flds_co2b      ! use case
     logical                :: flds_co2c      ! use case
-    integer                :: ndep_nflds, megan_nflds, emis_nflds
     character(len=128)     :: fldname
     character(len=*), parameter :: subname='(atm_import_export:advertise_fields)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -105,25 +126,25 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='flds_co2a', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flds_co2a
-    call ESMF_LogWrite(trim(subname)//'flds_co2a = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    if (masterproc) write(iulog,'(a)') trim(subname)//'flds_co2a = '// trim(cvalue)
 
     call NUOPC_CompAttributeGet(gcomp, name='flds_co2b', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flds_co2b
-    call ESMF_LogWrite(trim(subname)//'flds_co2b = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    if (masterproc) write(iulog,'(a)') trim(subname)//'flds_co2b = '// trim(cvalue)
 
     call NUOPC_CompAttributeGet(gcomp, name='flds_co2c', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flds_co2c
-    call ESMF_LogWrite(trim(subname)//'flds_co2c = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    if (masterproc) write(iulog,'(a)') trim(subname)//'flds_co2c = '// trim(cvalue)
 
     !--------------------------------
     ! Export fields
     !--------------------------------
 
-    call ESMF_LogWrite(trim(subname)//' export fields', ESMF_LOGMSG_INFO)
-    call fldlist_add(fldsFrAtm_num, fldsFrAtm, trim(flds_scalar_name))
+    if (masterproc) write(iulog,'(a)') trim(subname)//'export_fields '
 
+    call fldlist_add(fldsFrAtm_num, fldsFrAtm, trim(flds_scalar_name))
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_topo'       )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_z'          )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_u'          )
@@ -134,6 +155,7 @@ contains
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_pbot'       )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_dens'       )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_pslv'       )
+    call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_o3'         )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainc'    )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'    )
     call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowc'    )
@@ -169,16 +191,25 @@ contains
        call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_co2diag' )
     end if
 
-    ! from atm - nitrogen deposition
-    call shr_ndep_readnl("drv_flds_in", ndep_nflds)
     if (ndep_nflds > 0) then
-       call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_ndep', ungridded_lbound=1, ungridded_ubound=ndep_nflds)
+       ! The following is when CAM/WACCM computes ndep
        call set_active_Faxa_nhx(.true.)
        call set_active_Faxa_noy(.true.)
+    else
+       ! The following is used for reading in stream data
+       call set_active_Faxa_nhx(.false.)
+       call set_active_Faxa_noy(.false.)
+    end if
+    ! Assume that 2 fields are always sent as part of Faxa_ndep
+    call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_ndep', ungridded_lbound=1, ungridded_ubound=2)
+
+    ! lightning flash freq
+    if (atm_provides_lightning) then
+       call fldlist_add(fldsFrAtm_num, fldsFrAtm, 'Sa_lightning')
     end if
 
     ! Now advertise above export fields
-    call ESMF_LogWrite(trim(subname)//' advertise export fields ', ESMF_LOGMSG_INFO)
+    if (masterproc) write(iulog,*) trim(subname)//' advertise export fields'
     do n = 1,fldsFrAtm_num
        call NUOPC_Advertise(exportState, standardName=fldsFrAtm(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
@@ -189,10 +220,9 @@ contains
     ! Import fields
     !-----------------
 
-    call ESMF_LogWrite(trim(subname)//' Import Fields', ESMF_LOGMSG_INFO)
+    if (masterproc) write(iulog,'(a)') trim(subname)//' import fields '
 
     call fldlist_add(fldsToAtm_num, fldsToAtm, trim(flds_scalar_name))
-
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sx_anidr'  )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sx_avsdf'  )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sx_anidf'  )
@@ -210,7 +240,10 @@ contains
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Si_snowh'  )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'So_ssq'    )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'So_re'     )
+    call fldlist_add(fldsToAtm_num, fldsToAtm, 'So_ustar'  )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sx_u10'    )
+    call fldlist_add(fldsToAtm_num, fldsToAtm, 'So_ugustOut')
+    call fldlist_add(fldsToAtm_num, fldsToAtm, 'So_u10withGust')
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Faxx_taux' )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Faxx_tauy' )
     call fldlist_add(fldsToAtm_num, fldsToAtm, 'Faxx_lat'  )
@@ -232,39 +265,29 @@ contains
        call set_active_Faoo_fco2_ocn(.true.)
     end if
 
-    call ESMF_LogWrite(trim(subname)//' here1', ESMF_LOGMSG_INFO)
     ! dry deposition velocities from land - ALSO initialize drydep here
-    call seq_drydep_readnl("drv_flds_in", drydep_nflds)
     if (drydep_nflds > 0) then
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sl_ddvel', ungridded_lbound=1, ungridded_ubound=drydep_nflds)
     end if
 
-    call ESMF_LogWrite(trim(subname)//' here2', ESMF_LOGMSG_INFO)
     ! MEGAN VOC emissions fluxes from land
-    call shr_megan_readnl('drv_flds_in', megan_nflds)
     if (megan_nflds > 0) then
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Fall_voc', ungridded_lbound=1, ungridded_ubound=megan_nflds)
        call set_active_Fall_flxvoc(.true.)
     end if
 
-    call ESMF_LogWrite(trim(subname)//' here3', ESMF_LOGMSG_INFO)
     ! fire emissions fluxes from land
-    call shr_fire_emis_readnl('drv_flds_in', emis_nflds)
     if (emis_nflds > 0) then
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Fall_fire', ungridded_lbound=1, ungridded_ubound=emis_nflds)
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sl_fztop')
        call set_active_Fall_flxfire(.true.)
     end if
 
-    call ESMF_LogWrite(trim(subname)//' here4', ESMF_LOGMSG_INFO)
     ! CARMA volumetric soil water from land
-    call shr_carma_readnl('drv_flds_in', carma_fields)
     if (carma_fields /= ' ') then
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Sl_soilw') ! optional for carma
        call set_active_Sl_soilw(.true.) ! check for carma
     end if
-
-    call ESMF_LogWrite(trim(subname)//' here5', ESMF_LOGMSG_INFO)
 
     ! ------------------------------------------
     ! Now advertise above import fields
@@ -276,24 +299,50 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     enddo
 
-    call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
-
   end subroutine advertise_fields
 
   !===============================================================================
 
-  subroutine realize_fields(gcomp, Emesh, flds_scalar_name, flds_scalar_num, rc)
+  subroutine realize_fields(gcomp, Emesh, flds_scalar_name, flds_scalar_num, single_column, rc)
+
+    use ESMF              , only : ESMF_MeshGet, ESMF_StateGet
+    use ESMF              , only : ESMF_FieldRegridGetArea,ESMF_FieldGet
+    use nuopc_shr_methods , only : chkerr
+    use shr_mpi_mod       , only : shr_mpi_min, shr_mpi_max
+    use spmd_utils        , only : masterproc, mpicom
+    use physics_grid      , only : get_area_p
+    use cam_abortutils    , only : check_allocate
+    use cam_logfile       , only : iulog
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     type(ESMF_Mesh)     , intent(in)    :: Emesh
     character(len=*)    , intent(in)    :: flds_scalar_name
     integer             , intent(in)    :: flds_scalar_num
+    logical             , intent(in)    :: single_column
     integer             , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_State) :: importState
-    type(ESMF_State) :: exportState
+    type(ESMF_State)      :: importState
+    type(ESMF_State)      :: exportState
+    type(ESMF_Field)      :: lfield
+    integer               :: numOwnedElements
+    integer               :: n, ierr
+    real(r8), allocatable :: mesh_areas(:)
+    real(r8), pointer     :: dataptr(:)
+    real(r8)              :: max_mod2med_areacor
+    real(r8)              :: max_med2mod_areacor
+    real(r8)              :: min_mod2med_areacor
+    real(r8)              :: min_med2mod_areacor
+    real(r8)              :: max_mod2med_areacor_glob
+    real(r8)              :: max_med2mod_areacor_glob
+    real(r8)              :: min_mod2med_areacor_glob
+    real(r8)              :: min_med2mod_areacor_glob
+    character(len=cl)     :: cvalue
+    character(len=cl)     :: mesh_atm
+    character(len=cl)     :: mesh_lnd
+    character(len=cl)     :: mesh_ocn
+    logical               :: samegrid_atm_lnd_ocn
     character(len=*), parameter :: subname='(atm_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -324,6 +373,78 @@ contains
          mesh=Emesh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if atm/lnd/ocn are on the same grid - if so set area correction factors to 1
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=mesh_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=mesh_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_ocn', value=mesh_ocn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    samegrid_atm_lnd_ocn = .false.
+    if ( trim(mesh_lnd) /= 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd) .and. &
+         trim(mesh_ocn) /= 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
+       samegrid_atm_lnd_ocn = .true.
+    elseif ( trim(mesh_lnd) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
+       samegrid_atm_lnd_ocn = .true.
+    elseif ( trim(mesh_ocn) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd)) then
+       samegrid_atm_lnd_ocn = .true.
+    end if
+
+    ! allocate area correction factors
+    call ESMF_MeshGet(Emesh, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate (mod2med_areacor(numOwnedElements), stat=ierr)
+    call check_allocate(ierr, subname, 'mod2med_areacor(numOwnedElements)', &
+                        file=__FILE__, line=__LINE__)
+    allocate (med2mod_areacor(numOwnedElements), stat=ierr)
+    call check_allocate(ierr, subname, 'med2mod_areacor(numOwnedElements)', &
+                        file=__FILE__, line=__LINE__)
+
+    if (single_column .or. samegrid_atm_lnd_ocn) then
+
+       mod2med_areacor(:) = 1._r8
+       med2mod_areacor(:) = 1._r8
+
+    else
+
+       ! Determine areas for regridding
+       call ESMF_StateGet(exportState, itemName=trim(fldsFrAtm(2)%stdname), field=lfield, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldRegridGetArea(lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       allocate(mesh_areas(numOwnedElements), stat=ierr)
+       call check_allocate(ierr, subname, 'mesh_areas(numOwnedElements)', &
+                        file=__FILE__, line=__LINE__)
+       mesh_areas(:) = dataptr(:)
+
+       ! Determine flux correction factors (module variables)
+       do n = 1,numOwnedElements
+          mod2med_areacor(n) = get_area_p(n) / mesh_areas(n)
+          med2mod_areacor(n) = 1._r8 / mod2med_areacor(n)
+       end do
+       deallocate(mesh_areas)
+
+    end if
+
+    min_mod2med_areacor = minval(mod2med_areacor)
+    max_mod2med_areacor = maxval(mod2med_areacor)
+    min_med2mod_areacor = minval(med2mod_areacor)
+    max_med2mod_areacor = maxval(med2mod_areacor)
+    call shr_mpi_max(max_mod2med_areacor, max_mod2med_areacor_glob, mpicom)
+    call shr_mpi_min(min_mod2med_areacor, min_mod2med_areacor_glob, mpicom)
+    call shr_mpi_max(max_med2mod_areacor, max_med2mod_areacor_glob, mpicom)
+    call shr_mpi_min(min_med2mod_areacor, min_med2mod_areacor_glob, mpicom)
+
+    if (masterproc) then
+       write(iulog,'(2A,2g23.15,A )') trim(subname),' :  min_mod2med_areacor, max_mod2med_areacor ',&
+            min_mod2med_areacor_glob, max_mod2med_areacor_glob, 'CAM'
+       write(iulog,'(2A,2g23.15,A )') trim(subname),' :  min_med2mod_areacor, max_med2mod_areacor ',&
+            min_med2mod_areacor_glob, max_med2mod_areacor_glob, 'CAM'
+    end if
+
     call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
 
   end subroutine realize_fields
@@ -334,19 +455,20 @@ contains
 
     ! -----------------------------------------------------
     ! Set field pointers in import state and
-    ! copy from field pointer to chunk array data structure
+    ! copy from field pointer to CAM-SIMA array data structure
     ! -----------------------------------------------------
 
-    use spmd_utils        , only : masterproc
     use camsrfexch        , only : cam_in_t
-    use physics_grid      , only : columns_on_task
     use shr_const_mod     , only : shr_const_stebol
-!CAMDEN TODO Need to uncomment these once carbon cycling is enabled in CAMDEN:
+    use shr_sys_mod       , only : shr_sys_abort
+    use nuopc_shr_methods , only : chkerr
+!CAM-SIMA NOTE: Need to uncomment these once carbon cycling is enabled in SIMA.
 !    use co2_cycle         , only : c_i, co2_readFlux_ocn, co2_readFlux_fuel
 !    use co2_cycle         , only : co2_transport, co2_time_interp_ocn, co2_time_interp_fuel
 !    use co2_cycle         , only : data_flux_ocn, data_flux_fuel
     use physconst         , only : mwco2
     use time_manager      , only : is_first_step, get_nstep
+    use physics_grid      , only : columns_on_task
 
     ! input/output variabes
     type(ESMF_GridComp)               :: gcomp
@@ -356,8 +478,7 @@ contains
 
     ! local variables
     type(ESMF_State)   :: importState
-    integer            :: i,n,c,g, num  ! indices
-    integer            :: ncols         ! number of columns
+    integer            :: i,n  ! loop indices
     integer            :: nstep
     logical            :: overwrite_flds
     logical            :: exists
@@ -391,7 +512,6 @@ contains
     !---------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug_flag > 10) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! Get import state
     call NUOPC_ModelGet(gcomp, importState=importState, rc=rc)
@@ -418,15 +538,11 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Faxx_evap', fldptr=fldptr_evap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%wsx(i)    = -fldptr_taux(g)
-             cam_in(c)%wsy(i)    = -fldptr_tauy(g)
-             cam_in(c)%shf(i)    = -fldptr_sen(g)
-             cam_in(c)%cflx(i,1) = -fldptr_evap(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%wsx(i)    = -fldptr_taux(i) * med2mod_areacor(i)
+          cam_in%wsy(i)    = -fldptr_tauy(g) * med2mod_areacor(i)
+          cam_in%shf(i)    = -fldptr_sen(i)  * med2mod_areacor(i)
+          cam_in%cflx(i,1) = -fldptr_evap(i) * med2mod_areacor(i)
        end do
     end if  ! end of overwrite_flds
 
@@ -462,27 +578,25 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getfldptr(importState, 'Sl_lfrac', fldptr=fldptr_lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    g = 1
-    do c = begchunk,endchunk
-       do i = 1,get_ncols_p(c)
-          cam_in(c)%lhf(i)       = -fldptr_lat(g)
-          cam_in(c)%lwup(i)      = -fldptr_lwup(g)
-          cam_in(c)%asdir(i)     =  fldptr_avsdr(g)
-          cam_in(c)%aldir(i)     =  fldptr_anidr(g)
-          cam_in(c)%asdif(i)     =  fldptr_avsdf(g)
-          cam_in(c)%aldif(i)     =  fldptr_anidf(g)
-          cam_in(c)%ts(i)        =  fldptr_tsurf(g)
-          cam_in(c)%sst(i)       =  fldptr_tocn(g)
-          cam_in(c)%tref(i)      =  fldptr_tref(g)
-          cam_in(c)%qref(i)      =  fldptr_qref(g)
-          cam_in(c)%u10(i)       =  fldptr_u10(g)
-          cam_in(c)%snowhland(i) =  fldptr_snowhland(g)
-          cam_in(c)%snowhice(i)  =  fldptr_snowhice(g)
-          cam_in(c)%icefrac(i)   =  fldptr_ifrac(g)
-          cam_in(c)%ocnfrac(i)   =  fldptr_ofrac(g)
-          cam_in(c)%landfrac(i)  =  fldptr_lfrac(g)
-          g = g + 1
-       end do
+
+    ! Only do area correction on fluxes
+    do i = 1, columns_on_task
+       cam_in%lhf(i)       = -fldptr_lat(i)  * med2mod_areacor(i)
+       cam_in%lwup(i)      = -fldptr_lwup(i) * med2mod_areacor(i)
+       cam_in%asdir(i)     =  fldptr_avsdr(i)
+       cam_in%aldir(i)     =  fldptr_anidr(i)
+       cam_in%asdif(i)     =  fldptr_avsdf(i)
+       cam_in%aldif(i)     =  fldptr_anidf(i)
+       cam_in%ts(i)        =  fldptr_tsurf(i)
+       cam_in%sst(i)       =  fldptr_tocn(i)
+       cam_in%tref(i)      =  fldptr_tref(i)
+       cam_in%qref(i)      =  fldptr_qref(i)
+       cam_in%u10(i)       =  fldptr_u10(i)
+       cam_in%snowhland(i) =  fldptr_snowhland(i)
+       cam_in%snowhice(i)  =  fldptr_snowhice(i)
+       cam_in%icefrac(i)   =  fldptr_ifrac(i)
+       cam_in%ocnfrac(i)   =  fldptr_ofrac(i)
+       cam_in%landfrac(i)  =  fldptr_lfrac(i)
     end do
 
     ! Optional fields
@@ -490,104 +604,76 @@ contains
     call state_getfldptr(importState, 'Sl_ram1', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          if ( associated(cam_in(c)%ram1) ) then
-             do i = 1, get_ncols_p(c)
-                cam_in(c)%ram1(i) = fldptr1d(g)
-                g = g + 1
-             end do
-          end if
-       end do
+       if ( associated(cam_in%ram1) ) then
+          do i = 1, columns_on_task
+             cam_in%ram1(i) = fldptr1d(i)
+          end do
+       end if
     end if
 
     call state_getfldptr(importState, 'Sl_fv', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          if ( associated(cam_in(c)%fv) ) then
-             do i = 1,get_ncols_p(c)
-                cam_in(c)%fv(i) = fldptr1d(g)
-                g = g + 1
-             end do
-          end if
-       end do
+       if ( associated(cam_in%fv) ) then
+          do i = 1, columns_on_task
+             cam_in%fv(i) = fldptr1d(i)
+          end do
+       end if
     end if
 
     ! For CARMA - soil water from land
     call state_getfldptr(importState, 'Sl_soilw', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          if ( associated(cam_in(c)%soilw)) then
-             do i = 1,get_ncols_p(c)
-                cam_in(c)%soilw(i) = fldptr1d(g)
-                g = g+1
-             end do
-          end if
-       end do
+       if ( associated(cam_in%soilw)) then
+          do i = 1, columns_on_task
+             cam_in%soilw(i) = fldptr1d(i)
+          end do
+       end if
     end if
 
     ! dry deposition fluxes from land
     call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          if ( associated(cam_in(c)%dstflx) ) then
-             do i = 1,get_ncols_p(c)
-                do n = 1, size(fldptr2d, dim=1)
-                   cam_in(c)%dstflx(i,n) = fldptr2d(n,g)
-                end do
-                g = g + 1
+       if ( associated(cam_in%dstflx) ) then
+          do i = 1, columns_on_task
+             do n = 1, size(fldptr2d, dim=1)
+                cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
              end do
-          end if
-       end do
+          end do
+       end if
     end if
 
     ! MEGAN VOC emis fluxes from land
     call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c=begchunk,endchunk
-          if ( associated(cam_in(c)%meganflx) ) then
-             do i = 1,get_ncols_p(c)
-                do n = 1, size(fldptr2d, dim=1)
-                   cam_in(c)%meganflx(i,n) = fldptr2d(n,g)
-                end do
-                g = g + 1
+       if ( associated(cam_in%meganflx) ) then
+          do i = 1, columns_on_task
+             do n = 1, size(fldptr2d, dim=1)
+                cam_in%meganflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
              end do
-          end if
-       end do
+          end do
+       end if
     end if
 
     ! fire emission fluxes from land
     call state_getfldptr(importState, 'Fall_fire', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          if ( associated(cam_in(c)%fireflx) .and. associated(cam_in(c)%fireztop) ) then
-             do i = 1,get_ncols_p(c)
-                do n = 1, size(fldptr2d, dim=1)
-                   cam_in(c)%fireflx(i,n) = fldptr2d(n,g)
-                end do
-                g = g + 1
+       if ( associated(cam_in%fireflx) .and. associated(cam_in%fireztop) ) then
+          do i = 1, columns_on_task
+             do n = 1, size(fldptr2d, dim=1)
+                cam_in%fireflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
              end do
-          end if
-       end do
+          end do
+       end if
     end if
     call state_getfldptr(importState, 'Sl_fztop', fldptr=fldptr1d, exists=exists, rc=rc)
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%fireztop(i) = fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%fireztop(i) = fldptr1d(i)
        end do
     end if
 
@@ -595,13 +681,9 @@ contains
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             do n = 1, size(fldptr2d, dim=1)
-                cam_in(c)%depvel(i,n) = fldptr2d(n,g)
-             end do
-             g = g + 1
+       do i = 1, columns_on_task
+          do n = 1, size(fldptr2d, dim=1)
+             cam_in%depvel(i,n) = fldptr2d(n,i)
           end do
        end do
     end if
@@ -610,34 +692,38 @@ contains
     call state_getfldptr(importState,  'So_ustar', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%ustar(i) = fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%ustar(i) = fldptr1d(i)
        end do
     end if
     call state_getfldptr(importState,  'So_re', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%re(i)= fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%re(i)= fldptr1d(i)
        end do
     end if
     call state_getfldptr(importState,  'So_ssq', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%ssq(i) = fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%ssq(i) = fldptr1d(i)
+       end do
+    end if
+
+    call state_getfldptr(importState,  'So_ugustOut', fldptr=fldptr1d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          cam_in%ugustOut(i) = fldptr1d(i)
+       end do
+    end if
+
+    call state_getfldptr(importState,  'So_u10withGust', fldptr=fldptr1d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          cam_in%u10withGusts(i) = fldptr1d(i)
        end do
     end if
 
@@ -645,23 +731,15 @@ contains
     call state_getfldptr(importState,  'Fall_fco2_lnd', fldptr=fldptr1d, exists=exists_fco2_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists_fco2_lnd) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%fco2_lnd(i) = -fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%fco2_lnd(i) = -fldptr1d(i) * med2mod_areacor(i)
        end do
     end if
     call state_getfldptr(importState,  'Faoo_fco2_ocn', fldptr=fldptr1d, exists=exists_fco2_ocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists_fco2_ocn) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%fco2_ocn(i) = -fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%fco2_ocn(i) = -fldptr1d(i) * med2mod_areacor(i)
        end do
     else
        ! Consistency check
@@ -671,12 +749,8 @@ contains
     end if
     call state_getfldptr(importState,  'Faoo_dms_ocn', fldptr=fldptr1d, exists=exists, rc=rc)
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             cam_in(c)%fdms(i) = -fldptr1d(g)
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          cam_in%fdms(i) = -fldptr1d(i) * med2mod_areacor(i)
        end do
     end if
 
@@ -701,36 +775,35 @@ contains
        ! from lnd : through coupler or zero
        ! all co2 fluxes in unit kgCO2/m2/s
 
-       do c=begchunk,endchunk
-          do i=1, get_ncols_p(c)
+       do i=1, columns_on_task
 
-             ! co2 flux from ocn
-             if (exists_fco2_ocn) then
-                cam_in(c)%cflx(i,c_i(1)) = cam_in(c)%fco2_ocn(i)
-             else if (co2_readFlux_ocn) then
-                ! convert from molesCO2/m2/s to kgCO2/m2/s
-                cam_in(c)%cflx(i,c_i(1)) = &
-                     -data_flux_ocn%co2flx(i,c)*(1._r8- cam_in(c)%landfrac(i))*mwco2*1.0e-3_r8
+          ! co2 flux from ocn
+          if (exists_fco2_ocn) then
+             cam_in%cflx(i,c_i(1)) = cam_in%fco2_ocn(i)
+          else if (co2_readFlux_ocn) then
+             ! convert from molesCO2/m2/s to kgCO2/m2/s
+             cam_in%cflx(i,c_i(1)) = &
+                -data_flux_ocn%co2flx(i,c)*(1._r8- cam_in%landfrac(i))*mwco2*1.0e-3_r8
              else
-                cam_in(c)%cflx(i,c_i(1)) = 0._r8
+                cam_in%cflx(i,c_i(1)) = 0._r8
              end if
 
              ! co2 flux from fossil fuel
              if (co2_readFlux_fuel) then
-                cam_in(c)%cflx(i,c_i(2)) = data_flux_fuel%co2flx(i,c)
+                cam_in%cflx(i,c_i(2)) = data_flux_fuel%co2flx(i)
              else
-                cam_in(c)%cflx(i,c_i(2)) = 0._r8
+                cam_in%cflx(i,c_i(2)) = 0._r8
              end if
 
              ! co2 flux from land (cpl already multiplies flux by land fraction)
              if (exists_fco2_lnd) then
-                cam_in(c)%cflx(i,c_i(3)) = cam_in(c)%fco2_lnd(i)
+                cam_in%cflx(i,c_i(3)) = cam_in%fco2_lnd(i)
              else
-                cam_in(c)%cflx(i,c_i(3)) = 0._r8
+                cam_in%cflx(i,c_i(3)) = 0._r8
              end if
 
              ! merged co2 flux
-             cam_in(c)%cflx(i,c_i(4)) = cam_in(c)%cflx(i,c_i(1)) + cam_in(c)%cflx(i,c_i(2)) + cam_in(c)%cflx(i,c_i(3))
+             cam_in%cflx(i,c_i(4)) = cam_in%cflx(i,c_i(1)) + cam_in%cflx(i,c_i(2)) + cam_in%cflx(i,c_i(3))
           end do
        end do
     end if
@@ -738,85 +811,52 @@ contains
     ! if first step, determine longwave up flux from the surface temperature
     if (first_time) then
        if (is_first_step()) then
-          do c=begchunk, endchunk
-             do i=1, get_ncols_p(c)
-                cam_in(c)%lwup(i) = shr_const_stebol*(cam_in(c)%ts(i)**4)
-             end do
+          do i=1, columns_on_task
+             cam_in%lwup(i) = shr_const_stebol*(cam_in%ts(i)**4)
           end do
        end if
        first_time = .false.
     end if
 
-    !-----------------------------------------------------------------
-    ! Debug import
-    !-----------------------------------------------------------------
-
-    if (debug_import > 0 .and. masterproc .and. get_nstep()<5) then
-       nstep = get_nstep()
-       g=1
-       do c=begchunk, endchunk
-          do i=1, get_ncols_p(c)
-             write(iulog,F01)'import: nstep, g, Faxx_tauy = ',nstep,g,-cam_in(c)%wsy(i)
-             write(iulog,F01)'import: nstep, g, Faxx_taux = ',nstep,g,-cam_in(c)%wsx(i)
-             write(iulog,F01)'import: nstep, g, Faxx_shf  = ',nstep,g,-cam_in(c)%shf(i)
-             write(iulog,F01)'import: nstep, g, Faxx_lhf  = ',nstep,g,-cam_in(c)%lhf(i)
-             write(iulog,F01)'import: nstep, g, Faxx_evap = ',nstep,g,-cam_in(c)%cflx(i,1)
-             write(iulog,F01)'import: nstep, g, Faxa_lwup = ',nstep,g,-cam_in(c)%lwup(i)
-             write(iulog,F01)'import: nstep, g, Sx_asdir  = ',nstep,g, cam_in(c)%asdir(i)
-             write(iulog,F01)'import: nstep, g, Sx_aldir  = ',nstep,g, cam_in(c)%aldir(i)
-             write(iulog,F01)'import: nstep, g, Sx_asdif  = ',nstep,g, cam_in(c)%asdif(i)
-             write(iulog,F01)'import: nstep, g, Sx_aldif  = ',nstep,g, cam_in(c)%aldif(i)
-             write(iulog,F01)'import: nstep, g, Sx_t      = ',nstep,g, cam_in(c)%ts(i)
-             write(iulog,F01)'import: nstep, g, So_t      = ',nstep,g, cam_in(c)%sst(i)
-             write(iulog,F01)'import: nstep, g, Sl_snowh  = ',nstep,g, cam_in(c)%snowhland(i)
-             write(iulog,F01)'import: nstep, g, Si_snowh  = ',nstep,g, cam_in(c)%snowhice(i)
-             write(iulog,F01)'import: nstep, g, Si_ifrac  = ',nstep,g, cam_in(c)%icefrac(i)
-             write(iulog,F01)'import: nstep, g, So_ofrac  = ',nstep,g, cam_in(c)%ocnfrac(i)
-             write(iulog,F01)'import: nstep, g, Sl_lfrac  = ',nstep,g, cam_in(c)%landfrac(i)
-             write(iulog,F01)'import: nstep, g, Sx_tref   = ',nstep,g, cam_in(c)%tref(i)
-             write(iulog,F01)'import: nstep, g, Sx_qref   = ',nstep,g, cam_in(c)%qref(i)
-             write(iulog,F01)'import: nstep, g, Sx_qu10   = ',nstep,g, cam_in(c)%u10(i)
-             g = g + 1
-          end do
-       end do
-    end if
-
 !Remove once the "cam_in" object has been fully implemented. -JN
 #endif
-
-    if (dbug_flag > 10) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine import_fields
 
   !===============================================================================
 
-  subroutine export_fields( gcomp, cam_out, rc)
+  subroutine export_fields( gcomp, model_mesh, model_clock, cam_out, rc)
 
     ! -----------------------------------------------------
     ! Set field pointers in export set
-    ! Copy from chunk array data structure into state fldptr
+    ! Copy from CAM-SIMA array data structure into state fldptr
     ! -----------------------------------------------------
 
-    use camsrfexch   , only : cam_out_t
-    use physics_grid , only : columns_on_task
-    use time_manager , only : is_first_step, get_nstep
-    use spmd_utils   , only : masterproc
+    use ESMF              , only : ESMF_Clock
+    use nuopc_shr_methods , only : chkerr
+    use srf_field_check   , only : active_Faxa_nhx, active_Faxa_noy
+    use camsrfexch        , only : cam_out_t
+    use time_manager      , only : is_first_step, get_nstep
+    use physics_grid      , only : columns_on_task
+    use atm_stream_ndep   , only : stream_ndep_init, stream_ndep_interp
+    use atm_stream_ndep   , only : stream_ndep_is_initialized
 
     !-------------------------------
     ! Pack the export state
     !-------------------------------
 
     ! input/output variables
-    type(ESMF_GridComp)           :: gcomp
-    type(cam_out_t) , intent(in)  :: cam_out
-    integer         , intent(out) :: rc
+    type(ESMF_GridComp)              :: gcomp
+    type(ESMF_Mesh) , intent(in)     :: model_mesh
+    type(ESMF_Clock), intent(in)     :: model_clock
+    type(cam_out_t) , intent(inout)  :: cam_out
+    integer         , intent(out)    :: rc
 
     ! local variables
     type(ESMF_State)  :: exportState
-    integer           :: i,m,c,n,g  ! indices
-    integer           :: ncols      ! Number of columns
-    integer           :: nstep
+    integer           :: i ! index variable
     logical           :: exists
+    real(r8)          :: scale_ndep
     ! 2d pointers
     real(r8), pointer :: fldptr_ndep(:,:)
     real(r8), pointer :: fldptr_bcph(:,:)  , fldptr_ocph(:,:)
@@ -833,6 +873,8 @@ contains
     real(r8), pointer :: fldptr_shum(:)    , fldptr_dens(:)
     real(r8), pointer :: fldptr_ptem(:)    , fldptr_pslv(:)
     real(r8), pointer :: fldptr_co2prog(:) , fldptr_co2diag(:)
+    real(r8), pointer :: fldptr_ozone(:)
+    real(r8), pointer :: fldptr_lght(:)
     character(len=*), parameter :: subname='(atm_import_export:export_fields)'
     !---------------------------------------------------------------------------
 
@@ -866,25 +908,21 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getfldptr(exportState, 'Sa_pslv', fldptr=fldptr_pslv, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    g = 1
-    do c = begchunk,endchunk
-       do i = 1,get_ncols_p(c)
-          fldptr_topo(g) = cam_out(c)%topo(i)
-          fldptr_zbot(g) = cam_out(c)%zbot(i)
-          fldptr_ubot(g) = cam_out(c)%ubot(i)
-          fldptr_vbot(g) = cam_out(c)%vbot(i)
-          fldptr_pbot(g) = cam_out(c)%pbot(i)
-          fldptr_tbot(g) = cam_out(c)%tbot(i)
-          fldptr_shum(g) = cam_out(c)%qbot(i,1)
-          fldptr_dens(g) = cam_out(c)%rho(i)
-          fldptr_ptem(g) = cam_out(c)%thbot(i)
-          fldptr_pslv(g) = cam_out(c)%psl(i)
-          g = g + 1
-       end do
+    do i = 1, columns_on_task
+       fldptr_topo(i) = cam_out%topo(i)
+       fldptr_zbot(i) = cam_out%zbot(i)
+       fldptr_ubot(i) = cam_out%ubot(i)
+       fldptr_vbot(i) = cam_out%vbot(i)
+       fldptr_pbot(i) = cam_out%pbot(i)
+       fldptr_tbot(i) = cam_out%tbot(i)
+       fldptr_shum(i) = cam_out%qbot(i,1)
+       fldptr_dens(i) = cam_out%rho(i)
+       fldptr_ptem(i) = cam_out%thbot(i)
+       fldptr_pslv(i) = cam_out%psl(i)
     end do
 
     ! required export flux variables
-    call state_getfldptr(exportState, 'Faxa_swnet', fldptr=fldptr_swnet,  rc=rc)
+    call state_getfldptr(exportState, 'Faxa_swnet', fldptr=fldptr_swnet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getfldptr(exportState, 'Faxa_lwdn' , fldptr=fldptr_lwdn , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -904,21 +942,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getfldptr(exportState, 'Faxa_swvdf', fldptr=fldptr_solsd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    g = 1
-    do c = begchunk,endchunk
-       do i = 1,get_ncols_p(c)
-          fldptr_lwdn(g)  = cam_out(c)%flwds(i)
-          fldptr_swnet(g) = cam_out(c)%netsw(i)
-          fldptr_snowc(g) = cam_out(c)%precsc(i)*1000._r8
-          fldptr_snowl(g) = cam_out(c)%precsl(i)*1000._r8
-          fldptr_rainc(g) = (cam_out(c)%precc(i)-cam_out(c)%precsc(i))*1000._r8
-          fldptr_rainl(g) = (cam_out(c)%precl(i)-cam_out(c)%precsl(i))*1000._r8
-          fldptr_soll(g)  = cam_out(c)%soll(i)
-          fldptr_sols(g)  = cam_out(c)%sols(i)
-          fldptr_solld(g) = cam_out(c)%solld(i)
-          fldptr_solsd(g) = cam_out(c)%solsd(i)
-          g = g + 1
-       end do
+    do i = 1, columns_on_task
+       fldptr_lwdn(i)  = cam_out%flwds(i) * mod2med_areacor(i)
+       fldptr_swnet(i) = cam_out%netsw(i) * mod2med_areacor(i)
+       fldptr_snowc(i) = cam_out%precsc(i)*1000._r8 * mod2med_areacor(i)
+       fldptr_snowl(i) = cam_out%precsl(i)*1000._r8 * mod2med_areacor(i)
+       fldptr_rainc(i) = (cam_out%precc(i) - cam_out(c)%precsc(i))*1000._r8 * mod2med_areacor(i)
+       fldptr_rainl(i) = (cam_out%precl(i) - cam_out(c)%precsl(i))*1000._r8 * mod2med_areacor(i)
+       fldptr_soll(i)  = cam_out%soll(i)  * mod2med_areacor(i)
+       fldptr_sols(i)  = cam_out%sols(i)  * mod2med_areacor(i)
+       fldptr_solld(i) = cam_out%solld(i) * mod2med_areacor(i)
+       fldptr_solsd(i) = cam_out%solsd(i) * mod2med_areacor(i)
     end do
 
     ! aerosol deposition fluxes
@@ -932,113 +966,78 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ! (1) => bcphidry, (2) => bcphodry, (3) => bcphiwet
     ! (1) => ocphidry, (2) => ocphodry, (3) => ocphiwet
-    g = 1
-    do c = begchunk,endchunk
-       do i = 1,get_ncols_p(c)
-          fldptr_bcph(1,g)   = cam_out(c)%bcphidry(i)
-          fldptr_bcph(2,g)   = cam_out(c)%bcphodry(i)
-          fldptr_bcph(3,g)   = cam_out(c)%bcphiwet(i)
-          fldptr_ocph(1,g)   = cam_out(c)%ocphidry(i)
-          fldptr_ocph(2,g)   = cam_out(c)%ocphodry(i)
-          fldptr_ocph(3,g)   = cam_out(c)%ocphiwet(i)
-          fldptr_dstdry(1,g) = cam_out(c)%dstdry1(i)
-          fldptr_dstdry(2,g) = cam_out(c)%dstdry2(i)
-          fldptr_dstdry(3,g) = cam_out(c)%dstdry3(i)
-          fldptr_dstdry(4,g) = cam_out(c)%dstdry4(i)
-          fldptr_dstwet(1,g) = cam_out(c)%dstwet1(i)
-          fldptr_dstwet(2,g) = cam_out(c)%dstwet2(i)
-          fldptr_dstwet(3,g) = cam_out(c)%dstwet3(i)
-          fldptr_dstwet(4,g) = cam_out(c)%dstwet4(i)
-          g = g + 1
-       end do
+    do i = 1, columns_on_task
+       fldptr_bcph(1,i)   = cam_out%bcphidry(i) * mod2med_areacor(i)
+       fldptr_bcph(2,i)   = cam_out%bcphodry(i) * mod2med_areacor(i)
+       fldptr_bcph(3,i)   = cam_out%bcphiwet(i) * mod2med_areacor(i)
+       fldptr_ocph(1,i)   = cam_out%ocphidry(i) * mod2med_areacor(i)
+       fldptr_ocph(2,i)   = cam_out%ocphodry(i) * mod2med_areacor(i)
+       fldptr_ocph(3,i)   = cam_out%ocphiwet(i) * mod2med_areacor(i)
+       fldptr_dstdry(1,i) = cam_out%dstdry1(i)  * mod2med_areacor(i)
+       fldptr_dstdry(2,i) = cam_out%dstdry2(i)  * mod2med_areacor(i)
+       fldptr_dstdry(3,i) = cam_out%dstdry3(i)  * mod2med_areacor(i)
+       fldptr_dstdry(4,i) = cam_out%dstdry4(i)  * mod2med_areacor(i)
+       fldptr_dstwet(1,i) = cam_out%dstwet1(i)  * mod2med_areacor(i)
+       fldptr_dstwet(2,i) = cam_out%dstwet2(i)  * mod2med_areacor(i)
+       fldptr_dstwet(3,i) = cam_out%dstwet3(i)  * mod2med_areacor(i)
+       fldptr_dstwet(4,i) = cam_out%dstwet4(i)  * mod2med_areacor(i)
     end do
+
+    call state_getfldptr(exportState, 'Sa_o3', fldptr=fldptr_ozone, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          fldptr_ozone(i) = cam_out%ozone(i) ! atm ozone
+       end do
+    end if
+
+    call state_getfldptr(exportState, 'Sa_lightning', fldptr=fldptr_lght, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          fldptr_lght(i) = cam_out%lightning_flash_freq(i) ! cloud-to-ground lightning flash frequency (/min)
+       end do
+    end if
 
     call state_getfldptr(exportState, 'Sa_co2prog', fldptr=fldptr_co2prog, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             fldptr_co2prog(g) = cam_out(c)%co2prog(i) ! atm prognostic co2
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          fldptr_co2prog(i) = cam_out%co2prog(i) ! atm prognostic co2
        end do
     end if
 
     call state_getfldptr(exportState, 'Sa_co2diag', fldptr=fldptr_co2diag, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             fldptr_co2diag(g) = cam_out(c)%co2diag(i) ! atm diagnostic co2
-             g = g + 1
-          end do
+       do i = 1, columns_on_task
+          fldptr_co2diag(i) = cam_out%co2diag(i) ! atm diagnostic co2
        end do
     end if
 
-    call state_getfldptr(exportState, 'Faxa_ndep', fldptr2d=fldptr_ndep, exists=exists, rc=rc)
+    ! If ndep fields are not computed in cam and must be obtained from the ndep input stream
+    call state_getfldptr(exportState, 'Faxa_ndep', fldptr2d=fldptr_ndep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (exists) then
-       ! (1) => nhx, (2) => noy
-       g = 1
-       do c = begchunk,endchunk
-          do i = 1,get_ncols_p(c)
-             fldptr_ndep(1,g) = cam_out(c)%nhx_nitrogen_flx(i)
-             fldptr_ndep(2,g) = cam_out(c)%noy_nitrogen_flx(i)
-             g = g + 1
-          end do
-       end do
+    if (.not. active_Faxa_nhx .and. .not. active_Faxa_noy) then
+       if (.not. stream_ndep_is_initialized) then
+          call stream_ndep_init(model_mesh, model_clock, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          stream_ndep_is_initialized = .true.
+       end if
+       call stream_ndep_interp(cam_out, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! NDEP read from forcing is expected to be in units of gN/m2/sec - but the mediator
+       ! expects units of kgN/m2/sec
+       scale_ndep = .001_r8
+    else
+       ! If waccm computes ndep, then its in units of kgN/m2/s - and the mediator expects
+       ! units of kgN/m2/sec, so the following conversion needs to happen
+       scale_ndep = 1._r8
     end if
-
-    !-----------------------------------------------------------------
-    ! Debug export
-    !-----------------------------------------------------------------
-
-    if (debug_export > 0 .and. masterproc .and. get_nstep()<5) then
-       nstep = get_nstep()
-       g=1
-       do c=begchunk, endchunk
-          do i=1, get_ncols_p(c)
-             write(iulog,F01)'export: nstep, g, Sa_z          = ',nstep,g,cam_out(c)%zbot(i)
-             write(iulog,F01)'export: nstep, g, Sa_topo       = ',nstep,g,cam_out(c)%topo(i)
-             write(iulog,F01)'export: nstep, g, Sa_u          = ',nstep,g,cam_out(c)%ubot(i)
-             write(iulog,F01)'export: nstep, g, Sa_v          = ',nstep,g,cam_out(c)%vbot(i)
-             write(iulog,F01)'export: nstep, g, Sa_tbot       = ',nstep,g,cam_out(c)%tbot(i)
-             write(iulog,F01)'export: nstep, g, Sa_ptem       = ',nstep,g,cam_out(c)%thbot(i)
-             write(iulog,F01)'export: nstep, g, Sa_pbot       = ',nstep,g,cam_out(c)%pbot(i)
-             write(iulog,F01)'export: nstep, g, Sa_shum       = ',nstep,g,cam_out(c)%qbot(i,1)
-             write(iulog,F01)'export: nstep, g, Sa_dens       = ',nstep,g,cam_out(c)%rho(i)
-             write(iulog,F01)'export: nstep, g, Faxa_swnet    = ',nstep,g,cam_out(c)%netsw(i)
-             write(iulog,F01)'export: nstep, g, Faxa_lwdn     = ',nstep,g,cam_out(c)%flwds(i)
-             write(iulog,F01)'export: nstep, g, Faxa_rainc    = ',nstep,g,(cam_out(c)%precc(i)-cam_out(c)%precsc(i))*1000._r8
-             write(iulog,F01)'export: nstep, g, Faxa_rainl    = ',nstep,g,(cam_out(c)%precl(i)-cam_out(c)%precsl(i))*1000._r8
-             write(iulog,F01)'export: nstep, g, Faxa_snowc    = ',nstep,g,cam_out(c)%precsc(i)*1000._r8
-             write(iulog,F01)'export: nstep, g, Faxa_snowl    = ',nstep,g,cam_out(c)%precsl(i)*1000._r8
-             write(iulog,F01)'export: nstep, g, Faxa_swndr    = ',nstep,g,cam_out(c)%soll(i)
-             write(iulog,F01)'export: nstep, g, Faxa_swvdr    = ',nstep,g,cam_out(c)%sols(i)
-             write(iulog,F01)'export: nstep, g, Faxa_swndf    = ',nstep,g,cam_out(c)%solld(i)
-             write(iulog,F01)'export: nstep, g, Faxa_swvdf    = ',nstep,g,cam_out(c)%solsd(i)
-             write(iulog,F01)'export: nstep, g, Faxa_bcphidry = ',nstep,g,cam_out(c)%bcphidry(i)
-             write(iulog,F01)'export: nstep, g, Faxa_bcphodry = ',nstep,g,cam_out(c)%bcphodry(i)
-             write(iulog,F01)'export: nstep, g, Faxa_bcphiwet = ',nstep,g,cam_out(c)%bcphiwet(i)
-             write(iulog,F01)'export: nstep, g, Faxa_ocphidry = ',nstep,g,cam_out(c)%ocphidry(i)
-             write(iulog,F01)'export: nstep, g, Faxa_ocphodry = ',nstep,g,cam_out(c)%ocphodry(i)
-             write(iulog,F01)'export: nstep, g, Faxa_ocphidry = ',nstep,g,cam_out(c)%ocphiwet(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet1  = ',nstep,g,cam_out(c)%dstwet1(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet1  = ',nstep,g,cam_out(c)%dstdry1(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet2  = ',nstep,g,cam_out(c)%dstwet2(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet2  = ',nstep,g,cam_out(c)%dstdry2(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet3  = ',nstep,g,cam_out(c)%dstwet3(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet3  = ',nstep,g,cam_out(c)%dstdry3(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet4  = ',nstep,g,cam_out(c)%dstwet4(i)
-             write(iulog,F01)'export: nstep, g, Faxa_dstwet4  = ',nstep,g,cam_out(c)%dstdry4(i)
-             write(iulog,F01)'export: nstep, g, Sa_co2prog    = ',nstep,g,cam_out(c)%co2prog(i)
-             write(iulog,F01)'export: nstep, g, Sa_co2diag    = ',nstep,g,cam_out(c)%co2diag(i)
-             g = g + 1
-          end do
-       end do
-    end if
+    do i = 1, columns_on_task
+       fldptr_ndep(1,i) = cam_out(c)%nhx_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
+       fldptr_ndep(2,i) = cam_out(c)%noy_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
+    end do
 
 !Remove once the "cam_in" object has been fully implemented. -JN
 #endif
@@ -1048,6 +1047,9 @@ contains
   !===============================================================================
 
   subroutine fldlist_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
+
+    ! use statements
+    use ESMF , only : ESMF_LOGMSG_ERROR
 
     ! input/otuput variables
     integer            , intent(inout) :: num
@@ -1081,14 +1083,18 @@ contains
 
   subroutine fldlist_realize(state, fldList, numflds, flds_scalar_name, flds_scalar_num, mesh, tag, rc)
 
-    use NUOPC , only : NUOPC_IsConnected, NUOPC_Realize
-    use ESMF  , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
-    use ESMF  , only : ESMF_MAXSTR, ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
-    use ESMF  , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGERR_PASSTHRU
+    use NUOPC             , only : NUOPC_IsConnected, NUOPC_Realize
+    use ESMF              , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
+    use ESMF              , only : ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
+    use ESMF              , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF              , only : ESMF_LogWrite, ESMF_LOGERR_PASSTHRU
+    use nuopc_shr_methods , only : chkerr
+    use spmd_utils        , only : masterproc
+    use cam_logfile       , only : iulog
 
+    ! input/output variables
     type(ESMF_State)    , intent(inout) :: state
-    type(fldlist_type) , intent(in)    :: fldList(:)
+    type(fldlist_type) , intent(in)     :: fldList(:)
     integer             , intent(in)    :: numflds
     character(len=*)    , intent(in)    :: flds_scalar_name
     integer             , intent(in)    :: flds_scalar_num
@@ -1110,8 +1116,9 @@ contains
        stdname = fldList(n)%stdname
        if (NUOPC_IsConnected(state, fieldName=stdname)) then
           if (stdname == trim(flds_scalar_name)) then
-             call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected on root pe", &
-                  ESMF_LOGMSG_INFO)
+             if (masterproc) then
+                write(iulog,'(a)') trim(subname)//trim(tag)//" field = "//trim(stdname)//" is connected on root pe"
+             end if
              ! Create the scalar field
              call SetScalarField(field, flds_scalar_name, flds_scalar_num, rc=rc)
              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
@@ -1123,14 +1130,17 @@ contains
                      ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
                      gridToFieldMap=(/2/), rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                write(msg,*) trim(subname)// trim(tag)//" Field = "//trim(stdname)// " is connected using mesh ", &
-                     "with lbound ", fldlist(n)%ungridded_lbound,' and with ubound ',fldlist(n)%ungridded_ubound
-                call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
+                if (masterproc) then
+                   write(iulog,'(a,i8,a,i8)') trim(subname)// trim(tag)//" Field = "//trim(stdname)// &
+                        " is connected using mesh with lbound ", fldlist(n)%ungridded_lbound,&
+                        " and with ubound ",fldlist(n)%ungridded_ubound
+                end if
              else
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                 if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-                write(msg,*) trim(subname)// trim(tag)//" Field = "//trim(stdname)// " is connected using mesh "
-                call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
+                if (masterproc) then
+                   write(iulog,'(a)') trim(subname)// trim(tag)//" Field = "//trim(stdname)// " is connected using mesh "
+                end if
              end if
           endif
 
@@ -1139,8 +1149,9 @@ contains
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
        else
           if (stdname /= trim(flds_scalar_name)) then
-             call ESMF_LogWrite(subname // trim(tag) // " Field = "// trim(stdname) // " is not connected.", &
-                  ESMF_LOGMSG_INFO)
+             if (masterproc) then
+                write(iulog,'(a)')trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is not connected"
+             end if
              call ESMF_StateRemove(state, (/stdname/), rc=rc)
              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
           end if
@@ -1188,16 +1199,17 @@ contains
   end subroutine fldlist_realize
 
   !===============================================================================
-
   subroutine state_getfldptr(State, fldname, fldptr, fldptr2d, exists, rc)
 
     ! ----------------------------------------------
     ! Get pointer to a state field
     ! ----------------------------------------------
 
-    use ESMF , only : ESMF_State, ESMF_Field, ESMF_Mesh, ESMF_FieldStatus_Flag
-    use ESMF , only : ESMF_StateGet, ESMF_FieldGet, ESMF_MeshGet
-    use ESMF , only : ESMF_FIELDSTATUS_COMPLETE, ESMF_FAILURE
+    use ESMF              , only : ESMF_State, ESMF_Field, ESMF_Mesh, ESMF_FieldStatus_Flag
+    use ESMF              , only : ESMF_StateGet, ESMF_FieldGet, ESMF_MeshGet
+    use ESMF              , only : ESMF_FIELDSTATUS_COMPLETE, ESMF_FAILURE
+    use ESMF              , only : ESMF_STATEITEM_NOTFOUND, ESMF_StateItem_Flag
+    use nuopc_shr_methods , only : chkerr
 
     ! input/output variables
     type(ESMF_State)  , intent(in)    :: State
@@ -1213,56 +1225,27 @@ contains
     type(ESMF_Field)            :: lfield
     type(ESMF_Mesh)             :: lmesh
     integer                     :: nnodes, nelements
+    logical                     :: lexists
     character(len=*), parameter :: subname='(atm_import_export:state_getfldptr)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    if (dbug_flag > 10) then
-      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
+    lexists = .true.
 
     ! Determine if field with name fldname exists in state
-    call ESMF_StateGet(state, trim(fldname), itemFlag, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     if (present(exists)) then
-       ! if field exists then create output array - else do nothing
+       call ESMF_StateGet(state, trim(fldname), itemFlag, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (itemflag == ESMF_STATEITEM_NOTFOUND) then
-          exists = .false.
-          RETURN
-       else
-          exists = .true.
+          lexists = .false.
        end if
-    else
-       if (itemflag == ESMF_STATEITEM_NOTFOUND) then
-          call shr_sys_abort('variable '//trim(fldname)//' must be present ')
-       end if
+       exists = lexists
     end if
 
-    call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_FieldGet(lfield, status=status, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (status /= ESMF_FIELDSTATUS_COMPLETE) then
-       call ESMF_LogWrite(trim(subname)//": ERROR data not allocated ", ESMF_LOGMSG_INFO, rc=rc)
-       rc = ESMF_FAILURE
-       return
-    else
-       call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
+    if (lexists) then
+       call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_MeshGet(lmesh, numOwnedNodes=nnodes, numOwnedElements=nelements, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       if (nnodes == 0 .and. nelements == 0) then
-          call ESMF_LogWrite(trim(subname)//": no local nodes or elements ", ESMF_LOGMSG_INFO)
-          rc = ESMF_FAILURE
-          return
-       end if
-
        if (present(fldptr)) then
           call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1270,11 +1253,7 @@ contains
           call ESMF_FieldGet(lfield, farrayPtr=fldptr2d, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-    endif  ! status
-
-    if (dbug_flag > 10) then
-      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    endif
+    end if
 
   end subroutine state_getfldptr
 

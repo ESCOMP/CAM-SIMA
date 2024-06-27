@@ -56,7 +56,7 @@ module physics_grid
    ! dynamics field grid information
    ! hdim1_d and hdim2_d are dimensions of rectangular horizontal grid
    ! data structure, If 1D data structure, then hdim2_d == 1.
-   integer                             :: hdim1_d, hdim2_d
+   integer, protected, public          :: hdim1_d, hdim2_d
    logical                             :: dycore_unstructured = .false.
    ! Dycore name and properties
    character(len=8), protected, public :: dycore_name = ''

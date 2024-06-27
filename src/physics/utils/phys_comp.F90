@@ -185,11 +185,9 @@ CONTAINS
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
 
-      ! data_frame is the next input frame for physics input fields
-      ! Frame 1 is skipped for snapshot files
-      !!XXgoldyXX: This section needs to have better logic once we know if
-      !!           this is a physics test bench run.
-      data_frame = get_nstep() + 2
+      ! data_frame is the next input frame for
+      ! physics fields that must be read from a file:
+      data_frame = get_nstep()
 
       ! Initialize host model variables that must be done each time step:
       call physics_types_tstep_init()
@@ -237,15 +235,18 @@ CONTAINS
 
    end subroutine phys_run2
 
-   subroutine phys_timestep_final()
+   subroutine phys_timestep_final(do_ncdata_check)
       use time_manager,   only: get_nstep
       use cam_abortutils, only: endrun
       use cam_initfiles,  only: unset_path_str
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_final
       use physics_inputs, only: physics_check_data
 
+      ! Subroutine inputs
+      logical, intent(in) :: do_ncdata_check
+
       ! Local variables
-      integer                              :: data_frame
+      integer             :: data_frame
 
       ! Finalize the time step
       call cam_ccpp_physics_timestep_final(phys_suite_name)
@@ -253,16 +254,16 @@ CONTAINS
          call endrun('cam_ccpp_physics_timestep_final: '//trim(errmsg))
       end if
 
-      ! data_frame is the next input frame for physics input fields
-      ! Frame 1 is skipped for snapshot files
-      !!XXgoldyXX: This section needs to have better logic once we know if
-      !!           this is a physics test bench run.
-      data_frame = get_nstep() + 2
+      ! data_frame is the next input frame for
+      ! physics snapshot validation fields
+      data_frame = get_nstep()
 
       ! Determine if physics_check should be run:
       if (trim(ncdata_check) /= trim(unset_path_str)) then
-         call physics_check_data(ncdata_check, suite_names, data_frame,       &
-            min_difference, min_relative_value)
+         if (do_ncdata_check) then
+            call physics_check_data(ncdata_check, suite_names, data_frame,  &
+                                    min_difference, min_relative_value)
+         end if
       end if
 
    end subroutine phys_timestep_final

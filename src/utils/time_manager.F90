@@ -520,6 +520,13 @@ subroutine advance_timestep()
 
 ! Increment the timestep number.
 
+! Use statements
+   use ESMF,          only: ESMF_ClockAdvance
+   use cam_logfile,   only: iulog
+   use physics_types, only: nstep
+   use spmd_utils,    only: masterproc
+   use string_utils,  only: stringify
+
 ! Local variables
    character(len=*), parameter :: sub = 'advance_timestep'
    integer :: rc
@@ -527,6 +534,17 @@ subroutine advance_timestep()
 
    call ESMF_ClockAdvance( tm_clock, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockAdvance')
+
+! Set current timestep number for use in CCPP physics schemes:
+   nstep = get_nstep()
+
+! Write new timestep to CAM log file.
+
+   if (masterproc) then
+      write(iulog,*) '------------------------'
+      write(iulog,*) 'CAM-SIMA time step advanced (nstep = '//stringify([nstep])//')'
+      write(iulog,*) '------------------------'
+   end if
 
 ! Set first step flag off.
 

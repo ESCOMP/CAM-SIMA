@@ -27,19 +27,21 @@ module cam_control_mod
    logical, protected :: initial_run  ! startup mode which only requires a minimal initial file
    logical, protected :: restart_run  ! continue a previous run; requires a restart file
    logical, protected :: branch_run   ! branch from a previous run; requires a restart file
+   logical, protected :: post_assim   ! We are resuming after a pause
 
    logical, protected :: adiabatic         ! true => no physics
    logical, protected :: ideal_phys        ! true => run Held-Suarez (1994) physics
    logical, protected :: kessler_phys      ! true => run Kessler physics
    logical, protected :: tj2016_phys       ! true => run tj2016 physics
+   logical, protected :: grayrad_phys      ! true => run gray radiation (frierson) physics
    logical, protected :: simple_phys       ! true => adiabatic or ideal_phys or kessler_phys
-   !         or tj2016
+                                           !         or tj2016 or grayrad
    logical, protected :: aqua_planet       ! Flag to run model in "aqua planet" mode
    logical, protected :: moist_physics     ! true => moist physics enabled, i.e.,
-   ! (.not. ideal_phys) .and. (.not. adiabatic)
+                                           ! (.not. ideal_phys) .and. (.not. adiabatic)
 
    logical, protected :: brnch_retain_casename ! true => branch run may use same caseid as
-   !         the run being branched from
+                                               !         the run being branched from
 
    real(r8), protected :: eccen       ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
    real(r8), protected :: obliqr      ! Earth's obliquity in radians
@@ -53,13 +55,15 @@ CONTAINS
 !==============================================================================
 
    subroutine cam_ctrl_init(caseid_in, ctitle_in, initial_run_in,             &
-        restart_run_in, branch_run_in, aqua_planet_in, brnch_retain_casename_in)
+        restart_run_in, branch_run_in, post_assim_in,                         &
+        aqua_planet_in,  brnch_retain_casename_in)
 
       character(len=cl), intent(in) :: caseid_in            ! case ID
       character(len=cl), intent(in) :: ctitle_in            ! case title
       logical,           intent(in) :: initial_run_in       ! true => inital run
       logical,           intent(in) :: restart_run_in       ! true => restart run
       logical,           intent(in) :: branch_run_in        ! true => branch run
+      logical,           intent(in) :: post_assim_in        ! true => resume mode
       logical,           intent(in) :: aqua_planet_in       ! Flag to run model in "aqua planet" mode
       logical,           intent(in) :: brnch_retain_casename_in ! Flag to allow a branch to use the same
       ! caseid as the run being branched from.
@@ -73,6 +77,7 @@ CONTAINS
       initial_run = initial_run_in
       restart_run = restart_run_in
       branch_run  = branch_run_in
+      post_assim  = post_assim_in
 
       aqua_planet = aqua_planet_in
 
@@ -87,6 +92,8 @@ CONTAINS
             write(iulog,*) '  Restart of an earlier run'
          else if (branch_run) then
             write(iulog,*) '  Branch of an earlier run'
+         else if (post_assim) then
+            write(iulog,*) '  DART run using CAM initial mode'
          else
             write(iulog,*) '         Initial run'
          end if
@@ -137,11 +144,12 @@ CONTAINS
       suite_name = suite_names(1)
 
       adiabatic = trim(suite_name) == 'adiabatic'
-      ideal_phys = trim(suite_name) == 'held_suarez'
+      ideal_phys = trim(suite_name) == 'held_suarez_1994'
       kessler_phys = trim(suite_name) == 'kessler'
       tj2016_phys = trim(suite_name) == 'tj2016'
+      grayrad_phys = trim(suite_name) == 'grayrad'
 
-      simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys
+      simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys .or.  grayrad_phys
 
       moist_physics = .not. (adiabatic .or. ideal_phys)
 
@@ -159,6 +167,8 @@ CONTAINS
             write(iulog,*) 'Run model with Kessler warm-rain physics forcing'
          else if (tj2016_phys) then
             write(iulog,*) 'Run model with Thatcher-Jablonowski (2016) physics forcing (moist Held-Suarez)'
+         else if (grayrad_phys) then
+            write(iulog,*) 'Run model with Frierson (2006) gray radiation physics'
          end if
       end if
 
