@@ -478,10 +478,7 @@ subroutine hycoef_read(File)
    ! Check whether file contains value for P0.  If it does then use it
    ierr = pio_inq_varid(file, 'P0', p0_desc)
    if (ierr /= PIO_NOERR) then
-      ierr = pio_inq_varid(File, 'reference_pressure', p0_desc)
-      !if (ierr /= PIO_NOERR) then
-      !   call endrun(routine//': reading P0')
-      !end if
+      ierr = pio_inq_varid(File, 'surface_reference_pressure', p0_desc)
    end if
    if (ierr == PIO_NOERR) then
       ierr = pio_get_var(file, p0_desc, ps0)
