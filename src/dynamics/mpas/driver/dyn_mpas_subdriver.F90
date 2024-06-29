@@ -1361,8 +1361,8 @@ contains
 
                             nullify(field_1d_char)
                         case default
-                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]), &
-                                subname, __LINE__)
+                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]) // &
+                                ' for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
                     end select
                 case ('integer')
                     select case (var_info_list(i) % rank)
@@ -1415,8 +1415,8 @@ contains
 
                             nullify(field_3d_integer)
                         case default
-                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]), &
-                                subname, __LINE__)
+                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]) // &
+                                ' for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
                     end select
                 case ('real')
                     select case (var_info_list(i) % rank)
@@ -1493,12 +1493,12 @@ contains
 
                             nullify(field_5d_real)
                         case default
-                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]), &
-                                subname, __LINE__)
+                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]) // &
+                                ' for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
                     end select
                 case default
                     call self % model_error('Unsupported variable type "' // trim(adjustl(var_info_list(i) % type)) // &
-                        '"', subname, __LINE__)
+                        '" for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
             end select
 
             if (ierr /= mpas_stream_noerr) then
@@ -1894,8 +1894,8 @@ contains
 
                         nullify(field_1d_char)
                     case default
-                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]), &
-                            subname, __LINE__)
+                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]) // &
+                            ' for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
                 end select
             case ('integer')
                 select case (var_info % rank)
@@ -1980,8 +1980,8 @@ contains
 
                         nullify(field_3d_integer)
                     case default
-                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]), &
-                            subname, __LINE__)
+                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]) // &
+                            ' for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
                 end select
             case ('real')
                 select case (var_info % rank)
@@ -2106,12 +2106,12 @@ contains
 
                         nullify(field_5d_real)
                     case default
-                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]), &
-                            subname, __LINE__)
+                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]) // &
+                            ' for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
                 end select
             case default
                 call self % model_error('Unsupported variable type "' // trim(adjustl(var_info % type)) // &
-                    '"', subname, __LINE__)
+                    '" for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
         end select
 
         if (.not. allocated(var_name_list)) then
