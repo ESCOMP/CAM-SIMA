@@ -61,7 +61,8 @@ module cam_hist_file
       integer, allocatable,          private :: grids(:)
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
-      logical,                       private :: split_file = .false.
+      logical,                       private :: has_instantaneous = .false.
+      logical,                       private :: has_accumulated = .false.
       logical,                       private :: write_nstep0 = .false.
       type(interp_info_t), pointer,  private :: interp_info => NULL()
       character(len=CL), allocatable, private :: file_names(:)
@@ -103,7 +104,6 @@ module cam_hist_file
       procedure :: is_initial_value_file => config_init_value_file
       procedure :: is_satellite_file => config_satellite_file
       procedure :: is_hist_restart_file => config_restart_file
-      procedure :: is_split_file => config_is_split_file
       procedure :: do_write_nstep0 => config_do_write_nstep0
       procedure :: file_is_setup => config_file_is_setup
       ! Actions
@@ -343,16 +343,6 @@ CONTAINS
 
    ! ========================================================================
 
-   logical function config_is_split_file(this)
-      ! Dummy argument
-      class(hist_file_t), intent(in) :: this
-
-      config_is_split_file = this%split_file
-
-   end function config_is_split_file
-
-   ! ========================================================================
-
    logical function config_do_write_nstep0(this)
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
@@ -402,7 +392,7 @@ CONTAINS
         output_freq, file_type, filename_spec, collect_patch_out,             &
         inst_fields, avg_fields, min_fields, max_fields, var_fields,          &
         write_nstep0, interp_out, interp_nlat, interp_nlon, interp_grid,      &
-        interp_type, split_file)
+        interp_type)
       use shr_string_mod, only: to_lower => shr_string_toLower
       use string_utils,   only: parse_multiplier
       use cam_abortutils, only: endrun, check_allocate
@@ -426,14 +416,20 @@ CONTAINS
       integer,          optional, intent(in)    :: interp_nlon
       character(len=*), optional, intent(in)    :: interp_grid
       character(len=*), optional, intent(in)    :: interp_type
-      logical,          optional, intent(in)    :: split_file
       ! Local variables
       character(len=CL) :: errmsg
       integer           :: last_char
       integer           :: ierr
       integer           :: num_fields
+      integer           :: num_inst_fields
+      integer           :: num_avg_fields
+      integer           :: num_min_fields
+      integer           :: num_max_fields
+      integer           :: num_var_fields
       integer           :: field_index
       integer           :: idx
+      logical           :: has_inst
+      logical           :: has_acc
       character(len=*), parameter :: subname = 'config_configure: '
 
       call this%reset()
@@ -473,12 +469,26 @@ CONTAINS
             ! To do: write and call interp object creator
          end if
       end if
-      if (present(split_file) .and. split_file) then
-         this%split_file = .true.
+
+      num_inst_fields = count_array(inst_fields)
+      num_avg_fields = count_array(avg_fields)
+      num_min_fields = count_array(min_fields)
+      num_max_fields = count_array(max_fields)
+      num_var_fields = count_array(var_fields)
+
+      num_fields = num_inst_fields + num_avg_fields + num_min_fields + &
+         num_max_fields + num_var_fields
+
+      if (num_inst_fields > 0) then
+         this%has_instantaneous = .true.
       end if
 
-      num_fields = count_array(inst_fields) + count_array(avg_fields) + &
-         count_array(min_fields) + count_array(max_fields) + count_array(var_fields)
+      if (num_fields - num_inst_fields > 0) then
+         this%has_accumulated = .true.
+      end if
+
+!      num_fields = count_array(inst_fields) + count_array(avg_fields) + &
+!         count_array(min_fields) + count_array(max_fields) + count_array(var_fields)
       allocate(this%field_names(num_fields), stat=ierr)
       call check_allocate(ierr, subname, 'this%field_names',             &
            file=__FILE__, line=__LINE__-1)
@@ -493,27 +503,27 @@ CONTAINS
 
       field_index = 1
       ! Add the field names and associated accumulate types to the object
-      do idx = 1, count_array(inst_fields)
+      do idx = 1, num_inst_fields
          this%accumulate_types(field_index) = 'lst'
          this%field_names(field_index) = inst_fields(idx)
          field_index = field_index + 1
       end do
-      do idx = 1, count_array(avg_fields)
+      do idx = 1, num_avg_fields
          this%accumulate_types(field_index) = 'avg'
          this%field_names(field_index) = avg_fields(idx)
          field_index = field_index + 1
       end do
-      do idx = 1, count_array(min_fields)
+      do idx = 1, num_min_fields
          this%accumulate_types(field_index) = 'min'
          this%field_names(field_index) = min_fields(idx)
          field_index = field_index + 1
       end do
-      do idx = 1, count_array(max_fields)
+      do idx = 1, num_max_fields
          this%accumulate_types(field_index) = 'max'
          this%field_names(field_index) = max_fields(idx)
          field_index = field_index + 1
       end do
-      do idx = 1, count_array(var_fields)
+      do idx = 1, num_var_fields
          this%accumulate_types(field_index) = 'var'
          this%field_names(field_index) = var_fields(idx)
          field_index = field_index + 1
@@ -532,11 +542,13 @@ CONTAINS
       class(hist_file_t), intent(in) :: this
 
       if (masterproc) then
-         write(iulog, '(2a)') "History configuration for volume = ",           &
-              trim(this%volume)
-         if (this%split_file) then
-            write(iulog, '(5a)') " File will be split into two; ", trim(this%volume), &
-               "i for instantaneous and ", trim(this%volume), "a for accumulated"
+         if (this%has_instantaneous) then
+            write(iulog, '(3a)') "Instanteous history configuration for volume = ",   &
+               trim(this%volume), 'i'
+         end if
+         if (this%has_accumulated) then
+            write(iulog, '(3a)') "Accumulated history configuration for volume = ",   &
+               trim(this%volume), 'a'
          end if
          select case(this%hfile_type)
          case (hfile_type_history)
@@ -869,20 +881,24 @@ CONTAINS
       
       ! Log what we're doing
       if (masterproc) then
-         if (this%is_split_file()) then
-            write(iulog,*)'Opening netcdf history files ', trim(this%file_names(accumulated_file_index)), &
-                              '  ', trim(this%file_names(instantaneous_file_index))
-         else
-            write(iulog,*) 'Opening netcdf history file ', trim(this%file_names(instantaneous_file_index))
+         if (this%has_accumulated) then
+            write(iulog,*) 'Opening netcdf history file for accumulated output ', &
+               trim(this%file_names(accumulated_file_index))
+         end if
+         if (this%has_instantaneous) then
+            write(iulog,*) 'Opening netcdf history file for instantaneous output', &
+               trim(this%file_names(instantaneous_file_index))
          end if
       end if
 
       amode = PIO_CLOBBER
 
-      call cam_pio_createfile(this%hist_files(instantaneous_file_index),   &
-         this%file_names(instantaneous_file_index), amode)
+      if (this%has_instantaneous) then
+         call cam_pio_createfile(this%hist_files(instantaneous_file_index),   &
+            this%file_names(instantaneous_file_index), amode)
+      end if
 
-      if (this%is_split_file()) then
+      if (this%has_accumulated) then
          call cam_pio_createfile(this%hist_files(accumulated_file_index),  &
             this%file_names(accumulated_file_index), amode)
       end if
@@ -1330,10 +1346,12 @@ CONTAINS
       num_samples = this%num_samples
       if (masterproc) then
          do split_file_index = 1, max_split_files
-            if (split_file_index == instantaneous_file_index) then
-               write(iulog,200) num_samples+1,'instantaneous',volume_index-1,yr,mon,day,ncsec(split_file_index)
-            else if (this%split_file) then
-               write(iulog,200) num_samples+1,'accumulated',volume_index-1,yr_mid,mon_mid,day_mid,ncsec(split_file_index)
+            if (pio_file_is_open(this%hist_files(split_file_index))) then
+               if (split_file_index == instantaneous_file_index) then
+                  write(iulog,200) num_samples+1,'instantaneous',volume_index-1,yr,mon,day,ncsec(split_file_index)
+               else
+                  write(iulog,200) num_samples+1,'accumulated',volume_index-1,yr_mid,mon_mid,day_mid,ncsec(split_file_index)
+               end if
             end if
 200         format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
                  i1,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
@@ -1636,7 +1654,6 @@ CONTAINS
       integer             :: num_fields_var
       integer             :: file_type
       integer             :: rl_kind
-      logical             :: has_acc
       ! XXgoldyXX: Add patch information
       logical             :: hist_interp_out
       integer             :: hist_interp_nlat
@@ -1674,7 +1691,6 @@ CONTAINS
       hist_filename_spec = UNSET_C
       hist_write_nstep0 = .false.
 
-      has_acc = .false.
       ! Read namelist entry
       if (masterproc) then
          read(unitn, hist_file_config_nl, iostat=ierr)
@@ -1726,28 +1742,24 @@ CONTAINS
       if (num_fields_avg > 0) then
          call endrun(subname//"ERROR, average fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         has_acc = .true.
          call MPI_Bcast(hist_avg_fields(:), num_fields_avg, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_min > 0) then
          call endrun(subname//"ERROR, minimum fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         has_acc = .true.
          call MPI_Bcast(hist_min_fields(:), num_fields_min, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_max > 0) then
          call endrun(subname//"ERROR, maximum fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         has_acc = .true.
          call MPI_Bcast(hist_max_fields(:), num_fields_max, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_var > 0) then
          call endrun(subname//"ERROR, standard deviation fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         has_acc = .true.
          call MPI_Bcast(hist_var_fields(:), num_fields_var, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
@@ -1773,10 +1785,9 @@ CONTAINS
            hist_output_frequency, file_type, hist_filename_spec,              &
            hist_collect_patch_output, hist_inst_fields, hist_avg_fields,      &
            hist_min_fields, hist_max_fields, hist_var_fields,                 &
-           hist_write_nstep0, interp_out=hist_interp_out,                     &
+           hist_write_nstep0, interp_out=hist_interp_out,  &
            interp_nlat=hist_interp_nlat, interp_nlon=hist_interp_nlon,        &
-           interp_grid=hist_interp_grid, interp_type=hist_interp_type,        &
-           split_file=has_acc)
+           interp_grid=hist_interp_grid, interp_type=hist_interp_type)
       call hfile_config%print_config()
 
    end subroutine read_namelist_entry
