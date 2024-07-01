@@ -635,7 +635,7 @@ CONTAINS
       use cam_logfile, only: cam_log_multiwrite
 
       ! Dummy arguments
-      type(io_desc_t),          pointer              :: iodesc
+      type(io_desc_t),                   intent(out) :: iodesc
       integer,                           intent(in)  :: dims(:)
       integer(kind=PIO_OFFSET_KIND),     intent(in)  :: dof(:)
       integer,                           intent(in)  :: dtype

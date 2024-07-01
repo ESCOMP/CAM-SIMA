@@ -684,10 +684,8 @@ contains
       integer                                :: ldims(1)
       integer                                :: fdims(1)
       integer                                :: err_handling
-      type(io_desc_t), pointer               :: iodesc
+      type(io_desc_t)                        :: iodesc
       integer                                :: file_index_loc
-
-      nullify(iodesc)
 
       if (present(file_index)) then
          file_index_loc = file_index
@@ -2720,7 +2718,7 @@ contains
 
       ! Local variables
       integer                     :: ierr
-      type(io_desc_t),  pointer   :: iodesc
+      type(io_desc_t)             :: iodesc
       integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_val_1d_int'
 
@@ -2730,21 +2728,17 @@ contains
          file_index_loc = 1
       end if
 
-      nullify(iodesc)
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is not associated, another grid write the values
       if (associated(attr%vardesc(file_index_loc)%p)) then
          ! Write out the values for this dimension variable
          if (associated(attr%map)) then
             ! This is a distributed variable, use pio_write_darray
-            allocate(iodesc)
             call cam_pio_newdecomp(iodesc, (/attr%dimsize/), attr%map,        &
                  pio_int)
             call pio_write_darray(File, attr%vardesc(file_index_loc)%p,       &
                  iodesc, attr%values, ierr)
             call pio_freedecomp(File, iodesc)
-            deallocate(iodesc)
-            nullify(iodesc)
          else
             ! This is a local variable, pio_put_var should work fine
             ierr = pio_put_var(File, attr%vardesc(file_index_loc)%p,          &
@@ -2771,7 +2765,7 @@ contains
 
       ! Local variables
       integer                     :: ierr
-      type(io_desc_t), pointer    :: iodesc
+      type(io_desc_t)             :: iodesc
       integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_val_1d_int'
 
@@ -2781,21 +2775,17 @@ contains
          file_index_loc = 1
       end if
 
-      nullify(iodesc)
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is not associated, another grid write the values
       if (associated(attr%vardesc(file_index_loc)%p)) then
          ! Write out the values for this dimension variable
          if (associated(attr%map)) then
             ! This is a distributed variable, use pio_write_darray
-            allocate(iodesc)
             call cam_pio_newdecomp(iodesc, (/attr%dimsize/), attr%map,        &
                  pio_double)
             call pio_write_darray(File, attr%vardesc(file_index_loc)%p,       &
                  iodesc, attr%values, ierr)
             call pio_freedecomp(File, iodesc)
-            deallocate(iodesc)
-            nullify(iodesc)
          else
             ! This is a local variable, pio_put_var should work fine
             ierr = pio_put_var(File, attr%vardesc(file_index_loc)%p,          &
@@ -2833,8 +2823,8 @@ contains
       ! Only write if not already done
       if (cam_grids(gridind)%attrs_defined(file_index_loc)) then
          ! Write the horizontal coorinate values
-         call cam_grids(gridind)%lon_coord%write_var(File, file_index)
-         call cam_grids(gridind)%lat_coord%write_var(File, file_index)
+         call cam_grids(gridind)%lon_coord%write_var(File, file_index_loc)
+         call cam_grids(gridind)%lat_coord%write_var(File, file_index_loc)
 
          ! We will handle errors for this routine
          call pio_seterrorhandling(File, PIO_BCAST_ERROR,                     &
@@ -4326,7 +4316,7 @@ contains
       type(cam_grid_header_info_t), intent(inout) :: header_info
 
       ! Local variables
-      type(io_desc_t),  pointer   :: iodesc
+      type(io_desc_t)             :: iodesc
       type(var_desc_t), pointer   :: vdesc
       real(r8),         pointer   :: coord_p(:)
       real(r8),         pointer   :: coord(:)
@@ -4340,7 +4330,6 @@ contains
       nullify(coord_p)
       nullify(coord)
       nullify(map)
-      nullify(iodesc)
       if (this%grid_id /= header_info%get_gridid()) then
          call endrun(subname//': Grid id mismatch')
       end if
