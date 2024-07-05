@@ -65,9 +65,7 @@ CONTAINS
 
       !First check if quantity is a constituent:
       call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
-      if (find_input_name_idx < 0) then
-         find_input_name_idx = no_exist_idx
-      else
+      if (find_input_name_idx >= 0) then
          constituent_index = find_input_name_idx
          is_constituent = .true.
       end if
