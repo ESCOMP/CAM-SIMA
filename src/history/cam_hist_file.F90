@@ -1631,11 +1631,11 @@ CONTAINS
       ! Dummy arguments
       integer,           intent(inout) :: unitn
       type(hist_file_t), intent(inout) :: hfile_config
-      character(len=*), allocatable, intent(inout) :: hist_inst_fields(:)
-      character(len=*), allocatable, intent(inout) :: hist_avg_fields(:)
-      character(len=*), allocatable, intent(inout) :: hist_min_fields(:)
-      character(len=*), allocatable, intent(inout) :: hist_max_fields(:)
-      character(len=*), allocatable, intent(inout) :: hist_var_fields(:)
+      character(len=max_fldlen), allocatable, intent(inout) :: hist_inst_fields(:)
+      character(len=max_fldlen), allocatable, intent(inout) :: hist_avg_fields(:)
+      character(len=max_fldlen), allocatable, intent(inout) :: hist_min_fields(:)
+      character(len=max_fldlen), allocatable, intent(inout) :: hist_max_fields(:)
+      character(len=max_fldlen), allocatable, intent(inout) :: hist_var_fields(:)
       ! Local variables (namelist)
       character(len=vlen) :: hist_volume ! h# ir i, not config number
       character(len=vlen) :: hist_precision
