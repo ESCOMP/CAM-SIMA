@@ -10,7 +10,7 @@ module stepon
     private
     ! Provide APIs required by CAM Control.
     public :: stepon_init
-    public :: stepon_run1
+    public :: stepon_timestep_init
     public :: stepon_run2
     public :: stepon_run3
     public :: stepon_final
@@ -23,15 +23,15 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
     type(dyn_export_t),    intent(in) :: dyn_out
 end subroutine stepon_init
 
-! Called by `cam_run1` in `src/control/cam_comp.F90`.
-subroutine stepon_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
+! Called by `cam_timestep_init` in `src/control/cam_comp.F90`.
+subroutine stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
     real(r8),              intent(out)   :: dtime_phys
     type(runtime_options), intent(in)    :: cam_runtime_opts
     type(physics_state),   intent(inout) :: phys_state
     type(physics_tend),    intent(inout) :: phys_tend
     type(dyn_import_t),    intent(inout) :: dyn_in
     type(dyn_export_t),    intent(inout) :: dyn_out
-end subroutine stepon_run1
+end subroutine stepon_timestep_init
 
 ! Called by `cam_run2` in `src/control/cam_comp.F90`.
 subroutine stepon_run2(cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
