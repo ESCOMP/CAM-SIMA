@@ -56,21 +56,18 @@ CONTAINS
       integer                       :: idx
       ! to test read_from_file status
       logical                       :: is_read
+      logical                       :: is_constituent
 
       !Initialize function:
       find_input_name_idx = no_exist_idx
       constituent_index = no_exist_idx
+      is_constituent = .false.
 
       !First check if quantity is a constituent:
       call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
-      if (find_input_name_idx < 0) then
-         find_input_name_idx = no_exist_idx
-      else
+      if (find_input_name_idx >= 0) then
          constituent_index = find_input_name_idx
-         find_input_name_idx = const_idx
-         !Return from function here,
-         !as variable has already been found:
-         return
+         is_constituent = .true.
       end if
 
       !Loop through physics variable standard names:
@@ -87,7 +84,11 @@ CONTAINS
                end if
                if (is_read) then
                   !If reading initialized variables, set to idx:
-                  find_input_name_idx = idx
+                  if (is_constituent) then
+                     find_input_name_idx = const_idx
+                  else
+                     find_input_name_idx = idx
+                  end if
                else
                   !Otherwise, set to init_mark_idx:
                   find_input_name_idx = init_mark_idx
@@ -96,7 +97,11 @@ CONTAINS
                find_input_name_idx = prot_no_init_idx
             else
                !If not already initialized, then pass on the real array index:
-               find_input_name_idx = idx
+               if (is_constituent) then
+                  find_input_name_idx = const_idx
+               else
+                  find_input_name_idx = idx
+               end if
             end if
             !Exit physics variable name loop:
             exit
