@@ -1736,31 +1736,31 @@ CONTAINS
       call MPI_Bcast(num_fields_var, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       ! Broadcast namelist data
       if (num_fields_inst > 0) then
-         call MPI_Bcast(hist_inst_fields(:), num_fields_inst, MPI_CHARACTER,       &
+         call MPI_Bcast(hist_inst_fields(:), max_fldlen*num_fields_inst, MPI_CHARACTER,       &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_avg > 0) then
          call endrun(subname//"ERROR, average fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         call MPI_Bcast(hist_avg_fields(:), num_fields_avg, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_avg_fields(:), max_fldlen*num_fields_avg, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_min > 0) then
          call endrun(subname//"ERROR, minimum fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         call MPI_Bcast(hist_min_fields(:), num_fields_min, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_min_fields(:), max_fldlen*num_fields_min, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_max > 0) then
          call endrun(subname//"ERROR, maximum fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         call MPI_Bcast(hist_max_fields(:), num_fields_max, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_max_fields(:), max_fldlen*num_fields_max, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_var > 0) then
          call endrun(subname//"ERROR, standard deviation fields not yet implemented",     &
                file=__FILE__, line=__LINE__)
-         call MPI_Bcast(hist_var_fields(:), num_fields_var, MPI_CHARACTER,        &
+         call MPI_Bcast(hist_var_fields(:), max_fldlen*num_fields_var, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       call MPI_Bcast(hist_volume, vlen, MPI_CHARACTER, masterprocid,          &
