@@ -619,22 +619,37 @@ contains
 
                 ! Piecewise integrate hypsometric equation to derive `p_mid_col(1)`.
                 ! The formulation used here is exact.
-                p_mid_col(1) = p_sfc(i) * &
-                    exp(-0.5_kind_r8 * (zgrid(2, i) - zgrid(1, i)) * &
-                    constant_g / (constant_rd * tm_mid_col(1)) * (1.0_kind_r8 + qv_mid_col(1)))
+                ! p_mid_col(1) = p_sfc(i) * &
+                !     exp(-0.5_kind_r8 * (zgrid(2, i) - zgrid(1, i)) * &
+                !     constant_g / (constant_rd * tm_mid_col(1)) * (1.0_kind_r8 + qv_mid_col(1)))
+                p_mid_col(1) = p_by_hypsometric_equation( &
+                    p_sfc(i), &
+                    zgrid(1, i), &
+                    tm_mid_col(1) / (1.0_kind_r8 + qv_mid_col(1)), &
+                    0.5_kind_r8 * (zgrid(2, i) + zgrid(1, i)))
 
                 ! Piecewise integrate hypsometric equation to derive subsequent `p_mid_col(k)`.
                 ! The formulation used here is exact.
                 do k = 2, pver
-                    p_mid_col(k) = p_mid_col(k - 1) * &
-                        exp(-0.5_kind_r8 * (zgrid(k    , i) - zgrid(k - 1, i)) * &
-                        constant_g / (constant_rd * tm_mid_col(k - 1)) * (1.0_kind_r8 + qv_mid_col(k - 1))) * &
-                        exp(-0.5_kind_r8 * (zgrid(k + 1, i) - zgrid(k    , i)) * &
-                        constant_g / (constant_rd * tm_mid_col(k    )) * (1.0_kind_r8 + qv_mid_col(k    )))
+                    ! p_mid_col(k) = p_mid_col(k - 1) * &
+                    !     exp(-0.5_kind_r8 * (zgrid(k    , i) - zgrid(k - 1, i)) * &
+                    !     constant_g / (constant_rd * tm_mid_col(k - 1)) * (1.0_kind_r8 + qv_mid_col(k - 1))) * &
+                    !     exp(-0.5_kind_r8 * (zgrid(k + 1, i) - zgrid(k    , i)) * &
+                    !     constant_g / (constant_rd * tm_mid_col(k    )) * (1.0_kind_r8 + qv_mid_col(k    )))
+                    p_mid_col(k) = p_by_hypsometric_equation( &
+                        p_by_hypsometric_equation( &
+                            p_mid_col(k - 1), &
+                            0.5_kind_r8 * (zgrid(k, i) + zgrid(k - 1, i)), &
+                            tm_mid_col(k - 1) / (1.0_kind_r8 + qv_mid_col(k - 1)), &
+                            zgrid(k, i)), &
+                        zgrid(k, i), &
+                        tm_mid_col(k) / (1.0_kind_r8 + qv_mid_col(k)), &
+                        0.5_kind_r8 * (zgrid(k + 1, i) + zgrid(k, i)))
                 end do
 
                 rho(:, i) = p_mid_col(:) / (constant_rd * tm_mid_col(:))
-                theta(:, i) = t_mid(:, i) * ((constant_p0 / p_mid_col(:)) ** (constant_rd / constant_cpd))
+                ! theta(:, i) = t_mid(:, i) * ((constant_p0 / p_mid_col(:)) ** (constant_rd / constant_cpd))
+                theta(:, i) = theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0)
             end do
 
             deallocate(p_mid_col)
@@ -679,12 +694,18 @@ contains
                 do k = 1, pver
                     ! Derive `p_base` by hypsometric equation.
                     ! The formulation used here is exact and identical to MPAS.
-                    p_base(k) = constant_p0 * exp(-0.5_kind_r8 * (zgrid(k, i) + zgrid(k + 1, i)) / &
-                        (constant_rd * t_base / constant_g))
+                    ! p_base(k) = constant_p0 * exp(-0.5_kind_r8 * (zgrid(k, i) + zgrid(k + 1, i)) / &
+                    !     (constant_rd * t_base / constant_g))
+                    p_base(k) = p_by_hypsometric_equation( &
+                        constant_p0, &
+                        0.0_kind_r8, &
+                        t_base, &
+                        0.5_kind_r8 * (zgrid(k + 1, i) + zgrid(k, i)))
                 end do
 
                 rho_base(:, i) = p_base(:) / (constant_rd * t_base * zz(:, i))
-                theta_base(:, i) = t_base * ((constant_p0 / p_base(:)) ** (constant_rd / constant_cpd))
+                ! theta_base(:, i) = t_base * ((constant_p0 / p_base(:)) ** (constant_rd / constant_cpd))
+                theta_base(:, i) = theta_by_poisson_equation(p_base, t_base, constant_p0)
             end do
 
             deallocate(p_base)
@@ -697,6 +718,34 @@ contains
             call mpas_dynamical_core % exchange_halo('rho_base')
             call mpas_dynamical_core % exchange_halo('theta_base')
         end subroutine set_mpas_state_rho_base_theta_base
+
+        ! ----- p_2, z_2 ----- (Layer 2)
+        !       t_v
+        ! ----- p_1, z_1 ----- (Layer 1)
+        !
+        !> Compute the pressure `p_2` at height `z_2` from the pressure `p_1` at height `z_1` by hypsometric equation.
+        !> `t_v` is the mean virtual temperature between `z_1` and `z_2`.
+        !> (KCW, 2024-07-02)
+        pure elemental function p_by_hypsometric_equation(p_1, z_1, t_v, z_2) result(p_2)
+            real(kind_r8), intent(in) :: p_1, z_1, t_v, z_2
+            real(kind_r8) :: p_2
+
+            p_2 = p_1 * exp(-(z_2 - z_1) * constant_g / (constant_rd * t_v))
+        end function p_by_hypsometric_equation
+
+        ! ----- p_1, t_1 ----- (Arbitrary layer)
+        !
+        ! ----- p_0, t_0 ----- (Reference layer)
+        !
+        !> Compute the potential temperature `t_0` at reference pressure `p_0` from the temperature `t_1` at pressure `p_1` by
+        !> Poisson equation.
+        !> (KCW, 2024-07-02)
+        pure elemental function theta_by_poisson_equation(p_1, t_1, p_0) result(t_0)
+            real(kind_r8), intent(in) :: p_1, t_1, p_0
+            real(kind_r8) :: t_0
+
+            t_0 = t_1 * ((p_0 / p_1) ** (constant_rd / constant_cpd))
+        end function theta_by_poisson_equation
     end subroutine set_analytic_initial_condition
 
     !> Mark everything in the `physics_{state,tend}` derived types along with constituents as initialized
