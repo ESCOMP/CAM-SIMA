@@ -167,12 +167,13 @@ CONTAINS
                         end if
                         field_data_ptr(:,:,constituent_idx) = constituent_default_value
                         if (masterproc) then
-                           write(iulog,*) 'Consitituent ', ccpp_required_data(req_idx), ' initialized to default value: ', constituent_default_value
+                           write(iulog,*) 'Consitituent ', trim(ccpp_required_data(req_idx)), ' initialized to default value: ',                       &
+                                constituent_default_value
                         end if
                      else
                         field_data_ptr(:,:,constituent_idx) = 0._kind_phys
                         if (masterproc) then
-                           write(iulog,*) 'Constituent ', ccpp_required_data(req_idx), ' default value not configured.  Setting to 0.'
+                           write(iulog,*) 'Constituent ', trim(ccpp_required_data(req_idx)), ' default value not configured.  Setting to 0.'
                         end if
                      end if
                   end if
