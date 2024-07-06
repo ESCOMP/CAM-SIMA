@@ -64,6 +64,9 @@ module cam_hist_file
       logical,                       private :: has_instantaneous = .false.
       logical,                       private :: has_accumulated = .false.
       logical,                       private :: write_nstep0 = .false.
+      integer,                       private :: last_month_written
+      integer,                       private :: last_year_written
+      logical,                       private :: files_open = .false.
       type(interp_info_t), pointer,  private :: interp_info => NULL()
       character(len=CL), allocatable, private :: file_names(:)
       ! PIO IDs
@@ -94,6 +97,8 @@ module cam_hist_file
       procedure :: get_volume => config_volume
       procedure :: get_filenames => config_get_filenames
       procedure :: get_filename_spec => config_get_filename_spec
+      procedure :: get_last_month_written => config_get_last_month_written
+      procedure :: get_last_year_written => config_get_last_year_written
       procedure :: precision => config_precision
       procedure :: max_frame => config_max_frame
       procedure :: get_num_samples => config_get_num_samples
@@ -106,6 +111,7 @@ module cam_hist_file
       procedure :: is_hist_restart_file => config_restart_file
       procedure :: do_write_nstep0 => config_do_write_nstep0
       procedure :: file_is_setup => config_file_is_setup
+      procedure :: are_files_open => config_files_open
       ! Actions
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
@@ -113,6 +119,8 @@ module cam_hist_file
       procedure :: set_beg_time => config_set_beg_time
       procedure :: set_end_time => config_set_end_time
       procedure :: set_filenames => config_set_filenames
+      procedure :: set_last_month_written => config_set_last_month_written
+      procedure :: set_last_year_written => config_set_last_year_written
       procedure :: set_up_fields => config_set_up_fields
       procedure :: find_in_field_list => config_find_in_field_list
       procedure :: define_file => config_define_file
@@ -184,6 +192,28 @@ CONTAINS
 
    ! ========================================================================
 
+   subroutine config_set_last_month_written(this, last_month_written)
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      integer,               intent(in) :: last_month_written
+
+      this%last_month_written = last_month_written
+
+   end subroutine config_set_last_month_written
+
+   ! ========================================================================
+
+   subroutine config_set_last_year_written(this, last_year_written)
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      integer,               intent(in) :: last_year_written
+
+      this%last_year_written = last_year_written
+
+   end subroutine config_set_last_year_written
+
+   ! ========================================================================
+
    function config_get_filenames(this) result(cfiles)
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
@@ -203,6 +233,26 @@ CONTAINS
       filename_spec = this%filename_spec
 
    end function config_get_filename_spec
+
+   ! ========================================================================
+
+   integer function config_get_last_month_written(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_get_last_month_written = this%last_month_written
+
+   end function config_get_last_month_written
+
+   ! ========================================================================
+
+   integer function config_get_last_year_written(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_get_last_year_written = this%last_year_written
+
+   end function config_get_last_year_written
 
    ! ========================================================================
 
@@ -360,6 +410,16 @@ CONTAINS
       config_file_is_setup = allocated(this%grids)
 
    end function config_file_is_setup
+
+   ! ========================================================================
+
+   logical function config_files_open(this)
+      ! Dummy argument
+      class(hist_file_t), intent(in) :: this
+
+      config_files_open = this%files_open
+
+   end function config_files_open
 
    ! ========================================================================
 
@@ -903,6 +963,8 @@ CONTAINS
             this%file_names(accumulated_file_index), amode)
       end if
 
+      this%files_open = .true.
+
       allocate(header_info(size(this%grids, 1)), stat=ierr)
       call check_allocate(ierr, subname, 'header_info',             &
            file=__FILE__, line=__LINE__-1)
@@ -1296,7 +1358,7 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_write_time_dependent_variables(this, volume_index, restart)
+   subroutine config_write_time_dependent_variables(this, restart)
       use pio,           only: pio_put_var, pio_file_is_open
       use time_manager,  only: get_nstep, get_curr_date, get_curr_time
       use time_manager,  only: set_date_from_time_float, get_step_size
@@ -1307,7 +1369,6 @@ CONTAINS
       use cam_pio_utils, only: cam_pio_handle_error
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
-      integer,            intent(in)    :: volume_index
       logical,            intent(in)    :: restart
 
       ! Local variables
@@ -1348,13 +1409,13 @@ CONTAINS
          do split_file_index = 1, max_split_files
             if (pio_file_is_open(this%hist_files(split_file_index))) then
                if (split_file_index == instantaneous_file_index) then
-                  write(iulog,200) num_samples+1,'instantaneous',volume_index-1,yr,mon,day,ncsec(split_file_index)
+                  write(iulog,200) num_samples+1,'instantaneous',trim(this%volume),yr,mon,day,ncsec(split_file_index)
                else
-                  write(iulog,200) num_samples+1,'accumulated',volume_index-1,yr_mid,mon_mid,day_mid,ncsec(split_file_index)
+                  write(iulog,200) num_samples+1,'accumulated',trim(this%volume),yr_mid,mon_mid,day_mid,ncsec(split_file_index)
                end if
             end if
 200         format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
-                 i1,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
+                 a,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
          end do
          write(iulog,*)
       end if
@@ -1570,6 +1631,7 @@ CONTAINS
       if (allocated(this%file_names)) then
          deallocate(this%file_names)
       end if
+      this%files_open = .false.
 
    end subroutine config_close_files
 

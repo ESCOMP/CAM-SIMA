@@ -87,7 +87,8 @@ CONTAINS
       !          fields to those files
       !
       !-----------------------------------------------------------------------
-      use time_manager,     only: set_date_from_time_float, get_nstep
+      use time_manager,     only: get_curr_date, get_nstep
+      use time_manager,     only: get_step_size
       use cam_grid_support, only: max_split_files
       use cam_logfile,      only: iulog
       use cam_abortutils,   only: endrun
@@ -96,24 +97,27 @@ CONTAINS
       character(len=cl) :: file_names(max_split_files)
       character(len=cl) :: prev_file_names(max_split_files)
       integer           :: yr, mon, day
-      integer           :: yr_mid, mon_mid, day_mid
-      integer           :: nstep
-      integer           :: ncdate, ncdate_mid
-      integer           :: ncsec, ncsec_mid
-      integer           :: ndcur, nscur
+      integer           :: nstep, dtime, nstep_freq
+      integer           :: ncsec
       integer           :: num_samples
-      real(r8)          :: time, beg_time
-      real(r8)          :: time_interval(2)
-      integer           :: file_idx, split_file_idx, prev_file_idx, idx
+      integer           :: file_idx, prev_file_idx, idx
       integer           :: out_frq_mult
+      integer           :: last_month_written
+      integer           :: last_year_written
       character(len=8)  :: out_frq_type
       logical           :: write_history, write_nstep0, duplicate
       character(len=cl) :: filename_spec, prev_filename_spec
-      integer           :: start, count1
       logical           :: restart
+      logical           :: month_changed
 
       ! Get nstep
       nstep = get_nstep()
+
+      ! Get timestep size (in seconds)
+      dtime = get_step_size()
+
+      ! Get current time
+      call get_curr_date(yr, mon, day, ncsec)
 
       ! peverwhee - TODO: remove when restarts are implemented
       restart = .false.
@@ -121,7 +125,12 @@ CONTAINS
       ! Loop over history volumes
       do file_idx = 1, size(hist_configs)
          ! Determine if it's time to write!
+         if (nstep == 0) then
+            call hist_configs(file_idx)%set_last_year_written(yr)
+            call hist_configs(file_idx)%set_last_month_written(mon)
+         end if
          write_history = .false.
+         month_changed = .false.
          call hist_configs(file_idx)%output_freq_separate(out_frq_mult, out_frq_type)
          select case(trim(out_frq_type))
             case('step')
@@ -129,38 +138,58 @@ CONTAINS
                   write_history = .true.
                end if
             case('second')
-               if (mod(ncsec, out_frq_mult) == 0) then
+               nstep_freq = out_frq_mult / dtime
+               if (mod(nstep, nstep_freq) == 0) then
                   write_history = .true.
                end if
             case('minute')
-               if (mod(ncsec, out_frq_mult * 60) == 0) then
+               nstep_freq = nint((out_frq_mult * 60._r8) / dtime)
+               if (mod(nstep, nstep_freq) == 0) then
                   write_history = .true.
                end if
             case('hour')
-               if (mod(ncsec, out_frq_mult * 3600) == 0) then
+               nstep_freq = nint((out_frq_mult * 3600._r8) / dtime)
+               if (mod(nstep, nstep_freq) == 0) then
                   write_history = .true.
                end if
             case('day')
-               if (mod(day, out_frq_mult) == 0 .and. ncsec == 0) then
+               nstep_freq = nint((out_frq_mult * 86400._r8) / dtime)
+               if (mod(nstep, nstep_freq) == 0) then
                   write_history = .true.
                end if
             case('month')
-               if (mod(mon, out_frq_mult) == 0 .and. ncsec == 0 .and. day == 1) then
+               ! Determine if it has been out_frq_mult months since the
+               !  last write
+               last_month_written = hist_configs(file_idx)%get_last_month_written()
+               if (mon < last_month_written) then
+                  mon = mon + 12
+                  month_changed = .true.
+               end if
+               if ((mon - last_month_written == out_frq_mult) .and. ncsec == 0 .and. day == 1) then
                   write_history = .true.
+                  if (month_changed) then
+                     last_month_written = mon - 12
+                  else
+                     last_month_written = mon
+                  end if
+                  call hist_configs(file_idx)%set_last_month_written(last_month_written)
                end if
             case('year')
-               if (mod(yr, out_frq_mult) == 0 .and. ncsec == 0 .and. day == 1 .and. &
+               ! Determine if it has been out_frq_mult years since the
+               !  last write
+               last_year_written = hist_configs(file_idx)%get_last_year_written()
+               if ((yr - last_year_written == out_frq_mult) .and. ncsec == 0 .and. day == 1 .and. &
                   mon == 1) then
                   write_history = .true.
+                  call hist_configs(file_idx)%set_last_year_written(yr)
                end if
          end select
+         write_nstep0 = hist_configs(file_idx)%do_write_nstep0()
+         if (write_nstep0 .and. nstep == 0) then
+            write_history = .true.
+         end if
          if (.not. write_history) then
             ! Don't write this volume!
-            cycle
-         end if
-         write_nstep0 = hist_configs(file_idx)%do_write_nstep0()
-         if (nstep == 0 .and. .not. write_nstep0) then
-            ! Don't write the first nstep=0 sample
             cycle
          end if
          num_samples = hist_configs(file_idx)%get_num_samples()
@@ -194,7 +223,7 @@ CONTAINS
             end if
             call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
          end if
-         call hist_configs(file_idx)%write_time_dependent_variables(file_idx, restart)
+         call hist_configs(file_idx)%write_time_dependent_variables(restart)
       end do
 
    end subroutine history_write_files
@@ -749,7 +778,7 @@ CONTAINS
       ! Local variables
       integer  :: yr, mon, day, ncsec
       integer  :: ndcur, nscur, nstep
-      integer  :: file_idx, split_file_idx, field_idx
+      integer  :: file_idx
       integer  :: num_samples, max_frames
       logical  :: full
       real(r8) :: tday ! Model day number for printout
@@ -777,7 +806,8 @@ CONTAINS
          if (mod(num_samples, max_frames) == 0 .and. num_samples > 0) then
             full = .true.
          end if
-         if (full .or. (last_timestep .and. num_samples >= 1)) then
+         if ((full .or. (last_timestep .and. num_samples >= 1)) .and. &
+            hist_configs(file_idx)%are_files_open()) then
             !
             ! Dispose history file
             !
@@ -794,7 +824,11 @@ CONTAINS
                else
                   write(iulog,*)'   Auxiliary history file ', hist_configs(file_idx)%get_volume()
                end if
-               write(iulog,9003)nstep,mod(num_samples, max_frames),tday
+               if (full) then
+                  write(iulog,9003) nstep, max_frames, tday
+               else
+                  write(iulog,9003) nstep, mod(num_samples, max_frames), tday
+               end if
                write(iulog,9004)
             end if
          end if

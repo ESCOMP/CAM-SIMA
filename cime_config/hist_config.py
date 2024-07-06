@@ -590,7 +590,7 @@ class HistoryVolConfig():
         else:
             emsg = "Attempt to add 'inst' fields to a history volume with " \
                 "non-'inst' fields"
-            pobj.add_syntax_error(emsg)
+            pobj.add_syntax_err(emsg)
         # end if
         return self.__last_field_ok
 
@@ -606,7 +606,7 @@ class HistoryVolConfig():
         else:
             emsg = "Attempt to add 'avg' fields to a history volume with "   \
                 "'inst' fields"
-            pobj.add_syntax_error(emsg)
+            pobj.add_syntax_err(emsg)
         # end if
         return not self.__last_field_only
 
@@ -621,7 +621,7 @@ class HistoryVolConfig():
         else:
             emsg = "Attempt to add 'min' fields to a history volume with "   \
                 "'inst' fields"
-            pobj.add_syntax_error(emsg)
+            pobj.add_syntax_err(emsg)
         # end if
         return not self.__last_field_only
 
@@ -636,7 +636,7 @@ class HistoryVolConfig():
         else:
             emsg = "Attempt to add 'max' fields to a history volume with " \
                 "'inst' fields"
-            pobj.add_syntax_error(emsg)
+            pobj.add_syntax_err(emsg)
         # end if
         return not self.__last_field_only
 
@@ -651,7 +651,7 @@ class HistoryVolConfig():
         else:
             emsg = "Attempt to add 'var' fields to a history volume with " \
                 "'inst' fields"
-            pobj.add_syntax_error(emsg)
+            pobj.add_syntax_err(emsg)
         # end if
         return not self.__last_field_only
 
@@ -694,7 +694,7 @@ class HistoryVolConfig():
             return True
         # end if
         emsg = "Attempt to set unrecognized precision, '{}'"
-        pobj.add_syntax_error(emsg.format(prec))
+        pobj.add_syntax_err(emsg.format(prec))
         return False
 
     @property
@@ -723,7 +723,7 @@ class HistoryVolConfig():
             # end if
         else:
             emsg = "Attempt to set max frames to '{}', must be positive integer"
-            pobj.add_syntax_error(emsg.format(nframes))
+            pobj.add_syntax_err(emsg.format(nframes))
         # end if
         return nframes_ok
 
@@ -765,7 +765,7 @@ class HistoryVolConfig():
             return True
         # end if
         emsg = "Attempt to set unrecognized output_frequency, '{}'"
-        pobj.add_syntax_error(emsg.format(ofreq))
+        pobj.add_syntax_err(emsg.format(ofreq))
         return False
 
     @property
