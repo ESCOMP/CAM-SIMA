@@ -1987,11 +1987,11 @@ CONTAINS
       character(len=max_str)                 :: config_line
       character(len=CL)                      :: errmsg
       character(len=*),          parameter   :: subname = 'read_config_file'
-      ! Variables for reading a namelist entry
 
-!      nullify(config_arr)
+      ! Variables for reading a namelist entry
       unitn = -1 ! Prevent reads on error or wrong tasks
       ierr = 0
+
       errmsg = ''
       if (masterproc) then
          inquire(file=trim(filename), exist=filefound)

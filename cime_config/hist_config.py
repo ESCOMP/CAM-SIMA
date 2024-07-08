@@ -291,7 +291,8 @@ class HistFieldList():
         iadd = str(item).strip()
         do_add = True
         for hflist in comp_lists:
-            if iadd in hflist.__field_names:
+            if iadd in hflist.__field_names and self.desc == hflist.desc:
+                # Field is a duplicate (both the name and the type match)
                 do_add = False
                 ctx = context_string(pobj)
                 logger.warning(hflist.__dup_field_msg.format(iadd, hflist.desc,
@@ -386,7 +387,6 @@ class HistFieldList():
                 quotelist = ["'{}{}'".format(x, ' '*(self.max_len - len(x)))
                              for x in self.__field_names[fld_beg:fld_end+1]]
                 outfile.write(f"{lhs}{', '.join(quotelist)}{comma}\n")
-#                outfile.write(f'{lhs}\"{", ".join(self.__field_names[fld_beg:fld_end+1])}{comma}\"\n')
                 lhs = blank_lhs
             # end while
         # end if
@@ -574,86 +574,48 @@ class HistoryVolConfig():
         self.__interp_grid = self.__UNSET_C
         self.__interp_type = self.__UNSET_C
         self.__write_nstep0 = ".false."
-        # Utility variables
-        self.__last_field_ok = True
-        self.__last_field_only = False
 
     def add_inst_fields(self, fields, pobj, logger):
         """Add one or more instantaneous (last sampled value)_fields to this
            HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of last fields.
         """
-        if self.__last_field_ok:
-            add_ok = self.__inst_fields.add_fields(fields, self.__all_fields,
+        add_ok = self.__inst_fields.add_fields(fields, self.__all_fields,
                                                    pobj, logger)
-            self.__last_field_only |= add_ok
-        else:
-            emsg = "Attempt to add 'inst' fields to a history volume with " \
-                "non-'inst' fields"
-            pobj.add_syntax_err(emsg)
-        # end if
-        return self.__last_field_ok
+        return add_ok
 
     def add_avg_fields(self, fields, pobj, logger):
         """Add one or more time-averaged fields to this HistoryVolConfig
         object.
         Return True if it was okay to add <fields> to list of avg fields.
         """
-        if not self.__last_field_only:
-            add_ok = self.__avg_fields.add_fields(fields, self.__all_fields,
+        add_ok = self.__avg_fields.add_fields(fields, self.__all_fields,
                                                   pobj, logger)
-            self.__last_field_ok &= (not add_ok)
-        else:
-            emsg = "Attempt to add 'avg' fields to a history volume with "   \
-                "'inst' fields"
-            pobj.add_syntax_err(emsg)
-        # end if
-        return not self.__last_field_only
+        return add_ok
 
     def add_min_fields(self, fields, pobj, logger):
         """Add one or more min_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of min fields.
         """
-        if not self.__last_field_only:
-            add_ok = self.__min_fields.add_fields(fields, self.__all_fields,
+        add_ok = self.__min_fields.add_fields(fields, self.__all_fields,
                                                   pobj, logger)
-            self.__last_field_ok &= (not add_ok)
-        else:
-            emsg = "Attempt to add 'min' fields to a history volume with "   \
-                "'inst' fields"
-            pobj.add_syntax_err(emsg)
-        # end if
-        return not self.__last_field_only
+        return add_ok
 
     def add_max_fields(self, fields, pobj, logger):
         """Add one or more max_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of max fields.
         """
-        if not self.__last_field_only:
-            add_ok = self.__max_fields.add_fields(fields, self.__all_fields,
+        add_ok = self.__max_fields.add_fields(fields, self.__all_fields,
                                                   pobj, logger)
-            self.__last_field_ok &= (not add_ok)
-        else:
-            emsg = "Attempt to add 'max' fields to a history volume with " \
-                "'inst' fields"
-            pobj.add_syntax_err(emsg)
-        # end if
-        return not self.__last_field_only
+        return add_ok
 
     def add_var_fields(self, fields, pobj, logger):
         """Add one or more var_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of var fields.
         """
-        if not self.__last_field_only:
-            add_ok = self.__var_fields.add_fields(fields, self.__all_fields,
+        add_ok = self.__var_fields.add_fields(fields, self.__all_fields,
                                                   pobj, logger)
-            self.__last_field_ok &= (not add_ok)
-        else:
-            emsg = "Attempt to add 'var' fields to a history volume with " \
-                "'inst' fields"
-            pobj.add_syntax_err(emsg)
-        # end if
-        return not self.__last_field_only
+        return add_ok
 
     def remove_fields(self, fields, pobj, logger):
         """Remove each field in <fields> from whatever list it is on.

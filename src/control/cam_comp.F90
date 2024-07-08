@@ -445,6 +445,7 @@ CONTAINS
       logical, intent(in)  :: rstwr    ! write restart file
       logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
+      ! - flag is true if this is not the last step
       logical, intent(in)  :: do_ncdata_check
 
       if (do_ncdata_check) then
