@@ -65,6 +65,12 @@
         fxtag         = fi_240516
         fxrequired    = ToplevelRequired
 	fxDONOTUSEurl = https://github.com/ESCOMP/FMS_interface
+[submodule "mct"]
+        path          = libraries/mct
+        url           = https://github.com/MCSclimate/MCT
+        fxtag         = MCT_2.11.0
+        fxrequired    = ToplevelRequired
+        fxDONOTUSEurl = https://github.com/MCSclimate/MCT
 [submodule "mizuRoute"]
         path          = components/mizuRoute
         url           = https://github.com/ESCOMP/mizuRoute
