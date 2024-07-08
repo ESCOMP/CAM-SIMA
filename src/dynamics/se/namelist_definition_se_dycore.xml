@@ -215,6 +215,7 @@
     </desc>
     <values>
       <value>0</value>
+      <value csne="3">3</value>
       <value csne="5">5</value>
       <value csne="16">16</value>
       <value csne="30">30</value>

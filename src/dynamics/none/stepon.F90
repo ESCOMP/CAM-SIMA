@@ -9,7 +9,7 @@ module stepon
    private
 
    public :: stepon_init
-   public :: stepon_run1
+   public :: stepon_timestep_init
    public :: stepon_run2
    public :: stepon_run3
    public :: stepon_final
@@ -30,8 +30,8 @@ CONTAINS
 
    !===========================================================================
 
-   subroutine stepon_run1(dtime_out, cam_runtime_opts, phys_state, phys_tend, &
-        dyn_in, dyn_out)
+   subroutine stepon_timestep_init(dtime_out, cam_runtime_opts, phys_state,   &
+        phys_tend, dyn_in, dyn_out)
 
       use runtime_obj,    only: runtime_options
       use time_manager,   only: get_step_size
@@ -51,10 +51,10 @@ CONTAINS
 
       !Ensure that the time-step is a positive value:
       if (iam < npes) then
-         if (dtime_out <= 0)  call endrun('stepon_run1: bad dtime')
+         if (dtime_out <= 0)  call endrun('stepon_timestep_init: bad dtime')
       end if
 
-   end subroutine stepon_run1
+   end subroutine stepon_timestep_init
 
    !===========================================================================
 
