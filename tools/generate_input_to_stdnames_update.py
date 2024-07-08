@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 def parse_csv(csv_filepath):
     datamap = defaultdict(set)
-    pattern = re.compile("\w+")
+    pattern = re.compile(r"\w+")
     print(f"Opening {csv_filepath}")
     with open(csv_filepath, encoding='ascii') as csvfile:
         csvdata = csv.reader(csvfile)
