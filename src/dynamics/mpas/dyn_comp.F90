@@ -33,6 +33,8 @@ module dyn_comp
     use shr_pio_mod, only: shr_pio_getiosys
 
     ! Modules from CCPP.
+    use cam_ccpp_cap, only: cam_constituents_array
+    use ccpp_kinds, only: kind_phys
     use phys_vars_init_check, only: mark_as_initialized, std_name_len
 
     ! Modules from external libraries.
@@ -241,23 +243,20 @@ contains
 
                 call set_analytic_initial_condition()
             else
+                ! Perform default initialization for all constituents.
+                ! Subsequently, they can be overridden depending on the namelist option (below) and
+                ! the actual availability (checked and handled by MPAS).
+                call dyn_debug_print('Calling set_default_constituent')
+
+                call set_default_constituent()
+
                 ! Namelist option that controls if constituents are to be read from the file.
                 if (readtrace) then
                     ! Read variables that belong to the "input" stream in MPAS.
                     call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
-
-                    ! TODO:
-                    ! `cnst_init_default` or its replacement is not yet implemented in CAM-SIMA.
-                    ! Default constituent initialization should be performed here
-                    ! for constituents that fail to be read from the file.
                 else
                     ! Read variables that belong to the "input" stream in MPAS, excluding constituents.
                     call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input-scalars')
-
-                    ! TODO:
-                    ! `cnst_init_default` or its replacement is not yet implemented in CAM-SIMA.
-                    ! Default constituent initialization should be performed here
-                    ! because constituents are not read from the file.
                 end if
             end if
         else
@@ -747,6 +746,40 @@ contains
             t_0 = t_1 * ((p_0 / p_1) ** (constant_rd / constant_cpd))
         end function theta_by_poisson_equation
     end subroutine set_analytic_initial_condition
+
+    !> Set default MPAS state `scalars` (i.e., constituents) in accordance with CCPP, which is a component of CAM-SIMA.
+    !> (KCW, 2024-07-09)
+    subroutine set_default_constituent()
+        character(*), parameter :: subname = 'dyn_comp::set_default_constituent'
+        integer :: i, k
+        real(kind_phys), pointer :: constituents(:, :, :) => null() ! This points to CCPP memory.
+        real(kind_r8), pointer :: scalars(:, :, :) => null()        ! This points to MPAS memory.
+
+        call dyn_debug_print('Setting default MPAS state "scalars"')
+
+        constituents => cam_constituents_array()
+
+        if (.not. associated(constituents)) then
+            call endrun('Failed to find variable "constituents"', subname, __LINE__)
+        end if
+
+        call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
+
+        ! `i` is indexing into `scalars`, so it is regarded as MPAS scalar index.
+        do i = 1, num_advected
+            ! Vertical index order is reversed between CAM-SIMA and MPAS.
+            do k = 1, pver
+                scalars(i, k, 1:ncells_solve) = &
+                    constituents(:, pver - k + 1, mpas_dynamical_core % map_constituent_index(i))
+            end do
+        end do
+
+        nullify(constituents)
+        nullify(scalars)
+
+        ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
+        call mpas_dynamical_core % exchange_halo('scalars')
+    end subroutine set_default_constituent
 
     !> Mark everything in the `physics_{state,tend}` derived types along with constituents as initialized
     !> to prevent physics from attempting to read them from a file. These variables are to be exchanged later
