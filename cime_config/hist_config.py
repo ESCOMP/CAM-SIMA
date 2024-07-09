@@ -871,14 +871,22 @@ class HistoryVolConfig():
             num_flds = self.__max_fields.num_fields()
         elif fld_type == 'var':
             num_flds = self.__var_fields.num_fields()
+        elif fld_type == 'all':
+            num_flds = self.__avg_fields.num_fields() + self.__inst_fields.num_fields() + \
+                self.__min_fields.num_fields() + self.__max_fields.num_fields() + \
+                self.__var_fields.num_fields()
         else:
             raise ParseInternalError("Unknown fld_type, '{}'".format(fld_type))
         # end if
         return num_flds
 
-    def output_config_namelist(self, outfile):
+    def output_config_namelist(self, outfile, logger):
         """Write the fortran namelist object for this HistoryVolConfig
         object"""
+        if self.num_fields('all') == 0:
+            logger.warning(f"WARNING: Volume '{self.volume}' has no fields; skipping")
+            return
+        # end if
         outfile.write("\n&hist_file_config_nl\n")
         outfile.write(f"    hist_volume = '{self.volume}'\n")
         self.__inst_fields.output_nl_fieldlist(outfile, "hist_inst_fields")
