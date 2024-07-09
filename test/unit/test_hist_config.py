@@ -27,14 +27,6 @@ _SAMPLE_FILES_DIR = os.path.join(__TEST_DIR,
 _TMP_DIR = os.path.join(__TEST_DIR, "tmp")
 _LOGGER = logging.getLogger(__name__)
 
-# Find python version
-PY3 = sys.version_info[0] > 2
-if PY3:
-    def __FILE_OPEN(x): return open(x, 'r', encoding='utf-8')
-else:
-    def __FILE_OPEN(x): return open(x, 'r')
-# End if
-
 if not os.path.exists(__CIME_CONFIG_DIR):
     raise ImportError("Cannot find <root>/cime_config")
 
