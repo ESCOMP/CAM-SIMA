@@ -104,7 +104,7 @@ class HistConfigTest(unittest.TestCase):
         with open(out_source, 'w', encoding='utf-8') as nl_file:
             hist_configs.output_class_namelist(nl_file)
             for key in sorted(hist_configs.keys()):
-                hist_configs[key].output_config_namelist(nl_file)
+                hist_configs[key].output_config_namelist(nl_file, logger=_LOGGER)
             # end for
         # end with
         # Make sure each output file was created
@@ -144,7 +144,7 @@ class HistConfigTest(unittest.TestCase):
         with open(out_source, 'w', encoding='utf-8') as nl_file:
             hist_configs.output_class_namelist(nl_file)
             for key in sorted(hist_configs.keys()):
-                hist_configs[key].output_config_namelist(nl_file)
+                hist_configs[key].output_config_namelist(nl_file, logger=_LOGGER)
             # end for
         # end with
         # Make sure each output file was created
