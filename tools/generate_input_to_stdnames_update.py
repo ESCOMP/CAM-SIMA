@@ -1,3 +1,7 @@
+"""
+
+"""
+
 import argparse
 import csv
 import re
@@ -6,6 +10,24 @@ from bs4 import BeautifulSoup
 
 
 def parse_csv(csv_filepath):
+    """Returns a dictionary of standard names (keys) to input names from snapshots (set value)
+
+    The current spreadsheet currently uses column 0 as the input name and column 6 as the standard name.
+    Currently only using 432 lines in the spread sheet that need standard names.
+
+    Ex:
+
+    .. code-block::
+
+      A1,...,...,...,...,A6,...
+      B1,...,...,...,...,A6,...
+      C1,...,...,...,...,C5,...
+
+      ->
+
+      { A6: (A1, B1), C5: (C1)
+
+    """
     datamap = defaultdict(set)
     pattern = re.compile(r"\w+")
     print(f"Opening {csv_filepath}")
@@ -24,6 +46,33 @@ def parse_csv(csv_filepath):
 
 
 def generate_stdname_xml(current_dict, output_filename):
+    """
+    Generates an xml file to be used by a converter script that converts
+    input names in a snapshot file to standard names.
+    
+    For example,
+
+    .. code-block::
+
+      { A6: (A1, B1), C5: (C1)
+
+    would be converted to:
+
+    .. code-block:: XML
+
+      <entries>
+        <entry stdname="A6">
+          <ic_file_input_names>
+            <ic_file_input_name>A1</ic_file_input_name>
+            <ic_file_input_name>B1</ic_file_input_name>
+          <ic_file_input_names>
+        </entry>
+        <entry stdname="C5">
+          <ic_file_input_name>C1</ic_file_input_name>
+        </entry>
+      </entries>
+
+    """
     xmltree = BeautifulSoup(features="xml")
 
     entries = xmltree.new_tag("entries")
@@ -44,6 +93,26 @@ def generate_stdname_xml(current_dict, output_filename):
 
 
 def main():
+    """
+    Parses a CSV file with a column ordering of
+
+    .. code-block::
+
+      <snapshot file/input name>,...,...,...,...,<standard name>,...
+    
+    and generates a corresponding xml file of the format
+
+    .. code-block:: XML
+    
+      <entries>
+        <entry stdname="stdname">
+          <ic_file_input_name>input_name</ic_file_input_name>
+          ...
+        </entry>
+        ...
+      </entries>
+ 
+    """
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--csv-file', type=str, default='CCPP Standard Names - Sheet1.csv', help='')
     parser.add_argument('--current-map', type=str, default='stdnames_to_inputnames_dictionary.xml', help='')
