@@ -212,6 +212,9 @@ contains
         ! Inform MPAS about constituent names and their corresponding waterness.
         call mpas_dynamical_core % define_scalar(constituent_name, is_water_species)
 
+        deallocate(constituent_name)
+        deallocate(is_water_species)
+
         ! Provide mapping information between MPAS scalars and constituent names to CAM-SIMA.
         do i = 1, thermodynamic_active_species_num
             thermodynamic_active_species_idx_dycore(i) = &
@@ -267,10 +270,7 @@ contains
         end if
 
         call clean_iodesc_list()
-        call mark_variable_as_initialized(constituent_name)
-
-        deallocate(constituent_name)
-        deallocate(is_water_species)
+        call mark_variable_as_initialized()
 
         nullify(pio_init_file)
         nullify(pio_topo_file)
@@ -785,9 +785,7 @@ contains
     !> to prevent physics from attempting to read them from a file. These variables are to be exchanged later
     !> during dynamics-physics coupling.
     !> (KCW, 2024-05-23)
-    subroutine mark_variable_as_initialized(constituent_name)
-        character(*), intent(in) :: constituent_name(:)
-
+    subroutine mark_variable_as_initialized()
         character(*), parameter :: subname = 'dyn_comp::mark_variable_as_initialized'
         integer :: i
 
@@ -821,7 +819,7 @@ contains
 
         ! CCPP standard names of constituents.
         do i = 1, num_advected
-            call mark_as_initialized(trim(adjustl(constituent_name(i))))
+            call mark_as_initialized(trim(adjustl(const_name(i))))
         end do
     end subroutine mark_variable_as_initialized
 
