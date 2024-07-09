@@ -445,10 +445,10 @@ CONTAINS
       logical, intent(in)  :: rstwr    ! write restart file
       logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
-      ! - flag is true if this is not the last step
+      ! - flag is true if this is not the first or last step
       logical, intent(in)  :: do_ncdata_check
 
-      if (do_ncdata_check) then
+      if (do_ncdata_check .or. get_nstep() == 0) then
          call physics_history_out()
          call history_write_files()
          ! peverwhee - todo: handle restarts

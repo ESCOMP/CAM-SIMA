@@ -185,8 +185,12 @@ CONTAINS
                end if
          end select
          write_nstep0 = hist_configs(file_idx)%do_write_nstep0()
-         if (write_nstep0 .and. nstep == 0) then
-            write_history = .true.
+         if (nstep == 0) then
+            if (write_nstep0) then
+               write_history = .true.
+            else
+               write_history = .false.
+            end if
          end if
          if (.not. write_history) then
             ! Don't write this volume!
