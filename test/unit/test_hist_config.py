@@ -16,10 +16,8 @@ import glob
 import filecmp
 import logging
 import os
-import shutil
 import sys
 import unittest
-import xml.etree.ElementTree as ET
 
 __TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 _CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir))
@@ -32,9 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 # Find python version
 PY3 = sys.version_info[0] > 2
 if PY3:
-    __FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
+    def __FILE_OPEN(x): return open(x, 'r', encoding='utf-8')
 else:
-    __FILE_OPEN = (lambda x: open(x, 'r'))
+    def __FILE_OPEN(x): return open(x, 'r')
 # End if
 
 if not os.path.exists(__CIME_CONFIG_DIR):
@@ -101,7 +99,7 @@ class HistConfigTest(unittest.TestCase):
         amsg = "Test failure: no HistConfig object created"
         self.assertTrue(isinstance(hist_configs, HistoryConfig), msg=amsg)
         clen = len(hist_configs)
-        amsg = "Test failure: Found {} history files, expected 3".format(clen)
+        amsg = f"Test failure: Found {clen} history files, expected 3"
         self.assertEqual(clen, 3, msg=amsg)
         # Check properties of created config objects
         self.assertTrue('h1' in hist_configs, msg="'h1' not in hist_configs")
@@ -118,10 +116,10 @@ class HistConfigTest(unittest.TestCase):
             # end for
         # end with
         # Make sure each output file was created
-        amsg = "{} does not exist".format(out_source)
+        amsg = f"{out_source} does not exist"
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # Make sure the output file is correct
-        amsg = "{} does not match {}".format(out_source, out_test)
+        amsg = f"{out_source} does not match {out_test}"
         self.assertTrue(filecmp.cmp(out_test, out_source, shallow=False),
                         msg=amsg)
 
@@ -141,7 +139,7 @@ class HistConfigTest(unittest.TestCase):
         amsg = "Test failure: no HistConfig object created"
         self.assertTrue(isinstance(hist_configs, HistoryConfig), msg=amsg)
         clen = len(hist_configs)
-        amsg = "Test failure: Found {} history files, expected 2".format(clen)
+        amsg = f"Test failure: Found {clen} history files, expected 2"
         self.assertEqual(clen, 2, msg=amsg)
         # Check properties of created config objects
         self.assertTrue('h0' in hist_configs, msg="'h0' not in hist_configs")
@@ -158,10 +156,10 @@ class HistConfigTest(unittest.TestCase):
             # end for
         # end with
         # Make sure each output file was created
-        amsg = "{} does not exist".format(out_source)
+        amsg = f"{out_source} does not exist"
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # Make sure the output file is correct
-        amsg = "{} does not match {}".format(out_source, out_test)
+        amsg = f"{out_source} does not match {out_test}"
         self.assertTrue(filecmp.cmp(out_test, out_source, shallow=False),
                         msg=amsg)
 
