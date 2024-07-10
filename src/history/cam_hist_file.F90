@@ -1835,6 +1835,8 @@ CONTAINS
            masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_collect_patch_output, 1, MPI_LOGICAL,               &
            masterprocid, mpicom, ierr)
+      call MPI_Bcast(hist_write_nstep0, 1, MPI_LOGICAL,                       &
+           masterprocid, mpicom, ierr)
       call MPI_Bcast(file_type, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_interp_grid, flen, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
