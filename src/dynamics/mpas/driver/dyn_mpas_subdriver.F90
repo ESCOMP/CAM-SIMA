@@ -1821,6 +1821,7 @@ contains
     !>  in MPAS registry. For an ordinary variable, the checks are performed on
     !>  itself. Otherwise, for a variable array, the checks are performed on its
     !>  constituent parts instead.
+    !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_check_variable_status(self, var_is_present, var_is_tkr_compatible, pio_file, var_info)
         class(mpas_dynamical_core_type), intent(in) :: self
