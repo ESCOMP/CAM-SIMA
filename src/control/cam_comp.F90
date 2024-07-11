@@ -252,7 +252,17 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       use phys_comp, only: phys_timestep_init
+      use stepon,    only: stepon_timestep_init
 
+      !----------------------------------------------------------
+      ! First phase of dynamics (at least couple from dynamics to physics)
+      ! Return time-step for physics from dynamics.
+      !----------------------------------------------------------
+      call t_barrierf('sync_stepon_timestep_init', mpicom)
+      call t_startf('stepon_timestep_init')
+      call stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
+           dyn_in, dyn_out)
+      call t_stopf('stepon_timestep_init')
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_INIT Call the Physics package
@@ -274,21 +284,10 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       use phys_comp, only: phys_run1
-      use stepon,    only: stepon_run1
 !      use ionosphere_interface, only: ionosphere_run1
 
       type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
       type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
-
-      !----------------------------------------------------------
-      ! First phase of dynamics (at least couple from dynamics to physics)
-      ! Return time-step for physics from dynamics.
-      !----------------------------------------------------------
-      call t_barrierf('sync_stepon_run1', mpicom)
-      call t_startf('stepon_run1')
-      call stepon_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
-           dyn_in, dyn_out)
-      call t_stopf('stepon_run1')
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed

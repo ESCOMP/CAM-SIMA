@@ -16,7 +16,7 @@ private
 save
 
 public stepon_init
-public stepon_run1
+public stepon_timestep_init
 public stepon_run2
 public stepon_run3
 public stepon_final
@@ -36,7 +36,8 @@ end subroutine stepon_init
 
 !=========================================================================================
 
-subroutine stepon_run1(dtime_out, cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
+subroutine stepon_timestep_init(dtime_out, cam_runtime_opts, phys_state,      &
+     phys_tend, dyn_in, dyn_out)
 
    use time_manager,   only: get_step_size
    use cam_abortutils, only: endrun
@@ -59,8 +60,8 @@ subroutine stepon_run1(dtime_out, cam_runtime_opts, phys_state, phys_tend, dyn_i
 
    !Ensure that the model and dynamics time-steps are positive values:
    if (iam < par%nprocs) then
-      if (tstep <= 0)      call endrun('stepon_run1: bad tstep')
-      if (dtime_out <= 0)  call endrun('stepon_run1: bad dtime')
+      if (tstep <= 0)      call endrun('stepon_timestep_init: bad tstep')
+      if (dtime_out <= 0)  call endrun('stepon_timestep_init: bad dtime')
 
       ! write diagnostic fields on gll grid and initial file
       call diag_dynvar_ic(dyn_out%elem, dyn_out%fvm)
@@ -73,7 +74,7 @@ subroutine stepon_run1(dtime_out, cam_runtime_opts, phys_state, phys_tend, dyn_i
    call d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    call t_stopf('d_p_coupling')
 
-end subroutine stepon_run1
+end subroutine stepon_timestep_init
 
 !=========================================================================================
 
