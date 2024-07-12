@@ -412,7 +412,7 @@ subroutine hycoef_read(File)
    if (ierr /= PIO_NOERR) then
       ierr = PIO_Inq_DimID(File, 'reference_pressure_in_atmosphere_layer', lev_dimid)
       if (ierr /= PIO_NOERR) then
-         call endrun(routine//': reading lev')
+         call endrun(routine//': ERROR: unable to find lev dimension in ncdata or restart file.')
       end if
    end if
    ierr = PIO_Inq_dimlen(File, lev_dimid, flev)
@@ -425,7 +425,7 @@ subroutine hycoef_read(File)
    if (ierr /= PIO_NOERR) then
       ierr = PIO_Inq_DimID(File, 'reference_pressure_in_atmosphere_layer_at_interfaces', lev_dimid)
       if (ierr /= PIO_NOERR) then
-         call endrun(routine//': reading ilev')
+         call endrun(routine//': ERROR: unable to find ilev dimension in ncdata or restart file')
       end if
    end if
    ierr = PIO_Inq_dimlen(File, lev_dimid, filev)
@@ -438,7 +438,7 @@ subroutine hycoef_read(File)
    if (ierr /= PIO_NOERR) then
       ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_a_coefficient_at_interfaces', hyai_desc)
       if (ierr /= PIO_NOERR) then
-         call endrun(routine//': reading hyai')
+         call endrun(routine//': ERROR: unable to find hyai variable in ncdata or restart file')
       end if
    end if
 
@@ -446,7 +446,7 @@ subroutine hycoef_read(File)
    if (ierr /= PIO_NOERR) then
       ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_a_coefficient', hyam_desc)
       if (ierr /= PIO_NOERR) then
-         call endrun(routine//': reading hyam')
+         call endrun(routine//': ERROR: unable to find hyam variable in ncdata or restart file')
       end if
    end if
 
@@ -454,7 +454,7 @@ subroutine hycoef_read(File)
    if (ierr /= PIO_NOERR) then
       ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_b_coefficient_at_interfaces', hybi_desc)
       if (ierr /= PIO_NOERR) then
-         call endrun(routine//': reading hybi')
+         call endrun(routine//': ERROR: unable to find hybi variable in ncdata or restart file')
       end if
    end if
 
@@ -462,7 +462,7 @@ subroutine hycoef_read(File)
    if (ierr /= PIO_NOERR) then
       ierr = pio_inq_varid(File, 'sigma_pressure_hybrid_coordinate_b_coefficient', hybm_desc)
       if (ierr /= PIO_NOERR) then
-         call endrun(routine//': reading hybm')
+         call endrun(routine//': ERROR: unable to find hybm variable in ncdata or restart file')
       end if
    end if
 

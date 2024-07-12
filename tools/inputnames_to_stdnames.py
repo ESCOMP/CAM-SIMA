@@ -100,7 +100,7 @@ def parse_command_line(arguments, description):
                         metavar='stdname file',
                         help="Full path to the standard names dictionary (e.g. stdnames_to_inputnames_dictionary.xml)")
     parser.add_argument('--tphys', type=str, required=True,
-                        metavar='tphysac or tphybs group - REQUIRED',
+                        metavar='tphysac or tphysbc group - REQUIRED',
                         help='Group to convert to stdandard names')
     pargs = parser.parse_args(arguments)
     return pargs
