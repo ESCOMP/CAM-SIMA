@@ -467,9 +467,21 @@ subroutine hycoef_read(File)
    end if
 
    ierr = pio_get_var(File, hyai_desc, hyai)
+   if (ierr /= PIO_NOERR) then
+     call endrun(routine//': ERROR: Unable to get hyai variable in ncdata or restart file.')
+   end if
    ierr = pio_get_var(File, hybi_desc, hybi)
+   if (ierr /= PIO_NOERR) then
+     call endrun(routine//': ERROR: Unable to get hybi variable in ncdata or restart file.')
+   end if
    ierr = pio_get_var(File, hyam_desc, hyam)
+   if (ierr /= PIO_NOERR) then
+     call endrun(routine//': ERROR: Unable to get hyam variable in ncdata or restart file.')
+   end if
    ierr = pio_get_var(File, hybm_desc, hybm)
+   if (ierr /= PIO_NOERR) then
+     call endrun(routine//': ERROR: Unable to get hybm variable in ncdata or restart file.')
+   end if
 
    if (masterproc) then
       write(iulog,*) routine//': read hyai, hybi, hyam, hybm'
