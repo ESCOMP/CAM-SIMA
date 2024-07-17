@@ -76,8 +76,8 @@ def _find_file(filename, search_dirs):
     doctests:
 
     1.  Check that the function can find a file correctly:
-    >>> _find_file("Externals.cfg", [_CAM_ROOT_DIR]) == \
-                   os.path.join(_CAM_ROOT_DIR, "Externals.cfg")
+    >>> _find_file("README.md", [_CAM_ROOT_DIR]) == \
+                   os.path.join(_CAM_ROOT_DIR, "README.md")
     True
 
     2.  Check that the function returns None if it can't find a file:
