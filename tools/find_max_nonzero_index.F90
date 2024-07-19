@@ -35,7 +35,6 @@ module find_max_nonzero_index
    use cam_logfile, only: iulog
    use spmd_utils,  only: iam, masterproc, mpicom, masterprocid
    use ccpp_kinds,  only: kind_phys
-   use cam_abortutils, only: endrun
 
    implicit none
    private
