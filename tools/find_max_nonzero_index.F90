@@ -11,9 +11,10 @@ module find_max_nonzero_index
 !       given array and saves the index(es) and rank of the value
 !       as module-level variables
 !    - set_index_and_rank: manually sets the module-level index(es)
-!       variables
+!       and rank variables
 !    - print_value: prints info and the value of a variable at the
-!       indexes corresponding to what was found in find_index_and_rank
+!       indices corresponding to what was found in find_index_and_rank
+!       or set in set_index_and_rank
 !
 !  USAGE:
 !    1. Copy this module into the CAM source tree
