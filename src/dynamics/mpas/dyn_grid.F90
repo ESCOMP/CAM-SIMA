@@ -10,9 +10,8 @@ module dyn_grid
     use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
         ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
         ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
-        sphere_radius, &
-        deg_to_rad, rad_to_deg
-    use dynconst, only: constant_pi => pi, dynconst_init
+        sphere_radius
+    use dynconst, only: constant_pi => pi, rad_to_deg, dynconst_init
     use physics_column_type, only: kind_pcol, physics_column_t
     use physics_grid, only: phys_decomp, phys_grid_init
     use ref_pres, only: ref_pres_init

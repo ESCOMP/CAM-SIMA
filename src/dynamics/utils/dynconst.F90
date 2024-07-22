@@ -18,6 +18,11 @@ module dynconst
    !circle's circumference/diameter [unitless]
    real(kind_dyn), parameter, public :: pi = real(phys_pi, kind_dyn)
 
+   ! Convert degrees to radians
+   real(kind_dyn), parameter, public :: deg_to_rad = pi / 180.0_kind_dyn
+   ! Convert radians to degrees
+   real(kind_dyn), parameter, public :: rad_to_deg = 180.0_kind_dyn / pi
+
    ! radius of earth [m]
    real(kind_dyn), protected, public :: rearth
    ! reciprocal of earth's radius [1/m]

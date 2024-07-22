@@ -19,7 +19,8 @@ module dyn_comp
     use cam_pio_utils, only: clean_iodesc_list
     use dyn_tests_utils, only: vc_height
     use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, constant_pi => pi, &
-                        constant_rd => rair, constant_rv => rh2o
+                        constant_rd => rair, constant_rv => rh2o, &
+                        deg_to_rad
     use inic_analytic, only: analytic_ic_active, dyn_set_inic_col
     use runtime_obj, only: runtime_options
     use spmd_utils, only: iam, masterproc, mpicom
@@ -56,7 +57,6 @@ module dyn_comp
     public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     public :: sphere_radius
-    public :: deg_to_rad, rad_to_deg
 
     !> NOTE:
     !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
@@ -79,9 +79,6 @@ module dyn_comp
     integer :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     integer :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     real(kind_r8) :: sphere_radius
-
-    real(kind_r8), parameter :: deg_to_rad = constant_pi / 180.0_kind_r8 ! Convert degrees to radians.
-    real(kind_r8), parameter :: rad_to_deg = 180.0_kind_r8 / constant_pi ! Convert radians to degrees.
 contains
     !> Print a debug message with optionally the value(s) of a variable.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
