@@ -155,8 +155,6 @@ class VarBase:
         self.__initial_value = ''
         self.__initial_val_vars = set()
         self.__ic_names = None
-        self.__diagnostic_name = None
-        self.__diagnostic_flag = None
         self.__elements = []
         self.__protected = protected
         self.__index_name = index_name
@@ -188,13 +186,7 @@ class VarBase:
             elif attrib.tag == 'ic_file_input_names':
                 #Separate out string into list:
                 self.__ic_names = [x.strip() for x in attrib.text.split(' ') if x]
-            elif attrib.tag == 'diagnostic':
-                self.__diagnostic_name = attrib.attrib['name']
-                if 'flag' in attrib.attrib:
-                   self.__diagnostic_flag = attrib.attrib['flag']
-                else:
-                   self.__diagnostic_flag = 'avg'
-                # end if
+
             # end if (just ignore other tags)
         # end for
         if ((not self.initial_value) and
@@ -335,16 +327,6 @@ class VarBase:
     def dimension_string(self):
         """Return the dimension_string for this variable"""
         return '(' + ', '.join(self.dimensions) + ')'
-
-    @property
-    def diagnostic_name(self):
-        """Return the diagnostic name for this variable"""
-        return self.__diagnostic_name
-
-    @property
-    def diagnostic_flag(self):
-        """Return the diagnostic flag for this variable"""
-        return self.__diagnostic_flag
 
     @property
     def long_name(self):
@@ -596,8 +578,6 @@ class Variable(VarBase):
             elif attrib.tag == 'element':
                 pass # picked up in parent
             elif attrib.tag == 'ic_file_input_names':
-                pass # picked up in parent
-            elif attrib.tag == 'diagnostic':
                 pass # picked up in parent
             else:
                 emsg = "Unknown Variable content, '{}'"
@@ -1694,7 +1674,6 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
         if file_.generate_code:
             file_.write_metadata(outdir, logger)
             file_.write_source(outdir, indent, logger, physconst_vars)
-#            file_.write_history_source(outdir, indent, logger, physconst_vars)
         # end if
     # end for
 
@@ -1753,60 +1732,6 @@ def _create_ic_name_dict(registry):
         # end if (ignore other node types)
     # end for
     return ic_name_dict
-
-###############################################################################
-def _create_diag_name_dict(registry):
-###############################################################################
-    """ Build a dictionary of diagnostic names and flags (key = standard_name)
-        If this property is ever included in CCPP metadata, this
-           section can be replaced by accessing the new metadata
-           property and this routine will no longer be needed.
-        This function returns a dictionary containing only the variables
-           from the registry which have the "diagnostic" element.
-    """
-    diag_name_dict = {}
-    for section in registry:
-        if section.tag == 'file':
-            for obj in section:
-                if obj.tag == 'variable':
-                    for attrib in obj:
-                        if attrib.tag == 'diagnostic':
-                            diags = {}
-                            stdname = obj.get('standard_name')
-                            diag_name = attrib.attrib['name']
-                            # peverwhee - duplicate check?
-                            if 'flag' in attrib.attrib:
-                                flag = attrib.attrib['flag']
-                            else:
-                                flag = 'avg'
-                            # end if
-                            diag_name_dict[stdname] = (diag_name, flag)
-                        # end if
-                    # end for
-                elif obj.tag == 'array':
-                    for subobj in obj:
-                        if subobj.tag == 'element':
-                            for attrib in subobj:
-                                if attrib.tag == 'diagnostic':
-                                    diags = {}
-                                    stdname = subobj.get('standard_name')
-                                    diag_name = attrib.attrib['name']
-                                    # peverwhee - duplicate check?
-                                    if 'flag' in attrib.attrib:
-                                        flag = attrib.attrib['flag']
-                                    else:
-                                        flag = 'avg'
-                                    # end if
-                                    diag_name_dict[stdname] = (diag_name, flag)
-                                # end if
-                            # end for
-                        # end if
-                    # end for
-                # end if (ignore other node types)
-            # end for
-        # end if (ignore other node types)
-    # end for
-    return diag_name_dict
 
 ###############################################################################
 def gen_registry(registry_file, dycore, outdir, indent,
@@ -1877,7 +1802,6 @@ def gen_registry(registry_file, dycore, outdir, indent,
         retcode = 1
         files = None
         ic_names = None
-        diag_names = None
     else:
         library_name = registry.get('name')
         emsg = f"Parsing registry, {library_name}"
@@ -1887,10 +1811,9 @@ def gen_registry(registry_file, dycore, outdir, indent,
                                      src_root, reg_dir, indent, logger)
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
-        diag_names = _create_diag_name_dict(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, diag_names
+    return retcode, files, ic_names
 
 def main():
     """Function to execute when module called as a script"""
@@ -1915,5 +1838,5 @@ def main():
 
 ###############################################################################
 if __name__ == "__main__":
-    __RETCODE, _FILES, _IC_NAMES, _DIAG_NAMES = main()
+    __RETCODE, _FILES, _IC_NAMES = main()
     sys.exit(__RETCODE)

@@ -31,21 +31,18 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>ps state_ps</ic_file_input_names>
-      <diagnostic name="PS" flag="avg"></diagnostic>
     </variable>
     <variable local_name="psdry" standard_name="surface_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>psdry state_psdry</ic_file_input_names>
-      <diagnostic name="PSDRY" flag="avg"></diagnostic>
     </variable>
     <variable local_name="phis" standard_name="surface_geopotential"
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>phis state_phis</ic_file_input_names>
-      <diagnostic name="PHIS" flag="lst"></diagnostic>
     </variable>
     <variable local_name="T" standard_name="air_temperature"
               units="K" type="real" kind="kind_phys"
@@ -53,7 +50,6 @@
       <long_name>Air temperature</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>T state_t</ic_file_input_names>
-      <diagnostic name="T" flag="avg"></diagnostic>
     </variable>
     <variable local_name="u" standard_name="eastward_wind"
               units="m s-1" type="real" kind="kind_phys"
@@ -61,7 +57,6 @@
       <long_name>Horizontal wind in a direction perpendicular to northward_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>u state_u</ic_file_input_names>
-      <diagnostic name="U" flag="avg"></diagnostic>
     </variable>
     <variable local_name="v" standard_name="northward_wind"
               units="m s-1" type="real" kind="kind_phys"
@@ -69,14 +64,12 @@
       <long_name>Horizontal wind in a direction perpendicular to eastward_wind</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>v state_v</ic_file_input_names>
-      <diagnostic name="V" flag="avg"></diagnostic>
     </variable>
     <variable local_name="dse" standard_name="dry_static_energy"
               units="J kg-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>s state_s</ic_file_input_names>
-      <diagnostic name="SE" flag="avg"></diagnostic>
     </variable>
     <variable local_name="omega" standard_name="lagrangian_tendency_of_air_pressure"
               units="Pa s-1" type="real" kind="kind_phys"
@@ -84,14 +77,12 @@
       <long_name>Vertical pressure velocity</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>omega state_omega</ic_file_input_names>
-      <diagnostic name="OMEGA" flag="avg"></diagnostic>
     </variable>
     <variable local_name="pmid" standard_name="air_pressure"
               units="Pa" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pmid state_pmid</ic_file_input_names>
-      <diagnostic name="PMID" flag="avg"></diagnostic>
     </variable>
     <variable local_name="pmiddry" standard_name="air_pressure_of_dry_air"
               units="Pa" type="real" kind="kind_phys"
@@ -112,7 +103,6 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pdeldry state_pdeldry</ic_file_input_names>
-      <diagnostic name="PDELDRY" flag="avg"></diagnostic>
     </variable>
     <variable local_name="rpdel"
               standard_name="reciprocal_of_air_pressure_thickness"
@@ -171,7 +161,6 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>zm state_zm</ic_file_input_names>
-      <diagnostic name="ZM"></diagnostic>
     </variable>
     <variable local_name="pint" standard_name="air_pressure_at_interface"
               units="Pa"
@@ -212,7 +201,6 @@
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>zi state_zi</ic_file_input_names>
-      <diagnostic name="HEIGHT" flag="avg"></diagnostic>
     </variable>
     <variable local_name="te_ini"
               standard_name="vertically_integrated_energies_of_initial_state_in_cam"
@@ -254,7 +242,6 @@
       <long_name>Change in temperature from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dTdt tend_dtdt</ic_file_input_names>
-      <diagnostic name="TTEND" flag="avg"></diagnostic>
     </variable>
     <variable local_name="dudt_total"
               standard_name="tendency_of_eastward_wind_due_to_model_physics"
@@ -263,7 +250,6 @@
       <long_name>Change in eastward wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dudt tend_dudt</ic_file_input_names>
-      <diagnostic name="UTEND" flag="avg"></diagnostic>
     </variable>
     <variable local_name="dvdt_total"
               standard_name="tendency_of_northward_wind_due_to_model_physics"
@@ -272,7 +258,6 @@
       <long_name>Change in northward wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
-      <diagnostic name="VTEND" flag="avg"></diagnostic>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="do_lagrangian_vertical_coordinate"
@@ -312,6 +297,10 @@
       <data>inverse_exner_function_wrt_surface_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
+      <data>vertically_integrated_energies_of_initial_state_in_cam</data>
+      <data>vertically_integrated_energies_of_current_state_in_cam</data>
+      <data>vertically_integrated_total_water_of_initial_state</data>
+      <data>vertically_integrated_total_water_of_current_state</data>
     </ddt>
     <ddt type="physics_tend">
       <data>tendency_of_air_temperature_due_to_model_physics</data>
@@ -403,7 +392,6 @@
       <long_name>Water vapor mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>Q cnst_Q</ic_file_input_names>
-      <diagnostic name="Q" flag="avg"></diagnostic>
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
@@ -411,7 +399,6 @@
       <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
-      <diagnostic name="CLDLIQ" flag="avg"></diagnostic>
     </variable>
     <variable local_name="cldice"
               standard_name="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
@@ -419,7 +406,6 @@
       <long_name>Cloud ice mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
-      <diagnostic name="CLDICE" flag="avg"></diagnostic>
     </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
@@ -427,7 +413,6 @@
       <long_name>rain mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
-      <diagnostic name="RAINQM" flag="avg"></diagnostic>
     </variable>
   </file>
 </registry>

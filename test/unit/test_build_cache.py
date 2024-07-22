@@ -423,12 +423,11 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
         #Set non-file update_registry inputs:
         ic_names = {"Only_had_a": ["heart", "brain"]}
-        diag_names = {"small_dog_wrt_dorothy": ('TOTO', 'avg')}
         dycore = "banana"
 
         #Update registry fields:
         test_cache.update_registry(tmp_test_reg, [tmp_test_reg],
-                                   dycore, [tmp_test_reg], ic_names, diag_names)
+                                   dycore, [tmp_test_reg], ic_names)
 
         #Write updated fields to build cache file:
         test_cache.write()

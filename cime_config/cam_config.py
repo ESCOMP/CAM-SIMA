@@ -31,7 +31,7 @@ from cam_build_cache import BuildCacheCAM # Re-build consistency cache
 
 # Import fortran auto-generation routines:
 from cam_autogen import generate_registry, generate_physics_suites
-from cam_autogen import generate_init_routines, generate_history_routines
+from cam_autogen import generate_init_routines
 
 ###############################################################################
 #HELPER FUNCTIONS
@@ -838,7 +838,7 @@ class ConfigCAM:
         retvals = generate_registry(data_search, build_cache, self.__atm_root,
                                     self.__bldroot, source_mods_dir,
                                     dyn, gen_fort_indent)
-        reg_dir, force_ccpp, reg_files, ic_names, diag_names = retvals
+        reg_dir, force_ccpp, reg_files, ic_names = retvals
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -876,18 +876,6 @@ class ConfigCAM:
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initialization code."
         self.create_config("init_dir", init_dir_desc, init_dir)
-
-        #---------------------------------------------------------
-        # Create host model variable history routines
-        #---------------------------------------------------------
-        hist_dir = generate_history_routines(build_cache, self.__bldroot,
-                                          force_ccpp, force_init,
-                                          source_mods_dir, gen_fort_indent,
-                                          capgen_db, diag_names)
-
-        #Add registry path to config object:
-        hist_dir_desc = "Location of auto-generated physics history code."
-        self.create_config("hist_dir", hist_dir_desc, hist_dir)
 
         #--------------------------------------------------------------
         # write out the cache here as we have completed pre-processing

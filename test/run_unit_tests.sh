@@ -78,8 +78,6 @@ run_unittest test/unit/test_registry.py
 run_unittest test/unit/test_create_readnl_files.py
 # Physics variable init (phys_init) generator unit tests:
 run_unittest test/unit/test_write_init_files.py
-# Physics variable history generator unit tests:
-run_unittest test/unit/test_write_hist_file.py
 # ParamGen atm_in namelist writer unit tests:
 run_unittest test/unit/test_atm_in_paramgen.py
 # CAM history config unit tests

@@ -26,8 +26,6 @@ module cam_comp
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend, dtime_phys
-   use physics_history,           only: physics_history_init
-   use physics_history,           only: physics_history_out
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -236,7 +234,6 @@ CONTAINS
       ! if (single_column) then
       !    call scm_intht()
       ! end if
-      call physics_history_init()
       call history_init_files(model_doi_url, caseid, ctitle)
 
    end subroutine cam_init
@@ -449,7 +446,6 @@ CONTAINS
       logical, intent(in)  :: do_ncdata_check
 
       if (do_ncdata_check .or. get_nstep() == 0) then
-         call physics_history_out()
          call history_write_files()
          ! peverwhee - todo: handle restarts
          call history_wrap_up(rstwr, nlend)

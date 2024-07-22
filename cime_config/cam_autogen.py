@@ -33,7 +33,6 @@ sys.path.append(_REG_GEN_DIR)
 # Import needed registry and other src/data scripts:
 from generate_registry_data import gen_registry
 from write_init_files import write_init_files
-from write_hist_file import write_hist_file
 
 ###############################################################################
 
@@ -77,8 +76,8 @@ def _find_file(filename, search_dirs):
     doctests:
 
     1.  Check that the function can find a file correctly:
-    >>> _find_file("Externals.cfg", [_CAM_ROOT_DIR]) == \
-                   os.path.join(_CAM_ROOT_DIR, "Externals.cfg")
+    >>> _find_file("README.md", [_CAM_ROOT_DIR]) == \
+                   os.path.join(_CAM_ROOT_DIR, "README.md")
     True
 
     2.  Check that the function returns None if it can't find a file:
@@ -393,7 +392,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
                                    gen_fort_indent, source_mods_dir, atm_root,
                                    logger=_LOGGER, schema_paths=data_search,
                                    error_on_no_validate=True)
-            retcode, reg_file_list, ic_names, diag_names = retvals
+            retcode, reg_file_list, ic_names = retvals
             # Raise error if gen_registry failed:
             if retcode != 0:
                 emsg = "ERROR:Unable to generate CAM data structures from {}, err = {}"
@@ -407,15 +406,14 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         # Save build details in the build cache
         reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
-                                    reg_file_paths, ic_names, diag_names)
+                                    reg_file_paths, ic_names)
     else:
         # If we did not run the registry generator, retrieve info from cache
         reg_file_paths = build_cache.reg_file_list()
         ic_names = build_cache.ic_names()
-        diag_names = build_cache.diag_names()
     # End if
 
-    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, diag_names
+    return genreg_dir, do_gen_registry, reg_file_paths, ic_names
 
 ###############################################################################
 def generate_physics_suites(build_cache, preproc_defs, host_name,
@@ -680,65 +678,6 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
     # End if
 
     return init_dir
-
-###############################################################################
-def generate_history_routines(build_cache, bldroot, force_ccpp, force_hist,
-                           source_mods_dir, gen_fort_indent,
-                           cap_database, diag_names):
-###############################################################################
-    """
-    Generate the host model history source code file
-    (physics_history.F90) using both the registry and the CCPP physics suites
-    if required (new case or changes to registry or CCPP source(s), meta-data,
-    and/or script).
-    """
-
-    #Add new directory to build path:
-    hist_dir = os.path.join(bldroot, "history")
-    # Use this for cache check
-    gen_hist_file = os.path.join(_REG_GEN_DIR, "write_hist_file.py")
-
-    # Figure out if we need to generate new initialization routines:
-    if os.path.exists(hist_dir):
-        # Check if registry and / or CCPP suites were modified:
-        if force_ccpp or force_hist:
-            do_gen_hist = True
-        else:
-            #If not, then check cache to see if actual
-            #"write_init_files.py" was modified:
-            do_gen_hist = build_cache.hist_write_mismatch(gen_hist_file)
-        # end if
-    else:
-        #If no directory exists, then one will need
-        # to create new routines:
-        os.mkdir(hist_dir)
-        do_gen_hist = True
-    # End if
-
-    if do_gen_hist:
-
-        # Run initialization files generator:
-        # Yes, we are passing a pointer to the find_file function for use
-        #   within write_init_files (so that write_init_files can be the place
-        #   where the source include files are stored).
-        source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_hist_file(cap_database, diag_names, hist_dir,
-                                  _find_file, source_paths,
-                                  gen_fort_indent, _LOGGER)
-
-        #Check that script ran properly:
-        #-----
-        if retmsg:
-            emsg = "ERROR: Unable to generate CAM hist source code, error message is:\n{}"
-            raise CamAutoGenError(emsg.format(retmsg))
-        #-----
-
-        # save build details in the build cache
-        build_cache.update_hist_gen(gen_hist_file)
-    # End if
-
-    return hist_dir
-
 
 #############
 # End of file
