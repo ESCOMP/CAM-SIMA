@@ -618,9 +618,6 @@ contains
 
                 ! Piecewise integrate hypsometric equation to derive `p_mid_col(1)`.
                 ! The formulation used here is exact.
-                ! p_mid_col(1) = p_sfc(i) * &
-                !     exp(-0.5_kind_r8 * (zgrid(2, i) - zgrid(1, i)) * &
-                !     constant_g / (constant_rd * tm_mid_col(1)) * (1.0_kind_r8 + qv_mid_col(1)))
                 p_mid_col(1) = p_by_hypsometric_equation( &
                     p_sfc(i), &
                     zgrid(1, i), &
@@ -630,11 +627,6 @@ contains
                 ! Piecewise integrate hypsometric equation to derive subsequent `p_mid_col(k)`.
                 ! The formulation used here is exact.
                 do k = 2, pver
-                    ! p_mid_col(k) = p_mid_col(k - 1) * &
-                    !     exp(-0.5_kind_r8 * (zgrid(k    , i) - zgrid(k - 1, i)) * &
-                    !     constant_g / (constant_rd * tm_mid_col(k - 1)) * (1.0_kind_r8 + qv_mid_col(k - 1))) * &
-                    !     exp(-0.5_kind_r8 * (zgrid(k + 1, i) - zgrid(k    , i)) * &
-                    !     constant_g / (constant_rd * tm_mid_col(k    )) * (1.0_kind_r8 + qv_mid_col(k    )))
                     p_mid_col(k) = p_by_hypsometric_equation( &
                         p_by_hypsometric_equation( &
                             p_mid_col(k - 1), &
@@ -647,7 +639,6 @@ contains
                 end do
 
                 rho(:, i) = p_mid_col(:) / (constant_rd * tm_mid_col(:))
-                ! theta(:, i) = t_mid(:, i) * ((constant_p0 / p_mid_col(:)) ** (constant_rd / constant_cpd))
                 theta(:, i) = theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0)
             end do
 
@@ -693,8 +684,6 @@ contains
                 do k = 1, pver
                     ! Derive `p_base` by hypsometric equation.
                     ! The formulation used here is exact and identical to MPAS.
-                    ! p_base(k) = constant_p0 * exp(-0.5_kind_r8 * (zgrid(k, i) + zgrid(k + 1, i)) / &
-                    !     (constant_rd * t_base / constant_g))
                     p_base(k) = p_by_hypsometric_equation( &
                         constant_p0, &
                         0.0_kind_r8, &
@@ -703,7 +692,6 @@ contains
                 end do
 
                 rho_base(:, i) = p_base(:) / (constant_rd * t_base * zz(:, i))
-                ! theta_base(:, i) = t_base * ((constant_p0 / p_base(:)) ** (constant_rd / constant_cpd))
                 theta_base(:, i) = theta_by_poisson_equation(p_base, t_base, constant_p0)
             end do
 
