@@ -44,8 +44,8 @@ jobs:
     # Run "checkout_externals":
     - name: Checkout externals
       run: |
-        manage_externals/checkout_externals --externals Externals_CAM.cfg ccpp-framework
-        manage_externals/checkout_externals --externals Externals.cfg cime
+        bin/git-fleximod update ccpp-framework
+        bin/git-fleximod update cime
     # Run python unit and doctests:
     - name: python unit tests
       run: |
