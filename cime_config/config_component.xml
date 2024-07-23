@@ -307,8 +307,6 @@
     <valid_values></valid_values>
     <default_value> </default_value>
     <values match="last" modifier="additive">
-      <!-- Turn on chemistry if not using physics testbed -->
-      <value compset="^((?!_CAM%PHYSTEST).)*$">-lmusica -ljsonfortran</value>
       <!-- Add MPAS if using mpas grid and not using physics testbed -->
       <value compset="^((?!_CAM%PHYSTEST).)*$" grid="a%mpasa[0-9]+">-lmpas</value>
     </values>

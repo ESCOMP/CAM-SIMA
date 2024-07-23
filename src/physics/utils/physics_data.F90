@@ -68,6 +68,8 @@ CONTAINS
       if (find_input_name_idx >= 0) then
          constituent_index = find_input_name_idx
          is_constituent = .true.
+      else
+         find_input_name_idx = no_exist_idx
       end if
 
       !Loop through physics variable standard names:
