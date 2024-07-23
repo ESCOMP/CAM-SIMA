@@ -201,7 +201,7 @@
   dimensions = ()
   protected = True
 [ gravit ]
-  standard_name = gravitational_acceleration
+  standard_name = standard_gravitational_acceleration
   units = m s-2
   type = real | kind = kind_phys
   dimensions = ()
@@ -268,7 +268,7 @@
   dimensions = ()
   protected = True
 [ epsilo ]
-  standard_name = ratio_of_h2o_to_dry_air_molecular_weights
+  standard_name = ratio_of_water_vapor_to_dry_air_molecular_weights
   units = 1
   type = real | kind = kind_phys
   dimensions = ()
