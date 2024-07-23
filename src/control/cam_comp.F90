@@ -612,8 +612,8 @@ CONTAINS
 
       !Combine host and physics constituents into a single
       !constituents object:
-      call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),             &
-           host_constituents, dynamic_constituents, errcode=errflg, errmsg=errmsg)
+      call cam_ccpp_register_constituents(             &
+           host_constituents, errcode=errflg, errmsg=errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)

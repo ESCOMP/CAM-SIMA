@@ -1,0 +1,13 @@
+[ccpp-table-properties]
+  name = hycoef
+  type = module
+[ccpp-arg-table]
+  name = hycoef
+  type = module
+
+[ etamid ]
+  standard_name = sum_of_sigma_pressure_hybrid_coordinate_a_coefficient_and_sigma_pressure_hybrid_coordinate_b_coefficient
+  type = real | kind = kind_phys
+  units = 1
+  dimensions = (vertical_layer_dimension)
+  
