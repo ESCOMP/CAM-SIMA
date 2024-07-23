@@ -36,7 +36,7 @@
       <option name="wallclock">00:10:00</option>
       <option name="comment">GNU build test for Moist Held-Suarez physics</option>
     </options>
-  </tests>
+  </test>
 
   <!-- Derecho dycore tests -->
   <test compset="FKESSLER" grid="mpasa480_mpasa480" name="SMS_Ln2" testmods="cam/outfrq_kessler_mpas_derecho_nooutput/">
