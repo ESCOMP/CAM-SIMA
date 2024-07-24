@@ -921,7 +921,7 @@ contains
                 call self % model_error('Failed to allocate is_water_species', subname, __LINE__)
             end if
 
-            self % is_water_species(:) = is_water_species
+            self % is_water_species(:) = is_water_species(:)
 
             if (size(self % constituent_name) /= size(index_unique(self % constituent_name))) then
                 call self % model_error('Constituent names must be unique', subname, __LINE__)
