@@ -318,11 +318,11 @@ contains
             call cam_read_field('PHIS', pio_file, surface_geopotential, success, &
                 gridname='cam_cell', timelevel=1, log_output=(debug_output > debugout_none))
 
-            if (success) then
-                surface_geometric_height(:) = surface_geopotential(:) / constant_g
-            else
-               call endrun('Failed to find variable "PHIS"', subname, __LINE__)
+            if (.not. success) then
+                call endrun('Failed to find variable "PHIS"', subname, __LINE__)
             end if
+
+            surface_geometric_height(:) = surface_geopotential(:) / constant_g
 
             ! Surface geometric height in MPAS should match the values in topography file.
             if (any(abs(zgrid(1, 1:ncells_solve) - surface_geometric_height) > error_tolerance)) then
