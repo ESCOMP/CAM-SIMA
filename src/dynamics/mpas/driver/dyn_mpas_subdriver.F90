@@ -771,11 +771,7 @@ contains
         ! In MPAS, there must be at least one constituent, `qv`, which denotes water vapor mixing ratio.
         ! Because MPAS has some hard-coded array accesses through the `index_qv` index, it will crash
         ! (i.e., segmentation fault due to invalid memory access) if `qv` is not allocated.
-        if (number_of_constituents < 1) then
-            self % number_of_constituents = 1
-        else
-            self % number_of_constituents = number_of_constituents
-        end if
+        self % number_of_constituents = max(1, number_of_constituents)
 
         call self % debug_print('Number of constituents is ', [self % number_of_constituents])
 
