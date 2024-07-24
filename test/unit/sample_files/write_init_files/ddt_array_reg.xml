@@ -12,7 +12,6 @@
               units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
-      <diagnostic name="SLP" flag="lst"></diagnostic>
     </variable>
     <variable local_name="eddy_len" standard_name="eddy_length_scale"
               units="m" type="real" kind="kind_phys"  allocatable="pointer">
@@ -30,7 +29,6 @@
                index_name="index_of_potential_temperature"
                index_pos="number_of_thermo_vars">
                <ic_file_input_names>theta pot_temp</ic_file_input_names>
-               <diagnostic name="THETA" flag="lst"></diagnostic>
       </element>
     </array>
     <ddt type="physics_state">

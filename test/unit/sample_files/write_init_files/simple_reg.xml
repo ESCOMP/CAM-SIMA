@@ -12,7 +12,6 @@
               units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
-      <diagnostic name="SLP"></diagnostic>
     </variable>
     <variable local_name="eddy_len" standard_name="eddy_length_scale"
               units="m" type="real" kind="kind_phys"  allocatable="pointer">
@@ -25,7 +24,6 @@
       <long_name>The coolest constituent imaginable</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>COOL_CAT cnst_COOL_CAT</ic_file_input_names>
-      <diagnostic name="COOL_CAT"></diagnostic>
     </variable>
   </file>
 </registry>
