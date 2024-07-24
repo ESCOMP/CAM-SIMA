@@ -11,8 +11,8 @@ module dyn_mpas_subdriver
 
     ! Modules from external libraries.
     use mpi, only: mpi_comm_null, mpi_comm_rank, mpi_success
-    use netcdf, only: nf90_char, nf90_int, nf90_float, nf90_double
-    use pio, only: file_desc_t, iosystem_desc_t, pio_file_is_open, pio_iosystem_is_active, &
+    use pio, only: pio_char, pio_int, pio_real, pio_double, &
+                   file_desc_t, iosystem_desc_t, pio_file_is_open, pio_iosystem_is_active, &
                    pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
 
     ! Modules from MPAS.
@@ -2164,19 +2164,19 @@ contains
 
             select case (trim(adjustl(var_info % type)))
                 case ('character')
-                    if (vartype /= nf90_char) then
+                    if (vartype /= pio_char) then
                         cycle
                     end if
                 case ('integer')
-                    if (vartype /= nf90_int) then
+                    if (vartype /= pio_int) then
                         cycle
                     end if
                 case ('real')
-                    if (rkind == r4kind .and. vartype /= nf90_float) then
+                    if (rkind == r4kind .and. vartype /= pio_real) then
                         cycle
                     end if
 
-                    if (rkind == r8kind .and. vartype /= nf90_double) then
+                    if (rkind == r8kind .and. vartype /= pio_double) then
                         cycle
                     end if
                 case default
