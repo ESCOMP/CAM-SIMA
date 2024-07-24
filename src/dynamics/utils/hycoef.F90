@@ -414,6 +414,9 @@ subroutine hycoef_read(File)
       end if
    end if
    ierr = PIO_Inq_dimlen(File, lev_dimid, flev)
+   if (ierr /= PIO_NOERR) then
+      call endrun(routine//': ERROR: Failed to inquire dimension length of flev in ncdata or restart file.')
+   end if
    if (pver /= flev) then
       write(iulog,*) routine//': ERROR: file lev does not match model. lev (file, model):',flev, pver
       call endrun(routine//': ERROR: file lev does not match model.')
@@ -427,6 +430,9 @@ subroutine hycoef_read(File)
       end if
    end if
    ierr = PIO_Inq_dimlen(File, lev_dimid, filev)
+   if (ierr /= PIO_NOERR) then
+      call endrun(routine//': ERROR: Failed to inquire dimension length of filev in ncdata or restart file.')
+   end if
    if (pverp /= filev) then
       write(iulog,*) routine//':ERROR: file ilev does not match model ilev (file, model):',filev, pverp
       call endrun(routine//':ERROR: file ilev does not match model.')
