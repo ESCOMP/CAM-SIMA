@@ -141,7 +141,7 @@ class Submodule():
                     testfails = True
                     needsupdate = True
                 else:
-                   if atag:
+                    if atag:
                         result = f"e {self.name:>20} has no fxtag defined in .gitmodules, module at {atag}"
                     else:
                         result = f"e {self.name:>20} has no fxtag defined in .gitmodules, module at {ahash}"
