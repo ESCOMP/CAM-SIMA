@@ -150,7 +150,7 @@ class Submodule():
                 status = git.git_operation("status", "--ignore-submodules", "-uno")
                 if "nothing to commit" not in status:
                     localmods = True
-                    result = "M" + textwrap.indent(status, "                      "
+                    result = "M" + textwrap.indent(status, "                      ")
 #        print(f"result {result} needsupdate {needsupdate} localmods {localmods} testfails {testfails}")
         return result, needsupdate, localmods, testfails
 
