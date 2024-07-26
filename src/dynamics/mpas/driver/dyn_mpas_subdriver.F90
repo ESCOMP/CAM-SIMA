@@ -2629,14 +2629,14 @@ contains
         nullify(field_0d_real)
         nullify(mpas_pool)
 
-        if (real(coupling_time_interval, rkind) < 1.0_rkind) then
+        if (coupling_time_interval <= 0) then
             call self % model_error('Invalid coupling time interval ' // stringify([real(coupling_time_interval, rkind)]), &
                 subname, __LINE__)
         end if
 
         call self % get_variable_pointer(config_dt, 'cfg', 'config_dt')
 
-        if (config_dt < 1.0_rkind) then
+        if (config_dt <= 0.0_rkind) then
             call self % model_error('Invalid time step ' // stringify([config_dt]), &
                 subname, __LINE__)
         end if
