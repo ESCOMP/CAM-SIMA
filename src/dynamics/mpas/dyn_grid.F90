@@ -52,7 +52,9 @@ contains
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine model_grid_init()
         character(*), parameter :: subname = 'dyn_grid::model_grid_init'
-        type(file_desc_t), pointer :: pio_file => null()
+        type(file_desc_t), pointer :: pio_file
+
+        nullify(pio_file)
 
         ! Initialize mathematical and physical constants for dynamics.
         call dyn_debug_print('Calling dynconst_init')
@@ -138,7 +140,9 @@ contains
         ! `dzw` denotes the delta/difference between `zw`.
         ! `rdzw` denotes the reciprocal of `dzw`.
         real(kind_r8), allocatable :: zu(:), zw(:), dzw(:)
-        real(kind_r8), pointer :: rdzw(:) => null()
+        real(kind_r8), pointer :: rdzw(:)
+
+        nullify(rdzw)
 
         ! Compute reference height.
         call mpas_dynamical_core % get_variable_pointer(rdzw, 'mesh', 'rdzw')
@@ -208,11 +212,16 @@ contains
         integer :: hdim1_d, hdim2_d
         integer :: i
         integer :: ierr
-        integer, pointer :: indextocellid(:) => null()  ! Global indexes of cell centers.
-        real(kind_r8), pointer :: areacell(:) => null() ! Cell areas (square meters).
-        real(kind_r8), pointer :: latcell(:) => null()  ! Cell center latitudes (radians).
-        real(kind_r8), pointer :: loncell(:) => null()  ! Cell center longitudes (radians).
+        integer, pointer :: indextocellid(:)  ! Global indexes of cell centers.
+        real(kind_r8), pointer :: areacell(:) ! Cell areas (square meters).
+        real(kind_r8), pointer :: latcell(:)  ! Cell center latitudes (radians).
+        real(kind_r8), pointer :: loncell(:)  ! Cell center longitudes (radians).
         type(physics_column_t), allocatable :: dyn_column(:) ! Grid and mapping information between global and local indexes.
+
+        nullify(areacell)
+        nullify(indextocellid)
+        nullify(latcell)
+        nullify(loncell)
 
         hdim1_d = ncells_global
 
@@ -278,37 +287,47 @@ contains
         character(*), parameter :: subname = 'dyn_grid::define_cam_grid'
         integer :: i
         integer :: ierr
-        integer, pointer :: indextocellid(:) => null()   ! Global indexes of cell centers.
-        integer, pointer :: indextoedgeid(:) => null()   ! Global indexes of edge nodes.
-        integer, pointer :: indextovertexid(:) => null() ! Global indexes of vertex nodes.
-        real(kind_r8), pointer :: areacell(:) => null()  ! Cell areas (square meters).
-        real(kind_r8), pointer :: latcell(:) => null()   ! Cell center latitudes (radians).
-        real(kind_r8), pointer :: latedge(:) => null()   ! Edge node latitudes (radians).
-        real(kind_r8), pointer :: latvertex(:) => null() ! Vertex node latitudes (radians).
-        real(kind_r8), pointer :: loncell(:) => null()   ! Cell center longitudes (radians).
-        real(kind_r8), pointer :: lonedge(:) => null()   ! Edge node longitudes (radians).
-        real(kind_r8), pointer :: lonvertex(:) => null() ! Vertex node longitudes (radians).
+        integer, pointer :: indextocellid(:)   ! Global indexes of cell centers.
+        integer, pointer :: indextoedgeid(:)   ! Global indexes of edge nodes.
+        integer, pointer :: indextovertexid(:) ! Global indexes of vertex nodes.
+        real(kind_r8), pointer :: areacell(:)  ! Cell areas (square meters).
+        real(kind_r8), pointer :: latcell(:)   ! Cell center latitudes (radians).
+        real(kind_r8), pointer :: latedge(:)   ! Edge node latitudes (radians).
+        real(kind_r8), pointer :: latvertex(:) ! Vertex node latitudes (radians).
+        real(kind_r8), pointer :: loncell(:)   ! Cell center longitudes (radians).
+        real(kind_r8), pointer :: lonedge(:)   ! Edge node longitudes (radians).
+        real(kind_r8), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
 
         ! Global grid indexes. CAN be safely deallocated because its values are copied into
         ! `cam_grid_attribute_*_t` and `horiz_coord_t`.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
-        integer(kind_imap), pointer :: global_grid_index(:)  => null()
+        integer(kind_imap), pointer :: global_grid_index(:)
         ! Global grid maps. CANNOT be safely deallocated because `cam_filemap_t`
         ! just uses pointers to point at it.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
-        integer(kind_imap), pointer :: global_grid_map(:, :) => null()
+        integer(kind_imap), pointer :: global_grid_map(:, :)
         ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_*_t`
         ! just uses pointers to point at it.
-        real(kind_r8), pointer :: cell_area(:)   => null()
+        real(kind_r8), pointer :: cell_area(:)
         ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_*_t`
         ! just uses pointers to point at it.
-        real(kind_r8), pointer :: cell_weight(:) => null()
+        real(kind_r8), pointer :: cell_weight(:)
         ! Latitude coordinates. CANNOT be safely deallocated because `cam_grid_t`
         ! just uses pointers to point at it.
-        type(horiz_coord_t), pointer :: lat_coord => null()
+        type(horiz_coord_t), pointer :: lat_coord
         ! Longitude coordinates. CANNOT be safely deallocated because `cam_grid_t`
         ! just uses pointers to point at it.
-        type(horiz_coord_t), pointer :: lon_coord => null()
+        type(horiz_coord_t), pointer :: lon_coord
+
+        nullify(indextocellid, indextoedgeid, indextovertexid)
+        nullify(areacell)
+        nullify(latcell, loncell)
+        nullify(latedge, lonedge)
+        nullify(latvertex, lonvertex)
+
+        nullify(global_grid_index, global_grid_map)
+        nullify(cell_area, cell_weight)
+        nullify(lat_coord, lon_coord)
 
         ! Construct coordinate and grid objects for cell center grid (i.e., "mpas_cell").
         ! Standard MPAS coordinate and dimension names are used.
@@ -353,10 +372,8 @@ contains
         call cam_grid_attribute_register('mpas_cell', 'cell_weight', 'MPAS cell weight', 'nCells', cell_weight, &
             map=global_grid_index)
 
-        nullify(cell_area)
-        nullify(cell_weight)
-        nullify(lat_coord)
-        nullify(lon_coord)
+        nullify(cell_area, cell_weight)
+        nullify(lat_coord, lon_coord)
 
         ! Construct coordinate and grid objects for cell center grid (i.e., "cam_cell").
         ! Standard CAM-SIMA coordinate and dimension names are used.
@@ -373,14 +390,11 @@ contains
 
         nullify(areacell)
         nullify(indextocellid)
-        nullify(latcell)
-        nullify(loncell)
+        nullify(latcell, loncell)
 
         deallocate(global_grid_index)
-        nullify(global_grid_index)
-        nullify(global_grid_map)
-        nullify(lat_coord)
-        nullify(lon_coord)
+        nullify(global_grid_index, global_grid_map)
+        nullify(lat_coord, lon_coord)
 
         ! Construct coordinate and grid objects for edge node grid (i.e., "mpas_edge").
         ! Standard MPAS coordinate and dimension names are used.
@@ -414,14 +428,11 @@ contains
             unstruct=.true., block_indexed=.false.)
 
         nullify(indextoedgeid)
-        nullify(latedge)
-        nullify(lonedge)
+        nullify(latedge, lonedge)
 
         deallocate(global_grid_index)
-        nullify(global_grid_index)
-        nullify(global_grid_map)
-        nullify(lat_coord)
-        nullify(lon_coord)
+        nullify(global_grid_index, global_grid_map)
+        nullify(lat_coord, lon_coord)
 
         ! Construct coordinate and grid objects for vertex node grid (i.e., "mpas_vertex").
         ! Standard MPAS coordinate and dimension names are used.
@@ -455,14 +466,11 @@ contains
             unstruct=.true., block_indexed=.false.)
 
         nullify(indextovertexid)
-        nullify(latvertex)
-        nullify(lonvertex)
+        nullify(latvertex, lonvertex)
 
         deallocate(global_grid_index)
-        nullify(global_grid_index)
-        nullify(global_grid_map)
-        nullify(lat_coord)
-        nullify(lon_coord)
+        nullify(global_grid_index, global_grid_map)
+        nullify(lat_coord, lon_coord)
     end subroutine define_cam_grid
 
     !> Helper function for returning grid id given its name.

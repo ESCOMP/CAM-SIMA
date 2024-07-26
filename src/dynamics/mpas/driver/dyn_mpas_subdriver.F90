@@ -555,11 +555,14 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_namelist'
         character(strkind) :: mpas_calendar
-        character(strkind), pointer :: config_pointer_c => null()
+        character(strkind), pointer :: config_pointer_c
         integer :: ierr
-        logical, pointer :: config_pointer_l => null()
+        logical, pointer :: config_pointer_l
 
         call self % debug_print(subname // ' entered')
+
+        nullify(config_pointer_c)
+        nullify(config_pointer_l)
 
         call self % debug_print('Reading namelist at ', [namelist_path])
 
@@ -763,10 +766,13 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase3'
         character(strkind) :: mesh_filename
         integer :: mesh_format
-        integer, pointer :: num_scalars => null()
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        integer, pointer :: num_scalars
+        type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(subname // ' entered')
+
+        nullify(mpas_pool)
+        nullify(num_scalars)
 
         ! In MPAS, there must be at least one constituent, `qv`, which denotes water vapor mixing ratio.
         ! Because MPAS has some hard-coded array accesses through the `index_qv` index, it will crash
@@ -866,10 +872,13 @@ contains
         integer :: i, j, ierr
         integer :: index_qv, index_water_start, index_water_end
         integer :: time_level
-        type(field3dreal), pointer :: field_3d_real => null()
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(field3dreal), pointer :: field_3d_real
+        type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(subname // ' entered')
+
+        nullify(field_3d_real)
+        nullify(mpas_pool)
 
         if (self % number_of_constituents == 0) then
             call self % model_error('Constituents must be allocated before being defined', subname, __LINE__)
@@ -1111,11 +1120,14 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_write_stream'
         integer :: i, ierr
-        type(mpas_pool_type), pointer :: mpas_pool => null()
-        type(mpas_stream_type), pointer :: mpas_stream => null()
+        type(mpas_pool_type), pointer :: mpas_pool
+        type(mpas_stream_type), pointer :: mpas_stream
         type(var_info_type), allocatable :: var_info_list(:)
 
         call self % debug_print(subname // ' entered')
+
+        nullify(mpas_pool)
+        nullify(mpas_stream)
 
         call self % debug_print('Initializing stream "' // trim(adjustl(stream_name)) // '"')
 
@@ -1226,21 +1238,34 @@ contains
         logical, allocatable :: var_is_present(:)
         ! Whether a variable is type, kind and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_tkr_compatible(:)
-        type(field0dchar), pointer :: field_0d_char => null()
-        type(field1dchar), pointer :: field_1d_char => null()
-        type(field0dinteger), pointer :: field_0d_integer => null()
-        type(field1dinteger), pointer :: field_1d_integer => null()
-        type(field2dinteger), pointer :: field_2d_integer => null()
-        type(field3dinteger), pointer :: field_3d_integer => null()
-        type(field0dreal), pointer :: field_0d_real => null()
-        type(field1dreal), pointer :: field_1d_real => null()
-        type(field2dreal), pointer :: field_2d_real => null()
-        type(field3dreal), pointer :: field_3d_real => null()
-        type(field4dreal), pointer :: field_4d_real => null()
-        type(field5dreal), pointer :: field_5d_real => null()
+        type(field0dchar), pointer :: field_0d_char
+        type(field1dchar), pointer :: field_1d_char
+        type(field0dinteger), pointer :: field_0d_integer
+        type(field1dinteger), pointer :: field_1d_integer
+        type(field2dinteger), pointer :: field_2d_integer
+        type(field3dinteger), pointer :: field_3d_integer
+        type(field0dreal), pointer :: field_0d_real
+        type(field1dreal), pointer :: field_1d_real
+        type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(field4dreal), pointer :: field_4d_real
+        type(field5dreal), pointer :: field_5d_real
         type(var_info_type), allocatable :: var_info_list(:)
 
         call self % debug_print(subname // ' entered')
+
+        nullify(field_0d_char)
+        nullify(field_1d_char)
+        nullify(field_0d_integer)
+        nullify(field_1d_integer)
+        nullify(field_2d_integer)
+        nullify(field_3d_integer)
+        nullify(field_0d_real)
+        nullify(field_1d_real)
+        nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(field_4d_real)
+        nullify(field_5d_real)
 
         call mpas_pool_create_pool(mpas_pool)
 
@@ -1829,20 +1854,33 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_check_variable_status'
         character(strkind), allocatable :: var_name_list(:)
         integer :: i, ierr, varid, varndims, vartype
-        type(field0dchar), pointer :: field_0d_char => null()
-        type(field1dchar), pointer :: field_1d_char => null()
-        type(field0dinteger), pointer :: field_0d_integer => null()
-        type(field1dinteger), pointer :: field_1d_integer => null()
-        type(field2dinteger), pointer :: field_2d_integer => null()
-        type(field3dinteger), pointer :: field_3d_integer => null()
-        type(field0dreal), pointer :: field_0d_real => null()
-        type(field1dreal), pointer :: field_1d_real => null()
-        type(field2dreal), pointer :: field_2d_real => null()
-        type(field3dreal), pointer :: field_3d_real => null()
-        type(field4dreal), pointer :: field_4d_real => null()
-        type(field5dreal), pointer :: field_5d_real => null()
+        type(field0dchar), pointer :: field_0d_char
+        type(field1dchar), pointer :: field_1d_char
+        type(field0dinteger), pointer :: field_0d_integer
+        type(field1dinteger), pointer :: field_1d_integer
+        type(field2dinteger), pointer :: field_2d_integer
+        type(field3dinteger), pointer :: field_3d_integer
+        type(field0dreal), pointer :: field_0d_real
+        type(field1dreal), pointer :: field_1d_real
+        type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(field4dreal), pointer :: field_4d_real
+        type(field5dreal), pointer :: field_5d_real
 
         call self % debug_print(subname // ' entered')
+
+        nullify(field_0d_char)
+        nullify(field_1d_char)
+        nullify(field_0d_integer)
+        nullify(field_1d_integer)
+        nullify(field_2d_integer)
+        nullify(field_3d_integer)
+        nullify(field_0d_real)
+        nullify(field_1d_real)
+        nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(field_4d_real)
+        nullify(field_5d_real)
 
         ! Extract a list of variable names to check on the file.
         ! For an ordinary variable, this list just contains its name.
@@ -2222,17 +2260,26 @@ contains
         character(*), intent(in) :: field_name
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_exchange_halo'
-        type(field1dinteger), pointer :: field_1d_integer => null()
-        type(field2dinteger), pointer :: field_2d_integer => null()
-        type(field3dinteger), pointer :: field_3d_integer => null()
-        type(field1dreal), pointer :: field_1d_real => null()
-        type(field2dreal), pointer :: field_2d_real => null()
-        type(field3dreal), pointer :: field_3d_real => null()
-        type(field4dreal), pointer :: field_4d_real => null()
-        type(field5dreal), pointer :: field_5d_real => null()
+        type(field1dinteger), pointer :: field_1d_integer
+        type(field2dinteger), pointer :: field_2d_integer
+        type(field3dinteger), pointer :: field_3d_integer
+        type(field1dreal), pointer :: field_1d_real
+        type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(field4dreal), pointer :: field_4d_real
+        type(field5dreal), pointer :: field_5d_real
         type(mpas_pool_field_info_type) :: mpas_pool_field_info
 
         call self % debug_print(subname // ' entered')
+
+        nullify(field_1d_integer)
+        nullify(field_2d_integer)
+        nullify(field_3d_integer)
+        nullify(field_1d_real)
+        nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(field_4d_real)
+        nullify(field_5d_real)
 
         call self % debug_print('Inquiring field information for "' // trim(adjustl(field_name)) // '"')
 
@@ -2396,14 +2443,19 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_unit_vector'
         integer :: i
-        integer, pointer :: ncells => null()
-        real(rkind), pointer :: latcell(:) => null()
-        real(rkind), pointer :: loncell(:) => null()
-        real(rkind), pointer :: east(:, :) => null()
-        real(rkind), pointer :: north(:, :) => null()
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        integer, pointer :: ncells
+        real(rkind), pointer :: latcell(:), loncell(:)
+        real(rkind), pointer :: east(:, :), north(:, :)
+        type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(subname // ' entered')
+
+        nullify(ncells)
+        nullify(latcell, loncell)
+
+        nullify(east, north)
+
+        nullify(mpas_pool)
 
         ! Input.
         call self % get_variable_pointer(ncells, 'dim', 'nCells')
@@ -2429,11 +2481,9 @@ contains
         end do
 
         nullify(ncells)
-        nullify(latcell)
-        nullify(loncell)
+        nullify(latcell, loncell)
 
-        nullify(east)
-        nullify(north)
+        nullify(east, north)
 
         call self % get_pool_pointer(mpas_pool, 'mesh')
         call mpas_initialize_vectors(mpas_pool)
@@ -2467,16 +2517,24 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_edge_wind'
         integer :: cell1, cell2, i
-        integer, pointer :: cellsonedge(:, :) => null()
-        integer, pointer :: nedges => null()
-        real(rkind), pointer :: east(:, :) => null()
-        real(rkind), pointer :: edgenormalvectors(:, :) => null()
-        real(rkind), pointer :: north(:, :) => null()
-        real(rkind), pointer :: ucellmeridional(:, :) => null()
-        real(rkind), pointer :: ucellzonal(:, :) => null()
-        real(rkind), pointer :: uedge(:, :) => null()
+        integer, pointer :: cellsonedge(:, :)
+        integer, pointer :: nedges
+        real(rkind), pointer :: east(:, :), north(:, :)
+        real(rkind), pointer :: edgenormalvectors(:, :)
+        real(rkind), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
+        real(rkind), pointer :: uedge(:, :)
 
         call self % debug_print(subname // ' entered')
+
+        nullify(nedges)
+
+        nullify(ucellzonal, ucellmeridional)
+
+        nullify(cellsonedge)
+        nullify(east, north)
+        nullify(edgenormalvectors)
+
+        nullify(uedge)
 
         ! Make sure halo layers are up-to-date before computation.
         call self % exchange_halo('uReconstructZonal')
@@ -2490,8 +2548,8 @@ contains
 
         call self % get_variable_pointer(cellsonedge, 'mesh', 'cellsOnEdge')
         call self % get_variable_pointer(east, 'mesh', 'east')
-        call self % get_variable_pointer(edgenormalvectors, 'mesh', 'edgeNormalVectors')
         call self % get_variable_pointer(north, 'mesh', 'north')
+        call self % get_variable_pointer(edgenormalvectors, 'mesh', 'edgeNormalVectors')
 
         ! Output.
         call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
@@ -2516,13 +2574,11 @@ contains
 
         nullify(nedges)
 
-        nullify(ucellzonal)
-        nullify(ucellmeridional)
+        nullify(ucellzonal, ucellmeridional)
 
         nullify(cellsonedge)
-        nullify(east)
+        nullify(east, north)
         nullify(edgenormalvectors)
-        nullify(north)
 
         nullify(uedge)
 
@@ -2553,17 +2609,25 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase4'
         character(strkind) :: date_time
-        character(strkind), pointer :: initial_time_1_pointer => null(), initial_time_2_pointer => null()
-        character(strkind), pointer :: xtime_pointer => null()
+        character(strkind), pointer :: initial_time_1, initial_time_2
+        character(strkind), pointer :: xtime
         integer :: ierr
-        integer, pointer :: nvertlevels => null(), maxedges => null(), maxedges2 => null(), num_scalars => null()
-        logical, pointer :: config_do_restart => null()
-        real(rkind), pointer :: config_dt => null()
-        type(field0dreal), pointer :: field_0d_real => null()
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        integer, pointer :: nvertlevels, maxedges, maxedges2, num_scalars
+        logical, pointer :: config_do_restart
+        real(rkind), pointer :: config_dt
+        type(field0dreal), pointer :: field_0d_real
+        type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_time_type) :: mpas_time
 
         call self % debug_print(subname // ' entered')
+
+        nullify(initial_time_1, initial_time_2)
+        nullify(xtime)
+        nullify(nvertlevels, maxedges, maxedges2, num_scalars)
+        nullify(config_do_restart)
+        nullify(config_dt)
+        nullify(field_0d_real)
+        nullify(mpas_pool)
 
         if (real(coupling_time_interval, rkind) < 1.0_rkind) then
             call self % model_error('Invalid coupling time interval ' // stringify([real(coupling_time_interval, rkind)]), &
@@ -2615,10 +2679,7 @@ contains
 
         call mpas_atm_set_dims(nvertlevels, maxedges, maxedges2, num_scalars)
 
-        nullify(nvertlevels)
-        nullify(maxedges)
-        nullify(maxedges2)
-        nullify(num_scalars)
+        nullify(nvertlevels, maxedges, maxedges2, num_scalars)
 
         ! Build halo exchange groups and set the `exchange_halo_group` procedure pointer, which is used to
         ! exchange the halo layers of all fields in the named group.
@@ -2685,18 +2746,18 @@ contains
         nullify(mpas_pool)
         nullify(config_dt)
 
-        call self % get_variable_pointer(xtime_pointer, 'state', 'xtime', time_level=1)
+        call self % get_variable_pointer(xtime, 'state', 'xtime', time_level=1)
 
-        xtime_pointer = date_time
+        xtime = date_time
 
-        nullify(xtime_pointer)
+        nullify(xtime)
 
         ! Initialize `initial_time` in the second time level. We need to do this manually because initial states
         ! are read into time level 1, and if we write anything from time level 2, `initial_time` will be invalid.
-        call self % get_variable_pointer(initial_time_1_pointer, 'state', 'initial_time', time_level=1)
-        call self % get_variable_pointer(initial_time_2_pointer, 'state', 'initial_time', time_level=2)
+        call self % get_variable_pointer(initial_time_1, 'state', 'initial_time', time_level=1)
+        call self % get_variable_pointer(initial_time_2, 'state', 'initial_time', time_level=2)
 
-        initial_time_2_pointer = initial_time_1_pointer
+        initial_time_2 = initial_time_1
 
         ! Set time units to CF-compliant "seconds since <date and time>".
         call self % get_pool_pointer(mpas_pool, 'state')
@@ -2708,14 +2769,13 @@ contains
         end if
 
         call mpas_modify_att(field_0d_real % attlists(1) % attlist, 'units', &
-            'seconds since ' // mpas_string_replace(initial_time_1_pointer, '_', ' '), ierr=ierr)
+            'seconds since ' // mpas_string_replace(initial_time_1, '_', ' '), ierr=ierr)
 
         if (ierr /= 0) then
             call self % model_error('Failed to set time units', subname, __LINE__)
         end if
 
-        nullify(initial_time_1_pointer)
-        nullify(initial_time_2_pointer)
+        nullify(initial_time_1, initial_time_2)
         nullify(mpas_pool)
         nullify(field_0d_real)
 
@@ -2939,13 +2999,21 @@ contains
         integer, intent(out) :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_local_mesh_dimension'
-        integer, pointer :: ncells_pointer => null()
-        integer, pointer :: ncellssolve_pointer => null()
-        integer, pointer :: nedges_pointer => null()
-        integer, pointer :: nedgessolve_pointer => null()
-        integer, pointer :: nvertices_pointer => null()
-        integer, pointer :: nverticessolve_pointer => null()
-        integer, pointer :: nvertlevels_pointer => null()
+        integer, pointer :: ncells_pointer
+        integer, pointer :: ncellssolve_pointer
+        integer, pointer :: nedges_pointer
+        integer, pointer :: nedgessolve_pointer
+        integer, pointer :: nvertices_pointer
+        integer, pointer :: nverticessolve_pointer
+        integer, pointer :: nvertlevels_pointer
+
+        nullify(ncells_pointer)
+        nullify(ncellssolve_pointer)
+        nullify(nedges_pointer)
+        nullify(nedgessolve_pointer)
+        nullify(nvertices_pointer)
+        nullify(nverticessolve_pointer)
+        nullify(nvertlevels_pointer)
 
         call self % get_variable_pointer(ncells_pointer, 'dim', 'nCells')
         call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
@@ -2999,11 +3067,17 @@ contains
         real(rkind), intent(out) :: sphere_radius
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_global_mesh_dimension'
-        integer, pointer :: maxedges_pointer => null()
-        integer, pointer :: ncellssolve_pointer => null()
-        integer, pointer :: nedgessolve_pointer => null()
-        integer, pointer :: nverticessolve_pointer => null()
-        integer, pointer :: nvertlevels_pointer => null()
+        integer, pointer :: maxedges_pointer
+        integer, pointer :: ncellssolve_pointer
+        integer, pointer :: nedgessolve_pointer
+        integer, pointer :: nverticessolve_pointer
+        integer, pointer :: nvertlevels_pointer
+
+        nullify(maxedges_pointer)
+        nullify(ncellssolve_pointer)
+        nullify(nedgessolve_pointer)
+        nullify(nverticessolve_pointer)
+        nullify(nvertlevels_pointer)
 
         call self % get_variable_pointer(maxedges_pointer, 'dim', 'maxEdges')
         call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
@@ -3087,8 +3161,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_c0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -3114,8 +3189,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_c1'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3135,8 +3211,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -3165,8 +3242,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i1'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -3192,8 +3270,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i2'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3213,8 +3292,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i3'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3234,8 +3314,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_l0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -3259,8 +3340,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -3286,8 +3368,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r1'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3307,8 +3390,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r2'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3328,8 +3412,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r3'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3349,8 +3434,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r4'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3370,8 +3456,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r5'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -3404,9 +3491,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_c0'
-        character(strkind), pointer :: variable_pointer => null()
+        character(strkind), pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3425,9 +3513,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_c1'
-        character(strkind), pointer :: variable_pointer(:) => null()
+        character(strkind), pointer :: variable_pointer(:)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3446,9 +3535,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i0'
-        integer, pointer :: variable_pointer => null()
+        integer, pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3467,9 +3557,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i1'
-        integer, pointer :: variable_pointer(:) => null()
+        integer, pointer :: variable_pointer(:)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3488,9 +3579,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i2'
-        integer, pointer :: variable_pointer(:, :) => null()
+        integer, pointer :: variable_pointer(:, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3509,9 +3601,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i3'
-        integer, pointer :: variable_pointer(:, :, :) => null()
+        integer, pointer :: variable_pointer(:, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3530,9 +3623,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_l0'
-        logical, pointer :: variable_pointer => null()
+        logical, pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3551,9 +3645,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r0'
-        real(rkind), pointer :: variable_pointer => null()
+        real(rkind), pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3572,9 +3667,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r1'
-        real(rkind), pointer :: variable_pointer(:) => null()
+        real(rkind), pointer :: variable_pointer(:)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3593,9 +3689,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r2'
-        real(rkind), pointer :: variable_pointer(:, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3614,9 +3711,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r3'
-        real(rkind), pointer :: variable_pointer(:, :, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3635,9 +3733,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r4'
-        real(rkind), pointer :: variable_pointer(:, :, :, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -3656,9 +3755,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r5'
-        real(rkind), pointer :: variable_pointer(:, :, :, :, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :, :, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 

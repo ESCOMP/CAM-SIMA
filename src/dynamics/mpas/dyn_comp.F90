@@ -127,7 +127,9 @@ contains
                    stop_date_time(6),  & ! YYYY, MM, DD, hh, mm, ss.
                    run_duration(4),    & ! DD, hh, mm, ss.
                    sec_since_midnight    ! Second(s) since midnight.
-        type(iosystem_desc_t), pointer :: pio_iosystem => null()
+        type(iosystem_desc_t), pointer :: pio_iosystem
+
+        nullify(pio_iosystem)
 
         ! Enable/disable the debug output of MPAS dynamical core according to the debug verbosity level of CAM-SIMA.
         mpas_dynamical_core % debug_output = (debug_output > debugout_none)
@@ -192,8 +194,11 @@ contains
         integer :: i
         integer :: ierr
         logical, allocatable :: is_water_species(:)
-        type(file_desc_t), pointer :: pio_init_file => null()
-        type(file_desc_t), pointer :: pio_topo_file => null()
+        type(file_desc_t), pointer :: pio_init_file
+        type(file_desc_t), pointer :: pio_topo_file
+
+        nullify(pio_init_file)
+        nullify(pio_topo_file)
 
         allocate(constituent_name(num_advected), stat=ierr)
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
@@ -295,7 +300,9 @@ contains
         real(kind_r8), parameter :: error_tolerance = 1.0E-3_kind_r8 ! Error tolerance for consistency check.
         real(kind_r8), allocatable :: surface_geometric_height(:)    ! Computed from topography file.
         real(kind_r8), allocatable :: surface_geopotential(:)        ! Read from topography file.
-        real(kind_r8), pointer :: zgrid(:, :) => null()              ! From MPAS. Geometric height (meters) at layer interfaces.
+        real(kind_r8), pointer :: zgrid(:, :)                        ! From MPAS. Geometric height (meters) at layer interfaces.
+
+        nullify(zgrid)
 
         call mpas_dynamical_core % get_variable_pointer(zgrid, 'mesh', 'zgrid')
 
@@ -352,7 +359,7 @@ contains
         real(kind_r8), allocatable :: lat_rad(:), lon_rad(:)
         real(kind_r8), allocatable :: z_int(:, :)       ! Geometric height (meters) at layer interfaces.
                                                         ! Dimension and vertical index orders follow CAM-SIMA convention.
-        real(kind_r8), pointer :: zgrid(:, :) => null() ! Geometric height (meters) at layer interfaces.
+        real(kind_r8), pointer :: zgrid(:, :)           ! Geometric height (meters) at layer interfaces.
                                                         ! Dimension and vertical index orders follow MPAS convention.
 
         call init_shared_variable()
@@ -364,8 +371,7 @@ contains
         call set_mpas_state_rho_base_theta_base()
 
         deallocate(global_grid_index)
-        deallocate(lat_rad)
-        deallocate(lon_rad)
+        deallocate(lat_rad, lon_rad)
         deallocate(z_int)
 
         nullify(zgrid)
@@ -375,10 +381,14 @@ contains
         subroutine init_shared_variable()
             integer :: ierr
             integer :: k
-            integer, pointer :: indextocellid(:) => null()
-            real(kind_r8), pointer :: lat_deg(:) => null(), lon_deg(:) => null()
+            integer, pointer :: indextocellid(:)
+            real(kind_r8), pointer :: lat_deg(:), lon_deg(:)
 
             call dyn_debug_print('Preparing to set analytic initial condition')
+
+            nullify(zgrid)
+            nullify(indextocellid)
+            nullify(lat_deg, lon_deg)
 
             allocate(global_grid_index(ncells_solve), stat=ierr)
             call check_allocate(ierr, subname, 'global_grid_index(ncells_solve)', 'dyn_comp', __LINE__)
@@ -410,8 +420,7 @@ contains
             lat_rad(:) = lat_deg(:) * deg_to_rad
             lon_rad(:) = lon_deg(:) * deg_to_rad
 
-            nullify(lat_deg)
-            nullify(lon_deg)
+            nullify(lat_deg, lon_deg)
 
             allocate(z_int(ncells_solve, pverp), stat=ierr)
             call check_allocate(ierr, subname, 'z_int(ncells_solve, pverp)', 'dyn_comp', __LINE__)
@@ -429,10 +438,11 @@ contains
         subroutine set_mpas_state_u()
             integer :: ierr
             integer :: k
-            real(kind_r8), pointer :: ucellmeridional(:, :) => null()
-            real(kind_r8), pointer :: ucellzonal(:, :) => null()
+            real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
 
             call dyn_debug_print('Setting MPAS state "u"')
+
+            nullify(ucellzonal, ucellmeridional)
 
             allocate(buffer_2d_real(ncells_solve, pver), stat=ierr)
             call check_allocate(ierr, subname, 'buffer_2d_real(ncells_solve, pver)', 'dyn_comp', __LINE__)
@@ -460,8 +470,7 @@ contains
 
             deallocate(buffer_2d_real)
 
-            nullify(ucellzonal)
-            nullify(ucellmeridional)
+            nullify(ucellzonal, ucellmeridional)
 
             call mpas_dynamical_core % compute_edge_wind()
         end subroutine set_mpas_state_u
@@ -469,9 +478,11 @@ contains
         !> Set MPAS state `w` (i.e., vertical velocity at cell interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_w()
-            real(kind_r8), pointer :: w(:, :) => null()
+            real(kind_r8), pointer :: w(:, :)
 
             call dyn_debug_print('Setting MPAS state "w"')
+
+            nullify(w)
 
             call mpas_dynamical_core % get_variable_pointer(w, 'state', 'w', time_level=1)
 
@@ -493,10 +504,13 @@ contains
             integer :: i, k
             integer :: ierr
             integer, allocatable :: constituent_index(:)
-            integer, pointer :: index_qv => null()
-            real(kind_r8), pointer :: scalars(:, :, :) => null()
+            integer, pointer :: index_qv
+            real(kind_r8), pointer :: scalars(:, :, :)
 
             call dyn_debug_print('Setting MPAS state "scalars"')
+
+            nullify(index_qv)
+            nullify(scalars)
 
             allocate(buffer_3d_real(ncells_solve, pver, num_advected), stat=ierr)
             call check_allocate(ierr, subname, 'buffer_3d_real(ncells_solve, pver, num_advected)', 'dyn_comp', __LINE__)
@@ -550,7 +564,7 @@ contains
         subroutine set_mpas_state_rho_theta()
             integer :: i, k
             integer :: ierr
-            integer, pointer :: index_qv => null()
+            integer, pointer :: index_qv
             real(kind_r8), allocatable :: p_mid_col(:)  ! Pressure (Pa) at layer midpoints of each column. This is full pressure,
                                                         ! which also accounts for water vapor.
             real(kind_r8), allocatable :: p_sfc(:)      ! Pressure (Pa) at surface. This is full pressure,
@@ -558,11 +572,16 @@ contains
             real(kind_r8), allocatable :: qv_mid_col(:) ! Water vapor mixing ratio (kg/kg) at layer midpoints of each column.
             real(kind_r8), allocatable :: t_mid(:, :)   ! Temperature (K) at layer midpoints.
             real(kind_r8), allocatable :: tm_mid_col(:) ! Modified "moist" temperature (K) at layer midpoints of each column.
-            real(kind_r8), pointer :: rho(:, :) => null()
-            real(kind_r8), pointer :: theta(:, :) => null()
-            real(kind_r8), pointer :: scalars(:, :, :) => null()
+            real(kind_r8), pointer :: rho(:, :)
+            real(kind_r8), pointer :: theta(:, :)
+            real(kind_r8), pointer :: scalars(:, :, :)
 
             call dyn_debug_print('Setting MPAS state "rho" and "theta"')
+
+            nullify(index_qv)
+            nullify(rho)
+            nullify(theta)
+            nullify(scalars)
 
             allocate(p_sfc(ncells_solve), stat=ierr)
             call check_allocate(ierr, subname, 'p_sfc(ncells_solve)', 'dyn_comp', __LINE__)
@@ -657,11 +676,15 @@ contains
             real(kind_r8), parameter :: t_base = 250.0_kind_r8 ! Base state temperature (K) of dry isothermal atmosphere.
                                                                ! The value used here is identical to MPAS.
             real(kind_r8), allocatable :: p_base(:)            ! Base state pressure (Pa) at layer midpoints of each column.
-            real(kind_r8), pointer :: rho_base(:, :) => null()
-            real(kind_r8), pointer :: theta_base(:, :) => null()
-            real(kind_r8), pointer :: zz(:, :) => null()
+            real(kind_r8), pointer :: rho_base(:, :)
+            real(kind_r8), pointer :: theta_base(:, :)
+            real(kind_r8), pointer :: zz(:, :)
 
             call dyn_debug_print('Setting MPAS state "rho_base" and "theta_base"')
+
+            nullify(rho_base)
+            nullify(theta_base)
+            nullify(zz)
 
             allocate(p_base(pver), stat=ierr)
             call check_allocate(ierr, subname, 'p_base(pver)', 'dyn_comp', __LINE__)
@@ -731,10 +754,13 @@ contains
     subroutine set_default_constituent()
         character(*), parameter :: subname = 'dyn_comp::set_default_constituent'
         integer :: i, k
-        real(kind_phys), pointer :: constituents(:, :, :) => null() ! This points to CCPP memory.
-        real(kind_r8), pointer :: scalars(:, :, :) => null()        ! This points to MPAS memory.
+        real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
+        real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
 
         call dyn_debug_print('Setting default MPAS state "scalars"')
+
+        nullify(constituents)
+        nullify(scalars)
 
         constituents => cam_constituents_array()
 
