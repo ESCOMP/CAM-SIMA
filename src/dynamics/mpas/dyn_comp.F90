@@ -379,6 +379,7 @@ contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
         subroutine init_shared_variable()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variable'
             integer :: ierr
             integer :: k
             integer, pointer :: indextocellid(:)
@@ -436,6 +437,7 @@ contains
         !> Set MPAS state `u` (i.e., horizontal velocity at edge interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_u()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_u'
             integer :: ierr
             integer :: k
             real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
@@ -478,6 +480,7 @@ contains
         !> Set MPAS state `w` (i.e., vertical velocity at cell interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_w()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_w'
             real(kind_r8), pointer :: w(:, :)
 
             call dyn_debug_print('Setting MPAS state "w"')
@@ -501,6 +504,7 @@ contains
             character(*), parameter :: constituent_qv_standard_name = &
                 'water_vapor_mixing_ratio_wrt_dry_air'
 
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_scalars'
             integer :: i, k
             integer :: ierr
             integer, allocatable :: constituent_index(:)
@@ -562,6 +566,7 @@ contains
         !> Set MPAS state `rho` (i.e., dry air density) and `theta` (i.e., potential temperature).
         !> (KCW, 2024-05-19)
         subroutine set_mpas_state_rho_theta()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_theta'
             integer :: i, k
             integer :: ierr
             integer, pointer :: index_qv
@@ -671,6 +676,7 @@ contains
         !> Set MPAS state `rho_base` (i.e., base state dry air density) and `theta_base` (i.e., base state potential temperature).
         !> (KCW, 2024-05-21)
         subroutine set_mpas_state_rho_base_theta_base()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_base_theta_base'
             integer :: i, k
             integer :: ierr
             real(kind_r8), parameter :: t_base = 250.0_kind_r8 ! Base state temperature (K) of dry isothermal atmosphere.
