@@ -1,7 +1,7 @@
 module stepon
     ! Modules from CAM-SIMA.
     use camsrfexch, only: cam_out_t
-    use dyn_comp, only: dyn_import_t, dyn_export_t
+    use dyn_comp, only: dyn_import_t, dyn_export_t, dyn_run
     use physics_types, only: physics_state, physics_tend
     use runtime_obj, only: runtime_options
 
@@ -31,8 +31,8 @@ contains
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(physics_state), intent(inout) :: phys_state
         type(physics_tend), intent(inout) :: phys_tend
-        type(dyn_import_t), intent(inout) :: dyn_in
-        type(dyn_export_t), intent(inout) :: dyn_out
+        type(dyn_import_t), intent(in) :: dyn_in
+        type(dyn_export_t), intent(in) :: dyn_out
     end subroutine stepon_timestep_init
 
     ! Called by `cam_run2` in `src/control/cam_comp.F90`.
@@ -40,8 +40,8 @@ contains
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(physics_state), intent(inout) :: phys_state
         type(physics_tend), intent(inout) :: phys_tend
-        type(dyn_import_t), intent(inout) :: dyn_in
-        type(dyn_export_t), intent(inout) :: dyn_out
+        type(dyn_import_t), intent(in) :: dyn_in
+        type(dyn_export_t), intent(in) :: dyn_out
     end subroutine stepon_run2
 
     ! Called by `cam_run3` in `src/control/cam_comp.F90`.
@@ -50,14 +50,16 @@ contains
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(cam_out_t), intent(inout) :: cam_out
         type(physics_state), intent(inout) :: phys_state
-        type(dyn_import_t), intent(inout) :: dyn_in
-        type(dyn_export_t), intent(inout) :: dyn_out
+        type(dyn_import_t), intent(in) :: dyn_in
+        type(dyn_export_t), intent(in) :: dyn_out
+
+        call dyn_run()
     end subroutine stepon_run3
 
     ! Called by `cam_final` in `src/control/cam_comp.F90`.
     subroutine stepon_final(cam_runtime_opts, dyn_in, dyn_out)
         type(runtime_options), intent(in) :: cam_runtime_opts
-        type(dyn_import_t), intent(inout) :: dyn_in
-        type(dyn_export_t), intent(inout) :: dyn_out
+        type(dyn_import_t), intent(in) :: dyn_in
+        type(dyn_export_t), intent(in) :: dyn_out
     end subroutine stepon_final
 end module stepon
