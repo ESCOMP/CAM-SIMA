@@ -49,7 +49,7 @@ module dyn_comp
     public :: dyn_export_t
     public :: dyn_readnl
     public :: dyn_init
-    ! public :: dyn_run
+    public :: dyn_run
     ! public :: dyn_final
 
     public :: dyn_debug_print
@@ -834,9 +834,14 @@ contains
         end do
     end subroutine mark_variable_as_initialized
 
-    ! Not used for now. Intended to be called by `stepon_run*` in `src/dynamics/mpas/stepon.F90`.
-    ! subroutine dyn_run()
-    ! end subroutine dyn_run
+    !> Run MPAS dynamical core to integrate the dynamical states with time.
+    !> (KCW, 2024-07-11)
+    subroutine dyn_run()
+        character(*), parameter :: subname = 'dyn_comp::dyn_run'
+
+        ! MPAS dynamical core will run until the coupling time interval is reached.
+        call mpas_dynamical_core % run()
+    end subroutine dyn_run
 
     ! Not used for now. Intended to be called by `stepon_final` in `src/dynamics/mpas/stepon.F90`.
     ! subroutine dyn_final()
