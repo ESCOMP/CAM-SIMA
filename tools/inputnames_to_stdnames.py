@@ -18,7 +18,7 @@ def write_new_ncdata_file(input_filename, output_filename, inputname_dict):
     base_cmd += f' {input_filename}'
     os.system(base_cmd)
 
-def parse_stdname_file(file_to_parse):
+def parse_stdname_file(file_to_parse, tphys_exclude):
     """Parse XML standard name dictionary"""
     with open(file_to_parse, encoding='utf-8') as fh1:
         try:
@@ -35,7 +35,9 @@ def parse_stdname_file(file_to_parse):
         for sub_element in entry:
             if sub_element.tag == "ic_file_input_names":
                 for input_name in sub_element:
-                    inputname_dict[input_name.text.strip()] = stdname
+                    if not input_name.text.startswith(tphys_exclude):
+                        inputname_dict[input_name.text.strip()] = stdname
+                    # end if startswith
                 # end for input_name
             # end if sub_element.tag
         # end if for sub_element in entry
@@ -43,7 +45,7 @@ def parse_stdname_file(file_to_parse):
     return inputname_dict
 
 
-def main(input_file, output_filename, stdname_file):
+def main(input_file, output_filename, stdname_file, tphys_exclude):
     """Parse standard name dictionary and then replace input name variables with stdnames"""
     if not os.path.isfile(input_file):
         print(f"Input file {input_file} does not exist")
@@ -74,7 +76,7 @@ def main(input_file, output_filename, stdname_file):
         #end if os.path.isdir(output_dir)
     #end if len(output_dir.strip())) == 0
     # Parse the standard name dictionary
-    inputname_dict = parse_stdname_file(stdname_file)
+    inputname_dict = parse_stdname_file(stdname_file, tphys_exclude)
     if not inputname_dict:
         print(f"Standard name dictionary {stdname_file} empty or not parse-able")
         return 6
@@ -97,9 +99,12 @@ def parse_command_line(arguments, description):
     parser.add_argument("--stdnames", type=str, required=True,
                         metavar='stdname file',
                         help="Full path to the standard names dictionary (e.g. stdnames_to_inputnames_dictionary.xml)")
+    parser.add_argument('--tphys-exclude', type=str, required=True,
+                        metavar='tphysac or tphysbc group - REQUIRED',
+                        help='Group to exclude when converting variable names to stdandard names')
     pargs = parser.parse_args(arguments)
     return pargs
 
 if __name__ == "__main__":
     ARGS = parse_command_line(sys.argv[1:], __doc__)
-    sys.exit(main(ARGS.input, ARGS.output, ARGS.stdnames))
+    sys.exit(main(ARGS.input, ARGS.output, ARGS.stdnames, ARGS.tphys_exclude))

@@ -197,10 +197,10 @@ def _main_prog():
         #PR itself, so don't check its file type:
         if os.path.exists(file_obj.filename):
 
-            #Don't analyze 'manage_externals' files,
+            #Don't analyze 'git-fleximod' files,
             #as they are an external repo and thus
             #not our responsibility:
-            if 'manage_externals' not in file_obj.filename:
+            if 'git-fleximod' not in file_obj.filename:
 
                 #Check if it is a python file:
                 if _file_is_python(file_obj.filename):
