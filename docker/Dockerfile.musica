@@ -73,7 +73,7 @@ USER cam_sima_user
 WORKDIR /home/cam_sima_user/CAM-SIMA
 
 # pull the dependencies
-RUN ./manage_externals/checkout_externals
+RUN ./bin/git-fleximod update
 
 # Copy in the machine information for the container
 RUN cp /home/cam_sima_user/CAM-SIMA/docker/config_machines.xml /home/cam_sima_user/CAM-SIMA/ccs_config/machines/
