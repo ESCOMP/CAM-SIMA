@@ -11,16 +11,25 @@ module dyn_mpas_subdriver
 
     ! Modules from external libraries.
     use mpi, only: mpi_comm_null, mpi_comm_rank, mpi_success
-    use pio, only: file_desc_t, iosystem_desc_t, pio_file_is_open, pio_iosystem_is_active, &
-                   pio_inq_varid, pio_inq_varndims, pio_noerr
+    use pio, only: pio_char, pio_int, pio_real, pio_double, &
+                   file_desc_t, iosystem_desc_t, pio_file_is_open, pio_iosystem_is_active, &
+                   pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
 
     ! Modules from MPAS.
+    use atm_core, only: atm_mpas_init_block
     use atm_core_interface, only: atm_setup_core, atm_setup_domain
+    use atm_time_integration, only: mpas_atm_dynamics_init
+    use mpas_atm_dimensions, only: mpas_atm_set_dims
+    use mpas_atm_halos, only: atm_build_halo_groups, exchange_halo_group
+    use mpas_atm_threading, only: mpas_atm_threading_init
+    use mpas_attlist, only: mpas_modify_att
     use mpas_bootstrapping, only: mpas_bootstrap_framework_phase1, mpas_bootstrap_framework_phase2
+    use mpas_constants, only: mpas_constants_compute_derived
     use mpas_derived_types, only: core_type, domain_type, &
                                   mpas_pool_type, mpas_pool_field_info_type, &
                                   mpas_pool_character, mpas_pool_real, mpas_pool_integer, &
                                   mpas_stream_type, mpas_stream_noerr, &
+                                  mpas_time_type, mpas_start_time, &
                                   mpas_io_native_precision, mpas_io_pnetcdf, mpas_io_read, mpas_io_write, &
                                   field0dchar, field1dchar, &
                                   field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
@@ -31,13 +40,17 @@ module dyn_mpas_subdriver
     use mpas_framework, only: mpas_framework_init_phase1, mpas_framework_init_phase2
     use mpas_io_streams, only: mpas_createstream, mpas_closestream, mpas_streamaddfield, &
                                mpas_readstream, mpas_writestream, mpas_writestreamatt
-    use mpas_kind_types, only: rkind, strkind
+    use mpas_kind_types, only: rkind, r4kind, r8kind, strkind
     use mpas_pool_routines, only: mpas_pool_create_pool, mpas_pool_destroy_pool, mpas_pool_get_subpool, &
                                   mpas_pool_add_config, mpas_pool_get_config, &
                                   mpas_pool_get_array, &
-                                  mpas_pool_get_dimension, &
-                                  mpas_pool_get_field, mpas_pool_get_field_info
+                                  mpas_pool_add_dimension, mpas_pool_get_dimension, &
+                                  mpas_pool_get_field, mpas_pool_get_field_info, &
+                                  mpas_pool_initialize_time_levels
     use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
+    use mpas_string_utils, only: mpas_string_replace
+    use mpas_timekeeping, only: mpas_get_clock_time, mpas_get_time
+    use mpas_vector_operations, only: mpas_initialize_vectors
 
     implicit none
 
@@ -61,6 +74,7 @@ module dyn_mpas_subdriver
 
         logical, public :: debug_output = .false.
 
+        ! Initialized by `dyn_mpas_init_phase1`.
         integer :: log_unit = output_unit
         integer :: mpi_comm = mpi_comm_null
         integer :: mpi_rank = 0
@@ -71,6 +85,18 @@ module dyn_mpas_subdriver
 
         type(core_type), pointer :: corelist => null()
         type(domain_type), pointer :: domain_ptr => null()
+
+        ! Initialized by `dyn_mpas_init_phase3`.
+        integer :: number_of_constituents = 0
+
+        ! Initialized by `dyn_mpas_define_scalar`.
+        character(strkind), allocatable :: constituent_name(:)
+        integer, allocatable :: index_constituent_to_mpas_scalar(:)
+        integer, allocatable :: index_mpas_scalar_to_constituent(:)
+        logical, allocatable :: is_water_species(:)
+
+        ! Initialized by `dyn_mpas_init_phase4`.
+        integer :: coupling_time_interval
     contains
         private
 
@@ -79,12 +105,24 @@ module dyn_mpas_subdriver
         procedure, pass, public :: read_namelist => dyn_mpas_read_namelist
         procedure, pass, public :: init_phase2 => dyn_mpas_init_phase2
         procedure, pass, public :: init_phase3 => dyn_mpas_init_phase3
+        procedure, pass, public :: define_scalar => dyn_mpas_define_scalar
         procedure, pass, public :: read_write_stream => dyn_mpas_read_write_stream
         procedure, pass :: init_stream_with_pool => dyn_mpas_init_stream_with_pool
+        procedure, pass :: check_variable_status => dyn_mpas_check_variable_status
         procedure, pass, public :: exchange_halo => dyn_mpas_exchange_halo
+        procedure, pass, public :: compute_unit_vector => dyn_mpas_compute_unit_vector
+        procedure, pass, public :: compute_edge_wind => dyn_mpas_compute_edge_wind
+        procedure, pass, public :: init_phase4 => dyn_mpas_init_phase4
 
         ! Accessor subroutines for users to access internal states of MPAS dynamical core.
 
+        procedure, pass, public :: get_constituent_name => dyn_mpas_get_constituent_name
+        procedure, pass, public :: get_constituent_index => dyn_mpas_get_constituent_index
+
+        procedure, pass, public :: map_mpas_scalar_index => dyn_mpas_map_mpas_scalar_index
+        procedure, pass, public :: map_constituent_index => dyn_mpas_map_constituent_index
+
+        procedure, pass, public :: get_local_mesh_dimension => dyn_mpas_get_local_mesh_dimension
         procedure, pass, public :: get_global_mesh_dimension => dyn_mpas_get_global_mesh_dimension
 
         procedure, pass :: get_pool_pointer => dyn_mpas_get_pool_pointer
@@ -231,7 +269,6 @@ module dyn_mpas_subdriver
     type(var_info_type), parameter :: input_var_info_list(*) = [ &
         var_info_type('Time'                            , 'real'      , 1), &
         var_info_type('initial_time'                    , 'character' , 0), &
-        var_info_type('relhum'                          , 'real'      , 3), &
         var_info_type('rho'                             , 'real'      , 3), &
         var_info_type('rho_base'                        , 'real'      , 3), &
         var_info_type('scalars'                         , 'real'      , 3), &
@@ -484,7 +521,7 @@ contains
         ! We need:
         ! 1) `domain_ptr` to be allocated;
         ! 2) `dmpar_init` to be completed for accessing `dminfo`;
-        ! 3) `*_setup_core` to assign the `setup_log` function pointer.
+        ! 3) `*_setup_core` to assign the `setup_log` procedure pointer.
         ierr = self % domain_ptr % core % setup_log(self % domain_ptr % loginfo, self % domain_ptr, unitnumbers=mpas_log_unit)
 
         if (ierr /= 0) then
@@ -518,11 +555,14 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_namelist'
         character(strkind) :: mpas_calendar
-        character(strkind), pointer :: config_pointer_c => null()
+        character(strkind), pointer :: config_pointer_c
         integer :: ierr
-        logical, pointer :: config_pointer_l => null()
+        logical, pointer :: config_pointer_l
 
         call self % debug_print(subname // ' entered')
+
+        nullify(config_pointer_c)
+        nullify(config_pointer_l)
 
         call self % debug_print('Reading namelist at ', [namelist_path])
 
@@ -703,37 +743,49 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase3
     !
-    !> \brief  Tracks `mpas_init` up to the point of calling `core_init`
+    !> \brief  Tracks `mpas_init` up to the point of calling `atm_core_init`
     !> \author Michael Duda
     !> \date   19 April 2019
     !> \details
     !>  This subroutine follows the stand-alone MPAS subdriver after the check on
     !>  the existence of the `streams.<core>` file up to, but not including,
-    !>  the point where `core_init` is called. It completes MPAS framework
+    !>  the point where `atm_core_init` is called. It completes MPAS framework
     !>  initialization, including the allocation of all blocks and fields managed
-    !>  by MPAS.
+    !>  by MPAS. However, scalars are allocated but not yet defined.
+    !>  `dyn_mpas_define_scalar` must be called afterwards. Also note that MPAS uses
+    !>  the term "scalar", but CAM-SIMA calls it "constituent".
     !> \addenda
     !>  Ported and refactored for CAM-SIMA. (KCW, 2024-03-06)
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_init_phase3(self, cam_pcnst, pio_file)
-        class(mpas_dynamical_core_type), intent(in) :: self
-        integer, intent(in) :: cam_pcnst
+    subroutine dyn_mpas_init_phase3(self, number_of_constituents, pio_file)
+        class(mpas_dynamical_core_type), intent(inout) :: self
+        integer, intent(in) :: number_of_constituents
         type(file_desc_t), pointer, intent(in) :: pio_file
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase3'
         character(strkind) :: mesh_filename
         integer :: mesh_format
+        integer, pointer :: num_scalars
+        type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(subname // ' entered')
 
-        call self % debug_print('Number of constituents is ', [cam_pcnst])
+        nullify(mpas_pool)
+        nullify(num_scalars)
+
+        ! In MPAS, there must be at least one constituent, `qv`, which denotes water vapor mixing ratio.
+        ! Because MPAS has some hard-coded array accesses through the `index_qv` index, it will crash
+        ! (i.e., segmentation fault due to invalid memory access) if `qv` is not allocated.
+        self % number_of_constituents = max(1, number_of_constituents)
+
+        call self % debug_print('Number of constituents is ', [self % number_of_constituents])
 
         ! Adding a config named `cam_pcnst` with the number of constituents will indicate to MPAS that
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
         ! from other Registry-defined fields. The special logic is located in `atm_setup_block`.
         ! This must be done before calling `mpas_bootstrap_framework_phase1`.
-        call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', cam_pcnst)
+        call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents)
 
         ! Not actually used because a PIO file descriptor is directly supplied.
         mesh_filename = 'external mesh'
@@ -759,8 +811,292 @@ contains
         ! Finish setting up fields.
         call mpas_bootstrap_framework_phase2(self % domain_ptr, pio_file_desc=pio_file)
 
+        ! `num_scalars` is a dimension variable, but it only exists in MPAS `state` pool.
+        ! Fix this inconsistency by also adding it to MPAS `dimension` pool.
+        call self % get_pool_pointer(mpas_pool, 'state')
+
+        call mpas_pool_get_dimension(mpas_pool, 'num_scalars', num_scalars)
+
+        if (.not. associated(num_scalars)) then
+            call self % model_error('Failed to find variable "num_scalars"', subname, __LINE__)
+        end if
+
+        ! While we are at it, check if its value is consistent.
+        if (num_scalars /= self % number_of_constituents) then
+            call self % model_error('Failed to allocate constituents', subname, __LINE__)
+        end if
+
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'num_scalars', num_scalars)
+
+        nullify(mpas_pool)
+        nullify(num_scalars)
+
         call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_init_phase3
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_define_scalar
+    !
+    !> \brief  Defines the names of constituents at run-time
+    !> \author Michael Duda
+    !> \date   21 May 2020
+    !> \details
+    !>  Given arrays of constituent names and their corresponding waterness, which
+    !>  must have sizes equal to the number of constituents used to call
+    !>  `dyn_mpas_init_phase3`, this subroutine defines the scalars inside MPAS.
+    !>  Note that MPAS uses the term "scalar", but CAM-SIMA calls it "constituent".
+    !>  Furthermore, because MPAS expects all water scalars to appear in a
+    !>  contiguous index range, this subroutine may reorder the scalars to satisfy
+    !>  this constrain. Index mapping between MPAS scalars and constituent names
+    !>  can be looked up through `index_constituent_to_mpas_scalar` and
+    !>  `index_mpas_scalar_to_constituent`.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-19)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_define_scalar(self, constituent_name, is_water_species)
+        class(mpas_dynamical_core_type), intent(inout) :: self
+        character(*), intent(in) :: constituent_name(:)
+        logical, intent(in) :: is_water_species(:)
+
+        ! Possible CCPP standard names of `qv`, which denotes water vapor mixing ratio.
+        ! They are hard-coded here because MPAS needs to know where `qv` is.
+        ! Index 1 is exactly what MPAS wants. Others also work, but need to be converted.
+        character(*), parameter :: mpas_scalar_qv_standard_name(*) = [ character(strkind) :: &
+            'water_vapor_mixing_ratio_wrt_dry_air', &
+            'water_vapor_mixing_ratio_wrt_moist_air', &
+            'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water' &
+        ]
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar'
+        integer :: i, j, ierr
+        integer :: index_qv, index_water_start, index_water_end
+        integer :: time_level
+        type(field3dreal), pointer :: field_3d_real
+        type(mpas_pool_type), pointer :: mpas_pool
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(field_3d_real)
+        nullify(mpas_pool)
+
+        if (self % number_of_constituents == 0) then
+            call self % model_error('Constituents must be allocated before being defined', subname, __LINE__)
+        end if
+
+        ! Input sanitization.
+
+        if (size(constituent_name) /= size(is_water_species)) then
+            call self % model_error('Mismatch between numbers of constituent names and their waterness', subname, __LINE__)
+        end if
+
+        if (size(constituent_name) == 0 .and. self % number_of_constituents == 1) then
+            ! If constituent definitions are empty, `qv` is the only constituent per MPAS requirements.
+            ! See `dyn_mpas_init_phase3` for details.
+            allocate(self % constituent_name(1), stat=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to allocate constituent_name', subname, __LINE__)
+            end if
+
+            allocate(self % is_water_species(1), stat=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to allocate is_water_species', subname, __LINE__)
+            end if
+
+            self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
+            self % is_water_species(1) = .true.
+        else
+            if (size(constituent_name) /= self % number_of_constituents) then
+                call self % model_error('Mismatch between numbers of constituents and their names', subname, __LINE__)
+            end if
+
+            if (any(len_trim(adjustl(constituent_name)) > len(self % constituent_name))) then
+                call self % model_error('Constituent names are too long', subname, __LINE__)
+            end if
+
+            allocate(self % constituent_name(self % number_of_constituents), stat=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to allocate constituent_name', subname, __LINE__)
+            end if
+
+            self % constituent_name(:) = adjustl(constituent_name)
+
+            allocate(self % is_water_species(self % number_of_constituents), stat=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to allocate is_water_species', subname, __LINE__)
+            end if
+
+            self % is_water_species(:) = is_water_species(:)
+
+            if (size(self % constituent_name) /= size(index_unique(self % constituent_name))) then
+                call self % model_error('Constituent names must be unique', subname, __LINE__)
+            end if
+
+            ! `qv` must be present in constituents per MPAS requirements. It is a water species by definition.
+            ! See `dyn_mpas_init_phase3` for details.
+            index_qv = 0
+
+            ! Lower index in `mpas_scalar_qv_standard_name` has higher precedence, with index 1 being exactly what MPAS wants.
+            set_index_qv: do i = 1, size(mpas_scalar_qv_standard_name)
+                do j = 1, self % number_of_constituents
+                    if (self % constituent_name(j) == mpas_scalar_qv_standard_name(i) .and. self % is_water_species(j)) then
+                        index_qv = j
+
+                        ! The best candidate of `qv` has been found. Exit prematurely.
+                        exit set_index_qv
+                    end if
+                end do
+            end do set_index_qv
+
+            if (index_qv == 0) then
+                call self % model_error('Constituent names must contain one of: ' // &
+                    stringify(mpas_scalar_qv_standard_name) // ' and it must be a water species', subname, __LINE__)
+            end if
+        end if
+
+        ! Create index mapping between MPAS scalars and constituent names. For example,
+        ! MPAS scalar index `i` corresponds to constituent index `index_mpas_scalar_to_constituent(i)`.
+
+        allocate(self % index_mpas_scalar_to_constituent(self % number_of_constituents), stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate index_mpas_scalar_to_constituent', subname, __LINE__)
+        end if
+
+        self % index_mpas_scalar_to_constituent(:) = 0
+        j = 1
+
+        ! Place water species first per MPAS requirements.
+        do i = 1, self % number_of_constituents
+            if (self % is_water_species(i)) then
+                self % index_mpas_scalar_to_constituent(j) = i
+                j = j + 1
+            end if
+        end do
+
+        index_water_start = 1
+        index_water_end = count(self % is_water_species)
+
+        ! Place non-water species second per MPAS requirements.
+        do i = 1, self % number_of_constituents
+            if (.not. self % is_water_species(i)) then
+                self % index_mpas_scalar_to_constituent(j) = i
+                j = j + 1
+            end if
+        end do
+
+        ! Create inverse index mapping between MPAS scalars and constituent names. For example,
+        ! Constituent index `i` corresponds to MPAS scalar index `index_constituent_to_mpas_scalar(i)`.
+
+        allocate(self % index_constituent_to_mpas_scalar(self % number_of_constituents), stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate index_constituent_to_mpas_scalar', subname, __LINE__)
+        end if
+
+        self % index_constituent_to_mpas_scalar(:) = 0
+
+        do i = 1, self % number_of_constituents
+            self % index_constituent_to_mpas_scalar(self % index_mpas_scalar_to_constituent(i)) = i
+        end do
+
+        ! Set the index of `qv` in terms of MPAS scalars.
+        index_qv = self % index_constituent_to_mpas_scalar(index_qv)
+
+        ! Print information about constituents.
+        do i = 1, self % number_of_constituents
+            call self % debug_print('Constituent index ' // stringify([i]))
+            call self % debug_print('    Constituent name: ' // &
+                stringify([self % constituent_name(i)]))
+            call self % debug_print('    Is water species: ' // &
+                stringify([self % is_water_species(i)]))
+            call self % debug_print('    Index mapping from constituent to MPAS scalar: ' // &
+                stringify([i]) // ' -> ' // stringify([self % index_constituent_to_mpas_scalar(i)]))
+        end do
+
+        ! Define "scalars" for MPAS.
+
+        call self % get_pool_pointer(mpas_pool, 'state')
+
+        call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
+        call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
+
+        ! MPAS `state` pool has two time levels.
+        time_level = 2
+
+        do i = 1, time_level
+            call mpas_pool_get_field(mpas_pool, 'scalars', field_3d_real, timelevel=i)
+
+            if (.not. associated(field_3d_real)) then
+                call self % model_error('Failed to find variable "scalars"', subname, __LINE__)
+            end if
+
+            do j = 1, self % number_of_constituents
+                field_3d_real % constituentnames(j) = &
+                    trim(adjustl(self % constituent_name(self % index_mpas_scalar_to_constituent(j))))
+
+                ! Print information about MPAS scalars. Only do it once.
+                if (i == 1) then
+                    call self % debug_print('MPAS scalar index ' // stringify([j]))
+                    call self % debug_print('    MPAS scalar name: ' // &
+                        stringify([field_3d_real % constituentnames(j)]))
+                    call self % debug_print('    Is water species: ' // &
+                        stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
+                    call self % debug_print('    Index mapping from MPAS scalar to constituent: ' // &
+                        stringify([j]) // ' -> ' // stringify([self % index_mpas_scalar_to_constituent(j)]))
+                end if
+            end do
+
+            nullify(field_3d_real)
+        end do
+
+        nullify(mpas_pool)
+
+        ! Define "scalars_tend" for MPAS.
+
+        call self % get_pool_pointer(mpas_pool, 'tend')
+
+        call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
+        call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
+
+        ! MPAS `tend` pool only has one time level.
+        time_level = 1
+
+        do i = 1, time_level
+            call mpas_pool_get_field(mpas_pool, 'scalars_tend', field_3d_real, timelevel=i)
+
+            if (.not. associated(field_3d_real)) then
+                call self % model_error('Failed to find variable "scalars_tend"', subname, __LINE__)
+            end if
+
+            do j = 1, self % number_of_constituents
+                field_3d_real % constituentnames(j) = &
+                    'tendency_of_' // trim(adjustl(self % constituent_name(self % index_mpas_scalar_to_constituent(j))))
+            end do
+
+            nullify(field_3d_real)
+        end do
+
+        nullify(mpas_pool)
+
+        ! For consistency, also add dimension variables to MPAS `dimension` pool.
+
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_start', index_water_start)
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_end', index_water_end)
+
+        call self % debug_print('index_qv = ' // stringify([index_qv]))
+        call self % debug_print('moist_start = ' // stringify([index_water_start]))
+        call self % debug_print('moist_end = ' // stringify([index_water_end]))
+
+        call self % debug_print(subname // ' completed')
+    end subroutine dyn_mpas_define_scalar
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_read_write_stream
@@ -784,11 +1120,14 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_write_stream'
         integer :: i, ierr
-        type(mpas_pool_type), pointer :: mpas_pool => null()
-        type(mpas_stream_type), pointer :: mpas_stream => null()
+        type(mpas_pool_type), pointer :: mpas_pool
+        type(mpas_stream_type), pointer :: mpas_stream
         type(var_info_type), allocatable :: var_info_list(:)
 
         call self % debug_print(subname // ' entered')
+
+        nullify(mpas_pool)
+        nullify(mpas_stream)
 
         call self % debug_print('Initializing stream "' // trim(adjustl(stream_name)) // '"')
 
@@ -894,22 +1233,39 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_stream_with_pool'
         character(strkind) :: stream_filename
-        integer :: i, ierr, ndims, stream_format, varid
-        type(field0dchar), pointer :: field_0d_char => null()
-        type(field1dchar), pointer :: field_1d_char => null()
-        type(field0dinteger), pointer :: field_0d_integer => null()
-        type(field1dinteger), pointer :: field_1d_integer => null()
-        type(field2dinteger), pointer :: field_2d_integer => null()
-        type(field3dinteger), pointer :: field_3d_integer => null()
-        type(field0dreal), pointer :: field_0d_real => null()
-        type(field1dreal), pointer :: field_1d_real => null()
-        type(field2dreal), pointer :: field_2d_real => null()
-        type(field3dreal), pointer :: field_3d_real => null()
-        type(field4dreal), pointer :: field_4d_real => null()
-        type(field5dreal), pointer :: field_5d_real => null()
+        integer :: i, ierr, stream_format
+        ! Whether a variable is present on the file (i.e., `pio_file`).
+        logical, allocatable :: var_is_present(:)
+        ! Whether a variable is type, kind and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
+        logical, allocatable :: var_is_tkr_compatible(:)
+        type(field0dchar), pointer :: field_0d_char
+        type(field1dchar), pointer :: field_1d_char
+        type(field0dinteger), pointer :: field_0d_integer
+        type(field1dinteger), pointer :: field_1d_integer
+        type(field2dinteger), pointer :: field_2d_integer
+        type(field3dinteger), pointer :: field_3d_integer
+        type(field0dreal), pointer :: field_0d_real
+        type(field1dreal), pointer :: field_1d_real
+        type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(field4dreal), pointer :: field_4d_real
+        type(field5dreal), pointer :: field_5d_real
         type(var_info_type), allocatable :: var_info_list(:)
 
         call self % debug_print(subname // ' entered')
+
+        nullify(field_0d_char)
+        nullify(field_1d_char)
+        nullify(field_0d_integer)
+        nullify(field_1d_integer)
+        nullify(field_2d_integer)
+        nullify(field_3d_integer)
+        nullify(field_0d_real)
+        nullify(field_1d_real)
+        nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(field_4d_real)
+        nullify(field_5d_real)
 
         call mpas_pool_create_pool(mpas_pool)
 
@@ -970,28 +1326,23 @@ contains
                 stringify([var_info_list(i) % rank]))
 
             if (trim(adjustl(stream_mode)) == 'r' .or. trim(adjustl(stream_mode)) == 'read') then
-                ! Check if "<variable name>" is present.
-                ierr = pio_inq_varid(pio_file, trim(adjustl(var_info_list(i) % name)), varid)
+                call self % check_variable_status(var_is_present, var_is_tkr_compatible, pio_file, var_info_list(i))
 
                 ! Do not hard crash the model if a variable is missing and cannot be read.
                 ! This can happen if users attempt to initialize/restart the model with data generated by
                 ! older versions of MPAS. Print a debug message to let users decide if this is acceptable.
-                if (ierr /= pio_noerr) then
-                    call self % debug_print('Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // '"')
+                if (.not. any(var_is_present)) then
+                    call self % debug_print('Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
+                        '" due to not present')
 
                     cycle
                 end if
 
-                ierr = pio_inq_varndims(pio_file, varid, ndims)
+                if (any(var_is_present .and. .not. var_is_tkr_compatible)) then
+                    call self % debug_print('Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
+                        '" due to not TKR compatible')
 
-                if (ierr /= pio_noerr) then
-                    call self % model_error('Failed to inquire variable rank for "' // trim(adjustl(var_info_list(i) % name)) // &
-                        '"', subname, __LINE__)
-                end if
-
-                if (ndims /= var_info_list(i) % rank) then
-                    call self % model_error('Variable rank mismatch for "' // trim(adjustl(var_info_list(i) % name)) // &
-                        '"', subname, __LINE__)
+                    cycle
                 end if
             end if
 
@@ -1031,8 +1382,8 @@ contains
 
                             nullify(field_1d_char)
                         case default
-                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]), &
-                                subname, __LINE__)
+                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]) // &
+                                ' for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
                     end select
                 case ('integer')
                     select case (var_info_list(i) % rank)
@@ -1085,8 +1436,8 @@ contains
 
                             nullify(field_3d_integer)
                         case default
-                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]), &
-                                subname, __LINE__)
+                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]) // &
+                                ' for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
                     end select
                 case ('real')
                     select case (var_info_list(i) % rank)
@@ -1163,12 +1514,12 @@ contains
 
                             nullify(field_5d_real)
                         case default
-                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]), &
-                                subname, __LINE__)
+                            call self % model_error('Unsupported variable rank ' // stringify([var_info_list(i) % rank]) // &
+                                ' for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
                     end select
                 case default
                     call self % model_error('Unsupported variable type "' // trim(adjustl(var_info_list(i) % type)) // &
-                        '"', subname, __LINE__)
+                        '" for "' // trim(adjustl(var_info_list(i) % name)) // '"', subname, __LINE__)
             end select
 
             if (ierr /= mpas_stream_noerr) then
@@ -1176,8 +1527,6 @@ contains
                     '" to stream "' // trim(adjustl(stream_name)) // '"', subname, __LINE__)
             end if
         end do
-
-        deallocate(var_info_list)
 
         if (trim(adjustl(stream_mode)) == 'w' .or. trim(adjustl(stream_mode)) == 'write') then
             ! Add MPAS-specific attributes to stream.
@@ -1194,7 +1543,7 @@ contains
             call add_stream_attribute('is_periodic', self % domain_ptr % is_periodic)
             call add_stream_attribute('mesh_spec', self % domain_ptr % mesh_spec)
             call add_stream_attribute('on_a_sphere', self % domain_ptr % on_a_sphere)
-            call add_stream_attribute('parent_id', self % domain_ptr %  parent_id)
+            call add_stream_attribute('parent_id', self % domain_ptr % parent_id)
             call add_stream_attribute('sphere_radius', self % domain_ptr % sphere_radius)
             call add_stream_attribute('x_period', self % domain_ptr % x_period)
             call add_stream_attribute('y_period', self % domain_ptr % y_period)
@@ -1264,70 +1613,141 @@ contains
         end subroutine add_stream_attribute_1d
     end subroutine dyn_mpas_init_stream_with_pool
 
-    !> Parse one or more stream names and return variable information contained in those streams as a list of `var_info_type`.
-    !> Multiple stream names should be separated by `+` (i.e., a plus).
+    !> Parse a stream name, which consists of one or more stream name fragments, and return the corresponding variable information
+    !> as a list of `var_info_type`. Multiple stream name fragments should be separated by `+` (i.e., a plus, meaning "addition"
+    !> operation) or `-` (i.e., a minus, meaning "subtraction" operation).
+    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", "restart") or a single variable name.
     !> Duplicate variable names in the resulting list are discarded.
-    !> (KCW, 2024-03-15)
-    pure recursive function parse_stream_name(stream_name) result(var_info_list)
+    !> (KCW, 2024-06-01)
+    pure function parse_stream_name(stream_name) result(var_info_list)
         character(*), intent(in) :: stream_name
         type(var_info_type), allocatable :: var_info_list(:)
 
-        character(64), allocatable :: var_name_list(:)
-        integer :: i, n, offset
-        type(var_info_type), allocatable :: var_info_list_append(:)
+        character(*), parameter :: supported_stream_name_operator = '+-'
+        character(1) :: stream_name_operator
+        character(:), allocatable :: stream_name_fragment
+        character(len(invariant_var_info_list % name)), allocatable :: var_name_list(:)
+        integer :: i, j, n, offset
+        type(var_info_type), allocatable :: var_info_list_buffer(:)
 
-        allocate(var_info_list(0))
+        n = len_trim(stream_name)
 
-        n = len(stream_name)
-        offset = 0
+        if (n == 0) then
+            ! Empty character string means empty list.
+            var_info_list = parse_stream_name_fragment('')
 
-        if (offset + 1 > n) then
             return
         end if
 
-        i = index(stream_name(offset + 1:), '+')
+        i = scan(stream_name, supported_stream_name_operator)
 
-        do while (i > 0)
+        if (i == 0) then
+            ! No operators are present in the stream name. It is just a single stream name fragment.
+            stream_name_fragment = stream_name
+            var_info_list = parse_stream_name_fragment(stream_name_fragment)
+
+            return
+        end if
+
+        offset = 0
+        var_info_list = parse_stream_name_fragment('')
+
+        do while (.true.)
+            ! Extract operator from the stream name.
+            if (offset > 0) then
+                stream_name_operator = stream_name(offset:offset)
+            else
+                stream_name_operator = '+'
+            end if
+
+            ! Extract stream name fragment from the stream name.
             if (i > 1) then
-                var_info_list_append = parse_stream_name(stream_name(offset + 1:offset + i - 1))
-                var_info_list = [var_info_list, var_info_list_append]
+                stream_name_fragment = stream_name(offset + 1:offset + i - 1)
+            else
+                stream_name_fragment = ''
+            end if
 
-                deallocate(var_info_list_append)
+            ! Process the stream name fragment according to the operator.
+            if (len_trim(stream_name_fragment) > 0) then
+                var_info_list_buffer = parse_stream_name_fragment(stream_name_fragment)
+
+                select case (stream_name_operator)
+                    case ('+')
+                        var_info_list = [var_info_list, var_info_list_buffer]
+                    case ('-')
+                        do j = 1, size(var_info_list_buffer)
+                            var_name_list = var_info_list % name
+                            var_info_list = pack(var_info_list, var_name_list /= var_info_list_buffer(j) % name)
+                        end do
+                    case default
+                        ! Do nothing for unknown operators. Should not happen at all.
+                end select
             end if
 
             offset = offset + i
 
+            ! Terminate loop when everything in the stream name has been processed.
             if (offset + 1 > n) then
                 exit
             end if
 
-            i = index(stream_name(offset + 1:), '+')
+            i = scan(stream_name(offset + 1:), supported_stream_name_operator)
+
+            ! Run the loop one last time for the remaining stream name fragment.
+            if (i == 0) then
+                i = n - offset + 1
+            end if
         end do
 
-        if (offset + 1 > n) then
-            return
-        end if
-
-        select case (trim(adjustl(stream_name(offset + 1:))))
-            case ('invariant')
-                allocate(var_info_list_append, source=invariant_var_info_list)
-            case ('input')
-                allocate(var_info_list_append, source=input_var_info_list)
-            case ('restart')
-                allocate(var_info_list_append, source=restart_var_info_list)
-            case default
-                allocate(var_info_list_append(0))
-        end select
-
-        var_info_list = [var_info_list, var_info_list_append]
-
         ! Discard duplicate variable information by names.
-        var_name_list = var_info_list(:) % name
+        var_name_list = var_info_list % name
         var_info_list = var_info_list(index_unique(var_name_list))
-
-        deallocate(var_info_list_append)
-        deallocate(var_name_list)
     end function parse_stream_name
+
+    !> Parse a stream name fragment and return the corresponding variable information as a list of `var_info_type`.
+    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", "restart") or a single variable name.
+    !> (KCW, 2024-06-01)
+    pure function parse_stream_name_fragment(stream_name_fragment) result(var_info_list)
+        character(*), intent(in) :: stream_name_fragment
+        type(var_info_type), allocatable :: var_info_list(:)
+
+        character(len(invariant_var_info_list % name)), allocatable :: var_name_list(:)
+        type(var_info_type), allocatable :: var_info_list_buffer(:)
+
+        select case (trim(adjustl(stream_name_fragment)))
+            case ('')
+                allocate(var_info_list(0))
+            case ('invariant')
+                allocate(var_info_list, source=invariant_var_info_list)
+            case ('input')
+                allocate(var_info_list, source=input_var_info_list)
+            case ('restart')
+                allocate(var_info_list, source=restart_var_info_list)
+            case default
+                allocate(var_info_list(0))
+
+                var_name_list = invariant_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(invariant_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = input_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(input_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = restart_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(restart_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+        end select
+    end function parse_stream_name_fragment
 
     !> Return the index of unique elements in `array`, which can be any intrinsic data types, as an integer array.
     !> If `array` contains zero element or is of unsupported data types, an empty integer array is produced.
@@ -1408,6 +1828,421 @@ contains
     end function index_unique
 
     !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_check_variable_status
+    !
+    !> \brief  Check and return variable status on the given file
+    !> \author Kuan-Chih Wang
+    !> \date   2024-06-04
+    !> \details
+    !>  On the given file (i.e., `pio_file`), this subroutine checks whether the
+    !>  given variable (i.e., `var_info`) is present, and whether it is "TKR"
+    !>  compatible with what MPAS expects. "TKR" means type, kind and rank.
+    !>  This subroutine can handle both ordinary variables and variable arrays.
+    !>  They are indicated by the `var` and `var_array` elements, respectively,
+    !>  in MPAS registry. For an ordinary variable, the checks are performed on
+    !>  itself. Otherwise, for a variable array, the checks are performed on its
+    !>  constituent parts instead.
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_check_variable_status(self, var_is_present, var_is_tkr_compatible, pio_file, var_info)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        logical, allocatable, intent(out) :: var_is_present(:)
+        logical, allocatable, intent(out) :: var_is_tkr_compatible(:)
+        type(file_desc_t), pointer, intent(in) :: pio_file
+        type(var_info_type), intent(in) :: var_info
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_check_variable_status'
+        character(strkind), allocatable :: var_name_list(:)
+        integer :: i, ierr, varid, varndims, vartype
+        type(field0dchar), pointer :: field_0d_char
+        type(field1dchar), pointer :: field_1d_char
+        type(field0dinteger), pointer :: field_0d_integer
+        type(field1dinteger), pointer :: field_1d_integer
+        type(field2dinteger), pointer :: field_2d_integer
+        type(field3dinteger), pointer :: field_3d_integer
+        type(field0dreal), pointer :: field_0d_real
+        type(field1dreal), pointer :: field_1d_real
+        type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(field4dreal), pointer :: field_4d_real
+        type(field5dreal), pointer :: field_5d_real
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(field_0d_char)
+        nullify(field_1d_char)
+        nullify(field_0d_integer)
+        nullify(field_1d_integer)
+        nullify(field_2d_integer)
+        nullify(field_3d_integer)
+        nullify(field_0d_real)
+        nullify(field_1d_real)
+        nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(field_4d_real)
+        nullify(field_5d_real)
+
+        ! Extract a list of variable names to check on the file.
+        ! For an ordinary variable, this list just contains its name.
+        ! For a variable array, this list contains the names of its constituent parts.
+        select case (trim(adjustl(var_info % type)))
+            case ('character')
+                select case (var_info % rank)
+                    case (0)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_0d_char, timelevel=1)
+
+                        if (.not. associated(field_0d_char)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_0d_char % isvararray .and. associated(field_0d_char % constituentnames)) then
+                            allocate(var_name_list(size(field_0d_char % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_0d_char % constituentnames(:)
+                        end if
+
+                        nullify(field_0d_char)
+                    case (1)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_1d_char, timelevel=1)
+
+                        if (.not. associated(field_1d_char)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_1d_char % isvararray .and. associated(field_1d_char % constituentnames)) then
+                            allocate(var_name_list(size(field_1d_char % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_1d_char % constituentnames(:)
+                        end if
+
+                        nullify(field_1d_char)
+                    case default
+                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]) // &
+                            ' for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
+                end select
+            case ('integer')
+                select case (var_info % rank)
+                    case (0)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_0d_integer, timelevel=1)
+
+                        if (.not. associated(field_0d_integer)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_0d_integer % isvararray .and. associated(field_0d_integer % constituentnames)) then
+                            allocate(var_name_list(size(field_0d_integer % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_0d_integer % constituentnames(:)
+                        end if
+
+                        nullify(field_0d_integer)
+                    case (1)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_1d_integer, timelevel=1)
+
+                        if (.not. associated(field_1d_integer)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_1d_integer % isvararray .and. associated(field_1d_integer % constituentnames)) then
+                            allocate(var_name_list(size(field_1d_integer % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_1d_integer % constituentnames(:)
+                        end if
+
+                        nullify(field_1d_integer)
+                    case (2)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_2d_integer, timelevel=1)
+
+                        if (.not. associated(field_2d_integer)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_2d_integer % isvararray .and. associated(field_2d_integer % constituentnames)) then
+                            allocate(var_name_list(size(field_2d_integer % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_2d_integer % constituentnames(:)
+                        end if
+
+                        nullify(field_2d_integer)
+                    case (3)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_3d_integer, timelevel=1)
+
+                        if (.not. associated(field_3d_integer)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_3d_integer % isvararray .and. associated(field_3d_integer % constituentnames)) then
+                            allocate(var_name_list(size(field_3d_integer % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_3d_integer % constituentnames(:)
+                        end if
+
+                        nullify(field_3d_integer)
+                    case default
+                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]) // &
+                            ' for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
+                end select
+            case ('real')
+                select case (var_info % rank)
+                    case (0)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_0d_real, timelevel=1)
+
+                        if (.not. associated(field_0d_real)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_0d_real % isvararray .and. associated(field_0d_real % constituentnames)) then
+                            allocate(var_name_list(size(field_0d_real % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_0d_real % constituentnames(:)
+                        end if
+
+                        nullify(field_0d_real)
+                    case (1)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_1d_real, timelevel=1)
+
+                        if (.not. associated(field_1d_real)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_1d_real % isvararray .and. associated(field_1d_real % constituentnames)) then
+                            allocate(var_name_list(size(field_1d_real % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_1d_real % constituentnames(:)
+                        end if
+
+                        nullify(field_1d_real)
+                    case (2)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_2d_real, timelevel=1)
+
+                        if (.not. associated(field_2d_real)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_2d_real % isvararray .and. associated(field_2d_real % constituentnames)) then
+                            allocate(var_name_list(size(field_2d_real % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_2d_real % constituentnames(:)
+                        end if
+
+                        nullify(field_2d_real)
+                    case (3)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_3d_real, timelevel=1)
+
+                        if (.not. associated(field_3d_real)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_3d_real % isvararray .and. associated(field_3d_real % constituentnames)) then
+                            allocate(var_name_list(size(field_3d_real % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_3d_real % constituentnames(:)
+                        end if
+
+                        nullify(field_3d_real)
+                    case (4)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_4d_real, timelevel=1)
+
+                        if (.not. associated(field_4d_real)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_4d_real % isvararray .and. associated(field_4d_real % constituentnames)) then
+                            allocate(var_name_list(size(field_4d_real % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_4d_real % constituentnames(:)
+                        end if
+
+                        nullify(field_4d_real)
+                    case (5)
+                        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, &
+                            trim(adjustl(var_info % name)), field_5d_real, timelevel=1)
+
+                        if (.not. associated(field_5d_real)) then
+                            call self % model_error('Failed to find variable "' // trim(adjustl(var_info % name)) // &
+                                '"', subname, __LINE__)
+                        end if
+
+                        if (field_5d_real % isvararray .and. associated(field_5d_real % constituentnames)) then
+                            allocate(var_name_list(size(field_5d_real % constituentnames)), stat=ierr)
+
+                            if (ierr /= 0) then
+                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                            end if
+
+                            var_name_list(:) = field_5d_real % constituentnames(:)
+                        end if
+
+                        nullify(field_5d_real)
+                    case default
+                        call self % model_error('Unsupported variable rank ' // stringify([var_info % rank]) // &
+                            ' for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
+                end select
+            case default
+                call self % model_error('Unsupported variable type "' // trim(adjustl(var_info % type)) // &
+                    '" for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
+        end select
+
+        if (.not. allocated(var_name_list)) then
+            allocate(var_name_list(1), stat=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+            end if
+
+            var_name_list(1) = var_info % name
+        end if
+
+        allocate(var_is_present(size(var_name_list)), stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate var_is_present', subname, __LINE__)
+        end if
+
+        var_is_present(:) = .false.
+
+        allocate(var_is_tkr_compatible(size(var_name_list)), stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate var_is_tkr_compatible', subname, __LINE__)
+        end if
+
+        var_is_tkr_compatible(:) = .false.
+
+        if (.not. associated(pio_file)) then
+            return
+        end if
+
+        if (.not. pio_file_is_open(pio_file)) then
+            return
+        end if
+
+        do i = 1, size(var_name_list)
+            ! Check if the variable is present on the file.
+            ierr = pio_inq_varid(pio_file, trim(adjustl(var_name_list(i))), varid)
+
+            if (ierr /= pio_noerr) then
+                cycle
+            end if
+
+            var_is_present(i) = .true.
+
+            ! Check if the variable is "TK"R compatible between MPAS and the file.
+            ierr = pio_inq_vartype(pio_file, varid, vartype)
+
+            if (ierr /= pio_noerr) then
+                cycle
+            end if
+
+            select case (trim(adjustl(var_info % type)))
+                case ('character')
+                    if (vartype /= pio_char) then
+                        cycle
+                    end if
+                case ('integer')
+                    if (vartype /= pio_int) then
+                        cycle
+                    end if
+                case ('real')
+                    if (rkind == r4kind .and. vartype /= pio_real) then
+                        cycle
+                    end if
+
+                    if (rkind == r8kind .and. vartype /= pio_double) then
+                        cycle
+                    end if
+                case default
+                    cycle
+            end select
+
+            ! Check if the variable is TK"R" compatible between MPAS and the file.
+            ierr = pio_inq_varndims(pio_file, varid, varndims)
+
+            if (ierr /= pio_noerr) then
+                cycle
+            end if
+
+            if (varndims /= var_info % rank) then
+                cycle
+            end if
+
+            var_is_tkr_compatible(i) = .true.
+        end do
+
+        call self % debug_print('var_name_list = ' // stringify(var_name_list))
+        call self % debug_print('var_is_present = ' // stringify(var_is_present))
+        call self % debug_print('var_is_tkr_compatible = ' // stringify(var_is_tkr_compatible))
+
+        call self % debug_print(subname // ' completed')
+    end subroutine dyn_mpas_check_variable_status
+
+    !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_exchange_halo
     !
     !> \brief  Updates the halo layers of the named field
@@ -1425,17 +2260,26 @@ contains
         character(*), intent(in) :: field_name
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_exchange_halo'
-        type(field1dinteger), pointer :: field_1d_integer => null()
-        type(field2dinteger), pointer :: field_2d_integer => null()
-        type(field3dinteger), pointer :: field_3d_integer => null()
-        type(field1dreal), pointer :: field_1d_real => null()
-        type(field2dreal), pointer :: field_2d_real => null()
-        type(field3dreal), pointer :: field_3d_real => null()
-        type(field4dreal), pointer :: field_4d_real => null()
-        type(field5dreal), pointer :: field_5d_real => null()
+        type(field1dinteger), pointer :: field_1d_integer
+        type(field2dinteger), pointer :: field_2d_integer
+        type(field3dinteger), pointer :: field_3d_integer
+        type(field1dreal), pointer :: field_1d_real
+        type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(field4dreal), pointer :: field_4d_real
+        type(field5dreal), pointer :: field_5d_real
         type(mpas_pool_field_info_type) :: mpas_pool_field_info
 
         call self % debug_print(subname // ' entered')
+
+        nullify(field_1d_integer)
+        nullify(field_2d_integer)
+        nullify(field_3d_integer)
+        nullify(field_1d_real)
+        nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(field_4d_real)
+        nullify(field_5d_real)
 
         call self % debug_print('Inquiring field information for "' // trim(adjustl(field_name)) // '"')
 
@@ -1574,6 +2418,632 @@ contains
     end subroutine dyn_mpas_exchange_halo
 
     !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_compute_unit_vector
+    !
+    !> \brief  Computes local east, north and edge-normal unit vectors
+    !> \author Michael Duda
+    !> \date   15 January 2020
+    !> \details
+    !>  This subroutine computes the local east and north unit vectors at all cells,
+    !>  storing the results in MPAS `mesh` pool as `east` and `north`, respectively.
+    !>  It also computes the edge-normal unit vectors at all edges by calling
+    !>  `mpas_initialize_vectors`. Before calling this subroutine, MPAS `mesh` pool
+    !>  must contain `latCell` and `lonCell` that are valid for all cells (not just
+    !>  solve cells), plus any additional variables that are required by
+    !>  `mpas_initialize_vectors`.
+    !>  For stand-alone MPAS, the whole deal is handled by `init_dirs_forphys`
+    !>  during physics initialization. However, MPAS as a dynamical core does
+    !>  not have physics, hence this subroutine.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-04-23)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_compute_unit_vector(self)
+        class(mpas_dynamical_core_type), intent(in) :: self
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_unit_vector'
+        integer :: i
+        integer, pointer :: ncells
+        real(rkind), pointer :: latcell(:), loncell(:)
+        real(rkind), pointer :: east(:, :), north(:, :)
+        type(mpas_pool_type), pointer :: mpas_pool
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(ncells)
+        nullify(latcell, loncell)
+
+        nullify(east, north)
+
+        nullify(mpas_pool)
+
+        ! Input.
+        call self % get_variable_pointer(ncells, 'dim', 'nCells')
+        call self % get_variable_pointer(latcell, 'mesh', 'latCell')
+        call self % get_variable_pointer(loncell, 'mesh', 'lonCell')
+
+        ! Output.
+        call self % get_variable_pointer(east, 'mesh', 'east')
+        call self % get_variable_pointer(north, 'mesh', 'north')
+
+        do i = 1, ncells
+            east(1, i) = -sin(loncell(i))
+            east(2, i) =  cos(loncell(i))
+            east(3, i) =  0.0_rkind
+            ! `r3_normalize` has been inlined below.
+            east(1:3, i) = east(1:3, i) / sqrt(sum(east(1:3, i) * east(1:3, i)))
+
+            north(1, i) = -cos(loncell(i)) * sin(latcell(i))
+            north(2, i) = -sin(loncell(i)) * sin(latcell(i))
+            north(3, i) =  cos(latcell(i))
+            ! `r3_normalize` has been inlined below.
+            north(1:3, i) = north(1:3, i) / sqrt(sum(north(1:3, i) * north(1:3, i)))
+        end do
+
+        nullify(ncells)
+        nullify(latcell, loncell)
+
+        nullify(east, north)
+
+        call self % get_pool_pointer(mpas_pool, 'mesh')
+        call mpas_initialize_vectors(mpas_pool)
+
+        nullify(mpas_pool)
+
+        call self % debug_print(subname // ' completed')
+    end subroutine dyn_mpas_compute_unit_vector
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_compute_edge_wind
+    !
+    !> \brief  Computes the edge-normal wind vectors at edge points
+    !> \author Michael Duda
+    !> \date   16 January 2020
+    !> \details
+    !>  This subroutine computes the edge-normal wind vectors at edge points
+    !>  (i.e., `u` in MPAS `state` pool) from wind components at cell points
+    !>  (i.e., `uReconstruct{Zonal,Meridional}` in MPAS `diag` pool). In MPAS, the
+    !>  former are PROGNOSTIC variables, while the latter are DIAGNOSTIC variables
+    !>  that are "reconstructed" from the former. This subroutine is essentially the
+    !>  inverse function of that reconstruction. The purpose is to provide an
+    !>  alternative way for MPAS to initialize from zonal and meridional wind
+    !>  components at cell points.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-08)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_compute_edge_wind(self)
+        class(mpas_dynamical_core_type), intent(in) :: self
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_edge_wind'
+        integer :: cell1, cell2, i
+        integer, pointer :: cellsonedge(:, :)
+        integer, pointer :: nedges
+        real(rkind), pointer :: east(:, :), north(:, :)
+        real(rkind), pointer :: edgenormalvectors(:, :)
+        real(rkind), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
+        real(rkind), pointer :: uedge(:, :)
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(nedges)
+
+        nullify(ucellzonal, ucellmeridional)
+
+        nullify(cellsonedge)
+        nullify(east, north)
+        nullify(edgenormalvectors)
+
+        nullify(uedge)
+
+        ! Make sure halo layers are up-to-date before computation.
+        call self % exchange_halo('uReconstructZonal')
+        call self % exchange_halo('uReconstructMeridional')
+
+        ! Input.
+        call self % get_variable_pointer(nedges, 'dim', 'nEdges')
+
+        call self % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
+        call self % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
+
+        call self % get_variable_pointer(cellsonedge, 'mesh', 'cellsOnEdge')
+        call self % get_variable_pointer(east, 'mesh', 'east')
+        call self % get_variable_pointer(north, 'mesh', 'north')
+        call self % get_variable_pointer(edgenormalvectors, 'mesh', 'edgeNormalVectors')
+
+        ! Output.
+        call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
+
+        do i = 1, nedges
+            cell1 = cellsonedge(1, i)
+            cell2 = cellsonedge(2, i)
+
+            uedge(:, i) = ucellzonal(:, cell1) * 0.5_rkind * (edgenormalvectors(1, i) * east(1, cell1)  + &
+                                                              edgenormalvectors(2, i) * east(2, cell1)  + &
+                                                              edgenormalvectors(3, i) * east(3, cell1)) + &
+                          ucellmeridional(:, cell1) * 0.5_rkind * (edgenormalvectors(1, i) * north(1, cell1)  + &
+                                                                   edgenormalvectors(2, i) * north(2, cell1)  + &
+                                                                   edgenormalvectors(3, i) * north(3, cell1)) + &
+                          ucellzonal(:, cell2) * 0.5_rkind * (edgenormalvectors(1, i) * east(1, cell2)  + &
+                                                              edgenormalvectors(2, i) * east(2, cell2)  + &
+                                                              edgenormalvectors(3, i) * east(3, cell2)) + &
+                          ucellmeridional(:, cell2) * 0.5_rkind * (edgenormalvectors(1, i) * north(1, cell2)  + &
+                                                                   edgenormalvectors(2, i) * north(2, cell2)  + &
+                                                                   edgenormalvectors(3, i) * north(3, cell2))
+        end do
+
+        nullify(nedges)
+
+        nullify(ucellzonal, ucellmeridional)
+
+        nullify(cellsonedge)
+        nullify(east, north)
+        nullify(edgenormalvectors)
+
+        nullify(uedge)
+
+        ! Make sure halo layers are up-to-date after computation.
+        call self % exchange_halo('u')
+
+        call self % debug_print(subname // ' completed')
+    end subroutine dyn_mpas_compute_edge_wind
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_init_phase4
+    !
+    !> \brief  Tracks `atm_core_init` to finish MPAS dynamical core initialization
+    !> \author Michael Duda
+    !> \date   29 February 2020
+    !> \details
+    !>  This subroutine completes MPAS dynamical core initialization.
+    !>  Essentially, it closely follows what is done in `atm_core_init`, but without
+    !>  any calls to MPAS diagnostics manager or MPAS stream manager.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-25)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_init_phase4(self, coupling_time_interval)
+        class(mpas_dynamical_core_type), intent(inout) :: self
+        integer, intent(in) :: coupling_time_interval ! Set the time interval, in seconds, over which MPAS dynamical core
+                                                      ! should integrate each time it is called to run.
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase4'
+        character(strkind) :: date_time
+        character(strkind), pointer :: initial_time_1, initial_time_2
+        character(strkind), pointer :: xtime
+        integer :: ierr
+        integer, pointer :: nvertlevels, maxedges, maxedges2, num_scalars
+        logical, pointer :: config_do_restart
+        real(rkind), pointer :: config_dt
+        type(field0dreal), pointer :: field_0d_real
+        type(mpas_pool_type), pointer :: mpas_pool
+        type(mpas_time_type) :: mpas_time
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(initial_time_1, initial_time_2)
+        nullify(xtime)
+        nullify(nvertlevels, maxedges, maxedges2, num_scalars)
+        nullify(config_do_restart)
+        nullify(config_dt)
+        nullify(field_0d_real)
+        nullify(mpas_pool)
+
+        if (coupling_time_interval <= 0) then
+            call self % model_error('Invalid coupling time interval ' // stringify([real(coupling_time_interval, rkind)]), &
+                subname, __LINE__)
+        end if
+
+        call self % get_variable_pointer(config_dt, 'cfg', 'config_dt')
+
+        if (config_dt <= 0.0_rkind) then
+            call self % model_error('Invalid time step ' // stringify([config_dt]), &
+                subname, __LINE__)
+        end if
+
+        ! `config_dt` in MPAS is a floating-point number. Testing floating-point numbers for divisibility is not trivial and
+        ! should be done carefully.
+        if (.not. almost_divisible(real(coupling_time_interval, rkind), config_dt)) then
+            call self % model_error('Coupling time interval ' // stringify([real(coupling_time_interval, rkind)]) // &
+                ' must be divisible by time step ' // stringify([config_dt]), subname, __LINE__)
+        end if
+
+        self % coupling_time_interval = coupling_time_interval
+
+        call self % debug_print('Coupling time interval is ' // stringify([real(self % coupling_time_interval, rkind)]) // &
+            ' seconds')
+        call self % debug_print('Time step is ' // stringify([config_dt]) // ' seconds')
+
+        nullify(config_dt)
+
+        ! Compute derived constants.
+        call mpas_constants_compute_derived()
+
+        ! Set up OpenMP threading.
+        call self % debug_print('Setting up OpenMP threading')
+
+        call mpas_atm_threading_init(self % domain_ptr % blocklist, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('OpenMP threading setup failed for core ' // trim(self % domain_ptr % core % corename), &
+                subname, __LINE__)
+        end if
+
+        ! Set up inner dimensions used by arrays in optimized dynamics subroutines.
+        call self % debug_print('Setting up dimensions')
+
+        call self % get_variable_pointer(nvertlevels, 'dim', 'nVertLevels')
+        call self % get_variable_pointer(maxedges, 'dim', 'maxEdges')
+        call self % get_variable_pointer(maxedges2, 'dim', 'maxEdges2')
+        call self % get_variable_pointer(num_scalars, 'dim', 'num_scalars')
+
+        call mpas_atm_set_dims(nvertlevels, maxedges, maxedges2, num_scalars)
+
+        nullify(nvertlevels, maxedges, maxedges2, num_scalars)
+
+        ! Build halo exchange groups and set the `exchange_halo_group` procedure pointer, which is used to
+        ! exchange the halo layers of all fields in the named group.
+        nullify(exchange_halo_group)
+
+        call atm_build_halo_groups(self % domain_ptr, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to build halo exchange groups', subname, __LINE__)
+        end if
+
+        if (.not. associated(exchange_halo_group)) then
+            call self % model_error('Failed to build halo exchange groups', subname, __LINE__)
+        end if
+
+        ! Variables in MPAS `state` pool have more than one time level. Copy the values from the first time level of
+        ! such variables into all subsequent time levels to initialize them.
+        call self % get_variable_pointer(config_do_restart, 'cfg', 'config_do_restart')
+
+        if (.not. config_do_restart) then
+            ! Run type is initial run.
+            call self % debug_print('Initializing time levels')
+
+            call self % get_pool_pointer(mpas_pool, 'state')
+
+            call mpas_pool_initialize_time_levels(mpas_pool)
+
+            nullify(mpas_pool)
+        end if
+
+        nullify(config_do_restart)
+
+        call exchange_halo_group(self % domain_ptr, 'initialization:u', ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to exchange halo layers for group "initialization:u"', subname, __LINE__)
+        end if
+
+        ! Initialize atmospheric variables (e.g., momentum, thermodynamic... variables in governing equations)
+        ! as well as various aspects of time in MPAS.
+
+        call self % debug_print('Initializing atmospheric variables')
+
+        ! Controlled by `config_start_time` in namelist.
+        mpas_time = mpas_get_clock_time(self % domain_ptr % clock, mpas_start_time, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to get time for "mpas_start_time"', subname, __LINE__)
+        end if
+
+        call mpas_get_time(mpas_time, datetimestring=date_time, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to get time for "mpas_start_time"', subname, __LINE__)
+        end if
+
+        ! Controlled by `config_dt` in namelist.
+        call self % get_pool_pointer(mpas_pool, 'mesh')
+        call self % get_variable_pointer(config_dt, 'cfg', 'config_dt')
+
+        call atm_mpas_init_block(self % domain_ptr % dminfo, self % domain_ptr % streammanager, self % domain_ptr % blocklist, &
+            mpas_pool, config_dt)
+
+        nullify(mpas_pool)
+        nullify(config_dt)
+
+        call self % get_variable_pointer(xtime, 'state', 'xtime', time_level=1)
+
+        xtime = date_time
+
+        nullify(xtime)
+
+        ! Initialize `initial_time` in the second time level. We need to do this manually because initial states
+        ! are read into time level 1, and if we write anything from time level 2, `initial_time` will be invalid.
+        call self % get_variable_pointer(initial_time_1, 'state', 'initial_time', time_level=1)
+        call self % get_variable_pointer(initial_time_2, 'state', 'initial_time', time_level=2)
+
+        initial_time_2 = initial_time_1
+
+        ! Set time units to CF-compliant "seconds since <date and time>".
+        call self % get_pool_pointer(mpas_pool, 'state')
+
+        call mpas_pool_get_field(mpas_pool, 'Time', field_0d_real, timelevel=1)
+
+        if (.not. associated(field_0d_real)) then
+            call self % model_error('Failed to find variable "Time"', subname, __LINE__)
+        end if
+
+        call mpas_modify_att(field_0d_real % attlists(1) % attlist, 'units', &
+            'seconds since ' // mpas_string_replace(initial_time_1, '_', ' '), ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to set time units', subname, __LINE__)
+        end if
+
+        nullify(initial_time_1, initial_time_2)
+        nullify(mpas_pool)
+        nullify(field_0d_real)
+
+        call exchange_halo_group(self % domain_ptr, 'initialization:pv_edge,ru,rw', ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to exchange halo layers for group "initialization:pv_edge,ru,rw"', subname, __LINE__)
+        end if
+
+        call self % debug_print('Initializing dynamics')
+
+        ! Prepare dynamics for time integration.
+        call mpas_atm_dynamics_init(self % domain_ptr)
+
+        call self % debug_print(subname // ' completed')
+
+        call self % debug_print('Successful initialization of MPAS dynamical core')
+    contains
+        !> Test if `a` is divisible by `b`, where `a` and `b` are both reals.
+        !> (KCW, 2024-05-25)
+        pure function almost_divisible(a, b)
+            real(rkind), intent(in) :: a, b
+            logical :: almost_divisible
+
+            real(rkind) :: error_tolerance
+
+            error_tolerance = epsilon(1.0_rkind) * max(abs(a), abs(b))
+
+            if (almost_equal(mod(abs(a), abs(b)), 0.0_rkind, absolute_tolerance=error_tolerance) .or. &
+                almost_equal(mod(abs(a), abs(b)), abs(b), absolute_tolerance=error_tolerance)) then
+                almost_divisible = .true.
+
+                return
+            end if
+
+            almost_divisible = .false.
+        end function almost_divisible
+
+        !> Test `a` and `b` for approximate equality, where `a` and `b` are both reals.
+        !> (KCW, 2024-05-25)
+        pure function almost_equal(a, b, absolute_tolerance, relative_tolerance)
+            real(rkind), intent(in) :: a, b
+            real(rkind), optional, intent(in) :: absolute_tolerance, relative_tolerance
+            logical :: almost_equal
+
+            real(rkind) :: error_tolerance
+
+            if (present(relative_tolerance)) then
+                error_tolerance = relative_tolerance * max(abs(a), abs(b))
+            else
+                error_tolerance = epsilon(1.0_rkind) * max(abs(a), abs(b))
+            end if
+
+            if (present(absolute_tolerance)) then
+                error_tolerance = max(absolute_tolerance, error_tolerance)
+            end if
+
+            if (abs(a - b) <= error_tolerance) then
+                almost_equal = .true.
+
+                return
+            end if
+
+            almost_equal = .false.
+        end function almost_equal
+    end subroutine dyn_mpas_init_phase4
+
+    !-------------------------------------------------------------------------------
+    ! function dyn_mpas_get_constituent_name
+    !
+    !> \brief  Query constituent name by its index
+    !> \author Kuan-Chih Wang
+    !> \date   2024-05-16
+    !> \details
+    !>  This function returns the constituent name that corresponds to the given
+    !>  constituent index. In case of errors, an empty character string is produced.
+    !
+    !-------------------------------------------------------------------------------
+    pure function dyn_mpas_get_constituent_name(self, constituent_index) result(constituent_name)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        integer, intent(in) :: constituent_index
+
+        character(:), allocatable :: constituent_name
+
+        ! Catch segmentation fault.
+        if (.not. allocated(self % constituent_name)) then
+            constituent_name = ''
+
+            return
+        end if
+
+        if (constituent_index < lbound(self % constituent_name, 1) .or. &
+            constituent_index > ubound(self % constituent_name, 1)) then
+            constituent_name = ''
+
+            return
+        end if
+
+        constituent_name = trim(adjustl(self % constituent_name(constituent_index)))
+    end function dyn_mpas_get_constituent_name
+
+    !-------------------------------------------------------------------------------
+    ! function dyn_mpas_get_constituent_index
+    !
+    !> \brief  Query constituent index by its name
+    !> \author Kuan-Chih Wang
+    !> \date   2024-05-16
+    !> \details
+    !>  This function returns the constituent index that corresponds to the given
+    !>  constituent name. In case of errors, zero is produced.
+    !
+    !-------------------------------------------------------------------------------
+    pure function dyn_mpas_get_constituent_index(self, constituent_name) result(constituent_index)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        character(*), intent(in) :: constituent_name
+
+        integer :: i
+        integer :: constituent_index
+
+        ! Catch segmentation fault.
+        if (.not. allocated(self % constituent_name)) then
+            constituent_index = 0
+
+            return
+        end if
+
+        do i = 1, self % number_of_constituents
+            if (trim(adjustl(constituent_name)) == trim(adjustl(self % constituent_name(i)))) then
+                constituent_index = i
+
+                return
+            end if
+        end do
+
+        constituent_index = 0
+    end function dyn_mpas_get_constituent_index
+
+    !-------------------------------------------------------------------------------
+    ! function dyn_mpas_map_mpas_scalar_index
+    !
+    !> \brief  Map MPAS scalar index from constituent index
+    !> \author Kuan-Chih Wang
+    !> \date   2024-05-16
+    !> \details
+    !>  This function returns the MPAS scalar index that corresponds to the given
+    !>  constituent index. In case of errors, zero is produced.
+    !
+    !-------------------------------------------------------------------------------
+    pure function dyn_mpas_map_mpas_scalar_index(self, constituent_index) result(mpas_scalar_index)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        integer, intent(in) :: constituent_index
+
+        integer :: mpas_scalar_index
+
+        ! Catch segmentation fault.
+        if (.not. allocated(self % index_constituent_to_mpas_scalar)) then
+            mpas_scalar_index = 0
+
+            return
+        end if
+
+        if (constituent_index < lbound(self % index_constituent_to_mpas_scalar, 1) .or. &
+            constituent_index > ubound(self % index_constituent_to_mpas_scalar, 1)) then
+            mpas_scalar_index = 0
+
+            return
+        end if
+
+        mpas_scalar_index = self % index_constituent_to_mpas_scalar(constituent_index)
+    end function dyn_mpas_map_mpas_scalar_index
+
+    !-------------------------------------------------------------------------------
+    ! function dyn_mpas_map_constituent_index
+    !
+    !> \brief  Map constituent index from MPAS scalar index
+    !> \author Kuan-Chih Wang
+    !> \date   2024-05-16
+    !> \details
+    !>  This function returns the constituent index that corresponds to the given
+    !>  MPAS scalar index. In case of errors, zero is produced.
+    !
+    !-------------------------------------------------------------------------------
+    pure function dyn_mpas_map_constituent_index(self, mpas_scalar_index) result(constituent_index)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        integer, intent(in) :: mpas_scalar_index
+
+        integer :: constituent_index
+
+        ! Catch segmentation fault.
+        if (.not. allocated(self % index_mpas_scalar_to_constituent)) then
+            constituent_index = 0
+
+            return
+        end if
+
+        if (mpas_scalar_index < lbound(self % index_mpas_scalar_to_constituent, 1) .or. &
+            mpas_scalar_index > ubound(self % index_mpas_scalar_to_constituent, 1)) then
+            constituent_index = 0
+
+            return
+        end if
+
+        constituent_index = self % index_mpas_scalar_to_constituent(mpas_scalar_index)
+    end function dyn_mpas_map_constituent_index
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_get_local_mesh_dimension
+    !
+    !> \brief  Returns local mesh dimensions
+    !> \author Kuan-Chih Wang
+    !> \date   2024-05-09
+    !> \details
+    !>  This subroutine returns local mesh dimensions, including:
+    !>  * Numbers of local mesh cells, edges, vertices and vertical levels
+    !>    on each individual task, both with/without halo points.
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_get_local_mesh_dimension(self, &
+            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        integer, intent(out) :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_local_mesh_dimension'
+        integer, pointer :: ncells_pointer
+        integer, pointer :: ncellssolve_pointer
+        integer, pointer :: nedges_pointer
+        integer, pointer :: nedgessolve_pointer
+        integer, pointer :: nvertices_pointer
+        integer, pointer :: nverticessolve_pointer
+        integer, pointer :: nvertlevels_pointer
+
+        nullify(ncells_pointer)
+        nullify(ncellssolve_pointer)
+        nullify(nedges_pointer)
+        nullify(nedgessolve_pointer)
+        nullify(nvertices_pointer)
+        nullify(nverticessolve_pointer)
+        nullify(nvertlevels_pointer)
+
+        call self % get_variable_pointer(ncells_pointer, 'dim', 'nCells')
+        call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
+        call self % get_variable_pointer(nedges_pointer, 'dim', 'nEdges')
+        call self % get_variable_pointer(nedgessolve_pointer, 'dim', 'nEdgesSolve')
+        call self % get_variable_pointer(nvertices_pointer, 'dim', 'nVertices')
+        call self % get_variable_pointer(nverticessolve_pointer, 'dim', 'nVerticesSolve')
+        call self % get_variable_pointer(nvertlevels_pointer, 'dim', 'nVertLevels')
+
+        ncells = ncells_pointer                  ! Number of cells, including halo cells.
+        ncells_solve = ncellssolve_pointer       ! Number of cells, excluding halo cells.
+        nedges = nedges_pointer                  ! Number of edges, including halo edges.
+        nedges_solve = nedgessolve_pointer       ! Number of edges, excluding halo edges.
+        nvertices = nvertices_pointer            ! Number of vertices, including halo vertices.
+        nvertices_solve = nverticessolve_pointer ! Number of vertices, excluding halo vertices.
+
+        ! Vertical levels are not decomposed.
+        ! All tasks have the same number of vertical levels.
+        nvertlevels = nvertlevels_pointer
+
+        nullify(ncells_pointer)
+        nullify(ncellssolve_pointer)
+        nullify(nedges_pointer)
+        nullify(nedgessolve_pointer)
+        nullify(nvertices_pointer)
+        nullify(nverticessolve_pointer)
+        nullify(nvertlevels_pointer)
+    end subroutine dyn_mpas_get_local_mesh_dimension
+
+    !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_get_global_mesh_dimension
     !
     !> \brief  Returns global mesh dimensions
@@ -1597,11 +3067,17 @@ contains
         real(rkind), intent(out) :: sphere_radius
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_global_mesh_dimension'
-        integer, pointer :: maxedges_pointer => null()
-        integer, pointer :: ncellssolve_pointer => null()
-        integer, pointer :: nedgessolve_pointer => null()
-        integer, pointer :: nverticessolve_pointer => null()
-        integer, pointer :: nvertlevels_pointer => null()
+        integer, pointer :: maxedges_pointer
+        integer, pointer :: ncellssolve_pointer
+        integer, pointer :: nedgessolve_pointer
+        integer, pointer :: nverticessolve_pointer
+        integer, pointer :: nvertlevels_pointer
+
+        nullify(maxedges_pointer)
+        nullify(ncellssolve_pointer)
+        nullify(nedgessolve_pointer)
+        nullify(nverticessolve_pointer)
+        nullify(nvertlevels_pointer)
 
         call self % get_variable_pointer(maxedges_pointer, 'dim', 'maxEdges')
         call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
@@ -1685,8 +3161,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_c0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -1712,8 +3189,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_c1'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1733,8 +3211,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -1763,8 +3242,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i1'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -1790,8 +3270,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i2'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1811,8 +3292,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_i3'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1832,8 +3314,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_l0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -1857,8 +3340,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r0'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
 
@@ -1884,8 +3368,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r1'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1905,8 +3390,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r2'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1926,8 +3412,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r3'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1947,8 +3434,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r4'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -1968,8 +3456,9 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_pointer_r5'
-        type(mpas_pool_type), pointer :: mpas_pool => null()
+        type(mpas_pool_type), pointer :: mpas_pool
 
+        nullify(mpas_pool)
         call self % get_pool_pointer(mpas_pool, pool_name)
         nullify(variable_pointer)
         call mpas_pool_get_array(mpas_pool, trim(adjustl(variable_name)), variable_pointer, timelevel=time_level)
@@ -2002,9 +3491,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_c0'
-        character(strkind), pointer :: variable_pointer => null()
+        character(strkind), pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2023,9 +3513,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_c1'
-        character(strkind), pointer :: variable_pointer(:) => null()
+        character(strkind), pointer :: variable_pointer(:)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2044,9 +3535,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i0'
-        integer, pointer :: variable_pointer => null()
+        integer, pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2065,9 +3557,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i1'
-        integer, pointer :: variable_pointer(:) => null()
+        integer, pointer :: variable_pointer(:)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2086,9 +3579,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i2'
-        integer, pointer :: variable_pointer(:, :) => null()
+        integer, pointer :: variable_pointer(:, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2107,9 +3601,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i3'
-        integer, pointer :: variable_pointer(:, :, :) => null()
+        integer, pointer :: variable_pointer(:, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2128,9 +3623,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_l0'
-        logical, pointer :: variable_pointer => null()
+        logical, pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2149,9 +3645,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r0'
-        real(rkind), pointer :: variable_pointer => null()
+        real(rkind), pointer :: variable_pointer
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2170,9 +3667,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r1'
-        real(rkind), pointer :: variable_pointer(:) => null()
+        real(rkind), pointer :: variable_pointer(:)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2191,9 +3689,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r2'
-        real(rkind), pointer :: variable_pointer(:, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2212,9 +3711,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r3'
-        real(rkind), pointer :: variable_pointer(:, :, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2233,9 +3733,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r4'
-        real(rkind), pointer :: variable_pointer(:, :, :, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
@@ -2254,9 +3755,10 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r5'
-        real(rkind), pointer :: variable_pointer(:, :, :, :, :) => null()
+        real(rkind), pointer :: variable_pointer(:, :, :, :, :)
         integer :: ierr
 
+        nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
         allocate(variable_value, source=variable_pointer, stat=ierr)
 
