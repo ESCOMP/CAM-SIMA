@@ -53,6 +53,7 @@ module dyn_comp
     ! public :: dyn_final
 
     public :: dyn_debug_print
+    public :: reverse
     public :: mpas_dynamical_core
     public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
@@ -856,4 +857,22 @@ contains
     ! Not used for now. Intended to be called by `stepon_final` in `src/dynamics/mpas/stepon.F90`.
     ! subroutine dyn_final()
     ! end subroutine dyn_final
+
+    !> Helper function for reversing the order of elements in `array`.
+    !> (KCW, 2024-07-17)
+    pure function reverse(array)
+        real(kind_r8), intent(in) :: array(:)
+        real(kind_r8) :: reverse(size(array))
+
+        integer :: n
+
+        n = size(array)
+
+        ! There is nothing to reverse.
+        if (n == 0) then
+            return
+        end if
+
+        reverse(:) = array(n:1:-1)
+    end function reverse
 end module dyn_comp
