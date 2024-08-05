@@ -378,7 +378,7 @@ contains
         subroutine init_shared_variable()
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variable'
             integer :: ierr
-            integer :: k
+            integer :: i
             integer, pointer :: indextocellid(:)
             real(kind_r8), pointer :: lat_deg(:), lon_deg(:)
 
@@ -426,8 +426,8 @@ contains
             call mpas_dynamical_core % get_variable_pointer(zgrid, 'mesh', 'zgrid')
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
-            do k = 1, pverp
-                z_int(:, k) = zgrid(pverp - k + 1, 1:ncells_solve)
+            do i = 1, ncells_solve
+                z_int(i, :) = reverse(zgrid(:, i))
             end do
         end subroutine init_shared_variable
 
@@ -448,7 +448,7 @@ contains
         subroutine set_mpas_state_u()
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_u'
             integer :: ierr
-            integer :: k
+            integer :: i
             real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
 
             call dyn_debug_print('Setting MPAS state "u"')
@@ -466,8 +466,8 @@ contains
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, u=buffer_2d_real)
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
-            do k = 1, pver
-                ucellzonal(k, 1:ncells_solve) = buffer_2d_real(:, pver - k + 1)
+            do i = 1, ncells_solve
+                ucellzonal(:, i) = reverse(buffer_2d_real(i, :))
             end do
 
             buffer_2d_real(:, :) = 0.0_kind_r8
@@ -475,8 +475,8 @@ contains
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, v=buffer_2d_real)
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
-            do k = 1, pver
-                ucellmeridional(k, 1:ncells_solve) = buffer_2d_real(:, pver - k + 1)
+            do i = 1, ncells_solve
+                ucellmeridional(:, i) = reverse(buffer_2d_real(i, :))
             end do
 
             deallocate(buffer_2d_real)
@@ -514,7 +514,7 @@ contains
                 'water_vapor_mixing_ratio_wrt_dry_air'
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_scalars'
-            integer :: i, k
+            integer :: i, j
             integer :: ierr
             integer, allocatable :: constituent_index(:)
             integer, pointer :: index_qv
@@ -540,12 +540,12 @@ contains
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, q=buffer_3d_real, &
                 m_cnst=constituent_index)
 
-            ! `i` is indexing into `scalars`, so it is regarded as MPAS scalar index.
-            do i = 1, num_advected
-                ! Vertical index order is reversed between CAM-SIMA and MPAS.
-                do k = 1, pver
-                    scalars(i, k, 1:ncells_solve) = &
-                        buffer_3d_real(:, pver - k + 1, mpas_dynamical_core % map_constituent_index(i))
+            do i = 1, ncells_solve
+                ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
+                do j = 1, num_advected
+                    ! Vertical index order is reversed between CAM-SIMA and MPAS.
+                    scalars(j, :, i) = &
+                        reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j)))
                 end do
             end do
 
@@ -617,8 +617,8 @@ contains
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, t=buffer_2d_real)
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
-            do k = 1, pver
-                t_mid(k, :) = buffer_2d_real(:, pver - k + 1)
+            do i = 1, ncells_solve
+                t_mid(:, i) = reverse(buffer_2d_real(i, :))
             end do
 
             deallocate(buffer_2d_real)
@@ -770,7 +770,7 @@ contains
     !> (KCW, 2024-07-09)
     subroutine set_default_constituent()
         character(*), parameter :: subname = 'dyn_comp::set_default_constituent'
-        integer :: i, k
+        integer :: i, j
         real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
         real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
 
@@ -787,12 +787,12 @@ contains
 
         call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
 
-        ! `i` is indexing into `scalars`, so it is regarded as MPAS scalar index.
-        do i = 1, num_advected
-            ! Vertical index order is reversed between CAM-SIMA and MPAS.
-            do k = 1, pver
-                scalars(i, k, 1:ncells_solve) = &
-                    constituents(:, pver - k + 1, mpas_dynamical_core % map_constituent_index(i))
+        do i = 1, ncells_solve
+            ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
+            do j = 1, num_advected
+                ! Vertical index order is reversed between CAM-SIMA and MPAS.
+                scalars(j, :, i) = &
+                    reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)))
             end do
         end do
 
