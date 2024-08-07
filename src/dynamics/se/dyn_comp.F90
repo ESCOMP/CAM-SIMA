@@ -9,7 +9,8 @@ use cam_constituents,       only: const_name, const_longname, num_advected
 use cam_constituents,       only: const_get_index, const_is_wet, const_qmin
 use cam_constituents,       only: readtrace
 use air_composition,        only: const_is_water_species
-use cam_control_mod,        only: initial_run, simple_phys
+use cam_control_mod,        only: initial_run
+use cam_physics_control,    only: simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
 use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
 

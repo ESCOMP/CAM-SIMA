@@ -5,6 +5,7 @@ CAM namelist creator
 """
 import sys
 import os
+import re
 import shutil
 import logging
 import glob
@@ -31,12 +32,17 @@ sys.path.append(_CIME_CONFIG_PATH)
 
 # Import CAM's configure structure:
 from cam_config import ConfigCAM
+# HistoryConfig allows translation from user_nl_cam into Fortran namelists
+from hist_config import HistoryConfig
 
 #Import CAM's ParamGen class:
 from atm_in_paramgen import AtmInParamGen
 
 # Open CIME case log:
 _LOGGER = logging.getLogger(__name__)
+
+# Beginning of valid user_nl configuration line
+_USER_NL_LINE = re.compile(r"^[a-z][a-z0-9_]*[ ]*=", re.IGNORECASE)
 
 #################
 #HELPER FUNCTIONS
@@ -51,6 +57,7 @@ class CamBuildnmlError(ValueError):
 # This simplifies the filename mangling for different cases.
 def _create_ic_filename(inst_string, i_or_r,
                         run_refcase, run_refdate, run_reftod):
+    """Simplify the filename mangling for different cases."""
     return f"{run_refcase}.cam{inst_string}.{i_or_r}.{run_refdate}-{run_reftod}.nc"
 
 ##################
@@ -297,7 +304,28 @@ def buildnml(case, caseroot, compname):
             # End if
 
         # Determine location and name of "user_nl_cam" files:
-        user_nl_file = os.path.join(caseroot, "user_nl_cam" + inst_string)
+        user_nl_fname = "user_nl_cam" + inst_string
+        user_nl_file = os.path.join(caseroot, user_nl_fname)
+
+        # Temporary user_nl file with history config stripped
+        user_nl_temp = os.path.join(confdir, "user_nl_temp")
+        if os.path.exists(user_nl_temp):
+            os.remove(user_nl_temp)
+        # end if
+
+        # Remove history configuration from the normal user_nl content
+        with open(user_nl_file, 'r') as infile:
+            clines = infile.readlines()
+        # end with
+        with open(user_nl_temp, 'w') as outfile:
+            for line in clines:
+                sline = line.strip()
+                if ((not sline) or (sline[0] == '!') or
+                    (_USER_NL_LINE.match(sline) is not None)):
+                    outfile.write(line)
+                # end if
+            # end or
+        # end with
 
         # Check that file actually exists.  If not then throw an error:
         if not os.path.exists(user_nl_file):
@@ -361,6 +389,16 @@ def buildnml(case, caseroot, compname):
 
         # Create CAM namelist using CIME's nmlgen routine:
         pg_atm.write(namelist_file)
+
+        # Add history namelists to atm_in
+        hist_configs = HistoryConfig(filename=user_nl_file, logger=_LOGGER)
+        with open(namelist_file, 'a', encoding='utf-8') as nl_file:
+            hist_configs.output_class_namelist(nl_file)
+            for key in sorted(hist_configs.keys()):
+                hist_configs[key].output_config_namelist(nl_file, logger=_LOGGER)
+            # end for
+        # end with
+
 
 ###############################################################################
 def _main_func():

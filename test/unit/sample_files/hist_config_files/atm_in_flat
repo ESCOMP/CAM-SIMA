@@ -1,0 +1,44 @@
+
+&hist_config_arrays_nl
+    hist_num_inst_fields = 3
+    hist_num_avg_fields = 3
+    hist_num_min_fields = 3
+    hist_num_max_fields = 2
+    hist_num_var_fields = 2
+/
+
+&hist_file_config_nl
+    hist_volume = 'h1'
+    hist_avg_fields = 'MOE  ', 'LARRY', 'CURLY'
+    hist_min_fields = 'mouse', 'bin  ', 'gin  '
+    hist_max_fields = 'Skirt', 'Mad  '
+    hist_var_fields = 'std', 'stp'
+    hist_max_frames = 30
+    hist_output_frequency = '14*hours'
+    hist_precision = 'REAL32'
+    hist_file_type = 'history'
+    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_write_nstep0 = .false.
+/
+
+&hist_file_config_nl
+    hist_volume = 'h3'
+    hist_inst_fields = 'T', 'U', 'V'
+    hist_max_frames = 24
+    hist_output_frequency = '2*nsteps'
+    hist_precision = 'REAL64'
+    hist_file_type = 'history'
+    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_write_nstep0 = .false.
+/
+
+&hist_file_config_nl
+    hist_volume = 'i'
+    hist_inst_fields = 'X'
+    hist_max_frames = 1
+    hist_output_frequency = '2*nmonths'
+    hist_precision = 'REAL64'
+    hist_file_type = 'initial_value'
+    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_write_nstep0 = .false.
+/

@@ -3,6 +3,7 @@ module time_manager
    ! Provide CAM specific time management.  This is a wrapper layer for the ESMF
    ! time manager utility.
 
+   use shr_string_mod, only: to_upper => shr_string_toUpper
    use ESMF,           only: ESMF_Calendar, ESMF_CalendarCreate
    use ESMF,           only: ESMF_SUCCESS, ESMF_KIND_I8, ESMF_CalKind_Flag
    use ESMF,           only: ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
@@ -16,7 +17,6 @@ module time_manager
    use shr_kind_mod,   only: r8 => shr_kind_r8, SHR_KIND_CS
    use shr_cal_mod,    only: shr_cal_noleap, shr_cal_gregorian
    use spmd_utils,     only: masterproc
-   use string_utils,   only: to_upper
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
    use runtime_obj,    only: unset_int

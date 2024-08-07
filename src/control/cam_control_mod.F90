@@ -19,27 +19,16 @@ module cam_control_mod
    !
    !   cam_ctrl_init
    !   cam_ctrl_set_orbit
-   !   cam_ctrl_set_physics_type
 
-   character(len=cl), protected :: caseid  ! case ID
-   character(len=cl), protected :: ctitle  ! case title
+   character(len=cl), protected :: caseid = ''  ! case ID
+   character(len=cl), protected :: ctitle = ''  ! case title
 
    logical, protected :: initial_run  ! startup mode which only requires a minimal initial file
    logical, protected :: restart_run  ! continue a previous run; requires a restart file
    logical, protected :: branch_run   ! branch from a previous run; requires a restart file
    logical, protected :: post_assim   ! We are resuming after a pause
 
-   logical, protected :: adiabatic         ! true => no physics
-   logical, protected :: ideal_phys        ! true => run Held-Suarez (1994) physics
-   logical, protected :: kessler_phys      ! true => run Kessler physics
-   logical, protected :: tj2016_phys       ! true => run tj2016 physics
-   logical, protected :: grayrad_phys      ! true => run gray radiation (frierson) physics
-   logical, protected :: simple_phys       ! true => adiabatic or ideal_phys or kessler_phys
-                                           !         or tj2016 or grayrad
    logical, protected :: aqua_planet       ! Flag to run model in "aqua planet" mode
-   logical, protected :: moist_physics     ! true => moist physics enabled, i.e.,
-                                           ! (.not. ideal_phys) .and. (.not. adiabatic)
-
    logical, protected :: brnch_retain_casename ! true => branch run may use same caseid as
                                                !         the run being branched from
 
@@ -122,56 +111,5 @@ CONTAINS
       mvelpp = mvelpp_in
 
    end subroutine cam_ctrl_set_orbit
-
-   !---------------------------------------------------------------------------
-
-   subroutine cam_ctrl_set_physics_type()
-
-      use shr_kind_mod, only: SHR_KIND_CS
-      use cam_ccpp_cap, only: ccpp_physics_suite_list
-
-      ! Local variables:
-
-      ! suite_names: List of CCPP suites
-      character(len=SHR_KIND_CS), allocatable :: suite_names(:)
-      ! suite_name: CCPP suite we are running
-      character(len=SHR_KIND_CS)              :: suite_name
-
-      character(len=*), parameter :: subname = 'cam_ctrl_set_physics_type'
-
-      !Determine CCPP physics suite names:
-      call ccpp_physics_suite_list(suite_names)
-      suite_name = suite_names(1)
-
-      adiabatic = trim(suite_name) == 'adiabatic'
-      ideal_phys = trim(suite_name) == 'held_suarez_1994'
-      kessler_phys = trim(suite_name) == 'kessler'
-      tj2016_phys = trim(suite_name) == 'tj2016'
-      grayrad_phys = trim(suite_name) == 'grayrad'
-
-      simple_phys = adiabatic .or. ideal_phys .or. kessler_phys .or. tj2016_phys .or.  grayrad_phys
-
-      moist_physics = .not. (adiabatic .or. ideal_phys)
-
-      if ((.not. moist_physics) .and. aqua_planet) then
-         call endrun (subname//': FATAL: AQUA_PLANET not compatible with dry physics package, ('//trim(suite_name)//')')
-      end if
-
-      if (masterproc) then
-         if (adiabatic) then
-            write(iulog,*) 'Run model ADIABATICALLY (i.e. no physics)'
-            write(iulog,*) '  Global energy fixer is on for non-Eulerian dycores.'
-         else if (ideal_phys) then
-            write(iulog,*) 'Run model with Held-Suarez physics forcing'
-         else if (kessler_phys) then
-            write(iulog,*) 'Run model with Kessler warm-rain physics forcing'
-         else if (tj2016_phys) then
-            write(iulog,*) 'Run model with Thatcher-Jablonowski (2016) physics forcing (moist Held-Suarez)'
-         else if (grayrad_phys) then
-            write(iulog,*) 'Run model with Frierson (2006) gray radiation physics'
-         end if
-      end if
-
-   end subroutine cam_ctrl_set_physics_type
 
 end module cam_control_mod

@@ -319,7 +319,7 @@ CONTAINS
 
       ! Return directory containing initial restart file
 
-      use filenames,   only: get_dir
+      use cam_filenames, only: get_dir
 
       character(len=*), parameter :: subname = 'cam_initfiles_get_restdir'
       !------------------------------------------------------------------------

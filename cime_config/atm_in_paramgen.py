@@ -1447,8 +1447,8 @@ class AtmInParamGen(ParamGen):
                             #Notify loop to check the next line for a comma:
                             is_continue_line = False
                         #End if
-
-                    else:
+                    elif ('hist_' not in line_s[0]):
+                        #Raise parsing error; ignore hist lines to be processed by hist_config.py
                         emsg = "Cannot parse the following line in '{}' :\n'{}'"
                         raise AtmInParamGenError(emsg.format(user_nl_file, line))
                     #End if ("=" sign check)

@@ -61,7 +61,7 @@ module atm_comp_nuopc
    use cam_control_mod     , only : cam_ctrl_set_orbit
    use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
    use cam_initfiles       , only : cam_initfiles_get_caseid, cam_initfiles_get_restdir
-   use filenames           , only : interpret_filename_spec
+   use cam_filenames       , only : interpret_filename_spec
    use pio                 , only : file_desc_t, io_desc_t, var_desc_t, pio_double, pio_def_dim, PIO_MAX_NAME
    use pio                 , only : pio_closefile, pio_put_att, pio_enddef, pio_nowrite
    use pio                 , only : pio_inq_dimid, pio_inq_varid, pio_inquire_dimension, pio_def_var
@@ -69,6 +69,7 @@ module atm_comp_nuopc
    use pio                 , only : pio_read_darray, pio_write_darray
    use pio                 , only : pio_noerr, pio_bcast_error, pio_internal_error, pio_seterrorhandling
    use pio                 , only : pio_def_var, pio_get_var, pio_put_var, PIO_INT
+   use cam_history_support , only : fillvalue
    use ioFileMod           , only : cam_get_file
    !$use omp_lib           , only : omp_set_num_threads
 
@@ -128,9 +129,6 @@ module atm_comp_nuopc
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
-
-  !Remove once history output is developed for CAMDEN -JN:
-  real(r8), parameter :: fillvalue = 1.e36_r8
 
   real(R8) , parameter         :: grid_tol = 1.e-2_r8 ! tolerance for calculated lat/lon vs read in
 
@@ -1169,7 +1167,7 @@ contains
        call cam_run4( cam_out, cam_in, rstwr, nlend, &
             yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
        call t_stopf  ('CAM_run4')
-       call cam_timestep_final(do_ncdata_check=do_ncdata_check)
+       call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check)
 
        ! Advance cam time step
 
@@ -1395,6 +1393,17 @@ contains
 
     ! local variables
     integer :: shrlogunit            ! original log unit
+    logical :: rstwr, nlend
+    type(ESMF_Alarm)        :: alarm
+    type(ESMF_Clock)        :: clock
+    type(ESMF_Time)         :: currTime    ! Current time
+    type(ESMF_Time)         :: nextTime    ! Current time
+    type(ESMF_State)        :: importState
+    type(ESMF_State)        :: exportState
+    integer                 :: yr_sync     ! Sync current year
+    integer                 :: mon_sync    ! Sync current month
+    integer                 :: day_sync    ! Sync current day
+    integer                 :: tod_sync    ! Sync current time of day (sec)
     character(*), parameter :: F00   = "('(atm_comp_nuopc) ',8a)"
     character(*), parameter :: F91   = "('(atm_comp_nuopc) ',73('-'))"
     character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
@@ -1406,10 +1415,41 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call shr_log_getLogUnit(shrlogunit)
-    call shr_log_setLogUnit(iulog)
+    call shr_log_getLogUnit (shrlogunit)
+    call shr_log_setLogUnit (iulog)
+    call NUOPC_ModelGet(gcomp, modelClock=clock, importState=importState, exportState=exportState, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call cam_timestep_final(do_ncdata_check=.false.)
+    ! Determine if time to write restart
+    call ESMF_ClockGet( clock, currTime=currTime)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(nexttime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       rstwr = .true.
+       call ESMF_AlarmRingerOff( alarm, rc=rc )
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       rstwr = .false.
+    endif
+
+    ! Determine if time to stop
+
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       nlend = .true.
+    else
+       nlend = .false.
+    endif
+
+    call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false.)
     call cam_final(cam_out, cam_in)
 
     if (masterproc) then

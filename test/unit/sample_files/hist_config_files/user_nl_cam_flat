@@ -1,0 +1,23 @@
+! Users should add all user specific namelist changes below in the form of
+! namelist_var = new_namelist_value
+
+! History configuration
+hist_add_avg_fields;h1: MOE, LARRY, CURLY
+hist_add_max_fields;h1: Skirt, Mad
+hist_add_min_fields;h1: mouse, bin, gin
+hist_add_var_fields;h1: std, stp
+hist_output_frequency;h1: 14*hours
+
+ncdata = 'atm/cam/inic/se/ape_topo_cam4_ne16np4_L32_c171020.nc'
+use_topo_file = .false.
+
+! More history configuration
+hist_add_inst_fields;h3: T, U, V
+hist_output_frequency;h3: 2*nsteps
+hist_precision;h3: REAL64
+hist_max_frames;h3: 24
+
+! Let's try an initial data file
+hist_add_inst_fields;i: X
+hist_output_frequency;i: 2*nmonths
+hist_file_type;i = initial_value
