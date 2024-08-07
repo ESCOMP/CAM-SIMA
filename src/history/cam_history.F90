@@ -478,8 +478,10 @@ CONTAINS
       character(len=3)                  :: mixing_ratio_loc
       character(len=*), parameter       :: subname = 'history_add_field_nd: '
 
-      if (size(hist_configs) > 0 .and. hist_configs(1)%file_is_setup()) then
-         call endrun ('history_add_field_nd: Attempt to add field '//trim(diagnostic_name)//' after history files set')
+      if (size(hist_configs) > 0) then
+         if (hist_configs(1)%file_is_setup()) then
+            call endrun ('history_add_field_nd: Attempt to add field '//trim(diagnostic_name)//' after history files set')
+         end if
       end if
 
       ! Some checks for diagnostic_name

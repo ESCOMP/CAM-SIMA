@@ -2096,15 +2096,15 @@ CONTAINS
       !
       ! Cleanup
       !
-      ! Special block for testing
-      call MPI_bcast(read_status, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
-      if (read_status /= 0) then
-         return
-      end if
       ! Close unitn if it is still open
       inquire(unit=unitn, opened=filefound, iostat=ierr)
       if ((ierr == 0) .and. filefound) then
          close(unitn)
+      end if
+      ! Special block for testing
+      call MPI_bcast(read_status, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
+      if (read_status /= 0) then
+         return
       end if
       if (allocated(hist_inst_fields)) then
          deallocate(hist_inst_fields)
