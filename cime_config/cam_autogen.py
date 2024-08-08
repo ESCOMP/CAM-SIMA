@@ -615,6 +615,11 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         ufiles_str = datatable_report(cap_output_file, request, ";")
         utility_files = ufiles_str.split(';')
         _update_genccpp_dir(utility_files, genccpp_dir)
+        request = DatatableReport("dependencies")
+        dep_str = datatable_report(cap_output_file, request, ";")
+        if len(dep_str) > 0:
+            dependency_files = dep_str.split(';')
+            _update_genccpp_dir(dependency_files, genccpp_dir)
         ##XXgoldyXX: ^ Temporary fix:
     # End if
 

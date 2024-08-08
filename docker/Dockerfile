@@ -1,6 +1,6 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
 # esmf is am image you are expected to have built. Read the README file for instructions
-FROM esmf:latest
+FROM --platform=linux/amd64 esmf:latest
 
 ###################################################
 ## Install necessary packages
@@ -11,12 +11,17 @@ RUN dnf -y update \
       git \
       hostname \
       m4 \
-      python \
+      python39 \
+      pip \
       sudo \
       svn \
       tree \
       vim \
     && dnf clean all
+
+RUN ln -s $(which python3) /usr/bin/python && \
+    pip install --upgrade pip && \
+    pip install --upgrade setuptools
 
 ###################################################
 ## Make sure the mpi compilers can be found
@@ -50,7 +55,7 @@ USER cam_sima_user
 WORKDIR /home/cam_sima_user/CAM-SIMA
 
 # pull the dependencies
-RUN ./manage_externals/checkout_externals
+RUN ./bin/git-fleximod update
 
 # Copy in the machine information for the container
 RUN cp /home/cam_sima_user/CAM-SIMA/docker/config_machines.xml /home/cam_sima_user/CAM-SIMA/ccs_config/machines/
@@ -79,7 +84,7 @@ RUN ./xmlchange STOP_N=5
 RUN chmod +x /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 RUN /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 
-# # add the snapshot file
+# add the snapshot file
 RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
 
 RUN ./case.build
