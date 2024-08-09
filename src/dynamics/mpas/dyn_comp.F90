@@ -254,9 +254,9 @@ contains
                 ! Perform default initialization for all constituents.
                 ! Subsequently, they can be overridden depending on the namelist option (below) and
                 ! the actual availability (checked and handled by MPAS).
-                call dyn_debug_print('Calling set_default_constituent')
+                call dyn_debug_print('Calling dyn_exchange_constituent_state')
 
-                call set_default_constituent()
+                call dyn_exchange_constituent_state('e', .true., .false.)
 
                 ! Namelist option that controls if constituents are to be read from the file.
                 if (readtrace) then
@@ -917,43 +917,6 @@ contains
             call mpas_dynamical_core % exchange_halo('scalars')
         end if
     end subroutine dyn_exchange_constituent_state
-
-    !> Set default MPAS state `scalars` (i.e., constituents) in accordance with CCPP, which is a component of CAM-SIMA.
-    !> (KCW, 2024-07-09)
-    subroutine set_default_constituent()
-        character(*), parameter :: subname = 'dyn_comp::set_default_constituent'
-        integer :: i, j
-        real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
-        real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
-
-        call dyn_debug_print('Setting default MPAS state "scalars"')
-
-        nullify(constituents)
-        nullify(scalars)
-
-        constituents => cam_constituents_array()
-
-        if (.not. associated(constituents)) then
-            call endrun('Failed to find variable "constituents"', subname, __LINE__)
-        end if
-
-        call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
-
-        do i = 1, ncells_solve
-            ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
-            do j = 1, num_advected
-                ! Vertical index order is reversed between CAM-SIMA and MPAS.
-                scalars(j, :, i) = &
-                    reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)))
-            end do
-        end do
-
-        nullify(constituents)
-        nullify(scalars)
-
-        ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
-        call mpas_dynamical_core % exchange_halo('scalars')
-    end subroutine set_default_constituent
 
     !> Mark everything in the `physics_{state,tend}` derived types along with constituents as initialized
     !> to prevent physics from attempting to read them from a file. These variables are to be exchanged later
