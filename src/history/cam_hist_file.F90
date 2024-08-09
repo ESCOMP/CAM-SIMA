@@ -58,6 +58,7 @@ module cam_hist_file
       character(len=:), allocatable, private :: filename_spec
       character(len=max_fldlen), allocatable, private :: field_names(:)
       character(len=3), allocatable, private :: accumulate_types(:)
+      type(var_desc_t), allocatable, private :: file_varids(:,:)
       integer, allocatable,          private :: grids(:)
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
@@ -995,6 +996,15 @@ CONTAINS
       ! v peverwhee - remove when patch output is set up
       num_patches = 1
       ! ^ peverwhee - remove when patch output is set up
+      varid_set = .true.
+      ! Allocate the varid array
+      if (.not. allocated(this%file_varids)) then
+         allocate(this%file_varids(size(this%field_list), num_patches), stat=ierr)
+         call check_allocate(ierr, subname, 'this%file_varids',             &
+              file=__FILE__, line=__LINE__-1)
+         varid_set = .false.
+      end if
+
       ! Format frequency
       write(time_per_freq,999) trim(this%output_freq_type), '_', this%output_freq_mult
 999   format(2a,i0)
@@ -1193,13 +1203,6 @@ CONTAINS
             !
             !  Create variables and atributes for fields written out as columns
             !
-            varid_set = .true.
-            if(.not. this%field_list(field_index)%varid_set()) then
-               call this%field_list(field_index)%allocate_varid(num_patches, ierr)
-               call check_allocate(ierr, subname, 'field '//trim(this%field_list(field_index)%diag_name())//' varid', &
-                     file=__FILE__, line=__LINE__-1)
-               varid_set = .false.
-            end if
             !  Find appropriate grid in header_info
             if (.not. allocated(header_info)) then
                ! Safety check
@@ -1223,7 +1226,7 @@ CONTAINS
                nacsdims(idx) = header_info(1)%get_hdimid(idx)
             end do
             do idx = 1, num_patches
-               varid = this%field_list(field_index)%varid(idx)
+               varid = this%file_varids(field_index, idx)
                dimids_tmp = dimindex
                ! Figure the dimension ID array for this field
                ! We have defined the horizontal grid dimensions in dimindex
@@ -1242,7 +1245,7 @@ CONTAINS
                call cam_pio_def_var(this%hist_files(split_file_index), trim(fname_tmp), ncreal,           &
                     dimids_tmp(1:fdims), varid)
                if (.not. varid_set) then
-                  call this%field_list(field_index)%set_varid(idx, varid)
+                  this%file_varids(field_index, idx) = varid
                end if
                if (mdimsize > 0) then
                   ierr = pio_put_att(this%hist_files(split_file_index), varid, 'mdims', mdims(1:mdimsize))
@@ -1509,7 +1512,7 @@ CONTAINS
                split_file_index == instantaneous_file_index .and. .not. restart) then
                cycle
             end if
-            call this%write_field(this%field_list(field_idx), split_file_index, restart, start)
+            call this%write_field(this%field_list(field_idx), split_file_index, restart, start, field_idx)
          end do
       end do
       call t_stopf  ('write_field')
@@ -1519,7 +1522,7 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_write_field(this, field, split_file_index, restart, &
-      sample_index)
+      sample_index, field_index)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
       use cam_history_support, only: hist_coords
       use hist_buffer,         only: hist_buffer_t
@@ -1530,10 +1533,10 @@ CONTAINS
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
       type(hist_field_info_t), intent(inout) :: field
-!      integer,                 intent(in)    :: field_index
       integer,                 intent(in)    :: split_file_index
       logical,                 intent(in)    :: restart
       integer,                 intent(in)    :: sample_index
+      integer,                 intent(in)    :: field_index
 
       ! Local variables
       integer, allocatable           :: field_shape(:) ! Field file dim sizes
@@ -1580,7 +1583,7 @@ CONTAINS
       num_patches = 1
 
       do patch_idx = 1, num_patches
-         varid = field%varid(patch_idx)
+         varid = this%file_varids(field_index, patch_idx)
          call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
          buff_ptr => field%buffers
          if (frank == 1) then
@@ -1624,9 +1627,7 @@ CONTAINS
       end do
       if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
                  pio_file_is_open(this%hist_files(instantaneous_file_index))) then
-         do field_index = 1, size(this%field_list)
-            call this%field_list(field_index)%reset_varid()
-         end do
+         deallocate(this%file_varids)
       end if
       if (allocated(this%file_names)) then
          deallocate(this%file_names)
