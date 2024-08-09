@@ -9,7 +9,7 @@ module dyn_comp
                                thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
                                thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
     use cam_abortutils, only: check_allocate, endrun
-    use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
+    use cam_constituents, only: const_name, const_is_dry, const_is_water_species, num_advected, readtrace
     use cam_control_mod, only: initial_run
     use cam_field_read, only: cam_read_field
     use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
@@ -32,6 +32,7 @@ module dyn_comp
     use cam_ccpp_cap, only: cam_constituents_array
     use ccpp_kinds, only: kind_phys
     use phys_vars_init_check, only: mark_as_initialized, std_name_len
+    use physics_types, only: phys_state
 
     ! Modules from CESM Share.
     use shr_file_mod, only: shr_file_getunit
@@ -53,6 +54,7 @@ module dyn_comp
     ! public :: dyn_final
 
     public :: dyn_debug_print
+    public :: dyn_exchange_constituent_state
     public :: reverse
     public :: mpas_dynamical_core
     public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
@@ -765,6 +767,156 @@ contains
             t_0 = t_1 * ((p_0 / p_1) ** (constant_rd / constant_cpd))
         end function theta_by_poisson_equation
     end subroutine set_analytic_initial_condition
+
+    !> Exchange and/or convert constituent states between CAM-SIMA and MPAS.
+    !> If `exchange` is `.true.` and `direction` is "e" or "export", set MPAS state `scalars` from physics state `constituents`.
+    !> If `exchange` is `.true.` and `direction` is "i" or "import", set physics state `constituents` from MPAS state `scalars`.
+    !> Think of it as "exporting/importing constituent states in CAM-SIMA to/from MPAS".
+    !> Otherwise, if `exchange` is `.false.`, no exchange is performed at all.
+    !> If `conversion` is `.true.`, appropriate conversion is performed for constituent mixing ratio that has different
+    !> definitions between CAM-SIMA and MPAS (i.e., dry/moist).
+    !> Otherwise, if `conversion` is `.false.`, no conversion is performed at all.
+    !> This subroutine is intentionally designed to have these elaborate controls due to complications in CAM-SIMA.
+    !> Some procedures in CAM-SIMA expect constituent states to be dry, while the others expect them to be moist.
+    !> (KCW, 2024-09-26)
+    subroutine dyn_exchange_constituent_state(direction, exchange, conversion)
+        character(*), intent(in) :: direction
+        logical, intent(in) :: exchange
+        logical, intent(in) :: conversion
+
+        character(*), parameter :: subname = 'dyn_comp::dyn_exchange_constituent_state'
+        integer :: i, j
+        integer :: ierr
+        integer, allocatable :: is_water_species_index(:)
+        logical, allocatable :: is_conversion_needed(:)
+        logical, allocatable :: is_water_species(:)
+        real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
+        real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water mixing ratio.
+        real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
+
+        select case (trim(adjustl(direction)))
+            case ('e', 'export')
+                if (exchange) then
+                    call dyn_debug_print('Setting MPAS state "scalars" from physics state "constituents"')
+                end if
+
+                if (conversion) then
+                    call dyn_debug_print('Converting MPAS state "scalars"')
+                end if
+            case ('i', 'import')
+                if (exchange) then
+                    call dyn_debug_print('Setting physics state "constituents" from MPAS state "scalars"')
+                end if
+
+                if (conversion) then
+                    call dyn_debug_print('Converting physics state "constituents"')
+                end if
+            case default
+                call endrun('Unsupported exchange direction "' // trim(adjustl(direction)) // '"', subname, __LINE__)
+        end select
+
+        nullify(constituents)
+        nullify(scalars)
+
+        allocate(is_conversion_needed(num_advected), stat=ierr)
+        call check_allocate(ierr, subname, &
+            'is_conversion_needed(num_advected)', &
+            'dyn_comp', __LINE__)
+
+        allocate(is_water_species(num_advected), stat=ierr)
+        call check_allocate(ierr, subname, &
+            'is_water_species(num_advected)', &
+            'dyn_comp', __LINE__)
+
+        do j = 1, num_advected
+            ! All constituent mixing ratio in MPAS is dry.
+            ! Therefore, conversion in between is needed for any constituent mixing ratio that is not dry in CAM-SIMA.
+            is_conversion_needed(j) = .not. const_is_dry(j)
+            is_water_species(j) = const_is_water_species(j)
+        end do
+
+        allocate(is_water_species_index(count(is_water_species)), stat=ierr)
+        call check_allocate(ierr, subname, &
+            'is_water_species_index(count(is_water_species))', &
+            'dyn_comp', __LINE__)
+
+        allocate(sigma_all_q(pver), stat=ierr)
+        call check_allocate(ierr, subname, &
+            'sigma_all_q(pver)', &
+            'dyn_comp', __LINE__)
+
+        constituents => cam_constituents_array()
+
+        if (.not. associated(constituents)) then
+            call endrun('Failed to find variable "constituents"', subname, __LINE__)
+        end if
+
+        call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
+
+        if (trim(adjustl(direction)) == 'e' .or. trim(adjustl(direction)) == 'export') then
+            do i = 1, ncells_solve
+                if (conversion .and. any(is_conversion_needed)) then
+                    ! The summation term of equation 8 in doi:10.1029/2017MS001257.
+                    ! Using equation 7 here is not possible because it requires all constituent mixing ratio to be moist
+                    ! on the RHS of it. There is no such guarantee in CAM-SIMA.
+                    sigma_all_q(:) = phys_state % pdel(i, :) / phys_state % pdeldry(i, :)
+                end if
+
+                ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
+                do j = 1, num_advected
+                    if (exchange) then
+                        ! Vertical index order is reversed between CAM-SIMA and MPAS.
+                        scalars(j, :, i) = &
+                            reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)))
+                    end if
+
+                    if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
+                        ! Equation 8 in doi:10.1029/2017MS001257.
+                        scalars(j, :, i) = &
+                            scalars(j, :, i) * reverse(sigma_all_q)
+                    end if
+                end do
+            end do
+        else
+            is_water_species_index(:) = &
+                pack([(mpas_dynamical_core % map_mpas_scalar_index(i), i = 1, num_advected)], is_water_species)
+
+            do i = 1, ncells_solve
+                if (conversion .and. any(is_conversion_needed)) then
+                    ! The summation term of equation 8 in doi:10.1029/2017MS001257.
+                    sigma_all_q(:) = 1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1)
+                end if
+
+                ! `j` is indexing into `constituents`, so it is regarded as constituent index.
+                do j = 1, num_advected
+                    if (exchange) then
+                        ! Vertical index order is reversed between CAM-SIMA and MPAS.
+                        constituents(i, :, j) = &
+                            reverse(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i))
+                    end if
+
+                    if (conversion .and. is_conversion_needed(j)) then
+                        ! Equation 8 in doi:10.1029/2017MS001257.
+                        constituents(i, :, j) = &
+                            constituents(i, :, j) / reverse(sigma_all_q)
+                    end if
+                end do
+            end do
+        end if
+
+        deallocate(is_conversion_needed)
+        deallocate(is_water_species)
+        deallocate(is_water_species_index)
+        deallocate(sigma_all_q)
+
+        nullify(constituents)
+        nullify(scalars)
+
+        if (trim(adjustl(direction)) == 'e' .or. trim(adjustl(direction)) == 'export') then
+            ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
+            call mpas_dynamical_core % exchange_halo('scalars')
+        end if
+    end subroutine dyn_exchange_constituent_state
 
     !> Set default MPAS state `scalars` (i.e., constituents) in accordance with CCPP, which is a component of CAM-SIMA.
     !> (KCW, 2024-07-09)
