@@ -370,11 +370,7 @@ contains
         call set_mpas_state_rho_theta()
         call set_mpas_state_rho_base_theta_base()
 
-        deallocate(global_grid_index)
-        deallocate(lat_rad, lon_rad)
-        deallocate(z_int)
-
-        nullify(zgrid)
+        call final_shared_variable()
     contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
@@ -433,6 +429,18 @@ contains
                 z_int(:, k) = zgrid(pverp - k + 1, 1:ncells_solve)
             end do
         end subroutine init_shared_variable
+
+        !> Finalize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
+        !> (KCW, 2024-05-13)
+        subroutine final_shared_variable()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::final_shared_variable'
+
+            deallocate(global_grid_index)
+            deallocate(lat_rad, lon_rad)
+            deallocate(z_int)
+
+            nullify(zgrid)
+        end subroutine final_shared_variable
 
         !> Set MPAS state `u` (i.e., horizontal velocity at edge interfaces).
         !> (KCW, 2024-05-13)
