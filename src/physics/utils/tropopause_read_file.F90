@@ -7,13 +7,21 @@ module tropopause_read_file
   ! for use within CAM-SIMA, particularly removal of chunk support.
   !-------------------------------------------------------------------
 
-  ! climatological tropopause pressures (pcols,1,ntimes) and monthly day-of-year times (12)
-  use physics_types,      only: tropp_p_loc, tropp_days
-
   implicit none
   private
 
   public :: tropopause_read_file
+
+!> \section arg_table_tropopause_read_file  Argument Table
+!! \htmlinclude tropopause_read_file.html
+  ! days in year for climatological tropopause pressure data
+  integer,         public, parameter :: tropp_slices = 12
+
+  ! climatological tropopause pressures (pcols,ntimes)
+  real(kind_phys), public, pointer   :: tropp_p_loc(:,:)
+
+  ! monthly day-of-year times corresponding to climatological data (12)
+  integer,         public, pointer   :: tropp_days(:)
 
 contains
   subroutine tropopause_read_file(tropopause_climo_file)

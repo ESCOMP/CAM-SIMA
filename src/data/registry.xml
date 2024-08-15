@@ -10,6 +10,7 @@
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/tropopause_read_file.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
@@ -333,20 +334,6 @@
       <long_name>fractional calendar day at end of current timestep</long_name>
     </variable>
     <!-- Tropopause state -->
-    <variable local_name="tropp_p_loc"
-              standard_name="tropopause_air_pressure_from_climatology"
-              units="Pa" type="real" kind="kind_phys"
-              allocatable="pointer">
-      <long_name>Climatological tropopause pressures from file</long_name>
-      <dimensions>horizontal_dimension 12</dimensions>
-    </variable>
-    <variable local_name="tropp_days"
-              standard_name="tropopause_calendar_days_from_climatology"
-              units="1" type="integer"
-              allocatable="pointer">
-      <long_name>Climatological tropopause calendar day indices from file</long_name>
-      <dimensions>12</dimensions>
-    </variable>
     <variable local_name="tropopause_method"
               standard_name="control_for_tropopause_find_method"
               units="count" type="integer">
