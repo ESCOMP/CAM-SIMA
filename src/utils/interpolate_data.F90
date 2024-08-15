@@ -797,7 +797,7 @@ contains
     ratio = dxinwrap/avgdxin
     if (ratio < 0.9_r8 .or. ratio > 1.1_r8) then
        write(iulog,*)'BILIN: Insane dxinwrap value =',dxinwrap,' avg=', avgdxin
-       call endrun
+       call endrun('BILIN: Insane dxinwrap value')
     end if
     !
     ! Check that interp/extrap points have been found for all outputs, and that
@@ -874,7 +874,7 @@ contains
 
        if (icount > 0) then
           write(iulog,*)'BILIN: j=',j,' Something bad in longitude indices or weights'
-          call endrun
+          call endrun('BILIN: Something bad in longitude indices or weights')
        end if
        !
        ! Do the interpolation, 1st in longitude then latitude
@@ -1168,12 +1168,12 @@ end subroutine vertinterp
     if (cycflag) then
        if ((cday < 1._r8) .or. (cday > (daysperyear+1._r8))) then
           write(iulog,*) 'GETFACTORS:', str, ' bad cday=',cday
-          call endrun ()
+          call endrun ('get_timeinterp_factors GETFACTORS bad cday (1)')
        end if
     else
        if (cday < 1._r8) then
           write(iulog,*) 'GETFACTORS:', str, ' bad cday=',cday
-          call endrun ()
+          call endrun ('get_timeinterp_factors GETFACTORS bad cday (2)')
        end if
     end if
     !
@@ -1197,7 +1197,7 @@ end subroutine vertinterp
 
     if (.not. valid_timeinterp_factors (fact1, fact2)) then
        write(iulog,*) 'GETFACTORS: ', str, ' bad fact1 and/or fact2=', fact1, fact2
-       call endrun ()
+       call endrun ('get_timeinterp_factors GETFACTORS bad fact1 and/or fact2')
     end if
 
     return
