@@ -7,7 +7,10 @@ module tropopause_read_file
   ! for use within CAM-SIMA, particularly removal of chunk support.
   !-------------------------------------------------------------------
 
-  use ccpp_kinds,    only: kind_phys
+  use ccpp_kinds,     only: kind_phys
+  use cam_logfile,    only: iulog
+  use cam_abortutils, only: endrun
+  use spmd_utils,     only: masterproc
 
   implicit none
   private
@@ -35,7 +38,7 @@ contains
     use physics_grid, only : pcols => columns_on_task
     use physconst,    only : pi
     use time_manager, only : get_calday
-    use ioFileMod,    only : getfil
+    use ioFileMod,    only : cam_get_file
     use cam_pio_utils, only: cam_pio_openfile
     use pio,          only : file_desc_t, var_desc_t, pio_inq_dimid, pio_inq_dimlen, &
          pio_inq_varid, pio_get_var, pio_closefile, pio_nowrite
@@ -66,7 +69,7 @@ contains
     !-----------------------------------------------------------------------
     !       ... open netcdf file
     !-----------------------------------------------------------------------
-    call getfil (tropopause_climo_file, locfn, 0)
+    call cam_get_file (tropopause_climo_file, locfn, allow_fail=.false.)
     call cam_pio_openfile(pio_id, trim(locfn), PIO_NOWRITE)
 
     !-----------------------------------------------------------------------
@@ -75,8 +78,8 @@ contains
     ierr = pio_inq_dimid( pio_id, 'time', dimid )
     ierr = pio_inq_dimlen( pio_id, dimid, ntimes )
     if( ntimes /= 12 )then
-       write(iulog,*) 'tropopause_find_init: number of months = ',ntimes,'; expecting 12'
-       call endrun
+       write(iulog,*) 'tropopause_read_climo_file: number of months = ',ntimes,'; expecting 12'
+       call endrun('tropopause_read_climo_file: number of months in file incorrect')
     end if
     !-----------------------------------------------------------------------
     !       ... get latitudes
@@ -85,8 +88,8 @@ contains
     ierr = pio_inq_dimlen( pio_id, dimid, nlat )
     allocate( lat(nlat), stat=ierr )
     if( ierr /= 0 ) then
-       write(iulog,*) 'tropopause_find_init: lat allocation error = ',ierr
-       call endrun
+       write(iulog,*) 'tropopause_read_climo_file: lat allocation error = ',ierr
+       call endrun('tropopause_read_climo_file: failed to allocate lat')
     end if
     ierr = pio_inq_varid( pio_id, 'lat', vid )
     ierr = pio_get_var( pio_id, vid, lat )
@@ -98,8 +101,8 @@ contains
     ierr = pio_inq_dimlen( pio_id, dimid, nlon )
     allocate( lon(nlon), stat=ierr )
     if( ierr /= 0 ) then
-       write(iulog,*) 'tropopause_find_init: lon allocation error = ',ierr
-       call endrun
+       write(iulog,*) 'tropopause_read_climo_file: lon allocation error = ',ierr
+       call endrun('tropopause_read_climo_file: failed to allocate lon')
     end if
     ierr = pio_inq_varid( pio_id, 'lon', vid )
     ierr = pio_get_var( pio_id, vid, lon )
@@ -110,8 +113,8 @@ contains
     !------------------------------------------------------------------
     allocate( tropp_p_in(nlon,nlat,ntimes), stat=ierr )
     if( ierr /= 0 ) then
-       write(iulog,*) 'tropopause_find_init: tropp_p_in allocation error = ',ierr
-       call endrun
+       write(iulog,*) 'tropopause_read_climo_file: tropp_p_in allocation error = ',ierr
+       call endrun('tropopause_read_climo_file: failed to allocate tropp_p_in')
     end if
     !------------------------------------------------------------------
     !  ... read in the tropopause pressure
@@ -135,8 +138,8 @@ contains
     allocate( tropp_p_loc(pcols,ntimes), stat=ierr )
 
     if( ierr /= 0 ) then
-      write(iulog,*) 'tropopause_find_init: tropp_p_loc allocation error = ',ierr
-      call endrun
+      write(iulog,*) 'tropopause_read_climo_file: tropp_p_loc allocation error = ',ierr
+      call endrun('tropopause_read_climo_file: failed to allocate tropp_p_loc')
     end if
 
     call get_rlat_all_p(pcols, to_lats)
@@ -156,11 +159,17 @@ contains
     ! ... initialize the monthly day of year times
     !--------------------------------------------------------
 
+    allocate( tropp_days(tropp_slices), stat=ierr )
+    if( ierr /= 0 ) then
+      write(iulog,*) 'tropopause_read_climo_file: tropp_days allocation error = ',ierr
+      call endrun('tropopause_read_climo_file: failed to allocate tropp_days')
+    end if
+
     do n = 1,12
        tropp_days(n) = get_calday( dates(n), 0 )
     end do
     if (masterproc) then
-       write(iulog,*) 'tropopause_find_init : tropp_days'
+       write(iulog,*) 'tropopause_read_climo_file : tropp_days'
        write(iulog,'(1p,5g15.8)') tropp_days(:)
     endif
 
