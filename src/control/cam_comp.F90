@@ -233,9 +233,7 @@ CONTAINS
 
       ! Read tropopause climatology
       ! FIXME hplin 8/15/24: needs to get data from tropopause_nl, how to pass from CCPP?
-      call tropopause_read_file('/fs/cgd/csm/inputdata/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc')
-      mark_as_initialized('tropp_p_loc')
-      mark_as_initialized('tropp_days')
+      call tropopause_read_climo_file('/fs/cgd/csm/inputdata/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc')
 
       call phys_init()
 

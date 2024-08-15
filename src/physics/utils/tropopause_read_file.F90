@@ -7,10 +7,12 @@ module tropopause_read_file
   ! for use within CAM-SIMA, particularly removal of chunk support.
   !-------------------------------------------------------------------
 
+  use ccpp_kinds,    only: kind_phys
+
   implicit none
   private
 
-  public :: tropopause_read_file
+  public :: tropopause_read_climo_file
 
 !> \section arg_table_tropopause_read_file  Argument Table
 !! \htmlinclude tropopause_read_file.html
@@ -24,7 +26,7 @@ module tropopause_read_file
   integer,         public, pointer   :: tropp_days(:)
 
 contains
-  subroutine tropopause_read_file(tropopause_climo_file)
+  subroutine tropopause_read_climo_file(tropopause_climo_file)
     !------------------------------------------------------------------
     ! ... initialize upper boundary values
     !------------------------------------------------------------------
@@ -162,5 +164,5 @@ contains
        write(iulog,'(1p,5g15.8)') tropp_days(:)
     endif
 
-  end subroutine tropopause_read_file
+  end subroutine tropopause_read_climo_file
 end module tropopause_read_file
