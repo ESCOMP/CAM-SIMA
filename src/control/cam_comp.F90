@@ -23,10 +23,12 @@ module cam_comp
    use time_manager,              only: timemgr_init, get_step_size
    use time_manager,              only: get_nstep
    use time_manager,              only: is_first_step, is_first_restart_step
+   use time_manager,              only: get_curr_calday
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
+   use physics_types,             only: calday
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -98,6 +100,7 @@ CONTAINS
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
       use phys_vars_init_check, only: mark_as_initialized
+      use tropopause_read_file, only: tropopause_read_file
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -168,6 +171,10 @@ CONTAINS
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
            perpetual_run, perpetual_ymd, initial_run_in)
 
+      ! Get current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+      mark_as_initialized('calday')
+
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
       call read_namelist(filein, single_column, scmlat, scmlon)
@@ -224,6 +231,12 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
       end if
 
+      ! Read tropopause climatology
+      ! FIXME hplin 8/15/24: needs to get data from tropopause_nl, how to pass from CCPP?
+      call tropopause_read_file('/fs/cgd/csm/inputdata/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc')
+      mark_as_initialized('tropp_p_loc')
+      mark_as_initialized('tropp_days')
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -269,6 +282,9 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
+
+      ! Update current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
 
    end subroutine cam_timestep_init
    !

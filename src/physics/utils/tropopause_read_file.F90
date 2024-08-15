@@ -7,14 +7,13 @@ module tropopause_read_file
   ! for use within CAM-SIMA, particularly removal of chunk support.
   !-------------------------------------------------------------------
 
+  ! climatological tropopause pressures (pcols,1,ntimes) and monthly day-of-year times (12)
+  use physics_types,      only: tropp_p_loc, tropp_days
+
   implicit none
   private
 
   public :: tropopause_read_file
-
-  ! These variables are used to store the climatology data.
-  real(kind_phys)              :: days(12)              ! days in the climatology
-  real(kind_phys), pointer     :: tropp_p_loc(:,:,:)    ! climatological tropopause pressures (pcols,1,ntimes)
 
 contains
   subroutine tropopause_read_file(tropopause_climo_file)
@@ -122,9 +121,8 @@ contains
     !--------------------------------------------------------------------
 
     ! tropp_p_loc is allocated with dimensions (pcols, begchunk:endchunk, ntimes) in CAM.
-    ! to maintain backwards compatibility with existing CAM, the second dimension here
-    ! must exist but is set to 1 in CAM-SIMA. (hplin, 8/14/24)
-    allocate( tropp_p_loc(pcols,1,ntimes), stat=ierr )
+    ! in CAM-SIMA, the chunk dimension is collapsed as it is unused.
+    allocate( tropp_p_loc(pcols,ntimes), stat=ierr )
 
     if( ierr /= 0 ) then
       write(iulog,*) 'tropopause_find_init: tropp_p_loc allocation error = ',ierr
@@ -136,7 +134,7 @@ contains
     call lininterp_init(lon, nlon, to_lons, pcols, 2, lon_wgts, zero, twopi)
     call lininterp_init(lat, nlat, to_lats, pcols, 1, lat_wgts)
     do n=1,ntimes
-       call lininterp(tropp_p_in(:,:,n), nlon, nlat, tropp_p_loc(1:pcols,c,n), pcols, lon_wgts, lat_wgts)
+       call lininterp(tropp_p_in(:,:,n), nlon, nlat, tropp_p_loc(1:pcols,n), pcols, lon_wgts, lat_wgts)
     end do
     call lininterp_finish(lon_wgts)
     call lininterp_finish(lat_wgts)
@@ -149,11 +147,11 @@ contains
     !--------------------------------------------------------
 
     do n = 1,12
-       days(n) = get_calday( dates(n), 0 )
+       tropp_days(n) = get_calday( dates(n), 0 )
     end do
     if (masterproc) then
-       write(iulog,*) 'tropopause_find_init : days'
-       write(iulog,'(1p,5g15.8)') days(:)
+       write(iulog,*) 'tropopause_find_init : tropp_days'
+       write(iulog,'(1p,5g15.8)') tropp_days(:)
     endif
 
   end subroutine tropopause_read_file

@@ -326,6 +326,69 @@
       <long_name>current timestep number</long_name>
       <initial_value>0</initial_value>
     </variable>
+    <!-- Date and time variables -->
+    <variable local_name="calday"
+              standard_name="fractional_calendar_days_on_end_of_current_timestep"
+              units="1" type="real" kind="kind_phys">
+      <long_name>fractional calendar day at end of current timestep</long_name>
+    </variable>
+    <!-- Tropopause state -->
+    <variable local_name="tropp_p_loc"
+              standard_name="tropopause_air_pressure_from_climatology"
+              units="Pa" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Climatological tropopause pressures from file</long_name>
+      <dimensions>horizontal_dimension 12</dimensions>
+    </variable>
+    <variable local_name="tropp_days"
+              standard_name="tropopause_calendar_days_from_climatology"
+              units="1" type="integer"
+              allocatable="pointer">
+      <long_name>Climatological tropopause calendar day indices from file</long_name>
+      <dimensions>12</dimensions>
+    </variable>
+    <variable local_name="tropopause_method"
+              standard_name="control_for_tropopause_find_method"
+              units="count" type="integer">
+      <long_name>Tropopause primary find method</long_name>
+      <initial_value>5</initial_value>
+      <!-- 5: TROP_ALG_TWMO, WMO Lapse Rate Definition, Reichler 2003 -->
+    </variable>
+    <variable local_name="tropopause_method_secondary"
+              standard_name="control_for_tropopause_find_method_secondary"
+              units="count" type="integer">
+      <long_name>Tropopause secondary find method</long_name>
+      <initial_value>3</initial_value>
+      <!-- 3: TROP_ALG_CLIMATE, Climatological archive from file -->
+    </variable>
+    <variable local_name="tropLev"
+              standard_name="model_level_number_at_tropopause"
+              units="Pa" type="integer"
+              allocatable="pointer">
+      <long_name>Tropopause model level</long_name>
+      <dimensions>horizontal_dimension</dimensions>
+    </variable>
+    <variable local_name="tropP"
+              standard_name="tropopause_air_pressure"
+              units="Pa" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Tropopause level pressure</long_name>
+      <dimensions>horizontal_dimension</dimensions>
+    </variable>
+    <variable local_name="tropT"
+              standard_name="tropopause_air_temperature"
+              units="K" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Tropopause level temperature</long_name>
+      <dimensions>horizontal_dimension</dimensions>
+    </variable>
+    <variable local_name="tropZ"
+              standard_name="tropopause_altitude"
+              units="m" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <long_name>Tropopause level altitude</long_name>
+      <dimensions>horizontal_dimension</dimensions>
+    </variable>
     <!-- Error handling variables -->
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
