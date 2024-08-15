@@ -336,21 +336,21 @@
     <!-- Tropopause state -->
     <variable local_name="tropopause_method"
               standard_name="control_for_tropopause_find_method"
-              units="count" type="integer">
+              units="1" type="integer">
       <long_name>Tropopause primary find method</long_name>
       <initial_value>5</initial_value>
       <!-- 5: TROP_ALG_TWMO, WMO Lapse Rate Definition, Reichler 2003 -->
     </variable>
     <variable local_name="tropopause_method_secondary"
               standard_name="control_for_tropopause_find_method_secondary"
-              units="count" type="integer">
+              units="1" type="integer">
       <long_name>Tropopause secondary find method</long_name>
       <initial_value>3</initial_value>
       <!-- 3: TROP_ALG_CLIMATE, Climatological archive from file -->
     </variable>
     <variable local_name="tropLev"
               standard_name="model_level_number_at_tropopause"
-              units="Pa" type="integer"
+              units="1" type="integer"
               allocatable="pointer">
       <long_name>Tropopause model level</long_name>
       <dimensions>horizontal_dimension</dimensions>
