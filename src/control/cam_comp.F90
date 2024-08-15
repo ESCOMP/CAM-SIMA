@@ -100,7 +100,7 @@ CONTAINS
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
       use phys_vars_init_check, only: mark_as_initialized
-      use tropopause_read_file, only: tropopause_read_file
+      use tropopause_read_file, only: tropopause_read_climo_file
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -173,7 +173,7 @@ CONTAINS
 
       ! Get current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
-      mark_as_initialized('calday')
+      call mark_as_initialized('calday')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
