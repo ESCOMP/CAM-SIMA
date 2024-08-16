@@ -174,7 +174,7 @@ CONTAINS
 
       ! Get current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
-      call mark_as_initialized('calday')
+      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -237,8 +237,15 @@ CONTAINS
 
       ! Set tropopause find method as initialized
       ! FIXME hplin 8/16/24: probably has to move somewhere else or split into other functions
-      call mark_as_initialized('tropopause_method')
-      call mark_as_initialized('tropopause_method_secondary')
+      call mark_as_initialized('control_for_tropopause_find_method')
+      call mark_as_initialized('control_for_tropopause_find_method_secondary')
+
+      ! FIXME hplin 8/16/24: These are new state variables in CAM-SIMA and updated at every timestep
+      ! should not be read from ncdata for now.
+      ! call mark_as_initialized('model_level_number_at_tropopause')
+      ! call mark_as_initialized('tropopause_air_pressure')
+      ! call mark_as_initialized('tropopause_air_temperature')
+      ! call mark_as_initialized('tropopause_altitude')
 
       call phys_init()
 

@@ -348,34 +348,34 @@
       <initial_value>3</initial_value>
       <!-- 3: TROP_ALG_CLIMATE, Climatological archive from file -->
     </variable>
-    <variable local_name="tropLev"
+<!--     <variable local_name="tropLev"
               standard_name="model_level_number_at_tropopause"
               units="1" type="integer"
-              allocatable="pointer">
+              allocatable="allocatable">
       <long_name>Tropopause model level</long_name>
       <dimensions>horizontal_dimension</dimensions>
     </variable>
     <variable local_name="tropP"
               standard_name="tropopause_air_pressure"
               units="Pa" type="real" kind="kind_phys"
-              allocatable="pointer">
+              allocatable="allocatable">
       <long_name>Tropopause level pressure</long_name>
       <dimensions>horizontal_dimension</dimensions>
     </variable>
     <variable local_name="tropT"
               standard_name="tropopause_air_temperature"
               units="K" type="real" kind="kind_phys"
-              allocatable="pointer">
+              allocatable="allocatable">
       <long_name>Tropopause level temperature</long_name>
       <dimensions>horizontal_dimension</dimensions>
     </variable>
     <variable local_name="tropZ"
               standard_name="tropopause_altitude"
               units="m" type="real" kind="kind_phys"
-              allocatable="pointer">
+              allocatable="allocatable">
       <long_name>Tropopause level altitude</long_name>
       <dimensions>horizontal_dimension</dimensions>
-    </variable>
+    </variable> -->
     <!-- Error handling variables -->
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
