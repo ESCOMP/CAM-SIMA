@@ -8,6 +8,7 @@ module tropopause_read_file
   !-------------------------------------------------------------------
 
   use ccpp_kinds,     only: kind_phys
+  use runtime_obj,    only: unset_str
   use cam_logfile,    only: iulog
   use cam_abortutils, only: endrun
   use spmd_utils,     only: masterproc
@@ -15,6 +16,7 @@ module tropopause_read_file
   implicit none
   private
 
+  public :: tropopause_readnl
   public :: tropopause_read_climo_file
 
 !> \section arg_table_tropopause_read_file  Argument Table
@@ -28,8 +30,51 @@ module tropopause_read_file
   ! monthly day-of-year times corresponding to climatological data (12)
   integer,         public, allocatable :: tropp_days(:)
 
+  ! Private module data
+  character(len=256)                   :: tropopause_climo_file = unset_str
+
 contains
-  subroutine tropopause_read_climo_file(tropopause_climo_file)
+  ! Read namelist variable tropopause_climo_file.
+  ! Containing this within CAM as otherwise the climo file has to be passed from physics -> here
+  ! then the data from here -> physics. Keeping it at CAM level for now. (hplin, 8/16/24)
+  subroutine tropopause_readnl(nlfile)
+    use shr_nl_mod,      only: find_group_name => shr_nl_find_group_name
+    use mpi,             only: mpi_character
+    use spmd_utils,      only: mpicom
+
+    ! filepath for file containing namelist input
+    character(len=*), intent(in) :: nlfile
+
+    ! Local variables
+    integer :: unitn, ierr
+    character(len=*), parameter :: subname = 'tropopause_readnl'
+
+    namelist /tropopause_nl/ tropopause_climo_file
+
+    if (masterproc) then
+       open(newunit=unitn, file=trim(nlfile), status='old')
+       call find_group_name(unitn, 'tropopause_nl', status=ierr)
+       if (ierr == 0) then
+          read(unitn, tropopause_nl, iostat=ierr)
+          if (ierr /= 0) then
+             call endrun(subname // ':: ERROR reading namelist')
+          end if
+       end if
+       close(unitn)
+    end if
+
+    ! Broadcast namelist variables
+    call mpi_bcast(tropopause_climo_file, len(tropopause_climo_file), mpi_character, 0, mpicom, ierr)
+
+    ! Print out namelist variables
+    if (masterproc) then
+      write(iulog,*) subname, ' options:'
+      write(iulog,*) '  Tropopause climatology file will be read: ', trim(tropopause_climo_file)
+    endif
+
+  end subroutine tropopause_readnl
+
+  subroutine tropopause_read_climo_file()
     !------------------------------------------------------------------
     ! ... initialize upper boundary values
     !------------------------------------------------------------------
@@ -43,7 +88,7 @@ contains
     use pio,          only : file_desc_t, var_desc_t, pio_inq_dimid, pio_inq_dimlen, &
          pio_inq_varid, pio_get_var, pio_closefile, pio_nowrite
 
-    character(len=256), intent(in) :: tropopause_climo_file  ! absolute path of climatology file
+    ! character(len=256), intent(in) :: tropopause_climo_file  ! absolute path of climatology file
 
     !------------------------------------------------------------------
     ! ... local variables

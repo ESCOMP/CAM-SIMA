@@ -166,6 +166,7 @@ CONTAINS
 
       call cam_ctrl_set_orbit(eccen, obliqr, lambm0, mvelpp)
 
+
       call timemgr_init(                                                      &
            dtime, calendar, start_ymd, start_tod, ref_ymd,                    &
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
@@ -232,8 +233,12 @@ CONTAINS
       end if
 
       ! Read tropopause climatology
-      ! FIXME hplin 8/15/24: needs to get data from tropopause_nl, how to pass from CCPP?
-      call tropopause_read_climo_file('/fs/cgd/csm/inputdata/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc')
+      call tropopause_read_climo_file()
+
+      ! Set tropopause find method as initialized
+      ! FIXME hplin 8/16/24: probably has to move somewhere else or split into other functions
+      call mark_as_initialized('tropopause_method')
+      call mark_as_initialized('tropopause_method_secondary')
 
       call phys_init()
 
