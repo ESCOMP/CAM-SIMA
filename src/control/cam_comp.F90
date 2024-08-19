@@ -235,17 +235,10 @@ CONTAINS
       ! Read tropopause climatology
       call tropopause_read_climo_file()
 
-      ! Set tropopause find method as initialized
-      ! FIXME hplin 8/16/24: probably has to move somewhere else or split into other functions
-      call mark_as_initialized('control_for_tropopause_find_method')
-      call mark_as_initialized('control_for_tropopause_find_method_secondary')
-
-      ! FIXME hplin 8/16/24: These are new state variables in CAM-SIMA and updated at every timestep
-      ! should not be read from ncdata for now.
-      ! call mark_as_initialized('model_level_number_at_tropopause')
-      ! call mark_as_initialized('tropopause_air_pressure')
-      ! call mark_as_initialized('tropopause_air_temperature')
-      ! call mark_as_initialized('tropopause_altitude')
+      ! Mark variables as initialized so they are not read from initial conditions
+      call mark_as_initialized('tropopause_air_pressure_from_climatology')
+      call mark_as_initialized('tropopause_calendar_days_from_climatology')
+      call mark_as_initialized('filename_of_tropopause_climatology')
 
       call phys_init()
 
