@@ -140,7 +140,7 @@ def _main_prog():
 
         #If pull request has not been merged, then exit script:
         if not merged_pull.merged:
-            endmsg = f"Pull request associated with commit:\n{trigger_sha}\n"
+            endmsg = f"Pull request #{pr_num} associated with commit:\n{trigger_sha}\n"
             endmsg += "was not actually merged, so the script will not close anything."
             end_script(endmsg)
 
@@ -156,7 +156,7 @@ def _main_prog():
 
         #If PR was to default branch, then exit script (as github will handle it automatically):
         if merged_branch == default_branch:
-            endmsg = "Pull request was merged into default repo branch. "
+            endmsg = f"Pull request #{pr_num} was merged into default repo branch. "
             endmsg += "Thus issue is closed automatically"
             end_script(endmsg)
 
@@ -201,7 +201,8 @@ def _main_prog():
             #If at least one keyword is found, then determine location of every keyword instance:
             word_matches = keyword_pattern.finditer(pr_msg_lower)
         else:
-            endmsg = "Pull request was merged without using any of the keywords.  Thus there are no issues to close."
+            endmsg = f"Pull request #{pr_num} was merged without using any of the keywords. "
+            endmsg += "Thus there are no issues to close."
             end_script(endmsg)
 
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
