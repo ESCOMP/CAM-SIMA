@@ -237,7 +237,9 @@ def _main_prog():
                     #First try assuming the string is just a number
                     issue_num = int(first_word[1:]) #ignore "#" symbol
                 except ValueError:
-                    #If not, then ignore last letter:
+                    #If not, then ignore the last character, in case the user
+                    #included punctutation (i.e. a space, comma, or period)
+                    #after the PR number:
                     try:
                         issue_num = int(first_word[1:-1])
                     except ValueError:
