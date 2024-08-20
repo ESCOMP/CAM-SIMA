@@ -19,7 +19,7 @@
   standard_name = tropopause_calendar_days_from_climatology
   long_name = Climatological tropopause calendar day indices from file
   units = 1
-  type = integer
+  type = real | kind = kind_phys
   dimensions = (number_of_months_in_year)
 [ tropopause_climo_file ]
   standard_name = filename_of_tropopause_climatology

@@ -28,7 +28,7 @@ module tropopause_read_file
   real(kind_phys), public, allocatable :: tropp_p_loc(:,:)
 
   ! monthly day-of-year times corresponding to climatological data (12)
-  integer,         public, allocatable :: tropp_days(:)
+  real(kind_phys), public, allocatable :: tropp_days(:)
 
   ! Private module data
   character(len=256)                   :: tropopause_climo_file = unset_str
