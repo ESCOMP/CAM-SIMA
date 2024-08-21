@@ -1,10 +1,7 @@
-**Tag name** (required for main):
+Tag name (required for main):
+Originator(s):
 
-**Originator(s)**:
-
-**Summary** (include the keyword ['closes', 'fixes', 'resolves'] and issue number):
-
-**Changes**
+Summary (include the keyword ['closes', 'fixes', 'resolves'] and issue number):
 
 Describe any changes made to build system:
 
@@ -16,9 +13,8 @@ List all files eliminated and why:
 
 List all files added and what they do:
 
-List all existing files that have been modified, and describe the changes (Helpful git command: `git diff --name-status development...<your_branch_name>`):
-
-**Testing**
+List all existing files that have been modified, and describe the changes: 
+(Helpful git command: `git diff --name-status development...<your_branch_name>`)
 
 If there are new failures (compare to the existing-test-failures.txt file),
 have them OK'd by the gatekeeper, note them here, and add them to the file.
