@@ -35,6 +35,12 @@ from github import Auth
 #fix, fixes, fixed
 #resolve, resolves, resolved
 
+#The keywords are designed to match
+#the keywords that exist in Github
+#already for default branches, which
+#can be found here:
+#https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
+
 #Create relevant regex patterns:
 _CLOSE_KEY              = r'close[sd]?'
 _FIX_KEY                = r'fix(e[sd])?'
