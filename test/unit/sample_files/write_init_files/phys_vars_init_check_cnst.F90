@@ -34,7 +34,7 @@ module phys_vars_init_check_cnst
    integer, public, parameter :: READ_FROM_FILE = 3
    ! Total number of physics-related variables:
    integer, public, parameter :: phys_var_num = 3
-   integer, public, parameter :: phys_const_num = 15
+   integer, public, parameter :: phys_const_num = 16
 
    !Max length of physics-related variable standard names:
    integer, public, parameter :: std_name_len = 25
@@ -51,6 +51,7 @@ module phys_vars_init_check_cnst
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = (/ &
       "ccpp_constituent_minimum_values     ", &
       "ccpp_constituent_properties         ", &
+      "ccpp_constituent_tendencies         ", &
       "ccpp_constituents                   ", &
       "ccpp_error_code                     ", &
       "ccpp_error_message                  ", &
