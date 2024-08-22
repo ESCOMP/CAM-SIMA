@@ -26,6 +26,25 @@ import argparse
 from github import Github
 from github import Auth
 
+###############
+#REGEX PATTERNS
+###############
+
+#Issue-closing Keywords are:
+#close, closes, closed
+#fix, fixes, fixed
+#resolve, resolves, resolved
+
+#Create relevant regex patterns:
+_CLOSE_KEY              = r'close[sd]?'
+_FIX_KEY                = r'fix(e[sd])?'
+_RESOLVE_KEY            = r'resolve[sd]?'
+_KEYWORDS               = rf'{_CLOSE_KEY}|{_FIX_KEY}|{_RESOLVE_KEY}'
+_KEYWORDS_CAPTURE_GROUP = rf'(?P<keyword>{_KEYWORDS})'
+_ID_NUMBER              = r'\d+'
+_ID_CAPTURE_GROUP       = rf'(?P<id>{_ID_NUMBER})'
+_LINKED_ISSUE_PATTERN   = rf'{_KEYWORDS_CAPTURE_GROUP}\s*#{_ID_CAPTURE_GROUP}'
+
 #################
 #HELPER FUNCTIONS
 #################
@@ -184,35 +203,24 @@ def _main_prog():
         #Check if one of the keywords exists in PR message
         #+++++++++++++++++++++++++++++++++++++++++++++++++
 
-        #Keywords are:
-        #close, closes, closed
-        #fix, fixes, fixed
-        #resolve, resolves, resolved
-
-        #Create regex pattern to find keywords:
-        keyword_pattern = re.compile(r'(^|\s)close(\s|s\s|d\s)|(^|\s)fix(\s|es\s|ed\s)|(^|\s)resolve(\s|s\s|d\s)')
+        #Compile regex patterns into object:
+        keyword_pattern = re.compile(_LINKED_ISSUE_PATTERN)
 
         #Extract (lower case) Pull Request message:
         pr_msg_lower = merged_pull.body.lower()
 
-        #search for at least one keyword:
-        word_matches = []
-        if keyword_pattern.search(pr_msg_lower) is not None:
-            #If at least one keyword is found, then determine location of every keyword instance:
-            word_matches = keyword_pattern.finditer(pr_msg_lower)
-        else:
+        #End script if no keywords found:
+        if keyword_pattern.search(pr_msg_lower) is None:
             endmsg = f"Pull request #{pr_num} was merged without using any of the keywords. "
             endmsg += "Thus there are no issues to close."
             end_script(endmsg)
 
+        #search for at least one keyword in PR message:
+        word_matches = keyword_pattern.finditer(pr_msg_lower, re.IGNORECASE)
+
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #Extract issue and PR numbers associated with found keywords in merged PR message
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        #create issue pattern ("the number symbol {#} + a number"),
-        #which ends with either a space, a comma, a period, or
-        #the end of the string itself:
-        issue_pattern = re.compile(r'#[0-9]+(\s|,|$)|.')
 
         #Create new "close" issues list:
         close_issues = []
@@ -223,38 +231,16 @@ def _main_prog():
         #Search text right after keywords for possible issue numbers:
         for match in word_matches:
 
-            #create temporary string starting at end of match:
-            tmp_msg_str = pr_msg_lower[match.end():]
+            issue_dict = match.groupdict()
+            issue_num  = int(issue_dict['id'].lstrip('0'))
 
-            #Check if first word matches issue pattern:
-            if issue_pattern.match(tmp_msg_str) is not None:
-
-                #If so, then look for an issue number immediately following
-                first_word = tmp_msg_str.split()[0]
-
-                #Extract issue number from first word:
-                try:
-                    #First try assuming the string is just a number
-                    issue_num = int(first_word[1:]) #ignore "#" symbol
-                except ValueError:
-                    #If not, then ignore the last character, in case the user
-                    #included punctutation (i.e. a space, comma, or period)
-                    #after the PR number:
-                    try:
-                        issue_num = int(first_word[1:-1])
-                    except ValueError:
-                        #If ignoring the first and last letter doesn't work,
-                        #then the match was likely a false positive,
-                        #so set the issue number to one that will never be found:
-                        issue_num = -9999
-
-                #Check if number is actually for a PR (as opposed to an issue):
-                if issue_num in open_pulls:
-                    #Add PR number to "close pulls" list:
-                    close_pulls.append(issue_num)
-                elif issue_num in open_issues:
-                    #If in fact an issue, then add to "close issues" list:
-                    close_issues.append(issue_num)
+            #Check if number is actually for a PR (as opposed to an issue):
+            if issue_num in open_pulls:
+                #Add PR number to "close pulls" list:
+                close_pulls.append(issue_num)
+            elif issue_num in open_issues:
+                #If in fact an issue, then add to "close issues" list:
+                close_issues.append(issue_num)
 
     #+++END REFERENCED PR LOOP+++
 
