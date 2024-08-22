@@ -23,6 +23,7 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'number_of_ccpp_constituents',
                           'number_of_ccpp_advected_constituents',
                           'ccpp_constituents',
+                          'ccpp_constituent_tendencies',
                           'ccpp_constituent_properties',
                           'ccpp_constituent_minimum_values',
                           'ccpp_error_message',
@@ -326,7 +327,7 @@ def gather_ccpp_req_vars(cap_database):
         for cvar in cap_database.call_list(phase).variable_list():
             stdname = cvar.get_prop_value('standard_name')
             intent = cvar.get_prop_value('intent')
-            is_const = cvar.get_prop_value('advected')
+            is_const = cvar.get_prop_value('advected') or cvar.get_prop_value('constituent')
             if ((intent in _INPUT_TYPES) and
                 (stdname not in req_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
