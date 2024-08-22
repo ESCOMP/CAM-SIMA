@@ -229,11 +229,11 @@ def _main_prog():
         word_matches = keyword_pattern.finditer(pr_msg_lower, re.IGNORECASE)
 
         #Go through all matches to pull out PR and issue numbers:
-        found_ids = []
+        found_ids = set()
         for match in word_matches:
             issue_dict = match.groupdict()
             issue_num  = int(issue_dict['id'].lstrip('0'))
-            found_ids.append(issue_num)
+            found_ids.add(issue_num)
 
         #End script if no keyword/id pairs were found:
         if not found_ids:
@@ -241,8 +241,8 @@ def _main_prog():
             endmsg += "Thus there are no issues to close."
             end_script(endmsg)
 
-        close_pulls = found_ids and open_pulls
-        close_issues = found_ids and open_issues
+        close_pulls = list(found_ids.intersection(open_pulls))
+        close_issues = list(found_ids.intersection(open_issues))
 
 
     #+++END REFERENCED PR LOOP+++
