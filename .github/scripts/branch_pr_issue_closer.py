@@ -215,15 +215,6 @@ def _main_prog():
         #Extract (lower case) Pull Request message:
         pr_msg_lower = merged_pull.body.lower()
 
-        #End script if no keywords found:
-        if keyword_pattern.search(pr_msg_lower) is None:
-            endmsg = f"Pull request #{pr_num} was merged without using any of the keywords. "
-            endmsg += "Thus there are no issues to close."
-            end_script(endmsg)
-
-        #search for at least one keyword in PR message:
-        word_matches = keyword_pattern.finditer(pr_msg_lower, re.IGNORECASE)
-
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #Extract issue and PR numbers associated with found keywords in merged PR message
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -234,19 +225,25 @@ def _main_prog():
         #Create new "closed" PR list:
         close_pulls = []
 
-        #Go through all matches to pull out PR and issue numbers:
-        for match in word_matches:
+        #Create iterator of all keyword/id pairs:
+        word_matches = keyword_pattern.finditer(pr_msg_lower, re.IGNORECASE)
 
+        #Go through all matches to pull out PR and issue numbers:
+        found_ids = []
+        for match in word_matches:
             issue_dict = match.groupdict()
             issue_num  = int(issue_dict['id'].lstrip('0'))
+            found_ids.append(issue_num)
 
-            #Check if number is actually for a PR (as opposed to an issue):
-            if issue_num in open_pulls:
-                #Add PR number to "close pulls" list:
-                close_pulls.append(issue_num)
-            elif issue_num in open_issues:
-                #If in fact an issue, then add to "close issues" list:
-                close_issues.append(issue_num)
+        #End script if no keyword/id pairs were found:
+        if not found_ids:
+            endmsg = f"Pull request #{pr_num} was merged without using any of the keywords. "
+            endmsg += "Thus there are no issues to close."
+            end_script(endmsg)
+
+        close_pulls = found_ids and open_pulls
+        close_issues = found_ids and open_issues
+
 
     #+++END REFERENCED PR LOOP+++
 
