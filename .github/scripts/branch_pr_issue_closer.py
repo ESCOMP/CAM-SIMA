@@ -228,7 +228,7 @@ def _main_prog():
         #Create new "closed" PR list:
         close_pulls = []
 
-        #Search text right after keywords for possible issue numbers:
+        #Go through all matches to pull out PR and issue numbers:
         for match in word_matches:
 
             issue_dict = match.groupdict()
