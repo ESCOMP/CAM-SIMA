@@ -546,7 +546,6 @@ CONTAINS
       integer                                        :: errflg
       character(len=512)                             :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
-      type(ccpp_constituent_properties_t), allocatable, target :: dynamic_constituents(:)
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
       ! Initalize error flag and message:

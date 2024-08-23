@@ -130,5 +130,5 @@ externals: $(AUTOCLEAN_DEPS)
 subdrv: driver/dyn_mpas_subdriver.o
 
 %.o: %.F90 dycore frame ops
-	( cd $(<D); $(FC) $(CPPFLAGS) $(FFLAGS) -c $(<F) $(CPPINCLUDES) $(FCINCLUDES) -I../framework -I../operators -I../core_$(CORE) )
+	( cd $(<D); $(FC) $(CPPFLAGS) $(FFLAGS) -c $(<F) $(CPPINCLUDES) $(FCINCLUDES) -I../framework -I../operators -I../core_$(CORE) -I../core_$(CORE)/dynamics )
 	$(LN) $(@) .

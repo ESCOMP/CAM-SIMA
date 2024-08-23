@@ -18,6 +18,11 @@ module dynconst
    !circle's circumference/diameter [unitless]
    real(kind_dyn), parameter, public :: pi = real(phys_pi, kind_dyn)
 
+   ! Convert degrees to radians
+   real(kind_dyn), parameter, public :: deg_to_rad = pi / 180.0_kind_dyn
+   ! Convert radians to degrees
+   real(kind_dyn), parameter, public :: rad_to_deg = 180.0_kind_dyn / pi
+
    ! radius of earth [m]
    real(kind_dyn), protected, public :: rearth
    ! reciprocal of earth's radius [1/m]
@@ -30,6 +35,10 @@ module dynconst
    real(kind_dyn), protected, public :: cpair
    ! Dry air gas constant [J/K/kg]
    real(kind_dyn), protected, public :: rair
+   ! water vapor gas constant [J/K/kg]
+   real(kind_dyn), protected, public :: rh2o
+   ! reference surface pressure [Pa]
+   real(kind_dyn), protected, public :: pref
    ! reference temperature [K]
    real(kind_dyn), protected, public :: tref
    ! reference lapse rate [K/m]
@@ -57,10 +66,12 @@ CONTAINS
       use physconst, only: phys_omega=>omega
       use physconst, only: phys_cpair=>cpair
       use physconst, only: phys_gravit=>gravit
+      use physconst, only: phys_pref=>pref
       use physconst, only: phys_tref=>tref
       use physconst, only: phys_lapse_rate=>lapse_rate
       use physconst, only: phys_cappa=>cappa
       use physconst, only: phys_rair=>rair
+      use physconst, only: phys_rh2o=>rh2o
 
       !Set constants used by the dynamics:
 
@@ -69,7 +80,9 @@ CONTAINS
       omega      = real(phys_omega, kind_dyn)
       cpair      = real(phys_cpair, kind_dyn)
       rair       = real(phys_rair, kind_dyn)
+      rh2o       = real(phys_rh2o, kind_dyn)
       gravit     = real(phys_gravit, kind_dyn)
+      pref       = real(phys_pref, kind_dyn)
       tref       = real(phys_tref, kind_dyn)
       lapse_rate = real(phys_lapse_rate, kind_dyn)
       cappa      = real(phys_cappa, kind_dyn)
