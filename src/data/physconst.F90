@@ -207,6 +207,18 @@ CONTAINS
 
       if (newg .or. newsday .or. newmwh2o .or. newcpwv .or. newmwdry .or.     &
            newrearth .or. newtmelt .or. newomega) then
+
+         ! Populate the new constants into module after mpi_bcast
+         if(newg)      gravit = user_defined_gravit
+         if(newsday)   sday   = user_defined_sday
+         if(newmwh2o)  mwh2o  = user_defined_mwh2o
+         if(newcpwv)   cpwv   = user_defined_cpwv
+         if(newmwdry)  mwdry  = user_defined_mwdry
+         if(newcpair)  cpair  = user_defined_cpair
+         if(newrearth) rearth = user_defined_rearth
+         if(newtmelt)  tmelt  = user_defined_tmelt
+         if(newomega)  omega  = user_defined_omega
+
          if (masterproc) then
             write(iulog, *) banner
             write(iulog, *) '***    New Physical Constant Values set ',       &
@@ -214,52 +226,44 @@ CONTAINS
             write(iulog, *) bline
             write(iulog, *) '*** Physical Constant    Old Value                  New Value         ***'
             if (newg) then
-               gravit = user_defined_gravit
                field = 'GRAVIT'
                write(iulog, 2000) field, shr_const_g, gravit
             end if
             if (newsday) then
-               sday = user_defined_sday
                field = 'SDAY'
                write(iulog, 2000) field, shr_const_sday, sday
             end if
             if (newmwh2o) then
-               mwh2o = user_defined_mwh2o
                field = 'MWH20'
                write(iulog, 2000) field, shr_const_mwwv, mwh2o
             end if
             if (newcpwv) then
-               cpwv = user_defined_cpwv
                field = 'CPWV'
                write(iulog, 2000) field, shr_const_cpwv, cpwv
             end if
             if (newmwdry) then
-               mwdry = user_defined_mwdry
                field = 'MWDRY'
                write(iulog, 2000) field, shr_const_mwdair, mwdry
             end if
             if (newcpair) then
-               cpair = user_defined_cpair
                field = 'CPAIR'
                write(iulog, 2000) field, shr_const_cpdair, cpair
             end if
             if (newrearth) then
-               rearth = user_defined_rearth
                field = 'REARTH'
                write(iulog, 2000) field, shr_const_rearth, rearth
             end if
             if (newtmelt) then
-               tmelt = user_defined_tmelt
                field = 'TMELT'
                write(iulog, 2000) field, shr_const_tkfrz, tmelt
             end if
             if (newomega) then
-               omega = user_defined_omega
                field = 'OMEGA'
                write(iulog, 2000) field, shr_const_omega, omega
             end if
             write(iulog,*) banner
          end if
+
          rga = 1._kind_phys / gravit
          rearth_recip  = 1._kind_phys / rearth
          if (.not. newomega) then
