@@ -25,4 +25,7 @@ derecho/intel/aux_sima:
 
 derecho/gnu/aux_sima:
 
+If this changes climate describe any run(s) done to evaluate the new
+climate in enough detail that it(they) could be reproduced:
+
 CAM-SIMA date used for the baseline comparison tests if different than latest:
