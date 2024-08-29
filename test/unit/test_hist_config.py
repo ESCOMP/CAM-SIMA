@@ -99,10 +99,12 @@ class HistConfigTest(unittest.TestCase):
             hist_configs = HistoryConfig(filename=in_source, logger=hist_log)
         # end with
         # Check that the first few lines of the log are as expected
-        expected_logmsg = ["DEBUG:hist_log:Added average field, 'MOE' to hist volume, h1, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/sample_files/hist_config_files/user_nl_cam_flat:5",
-                           "DEBUG:hist_log:Added average field, 'LARRY' to hist volume, h1, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/sample_files/hist_config_files/user_nl_cam_flat:5",
-                           "DEBUG:hist_log:Added average field, 'CURLY' to hist volume, h1, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/sample_files/hist_config_files/user_nl_cam_flat:5"]
-        self.assertEqual(cmplog.output[0:3], expected_logmsg)
+        expected_logmsg = ["DEBUG:hist_log:Added average field, 'MOE' to hist volume, h1, at",
+                           "DEBUG:hist_log:Added average field, 'LARRY' to hist volume, h1, at",
+                           "DEBUG:hist_log:Added average field, 'CURLY' to hist volume, h1, at"]
+        for index, expected_log in enumerate(expected_logmsg):
+            self.assertTrue(cmplog.output[index].startswith(expected_log))
+        # end for
         # Check that HistoryConfig object was created
         amsg = "Test failure: no HistConfig object created"
         self.assertTrue(isinstance(hist_configs, HistoryConfig), msg=amsg)
