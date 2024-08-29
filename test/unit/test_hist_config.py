@@ -207,16 +207,18 @@ class HistConfigTest(unittest.TestCase):
             hist_configs = HistoryConfig(filename=modified_in_source, logger=_LOGGER)
         # end with
 
-        self.maxDiff = None
+        exception_split = str(err.exception).split('\n')
+        errmsg_expected = ["No identifiers found, at",
+                           "period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years, at",
+                           "precision must be one of REAL32, REAL64, at",
+                           "'T&U&V' is not a valid identifier, at",
+                           "Attempt to set max frames to '-24', must be a positive integer, at",
+                           "hist_write_nstep0 must be one of true, t, .true., false, f, .false., at"]
 
-        # Check that the error message matches what is expected:
-        errmsg = "No identifiers found, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/tmp/user_nl_cam_multi_bad:9\n"  \
-                  "period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/tmp/user_nl_cam_multi_bad:10\n" \
-                  "precision must be one of REAL32, REAL64, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/tmp/user_nl_cam_multi_bad:11\n"  \
-                  "'T&U&V' is not a valid identifier, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/tmp/user_nl_cam_multi_bad:13\n"  \
-                  "Attempt to set max frames to '-24', must be a positive integer, at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/tmp/user_nl_cam_multi_bad:16\n"  \
-                  "hist_write_nstep0 must be one of true, t, .true., false, f, .false., at /glade/u/home/courtneyp/Projects/sima-history-clean/test/unit/tmp/user_nl_cam_multi_bad:17"
-        self.assertEqual(errmsg, str(err.exception))
+        # Check error messages are as expected
+        for index, errmsg in enumerate(exception_split):
+            self.assertTrue(errmsg.startswith(errmsg_expected[index]))
+        # end for
 
 
 ##############################################################################
