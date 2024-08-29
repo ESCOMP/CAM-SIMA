@@ -158,12 +158,6 @@ class FakeBuildCache:
 
         return {}
 
-    def diag_names(self):
-
-        """Fake version of 'diag_names' property."""
-
-        return {}
-
     # pylint: enable=no-self-use
     # pylint: enable=unused-argument
 

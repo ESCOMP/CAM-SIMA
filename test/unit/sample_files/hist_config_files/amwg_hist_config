@@ -1,7 +1,6 @@
 hist_max_frames: 1
-hist_output_frequency: monthly
+hist_output_frequency: 1*months
 hist_precision: REAL32
-!hist_output_levels: IPCC_PRESSURE_LEVELS
 
 ! ADF mean
 !hist_diag_file: adf_mean_config

@@ -307,26 +307,6 @@ def buildnml(case, caseroot, compname):
         user_nl_fname = "user_nl_cam" + inst_string
         user_nl_file = os.path.join(caseroot, user_nl_fname)
 
-        # Temporary user_nl file with history config stripped
-        user_nl_temp = os.path.join(confdir, "user_nl_temp")
-        if os.path.exists(user_nl_temp):
-            os.remove(user_nl_temp)
-        # end if
-
-        # Remove history configuration from the normal user_nl content
-        with open(user_nl_file, 'r') as infile:
-            clines = infile.readlines()
-        # end with
-        with open(user_nl_temp, 'w') as outfile:
-            for line in clines:
-                sline = line.strip()
-                if ((not sline) or (sline[0] == '!') or
-                    (_USER_NL_LINE.match(sline) is not None)):
-                    outfile.write(line)
-                # end if
-            # end or
-        # end with
-
         # Check that file actually exists.  If not then throw an error:
         if not os.path.exists(user_nl_file):
             emsg = "The file 'user_nl_cam' is missing.  Please run 'case.setup' first."

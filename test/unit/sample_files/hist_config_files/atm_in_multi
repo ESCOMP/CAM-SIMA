@@ -53,7 +53,7 @@
                     'FLDS_d4    ', 'FLDS_d5    ', 'FLDS_d6    ', 'FLDS_d7    ', 'FLDS_d8    ', 'FLDS_d9    ',
                     'FLDS_d10   ', 'AODDUST1   ', 'AODDUST3   ', 'AODDUST    ', 'AODVIS     ', 'CCN3       '
     hist_max_frames = 1
-    hist_output_frequency = '1*monthly'
+    hist_output_frequency = '1*nmonths'
     hist_precision = 'REAL32'
     hist_file_type = 'history'
     hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
@@ -67,6 +67,6 @@
     hist_output_frequency = '2*nsteps'
     hist_precision = 'REAL64'
     hist_file_type = 'history'
-    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_filename_spec = 'test_fname_%y.nc'
     hist_write_nstep0 = .true.
 /

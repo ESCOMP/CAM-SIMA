@@ -11,12 +11,12 @@ import re
 import sys
 
 # Find and include the ccpp-framework scripts directory
-# Assume we are in <CAMROOT>/src/data and SPIN is in <CAMROOT>/ccpp_framework
+# Assume we are in <CAMROOT>/src/data and CCPP is in <CAMROOT>/ccpp_framework
 __CURRDIR = os.path.abspath(os.path.dirname(__file__))
 __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
-__SPINSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
-if __SPINSCRIPTS not in sys.path:
-    sys.path.append(__SPINSCRIPTS)
+__CCPPSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
+if __CCPPSCRIPTS not in sys.path:
+    sys.path.append(__CCPPSCRIPTS)
 # end if
 
 # CCPP framework imports
@@ -30,10 +30,10 @@ from parse_tools import ParseObject, context_string, ParseInternalError
 #  %y = year,
 #  %m = month,
 #  %d = day,
-#  %s = seconds in day,
+#  %s = seconds since midnight GMT in current day,
 #  %u = unit number (e.g., h0, i)
 #
-# rhfilename_spec is the templdate for history restart files
+# rhfilename_spec is the template for history restart files
 _DEFAULT_RESTART_HIST_SPEC = '%c.cam.r%u.%y-%m-%d-%s.nc'
 # hfilename_spec is the template for each history file
 _DEFAULT_HISTORY_SPEC = '%c.cam.%u.%y-%m-%d-%s.nc'
@@ -41,11 +41,12 @@ _DEFAULT_HISTORY_SPEC = '%c.cam.%u.%y-%m-%d-%s.nc'
 # Note, these lists should match the corresponding lists in
 #    cam_hist_config_file.F90
 _TIME_PERIODS = ['nsteps', 'nstep', 'nseconds', 'nsecond',
-                 'nminutes', 'nminute', 'nhours', 'nhour', 'ndays', 'nday',
-                 'monthly', 'nmonths', 'nmonth', 'nyears', 'nyear',
+                 'nminutes', 'nminute', 'nhours', 'nhour', 'ndays',
+                 'nday', 'nmonths', 'nmonth', 'nyears', 'nyear',
                  'steps', 'seconds', 'minutes', 'hours',
                  'days', 'months', 'years']
 _OUT_PRECS = ['REAL32', 'REAL64']
+_NETCDF_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$", re.IGNORECASE)
 
 ##############################################################################
 ###
@@ -64,12 +65,23 @@ class HistoryConfigError(ValueError):
         super().__init__(message)
 
 ##############################################################################
-def blank_config_line(line):
+def _blank_config_line(line):
 ##############################################################################
     """Return True if <line> is a valid history config blank or comment
     line. Also return True if we have reached the end of the file
-    (no line)"""
-    return (not line) or (line.strip()[0] == '!')
+    (no line)
+    >>> _blank_config_line("   ! hist_add_avg_field")
+    True
+    >>> _blank_config_line("      ")
+    True
+    >>> _blank_config_line("")
+    True
+    >>> _blank_config_line("hist_add_avg_fields;h0: U")
+    False
+    >>> _blank_config_line("this is a ! weird line but is not blank")
+    False
+    """
+    return (not line.strip()) or (line.strip()[0] == '!')
 
 ##############################################################################
 def _is_integer(entry):
@@ -118,12 +130,16 @@ def _list_of_idents(entry, sep=','):
     (None, "'foo.3bar' is not a valid identifier")
     >>> _list_of_idents("foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd")
     (None, "'foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd' is not a valid identifier")
-    >>> _list_of_idents("")
+    >>> _list_of_idents("foo.3bar, foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd")
+    (None, "'foo.3bar' is not a valid identifier\\n     'foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd' is not a valid identifier")
+    >>> _list_of_idents("foo.3bar; foo", sep=';')
+    (None, "'foo.3bar' is not a valid identifier")
+    >>> _list_of_idents(" ")
     (None, 'No identifiers found')
     """
     errmsg = None
-    if entry:
-        good_list = [x.strip() for x in str(entry).split(sep)]
+    if entry.strip():
+        good_list = [x.strip() for x in entry.split(sep)]
         for sample in good_list:
             if _NETCDF_ID_RE.match(sample) is None:
                 if errmsg:
@@ -151,27 +167,34 @@ def _is_mult_period(entry):
     A time-period entry is of the form:
     [<mult> *] <period>
     where <mult> is an optional integer and <period> is one of the recognized
-    time period (e.g., steps, days, months).
+    time periods (e.g., steps, days, months).
     Also, return an error string or None if no error is found.
     >>> _is_mult_period("nsteps")
     ((1, 'nsteps'), None)
     >>> _is_mult_period("3 * nmonths")
     ((3, 'nmonths'), None)
     >>> _is_mult_period("2*fortnights")
-    (None, 'period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, monthly, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
-    >>> _is_mult_period("")
-    (None, 'no entry for frequency')
+    (None, 'period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
+    >>> _is_mult_period("7*nhours of day")
+    (None, 'period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
+    >>> _is_mult_period(" ")
+    (None, 'a frequency ([<mult>*]period) is required')
     >>> _is_mult_period("1*nyear")
     ((1, 'nyear'), None)
     >>> _is_mult_period("-6*nhours")
     (None, 'multiplier must be a positive integer')
+    >>> _is_mult_period("7h*nhours")
+    (None, 'multiplier must be a positive integer')
+    >>> _is_mult_period("5*nhours*ndays")
+    (None, "Bad formatting of frequency,  must be in the form of '<integer>*<time period>'")
     """
-    if entry:
-        tokens = [x.strip() for x in str(entry).split('*')]
+    if entry.strip():
+        tokens = [x.strip() for x in entry.split('*')]
         errmsg = None
     else:
         tokens = []
         errmsg = "a frequency ([<mult>*]period) is required"
+        return None, errmsg
     # end if
     num_tokens = len(tokens)
     if num_tokens == 1:
@@ -184,7 +207,7 @@ def _is_mult_period(entry):
         # end if
     else:
         good_entry = None
-        errmsg = "no entry for frequency"
+        errmsg = "Bad formatting of frequency,  must be in the form of '<integer>*<time period>'"
     # end if
     if good_entry:
         period = tokens[-1].lower()
@@ -230,7 +253,12 @@ def _is_string(entry):
     """Return <entry> if it represents a valid history configuration
     filename or None if it is invalid.
     Note, not currently checking this string (just that it is a string).
-    Also, return an error string or None if no error is found.
+    >>> _is_string(3)
+    (None, None)
+    >>> _is_string(3.1)
+    (None, None)
+    >>> _is_string('string')
+    ('string', None)
     """
     if isinstance(entry, str):
         fval = entry.strip()
@@ -245,14 +273,26 @@ def _is_logical(entry):
     """Return <entry> if it represents a valid history configuration
     logical or None if it is invalid.
     Also, return an error string or None if no error is found.
+    >>> _is_logical('true')
+    ('true', None)
+    >>> _is_logical('.false.')
+    ('.false.', None)
+    >>> _is_logical('truefalse')
+    (None, 'hist_write_nstep0 must be one of true, t, .true., false, f, .false.')
+    >>> _is_logical(2)
+    (None, 'hist_write_nstep0 must be a string, not a int type.')
     """
     fval, _ = _is_string(entry)
     possible_values = ['true','t','.true.','false','f','.false.']
     errmsg = None
-    if fval.lower() not in possible_values:
-        fval = None
-        out_values = ", ".join(possible_values)
-        errmsg = f"hist_write_nstep0 must be one of {out_values}"
+    if fval is not None:
+        if fval.lower() not in possible_values:
+            fval = None
+            out_values = ", ".join(possible_values)
+            errmsg = f"hist_write_nstep0 must be one of {out_values}"
+        # end if
+    else:
+        errmsg = f"hist_write_nstep0 must be a string, not a {type(entry).__name__} type."
     # end if
     return fval, errmsg
 
@@ -314,7 +354,7 @@ class HistFieldList():
     __add_field_msg = "Added {} field, '{}' to hist volume, {}{}"
     __dup_field_msg = "Field, '{}' already in {} fields for hist volume, {}{}"
     __del_field_msg = "Removed field, '{}' from {} fields on hist volume, {}{}"
-    __missing_msg = "Cannot remove field, '{}', not found on hist volume, {}{}"
+    __missing_msg = "Cannot remove field(s), '{}', not found on hist volume, {}{}"
     __max_linelen = 120 # for namelist output
 
     def __init__(self, volume, list_type, list_desc):
@@ -328,51 +368,47 @@ class HistFieldList():
         self.__field_names = []
         self.__max_namelen = 0
 
-    def _add_item(self, item, comp_lists, pobj, logger):
+    def _add_item(self, item, pobj, logger):
         """Add field name, <item> to this object and return True if this
            field name was added.
-        HistFieldList objects in <comp_lists> are searched and <item> is *not*
-           added if it is found in any of those objects.
         <item> is a single item to be added.
         <pobj> is the ParseObject source of <items>.
         """
-        iadd = str(item).strip()
+        if not _is_string(item):
+            errmsg = f"Bad diagnostic name, '{item}'"
+            pobj.add_syntax_err(errmsg)
+            return False
+        # end if
         do_add = True
-        for hflist in comp_lists:
-            if iadd in hflist.field_names and self.desc == hflist.desc:
-                # Field is a duplicate (both the name and the type match)
-                do_add = False
-                ctx = context_string(pobj)
-                logger.warning(__dup_field_msg.format(iadd, hflist.desc,
-                                                             self.volume, ctx))
-                break
-            # end if
-        # end for
-        if do_add:
-            self.__field_names.append(iadd)
-            self.__max_namelen = max(len(iadd), self.__max_namelen)
+        if item in self.__field_names:
+            # Field is a duplicate
+            do_add = False
+            ctx = context_string(pobj)
+            logger.warning(self.__dup_field_msg.format(item, hflist.desc,
+                                                       self.volume, ctx))
+        else:
+            self.__field_names.append(item)
+            self.__max_namelen = max(len(item), self.__max_namelen)
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 ctx = context_string(pobj)
-                logger.debug(self.__add_field_msg.format(self.desc, iadd,
+                logger.debug(self.__add_field_msg.format(self.desc, item,
                                                          self.volume, ctx))
             # end if
         # end if (no else, already warned above)
         return do_add
 
-    def add_fields(self, items, comp_lists, pobj, logger):
+    def add_fields(self, items, pobj, logger):
         """Add <items> to this object and return True if all items were added.
         <items> can be a single item or a list.
-        HistFieldList objects in <comp_lists> are searched and <item> is *not*
-           added if it is found in any of those objects.
         <pobj> is the ParseObject source of <items>
         """
         if isinstance(items, list):
             do_add = True
             for item in items:
-                do_add &= self._add_item(item, comp_lists, pobj, logger)
+                do_add &= self._add_item(item, pobj, logger)
             # end for
         else:
-            do_add = self._add_item(items, comp_lists, pobj, logger)
+            do_add = self._add_item(items, pobj, logger)
         # end if
         return do_add
 
@@ -417,12 +453,12 @@ class HistFieldList():
                 fld_beg = fld_end + 1
                 # Always output at least one field
                 fld_end = fld_beg
-                line_len = len(lhs) + self.max_len + 2
+                line_len = len(lhs) + self.max_namelen + 2
                 while line_len < self.__max_linelen:
                     if fld_end + 1 >= num_fields:
                         break
                     # end if
-                    next_len = self.max_len + 4
+                    next_len = self.max_namelen + 4
                     if (line_len + next_len) > self.__max_linelen:
                         break
                     # end if
@@ -431,7 +467,7 @@ class HistFieldList():
                 # end while
                 # Output this line
                 comma = "," if fld_end < num_fields - 1 else ""
-                quotelist = [f"'{x}{' '*(self.max_len - len(x))}'"
+                quotelist = [f"'{x}{' '*(self.max_namelen - len(x))}'"
                              for x in self.__field_names[fld_beg:fld_end+1]]
                 outfile.write(f"{lhs}{', '.join(quotelist)}{comma}\n")
                 lhs = blank_lhs
@@ -454,7 +490,7 @@ class HistFieldList():
         return self.__desc
 
     @property
-    def max_len(self):
+    def max_namelen(self):
         """Return the length of the longest field in this HistFieldList object.
         """
         return self.__max_namelen
@@ -469,8 +505,6 @@ class HistFieldList():
 ### History configuration types (for parsing history configuration entries
 ###
 ##############################################################################
-
-_NETCDF_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$", re.IGNORECASE)
 
 ##############################################################################
 class HistConfigEntry():
@@ -498,8 +532,8 @@ class HistConfigEntry():
         # Check that name matches pattern
         nmatch = self.__HIST_CONF_ENTRY_RE.match(self.name)
         if (not nmatch) or (len(nmatch.group(0)) != len(self.name)):
-            emsg = "'{}' is not a valid HistConfigEntry name"
-            raise ValueError(emsg.format(self.name))
+            emsg = f"'{self.name}' is not a valid HistConfigEntry name"
+            raise ValueError(emsg)
         # end if
 
     def get_entry(self, line):
@@ -523,6 +557,12 @@ class HistConfigEntry():
         >>> HistConfigEntry(r"hist_add_avg_fields", _list_of_idents,          \
                             HistoryVolConfig.add_avg_fields).get_entry("hist_add_avg_fields;h1: MOE, LARRY, CURLY")
         ((['MOE', 'LARRY', 'CURLY'], 'h1'), None)
+        >>> HistConfigEntry(r"hist_write_nstep0", _list_of_idents,            \
+                HistoryVolConfig.set_write_nstep0).get_entry("hist_write_nstep0;h3: true")
+        ((['true'], 'h3'), None)
+        >>> HistConfigEntry(r"hist_output_frequency", _list_of_idents,        \
+                HistoryVolConfig.set_output_frequency).get_entry("hist_output_frequency;h2: 5*ndecades")
+        (None, "'5*ndecades' is not a valid identifier")
         """
         ematch = self.__entry_regexp.match(line.strip())
         if ematch is not None:
@@ -577,7 +617,6 @@ class HistoryVolConfig():
 
     # Note, variable values below must match those in cam_hist_config_file.F90
     #    (without leading undescores)
-    __UNSET_C = 'UNSET'
     __HIST_FILE = "history"
     __SAT_FILE = "satellite"
     __INITIAL_FILE = "initial_value"
@@ -611,12 +650,6 @@ class HistoryVolConfig():
         self.__filename_spec = _DEFAULT_HISTORY_SPEC
         self.__restart_fname_spec = _DEFAULT_RESTART_HIST_SPEC
         self.__restart_fname_spec_set = False
-#        self.__collect_patch_output = False
-#        self.__interp_out = False
-#        self.__interp_nlat = 0
-#        self.__interp_nlon = 0
-#        self.__interp_grid = self.__UNSET_C
-#        self.__interp_type = self.__UNSET_C
         self.__write_nstep0 = ".false."
 
     def add_inst_fields(self, fields, pobj, logger):
@@ -624,8 +657,7 @@ class HistoryVolConfig():
            HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of last fields.
         """
-        add_ok = self.__inst_fields.add_fields(fields, self.__all_fields,
-                                                   pobj, logger)
+        add_ok = self.__inst_fields.add_fields(fields, pobj, logger)
         return add_ok
 
     def add_avg_fields(self, fields, pobj, logger):
@@ -633,49 +665,48 @@ class HistoryVolConfig():
         object.
         Return True if it was okay to add <fields> to list of avg fields.
         """
-        add_ok = self.__avg_fields.add_fields(fields, self.__all_fields,
-                                                  pobj, logger)
+        add_ok = self.__avg_fields.add_fields(fields, pobj, logger)
         return add_ok
 
     def add_min_fields(self, fields, pobj, logger):
         """Add one or more min_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of min fields.
         """
-        add_ok = self.__min_fields.add_fields(fields, self.__all_fields,
-                                                  pobj, logger)
+        add_ok = self.__min_fields.add_fields(fields, pobj, logger)
         return add_ok
 
     def add_max_fields(self, fields, pobj, logger):
         """Add one or more max_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of max fields.
         """
-        add_ok = self.__max_fields.add_fields(fields, self.__all_fields,
-                                                  pobj, logger)
+        add_ok = self.__max_fields.add_fields(fields, pobj, logger)
         return add_ok
 
     def add_var_fields(self, fields, pobj, logger):
         """Add one or more var_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of var fields.
         """
-        add_ok = self.__var_fields.add_fields(fields, self.__all_fields,
-                                                  pobj, logger)
+        add_ok = self.__var_fields.add_fields(fields, pobj, logger)
         return add_ok
 
     def remove_fields(self, fields, pobj, logger):
-        """Remove each field in <fields> from whatever list it is on.
+        """Remove each field in <fields> from all lists it is on.
         Return True if each field was found (and removed)."""
         fields_to_delete = set(fields)
+        fields_deleted = set()
+        all_removed = True
         for fld_list in self.__all_fields:
             removed = fld_list.remove_fields(fields_to_delete, pobj, logger)
-            fields_to_delete -= removed
+            fields_deleted.update(removed)
         # end for
-        if fields_to_delete:
+        if fields_to_delete != fields_deleted:
+            all_removed = False
+            missing_fields = fields_to_delete.difference(fields_deleted)
             ctx = context_string(pobj)
-            lmsg = "Fields ({}) not removed from {} (not found){}"
-            logger.warning(lmsg.format(", ".join(list(fields_to_delete)),
+            logger.warning(self.__missing_msg.format(", ".join(list(missing_fields)),
                                        self.volume, ctx))
         # end if
-        return not fields_to_delete
+        return all_removed
 
     @property
     def volume(self):
@@ -690,7 +721,7 @@ class HistoryVolConfig():
     def set_precision(self, prec, pobj, logger):
         """Modify the precision property of this HistoryVolConfig object.
         Return True if <prec> is a recognized precision"""
-        if prec in _OUT_PRECS:
+        if prec.upper() in _OUT_PRECS:
             self.__precision = prec
             self.__precision_set = True
             if logger.getEffectiveLevel() <= logging.DEBUG:
@@ -699,8 +730,8 @@ class HistoryVolConfig():
             # end if
             return True
         # end if
-        emsg = "Attempt to set unrecognized precision, '{}'"
-        pobj.add_syntax_err(emsg.format(prec))
+        emsg = f"Attempt to set unrecognized precision, '{prec}'"
+        pobj.add_syntax_err(emsg)
         return False
 
     @property
@@ -727,8 +758,8 @@ class HistoryVolConfig():
                 logger.debug(f"Setting max frames to '{nframes}'{ctx}")
             # end if
         else:
-            emsg = "Attempt to set max frames to '{}', must be positive integer"
-            pobj.add_syntax_err(emsg.format(nframes))
+            emsg = f"Attempt to set max frames to '{nframes}', must be a positive integer"
+            pobj.add_syntax_err(emsg)
         # end if
         return nframes_ok
 
@@ -744,8 +775,8 @@ class HistoryVolConfig():
             self.__write_nstep0 = ".false."
         else:
             nstep0_ok = False
-            emsg = "Attempt to set write_nstep0 to '{}', must be true or false"
-            pobj.add_syntax_err(emsg.format(write_nstep0))
+            emsg = f"Attempt to set write_nstep0 to '{write_nstep0}', must be true or false"
+            pobj.add_syntax_err(emsg)
         # end if
         if nstep0_ok and logger.getEffectiveLevel() <= logging.DEBUG:
             ctx = context_string(pobj)
@@ -756,10 +787,7 @@ class HistoryVolConfig():
     def outfreq_str(self):
         """Return the output_frequency for this HistoryVolConfig object
         as a string"""
-        if isinstance(self.__output_freq, tuple):
-            return f"{self.__output_freq[0]}*{self.__output_freq[1]}"
-        # end if
-        return str(self.__output_freq)
+        return f"{self.__output_freq[0]}*{self.__output_freq[1]}"
 
     @property
     def output_frequency(self):
@@ -774,7 +802,7 @@ class HistoryVolConfig():
         if ( isinstance(ofreq, tuple) and (len(ofreq) == 2) and
              isinstance(ofreq[0], int) and isinstance(ofreq[1], str) and
              (ofreq[0] > 0) and
-             (ofreq[1].strip() in _TIME_PERIODS)):
+             (ofreq[1].strip().lower() in _TIME_PERIODS)):
             self.__output_freq = ofreq
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 ctx = context_string(pobj)
@@ -782,8 +810,8 @@ class HistoryVolConfig():
             # end if
             return True
         # end if
-        emsg = "Attempt to set unrecognized output_frequency, '{}'"
-        pobj.add_syntax_err(emsg.format(ofreq))
+        emsg = f"Attempt to set unrecognized output_frequency, '{ofreq}'"
+        pobj.add_syntax_err(emsg)
         return False
 
     @property
@@ -793,11 +821,12 @@ class HistoryVolConfig():
 
     def set_file_type(self, ftype, pobj, logger):
         """Modify the file_type property of this HistoryVolConfig object"""
-        if ftype in self.__HFILE_TYPES:
+        if ftype.strip().lower() in self.__HFILE_TYPES:
             self.__file_type = ftype
         else:
             tstr = f", must be one of ({', '.join(self.__HFILE_TYPES)})."
-            raise HistoryConfigError(f"Bad history file type, '{ftype}'{tstr}")
+            pobj.add_syntax_err(f"Bad history file type, '{ftype}'{tstr}")
+            return False
         # end if
         if (ftype == self.__INITIAL_FILE) and (not self.__max_frames_set):
             self.__max_frames = 1
@@ -816,11 +845,10 @@ class HistoryVolConfig():
         """Return the filename_spec property for this HistoryVolConfig object"""
         return self.__filename_spec
 
-    def set_filename_spec(self, fnspec, pobj=None, logger=None):
+    def set_filename_spec(self, fnspec, pobj, logger):
         """Modify the filename_spec property of this HistoryVolConfig object.
         If the restart filename spec has not yet been set, set it to the default
         for <fnspec> if possible (i.e., if <fnspec> contains a '%u').
-        Note that it is an error to try and set this twice.
         """
         self.__filename_spec = fnspec
         if not self.__restart_fname_spec_set:
@@ -829,7 +857,7 @@ class HistoryVolConfig():
                                                                          "r%u")
             # end if
         # end if
-        if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
+        if logger.getEffectiveLevel() <= logging.DEBUG:
             ctx = context_string(pobj)
             logger.debug(f"Setting filename spec to '{fnspec}'{ctx}")
         # end if
@@ -841,18 +869,17 @@ class HistoryVolConfig():
         HistoryVolConfig object"""
         return self.__restart_fname_spec
 
-    def set_restart_fname_spec(self, rfnspec=None, pobj=None, logger=None):
-        """Modify the filename_spec property of this HistoryVolConfig object.
+    def set_restart_fname_spec(self, pobj, logger, rfnspec=None):
+        """Modify the restart filename spec property of this HistoryVolConfig object.
         If the restart filename spec has not yet been set, set it to the default
         for <fnspec> if possible (i.e., if <fnspec> contains a '%u').
-        Note that it is an error to try and set this twice.
         """
         if not rfnspec:
             rfnspec = self.__filename_spec.replace("%u", "r%u")
         # end if
         self.__restart_fname_spec = rfnspec
         self.__restart_fname_spec_set = True
-        if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
+        if logger.getEffectiveLevel() <= logging.DEBUG:
             ctx = context_string(pobj)
             logger.debug(f"Setting restart filename spec to '{fnspec}'{ctx}")
         # end if
@@ -872,11 +899,9 @@ class HistoryVolConfig():
         elif fld_type == 'var':
             num_flds = self.__var_fields.num_fields()
         elif fld_type == 'all':
-            num_flds = self.__avg_fields.num_fields() + self.__inst_fields.num_fields() + \
-                self.__min_fields.num_fields() + self.__max_fields.num_fields() + \
-                self.__var_fields.num_fields()
+            num_flds = sum([x.num_fields() for x in self.__all_fields])
         else:
-            raise ParseInternalError("Unknown fld_type, '{}'".format(fld_type))
+            raise ParseInternalError(f"Unknown fld_type, '{fld_type}'")
         # end if
         return num_flds
 
@@ -976,10 +1001,7 @@ class HistoryConfig(dict):
         file_dir = os.path.dirname(os.path.abspath(filename))
         no_comm_ok = volume is None # Can have mixed lines for user_nl_cam
         with open(filename, "r", encoding="UTF-8") as cfile:
-            clines = cfile.readlines()
-            for index, line in enumerate(clines):
-                clines[index] = line.strip()
-            # End for
+            clines = [line.strip() for line in cfile.readlines()]
         # end with
         # create a parse object and context for this file
         pobj = ParseObject(filename, clines)
@@ -1021,7 +1043,7 @@ class HistoryConfig(dict):
                     pobj.add_syntax_err(errmsg)
                 # end if
             else:
-                if (not no_comm_ok) and (not blank_config_line(curr_line)):
+                if (not no_comm_ok) and (not _blank_config_line(curr_line)):
                     # Something has gone wrong.
                     ctx = context_string(pobj)
                     emsg = f"Bad line but no error{ctx}"
@@ -1040,8 +1062,8 @@ class HistoryConfig(dict):
                         dfile = ""
                     # end if
                     if os.path.exists(dfile):
-                        lmsg = "Processing {} for history volume {}"
-                        logger.debug(lmsg.format(dfile, fnum))
+                        lmsg = f"Processing {dfile} for history volume {fnum}"
+                        logger.debug(lmsg)
                         self.parse_hist_config_file(dfile, logger, volume=fnum)
                     else:
                         ctx = context_string(pobj)
