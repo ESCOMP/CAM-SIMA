@@ -11,9 +11,8 @@ module ic_baroclinic
   use cam_abortutils,      only: endrun
   use spmd_utils,          only: masterproc
 
-  use physconst,           only : rair, gravit, rearth, pi, omega, epsilo
-  use hycoef,              only : hyai, hybi, hyam, hybm, ps0
-  use cam_constituents,    only: const_get_index
+  use physconst,           only: rair, gravit, rearth, pi, omega, epsilo
+  use hycoef,              only: hyai, hybi, hyam, hybm, ps0
 
   implicit none
   private
@@ -76,11 +75,15 @@ contains
 
   subroutine bc_wav_set_ic(vcoord,latvals, lonvals, zint, U, V, T, PS, PHIS, &
        Q, m_cnst, mask, verbose)
-    use dyn_tests_utils,     only: vc_moist_pressure, vc_dry_pressure, vc_height
-    !use constituents,        only: cnst_name
-    !use const_init,          only: cnst_init_default
-    use inic_analytic_utils, only: analytic_ic_is_moist
-    use cam_abortutils,      only: check_allocate
+    use shr_kind_mod,              only: cx => shr_kind_cx
+    use dyn_tests_utils,           only: vc_moist_pressure, vc_dry_pressure, vc_height
+    use runtime_obj,               only: wv_stdname
+    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+    use cam_ccpp_cap,              only: cam_model_const_properties
+    use ccpp_kinds,                only: kind_phys
+    use cam_constituents,          only: const_get_index, const_qmin
+    use inic_analytic_utils,       only: analytic_ic_is_moist
+    use cam_abortutils,            only: check_allocate
 
     !-----------------------------------------------------------------------
     !
@@ -107,21 +110,26 @@ contains
     ! Local variables
     logical, allocatable              :: mask_use(:)
     logical                           :: verbose_use
-    integer                           :: ix_cld_liq, ix_rain
+    integer                           :: ix_q, m_cnst_ix_q
     integer                           :: i, k, m
     integer                           :: ncol
     integer                           :: nlev
     integer                           :: ncnst
     integer                           :: iret
     character(len=*), parameter       :: subname = 'BC_WAV_SET_IC'
+    character(len=cx)                 :: errmsg !CCPP error message
     real(r8)                          :: ztop,ptop
     real(r8)                          :: uk,vk,Tvk,qk,pk !mid-level state
     real(r8)                          :: psurface
     real(r8)                          :: wvp,qdry
-    logical                           :: lU, lV, lT, lQ, l3d_vars
-    logical                           :: cnst1_is_moisture
+    real(kind_phys)                   :: const_default_value !Constituent default value
+    real(kind_phys)                   :: const_qmin_value    !Constituent minimum value
+    logical                           :: lU, lV, lT, lQ, l3d_vars, const_has_default
     real(r8), allocatable             :: pdry_half(:), pwet_half(:),zdry_half(:),zk(:)
     real(r8), allocatable             :: zmid(:,:) ! layer midpoint heights for test tracer initialization
+
+    !Private array of constituent properties (for property interface functions)
+    type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
 
     if ((vcoord == vc_moist_pressure) .or. (vcoord == vc_dry_pressure)) then
       !
@@ -158,9 +166,6 @@ contains
     else
       mask_use = .true.
     end if
-
-    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ix_cld_liq)
-    call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix_rain)
 
     if (present(verbose)) then
       verbose_use = verbose
@@ -235,13 +240,17 @@ contains
       if (lt) nlev = size(T, 2)
 
       if (lq) then
+         !Get water vapor constituent index:
+         call const_get_index(wv_stdname, ix_q)
+
+         !Determine which "Q" variable index matches water vapor:
+         m_cnst_ix_q = findloc(m_cnst, ix_q, dim=1)
+
+         !Determine vertical levels for constituents:
          nlev = size(Q, 2)
-         ! check whether first constituent in Q is water vapor.
-         cnst1_is_moisture = m_cnst(1) == 1
          allocate(zmid(size(Q, 1),nlev), stat=iret)
          call check_allocate(iret, subname, 'zmid(size(Q, 1),nlev)', &
                              file=__FILE__, line=__LINE__)
-
       end if
 
       allocate(zk(nlev), stat=iret)
@@ -306,12 +315,14 @@ contains
                 pk = moist_pressure_given_z(zk(k),latvals(i))
                 qk = qv_given_moist_pressure(pk,latvals(i))
               else
-                qk = 0.d0
+                qk = 0._r8
               end if
-              if (lq .and. cnst1_is_moisture) Q(i,k,1) = qk
+              if (lq) then
+                Q(i,k,m_cnst_ix_q) = qk
+              end if
               if (lt) then
                 tvk    = Tv_given_z(zk(k),latvals(i))
-                T(i,k) = tvk / (1.d0 + Mvap * qk)
+                T(i,k) = tvk / (1._r8 + Mvap * qk)
               end if
             end if
           end do
@@ -339,8 +350,8 @@ contains
               else
                 qdry = 0.0_r8
               end if
-              if (lq .and. cnst1_is_moisture) then
-                Q(i,k,1) = qdry
+              if (lq) then
+                Q(i,k,m_cnst_ix_q) = qdry
               end if
               if (lt) then
                 !
@@ -356,35 +367,58 @@ contains
       if(lu .and. masterproc.and. verbose_use)  write(iulog,*) '          U initialized by "',subname,'"'
       if(lv .and. masterproc.and. verbose_use)  write(iulog,*) '          V initialized by "',subname,'"'
       if(lt .and. masterproc.and. verbose_use)  write(iulog,*) '          T initialized by "',subname,'"'
-!Un-comment once constituents are working in CAMDEN -JN:
-#if 0
-      if(lq .and. cnst1_is_moisture .and. masterproc.and. verbose_use)  write(iulog,*) &
-           '          ', trim(cnst_name(m_cnst(1))), ' initialized by "',subname,'"'
-#endif
-    end if
+      if(lq .and. masterproc.and. verbose_use) then
+        write(iulog,*) '          ', wv_stdname, ' initialized by "',subname,'"'
+      end if
 
-!Un-comment once constituents are working in CAMDEN -JN:
-#if 0
+    end if !l3d_vars
+
     if (lq) then
-      ncnst = size(m_cnst, 1)
-      do m = 1, ncnst
 
-        ! water vapor already done above
-        if (m_cnst(m) == 1) cycle
+      !Get constituent properties object:
+      const_props => cam_model_const_properties()
 
-        call cnst_init_default(m_cnst(m), latvals, lonvals, Q(:,:,m),&
-             mask=mask_use, verbose=verbose_use, notfound=.false.,&
-             z=zmid)
+      do m = 1, size(m_cnst)
 
-      end do
+        !Skip water vapor, as it was aleady set above:
+        if (m == m_cnst_ix_q) cycle
+
+        !Extract constituent minimum value:
+        const_qmin_value = const_qmin(m_cnst(m))
+
+        !Initialize constituent to its minimum value:
+        Q(:,:,m) = real(const_qmin_value, r8)
+
+        !Check for default value in constituent properties object:
+        call const_props(m_cnst(m))%has_default(const_has_default, &
+                                                iret,      &
+                                                errmsg)
+        if (iret /= 0) then
+          call endrun(errmsg, file=__FILE__, line=__LINE__)
+        end if
+
+        if (const_has_default) then
+
+           !If default value exists, then extract default value
+           !from constituent properties object:
+           call const_props(m_cnst(m))%default_value(const_default_value, &
+                                                     iret,        &
+                                                     errmsg)
+           if (iret /= 0) then
+             call endrun(errmsg, file=__FILE__, line=__LINE__)
+           end if
+
+           !Set constituent to default value in masked region:
+           do k=1,nlev
+             where(mask_use)
+               Q(:,k,m) = real(const_default_value, r8)
+             end where
+           end do
+
+        end if !has_default
+
+      end do !m_cnst
     end if   ! lq
-#else
-   if (lq) then
-      !Initialize cloud liquid and rain until constituent routines are enabled:
-      Q(:,:,ix_cld_liq) = 0.0_r8
-      Q(:,:,ix_rain)    = 0.0_r8
-   end if
-#endif
 
     deallocate(mask_use)
     if (l3d_vars) then

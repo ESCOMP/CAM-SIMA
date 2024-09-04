@@ -40,6 +40,8 @@ public :: d_p_coupling, p_d_coupling
 
 real(r8), allocatable :: q_prev(:,:,:) ! Previous Q for computing tendencies
 
+real(kind_phys), allocatable :: qmin_vals(:) !Consitutent minimum values array
+
 !=========================================================================================
 CONTAINS
 !=========================================================================================
@@ -553,7 +555,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use cam_ccpp_cap,      only: cam_constituents_array
    use cam_ccpp_cap,      only: cam_model_const_properties
-   use cam_constituents,  only: const_get_index
+   use cam_constituents,  only: const_get_index, const_qmin
    use physics_types,     only: lagrangian_vertical
    use physconst,         only: cpair, gravit, zvir, cappa
    use cam_thermo,        only: cam_thermo_update
@@ -561,7 +563,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use physics_grid,      only: columns_on_task
    use geopotential_temp, only: geopotential_temp_run
    use static_energy,     only: update_dry_static_energy_run
-!   use qneg,              only: qneg_run
+   use qneg,              only: qneg_run
 !   use check_energy,   only: check_energy_timestep_init
    use hycoef,            only: hyai, ps0
    use shr_vmath_mod,     only: shr_vmath_log
@@ -587,6 +589,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    integer :: errflg
    character(len=shr_kind_cx) :: errmsg
 
+   character(len=*), parameter :: subname = 'derived_phys_dry'
+
    !--------------------------------------------
    !  Variables needed for WACCM-X
    !--------------------------------------------
@@ -609,6 +613,20 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Grab pointer to constituent and properties arrays
    const_data_ptr => cam_constituents_array()
    const_prop_ptr => cam_model_const_properties()
+
+   ! Create qmin array (if not already generated):
+   if (.not.allocated(qmin_vals)) then
+     allocate(qmin_vals(size(const_prop_ptr)), stat=errflg)
+     call check_allocate(errflg, subname, &
+                         'qmin_vals(size(cam_model_const_properties))', &
+                         file=__FILE__, line=__LINE__)
+
+
+     ! Set relevant minimum values for each constituent:
+     do m = 1, size(qmin_vals)
+       qmin_vals(m) = const_qmin(m)
+     end do
+   end if
 
    ! Evaluate derived quantities
 
@@ -736,6 +754,11 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       end do
    endif
 
+   ! Ensure tracers are all greater than or equal to their
+   ! minimum-allowed value:
+   call qneg_run('D_P_COUPLING', columns_on_task, pver, &
+                 qmin_vals, const_data_ptr, errflg, errmsg)
+
    !-----------------------------------------------------------------------------
    ! Call cam_thermo_update. If cam_runtime_opts%update_thermodynamic_variables()
    ! returns .true., cam_thermo_update will compute cpairv, rairv, mbarv, and cappav as
@@ -743,6 +766,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
    ! Update zvirv registry variable; calculated for WACCM-X.
    !-----------------------------------------------------------------------------
+
    call cam_thermo_update(const_data_ptr, phys_state%t, pcols, &
         cam_runtime_opts%update_thermodynamic_variables())
 
@@ -759,15 +783,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call update_dry_static_energy_run(pver, gravit, phys_state%t, phys_state%zm,          &
                                      phys_state%phis, phys_state%dse, cpairv,            &
                                      errflg, errmsg)
-
-   ! Ensure tracers are all positive
-   ! Please note this cannot be used until the 'qmin'
-   ! array is publicly provided by the CCPP constituent object. -JN
-#if 0
-   call qneg_run('D_P_COUPLING', columns_on_task, pver, &
-                 qmin, const_data_ptr,       &
-                 errflg, errmsg)
-#endif
 
 !Remove once check_energy scheme exists in CAMDEN:
 #if 0

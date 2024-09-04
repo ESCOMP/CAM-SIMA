@@ -9,6 +9,9 @@ module runtime_obj
    integer,          public, parameter :: unset_int    = huge(1)
    real(r8),         public, parameter :: unset_real   = huge(1.0_r8)
 
+   ! Water vapor constituent standard name
+   character(len=*), public, parameter :: wv_stdname = 'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water'
+
    ! Public interfaces and data
 
    !> \section arg_table_runtime_options  Argument Table
