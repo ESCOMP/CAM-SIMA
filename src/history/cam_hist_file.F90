@@ -454,9 +454,9 @@ CONTAINS
         inst_fields, avg_fields, min_fields, max_fields, var_fields,          &
         write_nstep0, interp_out, interp_nlat, interp_nlon, interp_grid,      &
         interp_type)
-      use shr_string_mod, only: to_lower => shr_string_toLower
-      use string_utils,   only: parse_multiplier
-      use cam_abortutils, only: endrun, check_allocate
+      use shr_string_mod,      only: to_lower => shr_string_toLower
+      use cam_history_support, only: parse_multiplier
+      use cam_abortutils,      only: endrun, check_allocate
       ! Dummy arguments
       class(hist_file_t),         intent(inout) :: this
       character(len=*),           intent(in)    :: volume

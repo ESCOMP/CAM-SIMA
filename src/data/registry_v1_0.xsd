@@ -92,18 +92,6 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <xs:simpleType name="netcdf_name_type">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="[A-Za-z][A-Za-z0-9_]{0,256}"/>
-    </xs:restriction>
-  </xs:simpleType>
-
-  <xs:simpleType name="avgflag_type">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="[A-Za-z][A-Za-z_]{0,3}"/>
-    </xs:restriction>
-  </xs:simpleType>
-
   <!-- attributes -->
 
   <xs:attribute name="access"                  type="access_type"/>
@@ -137,10 +125,6 @@
     <xs:list itemType="input_name_type"/>
   </xs:simpleType>
 
-  <xs:simpleType name="netcdf_variable_names">
-    <xs:list itemType="netcdf_name_type"/>
-  </xs:simpleType>
-
   <!-- definition of complex types -->
 
   <xs:complexType name="initial_value">
@@ -151,21 +135,11 @@
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="diagnostic_type">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="name" type="netcdf_name_type" />
-        <xs:attribute name="flag" type="netcdf_name_type" />
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-
   <xs:complexType name="array_element_type">
     <xs:sequence>
       <xs:element name="long_name"     type="xs:string"  minOccurs="0"/>
       <xs:element name="initial_value" type="initial_value"  minOccurs="0"/>
       <xs:element name="ic_file_input_names" type="ic_file_input_names" minOccurs="0"/>
-      <xs:element name="diagnostic" type="diagnostic_type" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute ref="standard_name" use="required"/>
     <xs:attribute ref="units"         use="optional"/>
@@ -185,7 +159,6 @@
       <xs:element name="dimensions"    type="dimensions" minOccurs="0"/>
       <xs:element name="initial_value" type="initial_value" minOccurs="0"  maxOccurs="unbounded"/>
       <xs:element name="ic_file_input_names" type="ic_file_input_names" minOccurs="0"/>
-      <xs:element name="diagnostic" type="diagnostic_type" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute ref="local_name"    use="required"/>
     <xs:attribute ref="standard_name" use="required"/>

@@ -1,8 +1,8 @@
 module cam_physics_control
 !------------------------------------------------------------------------------
 !
-! High level control variables.  Information received from the driver/coupler is
-! stored here.
+! High level physics control variables.  Information received from the
+! driver/coupler is stored here.
 !
 !------------------------------------------------------------------------------
 
@@ -19,15 +19,8 @@ module cam_physics_control
    !
    !   cam_ctrl_set_physics_type
 
-   logical, protected :: adiabatic         ! true => no physics
-   logical, protected :: ideal_phys        ! true => run Held-Suarez (1994) physics
-   logical, protected :: kessler_phys      ! true => run Kessler physics
-   logical, protected :: tj2016_phys       ! true => run tj2016 physics
-   logical, protected :: grayrad_phys      ! true => run gray radiation (frierson) physics
    logical, protected :: simple_phys       ! true => adiabatic or ideal_phys or kessler_phys
                                            !         or tj2016 or grayrad
-   logical, protected :: moist_physics     ! true => moist physics enabled, i.e.,
-                                           ! (.not. ideal_phys) .and. (.not. adiabatic)
 
 
 !==============================================================================
@@ -45,6 +38,12 @@ CONTAINS
       character(len=SHR_KIND_CS), allocatable :: suite_names(:)
       ! suite_name: CCPP suite we are running
       character(len=SHR_KIND_CS)              :: suite_name
+      logical                                 :: adiabatic
+      logical                                 :: ideal_phys
+      logical                                 :: kessler_phys
+      logical                                 :: tj2016_phys
+      logical                                 :: grayrad_phys
+      logical                                 :: moist_physics
 
       character(len=*), parameter :: subname = 'cam_ctrl_set_physics_type'
 
@@ -69,7 +68,7 @@ CONTAINS
       if (masterproc) then
          if (adiabatic) then
             write(iulog,*) 'Run model ADIABATICALLY (i.e. no physics)'
-            write(iulog,*) '  Global energy fixer is on for non-Eulerian dycores.'
+            write(iulog,*) '  Global energy fixer is on for dycores.'
          else if (ideal_phys) then
             write(iulog,*) 'Run model with Held-Suarez physics forcing'
          else if (kessler_phys) then

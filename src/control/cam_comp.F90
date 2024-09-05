@@ -429,7 +429,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check)
+   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, do_history_write)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
@@ -444,12 +444,23 @@ CONTAINS
       !Flag for whether a snapshot (ncdata) check should be run or not
       ! - flag is true if this is not the first or last step
       logical, intent(in)  :: do_ncdata_check
+      !Flag for whether to perform the history write
+      logical, optional, intent(in) :: do_history_write
 
-      if (do_ncdata_check .or. get_nstep() == 0) then
-         call history_write_files()
-         ! peverwhee - todo: handle restarts
-         call history_wrap_up(rstwr, nlend)
+      logical :: history_write_loc
+
+      if (present(do_history_write)) then
+         history_write_loc = do_history_write
+      else
+         history_write_loc = .true.
       end if
+
+      if (history_write_loc) then
+         call history_write_files()
+      end if
+      ! peverwhee - todo: handle restarts
+      call history_wrap_up(rstwr, nlend)
+
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_FINAL Call the Physics package

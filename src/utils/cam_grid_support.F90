@@ -2,6 +2,7 @@ module cam_grid_support
    use shr_kind_mod,        only: r8=>shr_kind_r8, r4=>shr_kind_r4
    use shr_kind_mod,        only: i8=>shr_kind_i8, i4=>shr_kind_i4
    use shr_kind_mod,        only: max_chars=>shr_kind_cl
+   use shr_kind_mod,        only: shr_kind_cm
    use shr_sys_mod,         only: shr_sys_flush
    use cam_map_utils,       only: iMap
    use pio,                 only: var_desc_t
@@ -164,7 +165,7 @@ module cam_grid_support
       type(horiz_coord_t), pointer       :: lon_coord => NULL() ! Longitude
       logical                            :: unstructured  ! Is this needed?
       logical                            :: block_indexed ! .false. for lon/lat
-      logical                            :: attrs_defined(2) = .false.
+      logical                            :: attrs_defined(max_split_files) = .false.
       logical                            :: zonal_grid    = .false.
       type(cam_filemap_t),       pointer :: map => null() ! global dim map (dof)
       type(cam_grid_attr_ptr_t), pointer :: attributes => NULL()
@@ -273,8 +274,6 @@ module cam_grid_support
    !---------------------------------------------------------------------------
 
    ! Abstract interface for write_attr procedure of cam_grid_attribute_t class
-   ! NB: This will not compile on some pre-13 Intel compilers
-   !     (fails on 12.1.0.233 on Frankfurt, passes on 13.0.1.117 on Yellowstone)
    abstract interface
       subroutine write_cam_grid_attr(attr, File, file_index)
          use pio, only: file_desc_t
@@ -477,6 +476,7 @@ contains
 
    function horiz_coord_create(name, dimname, dimsize, long_name, units,      &
         lbound, ubound, values, map, bnds) result(newcoord)
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       character(len=*), intent(in)           :: name
@@ -491,8 +491,12 @@ contains
       integer(iMap),    intent(in), optional :: map(ubound-lbound+1)
       real(r8),         intent(in), optional :: bnds(2,lbound:ubound)
       type(horiz_coord_t),          pointer  :: newcoord
+      ! Local variables
+      integer                                :: ierr
+      character(len=*), parameter            :: subname = 'horiz_coord_create'
 
-      allocate(newcoord)
+      allocate(newcoord, stat=ierr)
+      call check_allocate(ierr, subname, 'newcoord', file=__FILE__, line=__LINE__-1)
 
       newcoord%name      = trim(name)
       newcoord%dimname   = trim(dimname)
@@ -519,7 +523,8 @@ contains
       else
          call endrun("horiz_coord_create: unsupported units: '"//trim(units)//"'")
       end if
-      allocate(newcoord%values(lbound:ubound))
+      allocate(newcoord%values(lbound:ubound), stat=ierr)
+      call check_allocate(ierr, subname, 'newcoord%values', file=__FILE__, line=__LINE__-1)
       if (ubound >= lbound) then
          newcoord%values(:) = values(:)
       end if
@@ -528,7 +533,8 @@ contains
          if (ANY(map < 0)) then
             call endrun("horiz_coord_create "//trim(name)//": map vals < 0")
          end if
-         allocate(newcoord%map(ubound - lbound + 1))
+         allocate(newcoord%map(ubound - lbound + 1), stat=ierr)
+         call check_allocate(ierr, subname, 'newcoord%map', file=__FILE__, line=__LINE__-1)
          if (ubound >= lbound) then
             newcoord%map(:) = map(:)
          end if
@@ -537,7 +543,8 @@ contains
       end if
 
       if (present(bnds)) then
-         allocate(newcoord%bnds(2, lbound:ubound))
+         allocate(newcoord%bnds(2, lbound:ubound), stat=ierr)
+         call check_allocate(ierr, subname, 'newcoord%bnds', file=__FILE__, line=__LINE__-1)
          if (ubound >= lbound) then
             newcoord%bnds = bnds
          end if
@@ -560,6 +567,7 @@ contains
       use pio, only: file_desc_t, pio_put_att, pio_noerr, pio_double
       use pio, only: pio_bcast_error, pio_seterrorhandling, pio_inq_varid
       use cam_pio_utils, only: cam_pio_def_dim, cam_pio_def_var
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       class(horiz_coord_t), intent(inout) :: this
@@ -575,6 +583,7 @@ contains
       integer                             :: err_handling
       integer                             :: ierr
       integer                             :: file_index_loc
+      character(len=*), parameter         :: subname = 'write_horiz_coord_attr'
 
       ! We will handle errors for this routine
       call pio_seterrorhandling(File, PIO_BCAST_ERROR, oldmethod=err_handling)
@@ -595,54 +604,59 @@ contains
          ! Variable not already defined, we need to define the variable
          if (associated(this%vardesc(file_index_loc)%p)) then
             ! This should not happen (i.e., internal error)
-            call endrun('write_horiz_coord_attr: vardesc already allocated for '//trim(dimname))
+            call endrun(subname//' vardesc already allocated for '//trim(dimname))
          end if
-         allocate(this%vardesc(file_index_loc)%p)
+         allocate(this%vardesc(file_index_loc)%p, stat=ierr)
+         call check_allocate(ierr, subname, 'this%vardesc(file_index_loc)%p', &
+            file=__FILE__, line=__LINE__-1)
          call cam_pio_def_var(File, trim(this%name), pio_double,              &
               (/ dimid /), this%vardesc(file_index_loc)%p, existOK=.false.)
          ierr= pio_put_att(File, this%vardesc(file_index_loc)%p,              &
               '_FillValue', grid_fill_value)
          call cam_pio_handle_error(ierr,                                      &
-              'Error writing "_FillValue" attr in write_horiz_coord_attr')
+              'Error writing "_FillValue" attr in '//subname)
          ! long_name
          ierr=pio_put_att(File, this%vardesc(file_index_loc)%p, 'long_name',  &
               trim(this%long_name))
          call cam_pio_handle_error(ierr,                                      &
-              'Error writing "long_name" attr in write_horiz_coord_attr')
+              'Error writing "long_name" attr in '//subname)
          ! units
          ierr=pio_put_att(File, this%vardesc(file_index_loc)%p, 'units',      &
               trim(this%units))
          call cam_pio_handle_error(ierr,                                      &
-              'Error writing "units" attr in write_horiz_coord_attr')
+              'Error writing "units" attr in '//subname)
          ! Take care of bounds if they exist
          if (associated(this%bnds)) then
-            allocate(this%bndsvdesc(file_index_loc)%p)
+            allocate(this%bndsvdesc(file_index_loc)%p, stat=ierr)
+            call check_allocate(ierr, subname,                                &
+               'this%bndsvdesc(file_index_loc)%p', file=__FILE__,             &
+               line=__LINE__-1)
             ierr = pio_put_att(File, this%vardesc(file_index_loc)%p, 'bounds',&
                  trim(this%name)//'_bnds')
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing "'//trim(this%name)//'_bnds" attr in write_horiz_coord_attr')
+                 'Error writing "'//trim(this%name)//'_bnds" attr in '//subname)
             call cam_pio_def_dim(File, 'nbnd', 2, bnds_dimid, existOK=.true.)
             call cam_pio_def_var(File,                                        &
                  trim(this%name)//'_bnds', pio_double,                        &
                  (/ bnds_dimid, dimid /), this%bndsvdesc(file_index_loc)%p,   &
                  existOK=.false.)
             call cam_pio_handle_error(ierr,                                   &
-                 'Error defining "'//trim(this%name)//'bnds" in write_horiz_coord_attr')
+                 'Error defining "'//trim(this%name)//'_bnds" in '//subname)
             ! long_name
             ierr = pio_put_att(File, this%bndsvdesc(file_index_loc)%p,        &
                  'long_name', trim(this%name)//' bounds')
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing bounds "long_name" attr in write_horiz_coord_attr')
+                 'Error writing bounds "long_name" attr in '//subname)
             ! fill value
             ierr = pio_put_att(File, this%vardesc(file_index_loc)%p,          &
                  '_FillValue', grid_fill_value)
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing "_FillValue" attr in write_horiz_coord_attr')
+                 'Error writing "_FillValue" attr in '//subname)
             ! units
             ierr = pio_put_att(File, this%bndsvdesc(file_index_loc)%p,        &
                  'units', trim(this%units))
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing bounds "units" attr in write_horiz_coord_attr')
+                 'Error writing bounds "units" attr in '//subname)
          end if ! There are bounds for this coordinate
       end if ! We define the variable
 
@@ -679,7 +693,7 @@ contains
       integer,     optional,   intent(in)    :: file_index
 
       ! Local variables
-      character(len=120)                     :: errormsg
+      character(len=shr_kind_cm)             :: errormsg
       integer                                :: ierr
       integer                                :: ldims(1)
       integer                                :: fdims(1)
@@ -861,6 +875,7 @@ contains
 
    subroutine cam_grid_register(name, id, lat_coord, lon_coord, map,          &
         unstruct, block_indexed, zonal_grid, src_in, dest_in)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),             intent(in) :: name
       integer,                      intent(in) :: id
@@ -875,9 +890,10 @@ contains
 
       ! Local variables
       character(len=max_hcoordname_len)       :: latdimname, londimname
-      character(len=120)                      :: errormsg
+      character(len=shr_kind_cm)              :: errormsg
       integer                                 :: i
       integer                                 :: src(2), dest(2)
+      integer                                 :: ierr
       character(len=*), parameter             :: subname = 'CAM_GRID_REGISTER'
 
       ! For a values grid, we do not allow multiple calls
@@ -950,7 +966,9 @@ contains
                dest(2) = 2
             end if
          end if
-         allocate(cam_grids(registeredhgrids)%map)
+         allocate(cam_grids(registeredhgrids)%map, stat=ierr)
+         call check_allocate(ierr, subname, 'cam_grids(registeredhgrids)%map',&
+                 file=__FILE__, line=__LINE__-1)
          call cam_grids(registeredhgrids)%map%init(map,                       &
               cam_grids(registeredhgrids)%unstructured, src, dest)
          call cam_grids(registeredhgrids)%print_cam_grid()
@@ -1024,7 +1042,7 @@ contains
 
       ! Local variables
       integer                                   :: gridid
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1051,7 +1069,7 @@ contains
 
       ! Local variables
       integer                                  :: gridid
-      character(len=128)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1081,7 +1099,7 @@ contains
 
       ! Local variables
       integer                                   :: gridid
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1115,7 +1133,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1150,7 +1168,7 @@ contains
 
       ! Local variable
       integer                          :: gridid
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)       :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1185,7 +1203,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1220,7 +1238,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1255,7 +1273,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1290,7 +1308,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1325,7 +1343,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1360,7 +1378,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1395,7 +1413,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1430,7 +1448,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1465,7 +1483,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1500,7 +1518,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1535,7 +1553,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1570,7 +1588,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1701,7 +1719,7 @@ contains
 
       ! Local variables
       integer                               :: gridind
-      character(len=120)                    :: errormsg
+      character(len=shr_kind_cm)            :: errormsg
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind < 0) then
@@ -1966,6 +1984,7 @@ contains
 
    subroutine cam_grid_attr_init_1d_int(this, name, long_name, dimname,       &
         dimsize, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_attribute_1d_int_t)                  :: this
       character(len=*),                    intent(in)     :: name
@@ -1974,6 +1993,9 @@ contains
       integer,                             intent(in)     :: dimsize
       integer,                     target, intent(in)     :: values(:)
       integer(iMap),     optional, target, intent(in)     :: map(:)
+      ! Local variables
+      integer                      :: ierr
+      character(len=*), parameter  :: subname = 'cam_grid_attr_init_1d_int'
 
       !    call this%cam_grid_attr_init(trim(name), trim(long_name))
       if (len_trim(name) > max_hcoordname_len) then
@@ -1993,7 +2015,8 @@ contains
       this%values  => values
       ! Fill in the optional map
       if (present(map)) then
-         allocate(this%map(size(map)))
+         allocate(this%map(size(map)), stat=ierr)
+         call check_allocate(ierr, subname, 'this%map', file=__FILE__, line=__LINE__-1)
          this%map(:) = map(:)
       else
          nullify(this%map)
@@ -2002,6 +2025,7 @@ contains
 
    subroutine cam_grid_attr_init_1d_r8(this, name, long_name, dimname,        &
         dimsize, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_attribute_1d_r8_t)                   :: this
       character(len=*),                    intent(in)     :: name
@@ -2010,6 +2034,9 @@ contains
       integer,                             intent(in)     :: dimsize
       real(r8),                    target, intent(in)     :: values(:)
       integer(iMap),     optional, target, intent(in)     :: map(:)
+      ! Local variables
+      integer                     :: ierr
+      character(len=*), parameter :: subname = 'cam_grid_attr_init_1d_r8'
 
       !    call this%cam_grid_attr_init(trim(name), trim(long_name), next)
       this%name      = trim(name)
@@ -2020,7 +2047,8 @@ contains
       this%values  => values
       ! Fill in the optional map
       if (present(map)) then
-         allocate(this%map(size(map)))
+         allocate(this%map(size(map)), stat=ierr)
+         call check_allocate(ierr, subname, 'this%map', file=__FILE__, line=__LINE__-1)
          this%map(:) = map(:)
       else
          nullify(this%map)
@@ -2046,13 +2074,17 @@ contains
    end subroutine print_attr_1d_r8
 
    subroutine insert_grid_attribute(gridind, attr)
+      use cam_abortutils, only: check_allocate
       integer,                              intent(in) :: gridind
       class(cam_grid_attribute_t), pointer             :: attr
 
       ! Push a new attribute onto the grid
       type(cam_grid_attr_ptr_t),  pointer              :: attrPtr
+      integer                                          :: ierr
+      character(len=*), parameter                      :: subname = 'insert_grid_attribute'
 
-      allocate(attrPtr)
+      allocate(attrPtr, stat=ierr)
+      call check_allocate(ierr, subname, 'attrPtr', file=__FILE__, line=__LINE__-1)
       call attrPtr%initialize(attr)
       call attrPtr%setNext(cam_grids(gridind)%attributes)
       cam_grids(gridind)%attributes => attrPtr
@@ -2060,6 +2092,7 @@ contains
    end subroutine insert_grid_attribute
 
    subroutine add_cam_grid_attribute_0d_int(gridname, name, long_name, val)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),      intent(in)                   :: gridname
       character(len=*),      intent(in)                   :: name
@@ -2069,8 +2102,10 @@ contains
       ! Local variables
       type(cam_grid_attribute_0d_int_t), pointer          :: attr
       class(cam_grid_attribute_t),       pointer          :: attptr
-      character(len=120)                                  :: errormsg
+      character(len=shr_kind_cm)                          :: errormsg
       integer                                             :: gridind
+      integer                                             :: ierr
+      character(len=*), parameter                         :: subname = 'add_cam_grid_attribute_0d_int'
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind > 0) then
@@ -2083,7 +2118,9 @@ contains
             call endrun(errormsg)
          else
             ! Need a new attribute.
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_0d_int(trim(name),                   &
                  trim(long_name), val)
             attptr => attr
@@ -2098,6 +2135,7 @@ contains
    end subroutine add_cam_grid_attribute_0d_int
 
    subroutine add_cam_grid_attribute_0d_char(gridname, name, val)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),      intent(in)                   :: gridname
       character(len=*),      intent(in)                   :: name
@@ -2106,8 +2144,10 @@ contains
       ! Local variables
       type(cam_grid_attribute_0d_char_t), pointer         :: attr
       class(cam_grid_attribute_t),        pointer         :: attptr
-      character(len=120)                                  :: errormsg
+      character(len=shr_kind_cm)                          :: errormsg
       integer                                             :: gridind
+      integer                                             :: ierr
+      character(len=*), parameter                         :: subname = 'add_cam_grid_attribute_0d_char'
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind > 0) then
@@ -2120,7 +2160,9 @@ contains
             call endrun(errormsg)
          else
             ! Need a new attribute.
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_0d_char(trim(name), '', val)
             attptr => attr
             call insert_grid_attribute(gridind, attptr)
@@ -2135,6 +2177,7 @@ contains
 
    subroutine add_cam_grid_attribute_1d_int(gridname, name, long_name,        &
         dimname, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*), intent(in)                   :: gridname
       character(len=*), intent(in)                   :: name
@@ -2146,9 +2189,11 @@ contains
       ! Local variables
       type(cam_grid_attribute_1d_int_t), pointer     :: attr
       class(cam_grid_attribute_t),       pointer     :: attptr
-      character(len=120)                             :: errormsg
+      character(len=shr_kind_cm)                     :: errormsg
       integer                                        :: gridind
       integer                                        :: dimsize
+      integer                                        :: ierr
+      character(len=*), parameter                    :: subname = 'add_cam_grid_attribute_1d_int'
 
       nullify(attr)
       nullify(attptr)
@@ -2174,7 +2219,9 @@ contains
                     ', not found'
                call endrun(errormsg)
             end if
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_1d_int(trim(name),                   &
                  trim(long_name), trim(dimname), dimsize, values, map)
             attptr => attr
@@ -2190,6 +2237,7 @@ contains
 
    subroutine add_cam_grid_attribute_1d_r8(gridname, name, long_name,         &
         dimname, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),      intent(in)                   :: gridname
       character(len=*),      intent(in)                   :: name
@@ -2201,9 +2249,11 @@ contains
       ! Local variables
       type(cam_grid_attribute_1d_r8_t),  pointer          :: attr
       class(cam_grid_attribute_t),       pointer          :: attptr
-      character(len=120)                                  :: errormsg
+      character(len=shr_kind_cm)                          :: errormsg
       integer                                             :: gridind
       integer                                             :: dimsize
+      integer                                             :: ierr
+      character(len=*), parameter                         :: subname = 'add_cam_grid_attribute_1d_r8'
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind > 0) then
@@ -2227,7 +2277,9 @@ contains
                     ', not found'
                call endrun(errormsg)
             end if
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_1d_r8(trim(name),                    &
                  trim(long_name), trim(dimname), dimsize, values, map)
             attptr => attr
@@ -2302,6 +2354,7 @@ contains
       use pio,           only: file_desc_t, pio_put_att, pio_noerr, pio_int,  &
            pio_inq_att, PIO_GLOBAL
       use cam_pio_utils, only: cam_pio_def_var
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_attribute_0d_int_t), intent(inout) :: attr
@@ -2328,7 +2381,9 @@ contains
             ! This 0d attribute is a scalar variable with a
             !    long_name attribute
             ! First, define the variable
-            allocate(attr%vardesc(file_index_loc)%p)
+            allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
+            call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
+                    file=__FILE__, line=__LINE__-1)
             call cam_pio_def_var(File, trim(attr%name), pio_int,              &
                  attr%vardesc(file_index_loc)%p, existOK=.false.)
             ierr= pio_put_att(File, attr%vardesc(file_index_loc)%p,           &
@@ -2414,6 +2469,7 @@ contains
       use pio,           only: file_desc_t, pio_put_att, pio_noerr
       use pio,           only: pio_inq_dimid, pio_int
       use cam_pio_utils, only: cam_pio_def_var
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_attribute_1d_int_t), intent(inout) :: attr
@@ -2422,7 +2478,7 @@ contains
 
       ! Local variables
       integer                     :: dimid ! PIO dimension ID
-      character(len=120)          :: errormsg
+      character(len=shr_kind_cm)  :: errormsg
       integer                     :: ierr
       integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_attr_1d_int'
@@ -2446,7 +2502,9 @@ contains
             call endrun(errormsg)
          end if
          ! Time to define the variable
-         allocate(attr%vardesc(file_index_loc)%p)
+         allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
+         call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
+                 file=__FILE__, line=__LINE__-1)
          call cam_pio_def_var(File, trim(attr%name), pio_int, (/dimid/),      &
               attr%vardesc(file_index_loc)%p, existOK=.false.)
          ierr = pio_put_att(File, attr%vardesc(file_index_loc)%p,             &
@@ -2473,6 +2531,7 @@ contains
       use pio,           only: file_desc_t, pio_put_att, pio_noerr
        use pio,           only: pio_double, pio_inq_dimid
       use cam_pio_utils, only: cam_pio_def_var
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_attribute_1d_r8_t), intent(inout) :: attr
@@ -2481,7 +2540,7 @@ contains
 
       ! Local variables
       integer                     :: dimid ! PIO dimension ID
-      character(len=120)          :: errormsg
+      character(len=shr_kind_cm)  :: errormsg
       integer                     :: ierr
       integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_attr_1d_r8'
@@ -2505,7 +2564,9 @@ contains
             call endrun(errormsg)
          end if
          ! Time to define the variable
-         allocate(attr%vardesc(file_index_loc)%p)
+         allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
+         call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
+                 file=__FILE__, line=__LINE__-1)
          call cam_pio_def_var(File, trim(attr%name), pio_double,              &
               (/dimid/), attr%vardesc(file_index_loc)%p, existOK=.false.)
          ! fill value
@@ -2536,7 +2597,7 @@ contains
       character(len=*),         intent(in) :: attribute_name
 
       ! Local variables
-      character(len=120)                   :: errormsg
+      character(len=shr_kind_cm)           :: errormsg
       integer                              :: src_ind, dest_ind
       class(cam_grid_attribute_t), pointer :: attr
 
@@ -2576,6 +2637,7 @@ contains
    subroutine cam_grid_write_attr(File, grid_id, header_info, file_index)
       use pio, only: file_desc_t, PIO_BCAST_ERROR, pio_seterrorhandling
       use pio, only: pio_inq_dimid
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       type(file_desc_t),            intent(inout) :: File       ! PIO file Handle
@@ -2590,6 +2652,8 @@ contains
       integer                                     :: dimids(2)
       integer                                     :: err_handling
       integer                                     :: file_index_loc
+      integer                                     :: ierr
+      character(len=*), parameter                 :: subname = 'cam_grid_write_attr'
 
       if (present(file_index)) then
          file_index_loc = file_index
@@ -2619,10 +2683,14 @@ contains
          ! We need to fill out the hdims info for this grid
          call cam_grids(gridind)%find_dimids(File, dimids)
          if (dimids(2) < 0) then
-            allocate(header_info%hdims(1))
+            allocate(header_info%hdims(1), stat=ierr)
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
             header_info%hdims(1) = dimids(1)
          else
-            allocate(header_info%hdims(2))
+            allocate(header_info%hdims(2), stat=ierr)
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
             header_info%hdims(1:2) = dimids(1:2)
          end if
       else
@@ -2634,9 +2702,13 @@ contains
              file_index=file_index_loc)
 
          if (dimids(2) == dimids(1)) then
-            allocate(header_info%hdims(1))
+            allocate(header_info%hdims(1), stat=ierr)
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
          else
             allocate(header_info%hdims(2))
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
             header_info%hdims(2) = dimids(2)
          end if
          header_info%hdims(1) = dimids(1)
@@ -2940,7 +3012,7 @@ contains
       ! Local variables
       integer                           :: index
       character(len=max_hcoordname_len) :: dname1, dname2
-      character(len=120)                :: errormsg
+      character(len=shr_kind_cm)        :: errormsg
 
       index = get_cam_grid_index(gridid)
       if (index < 0) then
@@ -2976,7 +3048,7 @@ contains
       ! Local variables
       integer                           :: gridind
       character(len=max_hcoordname_len) :: dname1, dname2
-      character(len=120)                :: errormsg
+      character(len=shr_kind_cm)        :: errormsg
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind < 0) then
@@ -3005,6 +3077,7 @@ contains
    subroutine cam_grid_set_map(this, map, src, dest)
       use spmd_utils,      only: mpicom
       use mpi,             only: mpi_sum, mpi_integer
+      use cam_abortutils,  only: check_allocate
       ! Dummy arguments
       class(cam_grid_t)                      :: this
       integer(iMap),     pointer             :: map(:,:)
@@ -3015,6 +3088,7 @@ contains
       integer                                :: dims(2)
       integer                                :: dstrt, dend
       integer                                :: gridlen, gridloc, ierr
+      character(len=*), parameter            :: subname = 'cam_grid_set_map'
 
       ! Check to make sure the map meets our needs
       call this%coord_lengths(dims)
@@ -3042,7 +3116,9 @@ contains
          call endrun('cam_grid_set_map: Bad map size for '//trim(this%name))
       else
          if (.not. associated(this%map)) then
-            allocate(this%map)
+            allocate(this%map, stat=ierr)
+            call check_allocate(ierr, subname, 'this%map',                    &
+                 file=__FILE__, line=__LINE__-1)
          end if
          call this%map%init(map, this%unstructured, src, dest)
       end if
@@ -3059,7 +3135,7 @@ contains
       class(cam_grid_t)                         :: this
 
       ! Local variable
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
 
       if (.not. associated(this%map)) then
          write(errormsg, *) 'Grid, '//trim(this%name)//', has no map'
@@ -3120,6 +3196,7 @@ contains
    !
    !------------------------------------------------------------------------
    subroutine cam_grid_find_src_dims(this, field_dnames, src_out)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_t)                         :: this
       character(len=*),           intent(in)    :: field_dnames(:)
@@ -3129,6 +3206,8 @@ contains
       integer                                   :: i, j
       integer                                   :: num_coords
       character(len=max_hcoordname_len)         :: coord_dimnames(2)
+      integer                                   :: ierr
+      character(len=*), parameter               :: subname = 'cam_grid_find_src_dims'
 
       call this%dim_names(coord_dimnames(1), coord_dimnames(2))
       if (associated(src_out)) then
@@ -3140,7 +3219,9 @@ contains
       else
          num_coords = 2
       end if
-      allocate(src_out(2)) ! Currently, all cases have two source dims
+      allocate(src_out(2), stat=ierr) ! Currently, all cases have two source dims
+      call check_allocate(ierr, subname, 'src_out', file=__FILE__, line=__LINE__-1)
+
       do i = 1, num_coords
          do j = 1, size(field_dnames)
             if (trim(field_dnames(j)) == trim(coord_dimnames(i))) then
@@ -3160,6 +3241,7 @@ contains
    !
    !------------------------------------------------------------------------
    subroutine cam_grid_find_dest_dims(this, file_dnames, dest_out)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_t)                         :: this
       character(len=*),           intent(in)    :: file_dnames(:)
@@ -3169,6 +3251,8 @@ contains
       integer                                   :: i, j
       integer                                   :: num_coords
       character(len=max_hcoordname_len)         :: coord_dimnames(2)
+      integer                                   :: ierr
+      character(len=*), parameter               :: subname = 'cam_grid_find_dest_dims'
 
       call this%dim_names(coord_dimnames(1), coord_dimnames(2))
       if (associated(dest_out)) then
@@ -3180,7 +3264,8 @@ contains
       else
          num_coords = 2
       end if
-      allocate(dest_out(num_coords))
+      allocate(dest_out(num_coords), stat=ierr)
+      call check_allocate(ierr, subname, 'dest_out', file=__FILE__, line=__LINE__-1)
       dest_out = 0
       do i = 1, num_coords
          do j = 1, size(file_dnames)
@@ -3201,6 +3286,7 @@ contains
         iodesc, field_dnames, file_dnames)
       use pio,           only: io_desc_t
       use cam_pio_utils, only: cam_pio_get_decomp, calc_permutation
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_t)                         :: this
@@ -3216,7 +3302,9 @@ contains
       integer,              pointer             :: dest_in(:)
       integer, allocatable                      :: permutation(:)
       logical                                   :: is_perm
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
+      integer                                   :: ierr
+      character(len=*), parameter               :: subname = 'cam_grid_get_pio_decomp'
 
       nullify(src_in)
       nullify(dest_in)
@@ -3235,6 +3323,8 @@ contains
             ! This only works if the arrays are the same size
             if (size(file_dnames) == size(field_dnames)) then
                allocate(permutation(size(file_dnames)))
+               call check_allocate(ierr, subname, 'permutation',              &
+                      file=__FILE__, line=__LINE__-1)
                call calc_permutation(file_dnames, field_dnames,               &
                     permutation, is_perm)
             end if
@@ -3741,6 +3831,7 @@ contains
       use spmd_utils,      only: mpicom
       use mpi,             only: mpi_min, mpi_max, mpi_real8
       use shr_const_mod,   only: pi=>shr_const_pi
+      use cam_abortutils,  only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_t)                     :: this
@@ -3808,23 +3899,35 @@ contains
          if (cco) then
             ! For collected column output, we need to collect
             !    coordinates and values
-            allocate(patch%latmap(patch%mask%num_elem()))
+            allocate(patch%latmap(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%latmap', file=__FILE__,  &
+                   line=__LINE__-1)
             patch%latmap = 0
-            allocate(patch%latvals(patch%mask%num_elem()))
+            allocate(patch%latvals(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%latvals', file=__FILE__, &
+                   line=__LINE__-1)
             patch%latvals = 91.0_r8
-            allocate(patch%lonmap(patch%mask%num_elem()))
+            allocate(patch%lonmap(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%lonmap', file=__FILE__,  &
+                   line=__LINE__-1)
             patch%lonmap = 0
-            allocate(patch%lonvals(patch%mask%num_elem()))
+            allocate(patch%lonvals(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%lonvals', file=__FILE__, &
+                   line=__LINE__-1)
             patch%lonvals = 361.0_r8
          else
             if (associated(this%lat_coord%values)) then
-               allocate(patch%latmap(LBOUND(this%lat_coord%values, 1):UBOUND(this%lat_coord%values, 1)))
+               allocate(patch%latmap(LBOUND(this%lat_coord%values, 1):UBOUND(this%lat_coord%values, 1)), stat=ierr)
+               call check_allocate(ierr, subname, 'patch%latmap', file=__FILE__, &
+                      line=__LINE__-1)
                patch%latmap = 0
             else
                nullify(patch%latmap)
             end if
             if (associated(this%lon_coord%values)) then
-               allocate(patch%lonmap(LBOUND(this%lon_coord%values, 1):UBOUND(this%lon_coord%values, 1)))
+               allocate(patch%lonmap(LBOUND(this%lon_coord%values, 1):UBOUND(this%lon_coord%values, 1)), stat=ierr)
+               call check_allocate(ierr, subname, 'patch%lonmap', file=__FILE__, &
+                      line=__LINE__-1)
                patch%lonmap = 0
             else
                nullify(patch%lonmap)
@@ -4131,7 +4234,7 @@ contains
 
       ! Local variable
       integer                                  :: index
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
       character(len=max_hcoordname_len)        :: grid_name
       logical                                  :: unstruct
 
@@ -4168,7 +4271,7 @@ contains
       character(len=*),          intent(out)   :: name
 
       ! Local variable
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)       :: errormsg
       integer                          :: index
 
       if (cam_grid_check(this%grid_id)) then
@@ -4196,7 +4299,7 @@ contains
       character(len=*),          intent(out)   :: units
 
       ! Local variable
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)       :: errormsg
       integer                          :: index
 
       if (cam_grid_check(this%grid_id)) then
@@ -4218,6 +4321,7 @@ contains
 
    subroutine cam_grid_patch_set_patch(this, lonl, lonu, latl, latu, cco,     &
         id, map)
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_patch_t)            :: this
@@ -4227,6 +4331,10 @@ contains
       integer,                intent(in) :: id
       type(cam_filemap_t),    intent(in) :: map
 
+      ! Local variables
+      integer                            :: ierr
+      character(len=*), parameter        :: subname = 'cam_grid_patch_set_patch'
+
       this%grid_id           = id
       this%lon_range(1)      = lonl
       this%lon_range(2)      = lonu
@@ -4234,7 +4342,9 @@ contains
       this%lat_range(2)      = latu
       this%collected_columns = cco
       if (.not. associated(this%mask)) then
-         allocate(this%mask)
+         allocate(this%mask, stat=ierr)
+         call check_allocate(ierr, subname, 'this%mask', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       call this%mask%copy(map)
       call this%mask%new_index()
@@ -4309,6 +4419,7 @@ contains
       use pio,           only: pio_write_darray, PIO_DOUBLE
       use pio,           only: pio_freedecomp
       use cam_pio_utils, only: cam_pio_handle_error, cam_pio_newdecomp
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_patch_t)                     :: this
@@ -4339,7 +4450,9 @@ contains
          map => this%lonmap
       else
          field_lens(1) = 0
-         allocate(map(0))
+         allocate(map(0), stat=ierr)
+         call check_allocate(ierr, subname, 'map', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       file_lens(1) = this%global_lon_size
       !! XXgoldyXX: Think about caching these decomps
@@ -4351,7 +4464,9 @@ contains
          if (associated(coord_p)) then
             coord => coord_p
          else
-            allocate(coord(0))
+            allocate(coord(0), stat=ierr)
+            call check_allocate(ierr, subname, 'coord', file=__FILE__, &
+                         line=__LINE__-1)
          end if
       end if
       vdesc => header_info%get_lon_varid()
@@ -4371,7 +4486,9 @@ contains
          map => this%latmap
       else
          field_lens(1) = 0
-         allocate(map(0))
+         allocate(map(0), stat=ierr)
+         call check_allocate(ierr, subname, 'map', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       file_lens(1) = this%global_lat_size
       !! XXgoldyXX: Think about caching these decomps
@@ -4384,7 +4501,9 @@ contains
          if (associated(coord_p)) then
             coord => coord_p
          else
-            allocate(coord(0))
+            allocate(coord(0), stat=ierr)
+            call check_allocate(ierr, subname, 'coord', file=__FILE__, &
+                         line=__LINE__-1)
          end if
       end if
       vdesc => header_info%get_lat_varid()
@@ -4449,6 +4568,7 @@ contains
    end subroutine cam_grid_header_info_set_gridid
 
    subroutine cam_grid_header_info_set_hdims(this, hdim1, hdim2)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_header_info_t)                :: this
       integer,                       intent(in)    :: hdim1
@@ -4456,6 +4576,7 @@ contains
 
       ! Local variables
       integer                     :: hdsize
+      integer                     :: ierr
       character(len=*), parameter :: subname = 'cam_grid_header_info_set_hdims'
 
       if (present(hdim2)) then
@@ -4470,7 +4591,9 @@ contains
             call endrun(subname//': hdims is wrong size')
          end if
       else
-         allocate(this%hdims(hdsize))
+         allocate(this%hdims(hdsize), stat=ierr)
+         call check_allocate(ierr, subname, 'this%hdims', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       this%hdims(1) = hdim1
       if (present(hdim2)) then
@@ -4497,7 +4620,7 @@ contains
       integer,                      intent(in)    :: index
 
       ! Local variable
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)                  :: errormsg
 
       if (allocated(this%hdims)) then
          if ((index >= 1) .and. (index <= size(this%hdims))) then

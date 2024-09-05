@@ -1435,6 +1435,7 @@ contains
        call ESMF_AlarmRingerOff( alarm, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        rstwr = .false.
     endif
 
@@ -1444,12 +1445,14 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        nlend = .true.
     else
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        nlend = .false.
     endif
 
-    call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false.)
+    call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false., do_history_write=.false.)
     call cam_final(cam_out, cam_in)
 
     if (masterproc) then

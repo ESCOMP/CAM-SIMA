@@ -258,6 +258,7 @@ subroutine hycoef_init(file, psdry)
    if (dry_coord) then
       call add_vert_coord('lev', pver,                                       &
          'hybrid level at midpoints (1000*(A+B))', 'hPa', alev,              &
+         standard_name='atmosphere_hybrid_sigma_pressure_coordinate',        &
          positive='down')
       call add_hist_coord('hyam', pver, &
          'hybrid A coefficient at layer midpoints', '1', hyam, dimname='lev')
