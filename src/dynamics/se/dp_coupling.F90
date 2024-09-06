@@ -322,6 +322,8 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    use test_fvm_mapping, only: test_mapping_overwrite_tendencies
    use test_fvm_mapping, only: test_mapping_output_mapped_tendencies
    use cam_ccpp_cap,     only: cam_constituents_array
+   use cam_constituents, only: num_advected
+   use cam_constituents, only: const_is_water_species
 
    ! SE dycore:
    use bndry_mod,        only: bndry_exchange
@@ -389,8 +391,28 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    uv_tmp = 0.0_r8
    dq_tmp = 0.0_r8
 
-   ! Grab pointer to constituent array
+   !Grab pointer to constituent array
    const_data_ptr => cam_constituents_array()
+
+   !Convert wet mixing ratios to dry, which for CAM
+   !configurations is only the water species:
+   !$omp parallel do num_threads(max_num_threads) private (k, i, m)
+   do ilyr = 1, nlev
+      do icol=1, pcols
+         !Determine wet to dry adjustment factor:
+         factor = phys_state%pdel(icol,ilyr)/phys_state%pdeldry(icol,ilyr)
+
+         !This should ideally check if a constituent is a wet
+         !mixing ratio or not, but until that is working properly
+         !in the CCPP framework just check for the water species status
+         !instead, which is all that CAM configurations require:
+         do m=1, num_advected
+            if (const_is_water_species(m)) then
+               const_data_ptr(icol,ilyr,m) = factor*const_data_ptr(icol,ilyr,m)
+            end if
+         end do
+      end do
+   end do
 
    if (.not. allocated(q_prev)) then
       call endrun('p_d_coupling: q_prev not allocated')
@@ -551,11 +573,14 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! mixing ratios are converted to a wet basis.  Initialize geopotential heights.
    ! Finally compute energy and water column integrals of the physics input state.
 
-!   use constituents,   only: qmin
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use cam_ccpp_cap,      only: cam_constituents_array
    use cam_ccpp_cap,      only: cam_model_const_properties
-   use cam_constituents,  only: const_get_index, const_qmin
+   use cam_constituents,  only: num_advected
+   use cam_constituents,  only: const_is_water_species
+   use cam_constituents,  only: const_get_index
+   use cam_constituents,  only: const_qmin
+   use runtime_obj,       only: wv_stdname
    use physics_types,     only: lagrangian_vertical
    use physconst,         only: cpair, gravit, zvir, cappa
    use cam_thermo,        only: cam_thermo_update
@@ -583,7 +608,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    type(ccpp_constituent_prop_ptr_t), pointer :: const_prop_ptr(:)
 
    integer :: m, i, k
-   integer :: ix_q, ix_cld_liq, ix_rain
+   integer :: ix_q
 
    !Needed for "geopotential_temp" CCPP scheme
    integer :: errflg
@@ -604,11 +629,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    nullify(const_prop_ptr)
 
    ! Set constituent indices
-   call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ix_q)
-   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
-                        ix_cld_liq, abort=.false.)
-   call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', &
-                        ix_rain, abort=.false.)
+   call const_get_index(wv_stdname, ix_q)
 
    ! Grab pointer to constituent and properties arrays
    const_data_ptr => cam_constituents_array()
@@ -667,7 +688,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    do k=1,nlev
       do i=1, pcols
          ! to be consistent with total energy formula in physic's check_energy module only
-         ! include water vapor in in moist dp
+         ! include water vapor in moist dp
          factor_array(i,k) = 1._kind_phys+const_data_ptr(i,k,ix_q)
          phys_state%pdel(i,k) = phys_state%pdeldry(i,k)*factor_array(i,k)
       end do
@@ -708,16 +729,18 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! physics expect water variables moist
    factor_array(:,1:nlev) = 1._kind_phys/factor_array(:,1:nlev)
 
-   !$omp parallel do num_threads(horz_num_threads) private (k, i)
-   do k = 1, nlev
-      do i=1, pcols
-         const_data_ptr(i,k,ix_q) = factor_array(i,k)*const_data_ptr(i,k,ix_q)
-         if (ix_cld_liq /= -1) then
-            const_data_ptr(i,k,ix_cld_liq) = factor_array(i,k)*const_data_ptr(i,k,ix_cld_liq)
-         end if
-         if (ix_rain /= -1) then
-            const_data_ptr(i,k,ix_rain) = factor_array(i,k)*const_data_ptr(i,k,ix_rain)
-         end if
+   !$omp parallel do num_threads(horz_num_threads) private (m, k, i)
+   do m=1, num_advected
+      do k = 1, nlev
+         do i=1, pcols
+            !This should ideally check if a constituent is a wet
+            !mixing ratio or not, but until that is working properly
+            !in the CCPP framework just check for the water species status
+            !instead, which is all that CAM physics requires:
+            if (const_is_water_species(m)) then
+              const_data_ptr(i,k,m) = factor_array(i,k)*const_data_ptr(i,k,m)
+            end if
+         end do
       end do
    end do
 
