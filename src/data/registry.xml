@@ -346,6 +346,14 @@
       <long_name>ccpp error message</long_name>
       <initial_value>''</initial_value>
     </variable>
+    <!-- SIMA History (diagnostic output) variables -->
+    <variable local_name="fillvalue"
+              standard_name="fill_value_for_diagnostic_output"
+              units="1" type="real" kind="kind_phys"
+              allocatable="parameter">
+      <long_name>Fill value for diagnostic/history outputs</long_name>
+      <initial_value>1.e36</initial_value>
+    </variable>
     <!-- Composition-dependent Variables -->
     <variable local_name="cpairv"
               standard_name="composition_dependent_specific_heat_of_dry_air_at_constant_pressure"
