@@ -12,7 +12,7 @@ module dyn_mpas_subdriver
     ! Modules from external libraries.
 #ifdef MPAS_USE_MPI_F08
     use mpi_f08, only: mpi_comm_null, mpi_comm_rank, mpi_success, &
-                       mpi_comm_type => mpi_comm, operator(==), operator(/=)
+                       mpi_comm_type => mpi_comm, operator(==)
 #else
     use mpi, only: mpi_comm_null, mpi_comm_rank, mpi_success
 #endif
