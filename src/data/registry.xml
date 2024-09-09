@@ -352,7 +352,7 @@
               units="1" type="real" kind="kind_phys"
               allocatable="parameter">
       <long_name>Fill value for diagnostic/history outputs</long_name>
-      <initial_value>1.e36</initial_value>
+      <initial_value>1.e36_kind_phys</initial_value>
     </variable>
     <!-- Composition-dependent Variables -->
     <variable local_name="cpairv"

@@ -26,7 +26,7 @@ if __SPINSCRIPTS not in sys.path:
     sys.path.append(__SPINSCRIPTS)
 # end if
 _ALL_STRINGS_REGEX = re.compile(r'[A-Za-z][A-Za-z_0-9]+')
-_FORTRAN_NUMERIC_REGEX = r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$'
+_FORTRAN_NUMERIC_REGEX = r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?(_kind_phys)?$'
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
