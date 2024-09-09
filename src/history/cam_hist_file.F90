@@ -1,10 +1,8 @@
 module cam_hist_file
    ! Module to define and read CAM history configuration namelist entries
    !    and associated history files
-   ! Note: In test mode, endrun does not abort so there are a few lines
-   !          of special code to cleanly return after an endrun call.
 
-   use ISO_FORTRAN_ENV,     only: REAL64, REAL32
+   use ISO_FORTRAN_ENV,     only: REAL64
    use pio,                 only: file_desc_t, var_desc_t
    use cam_history_support, only: max_fldlen=>max_fieldname_len
    use cam_history_support, only: fieldname_suffix_len
@@ -13,6 +11,9 @@ module cam_hist_file
    use hist_field,          only: hist_field_info_t
    use hist_hash_table,     only: hist_hash_table_t
    use cam_grid_support,    only: max_split_files
+   use runtime_obj,         only: UNSET_I => unset_int
+   use runtime_obj,         only: UNSET_C => unset_str
+   use runtime_obj,         only: UNSET_R8 => unset_real
 
    implicit none
    private
@@ -27,22 +28,18 @@ module cam_hist_file
    integer, public,  parameter :: instantaneous_file_index = 1
    integer, public,  parameter :: accumulated_file_index   = 2
    character(len=fieldname_suffix_len ) :: fieldname_suffix = '&IC' ! Suffix appended to field names for IC file
-   character(len=22) ,parameter :: LT_DESC = 'mean (over local time)' ! local time description
 
-   logical, parameter, private             :: PATCH_DEF = .true.
-   integer, parameter, private             :: OUTPUT_DEF = REAL64
-   integer, parameter, private             :: vlen = 8
-   integer, parameter, private             :: flen = 16
-   integer, parameter, private             :: tlen = 16
-   integer, parameter, private             :: UNSET_I = -1
-   character(len=vlen), parameter, private :: UNSET_C = 'UNSET'
-   real(kind=r8), parameter, private       :: UNSET_R8 = -HUGE(1.0_r8)
+   logical, parameter                      :: PATCH_DEF = .true.
+   integer, parameter                      :: OUTPUT_DEF = REAL64
+   integer, parameter                      :: vlen = 8
+   integer, parameter                      :: flen = 16
+   integer, parameter                      :: tlen = 16
 
-   integer, parameter, private             :: hfile_type_default    = -1
-   integer, parameter, private             :: hfile_type_history    =  1
-   integer, parameter, private             :: hfile_type_init_value =  2
-   integer, parameter, private             :: hfile_type_sat_track  =  3
-   integer, parameter, private             :: hfile_type_restart    =  4
+   integer, parameter                      :: hfile_type_default    = -1
+   integer, parameter                      :: hfile_type_history    =  1
+   integer, parameter                      :: hfile_type_init_value =  2
+   integer, parameter                      :: hfile_type_sat_track  =  3
+   integer, parameter                      :: hfile_type_restart    =  4
 
    type :: hist_file_t
       ! History file configuration information
@@ -155,7 +152,7 @@ CONTAINS
       call check_allocate(ierr, subname, 'cfiles',             &
            file=__FILE__, line=__LINE__-1)
 
-      do file_idx = 1, size(cfiles, 1)
+      do file_idx = 1, size(cfiles)
          cfiles(file_idx) = interpret_filename_spec(this%filename_spec, &
            unit=this%volume, accum_type=accum_types(file_idx),          &
            incomplete_ok=.false.)
@@ -183,7 +180,7 @@ CONTAINS
       allocate(this%file_names(max_split_files), stat=ierr)
       call check_allocate(ierr, subname, 'this%file_names',   &
            file=__FILE__, line=__LINE__-1)
-      do file_idx = 1, size(this%file_names, 1)
+      do file_idx = 1, size(this%file_names)
          this%file_names(file_idx) = interpret_filename_spec(this%filename_spec, &
            unit=this%volume, accum_type=accum_types(file_idx),          &
            incomplete_ok=.false.)
@@ -215,7 +212,7 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_get_filenames(this) result(cfiles)
+   pure function config_get_filenames(this) result(cfiles)
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=CL)              :: cfiles(max_split_files)
@@ -226,8 +223,8 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_get_filename_spec(this) result(filename_spec)
-      ! Dummy argument
+   pure function config_get_filename_spec(this) result(filename_spec)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=:), allocatable  :: filename_spec
 
@@ -237,27 +234,30 @@ CONTAINS
 
    ! ========================================================================
 
-   integer function config_get_last_month_written(this)
-      ! Dummy argument
+   pure function config_get_last_month_written(this) result(last_month_written)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      integer                        :: last_month_written
 
-      config_get_last_month_written = this%last_month_written
+      last_month_written = this%last_month_written
 
    end function config_get_last_month_written
 
    ! ========================================================================
 
-   integer function config_get_last_year_written(this)
-      ! Dummy argument
+   pure function config_get_last_year_written(this) result(last_year_written)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      integer                        :: last_year_written
 
-      config_get_last_year_written = this%last_year_written
+      last_year_written = this%last_year_written
 
    end function config_get_last_year_written
 
    ! ========================================================================
 
    function config_precision(this) result(cprec)
+      use ISO_FORTRAN_ENV,     only: REAL32
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=vlen)                   :: cprec
@@ -284,29 +284,32 @@ CONTAINS
 
    ! ========================================================================
 
-   integer function config_max_frame(this)
-      ! Dummy argument
+   function config_max_frame(this) result(max_frame)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      integer                        :: max_frame
 
-      config_max_frame = this%max_frames
+      max_frame = this%max_frames
    end function config_max_frame
 
    ! ========================================================================
 
-   integer function config_get_num_samples(this)
-      ! Dummy argument
+   pure function config_get_num_samples(this) result(num_samples)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      integer                        :: num_samples
 
-      config_get_num_samples = this%num_samples
+      num_samples = this%num_samples
    end function config_get_num_samples
 
    ! ========================================================================
 
-   integer function config_get_beg_time(this)
-      ! Dummy argument
+   pure function config_get_beg_time(this) result(beg_time)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      real(r8)                       :: beg_time
 
-      config_get_beg_time = this%beg_time
+      beg_time = this%beg_time
    end function config_get_beg_time
 
    ! ========================================================================
@@ -324,8 +327,6 @@ CONTAINS
       select case(to_lower(trim(this%output_freq_type)))
       case ("step")
          out_opt = "time step"
-      case ("monthly")
-         out_opt = "month"
       case default
          out_opt = trim(this%output_freq_type)
       end select
@@ -354,71 +355,78 @@ CONTAINS
 
    ! ========================================================================
 
-   logical function config_history_file(this)
-      ! Dummy argument
+   pure function config_history_file(this) result(history_file)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: history_file
 
-      config_history_file = this%hfile_type == hfile_type_history
+      history_file = this%hfile_type == hfile_type_history
 
    end function config_history_file
 
    ! ========================================================================
 
-   logical function config_init_value_file(this)
-      ! Dummy argument
+   pure function config_init_value_file(this) result(init_value_file)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: init_value_file
 
-      config_init_value_file = this%hfile_type == hfile_type_init_value
+      init_value_file = this%hfile_type == hfile_type_init_value
 
    end function config_init_value_file
 
    ! ========================================================================
 
-   logical function config_satellite_file(this)
-      ! Dummy argument
+   pure function config_satellite_file(this) result(satellite_file)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: satellite_file
 
-      config_satellite_file = this%hfile_type == hfile_type_sat_track
+      satellite_file = this%hfile_type == hfile_type_sat_track
 
    end function config_satellite_file
 
    ! ========================================================================
 
-   logical function config_restart_file(this)
-      ! Dummy argument
+   pure function config_restart_file(this) result(restart_file)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: restart_file
 
-      config_restart_file = this%hfile_type == hfile_type_restart
+      restart_file = this%hfile_type == hfile_type_restart
 
    end function config_restart_file
 
    ! ========================================================================
 
-   logical function config_do_write_nstep0(this)
-      ! Dummy argument
+   pure function config_do_write_nstep0(this) result(write_nstep0)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: write_nstep0
 
-      config_do_write_nstep0 = this%write_nstep0
+      write_nstep0 = this%write_nstep0
 
    end function config_do_write_nstep0
 
    ! ========================================================================
 
-   logical function config_file_is_setup(this)
-      ! Dummy argument
+   pure function config_file_is_setup(this) result(file_is_setup)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: file_is_setup
 
-      config_file_is_setup = allocated(this%grids)
+      file_is_setup = allocated(this%grids)
 
    end function config_file_is_setup
 
    ! ========================================================================
 
-   logical function config_files_open(this)
-      ! Dummy argument
+   pure function config_files_open(this) result(files_open)
+      ! Dummy arguments
       class(hist_file_t), intent(in) :: this
+      logical                        :: files_open
 
-      config_files_open = this%files_open
+      files_open = this%files_open
 
    end function config_files_open
 
@@ -441,7 +449,6 @@ CONTAINS
          deallocate(this%file_names)
       end if
       if (associated(this%interp_info)) then
-!         call this%interp_info%reset()
          deallocate(this%interp_info)
          nullify(this%interp_info)
       end if
@@ -457,6 +464,9 @@ CONTAINS
       use shr_string_mod,      only: to_lower => shr_string_toLower
       use cam_history_support, only: parse_multiplier
       use cam_abortutils,      only: endrun, check_allocate
+      use shr_kind_mod,        only: CM => shr_kind_cm
+      use time_manager,        only: get_step_size
+      use string_utils,        only: stringify
       ! Dummy arguments
       class(hist_file_t),         intent(inout) :: this
       character(len=*),           intent(in)    :: volume
@@ -478,7 +488,7 @@ CONTAINS
       character(len=*), optional, intent(in)    :: interp_grid
       character(len=*), optional, intent(in)    :: interp_type
       ! Local variables
-      character(len=CL) :: errmsg
+      character(len=CM) :: errmsg
       integer           :: last_char
       integer           :: ierr
       integer           :: num_fields
@@ -489,8 +499,11 @@ CONTAINS
       integer           :: num_var_fields
       integer           :: field_index
       integer           :: idx
-      logical           :: has_inst
-      logical           :: has_acc
+      integer           :: dtime
+      integer           :: freq_in_seconds
+      character(len=*), parameter :: freq_types_to_check(3) = (/'second', 'minute', 'hour  '/)
+      integer,          parameter :: seconds_in_minute = 60
+      integer,          parameter :: seconds_in_hour = 3600
       character(len=*), parameter :: subname = 'config_configure: '
 
       call this%reset()
@@ -498,16 +511,17 @@ CONTAINS
       this%volume = volume
       this%rl_kind = out_prec
       this%max_frames = max_frames
+      dtime = get_step_size()
       ! Parse output frequency spec into multiplier and type
       ! Note, the allowed_set should match __TIME_PERIODS in hist_config.py
       call parse_multiplier(output_freq, this%output_freq_mult,               &
            this%output_freq_type, errmsg=errmsg,                              &
            allowed_set=(/ 'nsteps  ', 'nstep   ', 'nseconds', 'nsecond ',     &
            'nminutes', 'nminute ', 'nhours  ', 'nhour   ', 'ndays   ',        &
-           'nday    ', 'monthly ', 'nmonths ', 'nmonth  ', 'nyears  ',        &
-           'nyear   ', 'steps   ', 'seconds ', 'minutes ', 'hours   ',        &
-           'days    ', 'months  ', 'years   ', 'step    ', 'second  ',        &
-           'minute  ', 'hour    ', 'day     ', 'month   ', 'year    '/))
+           'nday    ', 'nmonths ', 'nmonth  ', 'nyears  ', 'nyear   ',        &
+           'steps   ', 'seconds ', 'minutes ', 'hours   ', 'days    ',        &
+           'months  ', 'years   ', 'step    ', 'second  ', 'minute  ',        &
+           'hour    ', 'day     ', 'month   ', 'year    '/))
       if (this%output_freq_mult < 1) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__-6)
       end if
@@ -519,6 +533,22 @@ CONTAINS
       if (to_lower(this%output_freq_type(last_char:last_char)) == "s") then
          this%output_freq_type = this%output_freq_type(1:last_char-1)
       end if
+      ! It's an error to have a frequency < the timestep size
+      if (any(freq_types_to_check == trim(this%output_freq_type))) then
+         freq_in_seconds = this%output_freq_mult
+         if (trim(this%output_freq_type) == 'hour') then
+            freq_in_seconds = this%output_freq_mult * seconds_in_hour
+         else if (trim(this%output_freq_type) == 'minute') then
+            freq_in_seconds = this%output_freq_mult * seconds_in_minute
+         end if
+         if (freq_in_seconds < dtime) then
+            write(errmsg,*) subname//' ERROR: output frequency "', trim(output_freq), &
+                    '" cannot be less than timestep size (', stringify((/dtime/)),    &
+                    ' seconds)'
+            call endrun(errmsg, file=__FILE__)
+         end if
+      end if
+
       this%hfile_type = file_type
       this%collect_patch_output = collect_patch_out
       this%write_nstep0 = write_nstep0
@@ -548,8 +578,6 @@ CONTAINS
          this%has_accumulated = .true.
       end if
 
-!      num_fields = count_array(inst_fields) + count_array(avg_fields) + &
-!         count_array(min_fields) + count_array(max_fields) + count_array(var_fields)
       allocate(this%field_names(num_fields), stat=ierr)
       call check_allocate(ierr, subname, 'this%field_names',             &
            file=__FILE__, line=__LINE__-1)
@@ -595,10 +623,11 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_print_config(this)
-      use string_utils,   only: to_str
+      use string_utils,   only: stringify
       use spmd_utils,     only: masterproc
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
+      use ISO_FORTRAN_ENV,only: REAL32
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
@@ -622,14 +651,15 @@ CONTAINS
             write(iulog, *) "File contains history restart information"
          case default
             call endrun("ERROR: Unknown CAM history file type, "//            &
-                 to_str(this%hfile_type))
+                 stringify((/this%hfile_type/)))
          end select
          if (this%rl_kind == REAL64) then
-            write(iulog, '(a)') "  Ouput precision, 64 bits"
+            write(iulog, '(a)') "  Output precision, 64 bits"
          else if (this%rl_kind == REAL32) then
-            write(iulog, '(a)') "  Ouput precision, 32 bits"
+            write(iulog, '(a)') "  Output precision, 32 bits"
          else
-            write(iulog, '(a,i0)') "  Unknown output precision, ", this%rl_kind
+            call endrun("ERROR: Unknown output precision, "//                 &
+                    stringify((/this%rl_kind/)))
          end if
          write(iulog, '(a,i0)') "  Maximum number of output frames per file = ",  &
               this%max_frames
@@ -647,9 +677,7 @@ CONTAINS
             write(iulog, '(2a)') "  Output from each patch will be written ",     &
                  "as a separate variable"
          end if
-         if (associated(this%interp_info)) then
-            !!XXgoldyXX: Add interp info
-         end if
+         ! peverwhee - add interpolation info
       end if
    end subroutine config_print_config
 
@@ -660,8 +688,9 @@ CONTAINS
       class(hist_file_t), intent(inout) :: this
       integer, intent(in) :: day
       integer, intent(in) :: sec
+      integer, parameter :: seconds_per_day = 86400._r8
 
-      this%beg_time = day + (sec/86400._r8)
+      this%beg_time = day + (sec/seconds_per_day)
 
    end subroutine config_set_beg_time
 
@@ -688,6 +717,7 @@ CONTAINS
       use cam_logfile,         only: iulog
       use spmd_utils,          only: masterproc
       use cam_abortutils,      only: check_allocate, endrun
+      use shr_kind_mod,        only: CM => shr_kind_cm
 
       ! Dummy arguments
       class(hist_file_t),        intent(inout) :: this
@@ -695,20 +725,17 @@ CONTAINS
 
       integer :: idx
       integer :: ierr
-      integer :: num_inst_fields, num_accum_fields
       integer :: num_grids, grid_idx
       integer, allocatable :: possible_grids(:)
       class(hist_field_info_t), pointer :: field_info
       class(hist_field_info_t), pointer :: field_ptr
-      class(hist_field_info_t), pointer :: field_list_entry
       class(hist_hashable_t), pointer :: field_ptr_entry
       character(len=*), parameter :: subname = 'hist:config_set_up_fields: '
-      character(len=max_chars) :: timeop
       integer, allocatable :: dimensions(:)
       integer, allocatable :: field_shape(:)
       integer, allocatable :: beg_dim(:)
       integer, allocatable :: end_dim(:)
-      character(len=128)   :: errmsg
+      character(len=CM)    :: errmsg
       type(hist_log_messages) :: errors
 
       allocate(possible_grids(cam_grid_num_grids() + 1), stat=ierr)
@@ -727,10 +754,11 @@ CONTAINS
             write(errmsg,'(3a)') 'ERROR Field : ',trim(this%field_names(idx)),' not available'
             call endrun(subname//errmsg, file=__FILE__, line=__LINE__)
          end select
-         call field_ptr%dimensions(dimensions)
-         call field_ptr%shape(field_shape)
-         call field_ptr%beg_dims(beg_dim)
-         call field_ptr%end_dims(end_dim)
+         !call field_ptr%dimensions(dimensions)
+         dimensions = field_ptr%dimensions()
+         field_shape = field_ptr%shape()
+         beg_dim = field_ptr%beg_dims()
+         end_dim = field_ptr%end_dims()
          field_info => hist_new_field(this%field_names(idx),     &
             field_ptr%standard_name(), field_ptr%long_name(),    &
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
@@ -749,15 +777,11 @@ CONTAINS
          this%field_list(idx) = field_info
          call this%field_list_hash_table%add_hash_key(field_info)
          ! Add grid to possible grids if it's not already there
-         do grid_idx = 1, size(possible_grids, 1)
-            if (field_ptr%decomp() == possible_grids(grid_idx)) then
-               exit
-            else if (possible_grids(grid_idx) < 0) then
-               possible_grids(grid_idx) = field_ptr%decomp()
-               num_grids = num_grids + 1
-               exit
-            end if
-         end do
+         if (.not. any(possible_grids(:) == field_ptr%decomp())) then
+            grid_idx = findloc(possible_grids(:), -1, dim=1)
+            possible_grids(grid_idx) = field_ptr%decomp()
+            num_grids = num_grids + 1
+         end if
          deallocate(dimensions)
          deallocate(field_shape)
          if (allocated(beg_dim)) then
@@ -771,9 +795,7 @@ CONTAINS
       allocate(this%grids(num_grids), stat=ierr)
       call check_allocate(ierr, subname, 'this%grids',             &
            file=__FILE__, line=__LINE__-1)
-      do grid_idx = 1, num_grids
-         this%grids(grid_idx) = possible_grids(grid_idx)
-      end do
+      this%grids(1:num_grids) = possible_grids(1:num_grids)
       ! We don't need the user-set fields arrays anymore
       deallocate(this%accumulate_types)
       deallocate(this%field_names)
@@ -791,7 +813,6 @@ CONTAINS
       character(len=*),   intent(out)                :: errmsg
 
       ! Local variables
-      class(hist_field_info_t), pointer :: field_ptr
       class(hist_hashable_t),   pointer :: field_ptr_entry
       integer                           :: field_idx
       logical                           :: found_field
@@ -801,13 +822,14 @@ CONTAINS
       errmsg = ''
       found_field = .false.
       ! Loop over fields
-      do field_idx = 1, size(this%field_list, 1)
+      do field_idx = 1, size(this%field_list)
          if (trim(this%field_list(field_idx)%diag_name()) == trim(diagnostic_name)) then
             ! Grab the associated accumulate flag
             found_field = .true.
          end if
       end do
       if (.not. found_field) then
+         ! Not an error - return with the null field_info pointer
          return
       end if
       found_field = .false.
@@ -819,7 +841,7 @@ CONTAINS
          field_info => field_ptr_entry
          found_field = .true.
       class default
-         ! some error message here
+         write(errmsg,*) subname//'Unknown field type for "'//trim(diagnostic_name)//'"'
          return
       end select
 
@@ -858,7 +880,7 @@ CONTAINS
        case ('min')
          time_op(:) = 'minimum'
        case('L')
-         time_op(:) = LT_DESC
+         time_op(:) = 'mean (over local time)'
        case ('var')
          time_op(:) = 'standard_deviation'
        case default
@@ -890,6 +912,7 @@ CONTAINS
       use cam_abortutils,      only: check_allocate, endrun
       use cam_logfile,         only: iulog
       use spmd_utils,          only: masterproc
+      use shr_kind_mod,        only: CM => shr_kind_cm
       ! Define the metadata for the file(s) for this volume
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
@@ -921,7 +944,7 @@ CONTAINS
       character(len=max_chars) :: calendar  ! Calendar type
       character(len=max_chars) :: cell_methods ! For cell_methods attribute
       character(len=max_chars) :: fname_tmp ! local copy of field name
-      character(len=128)       :: errmsg
+      character(len=CM)        :: errmsg
       type(var_desc_t)         :: varid
       ! NetCDF dimensions
       integer :: timdim             ! unlimited dimension id
@@ -929,9 +952,10 @@ CONTAINS
       integer :: chardim            ! character dimension id
       integer :: dimenchar(2)       ! character dimension ids
       integer :: nacsdims(2)        ! dimension ids for nacs (used in restart file)
+      integer :: max_mdims          ! maximum number of middle dimensions
+      integer :: max_hdims          ! maximum number of grid dimensions
 
-      integer :: dimindex(8)        ! dimension ids for variable declaration
-      integer :: dimids_tmp(8)      ! dimension ids for variable declaration
+      integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,          allocatable    :: mdimids(:)
@@ -947,7 +971,7 @@ CONTAINS
                trim(this%file_names(accumulated_file_index))
          end if
          if (this%has_instantaneous) then
-            write(iulog,*) 'Opening netcdf history file for instantaneous output', &
+            write(iulog,*) 'Opening netcdf history file for instantaneous output ', &
                trim(this%file_names(instantaneous_file_index))
          end if
       end if
@@ -966,19 +990,28 @@ CONTAINS
 
       this%files_open = .true.
 
-      allocate(header_info(size(this%grids, 1)), stat=ierr)
+      allocate(header_info(size(this%grids)), stat=ierr)
       call check_allocate(ierr, subname, 'header_info',             &
            file=__FILE__, line=__LINE__-1)
 
-      do grid_index = 1, size(this%grids, 1)
+      max_hdims = 0
+      do grid_index = 1, size(this%grids)
          do split_file_index = 1, max_split_files
             if (pio_file_is_open(this%hist_files(split_file_index))) then
                call cam_grid_write_attr(this%hist_files(split_file_index), &
                   this%grids(grid_index), header_info(grid_index),         &
                   file_index=split_file_index)
+               max_hdims = max(max_hdims, header_info(grid_index)%num_hdims())
             end if
          end do
       end do
+      ! Determine the maximum number of dimensions
+      do field_index = 1, size(this%field_list)
+         max_mdims = max(max_mdims, size(this%field_list(field_index)%dimensions()))
+      end do
+      ! Allocate dimindex to the maximum possible dimensions (plus 1 for time)
+      allocate(dimindex(max_hdims + max_mdims + 1), stat=ierr)
+      call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1)
 
       ! Define the unlimited time dim
       do split_file_index = 1, max_split_files
@@ -1047,12 +1080,8 @@ CONTAINS
          str = 'CF-1.0'
          ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'Conventions', trim(str))
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "Conventions" attribtue to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'source', 'CAM')
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'source', 'CAM-SIMA')
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "source" attribute to file')
-#if ( defined BFB_CAM_SCAM_IOP )
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL,'CAM_GENERATED_FORCING','create SCAM IOP dataset')
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "CAM_GENERATED_FORCING" attribute to file')
-#endif
          ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'case', caseid)
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "case" attribute to file')
          ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'logname',logname)
@@ -1118,13 +1147,6 @@ CONTAINS
             ierr=pio_put_att (this%hist_files(split_file_index), this%nbdateid, 'long_name', trim(str))
             call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribtue to "nbdate" variable')
 
-#if ( defined BFB_CAM_SCAM_IOP )
-            ierr=pio_def_var (this%hist_files(split_file_index),'bdate',PIO_INT,this%bdateid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "bdate" variable')
-            str = 'base date (YYYYMMDD)'
-            ierr=pio_put_att (this%hist_files(split_file_index), this%bdateid, 'long_name', trim(str))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "bdate" variable')
-#endif
             ierr=pio_def_var (this%hist_files(split_file_index),'nbsec',PIO_INT,this%nbsecid)
             call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nbsec" variable')
             str = 'seconds of base date'
@@ -1153,13 +1175,6 @@ CONTAINS
                str = 'current seconds of current day'
                ierr=pio_put_att (this%hist_files(split_file_index), this%nscurid, 'long_name', trim(str))
                call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "nscur" variable')
-#if ( defined BFB_CAM_SCAM_IOP )
-               ierr=pio_def_var (this%hist_files(split_file_index),'tsec ',pio_int,(/timdim/),this%tsecid)
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to define "tsec" variable')
-               str = 'current seconds of current date needed for scam'
-               ierr=pio_put_att (this%hist_files(split_file_index), this%tsecid, 'long_name', trim(str))
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "tsec" variable')
-#endif
                ierr=pio_def_var (this%hist_files(split_file_index),'nsteph',pio_int,(/timdim/),this%nstephid)
                call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nsteph" variable')
                str = 'current timestep'
@@ -1197,8 +1212,8 @@ CONTAINS
             else
                ncreal = pio_double
             end if
-            call this%field_list(field_index)%dimensions(mdims)
-            mdimsize = size(mdims,1)
+            mdims = this%field_list(field_index)%dimensions()
+            mdimsize = size(mdims)
             fname_tmp = strip_suffix(this%field_list(field_index)%diag_name())
             !
             !  Create variables and atributes for fields written out as columns
@@ -1206,7 +1221,7 @@ CONTAINS
             !  Find appropriate grid in header_info
             if (.not. allocated(header_info)) then
                ! Safety check
-               call endrun('config_define_file: header_info not allocated')
+               call endrun('config_define_file: header_info not allocated', file=__FILE__, line=__LINE__)
             end if
             grd = -1
             do idx = 1, size(header_info)
@@ -1218,32 +1233,31 @@ CONTAINS
             if (grd < 0) then
                write(errmsg, '(a,i0,2a)') 'grid, ',this%field_list(field_index)%decomp(),', not found for ', &
                   trim(fname_tmp)
-               call endrun('config_define_file: '//errmsg)
+               call endrun('config_define_file: '//errmsg, file=__FILE__, line=__LINE__)
             end if
             num_hdims = header_info(grd)%num_hdims()
             do idx = 1, num_hdims
-               dimindex(idx) = header_info(1)%get_hdimid(idx)
-               nacsdims(idx) = header_info(1)%get_hdimid(idx)
+               dimindex(idx) = header_info(grd)%get_hdimid(idx)
+               nacsdims(idx) = header_info(grd)%get_hdimid(idx)
             end do
             do idx = 1, num_patches
                varid = this%file_varids(field_index, idx)
-               dimids_tmp = dimindex
                ! Figure the dimension ID array for this field
                ! We have defined the horizontal grid dimensions in dimindex
                fdims = num_hdims
                do jdx = 1, mdimsize
                   fdims = fdims + 1
-                  dimids_tmp(fdims) = mdimids(mdims(jdx))
+                  dimindex(fdims) = mdimids(mdims(jdx))
                end do
                if(.not. restart) then
                   ! Only add time dimension if this is not a restart history tape
                   fdims = fdims + 1
-                  dimids_tmp(fdims) = timdim
+                  dimindex(fdims) = timdim
                end if
                ! peverwhee - TODO: enable patch output
                ! Define the variable
                call cam_pio_def_var(this%hist_files(split_file_index), trim(fname_tmp), ncreal,           &
-                    dimids_tmp(1:fdims), varid)
+                    dimindex(1:fdims), varid)
                if (.not. varid_set) then
                   this%file_varids(field_index, idx) = varid
                end if
@@ -1258,7 +1272,7 @@ CONTAINS
                end if
                if (this%field_list(field_index)%flag_xyfill()) then
                   ! peverwhee - TODO: implement fill values!
-                  call endrun('config_define_file: fill values not yet implemented!')
+                  call endrun('config_define_file: fill values not yet implemented!', file=__FILE__, line=__LINE__)
                end if
                str = this%field_list(field_index)%units()
                if (len_trim(str) > 0) then
@@ -1279,7 +1293,7 @@ CONTAINS
                   if (len_trim(cell_methods) > 0) then
                      cell_methods = trim(cell_methods)//' '//trim(this%field_list(field_index)%cell_methods())
                   else
-                     cell_methods = trim(cell_methods)//trim(this%field_list(field_index)%cell_methods())
+                     cell_methods = trim(this%field_list(field_index)%cell_methods())
                   end if
                end if
                ! Time cell methods is after field method because time averaging is
@@ -1287,20 +1301,18 @@ CONTAINS
                ! before outfld call.
                call AvgflagToString(this%field_list(field_index)%accumulate_type(), str)
                cell_methods = adjustl(trim(cell_methods)//' '//'time: '//str)
-               if (len_trim(cell_methods) > 0) then
-                  ierr = pio_put_att(this%hist_files(split_file_index), varid, 'cell_methods', trim(cell_methods))
-                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define cell_methods for '//trim(fname_tmp))
-               end if
+               ierr = pio_put_att(this%hist_files(split_file_index), varid, 'cell_methods', trim(cell_methods))
+               call cam_pio_handle_error(ierr, 'config_define_file: cannot define cell_methods for '//trim(fname_tmp))
             end do ! end loop over patches
             deallocate(mdims)
          end do ! end loop over fields
          deallocate(mdimids)
          ierr = pio_enddef(this%hist_files(split_file_index))
          if (ierr /= PIO_NOERR) then
-            call endrun('config_define_file: ERROR exiting define mode in PIO')
+            call endrun('config_define_file: ERROR exiting define mode in PIO', file=__FILE__, line=__LINE__)
          end if
          if(masterproc) then
-            write(iulog,*)'config_define_file: Successfully opened netcdf file '
+            write(iulog,*)'config_define_file: Successfully opened netcdf file '//trim(this%file_names(split_file_index))
          end if
       end do ! end loop over files
 
@@ -1334,10 +1346,6 @@ CONTAINS
 
             ierr = pio_put_var(this%hist_files(split_file_index), this%nbdateid, (/nbdate/))
             call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbdate')
-#if ( defined BFB_CAM_SCAM_IOP )
-            ierr = pio_put_var(this%hist_files(split_file_index), this%bdateid, (/nbdate/))
-            call cam_pio_handle_error(ierr, 'config_define_file: cannot put bdate')
-#endif
             ierr = pio_put_var(this%hist_files(split_file_index), this%nbsecid, (/nbsec/))
             call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbsec')
          end do
@@ -1389,10 +1397,6 @@ CONTAINS
       integer :: start, count1
       integer :: startc(2)          ! start values required by nf_put_vara (character)
       integer :: countc(2)          ! count values required by nf_put_vara (character)
-#if ( defined BFB_CAM_SCAM_IOP )
-      integer :: tsec             ! day component of current time
-      integer :: dtime            ! seconds component of current time
-#endif
       logical :: is_initfile, is_satfile
       character(len=8) :: cdate  ! system date
       character(len=8) :: ctime  ! system time
@@ -1420,7 +1424,6 @@ CONTAINS
 200         format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
                  a,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
          end do
-         write(iulog,*)
       end if
       start = mod(num_samples, this%max_frames) + 1
       count1 = 1
@@ -1434,37 +1437,29 @@ CONTAINS
       ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
       call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nscur" variable')
 
-      do split_file_index = 1, max_split_files
-         if (pio_file_is_open(this%hist_files(split_file_index))) then
-            ierr = pio_put_var (this%hist_files(split_file_index),this%dateid,(/start/),(/count1/),(/ncdate(split_file_index)/))
-            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncdate" variable')
-            ierr = pio_put_var (this%hist_files(split_file_index),this%datesecid,(/start/),(/count1/),(/ncsec(split_file_index)/))
-            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncsec" variable')
-         end if
-      end do
-
-#if ( defined BFB_CAM_SCAM_IOP )
-      dtime = get_step_size()
-      tsec=dtime*nstep
-      do split_file_index = 1, max_split_files
-         if (pio_file_is_open(tape(t)%Files(f))) then
-            ierr = pio_put_var (this%hist_files(split_file_index),this%tsecid,(/start/),(/count1/),(/tsec/))
-            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "tsec" variable')
-         end if
-      end do
-#endif
-
-      ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nstephid,(/start/),(/count1/),(/nstep/))
-      call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nstephid" variable')
+      if (pio_file_is_open(this%hist_files(instantaneous_file_index))) then
+         ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nstephid,(/start/),(/count1/),(/nstep/))
+         call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nstephid" variable')
+      end if
       startc(1) = 1
       startc(2) = start
-      countc(1) = 2
       countc(2) = 1
 
+      if(.not.restart) this%beg_time = time  ! update beginning time of next interval
+      call datetime (cdate, ctime)
+
+      ! peverwhee - TODO handle composed fields
+
+      call t_startf ('write_field')
       do split_file_index = 1, max_split_files
          if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
             cycle
          end if
+         ierr = pio_put_var (this%hist_files(split_file_index),this%dateid,(/start/),(/count1/),(/ncdate(split_file_index)/))
+         call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncdate" variable')
+         ierr = pio_put_var (this%hist_files(split_file_index),this%datesecid,(/start/),(/count1/),(/ncsec(split_file_index)/))
+         call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncsec" variable')
+         countc(1) = 2
          if (split_file_index == accumulated_file_index .and. .not. restart .and. .not. is_initfile) then
             ! accumulated tape - time is midpoint of time_bounds
 
@@ -1478,31 +1473,12 @@ CONTAINS
          end if
          ierr=pio_put_var (this%hist_files(split_file_index), this%tbndid, startc, countc, time_interval)
          call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "time_bounds" variable')
-      end do
-
-      if(.not.restart) this%beg_time = time  ! update beginning time of next interval
-      startc(1) = 1
-      startc(2) = start
-      countc(1) = 8
-      countc(2) = 1
-      call datetime (cdate, ctime)
-      do split_file_index = 1, max_split_files
-         if (pio_file_is_open(this%hist_files(split_file_index))) then
-            ierr = pio_put_var (this%hist_files(split_file_index), this%date_writtenid, startc, countc, (/cdate/))
-            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "cdate" variable')
-            ierr = pio_put_var (this%hist_files(split_file_index), this%time_writtenid, startc, countc, (/ctime/))
-            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ctime" variable')
-         end if
-      end do
-
-      ! peverwhee - TODO handle composed fields
-
-      call t_startf ('write_field')
-      do field_idx = 1, size(this%field_list)
-         do split_file_index = 1, max_split_files
-            if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
-               cycle
-            end if
+         countc(1) = 8
+         ierr = pio_put_var (this%hist_files(split_file_index), this%date_writtenid, startc, countc, (/cdate/))
+         call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "cdate" variable')
+         ierr = pio_put_var (this%hist_files(split_file_index), this%time_writtenid, startc, countc, (/ctime/))
+         call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ctime" variable')
+         do field_idx = 1, size(this%field_list)
             ! we may have a history split, conditionally skip fields that are
             ! for the other file
             if ((this%field_list(field_idx)%accumulate_type() .eq. 'lst') .and. &
@@ -1524,7 +1500,6 @@ CONTAINS
    subroutine config_write_field(this, field, split_file_index, restart, &
       sample_index, field_index)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
-      use cam_history_support, only: hist_coords
       use hist_buffer,         only: hist_buffer_t
       use hist_api,            only: hist_buffer_norm_value
       use cam_grid_support,    only: cam_grid_write_dist_array
@@ -1549,19 +1524,16 @@ CONTAINS
       integer                        :: patch_idx, num_patches, ierr
       type(var_desc_t)               :: varid
       integer                        :: field_decomp
-      integer                        :: num_dims
       integer                        :: idx
-      integer                        :: dim_size_temp
-      logical                        :: index_map(3)
       real(r8), allocatable          :: field_data(:,:)
       class(hist_buffer_t), pointer  :: buff_ptr
       character(len=*), parameter    :: subname = 'config_write_field: '
 
       !!! Get the field's shape and decomposition
       ! Shape on disk
-      call field%shape(field_shape)
-      call field%beg_dims(beg_dims)
-      call field%end_dims(end_dims)
+      field_shape = field%shape()
+      beg_dims = field%beg_dims()
+      end_dims = field%end_dims()
       frank = size(field_shape)
       if (frank == 1) then
          allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
@@ -1571,7 +1543,7 @@ CONTAINS
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
       end if
       ! Shape of array
-      call field%dimensions(dimind)
+      dimind = field%dimensions()
 
       allocate(dim_sizes(size(beg_dims)), stat=ierr)
       call check_allocate(ierr, subname, 'dim_sizes', file=__FILE__, line=__LINE__-1)
@@ -1610,25 +1582,23 @@ CONTAINS
       class(hist_file_t), intent(inout) :: this
 
       ! Local variables
-      integer :: split_file_index, field_index
+      integer :: split_file_index
 
-      if (masterproc) then
-         do split_file_index = 1, max_split_files
-            if (pio_file_is_open(this%hist_files(split_file_index))) then
-               write(iulog,*)'config_close_files: nf_close(', trim(this%volume),')=',&
-                  this%file_names(split_file_index)
-            end if
-         end do
-      end if
-      do split_file_index = 1, max_split_files
-         if (pio_file_is_open(this%hist_files(split_file_index))) then
-            call cam_pio_closefile(this%hist_files(split_file_index))
-         end if
-      end do
       if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
                  pio_file_is_open(this%hist_files(instantaneous_file_index))) then
          deallocate(this%file_varids)
       end if
+
+      do split_file_index = 1, max_split_files
+         if (pio_file_is_open(this%hist_files(split_file_index))) then
+            if (masterproc) then
+               write(iulog,*)'config_close_files: nf_close(', trim(this%volume),')=',&
+                  this%file_names(split_file_index)
+            end if
+            call cam_pio_closefile(this%hist_files(split_file_index))
+         end if
+      end do
+
       if (allocated(this%file_names)) then
          deallocate(this%file_names)
       end if
@@ -1660,16 +1630,17 @@ CONTAINS
 
    ! ========================================================================
 
-   integer function count_array(arr_in)
-      ! Dummy argument
+   pure function count_array(arr_in) result(arr_count)
+      ! Dummy arguments
       character(len=*), intent(in) :: arr_in(:)
+      integer                      :: arr_count
       ! Local variable
       integer :: index
 
-      count_array = 0
+      arr_count = 0
       do index = 1, size(arr_in)
          if (len_trim(arr_in(index)) > 0) then
-            count_array = count_array + 1
+            arr_count = arr_count + 1
          else
             exit
          end if
@@ -1681,10 +1652,12 @@ CONTAINS
    subroutine read_namelist_entry(unitn, hfile_config, hist_inst_fields,      &
         hist_avg_fields, hist_min_fields, hist_max_fields, hist_var_fields)
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_LOGICAL
-      use string_utils,   only: to_str
+      use string_utils,   only: stringify
       use spmd_utils,     only: masterproc, masterprocid, mpicom
       use shr_nl_mod,     only: shr_nl_find_group_name
       use cam_abortutils, only: endrun
+      use shr_kind_mod,   only: CM => shr_kind_cm
+      use ISO_FORTRAN_ENV,only: REAL32
       ! Read a history file configuration from <unitn> and process it into
       ! <hfile_config>.
       ! <hist_inst_fields>, <avg_fields>, <min_fields>, <max_fields>, & <var_fields>
@@ -1710,6 +1683,7 @@ CONTAINS
       logical             :: hist_write_nstep0
       ! Local variables (other)
       integer             :: ierr
+      character(len=CM)   :: errmsg
       integer             :: num_fields_inst
       integer             :: num_fields_avg
       integer             :: num_fields_min
@@ -1739,7 +1713,7 @@ CONTAINS
       hist_min_fields(:) = ''
       hist_max_fields(:) = ''
       hist_var_fields(:) = ''
-      hist_volume = UNSET_C ! h# ir i, not config number =
+      hist_volume = UNSET_C
       hist_precision = UNSET_C
       hist_max_frames = UNSET_I
       hist_output_frequency = UNSET_C
@@ -1756,10 +1730,10 @@ CONTAINS
 
       ! Read namelist entry
       if (masterproc) then
-         read(unitn, hist_file_config_nl, iostat=ierr)
+         read(unitn, hist_file_config_nl, iostat=ierr, iomsg=errmsg)
          if (ierr /= 0) then
-            call endrun(subname//"ERROR "//trim(to_str(ierr))//               &
-                 " reading namelist", file=__FILE__, line=__LINE__)
+            call endrun(subname//"ERROR "//trim(errmsg)//' (code= '//trim(stringify((/ierr/)))// &
+                 ") reading namelist", file=__FILE__, line=__LINE__)
          end if
          ! Translate <file_type>
          select case(trim(hist_file_type))
@@ -1863,10 +1837,10 @@ CONTAINS
         hist_avg_fields, hist_min_fields, hist_max_fields, hist_var_fields)
       use mpi,            only: MPI_INTEGER
       use shr_nl_mod,     only: shr_nl_find_group_name
-      use string_utils,   only: to_str
       use cam_logfile,    only: iulog
       use spmd_utils,     only: mpicom, masterproc, masterprocid
       use cam_abortutils, only: check_allocate, endrun
+      use shr_kind_mod,   only: CM => shr_kind_cm
       ! Read the maximum sizes of field arrays from namelist file and allocate
       !  field arrays
       ! Dummy arguments
@@ -1883,7 +1857,8 @@ CONTAINS
       integer                     :: hist_num_min_fields
       integer                     :: hist_num_max_fields
       integer                     :: hist_num_var_fields
-      character(len=CL)           :: errmsg
+      character(len=CM)           :: errmsg
+      character(len=CM)           :: io_errmsg
       character(len=*), parameter :: subname = 'allocate_field_arrays'
 
       namelist /hist_config_arrays_nl/ hist_num_inst_fields,                  &
@@ -1915,12 +1890,12 @@ CONTAINS
          rewind(unitn)
          call shr_nl_find_group_name(unitn, 'hist_config_arrays_nl', ierr)
          if (ierr == 0) then
-            read(unitn, hist_config_arrays_nl, iostat=ierr)
+            read(unitn, hist_config_arrays_nl, iostat=ierr, iomsg=io_errmsg)
             if (ierr /= 0) then
-               write(errmsg, '(2a,i0,a)') subname, ": ERROR ", ierr,          &
-                    " reading namelist, hist_config_arrays_nl"
+               write(errmsg, '(2a,i0,4a)') subname, ": ERROR ", ierr,          &
+                    " reading namelist, hist_config_arrays_nl",                &
+                    " (error message= '", trim(io_errmsg), "')"
                call endrun(trim(errmsg))
-               return ! For testing
             end if
          else
             write(iulog, *) subname, ": WARNING, no hist_config_arrays_nl ",  &
@@ -1961,10 +1936,9 @@ CONTAINS
 
    subroutine hist_read_namelist_config(filename, config_arr)
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER
-      use shr_kind_mod,   only: max_str =>SHR_KIND_CXX
+      use shr_kind_mod,   only: max_str =>SHR_KIND_CXX, CM => shr_kind_cm
       use shr_nl_mod,     only: shr_nl_find_group_name
       use spmd_utils,     only: masterproc, masterprocid, mpicom
-      use string_utils,   only: to_str
       use cam_abortutils, only: check_allocate, endrun
       ! Read all the history configuration namelist groups from  <filename>
       !    and return an array of config objects
@@ -1988,7 +1962,8 @@ CONTAINS
       character(len=max_fldlen), allocatable :: hist_max_fields(:)
       character(len=max_fldlen), allocatable :: hist_var_fields(:)
       character(len=max_str)                 :: config_line
-      character(len=CL)                      :: errmsg
+      character(len=CM)                      :: errmsg
+      character(len=CM)                      :: io_errmsg
       character(len=*),          parameter   :: subname = 'read_config_file'
 
       ! Variables for reading a namelist entry
@@ -2000,21 +1975,17 @@ CONTAINS
          inquire(file=trim(filename), exist=filefound)
          if (.not. filefound) then
             write(config_line, *)                                             &
-                 "ERROR: could not find history config file '",               &
+                 ": ERROR: could not find history config file '",               &
                  trim(filename), "'"
             call endrun(subname//trim(config_line))
-            return ! Needed for testing
          else
             open(newunit=unitn, file=trim(filename), status='old', iostat=ierr)
+            if (ierr /= 0) then
+               write(errmsg, '(a,i0,2a)') ": Error ", ierr, " opening ",      &
+                     trim(filename)
+            end if
             line_num = 0
          end if
-      end if
-      call MPI_bcast(ierr, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
-      if (ierr /= 0) then
-         write(errmsg, '(a,i0,2a)') ": Error ", ierr, " opening ",            &
-              trim(filename)
-         call endrun(subname//trim(errmsg))
-         return ! Needed for testing
       end if
       ! First, count up the number of history configs in this file
       num_configs = 0
@@ -2028,15 +1999,13 @@ CONTAINS
                num_configs = num_configs + 1
                ! shr_nl_find_group_name leaves the file pointer at the beginning
                !      of the namelist, move past for the next search
-               read(unitn, '(a)', iostat=read_status) config_line
+               read(unitn, '(a)', iostat=read_status, iomsg=io_errmsg) config_line
                ! Check that the read did not cause trouble
                if (read_status > 0) then
-                  write(errmsg, '(a,i0,3a)') ": Error (", read_status,        &
-                       ") from '", trim(filename), "'"
+                  write(errmsg, '(a,i0,5a)') ": Error (", read_status,        &
+                       " - '", trim(io_errmsg), "') from '", trim(filename), "'"
                   close(unitn)
-                  num_configs = - read_status ! Used for testing
                   call endrun(subname//trim(errmsg))
-                  return ! Neede for testing
                else if (read_status < 0) then
                   ! We reached the end of the file, just quit
                   exit
@@ -2046,30 +2015,12 @@ CONTAINS
                exit
             end if
          end do
-      else
-         config_line = '' ! For testing
       end if
       ! All tasks allocate the history config file objects
       call MPI_bcast(num_configs, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
-      ! This block is used for testing
-      if ((num_configs < 0) .or. (LEN_TRIM(errmsg) > 0)) then
-         call endrun(subname//trim(errmsg))
-         return ! Needed for testing
-      end if
       allocate(config_arr(num_configs), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'config_arr',                        &
            file=__FILE__, line=__LINE__-1)
-      ! This block is needed for testing
-      if (ierr /= 0) then
-         return
-      end if ! End test
-      ! This block is needed for testing
-      if (masterproc) then
-         inquire(unit=unitn, opened=filefound, iostat=ierr)
-         if ((ierr > 0) .or. (.not. filefound)) then
-            return
-         end if
-      end if ! End test
       ! Allocate the config field name arrays
       call allocate_field_arrays(unitn, hist_inst_fields, hist_avg_fields,    &
            hist_min_fields, hist_max_fields, hist_var_fields)
@@ -2102,11 +2053,6 @@ CONTAINS
       if ((ierr == 0) .and. filefound) then
          close(unitn)
       end if
-      ! Special block for testing
-      call MPI_bcast(read_status, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
-      if (read_status /= 0) then
-         return
-      end if
       if (allocated(hist_inst_fields)) then
          deallocate(hist_inst_fields)
       end if
@@ -2124,7 +2070,7 @@ CONTAINS
       end if
    end subroutine hist_read_namelist_config
 
-   character(len=max_fldlen) function strip_suffix (name)
+   pure function strip_suffix(name) result(stripped)
       use cam_history_support, only: fieldname_len
       !
       !----------------------------------------------------------
@@ -2136,6 +2082,7 @@ CONTAINS
       ! Arguments
       !
       character(len=*), intent(in) :: name
+      character(len=max_fldlen)    :: stripped
       !
       ! Local workspace
       !
@@ -2143,17 +2090,15 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
       !
-      strip_suffix = ' '
+      stripped = ' '
 
       do n = 1,fieldname_len
-         strip_suffix(n:n) = name(n:n)
+         stripped(n:n) = name(n:n)
          if(name(n+1:n+1         ) == ' '                       ) return
          if(name(n+1:n+fieldname_suffix_len) == fieldname_suffix) return
       end do
 
-      strip_suffix(fieldname_len+1:max_fldlen) = name(fieldname_len+1:max_fldlen)
-
-     ! return
+      stripped(fieldname_len+1:max_fldlen) = name(fieldname_len+1:max_fldlen)
 
   end function strip_suffix
 

@@ -92,7 +92,7 @@ CONTAINS
       integer           :: ncsec    ! Seconds into current simulation day
       character(len=cl) :: string   ! Temporary character string
       character(len=cl) :: fmt_str  ! Format character string
-      integer           :: indx    ! Loop variable
+      integer           :: indx     ! Loop variable
       integer           :: next     ! Index location in <filename_spec>
       logical           :: previous ! If should label with previous time-step
       logical           :: done
@@ -155,7 +155,7 @@ CONTAINS
                   string = "%c"
                else
                   write(string, *) "case needed in filename_spec, ",          &
-                       "but not provided to subroutine, filename_spec = '",   &
+                       "but not provided to function, filename_spec = '",     &
                        trim(filename_spec), "'"
                   if (masterproc) then
                      write(iulog, *) subname, trim(string)
@@ -173,7 +173,7 @@ CONTAINS
                   string = "%u"
                else
                   write(string, *) "unit needed in filename_spec, ",          &
-                       "but not provided to subroutine, filename_spec = '",   &
+                       "but not provided to function, filename_spec = '",     &
                        trim(filename_spec), "'"
                   if (masterproc) then
                      write(iulog, *) subname, trim(string)
@@ -187,7 +187,7 @@ CONTAINS
                   string = "%i"
                else
                   write(string, *) "instance needed in filename_spec, ",      &
-                       "but not provided to subroutine, filename_spec = '",   &
+                       "but not provided to function, filename_spec = '",     &
                        trim(filename_spec), "'"
                   if (masterproc) then
                      write(iulog, *) subname, trim(string)

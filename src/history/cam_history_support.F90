@@ -118,7 +118,7 @@ module cam_history_support
   public     :: lookup_hist_coord_indices
   public     :: hist_coord_find_levels
   public     :: get_hist_coord_index
-  public     :: parse_multiplier ! Parse a repeat count and a token from input
+  public     :: parse_multiplier     ! Parse a repeat count and a token from input
 
   interface add_hist_coord
     module procedure add_hist_coord_regonly

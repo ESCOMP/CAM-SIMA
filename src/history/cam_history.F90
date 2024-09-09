@@ -9,9 +9,8 @@ module cam_history
    !
    !-----------------------------------------------------------------------
 
-   use shr_kind_mod,         only: cl=>SHR_KIND_CL, cxx=>SHR_KIND_CXX
+   use shr_kind_mod,         only: cl=>SHR_KIND_CL
    use cam_hist_file,        only: hist_file_t
-   use cam_history_support,  only: pfiles
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
 
@@ -58,20 +57,10 @@ CONTAINS
       ! Purpose: Read in history namelist and set hist_configs
       !
       !-----------------------------------------------------------------------
-      use spmd_utils,    only: masterproc, masterprocid, mpicom
-      use mpi,           only: mpi_integer, mpi_logical, mpi_character
       use cam_hist_file, only: hist_read_namelist_config
-      use time_manager,  only: get_step_size
 
       ! Dummy argument
       character(len=*), intent(in) :: nlfile ! path of namelist input file
-
-      !
-      ! Local variables
-      integer                      :: dtime  ! Step time in seconds
-      integer                      :: out_unit, err_cnt
-      character(len=8)             :: ctemp  ! Temporary character string
-      character(len=512)           :: test_msg
 
       ! Read in CAM history configuration
       call hist_read_namelist_config(nlfile, hist_configs)
@@ -105,7 +94,7 @@ CONTAINS
       integer           :: last_month_written
       integer           :: last_year_written
       character(len=8)  :: out_frq_type
-      logical           :: write_history, write_nstep0, duplicate
+      logical           :: write_history, write_nstep0
       character(len=cl) :: filename_spec, prev_filename_spec
       logical           :: restart
       logical           :: month_changed
@@ -198,33 +187,27 @@ CONTAINS
          end if
          num_samples = hist_configs(file_idx)%get_num_samples()
          if (mod(num_samples, hist_configs(file_idx)%max_frame()) == 0) then
-            ! This if the first write to this file - set up volume
+            ! This is the first write to this file - set up volume
             call hist_configs(file_idx)%set_filenames()
             file_names = hist_configs(file_idx)%get_filenames()
-            duplicate = .false.
             do prev_file_idx = 1, file_idx - 1
                prev_file_names = hist_configs(prev_file_idx)%filename()
                do idx = 1, max_split_files
                   if (prev_file_names(idx) == file_names(idx)) then
-                     duplicate = .true.
+                     filename_spec = hist_configs(file_idx)%get_filename_spec()
+                     prev_filename_spec = hist_configs(prev_file_idx)%get_filename_spec()
                      if (masterproc) then
                         write(iulog,*)'history_write_files: New filename same as old file = ', trim(file_names(idx))
+                        write(iulog,*)'Is there an error in your filename specifiers?'
+                        write(iulog,*)'filename_spec(', file_idx, ') = ', trim(filename_spec)
+                        if ( prev_file_idx /= file_idx )then
+                           write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
+                        end if
                      end if
+                     call endrun('history_write_files: ERROR - duplicate history file name', file=__FILE__, line=__LINE__)
                   end if
                end do
             end do
-            if (duplicate) then
-               filename_spec = hist_configs(file_idx)%get_filename_spec()
-               prev_filename_spec = hist_configs(prev_file_idx)%get_filename_spec()
-               if (masterproc) then
-                  write(iulog,*)'Is there an error in your filename specifiers?'
-                  write(iulog,*)'filename_spec(', file_idx, ') = ', trim(filename_spec)
-                  if ( prev_file_idx /= file_idx )then
-                    write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
-                  end if
-               end if
-               call endrun('history_write_files: ERROR - see atm log file for information')
-            end if
             call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
          end if
          call hist_configs(file_idx)%write_time_dependent_variables(restart)
@@ -245,6 +228,8 @@ CONTAINS
       use time_manager,     only: get_prev_time, get_curr_time
       use spmd_utils,       only: mpicom, masterprocid, masterproc
       use mpi,              only: mpi_character
+      use cam_abortutils,   only: endrun
+      use string_utils,     only: stringify
       !
       !-----------------------------------------------------------------------
       !
@@ -259,6 +244,7 @@ CONTAINS
       integer :: file_idx          ! file, field indices
       integer :: day, sec          ! day and seconds from base date
       integer :: rcode             ! shr_sys_getenv return code
+      character(len=*), parameter :: subname = 'history_init_files: '
 
       !
       ! Save the DOI
@@ -280,8 +266,16 @@ CONTAINS
       if (masterproc) then
          logname = ' '
          call shr_sys_getenv ('LOGNAME', logname, rcode)
+         if (rcode /= 0) then
+            call endrun(subname//'failed to get user logname. Error code='//stringify((/rcode/)), &
+                    file=__FILE__, line=__LINE__)
+         end if
          host = ' '
          call shr_sys_getenv ('HOST', host, rcode)
+         if (rcode /= 0) then
+            call endrun(subname//'failed to get machine hostname. Error code='//stringify((/rcode/)), &
+                    file=__FILE__, line=__LINE__)
+         end if
       end if
       ! PIO requires netcdf attributes have consistant values on all tasks
       call mpi_bcast(logname, len(logname), mpi_character,                    &
@@ -292,13 +286,16 @@ CONTAINS
       call get_curr_time(day, sec)  ! elapased time since reference date
 
       ! Set up hist fields on each user-specified file
-      do file_idx = 1, size(hist_configs, 1)
+      do file_idx = 1, size(hist_configs)
          ! Time at beginning of current averaging interval.
          call hist_configs(file_idx)%set_beg_time(day, sec)
 
          ! Set up fields and buffers
          call hist_configs(file_idx)%set_up_fields(possible_field_list)
       end do
+
+      ! Deallocate the possible field list hash table
+      call possible_field_list%deallocate_table()
 
 
    end subroutine history_init_files
@@ -323,25 +320,21 @@ CONTAINS
       if (masterproc) then
          write(iulog,*) ' '
          write(iulog,*)' ***************** HISTORY FIELD LIST ******************'
-      end if
-      do
-         if (associated(field_ptr)) then
-            avgflag = field_ptr%accumulate_type()
-            if (avgflag == 'lst') then
-               avgflag = 'inst'
-            end if
-            if (masterproc) then
+         do
+            if (associated(field_ptr)) then
+               avgflag = field_ptr%accumulate_type()
+               if (avgflag == 'lst') then
+                  avgflag = 'inst'
+               end if
                write(iulog, 9000) trim(field_ptr%diag_name()), &
                   field_ptr%units(), avgflag, &
                   field_ptr%standard_name()
 9000           format(a16, 1x, a12, 2x, a3, 2x, a)
+               field_ptr => field_ptr%next
+            else
+               exit
             end if
-            field_ptr => field_ptr%next
-         else
-            exit
-         end if
-      end do
-      if (masterproc) then
+         end do
          write(iulog,*)' *************** END HISTORY FIELD LIST ****************'
          write(iulog,*) ' '
       end if
@@ -380,7 +373,7 @@ CONTAINS
    subroutine history_add_field_1d(diagnostic_name, standard_name, vdim_name, &
       avgflag, units, gridname, flag_xyfill, mixing_ratio)
       use cam_history_support, only: get_hist_coord_index, max_chars, horiz_only
-      use cam_abortutils,      only: endrun
+      use cam_abortutils,      only: endrun, check_allocate
       !-----------------------------------------------------------------------
       !
       ! Purpose: Add a field to the master field list
@@ -408,15 +401,21 @@ CONTAINS
       !
       character(len=max_chars), allocatable :: dimnames(:)
       integer                               :: index
+      integer                               :: ierr
+      character(len=*), parameter           :: subname = 'history_add_field_1d'
 
       if (trim(vdim_name) == trim(horiz_only)) then
-         allocate(dimnames(0))
+         allocate(dimnames(0), stat=ierr)
+         call check_allocate(ierr, subname, 'dimnames', &
+                 file=__FILE__, line=__LINE__-1)
       else
          index = get_hist_coord_index(trim(vdim_name))
          if (index < 1) then
            call endrun('history_add_field_1d: Invalid coordinate, '//trim(vdim_name))
          end if
-         allocate(dimnames(1))
+         allocate(dimnames(1), stat=ierr)
+         call check_allocate(ierr, subname, 'dimnames', &
+                 file=__FILE__, line=__LINE__-1)
          dimnames(1) = trim(vdim_name)
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
@@ -450,6 +449,7 @@ CONTAINS
       use cam_logfile,         only: iulog
       use cam_abortutils,      only: endrun, check_allocate
       use spmd_utils,          only: masterproc
+      use string_utils,        only: stringify
 
       character(len=*), intent(in) :: diagnostic_name
       character(len=*), intent(in) :: standard_name
@@ -502,8 +502,10 @@ CONTAINS
          if (masterproc) then
             write(iulog,*)'history_add_field_nd: field name cannot be longer than ', fieldname_len,' characters long'
             write(iulog,*)'Field name:  ',diagnostic_name
-            write(errmsg, *) 'Field name, "', trim(diagnostic_name), '" is too long'
          end if
+         write(errmsg, *) 'Field name, "', trim(diagnostic_name), '" is too long ', '(len=', &
+                 stringify((/len_trim(fname_tmp)/)), ' longer than max length of ',          &
+                 stringify((/fieldname_len/)), ')'
          call endrun('history_add_field_nd: '//trim(errmsg))
       end if
 
@@ -543,7 +545,7 @@ CONTAINS
 
       ! peverwhee - TODO: handle fill values
 
-      allocate(mdim_indices(size(dimnames, 1)), stat=ierr)
+      allocate(mdim_indices(size(dimnames)), stat=ierr)
       call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1)
 
       call lookup_hist_coord_indices(dimnames, mdim_indices)
@@ -620,9 +622,7 @@ CONTAINS
       real(r8),         intent(in) :: field_values(:)
 
       ! Local variables
-      integer :: file_idx, field_idx
-      character(len=3)  :: flag
-      logical :: found
+      integer :: file_idx
       character(len=cl) :: errmsg
       type(hist_log_messages) :: logger
       character(len=*), parameter :: subname = 'history_out_field_1d: '
@@ -630,7 +630,7 @@ CONTAINS
 
       errmsg = ''
 
-      do file_idx = 1, size(hist_configs, 1)
+      do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
          call hist_configs(file_idx)%find_in_field_list(diagnostic_name, field_info, errmsg)
          if (len_trim(errmsg) /= 0) then
@@ -669,9 +669,7 @@ CONTAINS
       real(r8),         intent(in) :: field_values(:,:)
 
       ! Local variables
-      integer :: file_idx, field_idx
-      character(len=3)  :: flag
-      logical :: found
+      integer :: file_idx
       character(len=cl) :: errmsg
       type(hist_log_messages) :: logger
       character(len=*), parameter :: subname = 'history_out_field_2d: '
@@ -679,7 +677,7 @@ CONTAINS
 
       errmsg = ''
 
-      do file_idx = 1, size(hist_configs, 1)
+      do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
          call hist_configs(file_idx)%find_in_field_list(diagnostic_name, field_info, errmsg)
          if (len_trim(errmsg) /= 0) then
@@ -707,18 +705,14 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
       use hist_api,       only: hist_field_accumulate
-      use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
-      use spmd_utils,     only: masterproc
       use shr_kind_mod,   only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       real(r8),         intent(in) :: field_values(:,:,:)
 
       ! Local variables
-      integer :: file_idx, field_idx
-      character(len=3)  :: flag
-      logical :: found
+      integer :: file_idx
       character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'history_out_field_3d: '
       class(hist_field_info_t), pointer :: field_info
@@ -726,7 +720,7 @@ CONTAINS
       errmsg = ''
       call endrun('ERROR: '//subname//'3d history fields not implemented', file=__FILE__, line=__LINE__)
 
-      do file_idx = 1, size(hist_configs, 1)
+      do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
          call hist_configs(file_idx)%find_in_field_list(diagnostic_name, field_info, errmsg)
          if (len_trim(errmsg) /= 0) then
@@ -736,6 +730,7 @@ CONTAINS
             ! field is not active on this tape - do nothing!
             cycle
          end if
+         ! peverwhee - TODO - need to enable 3D accumulation in modular history
          ! Field is active on this file - accumulate!
          !call hist_field_accumulate(field_info, real(field_values, REAL64), 1)
          !if (masterproc) then
@@ -798,7 +793,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       !
       ! Begin loop over hist_configs (the no. of declared history files - primary
-      ! and auxiliary).  This loop disposes a history file to Mass Store
+      ! and auxiliary).  This loop disposes a history file to disk
       ! when appropriate.
       !
 
