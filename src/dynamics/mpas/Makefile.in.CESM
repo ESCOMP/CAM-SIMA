@@ -4,6 +4,15 @@ ifeq ($(strip $(LIBROOT)),)
     LIBROOT = ..
 endif
 
+ifeq ($(strip $(SRCROOT)),)
+    $(warning `SRCROOT` should not be empty. Defaulting to `..`)
+
+    SRCROOT = ..
+    MPAS_SRC_ROOT = $(SRCROOT)
+else
+    MPAS_SRC_ROOT = $(SRCROOT)/src/dynamics/mpas/dycore
+endif
+
 #
 # Define and export variables used by MPAS build infrastructure.
 #
@@ -19,7 +28,7 @@ export BUILD_TARGET    = N/A
 export CORE            = atmosphere
 export EXE_NAME        = atmosphere_model
 export GEN_F90         = false
-export GIT_VERSION     = N/A
+export GIT_VERSION     = $(shell git -C "$(MPAS_SRC_ROOT)" describe --always --dirty --tags || echo "N/A")
 export NAMELIST_SUFFIX = atmosphere
 
 # Customize variables (e.g., build options) for use with CESM.
@@ -57,9 +66,9 @@ all:
 	@echo 'Users are responsible to provide all necessary build options via environment variables or command line arguments.'
 	@echo ''
 	@echo 'Usage hints:'
-	@echo '    `make libmpas-prepare ESM="CESM" LIBROOT="..."`'
-	@echo '    `make libmpas-build ESM="CESM" LIBROOT="..."`'
-	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..."`'
+	@echo '    `make libmpas-prepare ESM="CESM" LIBROOT="..." SRCROOT="..."`'
+	@echo '    `make libmpas-build ESM="CESM" LIBROOT="..." SRCROOT="..."`'
+	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..." SRCROOT="..."`'
 
 .PHONY: libmpas-prepare
 libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics libmpas-prefix-namelist-groups libmpas-preview
@@ -116,7 +125,6 @@ $(LIBROOT)/libmpas.a: libmpas.a
 
 libmpas.a: $(AUTOCLEAN_DEPS) dycore externals frame ops subdrv
 	$(AR) $(ARFLAGS) < libmpas-archiver-script.txt
-	@find -P . -name "*.mod" -type f -exec $(LN) "{}" . ";"
 
 .PHONY: libmpas-clean
 libmpas-clean: clean
@@ -131,4 +139,5 @@ subdrv: driver/dyn_mpas_subdriver.o
 
 %.o: %.F90 dycore frame ops
 	( cd $(<D); $(FC) $(CPPFLAGS) $(FFLAGS) -c $(<F) $(CPPINCLUDES) $(FCINCLUDES) -I../framework -I../operators -I../core_$(CORE) -I../core_$(CORE)/dynamics )
-	$(LN) $(@) .
+	$(LN) $(*).mod .
+	$(LN) $(*).o .
