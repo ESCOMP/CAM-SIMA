@@ -42,6 +42,7 @@ module dyn_mpas_subdriver
     use mpas_dmpar, only: mpas_dmpar_exch_halo_field, &
                           mpas_dmpar_max_int, mpas_dmpar_sum_int
     use mpas_domain_routines, only: mpas_allocate_domain
+    use mpas_field_routines, only: mpas_allocate_scratch_field
     use mpas_framework, only: mpas_framework_init_phase1, mpas_framework_init_phase2
     use mpas_io_streams, only: mpas_createstream, mpas_closestream, mpas_streamaddfield, &
                                mpas_readstream, mpas_writestream, mpas_writestreamatt
@@ -2529,19 +2530,21 @@ contains
     !> \date   16 January 2020
     !> \details
     !>  This subroutine computes the edge-normal wind vectors at edge points
-    !>  (i.e., `u` in MPAS `state` pool) from wind components at cell points
+    !>  (i.e., `u` in MPAS `state` pool) from the wind components at cell points
     !>  (i.e., `uReconstruct{Zonal,Meridional}` in MPAS `diag` pool). In MPAS, the
     !>  former are PROGNOSTIC variables, while the latter are DIAGNOSTIC variables
     !>  that are "reconstructed" from the former. This subroutine is essentially the
     !>  inverse function of that reconstruction. The purpose is to provide an
     !>  alternative way for MPAS to initialize from zonal and meridional wind
-    !>  components at cell points.
+    !>  components at cell points. If `wind_tendency` is `.true.`, this subroutine
+    !>  operates on the wind tendency due to physics instead.
     !> \addenda
     !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-08)
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_compute_edge_wind(self)
+    subroutine dyn_mpas_compute_edge_wind(self, wind_tendency)
         class(mpas_dynamical_core_type), intent(in) :: self
+        logical, intent(in) :: wind_tendency
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_edge_wind'
         integer :: cell1, cell2, i
@@ -2565,14 +2568,24 @@ contains
         nullify(uedge)
 
         ! Make sure halo layers are up-to-date before computation.
-        call self % exchange_halo('uReconstructZonal')
-        call self % exchange_halo('uReconstructMeridional')
+        if (wind_tendency) then
+            call self % exchange_halo('tend_uzonal')
+            call self % exchange_halo('tend_umerid')
+        else
+            call self % exchange_halo('uReconstructZonal')
+            call self % exchange_halo('uReconstructMeridional')
+        end if
 
         ! Input.
         call self % get_variable_pointer(nedges, 'dim', 'nEdges')
 
-        call self % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
-        call self % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
+        if (wind_tendency) then
+            call self % get_variable_pointer(ucellzonal, 'tend_physics', 'tend_uzonal')
+            call self % get_variable_pointer(ucellmeridional, 'tend_physics', 'tend_umerid')
+        else
+            call self % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
+            call self % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
+        end if
 
         call self % get_variable_pointer(cellsonedge, 'mesh', 'cellsOnEdge')
         call self % get_variable_pointer(east, 'mesh', 'east')
@@ -2580,7 +2593,11 @@ contains
         call self % get_variable_pointer(edgenormalvectors, 'mesh', 'edgeNormalVectors')
 
         ! Output.
-        call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
+        if (wind_tendency) then
+            call self % get_variable_pointer(uedge, 'tend_physics', 'tend_ru_physics')
+        else
+            call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
+        end if
 
         do i = 1, nedges
             cell1 = cellsonedge(1, i)
@@ -2611,7 +2628,11 @@ contains
         nullify(uedge)
 
         ! Make sure halo layers are up-to-date after computation.
-        call self % exchange_halo('u')
+        if (wind_tendency) then
+            call self % exchange_halo('tend_ru_physics')
+        else
+            call self % exchange_halo('u')
+        end if
 
         call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_compute_edge_wind
@@ -2644,6 +2665,7 @@ contains
         logical, pointer :: config_do_restart
         real(rkind), pointer :: config_dt
         type(field0dreal), pointer :: field_0d_real
+        type(field2dreal), pointer :: field_2d_real
         type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_time_type) :: mpas_time
 
@@ -2655,6 +2677,7 @@ contains
         nullify(config_do_restart)
         nullify(config_dt)
         nullify(field_0d_real)
+        nullify(field_2d_real)
         nullify(mpas_pool)
 
         if (coupling_time_interval <= 0) then
@@ -2818,6 +2841,16 @@ contains
 
         ! Prepare dynamics for time integration.
         call mpas_atm_dynamics_init(self % domain_ptr)
+
+        ! Some additional "scratch" fields are needed for interoperability with CAM-SIMA, but they are not initialized by
+        ! `mpas_atm_dynamics_init`. Initialize them below.
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_uzonal', field_2d_real, timelevel=1)
+        call mpas_allocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
+        call mpas_allocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
 
         call self % debug_print(subname // ' completed')
 
@@ -3259,7 +3292,7 @@ contains
                 pool_pointer => self % domain_ptr % configs
             case ('dim')
                 pool_pointer => self % domain_ptr % blocklist % dimensions
-            case ('diag', 'mesh', 'state', 'tend')
+            case ('diag', 'mesh', 'state', 'tend', 'tend_physics')
                 call mpas_pool_get_subpool(self % domain_ptr % blocklist % allstructs, trim(adjustl(pool_name)), pool_pointer)
             case default
                 call self % model_error('Unsupported pool name "' // trim(adjustl(pool_name)) // '"', subname, __LINE__)
