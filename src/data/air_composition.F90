@@ -459,7 +459,7 @@ CONTAINS
       !Set dry air thermodynamic properities if no dry air species provided:
       if (dry_species_num == 0) then
         !Note:  The zeroeth index is used to represent all of dry
-        !       instead of just N2 in this configuration
+        !       air instead of just N2 in this configuration
         thermodynamic_active_species_cp(0) = cpair
         thermodynamic_active_species_cv(0) = cpair - rair
         thermodynamic_active_species_R(0)  = rair
