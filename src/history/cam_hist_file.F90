@@ -256,7 +256,7 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_precision(this) result(cprec)
+   pure function config_precision(this) result(cprec)
       use ISO_FORTRAN_ENV,     only: REAL32
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
@@ -273,7 +273,7 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_volume(this) result(cvol)
+   pure function config_volume(this) result(cvol)
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=vlen)            :: cvol
@@ -284,7 +284,7 @@ CONTAINS
 
    ! ========================================================================
 
-   function config_max_frame(this) result(max_frame)
+   pure function config_max_frame(this) result(max_frame)
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       integer                        :: max_frame
@@ -1013,15 +1013,6 @@ CONTAINS
       allocate(dimindex(max_hdims + max_mdims + 1), stat=ierr)
       call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1)
 
-      ! Define the unlimited time dim
-      do split_file_index = 1, max_split_files
-         if (pio_file_is_open(this%hist_files(split_file_index))) then
-            call cam_pio_def_dim(this%hist_files(split_file_index), 'time', pio_unlimited, timdim)
-            call cam_pio_def_dim(this%hist_files(split_file_index), 'nbnd', 2, bnddim, existOK=.true.)
-            call cam_pio_def_dim(this%hist_files(split_file_index), 'chars', 8, chardim)
-         end if
-      end do
-
       call get_ref_date(yr, mon, day, nbsec)
       nbdate = yr*10000 + mon*100 + day
       calendar = timemgr_get_calendar_cf()
@@ -1046,6 +1037,10 @@ CONTAINS
          if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
             cycle
          end if
+         ! Define the unlimited time dim
+         call cam_pio_def_dim(this%hist_files(split_file_index), 'time', pio_unlimited, timdim)
+         call cam_pio_def_dim(this%hist_files(split_file_index), 'nbnd', 2, bnddim, existOK=.true.)
+         call cam_pio_def_dim(this%hist_files(split_file_index), 'chars', 8, chardim)
          ! Populate the history coordinate (well, mdims anyway) attributes
          ! This routine also allocates the mdimids array
          call write_hist_coord_attrs(this%hist_files(split_file_index), bnddim, mdimids, restart)
@@ -1314,25 +1309,15 @@ CONTAINS
          if(masterproc) then
             write(iulog,*)'config_define_file: Successfully opened netcdf file '//trim(this%file_names(split_file_index))
          end if
-      end do ! end loop over files
 
-      !
-      ! Write time-invariant portion of history header
-      !
-      if(.not. is_satfile) then
-         do idx = 1, size(this%grids)
-            do split_file_index = 1, max_split_files
-               if (pio_file_is_open(this%hist_files(split_file_index))) then
-                  call cam_grid_write_var(this%hist_files(split_file_index), this%grids(idx), &
-                     file_index=split_file_index)
-               end if
+         !
+         ! Write time-invariant portion of history header
+
+         if (.not. is_satfile) then
+            do idx = 1, size(this%grids)
+               call cam_grid_write_var(this%hist_files(split_file_index), this%grids(idx), &
+                  file_index=split_file_index)
             end do
-         end do
-         do split_file_index = 1, max_split_files
-            if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
-               cycle
-            end if
-
             ierr = pio_put_var(this%hist_files(split_file_index), this%mdtid, (/dtime/))
             call cam_pio_handle_error(ierr, 'config_define_file: cannot put mdt')
 
@@ -1348,8 +1333,12 @@ CONTAINS
             call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbdate')
             ierr = pio_put_var(this%hist_files(split_file_index), this%nbsecid, (/nbsec/))
             call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbsec')
-         end do
-      end if ! end is_satfile
+         end if
+
+         ! Write the mdim variable data
+         call write_hist_coord_vars(this%hist_files(split_file_index), restart)
+
+      end do ! end loop over files
 
       if (allocated(header_info)) then
          do idx = 1, size(header_info)
@@ -1357,13 +1346,6 @@ CONTAINS
          end do
          deallocate(header_info)
       end if
-
-      ! Write the mdim variable data
-      do split_file_index = 1, max_split_files
-         if (pio_file_is_open(this%hist_files(split_file_index))) then
-            call write_hist_coord_vars(this%hist_files(split_file_index), restart)
-         end if
-      end do
 
    end subroutine config_define_file
 
@@ -1411,36 +1393,15 @@ CONTAINS
       call set_date_from_time_float((time_interval(1) + time_interval(2)) / 2._r8, &
                                     yr_mid, mon_mid, day_mid, ncsec(accumulated_file_index))
       ncdate(accumulated_file_index) = yr_mid*10000 + mon_mid*100 + day_mid
-      num_samples = this%num_samples
-      if (masterproc) then
-         do split_file_index = 1, max_split_files
-            if (pio_file_is_open(this%hist_files(split_file_index))) then
-               if (split_file_index == instantaneous_file_index) then
-                  write(iulog,200) num_samples+1,'instantaneous',trim(this%volume),yr,mon,day,ncsec(split_file_index)
-               else
-                  write(iulog,200) num_samples+1,'accumulated',trim(this%volume),yr_mid,mon_mid,day_mid,ncsec(split_file_index)
-               end if
-            end if
-200         format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
-                 a,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
-         end do
-      end if
       start = mod(num_samples, this%max_frames) + 1
       count1 = 1
       ! Increment samples
       this%num_samples = this%num_samples + 1
+      num_samples = this%num_samples
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
       is_satfile = (this%hfile_type == hfile_type_sat_track)
-      ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%ndcurid,(/start/),(/count1/),(/ndcur/))
-      call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ndcur" variable')
-      ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
-      call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nscur" variable')
 
-      if (pio_file_is_open(this%hist_files(instantaneous_file_index))) then
-         ierr = pio_put_var (this%hist_files(instantaneous_file_index),this%nstephid,(/start/),(/count1/),(/nstep/))
-         call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nstephid" variable')
-      end if
       startc(1) = 1
       startc(2) = start
       countc(2) = 1
@@ -1454,6 +1415,23 @@ CONTAINS
       do split_file_index = 1, max_split_files
          if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
             cycle
+         end if
+         if (masterproc) then
+            if (split_file_index == instantaneous_file_index) then
+               write(iulog,200) num_samples,'instantaneous',trim(this%volume),yr,mon,day,ncsec(split_file_index)
+            else
+               write(iulog,200) num_samples,'accumulated',trim(this%volume),yr_mid,mon_mid,day_mid,ncsec(split_file_index)
+            end if
+200         format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
+                 a,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
+         end if
+         if (split_file_index == instantaneous_file_index) then
+            ierr = pio_put_var (this%hist_files(split_file_index),this%ndcurid,(/start/),(/count1/),(/ndcur/))
+            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ndcur" variable')
+            ierr = pio_put_var (this%hist_files(split_file_index),this%nscurid,(/start/),(/count1/),(/nscur/))
+            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nscur" variable')
+            ierr = pio_put_var (this%hist_files(split_file_index),this%nstephid,(/start/),(/count1/),(/nstep/))
+            call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "nstephid" variable')
          end if
          ierr = pio_put_var (this%hist_files(split_file_index),this%dateid,(/start/),(/count1/),(/ncdate(split_file_index)/))
          call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncdate" variable')
