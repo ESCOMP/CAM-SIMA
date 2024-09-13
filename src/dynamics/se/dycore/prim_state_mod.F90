@@ -418,11 +418,11 @@ CONTAINS
     use cam_abortutils,         only: endrun
     use control_mod,    only: nu_top
     !
-    type (element_t),             intent(inout) :: elem(:)    
+    type (element_t),             intent(inout) :: elem(:)
     type (TimeLevel_t), target,   intent(in)    :: tl
     type (hybrid_t),              intent(in)    :: hybrid
     integer,                      intent(in)    :: nets,nete
-    type(fvm_struct),             intent(inout) :: fvm(:)        
+    type(fvm_struct),             intent(inout) :: fvm(:)
     real (kind=r8),               intent(in)    :: omega_cn(2,nets:nete)
     ! Local variables...
     integer            :: k,ie
@@ -457,7 +457,7 @@ CONTAINS
        nsplit=2*nsplit_baseline
        fvm_supercycling     = rsplit
        fvm_supercycling_jet = rsplit
-       nu_top=2.0_r8*nu_top       
+       nu_top=2.0_r8*nu_top
       !
       ! write diagnostics to log file
       !
@@ -470,7 +470,7 @@ CONTAINS
        end if
        dtime = get_step_size()
        tstep = dtime / real(nsplit*qsplit*rsplit, r8)
-       
+
     else if (nsplit.ne.nsplit_baseline.and.max_o(1)<0.4_r8*threshold) then
       !
       ! should nsplit be reduced again?
@@ -480,9 +480,9 @@ CONTAINS
        fvm_supercycling     = rsplit
        fvm_supercycling_jet = rsplit
        nu_top=nu_top/2.0_r8
-       
+
 !       nu_div_scale_top(:) = 1.0_r8
-       
+
        dtime = get_step_size()
        tstep = dtime / real(nsplit*qsplit*rsplit, r8)
        if(hybrid%masterthread) then

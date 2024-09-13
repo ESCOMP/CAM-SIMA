@@ -542,6 +542,7 @@ CONTAINS
       ! physics suite being invoked during this run.
       use cam_abortutils,            only: endrun, check_allocate
       use runtime_obj,               only: runtime_options
+      use runtime_obj,               only: wv_stdname
       use phys_comp,                 only: phys_suite_name
       use cam_constituents,          only: cam_constituents_init
       use cam_constituents,          only: const_set_qmin, const_get_index
@@ -569,9 +570,7 @@ CONTAINS
 
       ! Check if water vapor is already marked as a constituent by the
       ! physics:
-      call cam_ccpp_is_scheme_constituent(                                              &
-           "water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",                &
-           is_constituent, errflg, errmsg)
+      call cam_ccpp_is_scheme_constituent(wv_stdname, is_constituent, errflg, errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
@@ -589,7 +588,7 @@ CONTAINS
 
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
-              std_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",    &
+              std_name=wv_stdname,              &
               long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
               units="kg kg-1",                                                          &
               default_value=0._kind_phys,                                               &
@@ -639,8 +638,7 @@ CONTAINS
       if (phys_suite_name /= 'held_suarez_1994') then !Held-Suarez is "dry" physics
 
          ! Get constituent index for water vapor:
-         call const_get_index("water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water", &
-                              const_idx)
+         call const_get_index(wv_stdname, const_idx)
 
          ! Set new minimum value:
          call const_set_qmin(const_idx, 1.E-12_kind_phys)
