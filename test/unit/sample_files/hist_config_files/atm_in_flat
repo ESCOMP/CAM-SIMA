@@ -17,7 +17,7 @@
     hist_output_frequency = '14*hours'
     hist_precision = 'REAL32'
     hist_file_type = 'history'
-    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_filename_spec = '%c.cam.%u%f.%y-%m-%d-%s.nc'
     hist_write_nstep0 = .false.
 /
 
@@ -28,7 +28,7 @@
     hist_output_frequency = '2*nsteps'
     hist_precision = 'REAL64'
     hist_file_type = 'history'
-    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_filename_spec = '%c.cam.%u%f.%y-%m-%d-%s.nc'
     hist_write_nstep0 = .false.
 /
 
@@ -39,6 +39,6 @@
     hist_output_frequency = '2*nmonths'
     hist_precision = 'REAL64'
     hist_file_type = 'initial_value'
-    hist_filename_spec = '%c.cam.%u.%y-%m-%d-%s.nc'
+    hist_filename_spec = '%c.cam.%u%f.%y-%m-%d-%s.nc'
     hist_write_nstep0 = .false.
 /

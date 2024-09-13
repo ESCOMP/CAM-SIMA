@@ -114,10 +114,10 @@ class HistConfigTest(unittest.TestCase):
         # Check properties of created config objects
         self.assertTrue('h1' in hist_configs, msg="'h1' not in hist_configs")
         hconfig = hist_configs['h1']
-        self._test_config(hconfig, 'h1', 'REAL32', 30, (14, 'hours'), 'history', '.false.', '%c.cam.%u.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
+        self._test_config(hconfig, 'h1', 'REAL32', 30, (14, 'hours'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         self.assertTrue('h3' in hist_configs, msg="'h3' not in hist_configs")
         hconfig = hist_configs['h3']
-        self._test_config(hconfig, 'h3', 'REAL64', 24, (2, 'nsteps'), 'history', '.false.', '%c.cam.%u.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
+        self._test_config(hconfig, 'h3', 'REAL64', 24, (2, 'nsteps'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         _LOGGER.setLevel(logging.DEBUG)
         # Write out the namelist file
         with open(out_source, 'w', encoding='utf-8') as nl_file:
@@ -155,7 +155,7 @@ class HistConfigTest(unittest.TestCase):
         # Check properties of created config objects
         self.assertTrue('h0' in hist_configs, msg="'h0' not in hist_configs")
         hconfig = hist_configs['h0']
-        self._test_config(hconfig, 'h0', 'REAL32', 1, (1, 'nmonths'), 'history', '.false.', '%c.cam.%u.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
+        self._test_config(hconfig, 'h0', 'REAL32', 1, (1, 'nmonths'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         self.assertTrue('h3' in hist_configs, msg="'h3' not in hist_configs")
         hconfig = hist_configs['h3']
         self._test_config(hconfig, 'h3', 'REAL64', 24, (2, 'nsteps'), 'history', '.true.', 'test_fname_%y.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
@@ -213,13 +213,14 @@ class HistConfigTest(unittest.TestCase):
         errmsg_expected = ["No identifiers found, at",
                            "period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years, at",
                            "precision must be one of REAL32, REAL64, at",
-                           "'T&U&V' is not a valid identifier, at",
+                           "Found invalid identifiers",
+                           "T&U&V, at",
                            "Attempt to set max frames to '-24', must be a positive integer, at",
-                           "hist_write_nstep0 must be one of true, t, .true., false, f, .false., at"]
+                           "hist_write_nstep0 must be one of .false., .true., f, false, t, true, at"]
 
         # Check error messages are as expected
         for index, errmsg in enumerate(exception_split):
-            self.assertTrue(errmsg.startswith(errmsg_expected[index]))
+            self.assertTrue(errmsg.strip().startswith(errmsg_expected[index]))
         # end for
 
 
