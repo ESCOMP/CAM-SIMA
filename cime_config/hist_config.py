@@ -36,7 +36,7 @@ from parse_tools import ParseObject, context_string, ParseInternalError
 # rhfilename_spec is the template for history restart files
 _DEFAULT_RESTART_HIST_SPEC = '%c.cam.r%u.%y-%m-%d-%s.nc'
 # hfilename_spec is the template for each history file
-_DEFAULT_HISTORY_SPEC = '%c.cam.%u.%y-%m-%d-%s.nc'
+_DEFAULT_HISTORY_SPEC = '%c.cam.%u%f.%y-%m-%d-%s.nc'
 
 # Note, these lists should match the corresponding lists in
 #    cam_hist_config_file.F90

@@ -501,10 +501,12 @@ CONTAINS
       integer           :: idx
       integer           :: dtime
       integer           :: freq_in_seconds
+      integer           :: filename_len
       character(len=*), parameter :: freq_types_to_check(3) = (/'second', 'minute', 'hour  '/)
       integer,          parameter :: seconds_in_minute = 60
       integer,          parameter :: seconds_in_hour = 3600
       character(len=*), parameter :: subname = 'config_configure: '
+      character(len=*), parameter :: default_filename_spec = '%c.cam.%u%f.%y-%m-%d-%s.nc'
 
       call this%reset()
 
@@ -552,8 +554,14 @@ CONTAINS
       this%hfile_type = file_type
       this%collect_patch_output = collect_patch_out
       this%write_nstep0 = write_nstep0
-      ! Append accumulation to volume of filename spec
-      this%filename_spec = filename_spec
+      ! Append accumulation flag to user-specified filename specifier
+      if (trim(filename_spec) /= default_filename_spec) then
+         filename_len = len_trim(filename_spec)
+         this%filename_spec = filename_spec(:filename_len-3)  // '%f.nc'
+      else
+         this%filename_spec = filename_spec
+      end if
+
       if (present(interp_out)) then
          if (interp_out) then
             allocate(this%interp_info)

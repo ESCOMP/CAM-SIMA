@@ -60,7 +60,7 @@ CONTAINS
       !      %c for case (<case>)
       !      %i for instance specification (<instance>)
       !      %u for unit specification (<unit>)
-      !        - accum_type, if present, is appended to <unit>
+      !      %f for accumulation file (<accum_type>)
       !      %y for year (<yr_spec>)
       !      %m for month (<mon_spec>)
       !      %d for day (<day_spec>)
@@ -164,15 +164,25 @@ CONTAINS
                end if
             case('u')   ! unit description (e.g., h2)
                if (present(unit)) then
-                  if (present(accum_type)) then
-                     string = trim(unit) // trim(accum_type)
-                  else
-                     string = trim(unit)
-                  end if
+                  string = trim(unit)
                else if (incomplete_ok_use) then
                   string = "%u"
                else
                   write(string, *) "unit needed in filename_spec, ",          &
+                       "but not provided to function, filename_spec = '",     &
+                       trim(filename_spec), "'"
+                  if (masterproc) then
+                     write(iulog, *) subname, trim(string)
+                  end if
+                  call endrun(subname//trim(string))
+               end if
+            case('f')   ! accumulate flag (i or a)
+               if (present(accum_type)) then
+                  string = trim(accum_type)
+               else if (incomplete_ok_use) then
+                  string = "%f"
+               else
+                  write(string, *) "flag needed in filename_spec, ",          &
                        "but not provided to function, filename_spec = '",     &
                        trim(filename_spec), "'"
                   if (masterproc) then
