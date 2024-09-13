@@ -764,7 +764,7 @@ CONTAINS
       ! This routine will close any full hist. files
       ! or any hist. file that has data on it when restart files are being
       ! written.
-      ! If a partially full history file was disposed (for restart
+      ! If a partially full history file was written (for restart
       ! purposes), then wrapup will open that unit back up and position
       ! it for appending new data.
       !
@@ -793,7 +793,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       !
       ! Begin loop over hist_configs (the no. of declared history files - primary
-      ! and auxiliary).  This loop disposes a history file to disk
+      ! and auxiliary).  This loop writes a history file to disk
       ! when appropriate.
       !
 

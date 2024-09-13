@@ -80,6 +80,7 @@ CONTAINS
       ! If we get here, go ahead and register the file
       if (associated(open_files_pool)) then
          of_new => open_files_pool
+         allocate(of_new%file_desc)
          of_new%file_desc = file
          of_new%file_name = file_name
          allocate(open_files_pool%next)
