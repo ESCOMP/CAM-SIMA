@@ -243,11 +243,11 @@ contains
         end if
       end if
       if (lq) then
-         !Get water vapor constituent index:
-         call const_get_index(wv_stdname, ix_q)
+        !Get water vapor constituent index:
+        call const_get_index(wv_stdname, ix_q)
 
-         !Determine which "Q" variable index matches water vapor:
-         m_cnst_ix_q = findloc(m_cnst, ix_q, dim=1)
+        !Determine which "Q" variable index matches water vapor:
+        m_cnst_ix_q = findloc(m_cnst, ix_q, dim=1)
 
         do k = 1, nlev
           where(mask_use)
@@ -261,7 +261,12 @@ contains
     end if
 
     if (lq) then
+      !Determine total number of constituents:
       ncnst = size(m_cnst)
+
+      !Extract constituent properties from CCPP constituents object:
+      const_props => cam_model_const_properties()
+
       if ((vcoord == vc_moist_pressure) .or. (vcoord == vc_dry_pressure)) then
         do m = 1, ncnst
 
@@ -274,6 +279,10 @@ contains
           !Initialize constituent to its minimum value:
           Q(:,:,m) = real(const_qmin_value, r8)
 
+          !Check for default value in constituent properties object:
+          call const_props(m_cnst(m))%has_default(const_has_default, &
+                                                  iret,      &
+                                                  errmsg)
           if (iret /= 0) then
             call endrun(errmsg, file=__FILE__, line=__LINE__)
           end if
@@ -298,8 +307,8 @@ contains
 
           end if !has_default
         end do   !m_cnst
-      end if     !lq
-    end if       !l3d_vars
+      end if     !vcoord
+    end if       !lq
 
     deallocate(mask_use)
 

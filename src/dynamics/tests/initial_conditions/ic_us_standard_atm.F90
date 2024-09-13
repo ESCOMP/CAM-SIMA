@@ -222,7 +222,12 @@ subroutine us_std_atm_set_ic(latvals, lonvals, zint, U, V, T, PS, PHIS_IN, &
       !Determine which "Q" variable index matches water vapor:
       m_cnst_ix_q = findloc(m_cnst, ix_q, dim=1)
 
+      !Determine total number of constituents:
       ncnst = size(m_cnst)
+
+      !Extract constituent properties from CCPP constituents object:
+      const_props => cam_model_const_properties()
+
       do m = 1, ncnst
          if (m_cnst(m) == m_cnst_ix_q) then
             ! No water vapor in profile
@@ -242,8 +247,12 @@ subroutine us_std_atm_set_ic(latvals, lonvals, zint, U, V, T, PS, PHIS_IN, &
            !Initialize constituent to its minimum value:
            Q(:,:,m) = real(const_qmin_value, r8)
 
+           !Check for default value in constituent properties object:
+           call const_props(m_cnst(m))%has_default(const_has_default, &
+                                                   iret,      &
+                                                   errmsg)
            if (iret /= 0) then
-              call endrun(errmsg, file=__FILE__, line=__LINE__)
+             call endrun(errmsg, file=__FILE__, line=__LINE__)
            end if
 
            if (const_has_default) then
