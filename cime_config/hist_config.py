@@ -489,8 +489,10 @@ class HistConfigEntry():
     """
 
     __HIST_CONF_ENTRY_RE = re.compile(r"[a-z][a-z_0]*")
-    __HIST_VOL = r"(?:[ ]*;[ ]*((?:h[0-9]*)|i))?[ ]*[:=][ ]*(.*)$"
-
+    __HIST_VOL = "(?P<vol>(h[0-9]*)|i)"
+    __HIST_LIST_OF_IDENTIFIERS = "(?P<idents>.*)"
+    __HIST_ASSIGNMENT_OPERATOR = "(:|=)"
+    __HIST_STATEMENT = rf"\s*(;\s*{__HIST_VOL})?\s*{__HIST_ASSIGNMENT_OPERATOR}\s*{__HIST_LIST_OF_IDENTIFIERS}$"
     def __init__(self, entry_string, entry_check_fn, process_fn):
         """Set the entry string regular expression and value check function
         for this history configuration entry type
@@ -500,13 +502,13 @@ class HistConfigEntry():
            HistoryConfig object.
         """
         self.__name = entry_string.strip().lower()
-        self.__entry_regexp = re.compile(self.name + self.__HIST_VOL,
+        self.__entry_regexp = re.compile(self.name + self.__HIST_STATEMENT,
                                          re.IGNORECASE)
         self.__entry_check_fn = entry_check_fn
         self.__process_fn = process_fn
         # Check that name matches pattern
-        nmatch = self.__HIST_CONF_ENTRY_RE.match(self.name)
-        if (not nmatch) or (len(nmatch.group(0)) != len(self.name)):
+        nmatch = self.find_command(self.name)
+        if (not nmatch) or (nmatch != self.name):
             emsg = f"'{self.name}' is not a valid HistConfigEntry name"
             raise ValueError(emsg)
         # end if
@@ -540,19 +542,14 @@ class HistConfigEntry():
         (None, 'Found invalid identifiers:\\n    5*ndecades')
         """
         ematch = self.__entry_regexp.match(line.strip())
-        if ematch is not None:
-            vol = ematch.group(1)
-            entry_val, errmsg = self.__entry_check_fn(ematch.group(2))
-            if entry_val:
-                entry = (entry_val, vol)
-            else:
-                entry = None
-            # end if
-        else:
-            entry = None
-            errmsg = f"Invalid {self.name} history config line, '{line.strip()}'"
-        # end if
-        return entry, errmsg
+        if ematch is None:
+            return None, f"Invalid {self.name} history config line, '{line.strip()}'"
+        groups = ematch.groupdict()
+        vol = groups['vol']
+        entry_val, errmsg = self.__entry_check_fn(groups['idents'])
+        if entry_val:
+            return (entry_val, vol), errmsg
+        return None, errmsg
 
     def process_data(self, hist_config, data, pobj, logger):
         """Process <data> according to the rules for this history configuration
