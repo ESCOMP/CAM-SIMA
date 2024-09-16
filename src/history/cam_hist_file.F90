@@ -1087,9 +1087,9 @@ CONTAINS
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "source" attribute to file')
          ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'case', caseid)
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "case" attribute to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'logname',logname)
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'logname',trim(logname))
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "logname" attribute to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'host', host)
+         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'host', trim(host))
          call cam_pio_handle_error(ierr, 'config_define_file: failed to add "host" attribute to file')
 
          ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'initial_file', ncdata)
@@ -1210,9 +1210,9 @@ CONTAINS
                end if
             end if
 
-            if (this%precision() == 'real32') then
+            if (this%precision() == 'REAL32') then
                ncreal = pio_real
-            else
+            else if (this%precision() == 'REAL64') then
                ncreal = pio_double
             end if
             mdims = this%field_list(field_index)%dimensions()

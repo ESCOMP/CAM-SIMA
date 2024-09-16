@@ -21,8 +21,8 @@ module cam_history
    character(len=cl) :: model_doi_url = '' ! Model DOI
    character(len=cl) :: caseid = ''        ! case ID
    character(len=cl) :: ctitle = ''        ! case title
-   character(len=16) :: logname            ! user name
-   character(len=16) :: host               ! host name
+   character(len=32) :: logname            ! user name
+   character(len=32) :: host               ! host name
 
    ! Functions
    public :: history_readnl         ! Namelist reader for CAM history
@@ -230,6 +230,7 @@ CONTAINS
       use mpi,              only: mpi_character
       use cam_abortutils,   only: endrun
       use string_utils,     only: stringify
+      use cam_logfile,      only: iulog
       !
       !-----------------------------------------------------------------------
       !
@@ -266,15 +267,19 @@ CONTAINS
       if (masterproc) then
          logname = ' '
          call shr_sys_getenv ('LOGNAME', logname, rcode)
-         if (rcode /= 0) then
-            call endrun(subname//'failed to get user logname. Error code='//stringify((/rcode/)), &
-                    file=__FILE__, line=__LINE__)
+         if (rcode == -1) then
+            write(iulog,*) subname//'WARNING: user logname has been truncated to '//stringify((/len(logname)/))//' characters'
+         else if (rcode == 1) then
+            write(iulog,*) subname//'WARNING: user logname not found; defaulting to empty string'
+            logname = ' '
          end if
          host = ' '
          call shr_sys_getenv ('HOST', host, rcode)
-         if (rcode /= 0) then
-            call endrun(subname//'failed to get machine hostname. Error code='//stringify((/rcode/)), &
-                    file=__FILE__, line=__LINE__)
+         if (rcode == -1) then
+            write(iulog,*) subname//'WARNING: machine host name has been truncated to '//stringify((/len(host)/))//' characters'
+         else if (rcode == 1) then
+            write(iulog,*) subname//'WARNING: machine host name not found; defaulting to empty string'
+            host = ' '
          end if
       end if
       ! PIO requires netcdf attributes have consistant values on all tasks
