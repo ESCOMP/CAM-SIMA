@@ -235,7 +235,7 @@
       <ic_file_input_names>te_cur_dyn state_te_cur_dyn</ic_file_input_names>
     </variable>
     <variable local_name="tw_ini"
-              standard_name="vertically_integrated_moist_air_and_condensed_water_of_initial_state"
+              standard_name="vertically_integrated_water_vapor_and_condensed_water_of_initial_state"
               units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -243,7 +243,7 @@
       <ic_file_input_names>tw_ini state_tw_ini</ic_file_input_names>
     </variable>
     <variable local_name="tw_cur"
-              standard_name="vertically_integrated_moist_air_and_condensed_water_of_current_state"
+              standard_name="vertically_integrated_water_vapor_and_condensed_water_of_current_state"
               units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -313,6 +313,12 @@
       <data>inverse_exner_function_wrt_surface_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
+      <data>vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula</data>
+      <data>vertically_integrated_total_energy_of_current_state_using_physics_energy_formula</data>
+      <data>vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula</data>
+      <data>vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula</data>
+      <data>vertically_integrated_water_vapor_and_condensed_water_of_initial_state</data>
+      <data>vertically_integrated_water_vapor_and_condensed_water_of_current_state</data>
     </ddt>
     <ddt type="physics_tend">
       <data>tendency_of_air_temperature_due_to_model_physics</data>

@@ -184,13 +184,13 @@
       <ic_file_input_name>state_te_cur_dyn</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_moist_air_and_condensed_water_of_initial_state">
+  <entry stdname="vertically_integrated_water_vapor_and_condensed_water_of_initial_state">
     <ic_file_input_names>
       <ic_file_input_name>tw_ini</ic_file_input_name>
       <ic_file_input_name>state_tw_ini</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_moist_air_and_condensed_water_of_current_state">
+  <entry stdname="vertically_integrated_water_vapor_and_condensed_water_of_current_state">
     <ic_file_input_names>
       <ic_file_input_name>tw_cur</ic_file_input_name>
       <ic_file_input_name>state_tw_cur</ic_file_input_name>
