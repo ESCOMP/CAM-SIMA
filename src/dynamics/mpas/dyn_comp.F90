@@ -812,7 +812,7 @@ contains
         call mark_as_initialized('eastward_wind')
         call mark_as_initialized('geopotential_height_wrt_surface')
         call mark_as_initialized('geopotential_height_wrt_surface_at_interface')
-        call mark_as_initialized('inverse_exner_function_wrt_surface_pressure')
+        call mark_as_initialized('reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure')
         call mark_as_initialized('lagrangian_tendency_of_air_pressure')
         call mark_as_initialized('ln_air_pressure')
         call mark_as_initialized('ln_air_pressure_at_interface')
