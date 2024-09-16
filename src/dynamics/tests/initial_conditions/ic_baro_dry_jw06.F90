@@ -50,10 +50,13 @@ contains
 
   subroutine bc_dry_jw06_set_ic(vcoord, latvals, lonvals, U, V, T, PS, PHIS, &
                                 Q, m_cnst, mask, verbose)
-    use dyn_tests_utils,  only: vc_moist_pressure, vc_dry_pressure, vc_height
-    use cam_constituents, only: const_get_index
-    !use constituents,    only: cnst_name
-    !use const_init,      only: cnst_init_default
+    use shr_kind_mod,              only: cx => shr_kind_cx
+    use dyn_tests_utils,           only: vc_moist_pressure, vc_dry_pressure, vc_height
+    use runtime_obj,               only: wv_stdname
+    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+    use cam_ccpp_cap,              only: cam_model_const_properties
+    use ccpp_kinds,                only: kind_phys
+    use cam_constituents,          only: const_get_index, const_qmin
 
     !-----------------------------------------------------------------------
     !
@@ -79,13 +82,15 @@ contains
     logical, allocatable              :: mask_use(:)
     logical                           :: verbose_use
     logical                           :: lu,lv,lt,lq,l3d_vars
+    logical                           :: const_has_default
     integer                           :: i, k, m
     integer                           :: ncol
     integer                           :: nlev
     integer                           :: ncnst
     integer                           :: iret
-    integer                           :: ix_rain, ix_cld_liq
+    integer                           :: ix_q, m_cnst_ix_q
     character(len=*), parameter       :: subname = 'BC_DRY_JW06_SET_IC'
+    character(len=cx)                 :: errmsg !CCPP error message
     real(r8)                          :: tmp
     real(r8)                          :: r(size(latvals))
     real(r8)                          :: eta
@@ -93,9 +98,15 @@ contains
     real(r8)                          :: perturb_lon, perturb_lat
     real(r8)                          :: phi_vertical
     real(r8)                          :: u_wind(size(latvals))
+    real(kind_phys)                   :: const_default_value !Constituent default value
+    real(kind_phys)                   :: const_qmin_value    !Constituent minimum value
 
-       a_omega                = rearth*omega
-       exponent               = rair*gamma/gravit
+    !Private array of constituent properties (for property interface functions)
+    type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
+
+    !Set local constants:
+    a_omega                = rearth*omega
+    exponent               = rair*gamma/gravit
 
     allocate(mask_use(size(latvals)), stat=iret)
     call check_allocate(iret, subname, 'mask_use(size(latvals))', &
@@ -115,10 +126,6 @@ contains
     else
       verbose_use = .true.
     end if
-
-    !set constituent indices
-    call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ix_cld_liq)
-    call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', ix_rain)
 
     ncol = size(latvals, 1)
     nlev = -1
@@ -236,40 +243,72 @@ contains
         end if
       end if
       if (lq) then
+        !Get water vapor constituent index:
+        call const_get_index(wv_stdname, ix_q)
+
+        !Determine which "Q" variable index matches water vapor:
+        m_cnst_ix_q = findloc(m_cnst, ix_q, dim=1)
+
         do k = 1, nlev
           where(mask_use)
-            Q(:,k,1) = 0.0_r8
+            Q(:,k,m_cnst_ix_q) = 0.0_r8
           end where
         end do
-!Un-comment once constituents are working in CAMDEN -JN:
-#if 0
         if(masterproc.and. verbose_use) then
-          write(iulog,*) '         ', trim(cnst_name(m_cnst(1))), ' initialized by "',subname,'"'
+          write(iulog,*) '         ', wv_stdname, ' initialized by "',subname,'"'
         end if
-#endif
       end if
     end if
 
-!Un-comment once constituents are working in CAMDEN -JN:
-#if 0
     if (lq) then
-      ncnst = size(m_cnst, 1)
+      !Determine total number of constituents:
+      ncnst = size(m_cnst)
+
+      !Extract constituent properties from CCPP constituents object:
+      const_props => cam_model_const_properties()
+
       if ((vcoord == vc_moist_pressure) .or. (vcoord == vc_dry_pressure)) then
-        do m = 2, ncnst
-          call cnst_init_default(m_cnst(m), latvals, lonvals, Q(:,:,m_cnst(m)),&
-               mask=mask_use, verbose=verbose_use, notfound=.false.)
-        end do
-      end if
-    end if
-#else
-    if (lq) then
-      if ((vcoord == vc_moist_pressure) .or. (vcoord == vc_dry_pressure)) then
-        !Initialize cloud liquid and rain until constituent routines are enabled:
-        Q(:,:,ix_cld_liq) = 0.0_r8
-        Q(:,:,ix_rain)    = 0.0_r8
-      end if
-    end if
-#endif
+        do m = 1, ncnst
+
+          !Skip water vapor, as it was aleady set above:
+          if (m == m_cnst_ix_q) cycle
+
+          !Extract constituent minimum value:
+          const_qmin_value = const_qmin(m_cnst(m))
+
+          !Initialize constituent to its minimum value:
+          Q(:,:,m) = real(const_qmin_value, r8)
+
+          !Check for default value in constituent properties object:
+          call const_props(m_cnst(m))%has_default(const_has_default, &
+                                                  iret,      &
+                                                  errmsg)
+          if (iret /= 0) then
+            call endrun(errmsg, file=__FILE__, line=__LINE__)
+          end if
+
+          if (const_has_default) then
+
+            !If default value exists, then extract default value
+            !from constituent properties object:
+            call const_props(m_cnst(m))%default_value(const_default_value, &
+                                                      iret,        &
+                                                      errmsg)
+            if (iret /= 0) then
+              call endrun(errmsg, file=__FILE__, line=__LINE__)
+            end if
+
+            !Set constituent to default value in masked region:
+            do k=1,nlev
+              where(mask_use)
+                Q(:,k,m) = real(const_default_value, r8)
+              end where
+            end do
+
+          end if !has_default
+        end do   !m_cnst
+      end if     !vcoord
+    end if       !lq
 
     deallocate(mask_use)
 

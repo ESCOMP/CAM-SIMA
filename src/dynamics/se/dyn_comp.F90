@@ -1308,7 +1308,7 @@ subroutine read_inidat(dyn_in)
                           file=__FILE__, line=__LINE__)
 
       do m_cnst = 1, qsize
-         m_ind(m_cnst) = m_cnst
+         m_ind(m_cnst) = thermodynamic_active_species_idx(m_cnst)
       end do
 
       ! Init tracers on the GLL grid.  Note that analytic_ic_set_ic makes
@@ -1319,9 +1319,11 @@ subroutine read_inidat(dyn_in)
          V=dbuf4(:,:,:,(qsize+3)), T=dbuf4(:,:,:,(qsize+4)),       &
          Q=dbuf4(:,:,:,1:qsize), m_cnst=m_ind, mask=pmask(:),      &
          PHIS_IN=PHIS_tmp)
-      deallocate(m_ind)
+
+      ! Deallocate variables that are no longer used:
       deallocate(glob_ind)
       deallocate(phis_tmp)
+
       do ie = 1, nelemd
          indx = 1
          do j = 1, np
@@ -1349,13 +1351,16 @@ subroutine read_inidat(dyn_in)
                do i = 1, np
                   ! Set qtmp at the unique columns only
                   if (pmask(((ie - 1) * npsq) + indx)) then
-                     qtmp(i,j,:,ie,m_cnst) = dbuf4(indx, :, ie, m_cnst)
+                     qtmp(i,j,:,ie,m_ind(m_cnst)) = dbuf4(indx, :, ie, m_cnst)
                   end if
                   indx = indx + 1
                end do
             end do
          end do
       end do
+
+      ! Deallocate variables that are not longer used:
+      deallocate(m_ind)
       deallocate(dbuf4)
 
    else

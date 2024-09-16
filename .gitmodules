@@ -14,7 +14,7 @@
         path          = src/dynamics/mpas/dycore
         url           = https://github.com/MPAS-Dev/MPAS-Model.git
         fxsparse      = ../.mpas_sparse_checkout
-        fxtag         = ed6f8e39ec0a811b6d079ca0fc6f9fb6e30bad23
+        fxtag         = v8.2.1
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/MPAS-Dev/MPAS-Model.git
 [submodule "ncar-physics"]

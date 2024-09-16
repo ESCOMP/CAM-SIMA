@@ -8,7 +8,9 @@
     <type>char*80</type>
     <category>dyn_test</category>
     <group>analytic_ic_nl</group>
-    <valid_values>none,held_suarez_1994,moist_baroclinic_wave_dcmip2016,dry_baroclinic_wave_dcmip2016,dry_baroclinic_wave_jw2006</valid_values>
+    <valid_values>
+      none,held_suarez_1994,moist_baroclinic_wave_dcmip2016,dry_baroclinic_wave_dcmip2016,dry_baroclinic_wave_jw2006,us_standard_atmosphere
+    </valid_values>
     <desc>
       Specify the type of analytic initial conditions for an initial run.
       held_suarez_1994: Initial conditions specified in Held and Suarez (1994)

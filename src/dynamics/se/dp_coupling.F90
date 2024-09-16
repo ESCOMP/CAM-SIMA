@@ -40,6 +40,8 @@ public :: d_p_coupling, p_d_coupling
 
 real(r8), allocatable :: q_prev(:,:,:) ! Previous Q for computing tendencies
 
+real(kind_phys), allocatable :: qmin_vals(:) !Consitutent minimum values array
+
 !=========================================================================================
 CONTAINS
 !=========================================================================================
@@ -320,6 +322,8 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    use test_fvm_mapping, only: test_mapping_overwrite_tendencies
    use test_fvm_mapping, only: test_mapping_output_mapped_tendencies
    use cam_ccpp_cap,     only: cam_constituents_array
+   use cam_constituents, only: num_advected
+   use cam_constituents, only: const_is_water_species
 
    ! SE dycore:
    use bndry_mod,        only: bndry_exchange
@@ -387,8 +391,28 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    uv_tmp = 0.0_r8
    dq_tmp = 0.0_r8
 
-   ! Grab pointer to constituent array
+   !Grab pointer to constituent array
    const_data_ptr => cam_constituents_array()
+
+   !Convert wet mixing ratios to dry, which for CAM
+   !configurations is only the water species:
+   !$omp parallel do num_threads(max_num_threads) private (k, i, m)
+   do ilyr = 1, nlev
+      do icol=1, pcols
+         !Determine wet to dry adjustment factor:
+         factor = phys_state%pdel(icol,ilyr)/phys_state%pdeldry(icol,ilyr)
+
+         !This should ideally check if a constituent is a wet
+         !mixing ratio or not, but until that is working properly
+         !in the CCPP framework just check for the water species status
+         !instead, which is all that CAM configurations require:
+         do m=1, num_advected
+            if (const_is_water_species(m)) then
+               const_data_ptr(icol,ilyr,m) = factor*const_data_ptr(icol,ilyr,m)
+            end if
+         end do
+      end do
+   end do
 
    if (.not. allocated(q_prev)) then
       call endrun('p_d_coupling: q_prev not allocated')
@@ -549,11 +573,14 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! mixing ratios are converted to a wet basis.  Initialize geopotential heights.
    ! Finally compute energy and water column integrals of the physics input state.
 
-!   use constituents,   only: qmin
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use cam_ccpp_cap,      only: cam_constituents_array
    use cam_ccpp_cap,      only: cam_model_const_properties
+   use cam_constituents,  only: num_advected
+   use cam_constituents,  only: const_is_water_species
    use cam_constituents,  only: const_get_index
+   use cam_constituents,  only: const_qmin
+   use runtime_obj,       only: wv_stdname
    use physics_types,     only: lagrangian_vertical
    use physconst,         only: cpair, gravit, zvir, cappa
    use cam_thermo,        only: cam_thermo_update
@@ -561,7 +588,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use physics_grid,      only: columns_on_task
    use geopotential_temp, only: geopotential_temp_run
    use static_energy,     only: update_dry_static_energy_run
-!   use qneg,              only: qneg_run
+   use qneg,              only: qneg_run
 !   use check_energy,   only: check_energy_timestep_init
    use hycoef,            only: hyai, ps0
    use shr_vmath_mod,     only: shr_vmath_log
@@ -581,11 +608,13 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    type(ccpp_constituent_prop_ptr_t), pointer :: const_prop_ptr(:)
 
    integer :: m, i, k
-   integer :: ix_q, ix_cld_liq, ix_rain
+   integer :: ix_q
 
    !Needed for "geopotential_temp" CCPP scheme
    integer :: errflg
    character(len=shr_kind_cx) :: errmsg
+
+   character(len=*), parameter :: subname = 'derived_phys_dry'
 
    !--------------------------------------------
    !  Variables needed for WACCM-X
@@ -600,15 +629,25 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    nullify(const_prop_ptr)
 
    ! Set constituent indices
-   call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ix_q)
-   call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
-                        ix_cld_liq, abort=.false.)
-   call const_get_index('rain_mixing_ratio_wrt_moist_air_and_condensed_water', &
-                        ix_rain, abort=.false.)
+   call const_get_index(wv_stdname, ix_q)
 
    ! Grab pointer to constituent and properties arrays
    const_data_ptr => cam_constituents_array()
    const_prop_ptr => cam_model_const_properties()
+
+   ! Create qmin array (if not already generated):
+   if (.not.allocated(qmin_vals)) then
+     allocate(qmin_vals(size(const_prop_ptr)), stat=errflg)
+     call check_allocate(errflg, subname, &
+                         'qmin_vals(size(cam_model_const_properties))', &
+                         file=__FILE__, line=__LINE__)
+
+
+     ! Set relevant minimum values for each constituent:
+     do m = 1, size(qmin_vals)
+       qmin_vals(m) = const_qmin(m)
+     end do
+   end if
 
    ! Evaluate derived quantities
 
@@ -649,7 +688,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    do k=1,nlev
       do i=1, pcols
          ! to be consistent with total energy formula in physic's check_energy module only
-         ! include water vapor in in moist dp
+         ! include water vapor in moist dp
          factor_array(i,k) = 1._kind_phys+const_data_ptr(i,k,ix_q)
          phys_state%pdel(i,k) = phys_state%pdeldry(i,k)*factor_array(i,k)
       end do
@@ -690,16 +729,18 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! physics expect water variables moist
    factor_array(:,1:nlev) = 1._kind_phys/factor_array(:,1:nlev)
 
-   !$omp parallel do num_threads(horz_num_threads) private (k, i)
-   do k = 1, nlev
-      do i=1, pcols
-         const_data_ptr(i,k,ix_q) = factor_array(i,k)*const_data_ptr(i,k,ix_q)
-         if (ix_cld_liq /= -1) then
-            const_data_ptr(i,k,ix_cld_liq) = factor_array(i,k)*const_data_ptr(i,k,ix_cld_liq)
-         end if
-         if (ix_rain /= -1) then
-            const_data_ptr(i,k,ix_rain) = factor_array(i,k)*const_data_ptr(i,k,ix_rain)
-         end if
+   !$omp parallel do num_threads(horz_num_threads) private (m, k, i)
+   do m=1, num_advected
+      do k = 1, nlev
+         do i=1, pcols
+            !This should ideally check if a constituent is a wet
+            !mixing ratio or not, but until that is working properly
+            !in the CCPP framework just check for the water species status
+            !instead, which is all that CAM physics requires:
+            if (const_is_water_species(m)) then
+              const_data_ptr(i,k,m) = factor_array(i,k)*const_data_ptr(i,k,m)
+            end if
+         end do
       end do
    end do
 
@@ -736,6 +777,11 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       end do
    endif
 
+   ! Ensure tracers are all greater than or equal to their
+   ! minimum-allowed value:
+   call qneg_run('D_P_COUPLING', columns_on_task, pver, &
+                 qmin_vals, const_data_ptr, errflg, errmsg)
+
    !-----------------------------------------------------------------------------
    ! Call cam_thermo_update. If cam_runtime_opts%update_thermodynamic_variables()
    ! returns .true., cam_thermo_update will compute cpairv, rairv, mbarv, and cappav as
@@ -743,6 +789,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
    ! Update zvirv registry variable; calculated for WACCM-X.
    !-----------------------------------------------------------------------------
+
    call cam_thermo_update(const_data_ptr, phys_state%t, pcols, &
         cam_runtime_opts%update_thermodynamic_variables())
 
@@ -759,15 +806,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call update_dry_static_energy_run(pver, gravit, phys_state%t, phys_state%zm,          &
                                      phys_state%phis, phys_state%dse, cpairv,            &
                                      errflg, errmsg)
-
-   ! Ensure tracers are all positive
-   ! Please note this cannot be used until the 'qmin'
-   ! array is publicly provided by the CCPP constituent object. -JN
-#if 0
-   call qneg_run('D_P_COUPLING', columns_on_task, pver, &
-                 qmin, const_data_ptr,       &
-                 errflg, errmsg)
-#endif
 
 !Remove once check_energy scheme exists in CAMDEN:
 #if 0
