@@ -236,7 +236,7 @@ CONTAINS
       call tropopause_read_climo_file()
 
       ! Mark variables as initialized so they are not read from initial conditions
-      call mark_as_initialized('tropopause_air_pressure_from_climatology')
+      call mark_as_initialized('tropopause_air_pressure_from_climatology_dataset')
       call mark_as_initialized('tropopause_calendar_days_from_climatology')
       call mark_as_initialized('filename_of_tropopause_climatology')
 

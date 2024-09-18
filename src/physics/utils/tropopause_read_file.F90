@@ -24,7 +24,7 @@ module tropopause_read_file
   ! days in year for climatological tropopause pressure data
   integer,         public, parameter   :: tropp_slices = 12
 
-  ! climatological tropopause pressures (pcols,ntimes)
+  ! climatological tropopause pressures (ncol,ntimes)
   real(kind_phys), public, allocatable :: tropp_p_loc(:,:)
 
   ! monthly day-of-year times corresponding to climatological data (12)
@@ -178,8 +178,6 @@ contains
     !  ... regrid
     !--------------------------------------------------------------------
 
-    ! tropp_p_loc is allocated with dimensions (pcols, begchunk:endchunk, ntimes) in CAM.
-    ! in CAM-SIMA, the chunk dimension is collapsed as it is unused.
     allocate( tropp_p_loc(pcols,ntimes), stat=ierr )
 
     if( ierr /= 0 ) then
