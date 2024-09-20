@@ -1837,10 +1837,10 @@ def gen_registry(registry_file, dycore, outdir, indent,
                                      src_root, reg_dir, indent, logger)
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
-        constituents = _create_constituent_list(registry)
+        registry_constituents = _create_constituent_list(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, constituents
+    return retcode, files, ic_names, registry_constituents
 
 def main():
     """Function to execute when module called as a script"""

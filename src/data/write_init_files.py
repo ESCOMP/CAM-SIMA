@@ -46,7 +46,7 @@ _MAX_LINE_LEN = 200
 #Main function
 ##############
 
-def write_init_files(cap_database, ic_names, constituents, outdir,
+def write_init_files(cap_database, ic_names, registry_constituents, outdir,
                      file_find_func, source_paths, indent, logger,
                      phys_check_filename=None, phys_input_filename=None):
 
@@ -130,7 +130,7 @@ def write_init_files(cap_database, ic_names, constituents, outdir,
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    host_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, constituents)
+    host_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -173,12 +173,12 @@ def write_init_files(cap_database, ic_names, constituents, outdir,
         # end for
 
         # Write public parameters:
-        retvals = write_ic_params(outfile, host_vars, ic_names, constituents)
+        retvals = write_ic_params(outfile, host_vars, ic_names, registry_constituents)
         ic_names, ic_max_len, stdname_max_len = retvals
 
         # Write initial condition arrays:
         write_ic_arrays(outfile, ic_names, ic_max_len,
-                        stdname_max_len, host_vars, constituents)
+                        stdname_max_len, host_vars, registry_constituents)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -244,7 +244,7 @@ def write_init_files(cap_database, ic_names, constituents, outdir,
 
         # Write physics_check_data subroutine:
         write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
-                                    phys_check_fname_str, constituent_set, constituents)
+                                    phys_check_fname_str, constituent_set)
 
     # --------------------------------------
 
@@ -358,7 +358,7 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
 #FORTRAN WRITING FUNCTIONS
 ##########################
 
-def write_ic_params(outfile, host_vars, ic_names, constituents):
+def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
 
     """
     Write public parameter declarations needed
@@ -369,7 +369,7 @@ def write_ic_params(outfile, host_vars, ic_names, constituents):
 
     #Create new Fortran integer parameter to store total number of variables:
     outfile.comment("Total number of physics-related variables:", 1)
-    num_pvars = len(host_vars) + len(constituents)
+    num_pvars = len(host_vars) + len(registry_constituents)
     outfile.write(f"integer, public, parameter :: phys_var_num = {num_pvars}",
                   1)
     num_cvars = len(_EXCLUDED_STDNAMES)
@@ -418,7 +418,7 @@ def write_ic_params(outfile, host_vars, ic_names, constituents):
 ######
 
 def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
-                    stdname_max_len, host_vars, constituents):
+                    stdname_max_len, host_vars, registry_constituents):
 
     """
     Write initial condition arrays to store
@@ -427,7 +427,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     """
 
     #Create variable name array string lists:
-    num_input_vars = len(host_vars) + len(constituents)
+    num_input_vars = len(host_vars) + len(registry_constituents)
     stdname_strs = []
     ic_name_strs = []
 
@@ -444,7 +444,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     #    for each variable with the proper length, <stdname_max_len>:
     for hvar in host_vars:
         var_stdname = hvar.get_prop_value('standard_name')
-        if var_stdname in constituents:
+        if var_stdname in registry_constituents:
             # skip registry constituents; we'll tackle these after
             continue
         # end if
@@ -469,7 +469,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     # end for
 
     # Add any constituent variables:
-    for const in constituents:
+    for const in registry_constituents:
         stdname_strs.append(f"'{const: <{stdname_max_len}}'")
 
         #Extract input (IC) names list:
@@ -573,7 +573,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
         #Write line to file:
         outfile.write(log_arr_str, 2)
     # end for
-    for var_num, var_name in enumerate(constituents):
+    for var_num, var_name in enumerate(registry_constituents):
         # If at the end of the list, then update suffix:
         if var_num == num_input_vars-len(host_vars)-1:
             arr_suffix = ' /)'
@@ -612,7 +612,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
         #Write line to file:
         outfile.write(log_arr_str, 2)
     # end for
-    for var_num, varname in enumerate(constituents):
+    for var_num, varname in enumerate(registry_constituents):
         #If at the end of the list, then update suffix:
         if var_num == num_input_vars-len(host_vars)-1:
             arr_suffix = ' /)'
@@ -1141,7 +1141,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 #####
 
 def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
-                                phys_check_fname_str, constituent_set, constituents):
+                                phys_check_fname_str, constituent_set):
 
     """
     Write the "physics_check_data" subroutine, which
