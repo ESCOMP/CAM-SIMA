@@ -8,6 +8,8 @@
       <reg_gen_file>tmp/cam_build_cache/test_reg.xml</reg_gen_file>
       <ic_name_entry standard_name="Only_had_a">heart</ic_name_entry>
       <ic_name_entry standard_name="Only_had_a">brain</ic_name_entry>
+      <constituent_entry>cnst_1</constituent_entry>
+      <constituent_entry>cnst_2</constituent_entry>
    </registry>
    <CCPP>
       <SDF file_path="/behind/curtain/suite_wizard.xml" hash="ade45dea32a6f279957735596a147efddd061f9c"/>

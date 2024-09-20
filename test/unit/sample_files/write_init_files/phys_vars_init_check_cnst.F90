@@ -40,7 +40,7 @@ module phys_vars_init_check_cnst
    integer, public, parameter :: std_name_len = 25
 
    ! Max length of input (IC) file variable names:
-   integer, public, parameter :: ic_name_len = 13
+   integer, public, parameter :: ic_name_len = 12
 
    ! Physics-related input variable standard names:
    character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
@@ -65,10 +65,10 @@ module phys_vars_init_check_cnst
       "suite_name                          ", &
       "suite_part                          " /)
    !Array storing all registered IC file input names for each variable:
-   character(len=13), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
-      'theta        ', 'pot_temp     ', &
-      'slp          ', 'sea_lev_pres ', &
-      'COOL_CAT     ', 'cnst_COOL_CAT' /), (/2, phys_var_num/))
+   character(len=12), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
+      'theta       ', 'pot_temp    ', &
+      'slp         ', 'sea_lev_pres', &
+      'COOL_CAT    ', 'cnst_COOL_CAT' /), (/2, phys_var_num/))
 
    ! Array indicating whether or not variable is protected:
    logical, public, protected :: protected_vars(phys_var_num)= (/ &
