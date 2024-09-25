@@ -210,7 +210,7 @@ class HistConfigTest(unittest.TestCase):
 
         exception_split = str(err.exception).split('\n')
         errmsg_expected = ["No identifiers found, at",
-                           "period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years, at",
+                           "period (\"1+nmonths\") must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years, at",
                            "precision must be one of REAL32, REAL64, at",
                            "Found invalid identifiers",
                            "T&U&V, at",
