@@ -288,7 +288,8 @@ subroutine hycoef_init(file, psdry)
    if (dry_coord) then
       call add_vert_coord('ilev', pverp,                                     &
          'hybrid level at interfaces (1000*(A+B))', 'hPa', ailev,            &
-         positive='down')
+         positive='down',                                                    &
+         standard_name='atmosphere_hybrid_sigma_pressure_coordinate_at_interfaces')
       call add_hist_coord('hyai', pverp, &
          'hybrid A coefficient at layer interfaces', '1', hyai, dimname='ilev')
       call add_hist_coord('hybi', pverp, &
@@ -309,7 +310,7 @@ subroutine hycoef_init(file, psdry)
       call add_vert_coord('ilev', pverp,                                     &
          'hybrid level at interfaces (1000*(A+B))', 'hPa', ailev,            &
          positive='down',                                                    &
-         standard_name='atmosphere_hybrid_sigma_pressure_coordinate',        &
+         standard_name='atmosphere_hybrid_sigma_pressure_coordinate_at_interfaces', &
          formula_terms=formula_terms)
    end if
 

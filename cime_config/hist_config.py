@@ -44,7 +44,9 @@ _TIME_PERIODS = ['nsteps', 'nstep', 'nseconds', 'nsecond',
 _OUT_PRECS = ['REAL32', 'REAL64']
 _TRUE_VALUES  = {"true", "t", ".true."}
 _FALSE_VALUES = {"false", "f", ".false."}
-_NETCDF_ID_RE = re.compile(r"^[a-z]\w{0,62}$", re.IGNORECASE)
+# NetCDF variable name requirements:
+#  https://docs.unidata.ucar.edu/netcdf-c/current/programming_notes.html#object_name
+_NETCDF_ID_RE = re.compile(r"^[a-z][\w._@+]{0,256}$", re.IGNORECASE)
 
 ##############################################################################
 ###
@@ -125,14 +127,12 @@ def _list_of_idents(entry, sep=','):
     (['foo', 'BA2r3'], None)
     >>> _list_of_idents("foo, 3bar")
     (None, 'Found invalid identifiers:\\n    3bar')
-    >>> _list_of_idents("foo.3bar")
-    (None, 'Found invalid identifiers:\\n    foo.3bar')
-    >>> _list_of_idents("foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd")
-    (None, 'Found invalid identifiers:\\n    foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd')
-    >>> _list_of_idents("foo.3bar, foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd")
-    (None, 'Found invalid identifiers:\\n    foo.3bar\\n    foo3bariendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd')
-    >>> _list_of_idents("foo.3bar; foo", sep=';')
-    (None, 'Found invalid identifiers:\\n    foo.3bar')
+    >>> _list_of_idents("foo,3bar", sep=';')
+    (None, 'Found invalid identifiers:\\n    foo,3bar')
+    >>> _list_of_idents("foo#3bar, foo3baifijeowfjeiofjewiofjeiwofjewiofejifwjoefdfewfefdfdkjokmcdioanicdiaoilfejieojwiefjidojfioejsiofdjkljnxpoiadjfioenskcodiafkamd199fd9a0fdjkldajfdfjiodanckdalirhgieoskjcdskdfieowfidjfslk129dkjfaiocsriendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd")
+    (None, 'Found invalid identifiers:\\n    foo#3bar\\n    foo3baifijeowfjeiofjewiofjeiwofjewiofejifwjoefdfewfefdfdkjokmcdioanicdiaoilfejieojwiefjidojfioejsiofdjkljnxpoiadjfioenskcodiafkamd199fd9a0fdjkldajfdfjiodanckdalirhgieoskjcdskdfieowfidjfslk129dkjfaiocsriendnaadfasdfbasdlkfap983rasdfvalsda938qjnasdasd98adfasxd')
+    >>> _list_of_idents("foo,3bar; foo", sep=';')
+    (None, 'Found invalid identifiers:\\n    foo,3bar')
     >>> _list_of_idents(" ")
     (None, 'No identifiers found')
     """
@@ -140,7 +140,7 @@ def _list_of_idents(entry, sep=','):
         potential_list = [x.strip() for x in entry.split(sep)]
         bad_list = [sample for sample in potential_list if _NETCDF_ID_RE.match(sample) is None]
         if len(bad_list) > 0:
-            return (None, f"Found invalid identifiers:\n    " + '\n    '.join(bad_list))
+            return (None, "Found invalid identifiers:\n    " + "\n    ".join(bad_list))
         # end if
         return (potential_list, None)
     # end if
@@ -161,52 +161,50 @@ def _is_mult_period(entry):
     >>> _is_mult_period("3 * nmonths")
     ((3, 'nmonths'), None)
     >>> _is_mult_period("2*fortnights")
-    (None, 'period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
+    (None, 'period ("fortnights") must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
     >>> _is_mult_period("7*nhours of day")
-    (None, 'period must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
+    (None, 'period ("nhours of day") must be one of nsteps, nstep, nseconds, nsecond, nminutes, nminute, nhours, nhour, ndays, nday, nmonths, nmonth, nyears, nyear, steps, seconds, minutes, hours, days, months, years')
     >>> _is_mult_period(" ")
-    (None, 'a frequency ([<mult>*]period) is required')
+    (None, 'frequency ([<mult>*]period) is required, found " "')
     >>> _is_mult_period("1*nyear")
     ((1, 'nyear'), None)
     >>> _is_mult_period("-6*nhours")
-    (None, "multiplier '-6' in '-6*nhours' must be a positive integer")
+    (None, 'multiplier ("-6") must be a positive integer')
     >>> _is_mult_period("7h*nhours")
-    (None, "multiplier '7h' in '7h*nhours' must be a positive integer")
+    (None, '"7h" in "7h*nhours" is not a valid integer')
     >>> _is_mult_period("5*nhours*ndays")
-    (None, "multiplier '5*nhours' in '5*nhours*ndays' must be a positive integer")
+    (None, 'frequency must be of the form ([<mult>*]period), found "5*nhours*ndays".  Do you have too many multipliers or periods?')
     """
-    if not entry.strip():
-        errmsg = "a frequency ([<mult>*]period) is required"
-        return (None, errmsg)
+    if not entry or not entry.strip():
+        return (None, f"frequency ([<mult>*]period) is required, found \"{entry}\"")
     # end if
-    _OPTIONAL_MULTIPLIER_TOKEN = r"((?P<multiplier>.*)\*)"
-    _REQUIRED_PERIOD_TOKEN = "(?P<period>.*)"
-    _MULT_PERIOD_REGEX = f"^{_OPTIONAL_MULTIPLIER_TOKEN}?\s*{_REQUIRED_PERIOD_TOKEN}$"
-    match = re.match(_MULT_PERIOD_REGEX, entry.strip())
-    group_dict = match.groupdict()
-    if len(group_dict) == 0 or 'period' not in group_dict:
-        errmsg = f"Bad formatting of frequency, '{entry}' must be in the form of '[<integer>*]<time period>'"
-        return (None, errmsg)
-    # end if
-    # Check multiplier
+    tokens = [x.strip() for x in str(entry.strip()).split('*')]
+    num_tokens = len(tokens)
+
     multiplier = 1
-    if 'multiplier' in group_dict:
-        potential_multiplier = group_dict['multiplier']
-        if potential_multiplier:
-            multiplier, errmsg = _is_integer(potential_multiplier)
-            if errmsg or (multiplier <= 0):
-                errmsg = f"multiplier '{potential_multiplier}' in '{entry}' must be a positive integer"
-                return (None, errmsg)
-            # end if
-        # end if
+    period = ""
+    if num_tokens == 1:
+        period = tokens[0].lower()
+    elif num_tokens == 2:
+        multiplier = tokens[0]
+        period = tokens[1].lower()
+    else:
+        return (None, f"frequency must be of the form ([<mult>*]period), found \"{entry}\".  Do you have too many multipliers or periods?")
     # end if
-    # Check for valid period
-    period = group_dict['period'].strip().lower()
+
     if period not in _TIME_PERIODS:
-       errmsg = f'period must be one of {", ".join(_TIME_PERIODS)}'
-       return (None, errmsg)
+        time_periods = ", ".join(_TIME_PERIODS)
+        return (None, f"period (\"{period}\") must be one of {time_periods}")
     # end if
-    return ((multiplier, period), None)
+    (candidate_multiplier, errmsg) = _is_integer(multiplier)
+    if errmsg:
+        return (None, f"\"{multiplier}\" in \"{entry}\" is not a valid integer")
+    # end if
+    if candidate_multiplier <= 0:
+        return (None, f"multiplier (\"{candidate_multiplier}\") must be a positive integer")
+    # end if
+
+    return ((candidate_multiplier, period), None)
 
 ##############################################################################
 def _is_prec_str(entry):
@@ -308,6 +306,8 @@ def _parse_hist_config_line(line, no_command_ok=False):
     (None, None, "Invalid history config line, 'use_topo_file = .false.'")
     >>> _parse_hist_config_line("use_topo_file = .false.", no_command_ok=True)
     ('use_topo_file', None, None)
+    >>> _parse_hist_config_line(" ")
+    (None, None, None)
     """
     # Find the possible history configuration command for <line>.
     if _blank_config_line(line):
@@ -679,7 +679,7 @@ class HistoryVolConfig():
             all_removed = False
             missing_fields = fields_to_delete.difference(fields_deleted)
             ctx = context_string(pobj)
-            missing_fields_string = ", ".join(list(missing_fields))
+            missing_fields_string = ", ".join(missing_fields)
             errmsg = f"Cannot remove field(s), '{missing_fields_string}', not found on hist volume, {self.volume}{ctx}"
             logger.warning(errmsg)
         # end if
@@ -772,6 +772,13 @@ class HistoryVolConfig():
         return self.__output_freq
 
     def __out_frequency_is_valid(this, ofreq):
+        """
+        Determine if a user-supplied output frequency is valid.
+        Checks:
+         - frequency is tuple (multiplier, period)
+         - multiplier is a positive integer
+         - period is in list of valid time periods
+        """
         return isinstance(ofreq, tuple)                   and \
                (len(ofreq) == 2)                          and \
                (ofreq[0] > 0)                             and \

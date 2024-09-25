@@ -66,6 +66,8 @@ run_doctest cime_config/create_readnl_files.py
 run_doctest src/data/generate_registry_data.py
 # ParamGen atm_in namelist writer doctests:
 run_doctest cime_config/atm_in_paramgen.py
+# CAM history config doctests:
+run_doctest cime_config/hist_config.py
 # CAM config unit tests:
 run_unittest test/unit/test_cam_config.py
 # CAM autogen unit tests:

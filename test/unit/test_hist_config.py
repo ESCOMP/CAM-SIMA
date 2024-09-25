@@ -80,7 +80,7 @@ class HistConfigTest(unittest.TestCase):
         self.assertEqual(config.output_frequency, outfreq,
                          msg="Bad output frequency")
         self.assertEqual(config.file_type, ftype, msg="Bad file type")
-        self.assertEqual(config.write_nstep0, write_nstep0, msg="Bad write_nste0 flag")
+        self.assertEqual(config.write_nstep0, write_nstep0, msg="Bad write_nstep0 flag")
         self.assertEqual(config.filename_spec, filename_spec, msg="Bad filename spec")
         self.assertEqual(config.restart_fname_spec, restart_fname_spec, msg="Bad restart filename spec")
 
@@ -188,7 +188,6 @@ class HistConfigTest(unittest.TestCase):
             # Read in file:
             file_lines = old_file.readlines()
             # Edit to add bad lines
-            print(file_lines[14])
             file_lines[8] = ""
             file_lines[9] = "hist_remove_fields;h0:\n"
             file_lines[10] = "hist_output_frequency;h0: 1+nmonths\n"

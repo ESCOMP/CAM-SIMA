@@ -50,8 +50,8 @@ module cam_hist_file
       integer,                       private :: output_freq_mult = UNSET_I
       character(len=8),              private :: output_freq_type = UNSET_C
       integer,                       private :: num_samples = 0
-      real(kind=r8),                 private :: beg_time = UNSET_R8
-      real(kind=r8),                 private :: end_time = UNSET_R8
+      real(r8),                      private :: beg_time = UNSET_R8
+      real(r8),                      private :: end_time = UNSET_R8
       character(len=:), allocatable, private :: filename_spec
       character(len=max_fldlen), allocatable, private :: field_names(:)
       character(len=3), allocatable, private :: accumulate_types(:)
@@ -914,7 +914,7 @@ CONTAINS
       use cam_history_support, only: max_chars
       use time_manager,        only: get_ref_date, timemgr_get_calendar_cf
       use time_manager,        only: get_step_size
-      use string_utils,        only: date2yyyymmdd, sec2hms
+      use string_utils,        only: date2yyyymmdd, sec2hms, stringify
       use cam_control_mod,     only: caseid
       use cam_initfiles,       only: ncdata, bnd_topo
       use cam_abortutils,      only: check_allocate, endrun
@@ -967,6 +967,7 @@ CONTAINS
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,          allocatable    :: mdimids(:)
+      integer,          parameter :: max_netcdf_len = 256
       character(len=*), parameter :: subname = 'config_define_file: '
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
@@ -1218,6 +1219,15 @@ CONTAINS
             mdims = this%field_list(field_index)%dimensions()
             mdimsize = size(mdims)
             fname_tmp = strip_suffix(this%field_list(field_index)%diag_name())
+            ! Ensure that fname_tmp is not longer than the maximum length for a
+            !  netcdf file
+            if (len_trim(fname_tmp) > max_netcdf_len) then
+               ! Endrun if the name is too long
+               write(errmsg, *) 'config_define_file: variable name ', trim(fname_tmp), &
+                  ' too long for NetCDF file (len=', stringify((/len(trim(fname_tmp))/)), ' > ', &
+                  stringify((/max_netcdf_len/)), ')'
+               call endrun(errmsg, file=__FILE__, line=__LINE__)
+            end if
             !
             !  Create variables and atributes for fields written out as columns
             !
@@ -1659,7 +1669,7 @@ CONTAINS
       character(len=max_fldlen), allocatable, intent(inout) :: hist_max_fields(:)
       character(len=max_fldlen), allocatable, intent(inout) :: hist_var_fields(:)
       ! Local variables (namelist)
-      character(len=vlen) :: hist_volume ! h# ir i, not config number
+      character(len=vlen) :: hist_volume
       character(len=vlen) :: hist_precision
       integer             :: hist_max_frames
       character(len=flen) :: hist_output_frequency

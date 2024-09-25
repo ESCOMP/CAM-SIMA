@@ -132,6 +132,19 @@ CONTAINS
          else
             call get_curr_date(year, month, day, ncsec)
          end if
+      else
+         if (present(yr_spec)) then
+            year = yr_spec
+         end if
+         if (present(mon_spec)) then
+            month = mon_spec
+         end if
+         if (present(day_spec)) then
+            day = day_spec
+         end if
+         if (present(sec_spec)) then
+            ncsec = sec_spec
+         end if
       end if ! No else, do not use these quantities below.
       !
       ! Go through each character in the filename specifier and interpret
