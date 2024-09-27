@@ -28,15 +28,15 @@ module dyn_comp
     use time_manager, only: get_start_date, get_stop_date, get_step_size, get_run_duration, timemgr_get_calendar_cf
     use vert_coord, only: pver, pverp
 
-    ! Modules from CESM Share.
-    use shr_file_mod, only: shr_file_getunit
-    use shr_kind_mod, only: kind_cs => shr_kind_cs, kind_r8 => shr_kind_r8
-    use shr_pio_mod, only: shr_pio_getiosys
-
     ! Modules from CCPP.
     use cam_ccpp_cap, only: cam_constituents_array
     use ccpp_kinds, only: kind_phys
     use phys_vars_init_check, only: mark_as_initialized, std_name_len
+
+    ! Modules from CESM Share.
+    use shr_file_mod, only: shr_file_getunit
+    use shr_kind_mod, only: kind_cs => shr_kind_cs, kind_r8 => shr_kind_r8
+    use shr_pio_mod, only: shr_pio_getiosys
 
     ! Modules from external libraries.
     use pio, only: file_desc_t, iosystem_desc_t, pio_file_is_open
@@ -357,10 +357,10 @@ contains
         integer, allocatable :: global_grid_index(:)
         real(kind_r8), allocatable :: buffer_2d_real(:, :), buffer_3d_real(:, :, :)
         real(kind_r8), allocatable :: lat_rad(:), lon_rad(:)
-        real(kind_r8), allocatable :: z_int(:, :)       ! Geometric height (meters) at layer interfaces.
-                                                        ! Dimension and vertical index orders follow CAM-SIMA convention.
-        real(kind_r8), pointer :: zgrid(:, :)           ! Geometric height (meters) at layer interfaces.
-                                                        ! Dimension and vertical index orders follow MPAS convention.
+        real(kind_r8), allocatable :: z_int(:, :) ! Geometric height (meters) at layer interfaces.
+                                                  ! Dimension and vertical index orders follow CAM-SIMA convention.
+        real(kind_r8), pointer :: zgrid(:, :)     ! Geometric height (meters) at layer interfaces.
+                                                  ! Dimension and vertical index orders follow MPAS convention.
 
         call init_shared_variable()
 
@@ -577,6 +577,8 @@ contains
             real(kind_r8), allocatable :: qv_mid_col(:) ! Water vapor mixing ratio (kg/kg) at layer midpoints of each column.
             real(kind_r8), allocatable :: t_mid(:, :)   ! Temperature (K) at layer midpoints.
             real(kind_r8), allocatable :: tm_mid_col(:) ! Modified "moist" temperature (K) at layer midpoints of each column.
+                                                        ! Be advised that it is not virtual temperature.
+                                                        ! See doi:10.5065/1DFH-6P97 and doi:10.1175/MWR-D-11-00215.1 for details.
             real(kind_r8), pointer :: rho(:, :)
             real(kind_r8), pointer :: theta(:, :)
             real(kind_r8), pointer :: scalars(:, :, :)
