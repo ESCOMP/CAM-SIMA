@@ -435,10 +435,15 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     if not os.path.exists(physics_blddir):
         os.makedirs(physics_blddir)
     # End if
-    # Collect all source directories
-    atm_phys_src_dir = os.path.join(atm_root, "src", "physics", "ncar_ccpp")
-    source_search = [source_mods_dir, atm_phys_src_dir]
-    # Find all metadata files, organize by scheme name
+    # Set top-level CCPP physics directory
+    atm_phys_top_dir = os.path.join(atm_root, "src", "physics", "ncar_ccpp")
+    # Collect all possible Suite Definition File (SDF) locations
+    atm_suites_path      = os.path.join(atm_phys_top_dir, "suites")
+    atm_test_suites_path = os.path.join(atm_phys_top_dir, "test", "test_suites")
+    suite_search         = [source_mods_dir, atm_suites_path, atm_test_suites_path]
+    # Find all scheme metadata files, organized by scheme name
+    atm_schemes_path = os.path.join(atm_phys_top_dir, "schemes")
+    source_search    = [source_mods_dir, atm_schemes_path]
     all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
 
     # Find the SDFs specified for this model build
@@ -446,7 +451,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     scheme_files = []
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
-        sdf_path = _find_file(f"suite_{sdf}.xml", source_search)
+        sdf_path = _find_file(f"suite_{sdf}.xml", suite_search)
         if not sdf_path:
             emsg = f"ERROR: Unable to find SDF for suite '{sdf}'"
             raise CamAutoGenError(emsg)
@@ -587,7 +592,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # there to the bld directory:
     if do_gen_ccpp:
         # Set CCPP physics "utilities" path
-        atm_phys_util_dir = os.path.join(atm_phys_src_dir, "utilities")
+        atm_phys_util_dir = os.path.join(atm_schemes_path, "utilities")
 
         # Check that directory exists
         if not os.path.isdir(atm_phys_util_dir):
