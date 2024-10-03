@@ -130,8 +130,10 @@ CONTAINS
       use cam_logfile,          only: iulog
       use physconst,            only: r_universal, cpwv
       use physconst,            only: rh2o, cpliq, cpice
+      use physconst,            only: cpair, rair
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
+      use runtime_obj,          only: wv_stdname
       use cam_constituents,     only: const_name, num_advected
       use cam_constituents,     only: const_set_thermo_active
       use cam_constituents,     only: const_set_water_species
@@ -305,9 +307,8 @@ CONTAINS
             !
             ! Q
             !
-         case('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water')
-            call air_species_info('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', &
-                                  ix, mw)
+         case(wv_stdname) !water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water
+            call air_species_info(wv_stdname, ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpwv
             thermodynamic_active_species_cv (icnst) = cv3 / mw
@@ -454,6 +455,15 @@ CONTAINS
          has_liq = .false.
          has_ice = .false.
       end do
+
+      !Set dry air thermodynamic properities if no dry air species provided:
+      if (dry_species_num == 0) then
+        !Note:  The zeroeth index is used to represent all of dry
+        !       air instead of just N2 in this configuration
+        thermodynamic_active_species_cp(0) = cpair
+        thermodynamic_active_species_cv(0) = cpair - rair
+        thermodynamic_active_species_R(0)  = rair
+      end if
 
       water_species_in_air_num = water_species_num
       dry_air_species_num = dry_species_num

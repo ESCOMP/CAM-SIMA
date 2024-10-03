@@ -10,7 +10,12 @@ module dyn_mpas_subdriver
     use, intrinsic :: iso_fortran_env, only: output_unit
 
     ! Modules from external libraries.
+#ifdef MPAS_USE_MPI_F08
+    use mpi_f08, only: mpi_comm_null, mpi_comm_rank, mpi_success, &
+                       mpi_comm_type => mpi_comm, operator(==)
+#else
     use mpi, only: mpi_comm_null, mpi_comm_rank, mpi_success
+#endif
     use pio, only: pio_char, pio_int, pio_real, pio_double, &
                    file_desc_t, iosystem_desc_t, pio_file_is_open, pio_iosystem_is_active, &
                    pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
@@ -47,6 +52,7 @@ module dyn_mpas_subdriver
                                   mpas_pool_add_dimension, mpas_pool_get_dimension, &
                                   mpas_pool_get_field, mpas_pool_get_field_info, &
                                   mpas_pool_initialize_time_levels
+    use mpas_stream_inquiry, only: mpas_stream_inquiry_new_streaminfo
     use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
     use mpas_string_utils, only: mpas_string_replace
     use mpas_timekeeping, only: mpas_get_clock_time, mpas_get_time
@@ -76,7 +82,11 @@ module dyn_mpas_subdriver
 
         ! Initialized by `dyn_mpas_init_phase1`.
         integer :: log_unit = output_unit
+#ifdef MPAS_USE_MPI_F08
+        type(mpi_comm_type) :: mpi_comm = mpi_comm_null
+#else
         integer :: mpi_comm = mpi_comm_null
+#endif
         integer :: mpi_rank = 0
         logical :: mpi_rank_root = .false.
 
@@ -447,7 +457,11 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_unit, mpas_log_unit)
         class(mpas_dynamical_core_type), intent(inout) :: self
+#ifdef MPAS_USE_MPI_F08
+        type(mpi_comm_type), intent(in) :: mpi_comm
+#else
         integer, intent(in) :: mpi_comm
+#endif
         procedure(model_error_if) :: model_error_impl
         integer, intent(in) :: log_unit
         integer, intent(in) :: mpas_log_unit(2)
@@ -503,7 +517,7 @@ contains
         call self % debug_print('Calling mpas_framework_init_phase1')
 
         ! Initialize MPAS framework with supplied MPI communicator group.
-        call mpas_framework_init_phase1(self % domain_ptr % dminfo, mpi_comm=self % mpi_comm)
+        call mpas_framework_init_phase1(self % domain_ptr % dminfo, external_comm=self % mpi_comm)
 
         call self % debug_print('Setting up core')
 
@@ -706,6 +720,15 @@ contains
         ! Initialize MPAS framework with supplied PIO system descriptor.
         call mpas_framework_init_phase2(self % domain_ptr, io_system=pio_iosystem)
 
+        ! Instantiate `streaminfo` but do not actually initialize it. Any queries made to it will always return `.false.`.
+        ! This is the intended behavior because MPAS as a dynamical core is not responsible for managing IO.
+        self % domain_ptr % streaminfo => mpas_stream_inquiry_new_streaminfo()
+
+        if (.not. associated(self % domain_ptr % streaminfo)) then
+            call self % model_error('Stream info instantiation failed for core ' // trim(self % domain_ptr % core % corename), &
+                subname, __LINE__)
+        end if
+
         ierr = self % domain_ptr % core % define_packages(self % domain_ptr % packages)
 
         if (ierr /= 0) then
@@ -714,7 +737,8 @@ contains
         end if
 
         ierr = self % domain_ptr % core % setup_packages( &
-            self % domain_ptr % configs, self % domain_ptr % packages, self % domain_ptr % iocontext)
+            self % domain_ptr % configs, self % domain_ptr % streaminfo, &
+            self % domain_ptr % packages, self % domain_ptr % iocontext)
 
         if (ierr /= 0) then
             call self % model_error('Package setup failed for core ' // trim(self % domain_ptr % core % corename), &

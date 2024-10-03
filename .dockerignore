@@ -9,3 +9,6 @@
 !test/
 !.config_files.xml
 !docker
+!bin/
+!.lib/
+!.gitmodules
