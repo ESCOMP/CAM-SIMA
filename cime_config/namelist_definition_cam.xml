@@ -336,7 +336,6 @@
 <!-- Tropopause -->
   <entry id="tropopause_climo_file">
     <type>char*256</type>
-    <!--<input_pathname>abs</input_pathname>-->
     <category>tropopause</category>
     <group>tropopause_nl</group>
     <desc>
