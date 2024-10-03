@@ -10,7 +10,7 @@
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/physics/utils/tropopause_read_file.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>

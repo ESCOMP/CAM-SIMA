@@ -100,7 +100,7 @@ CONTAINS
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
       use phys_vars_init_check, only: mark_as_initialized
-      use tropopause_read_file, only: tropopause_read_climo_file
+      use tropopause_climo_read, only: tropopause_climo_read_file
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -233,12 +233,7 @@ CONTAINS
       end if
 
       ! Read tropopause climatology
-      call tropopause_read_climo_file()
-
-      ! Mark variables as initialized so they are not read from initial conditions
-      call mark_as_initialized('tropopause_air_pressure_from_climatology_dataset')
-      call mark_as_initialized('tropopause_calendar_days_from_climatology')
-      call mark_as_initialized('filename_of_tropopause_climatology')
+      call tropopause_climo_read_file()
 
       call phys_init()
 

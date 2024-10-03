@@ -26,7 +26,7 @@ if __SPINSCRIPTS not in sys.path:
     sys.path.append(__SPINSCRIPTS)
 # end if
 _ALL_STRINGS_REGEX = re.compile(r'[A-Za-z][A-Za-z_0-9]+')
-_FORTRAN_NUMERIC_REGEX = r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?(_kind_phys)?$'
+_FORTRAN_NUMERIC_REGEX = re.compile(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?(_kind_phys)?$')
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
@@ -943,7 +943,7 @@ class VarDict(OrderedDict):
         excluded_initializations = {'null', 'nan', 'false', 'true'}
         # Exclude NULL and nan variables and valid Fortran numeric values that pass the string regex (e.g. 1.e36, -3.2e5)
         for var in all_strings:
-            if var.lower() not in excluded_initializations and not bool(re.match(_FORTRAN_NUMERIC_REGEX, newvar.initial_value)):
+            if var.lower() not in excluded_initializations and not _FORTRAN_NUMERIC_REGEX.match(newvar.initial_value):
                 init_val_vars.add(var)
             # end if
         # end if

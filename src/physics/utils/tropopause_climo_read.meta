@@ -1,9 +1,9 @@
 [ccpp-table-properties]
-  name = tropopause_read_file
+  name = tropopause_climo_read
   type = module
 
 [ccpp-arg-table]
-  name  = tropopause_read_file
+  name  = tropopause_climo_read
   type  = module
 [ tropp_slices ]
   standard_name = number_of_months_in_year

@@ -337,12 +337,10 @@
   <entry id="tropopause_climo_file">
     <type>char*256</type>
     <!--<input_pathname>abs</input_pathname>-->
-    <category>tropo</category>
+    <category>tropopause</category>
     <group>tropopause_nl</group>
     <desc>
       Full pathname of boundary dataset for tropopause climatology.
-
-      Default: set by build-namelist.
     </desc>
     <values>
       <value>${DIN_LOC_ROOT}/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc</value>
