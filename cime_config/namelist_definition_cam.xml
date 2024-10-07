@@ -333,6 +333,19 @@
     </values>
   </entry>
 
+<!-- Tropopause -->
+  <entry id="tropopause_climo_file">
+    <type>char*256</type>
+    <category>tropopause</category>
+    <group>tropopause_nl</group>
+    <desc>
+      Full pathname of boundary dataset for tropopause climatology.
+    </desc>
+    <values>
+      <value>${DIN_LOC_ROOT}/atm/cam/chem/trop_mozart/ub/clim_p_trop.nc</value>
+    </values>
+  </entry>
+
 <!-- Vertical Coordinate -->
 
   <entry id="pver">
@@ -364,7 +377,7 @@
     <group>cam_logfile_nl</group>
     <valid_values>0,1,2,3</valid_values>
     <desc>
-      Include exra checks and logging output.
+      Include extra checks and logging output.
       0: No extra checks or output
       1: Extra informational output
       2: Level 1 plus extra checks and informational output
