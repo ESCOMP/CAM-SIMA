@@ -9,6 +9,7 @@ module tropopause_climo_read
 
   use ccpp_kinds,     only: kind_phys
   use runtime_obj,    only: unset_str
+  use shr_kind_mod,   only: shr_kind_cl
 
   implicit none
   private
@@ -28,7 +29,7 @@ module tropopause_climo_read
   real(kind_phys), public, allocatable :: tropp_days(:)
 
   ! Private module data
-  character(len=256)                   :: tropopause_climo_file = unset_str
+  character(len=shr_kind_cl)           :: tropopause_climo_file = unset_str
 
 contains
   ! Read namelist variable tropopause_climo_file.
@@ -119,7 +120,7 @@ contains
     real(kind_phys), allocatable :: lon(:)
     real(kind_phys) :: to_lats(pcols), to_lons(pcols)
     real(kind_phys), parameter :: d2r=pi/180._kind_phys, zero=0._kind_phys, twopi=pi*2._kind_phys
-    character(len=256) :: locfn
+    character(len=shr_kind_cl) :: locfn
     character(len=shr_kind_cm) :: errmsg
 
     errmsg = ''
