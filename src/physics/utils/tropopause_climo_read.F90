@@ -17,6 +17,9 @@ module tropopause_climo_read
   public :: tropopause_climo_readnl
   public :: tropopause_climo_read_file
 
+  ! Private module data
+  character(len=shr_kind_cl)           :: tropopause_climo_file = unset_str
+
 !> \section arg_table_tropopause_climo_read  Argument Table
 !! \htmlinclude tropopause_climo_read.html
   ! months in year for climatological tropopause pressure data
@@ -27,9 +30,6 @@ module tropopause_climo_read
 
   ! monthly day-of-year times corresponding to climatological data (12)
   real(kind_phys), public, allocatable :: tropp_days(:)
-
-  ! Private module data
-  character(len=shr_kind_cl)           :: tropopause_climo_file = unset_str
 
 contains
   ! Read namelist variable tropopause_climo_file.
@@ -235,7 +235,6 @@ contains
     !--------------------------------------------------------
     call mark_as_initialized('tropopause_air_pressure_from_climatology_dataset')
     call mark_as_initialized('tropopause_calendar_days_from_climatology')
-    call mark_as_initialized('filename_of_tropopause_climatology')
 
   end subroutine tropopause_climo_read_file
 end module tropopause_climo_read
