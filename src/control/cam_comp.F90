@@ -596,9 +596,9 @@ CONTAINS
       if (.not. is_constituent) then
 
          ! Allocate host_constituents object:
-         allocate(host_constituents(1), stat=errflg)
+         allocate(host_constituents(1), stat=errflg, errmsg=errmsg)
          call check_allocate(errflg, subname, 'host_constituents(1)',                   &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
@@ -616,9 +616,9 @@ CONTAINS
       else
          ! Allocate zero-size object so nothing is added
          ! to main constituents object:
-         allocate(host_constituents(0), stat=errflg)
+         allocate(host_constituents(0), stat=errflg, errmsg=errmsg)
          call check_allocate(errflg, subname, 'host_constituents(0)',                   &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
       end if
       !-------------------------------------------
 
