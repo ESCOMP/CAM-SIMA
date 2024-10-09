@@ -21,9 +21,3 @@
   units = 1
   type = real | kind = kind_phys
   dimensions = (number_of_months_in_year)
-[ tropopause_climo_file ]
-  standard_name = filename_of_tropopause_climatology
-  long_name = File path to tropopause climatology file
-  units = none
-  type = character | kind = len=256
-  dimensions = ()
