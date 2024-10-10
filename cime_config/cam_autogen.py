@@ -456,6 +456,10 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
             emsg = f"ERROR: Unable to find SDF for suite '{sdf}'"
             raise CamAutoGenError(emsg)
         # End if
+        if os.path.dirname(os.path.abspath(sdf_path)) == atm_test_suites_path:
+          #Notify user that a test suite is being used
+          _LOGGER.info("Using non-standard test suite: %s", sdf)
+        # End if
         sdfs.append(sdf_path)
         # Given an SDF, find all the schemes it calls
         _, suite = read_xml_file(sdf_path)
