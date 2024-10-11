@@ -1,7 +1,7 @@
 Tag name (required for release branches):
 Originator(s):
 
-Summary (include the issue title, and the keyword ['closes', 'fixes', 'resolves'] followed by the issue number):
+Description (include the issue title, and the keyword ['closes', 'fixes', 'resolves'] followed by the issue number):
 
 Describe any changes made to build system:
 
