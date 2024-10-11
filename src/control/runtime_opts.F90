@@ -44,6 +44,8 @@ contains
 !      use cam_diagnostics,     only: diag_readnl
       use inic_analytic_utils, only: analytic_ic_readnl
 
+      use tropopause_climo_read, only: tropopause_climo_readnl
+
 !      use tracers,             only: tracers_readnl
 !      use nudging,             only: nudging_readnl
 
@@ -99,6 +101,7 @@ contains
 !      call diag_readnl(nlfilename)
 !      call check_energy_readnl(nlfilename)
       call analytic_ic_readnl(nlfilename)
+      call tropopause_climo_readnl(nlfilename)
 !      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
 !      call nudging_readnl(nlfilename)
 

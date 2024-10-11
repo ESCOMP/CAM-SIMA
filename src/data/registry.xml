@@ -10,6 +10,7 @@
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
@@ -348,6 +349,12 @@
       <long_name>current timestep number</long_name>
       <initial_value>0</initial_value>
     </variable>
+    <!-- Date and time variables -->
+    <variable local_name="calday"
+              standard_name="fractional_calendar_days_on_end_of_current_timestep"
+              units="1" type="real" kind="kind_phys">
+      <long_name>fractional calendar day at end of current timestep</long_name>
+    </variable>
     <!-- Error handling variables -->
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
@@ -360,6 +367,14 @@
               units="none" type="character" kind="len=512">
       <long_name>ccpp error message</long_name>
       <initial_value>''</initial_value>
+    </variable>
+    <!-- SIMA History (diagnostic output) variables -->
+    <variable local_name="fillvalue"
+              standard_name="fill_value_for_diagnostic_output"
+              units="1" type="real" kind="kind_phys"
+              allocatable="parameter">
+      <long_name>Fill value for diagnostic/history outputs</long_name>
+      <initial_value>1.e36_kind_phys</initial_value>
     </variable>
     <!-- Composition-dependent Variables -->
     <variable local_name="cpairv"
