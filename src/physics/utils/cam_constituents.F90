@@ -285,10 +285,13 @@ CONTAINS
    !#######################################################################
 
    subroutine const_get_index(name, cindex, abort, warning, caller)
-      use shr_kind_mod,   only: CX => SHR_KIND_CX
-      use cam_abortutils, only: endrun
-      use cam_logfile,    only: iulog
-      use cam_ccpp_cap,   only: cam_const_get_index
+      use shr_kind_mod,         only: CX => SHR_KIND_CX
+      use cam_abortutils,       only: endrun
+      use cam_logfile,          only: iulog
+      use phys_vars_init_check, only: std_name_len
+      use string_utils,         only: to_str
+
+      ! use cam_ccpp_cap,   only: cam_const_get_index
 
       ! Get the index of a constituent with standard name, <name>.
       ! Setting optional <abort> argument to .false. returns control to
@@ -305,6 +308,8 @@ CONTAINS
       character(len=*), optional, intent(in)  :: caller ! calling routine
 
       !---------------------------Local workspace-----------------------------
+      integer                     :: t_cindex
+      character(len=std_name_len) :: t_const_name
       logical                     :: warning_on_error
       logical                     :: abort_on_error
       integer                     :: errcode
@@ -312,10 +317,24 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_get_index: '
       !-----------------------------------------------------------------------
 
-      ! Find tracer name in the master table
-      call cam_const_get_index(name, cindex, errcode=errcode, errmsg=errmsg)
+      cindex = -1
 
-      if (errcode /= 0) then
+      ! This convoluted loop is brought to you in exchange for avoiding a
+      ! circular dependency on cam_ccpp_cap::cam_const_get_index.
+      const_props_loop: do t_cindex = lbound(const_props, 1), ubound(const_props, 1)
+         call const_props(t_cindex)%standard_name(t_const_name, errcode, errmsg)
+         if (errcode /= 0) then
+            call endrun(subname//"Error "//to_str(errcode)//": "//           &
+                 trim(errmsg), file=__FILE__, line=__LINE__)
+         end if
+
+         if (trim(t_const_name) == trim(name)) then
+            cindex = t_cindex
+            exit const_props_loop
+         end if
+      enddo const_props_loop
+
+      if (cindex == -1) then
          ! Unrecognized name, set an error return and possibly abort
          cindex = -1
          if (present(abort)) then
