@@ -178,7 +178,7 @@ def _is_mult_period(entry):
     if not entry or not entry.strip():
         return (None, f"frequency ([<mult>*]period) is required, found \"{entry}\"")
     # end if
-    tokens = [x.strip() for x in str(entry.strip()).split('*')]
+    tokens = [x.strip() for x in entry.split('*')]
     num_tokens = len(tokens)
 
     multiplier = 1
