@@ -622,7 +622,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         if not os.path.isdir(atm_phys_to_be_ccppized_dir):
             # CAM-SIMA will likely not run without this, so raise an error
             emsg = "ERROR: Unable to find CCPP physics to_be_ccppized directory:\n"
-            emsg += f" {atm_phys_util_dir}\n Have you run 'git-fleximod'?"
+            emsg += f" {atm_phys_to_be_ccppized_dir}\n Have you run 'git-fleximod'?"
             raise CamAutoGenError(emsg)
         # end if
 
