@@ -319,7 +319,7 @@ CONTAINS
       call ccpp_const_get_idx(const_props, name, cindex, errmsg, errcode)
 
       if (errcode /= 0) then
-         call endrun(subname//"Error "//stringify(errcode)//": "//           &
+         call endrun(subname//"Error "//stringify((/errcode/))//": "//           &
                  trim(errmsg), file=__FILE__, line=__LINE__)
       endif
 
