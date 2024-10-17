@@ -66,6 +66,8 @@ run_doctest cime_config/create_readnl_files.py
 run_doctest src/data/generate_registry_data.py
 # ParamGen atm_in namelist writer doctests:
 run_doctest cime_config/atm_in_paramgen.py
+# CAM history config doctests:
+run_doctest cime_config/hist_config.py
 # CAM config unit tests:
 run_unittest test/unit/test_cam_config.py
 # CAM autogen unit tests:
@@ -80,6 +82,8 @@ run_unittest test/unit/test_create_readnl_files.py
 run_unittest test/unit/test_write_init_files.py
 # ParamGen atm_in namelist writer unit tests:
 run_unittest test/unit/test_atm_in_paramgen.py
+# CAM history config unit tests
+run_unittest test/unit/test_hist_config.py
 
 # Report
 if [ ${NUMERRORS} -gt 0 ]; then

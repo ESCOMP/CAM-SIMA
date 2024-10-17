@@ -2,15 +2,17 @@ module string_utils
 
    use shr_string_mod, only: to_upper => shr_string_toUpper
    use shr_string_mod, only: to_lower => shr_string_toLower
+   use cam_logfile,    only: iulog
+   use cam_abortutils, only: endrun
 
    implicit none
    private
 
    ! Public interface methods
 
-   public :: to_upper         ! Convert character string to upper case
-   public :: to_lower         ! Convert character string to lower case
-   public :: strlist_get_ind  ! find string in a list of strings and return its index
+   public :: strlist_get_ind  ! Gets the index of a given string in a list of strings
+   public :: date2yyyymmdd    ! convert encoded date integer to "yyyy-mm-dd" format
+   public :: sec2hms          ! convert integer seconds past midnight to "hh:mm:ss" format
    public :: increment_string ! increments a string
    public :: last_sig_char    ! Position of last significant character in string
    public :: to_str           ! convert integer to left justified string
@@ -29,9 +31,6 @@ CONTAINS
    ! Get the index of a given string in a list of strings.  Optional abort argument
    ! allows returning control to caller when the string is not found.  Default
    ! behavior is to call endrun when string is not found.
-
-   use cam_logfile,    only: iulog
-   use cam_abortutils, only: endrun
 
    ! Arguments
    character(len=*),  intent(in)  :: strlist(:) ! list of strings
@@ -69,6 +68,61 @@ CONTAINS
 
    !=========================================================================================
 
+   character(len=10) function date2yyyymmdd (date)
+
+      ! Input arguments
+
+      integer, intent(in) :: date
+
+      ! Local workspace
+
+      integer :: year    ! year of yyyy-mm-dd
+      integer :: month   ! month of yyyy-mm-dd
+      integer :: day     ! day of yyyy-mm-dd
+
+      if (date < 0) then
+         call endrun ('DATE2YYYYMMDD: negative date not allowed')
+      end if
+
+      year  = date / 10000
+      month = (date - year*10000) / 100
+      day   = date - year*10000 - month*100
+
+      write(date2yyyymmdd,80) year, month, day
+   80 format(i4.4,'-',i2.2,'-',i2.2)
+
+   end function date2yyyymmdd
+
+   !=========================================================================================
+
+   character(len=8) function sec2hms (seconds)
+
+      ! Input arguments
+
+      integer, intent(in) :: seconds
+
+      ! Local workspace
+
+      integer :: hours     ! hours of hh:mm:ss
+      integer :: minutes   ! minutes of hh:mm:ss
+      integer :: secs      ! seconds of hh:mm:ss
+
+      if (seconds < 0 .or. seconds > 86400) then
+         write(iulog,*)'SEC2HMS: bad input seconds:', seconds
+         call endrun ('SEC2HMS: bad input seconds: '//stringify((/seconds/)))
+      end if
+
+      hours   = seconds / 3600
+      minutes = (seconds - hours*3600) / 60
+      secs    = (seconds - hours*3600 - minutes*60)
+
+      write(sec2hms,80) hours, minutes, secs
+   80 format(i2.2,':',i2.2,':',i2.2)
+
+   end function sec2hms
+
+   !=========================================================================================
+
    integer function increment_string(str, increment)
       !-----------------------------------------------------------------------
       ! 	... Increment a string whose ending characters are digits.
@@ -84,7 +138,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       ! 	... Dummy variables
       !-----------------------------------------------------------------------
-      character(len=*), intent(inout) :: str       ! string with trailing digits
+      character(len=*), intent(inout) :: str     ! string with trailing digits
       ! increment: value to increment string (may be negative)
       integer,          intent(in)    :: increment
 
@@ -141,7 +195,7 @@ CONTAINS
 
    end function increment_string
 
-!=========================================================================================
+   !===========================================================================
 
    integer function last_index(cstr)
       !-----------------------------------------------------------------------
@@ -180,7 +234,7 @@ CONTAINS
 
    end function last_index
 
-!=========================================================================================
+   !===========================================================================
 
    integer function last_sig_char(cstr)
       !-----------------------------------------------------------------------
@@ -217,21 +271,21 @@ CONTAINS
 
    end function last_sig_char
 
-!=========================================================================================
+   !===========================================================================
 
-character(len=10) function to_str(n)
+   character(len=10) function to_str(n)
 
-   ! return default integer as a left justified string
+      ! return default integer as a left justified string
 
-   ! arguments
-   integer, intent(in) :: n
-   !----------------------------------------------------------------------------
+      ! arguments
+      integer, intent(in) :: n
+      !----------------------------------------------------------------------------
 
-   write(to_str,'(i0)') n
+      write(to_str,'(i0)') n
 
-end function to_str
+   end function to_str
 
-!=========================================================================================
+   !===========================================================================
 
    !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
    !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.

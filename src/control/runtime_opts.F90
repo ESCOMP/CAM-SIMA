@@ -32,7 +32,7 @@ contains
 
 !      use physics_grid,        only: physics_grid_readnl
 
-!      use cam_history,         only: history_readnl
+      use cam_history,         only: history_readnl
 
 !      use scamMod,             only: scam_readnl
       use physconst,           only: physconst_readnl
@@ -93,7 +93,7 @@ contains
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
       call cam_constituents_readnl(nlfilename)
-!      call history_readnl(nlfilename)
+      call history_readnl(nlfilename)
       call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)
       call ref_pres_readnl(nlfilename)

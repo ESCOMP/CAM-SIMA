@@ -250,10 +250,10 @@ CONTAINS
       dim_bounds(:,1) = 0
       dim_bounds(:,2) = -1
       if (present(gridname)) then
-         call get_grid_diminfo(trim(gridname), grid_id, dim1name, dim2name,  &
+         call get_grid_diminfo(trim(gridname), grid_id, dim1name, dim2name, &
               dim_bounds)
       else
-         call get_grid_diminfo('physgrid', grid_id, dim1name, dim2name,       &
+         call get_grid_diminfo('physgrid', grid_id, dim1name, dim2name,     &
               dim_bounds)
       end if
 
@@ -381,13 +381,14 @@ CONTAINS
             ierr = cam_pio_inq_var_fill(ncid, varid, fillvalue)
             !End run if PIO error occurred:
             if (ierr /= PIO_NOERR) then
-               write(errormsg, *) subname//': cam_pio_inq_var_fill failed with PIO error: ', ierr
+               write(errormsg, *) subname,                                    &
+                    ': cam_pio_inq_var_fill failed with PIO error: ', ierr
                call safe_endrun(errormsg)
             end if
          end if
 
          if (masterproc .and. log_read_field) then
-            write(iulog,*) subname//': read field '//trim(varname)
+            write(iulog,*) subname, ': read field ', trim(varname)
          end if
 
       end if  ! end of readvar_tmp
@@ -649,13 +650,14 @@ CONTAINS
             ierr = cam_pio_inq_var_fill(ncid, varid, fillvalue)
             !End run if PIO error occurred:
             if (ierr /= PIO_NOERR) then
-               write(errormsg, *) subname//': cam_pio_inq_var_fill failed with PIO error: ', ierr
+               write(errormsg, *) subname,                                    &
+                    ': cam_pio_inq_var_fill failed with PIO error: ', ierr
                call safe_endrun(errormsg)
             end if
          end if
 
          if (masterproc .and. log_read_field) then
-            write(iulog,*) subname//': read field '//trim(varname)
+            write(iulog,*) subname, ': read field ', trim(varname)
          end if
 
       end if  ! end of readvar_tmp
@@ -910,13 +912,14 @@ CONTAINS
             ierr = cam_pio_inq_var_fill(ncid, varid, fillvalue)
             !End run if PIO error occurred:
             if (ierr /= PIO_NOERR) then
-               write(errormsg, *) subname//': cam_pio_inq_var_fill failed with PIO error: ', ierr
+               write(errormsg, *) subname,                                    &
+                    ': cam_pio_inq_var_fill failed with PIO error: ', ierr
                call safe_endrun(errormsg)
             end if
          end if
 
          if (masterproc .and. log_read_field) then
-            write(iulog,*) subname//': read field '//trim(varname)
+            write(iulog,*) subname, ': read field ', trim(varname)
          end if
 
       end if  ! end of readvar_tmp

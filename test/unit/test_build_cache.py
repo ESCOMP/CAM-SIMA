@@ -449,7 +449,6 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         function returns False when there
         is no change in the registry.
         """
-
         #Set path to already-existing cache file used by test_write_init_files:
         cache_file = os.path.join(_WRITE_INIT_DIR, "simple_build_cache_template.xml")
 

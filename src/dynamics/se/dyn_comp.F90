@@ -9,7 +9,8 @@ use cam_constituents,       only: const_name, const_longname, num_advected
 use cam_constituents,       only: const_get_index, const_is_wet, const_qmin
 use cam_constituents,       only: readtrace
 use air_composition,        only: const_is_water_species
-use cam_control_mod,        only: initial_run, simple_phys
+use cam_control_mod,        only: initial_run
+use cam_physics_control,    only: simple_phys
 use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
 use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
 
@@ -1846,7 +1847,7 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("ln_air_pressure_of_dry_air")
    call mark_as_initialized("reciprocal_of_air_pressure_thickness_of_dry_air")
    call mark_as_initialized("reciprocal_of_air_pressure_thickness")
-   call mark_as_initialized("inverse_exner_function_wrt_surface_pressure")
+   call mark_as_initialized("reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure")
    call mark_as_initialized("lagrangian_tendency_of_air_pressure")
    call mark_as_initialized("tendency_of_air_temperature_due_to_model_physics")
    call mark_as_initialized("tendency_of_eastward_wind_due_to_model_physics")

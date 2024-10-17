@@ -43,11 +43,11 @@ CONTAINS
    !---------------------------------------------------------------------------
    subroutine initialize(this, filepath, fixed, fixed_ymd, fixed_tod,         &
         force_time_interp, set_weights, try_dates, delta_days)
+      use shr_string_mod, only: to_upper => shr_string_toUpper
       use cam_abortutils, only: check_allocate
       use ioFileMod,      only: cam_get_file
       use cam_pio_utils,  only: cam_pio_openfile, cam_pio_closefile
       use cam_pio_utils,  only: cam_pio_handle_error
-      use string_utils,   only: to_upper
 
       class(time_coordinate), intent(inout) :: this
       character(len=*),       intent(in)    :: filepath

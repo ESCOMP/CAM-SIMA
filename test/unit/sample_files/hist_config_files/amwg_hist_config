@@ -1,0 +1,16 @@
+hist_max_frames: 1
+hist_output_frequency: 1*months
+hist_precision: REAL32
+
+! ADF mean
+!hist_diag_file: adf_mean_config
+! Radiation
+hist_diag_file: rad_config
+! Gravity wave
+!hist_diag_file: grav_wav_config
+! Turbulent mountain stress
+hist_add_avg_fields: TAUTMSX, TAUTMSY
+! Modal aerosol optics
+hist_add_avg_fields: AODDUST1, AODDUST3, AODDUST, AODVIS
+! ndrop
+hist_add_avg_fields: CCN3

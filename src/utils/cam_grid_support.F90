@@ -2,6 +2,7 @@ module cam_grid_support
    use shr_kind_mod,        only: r8=>shr_kind_r8, r4=>shr_kind_r4
    use shr_kind_mod,        only: i8=>shr_kind_i8, i4=>shr_kind_i4
    use shr_kind_mod,        only: max_chars=>shr_kind_cl
+   use shr_kind_mod,        only: shr_kind_cm
    use shr_sys_mod,         only: shr_sys_flush
    use cam_map_utils,       only: iMap
    use pio,                 only: var_desc_t
@@ -15,7 +16,14 @@ module cam_grid_support
    private
 
    integer, parameter, public :: max_hcoordname_len   = 16
+   integer, parameter, public :: max_split_files      = 2
+
+   type, public :: vardesc_ptr_t
+      type(var_desc_t), pointer :: p => NULL()
+   end type vardesc_ptr_t
+
    real(r8), parameter :: grid_fill_value = -900.0_r8
+
    !---------------------------------------------------------------------------
    !
    !  horiz_coord_t: Information for horizontal dimension attributes
@@ -33,8 +41,8 @@ module cam_grid_support
       integer(iMap),    pointer :: map(:) => NULL()  ! map (dof) for dist. coord
       logical                   :: latitude          ! .false. means longitude
       real(r8),         pointer :: bnds(:,:) => NULL() ! bounds, if present
-      type(var_desc_t), pointer :: vardesc => NULL() ! If we are to write coord
-      type(var_desc_t), pointer :: bndsvdesc => NULL() ! Set to write bounds
+      type(vardesc_ptr_t)       :: vardesc(max_split_files) ! If we are to write coord
+      type(vardesc_ptr_t)       :: bndsvdesc(max_split_files) ! Set to write bounds
    contains
       procedure                 :: get_coord_len  => horiz_coord_len
       procedure                 :: num_elem       => horiz_coord_num_elem
@@ -55,7 +63,7 @@ module cam_grid_support
    type, abstract :: cam_grid_attribute_t
       character(len=max_hcoordname_len)    :: name = ''      ! attribute name
       character(len=max_chars)             :: long_name = '' ! attr long_name
-      type(var_desc_t), pointer            :: vardesc => NULL()
+      type(vardesc_ptr_t)                  :: vardesc(max_split_files)
       ! We aren't going to use this until we sort out PGI issues
       class(cam_grid_attribute_t), pointer :: next => NULL()
    contains
@@ -103,7 +111,7 @@ module cam_grid_support
       character(len=max_hcoordname_len)   :: dimname    ! attribute dimension
       integer                             :: dimsize    ! Global array/map size
       integer,        pointer             :: values(:)   => NULL()
-      integer(iMap),  pointer             :: map(:) => NULL() ! map (dof) 4 I/O
+      integer(iMap),  pointer             :: map(:) => NULL() ! map (dof) for I/O
    contains
       procedure :: cam_grid_attr_init_1d_int
       procedure :: write_attr => write_cam_grid_attr_1d_int
@@ -120,7 +128,7 @@ module cam_grid_support
       character(len=max_hcoordname_len)   :: dimname    ! attribute dimension
       integer                             :: dimsize    ! Global array/map size
       real(r8),       pointer             :: values(:)   => NULL()
-      integer(iMap),  pointer             :: map(:) => NULL() ! map (dof) 4 I/O
+      integer(iMap),  pointer             :: map(:) => NULL() ! map (dof) for I/O
    contains
       procedure :: cam_grid_attr_init_1d_r8
       procedure :: write_attr => write_cam_grid_attr_1d_r8
@@ -157,7 +165,7 @@ module cam_grid_support
       type(horiz_coord_t), pointer       :: lon_coord => NULL() ! Longitude
       logical                            :: unstructured  ! Is this needed?
       logical                            :: block_indexed ! .false. for lon/lat
-      logical                            :: attrs_defined = .false.
+      logical                            :: attrs_defined(max_split_files) = .false.
       logical                            :: zonal_grid    = .false.
       type(cam_filemap_t),       pointer :: map => null() ! global dim map (dof)
       type(cam_grid_attr_ptr_t), pointer :: attributes => NULL()
@@ -185,8 +193,10 @@ module cam_grid_support
       procedure :: read_darray_3d_real    => cam_grid_read_darray_3d_real
       procedure :: write_darray_2d_int    => cam_grid_write_darray_2d_int
       procedure :: write_darray_3d_int    => cam_grid_write_darray_3d_int
+      procedure :: write_darray_1d_double => cam_grid_write_darray_1d_double
       procedure :: write_darray_2d_double => cam_grid_write_darray_2d_double
       procedure :: write_darray_3d_double => cam_grid_write_darray_3d_double
+      procedure :: write_darray_1d_real   => cam_grid_write_darray_1d_real
       procedure :: write_darray_2d_real   => cam_grid_write_darray_2d_real
       procedure :: write_darray_3d_real   => cam_grid_write_darray_3d_real
    end type cam_grid_t
@@ -206,11 +216,11 @@ module cam_grid_support
       real(r8)                     :: lon_range(2)
       real(r8)                     :: lat_range(2)
       logical                      :: collected_columns    ! Output unstructured
-      type(cam_filemap_t), pointer :: mask       => null() ! map 4 active pts
-      integer(iMap),       pointer :: latmap(:)  => null() ! map 4 patch coords
-      integer(iMap),       pointer :: lonmap(:)  => null() ! map 4 patch coords
-      real(r8),            pointer :: lonvals(:) => null() ! collected output
-      real(r8),            pointer :: latvals(:) => null() ! collected output
+      type(cam_filemap_t), pointer :: mask       => null() ! map for active pts
+      integer(iMap),       pointer :: latmap(:)  => null() ! map for patch coords
+      integer(iMap),       pointer :: lonmap(:)  => null() ! map for patch coords
+      real(r8),            pointer :: lonvals(:) => null() ! For collected output
+      real(r8),            pointer :: latvals(:) => null() ! For collected output
    contains
       procedure :: gridid              => cam_grid_patch_get_id
       procedure :: get_axis_names      => cam_grid_patch_get_axis_names
@@ -265,12 +275,13 @@ module cam_grid_support
 
    ! Abstract interface for write_attr procedure of cam_grid_attribute_t class
    abstract interface
-      subroutine write_cam_grid_attr(attr, File)
+      subroutine write_cam_grid_attr(attr, File, file_index)
          use pio, only: file_desc_t
          import      :: cam_grid_attribute_t
          ! Dummy arguments
          class(cam_grid_attribute_t), intent(inout) :: attr
          type(file_desc_t),           intent(inout) :: File ! PIO file Handle
+         integer,           optional, intent(in)    :: file_index
       end subroutine write_cam_grid_attr
    end interface
 
@@ -343,8 +354,10 @@ module cam_grid_support
    interface cam_grid_write_dist_array
       module procedure cam_grid_write_dist_array_2d_int
       module procedure cam_grid_write_dist_array_3d_int
+      module procedure cam_grid_write_dist_array_1d_double
       module procedure cam_grid_write_dist_array_2d_double
       module procedure cam_grid_write_dist_array_3d_double
+      module procedure cam_grid_write_dist_array_1d_real
       module procedure cam_grid_write_dist_array_2d_real
       module procedure cam_grid_write_dist_array_3d_real
    end interface cam_grid_write_dist_array
@@ -463,6 +476,7 @@ contains
 
    function horiz_coord_create(name, dimname, dimsize, long_name, units,      &
         lbound, ubound, values, map, bnds) result(newcoord)
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       character(len=*), intent(in)           :: name
@@ -477,8 +491,12 @@ contains
       integer(iMap),    intent(in), optional :: map(ubound-lbound+1)
       real(r8),         intent(in), optional :: bnds(2,lbound:ubound)
       type(horiz_coord_t),          pointer  :: newcoord
+      ! Local variables
+      integer                                :: ierr
+      character(len=*), parameter            :: subname = 'horiz_coord_create'
 
-      allocate(newcoord)
+      allocate(newcoord, stat=ierr)
+      call check_allocate(ierr, subname, 'newcoord', file=__FILE__, line=__LINE__-1)
 
       newcoord%name      = trim(name)
       newcoord%dimname   = trim(dimname)
@@ -505,7 +523,8 @@ contains
       else
          call endrun("horiz_coord_create: unsupported units: '"//trim(units)//"'")
       end if
-      allocate(newcoord%values(lbound:ubound))
+      allocate(newcoord%values(lbound:ubound), stat=ierr)
+      call check_allocate(ierr, subname, 'newcoord%values', file=__FILE__, line=__LINE__-1)
       if (ubound >= lbound) then
          newcoord%values(:) = values(:)
       end if
@@ -514,7 +533,8 @@ contains
          if (ANY(map < 0)) then
             call endrun("horiz_coord_create "//trim(name)//": map vals < 0")
          end if
-         allocate(newcoord%map(ubound - lbound + 1))
+         allocate(newcoord%map(ubound - lbound + 1), stat=ierr)
+         call check_allocate(ierr, subname, 'newcoord%map', file=__FILE__, line=__LINE__-1)
          if (ubound >= lbound) then
             newcoord%map(:) = map(:)
          end if
@@ -523,7 +543,8 @@ contains
       end if
 
       if (present(bnds)) then
-         allocate(newcoord%bnds(2, lbound:ubound))
+         allocate(newcoord%bnds(2, lbound:ubound), stat=ierr)
+         call check_allocate(ierr, subname, 'newcoord%bnds', file=__FILE__, line=__LINE__-1)
          if (ubound >= lbound) then
             newcoord%bnds = bnds
          end if
@@ -542,15 +563,17 @@ contains
    !
    !------------------------------------------------------------------------
 
-   subroutine write_horiz_coord_attr(this, File, dimid_out)
+   subroutine write_horiz_coord_attr(this, File, dimid_out, file_index)
       use pio, only: file_desc_t, pio_put_att, pio_noerr, pio_double
       use pio, only: pio_bcast_error, pio_seterrorhandling, pio_inq_varid
       use cam_pio_utils, only: cam_pio_def_dim, cam_pio_def_var
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       class(horiz_coord_t), intent(inout) :: this
       type(file_desc_t),    intent(inout) :: File       ! PIO file Handle
       integer,    optional, intent(out)   :: dimid_out
+      integer,    optional, intent(in)    :: file_index
 
       ! Local variables
       type(var_desc_t)                    :: vardesc
@@ -559,9 +582,17 @@ contains
       integer                             :: bnds_dimid ! PIO dim for bounds
       integer                             :: err_handling
       integer                             :: ierr
+      integer                             :: file_index_loc
+      character(len=*), parameter         :: subname = 'write_horiz_coord_attr'
 
       ! We will handle errors for this routine
       call pio_seterrorhandling(File, PIO_BCAST_ERROR, oldmethod=err_handling)
+
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
 
       ! Make sure the dimension exists in the file
       call this%get_dim_name(dimname)
@@ -571,53 +602,61 @@ contains
       ierr = pio_inq_varid(File, trim(this%name), vardesc)
       if (ierr /= PIO_NOERR) then
          ! Variable not already defined, we need to define the variable
-         if (associated(this%vardesc)) then
+         if (associated(this%vardesc(file_index_loc)%p)) then
             ! This should not happen (i.e., internal error)
-            call endrun('write_horiz_coord_attr: vardesc already allocated for '//trim(dimname))
+            call endrun(subname//' vardesc already allocated for '//trim(dimname))
          end if
-         allocate(this%vardesc)
+         allocate(this%vardesc(file_index_loc)%p, stat=ierr)
+         call check_allocate(ierr, subname, 'this%vardesc(file_index_loc)%p', &
+            file=__FILE__, line=__LINE__-1)
          call cam_pio_def_var(File, trim(this%name), pio_double,              &
-              (/ dimid /), this%vardesc, existOK=.false.)
-         ierr= pio_put_att(File, this%vardesc, '_FillValue', grid_fill_value)
+              (/ dimid /), this%vardesc(file_index_loc)%p, existOK=.false.)
+         ierr= pio_put_att(File, this%vardesc(file_index_loc)%p,              &
+              '_FillValue', grid_fill_value)
          call cam_pio_handle_error(ierr,                                      &
-              'Error writing "_FillValue" attr in write_horiz_coord_attr')
+              'Error writing "_FillValue" attr in '//subname)
          ! long_name
-         ierr=pio_put_att(File, this%vardesc, 'long_name',                    &
+         ierr=pio_put_att(File, this%vardesc(file_index_loc)%p, 'long_name',  &
               trim(this%long_name))
          call cam_pio_handle_error(ierr,                                      &
-              'Error writing "long_name" attr in write_horiz_coord_attr')
+              'Error writing "long_name" attr in '//subname)
          ! units
-         ierr=pio_put_att(File, this%vardesc, 'units', trim(this%units))
+         ierr=pio_put_att(File, this%vardesc(file_index_loc)%p, 'units',      &
+              trim(this%units))
          call cam_pio_handle_error(ierr,                                      &
-              'Error writing "units" attr in write_horiz_coord_attr')
+              'Error writing "units" attr in '//subname)
          ! Take care of bounds if they exist
          if (associated(this%bnds)) then
-            allocate(this%bndsvdesc)
-            ierr = pio_put_att(File, this%vardesc, 'bounds',                  &
+            allocate(this%bndsvdesc(file_index_loc)%p, stat=ierr)
+            call check_allocate(ierr, subname,                                &
+               'this%bndsvdesc(file_index_loc)%p', file=__FILE__,             &
+               line=__LINE__-1)
+            ierr = pio_put_att(File, this%vardesc(file_index_loc)%p, 'bounds',&
                  trim(this%name)//'_bnds')
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing "'//trim(this%name)//'_bnds" attr in write_horiz_coord_attr')
+                 'Error writing "'//trim(this%name)//'_bnds" attr in '//subname)
             call cam_pio_def_dim(File, 'nbnd', 2, bnds_dimid, existOK=.true.)
             call cam_pio_def_var(File,                                        &
                  trim(this%name)//'_bnds', pio_double,                        &
-                 (/ bnds_dimid, dimid /), this%bndsvdesc, existOK=.false.)
+                 (/ bnds_dimid, dimid /), this%bndsvdesc(file_index_loc)%p,   &
+                 existOK=.false.)
             call cam_pio_handle_error(ierr,                                   &
-                 'Error defining "'//trim(this%name)//'bnds" in write_horiz_coord_attr')
+                 'Error defining "'//trim(this%name)//'_bnds" in '//subname)
             ! long_name
-            ierr = pio_put_att(File, this%bndsvdesc, 'long_name',             &
-                 trim(this%name)//' bounds')
+            ierr = pio_put_att(File, this%bndsvdesc(file_index_loc)%p,        &
+                 'long_name', trim(this%name)//' bounds')
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing bounds "long_name" attr in write_horiz_coord_attr')
+                 'Error writing bounds "long_name" attr in '//subname)
             ! fill value
-            ierr = pio_put_att(File, this%vardesc, '_FillValue',              &
-                 grid_fill_value)
+            ierr = pio_put_att(File, this%vardesc(file_index_loc)%p,          &
+                 '_FillValue', grid_fill_value)
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing "_FillValue" attr in write_horiz_coord_attr')
+                 'Error writing "_FillValue" attr in '//subname)
             ! units
-            ierr = pio_put_att(File, this%bndsvdesc, 'units',                 &
-                 trim(this%units))
+            ierr = pio_put_att(File, this%bndsvdesc(file_index_loc)%p,        &
+                 'units', trim(this%units))
             call cam_pio_handle_error(ierr,                                   &
-                 'Error writing bounds "units" attr in write_horiz_coord_attr')
+                 'Error writing bounds "units" attr in '//subname)
          end if ! There are bounds for this coordinate
       end if ! We define the variable
 
@@ -638,7 +677,7 @@ contains
    !
    !------------------------------------------------------------------------
 
-   subroutine write_horiz_coord_var(this, File)
+   subroutine write_horiz_coord_var(this, File, file_index)
       use cam_pio_utils, only: cam_pio_get_decomp, cam_pio_newdecomp
       use pio,           only: file_desc_t, pio_double
       use pio,           only: pio_put_var, pio_write_darray
@@ -651,18 +690,25 @@ contains
       ! Dummy arguments
       class(horiz_coord_t),    intent(inout) :: this
       type(file_desc_t),       intent(inout) :: File ! PIO file Handle
+      integer,     optional,   intent(in)    :: file_index
 
       ! Local variables
-      character(len=120)                     :: errormsg
+      character(len=shr_kind_cm)             :: errormsg
       integer                                :: ierr
       integer                                :: ldims(1)
       integer                                :: fdims(1)
       integer                                :: err_handling
-      type(io_desc_t), pointer               :: iodesc
+      type(io_desc_t)                        :: iodesc
+      integer                                :: file_index_loc
 
-      nullify(iodesc)
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
+
       ! Check to make sure we are supposed to write this var
-      if (associated(this%vardesc)) then
+      if (associated(this%vardesc(file_index_loc)%p)) then
          ! We will handle errors for this routine
          call pio_seterrorhandling(File, PIO_BCAST_ERROR,                     &
               oldmethod=err_handling)
@@ -675,21 +721,24 @@ contains
             call this%get_coord_len(fdims(1))
             allocate(iodesc)
             call cam_pio_get_decomp(iodesc, ldims, fdims, PIO_DOUBLE, this%map)
-            call pio_write_darray(File, this%vardesc, iodesc, this%values, ierr)
+            call pio_write_darray(File, this%vardesc(file_index_loc)%p,       &
+                 iodesc, this%values, ierr)
             nullify(iodesc) ! CAM PIO system takes over memory management of iodesc
 #else
             !!XXgoldyXX: HACK to get around circular dependencies. Fix this!!
             call cam_pio_newdecomp(iodesc, (/this%dimsize/), this%map, pio_double)
-            call pio_write_darray(File, this%vardesc, iodesc, this%values, ierr)
+            call pio_write_darray(File, this%vardesc(file_index_loc)%p,       &
+                 iodesc, this%values, ierr)
 
             call pio_syncfile(File)
             call pio_freedecomp(File, iodesc)
             ! Take care of bounds if they exist
-            if (associated(this%bnds) .and. associated(this%bndsvdesc)) then
+            if (associated(this%bnds) .and.                                   &
+                associated(this%bndsvdesc(file_index_loc)%p)) then
                call cam_pio_newdecomp(iodesc, (/2, this%dimsize/),            &
                     this%map, pio_double)
-               call pio_write_darray(File, this%bndsvdesc, iodesc,            &
-                    this%bnds, ierr)
+               call pio_write_darray(File, this%bndsvdesc(file_index_loc)%p,  &
+                    iodesc, this%bnds, ierr)
                call pio_syncfile(File)
                call pio_freedecomp(File, iodesc)
             end if
@@ -697,10 +746,13 @@ contains
             !!XXgoldyXX: End of this part of the hack
          else
             ! This is a local variable, pio_put_var should work fine
-            ierr = pio_put_var(File, this%vardesc, this%values)
+            ierr = pio_put_var(File, this%vardesc(file_index_loc)%p,          &
+                   this%values)
             ! Take care of bounds if they exist
-            if (associated(this%bnds) .and. associated(this%bndsvdesc)) then
-               ierr = pio_put_var(File, this%bndsvdesc, this%bnds)
+            if (associated(this%bnds) .and.                                   &
+                associated(this%bndsvdesc(file_index_loc)%p)) then
+               ierr = pio_put_var(File, this%bndsvdesc(file_index_loc)%p,     &
+                      this%bnds)
             end if
          end if
          write(errormsg, *) 'Error writing variable values for ',             &
@@ -711,12 +763,12 @@ contains
          call pio_seterrorhandling(File, err_handling)
 
          ! We are done with this variable descriptor, reset for next file
-         deallocate(this%vardesc)
-         nullify(this%vardesc)
+         deallocate(this%vardesc(file_index_loc)%p)
+         nullify(this%vardesc(file_index_loc)%p)
          ! Same with the bounds descriptor
-         if (associated(this%bndsvdesc)) then
-            deallocate(this%bndsvdesc)
-            nullify(this%bndsvdesc)
+         if (associated(this%bndsvdesc(file_index_loc)%p)) then
+            deallocate(this%bndsvdesc(file_index_loc)%p)
+            nullify(this%bndsvdesc(file_index_loc)%p)
          end if
       end if ! Do we write the variable?
 
@@ -823,6 +875,7 @@ contains
 
    subroutine cam_grid_register(name, id, lat_coord, lon_coord, map,          &
         unstruct, block_indexed, zonal_grid, src_in, dest_in)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),             intent(in) :: name
       integer,                      intent(in) :: id
@@ -837,9 +890,10 @@ contains
 
       ! Local variables
       character(len=max_hcoordname_len)       :: latdimname, londimname
-      character(len=120)                      :: errormsg
+      character(len=shr_kind_cm)              :: errormsg
       integer                                 :: i
       integer                                 :: src(2), dest(2)
+      integer                                 :: ierr
       character(len=*), parameter             :: subname = 'CAM_GRID_REGISTER'
 
       ! For a values grid, we do not allow multiple calls
@@ -912,7 +966,9 @@ contains
                dest(2) = 2
             end if
          end if
-         allocate(cam_grids(registeredhgrids)%map)
+         allocate(cam_grids(registeredhgrids)%map, stat=ierr)
+         call check_allocate(ierr, subname, 'cam_grids(registeredhgrids)%map',&
+                 file=__FILE__, line=__LINE__-1)
          call cam_grids(registeredhgrids)%map%init(map,                       &
               cam_grids(registeredhgrids)%unstructured, src, dest)
          call cam_grids(registeredhgrids)%print_cam_grid()
@@ -986,7 +1042,7 @@ contains
 
       ! Local variables
       integer                                   :: gridid
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1013,7 +1069,7 @@ contains
 
       ! Local variables
       integer                                  :: gridid
-      character(len=128)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1043,7 +1099,7 @@ contains
 
       ! Local variables
       integer                                   :: gridid
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1077,7 +1133,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1112,7 +1168,7 @@ contains
 
       ! Local variable
       integer                          :: gridid
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)       :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1147,7 +1203,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1182,7 +1238,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1217,7 +1273,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1252,7 +1308,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1287,7 +1343,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1322,7 +1378,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1335,6 +1391,41 @@ contains
       end if
 
    end subroutine cam_grid_write_dist_array_3d_int
+
+   !------------------------------------------------------------------------
+   !
+   !  cam_grid_write_dist_array_1d_double
+   !
+   !  Interface function for the grid%write_darray_1d_double method
+   !
+   !------------------------------------------------------------------------
+   subroutine cam_grid_write_dist_array_1d_double(File, id, adims, fdims,     &
+        hbuf, varid)
+      use pio, only: file_desc_t
+
+      ! Dummy arguments
+      type(file_desc_t),         intent(inout) :: File ! PIO file handle
+      integer,                   intent(in)    :: id
+      integer,                   intent(in)    :: adims(:)
+      integer,                   intent(in)    :: fdims(:)
+      real(r8),                  intent(in)    :: hbuf(:)
+      type(var_desc_t),          intent(inout) :: varid
+
+      ! Local variable
+      integer                                  :: gridid
+      character(len=shr_kind_cm)               :: errormsg
+
+      gridid = get_cam_grid_index(id)
+      if (gridid > 0) then
+         call cam_grids(gridid)%write_darray_1d_double(File, adims, fdims,    &
+              hbuf, varid)
+      else
+         write(errormsg, *)                                                   &
+              'cam_grid_write_dist_array_1d_double: Bad grid ID, ', id
+         call endrun(errormsg)
+      end if
+
+   end subroutine cam_grid_write_dist_array_1d_double
 
    !------------------------------------------------------------------------
    !
@@ -1357,7 +1448,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1392,7 +1483,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1405,6 +1496,41 @@ contains
       end if
 
    end subroutine cam_grid_write_dist_array_3d_double
+
+   !------------------------------------------------------------------------
+   !
+   !  cam_grid_write_dist_array_1d_real
+   !
+   !  Interface function for the grid%write_darray_1d_real method
+   !
+   !------------------------------------------------------------------------
+   subroutine cam_grid_write_dist_array_1d_real(File, id, adims, fdims,       &
+        hbuf, varid)
+      use pio, only: file_desc_t
+
+      ! Dummy arguments
+      type(file_desc_t),         intent(inout) :: File ! PIO file handle
+      integer,                   intent(in)    :: id
+      integer,                   intent(in)    :: adims(:)
+      integer,                   intent(in)    :: fdims(:)
+      real(r4),                  intent(in)    :: hbuf(:)
+      type(var_desc_t),          intent(inout) :: varid
+
+      ! Local variable
+      integer                                  :: gridid
+      character(len=shr_kind_cm)               :: errormsg
+
+      gridid = get_cam_grid_index(id)
+      if (gridid > 0) then
+         call cam_grids(gridid)%write_darray_1d_real(File, adims, fdims,      &
+              hbuf, varid)
+      else
+         write(errormsg, *)                                                   &
+              'cam_grid_write_dist_array_1d_real: Bad grid ID, ', id
+         call endrun(errormsg)
+      end if
+
+   end subroutine cam_grid_write_dist_array_1d_real
 
    !------------------------------------------------------------------------
    !
@@ -1427,7 +1553,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1462,7 +1588,7 @@ contains
 
       ! Local variable
       integer                                  :: gridid
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
 
       gridid = get_cam_grid_index(id)
       if (gridid > 0) then
@@ -1593,7 +1719,7 @@ contains
 
       ! Local variables
       integer                               :: gridind
-      character(len=120)                    :: errormsg
+      character(len=shr_kind_cm)            :: errormsg
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind < 0) then
@@ -1858,6 +1984,7 @@ contains
 
    subroutine cam_grid_attr_init_1d_int(this, name, long_name, dimname,       &
         dimsize, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_attribute_1d_int_t)                  :: this
       character(len=*),                    intent(in)     :: name
@@ -1866,6 +1993,9 @@ contains
       integer,                             intent(in)     :: dimsize
       integer,                     target, intent(in)     :: values(:)
       integer(iMap),     optional, target, intent(in)     :: map(:)
+      ! Local variables
+      integer                      :: ierr
+      character(len=*), parameter  :: subname = 'cam_grid_attr_init_1d_int'
 
       !    call this%cam_grid_attr_init(trim(name), trim(long_name))
       if (len_trim(name) > max_hcoordname_len) then
@@ -1885,7 +2015,8 @@ contains
       this%values  => values
       ! Fill in the optional map
       if (present(map)) then
-         allocate(this%map(size(map)))
+         allocate(this%map(size(map)), stat=ierr)
+         call check_allocate(ierr, subname, 'this%map', file=__FILE__, line=__LINE__-1)
          this%map(:) = map(:)
       else
          nullify(this%map)
@@ -1894,6 +2025,7 @@ contains
 
    subroutine cam_grid_attr_init_1d_r8(this, name, long_name, dimname,        &
         dimsize, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_attribute_1d_r8_t)                   :: this
       character(len=*),                    intent(in)     :: name
@@ -1902,6 +2034,9 @@ contains
       integer,                             intent(in)     :: dimsize
       real(r8),                    target, intent(in)     :: values(:)
       integer(iMap),     optional, target, intent(in)     :: map(:)
+      ! Local variables
+      integer                     :: ierr
+      character(len=*), parameter :: subname = 'cam_grid_attr_init_1d_r8'
 
       !    call this%cam_grid_attr_init(trim(name), trim(long_name), next)
       this%name      = trim(name)
@@ -1912,7 +2047,8 @@ contains
       this%values  => values
       ! Fill in the optional map
       if (present(map)) then
-         allocate(this%map(size(map)))
+         allocate(this%map(size(map)), stat=ierr)
+         call check_allocate(ierr, subname, 'this%map', file=__FILE__, line=__LINE__-1)
          this%map(:) = map(:)
       else
          nullify(this%map)
@@ -1938,13 +2074,17 @@ contains
    end subroutine print_attr_1d_r8
 
    subroutine insert_grid_attribute(gridind, attr)
+      use cam_abortutils, only: check_allocate
       integer,                              intent(in) :: gridind
       class(cam_grid_attribute_t), pointer             :: attr
 
       ! Push a new attribute onto the grid
       type(cam_grid_attr_ptr_t),  pointer              :: attrPtr
+      integer                                          :: ierr
+      character(len=*), parameter                      :: subname = 'insert_grid_attribute'
 
-      allocate(attrPtr)
+      allocate(attrPtr, stat=ierr)
+      call check_allocate(ierr, subname, 'attrPtr', file=__FILE__, line=__LINE__-1)
       call attrPtr%initialize(attr)
       call attrPtr%setNext(cam_grids(gridind)%attributes)
       cam_grids(gridind)%attributes => attrPtr
@@ -1952,6 +2092,7 @@ contains
    end subroutine insert_grid_attribute
 
    subroutine add_cam_grid_attribute_0d_int(gridname, name, long_name, val)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),      intent(in)                   :: gridname
       character(len=*),      intent(in)                   :: name
@@ -1961,8 +2102,10 @@ contains
       ! Local variables
       type(cam_grid_attribute_0d_int_t), pointer          :: attr
       class(cam_grid_attribute_t),       pointer          :: attptr
-      character(len=120)                                  :: errormsg
+      character(len=shr_kind_cm)                          :: errormsg
       integer                                             :: gridind
+      integer                                             :: ierr
+      character(len=*), parameter                         :: subname = 'add_cam_grid_attribute_0d_int'
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind > 0) then
@@ -1975,7 +2118,9 @@ contains
             call endrun(errormsg)
          else
             ! Need a new attribute.
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_0d_int(trim(name),                   &
                  trim(long_name), val)
             attptr => attr
@@ -1990,6 +2135,7 @@ contains
    end subroutine add_cam_grid_attribute_0d_int
 
    subroutine add_cam_grid_attribute_0d_char(gridname, name, val)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),      intent(in)                   :: gridname
       character(len=*),      intent(in)                   :: name
@@ -1998,8 +2144,10 @@ contains
       ! Local variables
       type(cam_grid_attribute_0d_char_t), pointer         :: attr
       class(cam_grid_attribute_t),        pointer         :: attptr
-      character(len=120)                                  :: errormsg
+      character(len=shr_kind_cm)                          :: errormsg
       integer                                             :: gridind
+      integer                                             :: ierr
+      character(len=*), parameter                         :: subname = 'add_cam_grid_attribute_0d_char'
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind > 0) then
@@ -2012,7 +2160,9 @@ contains
             call endrun(errormsg)
          else
             ! Need a new attribute.
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_0d_char(trim(name), '', val)
             attptr => attr
             call insert_grid_attribute(gridind, attptr)
@@ -2027,6 +2177,7 @@ contains
 
    subroutine add_cam_grid_attribute_1d_int(gridname, name, long_name,        &
         dimname, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*), intent(in)                   :: gridname
       character(len=*), intent(in)                   :: name
@@ -2038,9 +2189,11 @@ contains
       ! Local variables
       type(cam_grid_attribute_1d_int_t), pointer     :: attr
       class(cam_grid_attribute_t),       pointer     :: attptr
-      character(len=120)                             :: errormsg
+      character(len=shr_kind_cm)                     :: errormsg
       integer                                        :: gridind
       integer                                        :: dimsize
+      integer                                        :: ierr
+      character(len=*), parameter                    :: subname = 'add_cam_grid_attribute_1d_int'
 
       nullify(attr)
       nullify(attptr)
@@ -2066,7 +2219,9 @@ contains
                     ', not found'
                call endrun(errormsg)
             end if
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_1d_int(trim(name),                   &
                  trim(long_name), trim(dimname), dimsize, values, map)
             attptr => attr
@@ -2082,6 +2237,7 @@ contains
 
    subroutine add_cam_grid_attribute_1d_r8(gridname, name, long_name,         &
         dimname, values, map)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       character(len=*),      intent(in)                   :: gridname
       character(len=*),      intent(in)                   :: name
@@ -2093,9 +2249,11 @@ contains
       ! Local variables
       type(cam_grid_attribute_1d_r8_t),  pointer          :: attr
       class(cam_grid_attribute_t),       pointer          :: attptr
-      character(len=120)                                  :: errormsg
+      character(len=shr_kind_cm)                          :: errormsg
       integer                                             :: gridind
       integer                                             :: dimsize
+      integer                                             :: ierr
+      character(len=*), parameter                         :: subname = 'add_cam_grid_attribute_1d_r8'
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind > 0) then
@@ -2119,7 +2277,9 @@ contains
                     ', not found'
                call endrun(errormsg)
             end if
-            allocate(attr)
+            allocate(attr, stat=ierr)
+            call check_allocate(ierr, subname, 'attr', file=__FILE__,         &
+                    line=__LINE__-1)
             call attr%cam_grid_attr_init_1d_r8(trim(name),                    &
                  trim(long_name), trim(dimname), dimsize, values, map)
             attptr => attr
@@ -2190,37 +2350,48 @@ contains
    !
    !------------------------------------------------------------------------
 
-   subroutine write_cam_grid_attr_0d_int(attr, File)
+   subroutine write_cam_grid_attr_0d_int(attr, File, file_index)
       use pio,           only: file_desc_t, pio_put_att, pio_noerr, pio_int,  &
            pio_inq_att, PIO_GLOBAL
       use cam_pio_utils, only: cam_pio_def_var
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_attribute_0d_int_t), intent(inout) :: attr
       type(file_desc_t),                  intent(inout) :: File ! PIO file
+      integer,           optional,        intent(in)    :: file_index
 
       ! Local variables
       integer                     :: attrtype
       integer(imap)               :: attrlen
       integer                     :: ierr
+      integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_attr_0d_int'
+
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
 
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is associated, that grid defined the attribute
-      if (.not. associated(attr%vardesc)) then
+      if (.not. associated(attr%vardesc(file_index_loc)%p)) then
          if (len_trim(attr%long_name) > 0) then
             ! This 0d attribute is a scalar variable with a
             !    long_name attribute
             ! First, define the variable
-            allocate(attr%vardesc)
+            allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
+            call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
+                    file=__FILE__, line=__LINE__-1)
             call cam_pio_def_var(File, trim(attr%name), pio_int,              &
-                 attr%vardesc, existOK=.false.)
-            ierr= pio_put_att(File, attr%vardesc, '_FillValue',               &
-                 int(grid_fill_value))
+                 attr%vardesc(file_index_loc)%p, existOK=.false.)
+            ierr= pio_put_att(File, attr%vardesc(file_index_loc)%p,           &
+                 '_FillValue', int(grid_fill_value))
             call cam_pio_handle_error(ierr,                                   &
                  'Error writing "_FillValue" attr in '//subname)
-            ierr=pio_put_att(File, attr%vardesc, 'long_name',                 &
-                 trim(attr%long_name))
+            ierr=pio_put_att(File, attr%vardesc(file_index_loc)%p,            &
+                 'long_name', trim(attr%long_name))
             call cam_pio_handle_error(ierr,                                   &
                  'Error writing "long_name" attr in '//subname)
          else
@@ -2248,23 +2419,31 @@ contains
    !
    !------------------------------------------------------------------------
 
-   subroutine write_cam_grid_attr_0d_char(attr, File)
+   subroutine write_cam_grid_attr_0d_char(attr, File, file_index)
       use pio, only: file_desc_t, pio_put_att, pio_noerr,                     &
            pio_inq_att, PIO_GLOBAL
 
       ! Dummy arguments
       class(cam_grid_attribute_0d_char_t), intent(inout) :: attr
-      type(file_desc_t),                   intent(inout) :: File ! PIO file
+      type(file_desc_t),                   intent(inout) :: File ! PIO file Handle
+      integer,             optional,       intent(in)    :: file_index
 
       ! Local variables
       integer                             :: attrtype
       integer(imap)                       :: attrlen
       integer                             :: ierr
+      integer                             :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_attr_0d_char'
+
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
 
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is associated, that grid defined the attribute
-      if (.not. associated(attr%vardesc)) then
+      if (.not. associated(attr%vardesc(file_index_loc)%p)) then
          ! The 0d char attributes are global attribues
          ! Check to see if the attribute already exists in the file
          ierr = pio_inq_att(File, PIO_GLOBAL, attr%name, attrtype, attrlen)
@@ -2286,24 +2465,33 @@ contains
    !
    !------------------------------------------------------------------------
 
-   subroutine write_cam_grid_attr_1d_int(attr, File)
+   subroutine write_cam_grid_attr_1d_int(attr, File, file_index)
       use pio,           only: file_desc_t, pio_put_att, pio_noerr
       use pio,           only: pio_inq_dimid, pio_int
       use cam_pio_utils, only: cam_pio_def_var
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_attribute_1d_int_t), intent(inout) :: attr
       type(file_desc_t),                  intent(inout) :: File ! PIO file
+      integer,             optional,      intent(in)    :: file_index
 
       ! Local variables
       integer                     :: dimid ! PIO dimension ID
-      character(len=120)          :: errormsg
+      character(len=shr_kind_cm)  :: errormsg
       integer                     :: ierr
+      integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_attr_1d_int'
+
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
 
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is associated, that grid defined the attribute
-      if (.not. associated(attr%vardesc)) then
+      if (.not. associated(attr%vardesc(file_index_loc)%p)) then
          ! Check to see if the dimension already exists in the file
          ierr = pio_inq_dimid(File, trim(attr%dimname), dimid)
          if (ierr /= PIO_NOERR) then
@@ -2314,15 +2502,17 @@ contains
             call endrun(errormsg)
          end if
          ! Time to define the variable
-         allocate(attr%vardesc)
+         allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
+         call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
+                 file=__FILE__, line=__LINE__-1)
          call cam_pio_def_var(File, trim(attr%name), pio_int, (/dimid/),      &
-              attr%vardesc, existOK=.false.)
-         ierr = pio_put_att(File, attr%vardesc, '_FillValue',                 &
-              int(grid_fill_value))
+              attr%vardesc(file_index_loc)%p, existOK=.false.)
+         ierr = pio_put_att(File, attr%vardesc(file_index_loc)%p,             &
+              '_FillValue', int(grid_fill_value))
          call cam_pio_handle_error(ierr,                                      &
               'Error writing "_FillValue" attr in '//subname)
-         ierr = pio_put_att(File, attr%vardesc, 'long_name',                  &
-              trim(attr%long_name))
+         ierr = pio_put_att(File, attr%vardesc(file_index_loc)%p,             &
+              'long_name', trim(attr%long_name))
          call cam_pio_handle_error(ierr,                                      &
               'Error writing "long_name" attr in '//subname)
       end if
@@ -2337,24 +2527,33 @@ contains
    !
    !------------------------------------------------------------------------
 
-   subroutine write_cam_grid_attr_1d_r8(attr, File)
+   subroutine write_cam_grid_attr_1d_r8(attr, File, file_index)
       use pio,           only: file_desc_t, pio_put_att, pio_noerr
-      use pio,           only: pio_double, pio_inq_dimid
+       use pio,           only: pio_double, pio_inq_dimid
       use cam_pio_utils, only: cam_pio_def_var
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_attribute_1d_r8_t), intent(inout) :: attr
       type(file_desc_t),                 intent(inout) :: File ! PIO file
+      integer,            optional,      intent(in)    :: file_index
 
       ! Local variables
       integer                     :: dimid ! PIO dimension ID
-      character(len=120)          :: errormsg
+      character(len=shr_kind_cm)  :: errormsg
       integer                     :: ierr
+      integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_attr_1d_r8'
+
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
 
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is associated, that grid defined the attribute
-      if (.not. associated(attr%vardesc)) then
+      if (.not. associated(attr%vardesc(file_index_loc)%p)) then
          ! Check to see if the dimension already exists in the file
          ierr = pio_inq_dimid(File, trim(attr%dimname), dimid)
          if (ierr /= PIO_NOERR) then
@@ -2365,17 +2564,19 @@ contains
             call endrun(errormsg)
          end if
          ! Time to define the variable
-         allocate(attr%vardesc)
+         allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
+         call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
+                 file=__FILE__, line=__LINE__-1)
          call cam_pio_def_var(File, trim(attr%name), pio_double,              &
-              (/dimid/), attr%vardesc, existOK=.false.)
+              (/dimid/), attr%vardesc(file_index_loc)%p, existOK=.false.)
          ! fill value
-         ierr =  pio_put_att(File, attr%vardesc, '_FillValue',                &
-              grid_fill_value)
+         ierr =  pio_put_att(File, attr%vardesc(file_index_loc)%p,            &
+              '_FillValue', grid_fill_value)
          call cam_pio_handle_error(ierr,                                      &
               'Error writing "_FillValue" attr in '//subname)
          ! long_name
-         ierr = pio_put_att(File, attr%vardesc, 'long_name',                  &
-              trim(attr%long_name))
+         ierr = pio_put_att(File, attr%vardesc(file_index_loc)%p,             &
+              'long_name', trim(attr%long_name))
          call cam_pio_handle_error(ierr,                                      &
               'Error writing "long_name" attr in '//subname)
       end if
@@ -2396,7 +2597,7 @@ contains
       character(len=*),         intent(in) :: attribute_name
 
       ! Local variables
-      character(len=120)                   :: errormsg
+      character(len=shr_kind_cm)           :: errormsg
       integer                              :: src_ind, dest_ind
       class(cam_grid_attribute_t), pointer :: attr
 
@@ -2433,14 +2634,16 @@ contains
    !  history coordinates.
    !
    !------------------------------------------------------------------------
-   subroutine cam_grid_write_attr(File, grid_id, header_info)
+   subroutine cam_grid_write_attr(File, grid_id, header_info, file_index)
       use pio, only: file_desc_t, PIO_BCAST_ERROR, pio_seterrorhandling
       use pio, only: pio_inq_dimid
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
-      type(file_desc_t),            intent(inout) :: File ! PIO file Handle
+      type(file_desc_t),            intent(inout) :: File       ! PIO file Handle
       integer,                      intent(in)    :: grid_id
       type(cam_grid_header_info_t), intent(inout) :: header_info
+      integer,         optional,    intent(in)    :: file_index
 
       ! Local variables
       integer                                     :: gridind
@@ -2448,13 +2651,21 @@ contains
       type(cam_grid_attr_ptr_t),   pointer        :: attrPtr
       integer                                     :: dimids(2)
       integer                                     :: err_handling
+      integer                                     :: file_index_loc
+      integer                                     :: ierr
+      character(len=*), parameter                 :: subname = 'cam_grid_write_attr'
+
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
 
       gridind = get_cam_grid_index(grid_id)
       !! Fill this in to make sure history finds grid
       header_info%grid_id = grid_id
 
       if (allocated(header_info%hdims)) then
-         ! This shouldn't happen but, no harm, no foul
          deallocate(header_info%hdims)
       end if
 
@@ -2468,26 +2679,36 @@ contains
       end if
 
       ! Only write this grid if not already defined
-      if (cam_grids(gridind)%attrs_defined) then
+      if (cam_grids(gridind)%attrs_defined(file_index_loc)) then
          ! We need to fill out the hdims info for this grid
          call cam_grids(gridind)%find_dimids(File, dimids)
          if (dimids(2) < 0) then
-            allocate(header_info%hdims(1))
+            allocate(header_info%hdims(1), stat=ierr)
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
             header_info%hdims(1) = dimids(1)
          else
-            allocate(header_info%hdims(2))
+            allocate(header_info%hdims(2), stat=ierr)
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
             header_info%hdims(1:2) = dimids(1:2)
          end if
       else
          ! Write the horizontal coord attributes first so that we have
          !   the dims
-         call cam_grids(gridind)%lat_coord%write_attr(File, dimids(2))
-         call cam_grids(gridind)%lon_coord%write_attr(File, dimids(1))
+         call cam_grids(gridind)%lat_coord%write_attr(File, dimids(2),        &
+             file_index=file_index_loc)
+         call cam_grids(gridind)%lon_coord%write_attr(File, dimids(1),        &
+             file_index=file_index_loc)
 
          if (dimids(2) == dimids(1)) then
-            allocate(header_info%hdims(1))
+            allocate(header_info%hdims(1), stat=ierr)
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
          else
             allocate(header_info%hdims(2))
+            call check_allocate(ierr, subname, 'header_info%hdims',           &
+                 file=__FILE__, line=__LINE__-1)
             header_info%hdims(2) = dimids(2)
          end if
          header_info%hdims(1) = dimids(1)
@@ -2501,7 +2722,7 @@ contains
             !!XXgoldyXX: Is this not working in PGI?
             !      attr => attrPtr%getAttr()
             attr => attrPtr%attr
-            call attr%write_attr(File)
+            call attr%write_attr(File, file_index=file_index_loc)
             !!XXgoldyXX: Is this not working in PGI?
             !      attrPtr => attrPtr%getNext()
             attrPtr => attrPtr%next
@@ -2509,46 +2730,54 @@ contains
 
          ! Back to previous I/O error handling
          call pio_seterrorhandling(File, err_handling)
-
-         cam_grids(gridind)%attrs_defined = .true.
+         cam_grids(gridind)%attrs_defined(file_index_loc) = .true.
       end if
 
    end subroutine cam_grid_write_attr
 
-   subroutine write_cam_grid_val_0d_int(attr, File)
+   subroutine write_cam_grid_val_0d_int(attr, File, file_index)
       use pio, only: file_desc_t, pio_inq_varid, pio_put_var
 
       ! Dummy arguments
       class(cam_grid_attribute_0d_int_t), intent(inout) :: attr
       type(file_desc_t),                  intent(inout) :: File
+      integer,          optional,         intent(in)    :: file_index
 
       ! Local variables
       integer                     :: ierr
+      integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_val_0d_int'
 
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
+
       ! We only write this var if it is a variable
-      if (associated(attr%vardesc)) then
-         ierr = pio_put_var(File, attr%vardesc, attr%ival)
+      if (associated(attr%vardesc(file_index_loc)%p)) then
+         ierr = pio_put_var(File, attr%vardesc(file_index_loc)%p, attr%ival)
          call cam_pio_handle_error(ierr, 'Error writing value in '//subname)
-         deallocate(attr%vardesc)
-         nullify(attr%vardesc)
+         deallocate(attr%vardesc(file_index_loc)%p)
+         nullify(attr%vardesc(file_index_loc)%p)
       end if
 
    end subroutine write_cam_grid_val_0d_int
 
-   subroutine write_cam_grid_val_0d_char(attr, File)
+   subroutine write_cam_grid_val_0d_char(attr, File, file_index)
       use pio, only: file_desc_t
 
       ! Dummy arguments
       class(cam_grid_attribute_0d_char_t), intent(inout) :: attr
       type(file_desc_t),                   intent(inout) :: File
+      integer,            optional,        intent(in)    :: file_index
 
       ! This subroutine is a stub because global attributes are written
       ! in define mode
       return
    end subroutine write_cam_grid_val_0d_char
 
-   subroutine write_cam_grid_val_1d_int(attr, File)
+   subroutine write_cam_grid_val_1d_int(attr, File, file_index)
       use pio,           only: file_desc_t, pio_put_var, pio_int, io_desc_t
       use pio,           only: pio_inq_varid, pio_write_darray
       use pio,           only: pio_freedecomp
@@ -2557,40 +2786,45 @@ contains
       ! Dummy arguments
       class(cam_grid_attribute_1d_int_t), intent(inout) :: attr
       type(file_desc_t),                  intent(inout) :: File
+      integer,            optional,       intent(in)    :: file_index
 
       ! Local variables
       integer                     :: ierr
-      type(io_desc_t),  pointer   :: iodesc
+      type(io_desc_t)             :: iodesc
+      integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_val_1d_int'
 
-      nullify(iodesc)
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
+
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is not associated, another grid write the values
-      if (associated(attr%vardesc)) then
+      if (associated(attr%vardesc(file_index_loc)%p)) then
          ! Write out the values for this dimension variable
          if (associated(attr%map)) then
             ! This is a distributed variable, use pio_write_darray
-            allocate(iodesc)
             call cam_pio_newdecomp(iodesc, (/attr%dimsize/), attr%map,        &
                  pio_int)
-            call pio_write_darray(File, attr%vardesc, iodesc, attr%values,    &
-                 ierr)
+            call pio_write_darray(File, attr%vardesc(file_index_loc)%p,       &
+                 iodesc, attr%values, ierr)
             call pio_freedecomp(File, iodesc)
-            deallocate(iodesc)
-            nullify(iodesc)
          else
             ! This is a local variable, pio_put_var should work fine
-            ierr = pio_put_var(File, attr%vardesc, attr%values)
+            ierr = pio_put_var(File, attr%vardesc(file_index_loc)%p,          &
+                 attr%values)
          end if
          call cam_pio_handle_error(ierr,                                      &
               'Error writing variable values in '//subname)
-         deallocate(attr%vardesc)
-         nullify(attr%vardesc)
+         deallocate(attr%vardesc(file_index_loc)%p)
+         nullify(attr%vardesc(file_index_loc)%p)
       end if
 
    end subroutine write_cam_grid_val_1d_int
 
-   subroutine write_cam_grid_val_1d_r8(attr, File)
+   subroutine write_cam_grid_val_1d_r8(attr, File, file_index)
       use pio,           only: file_desc_t, pio_put_var, pio_double
       use pio,           only: pio_inq_varid, pio_write_darray
       use pio,           only: io_desc_t, pio_freedecomp
@@ -2599,58 +2833,70 @@ contains
       ! Dummy arguments
       class(cam_grid_attribute_1d_r8_t), intent(inout) :: attr
       type(file_desc_t),                 intent(inout) :: File
+      integer,            optional,      intent(in)    :: file_index
 
       ! Local variables
-      integer                          :: ierr
-      type(io_desc_t), pointer         :: iodesc
+      integer                     :: ierr
+      type(io_desc_t)             :: iodesc
+      integer                     :: file_index_loc
       character(len=*), parameter :: subname = 'write_cam_grid_val_1d_int'
 
-      nullify(iodesc)
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
+
       ! Since more than one grid can share an attribute, assume that if the
       ! vardesc is not associated, another grid write the values
-      if (associated(attr%vardesc)) then
+      if (associated(attr%vardesc(file_index_loc)%p)) then
          ! Write out the values for this dimension variable
          if (associated(attr%map)) then
             ! This is a distributed variable, use pio_write_darray
-            allocate(iodesc)
             call cam_pio_newdecomp(iodesc, (/attr%dimsize/), attr%map,        &
                  pio_double)
-            call pio_write_darray(File, attr%vardesc, iodesc, attr%values,    &
-                 ierr)
+            call pio_write_darray(File, attr%vardesc(file_index_loc)%p,       &
+                 iodesc, attr%values, ierr)
             call pio_freedecomp(File, iodesc)
-            deallocate(iodesc)
-            nullify(iodesc)
          else
             ! This is a local variable, pio_put_var should work fine
-            ierr = pio_put_var(File, attr%vardesc, attr%values)
+            ierr = pio_put_var(File, attr%vardesc(file_index_loc)%p,          &
+                 attr%values)
          end if
          call cam_pio_handle_error(ierr,                                      &
               'Error writing variable values in '//subname)
-         deallocate(attr%vardesc)
-         nullify(attr%vardesc)
+         deallocate(attr%vardesc(file_index_loc)%p)
+         nullify(attr%vardesc(file_index_loc)%p)
       end if
 
    end subroutine write_cam_grid_val_1d_r8
 
-   subroutine cam_grid_write_var(File, grid_id)
+   subroutine cam_grid_write_var(File, grid_id, file_index)
       use pio, only: file_desc_t, pio_bcast_error, pio_seterrorhandling
 
       ! Dummy arguments
       type(file_desc_t), intent(inout)     :: File        ! PIO file Handle
       integer,           intent(in)        :: grid_id
+      integer, optional, intent(in)        :: file_index
 
       ! Local variables
       integer                              :: gridind
       integer                              :: err_handling
       class(cam_grid_attribute_t), pointer :: attr
       type(cam_grid_attr_ptr_t),   pointer :: attrPtr
+      integer                              :: file_index_loc
 
+      if (present(file_index)) then
+         file_index_loc = file_index
+      else
+         file_index_loc = 1
+      end if
       gridind = get_cam_grid_index(grid_id)
       ! Only write if not already done
-      if (cam_grids(gridind)%attrs_defined) then
+      if (cam_grids(gridind)%attrs_defined(file_index_loc)) then
          ! Write the horizontal coorinate values
-         call cam_grids(gridind)%lon_coord%write_var(File)
-         call cam_grids(gridind)%lat_coord%write_var(File)
+         call cam_grids(gridind)%lon_coord%write_var(File, file_index_loc)
+         call cam_grids(gridind)%lat_coord%write_var(File, file_index_loc)
 
          ! We will handle errors for this routine
          call pio_seterrorhandling(File, PIO_BCAST_ERROR,                     &
@@ -2662,7 +2908,7 @@ contains
             !!XXgoldyXX: Is this not working in PGI?
             !      attr => attrPtr%getAttr()
             attr => attrPtr%attr
-            call attr%write_val(File)
+            call attr%write_val(File, file_index=file_index_loc)
             !!XXgoldyXX: Is this not working in PGI?
             !      attrPtr => attrPtr%getNext()
             attrPtr => attrPtr%next
@@ -2671,7 +2917,7 @@ contains
          ! Back to previous I/O error handling
          call pio_seterrorhandling(File, err_handling)
 
-         cam_grids(gridind)%attrs_defined = .false.
+         cam_grids(gridind)%attrs_defined(file_index_loc) = .false.
       end if
 
    end subroutine cam_grid_write_var
@@ -2766,7 +3012,7 @@ contains
       ! Local variables
       integer                           :: index
       character(len=max_hcoordname_len) :: dname1, dname2
-      character(len=120)                :: errormsg
+      character(len=shr_kind_cm)        :: errormsg
 
       index = get_cam_grid_index(gridid)
       if (index < 0) then
@@ -2802,7 +3048,7 @@ contains
       ! Local variables
       integer                           :: gridind
       character(len=max_hcoordname_len) :: dname1, dname2
-      character(len=120)                :: errormsg
+      character(len=shr_kind_cm)        :: errormsg
 
       gridind = get_cam_grid_index(trim(gridname))
       if (gridind < 0) then
@@ -2831,6 +3077,7 @@ contains
    subroutine cam_grid_set_map(this, map, src, dest)
       use spmd_utils,      only: mpicom
       use mpi,             only: mpi_sum, mpi_integer
+      use cam_abortutils,  only: check_allocate
       ! Dummy arguments
       class(cam_grid_t)                      :: this
       integer(iMap),     pointer             :: map(:,:)
@@ -2841,6 +3088,7 @@ contains
       integer                                :: dims(2)
       integer                                :: dstrt, dend
       integer                                :: gridlen, gridloc, ierr
+      character(len=*), parameter            :: subname = 'cam_grid_set_map'
 
       ! Check to make sure the map meets our needs
       call this%coord_lengths(dims)
@@ -2868,7 +3116,9 @@ contains
          call endrun('cam_grid_set_map: Bad map size for '//trim(this%name))
       else
          if (.not. associated(this%map)) then
-            allocate(this%map)
+            allocate(this%map, stat=ierr)
+            call check_allocate(ierr, subname, 'this%map',                    &
+                 file=__FILE__, line=__LINE__-1)
          end if
          call this%map%init(map, this%unstructured, src, dest)
       end if
@@ -2885,7 +3135,7 @@ contains
       class(cam_grid_t)                         :: this
 
       ! Local variable
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
 
       if (.not. associated(this%map)) then
          write(errormsg, *) 'Grid, '//trim(this%name)//', has no map'
@@ -2946,6 +3196,7 @@ contains
    !
    !------------------------------------------------------------------------
    subroutine cam_grid_find_src_dims(this, field_dnames, src_out)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_t)                         :: this
       character(len=*),           intent(in)    :: field_dnames(:)
@@ -2955,6 +3206,8 @@ contains
       integer                                   :: i, j
       integer                                   :: num_coords
       character(len=max_hcoordname_len)         :: coord_dimnames(2)
+      integer                                   :: ierr
+      character(len=*), parameter               :: subname = 'cam_grid_find_src_dims'
 
       call this%dim_names(coord_dimnames(1), coord_dimnames(2))
       if (associated(src_out)) then
@@ -2966,7 +3219,9 @@ contains
       else
          num_coords = 2
       end if
-      allocate(src_out(2)) ! Currently, all cases have two source dims
+      allocate(src_out(2), stat=ierr) ! Currently, all cases have two source dims
+      call check_allocate(ierr, subname, 'src_out', file=__FILE__, line=__LINE__-1)
+
       do i = 1, num_coords
          do j = 1, size(field_dnames)
             if (trim(field_dnames(j)) == trim(coord_dimnames(i))) then
@@ -2986,6 +3241,7 @@ contains
    !
    !------------------------------------------------------------------------
    subroutine cam_grid_find_dest_dims(this, file_dnames, dest_out)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_t)                         :: this
       character(len=*),           intent(in)    :: file_dnames(:)
@@ -2995,6 +3251,8 @@ contains
       integer                                   :: i, j
       integer                                   :: num_coords
       character(len=max_hcoordname_len)         :: coord_dimnames(2)
+      integer                                   :: ierr
+      character(len=*), parameter               :: subname = 'cam_grid_find_dest_dims'
 
       call this%dim_names(coord_dimnames(1), coord_dimnames(2))
       if (associated(dest_out)) then
@@ -3006,7 +3264,8 @@ contains
       else
          num_coords = 2
       end if
-      allocate(dest_out(num_coords))
+      allocate(dest_out(num_coords), stat=ierr)
+      call check_allocate(ierr, subname, 'dest_out', file=__FILE__, line=__LINE__-1)
       dest_out = 0
       do i = 1, num_coords
          do j = 1, size(file_dnames)
@@ -3027,6 +3286,7 @@ contains
         iodesc, field_dnames, file_dnames)
       use pio,           only: io_desc_t
       use cam_pio_utils, only: cam_pio_get_decomp, calc_permutation
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_t)                         :: this
@@ -3042,7 +3302,9 @@ contains
       integer,              pointer             :: dest_in(:)
       integer, allocatable                      :: permutation(:)
       logical                                   :: is_perm
-      character(len=128)                        :: errormsg
+      character(len=shr_kind_cm)                :: errormsg
+      integer                                   :: ierr
+      character(len=*), parameter               :: subname = 'cam_grid_get_pio_decomp'
 
       nullify(src_in)
       nullify(dest_in)
@@ -3061,6 +3323,8 @@ contains
             ! This only works if the arrays are the same size
             if (size(file_dnames) == size(field_dnames)) then
                allocate(permutation(size(file_dnames)))
+               call check_allocate(ierr, subname, 'permutation',              &
+                      file=__FILE__, line=__LINE__-1)
                call calc_permutation(file_dnames, field_dnames,               &
                     permutation, is_perm)
             end if
@@ -3244,7 +3508,7 @@ contains
    !
    !------------------------------------------------------------------------
    subroutine cam_grid_read_darray_3d_double(this, File, adims, fdims,        &
-        hbuf, varid)
+       hbuf, varid)
       use pio,           only: file_desc_t, io_desc_t, pio_read_darray
       use pio,           only: PIO_DOUBLE
       use cam_pio_utils, only: cam_pio_get_decomp
@@ -3386,10 +3650,10 @@ contains
 
    !------------------------------------------------------------------------
    !
-   !  cam_grid_write_darray_2d_double: Write a variable defined on this grid
+   !  cam_grid_write_darray_1d_double: Write a variable defined on this grid
    !
    !------------------------------------------------------------------------
-   subroutine cam_grid_write_darray_2d_double(this, File, adims, fdims,       &
+   subroutine cam_grid_write_darray_1d_double(this, File, adims, fdims,       &
         hbuf, varid)
       use pio,           only: file_desc_t, io_desc_t
       use pio,           only: pio_write_darray, PIO_DOUBLE
@@ -3398,6 +3662,34 @@ contains
       ! Dummy arguments
       class(cam_grid_t)                        :: this
       type(file_desc_t),         intent(inout) :: File  ! PIO file handle
+      integer,                   intent(in)    :: adims(:)
+      integer,                   intent(in)    :: fdims(:)
+      real(r8),                  intent(in)    :: hbuf(:)
+      type(var_desc_t),          intent(inout) :: varid
+
+      ! Local variables
+      type(io_desc_t),  pointer   :: iodesc
+      integer                     :: ierr
+      character(len=*), parameter :: subname = 'cam_grid_write_darray_1d_double'
+
+      call cam_pio_get_decomp(iodesc, adims, fdims, PIO_DOUBLE, this%map)
+      call pio_write_darray(File, varid, iodesc, hbuf, ierr)
+      call cam_pio_handle_error(ierr, subname//': Error writing variable')
+   end subroutine cam_grid_write_darray_1d_double
+
+   !------------------------------------------------------------------------
+   !
+   !  cam_grid_write_darray_2d_double: Write a variable defined on this grid
+   !
+   !------------------------------------------------------------------------
+   subroutine cam_grid_write_darray_2d_double(this, File, adims, fdims, hbuf, varid)
+      use pio,           only: file_desc_t, io_desc_t
+      use pio,           only: pio_write_darray, PIO_DOUBLE
+      use cam_pio_utils, only: cam_pio_get_decomp
+
+      ! Dummy arguments
+      class(cam_grid_t)                        :: this
+      type(file_desc_t),         intent(inout) :: File       ! PIO file handle
       integer,                   intent(in)    :: adims(:)
       integer,                   intent(in)    :: fdims(:)
       real(r8),                  intent(in)    :: hbuf(:,:)
@@ -3412,10 +3704,8 @@ contains
       call pio_write_darray(File, varid, iodesc, hbuf, ierr)
       call cam_pio_handle_error(ierr, subname//': Error writing variable')
    end subroutine cam_grid_write_darray_2d_double
-
-   !------------------------------------------------------------------------
    !
-   !  cam_grid_write_darray_3d_double: Write a variable defined on this grid
+   !------------------------------------------------------------------------
    !
    !------------------------------------------------------------------------
    subroutine cam_grid_write_darray_3d_double(this, File, adims, fdims,       &
@@ -3442,6 +3732,35 @@ contains
       call cam_pio_handle_error(ierr, subname//': Error writing variable')
 
    end subroutine cam_grid_write_darray_3d_double
+
+   !------------------------------------------------------------------------
+   !
+   !  cam_grid_write_darray_1d_real: Write a variable defined on this grid
+   !
+   !------------------------------------------------------------------------
+   subroutine cam_grid_write_darray_1d_real(this, File, adims, fdims,         &
+        hbuf, varid)
+      use pio,           only: file_desc_t, io_desc_t
+      use pio,           only: pio_write_darray, PIO_REAL
+      use cam_pio_utils, only: cam_pio_get_decomp
+
+      ! Dummy arguments
+      class(cam_grid_t)                        :: this
+      type(file_desc_t),         intent(inout) :: File  ! PIO file handle
+      integer,                   intent(in)    :: adims(:)
+      integer,                   intent(in)    :: fdims(:)
+      real(r4),                  intent(in)    :: hbuf(:)
+      type(var_desc_t),          intent(inout) :: varid
+
+      ! Local variables
+      type(io_desc_t),  pointer   :: iodesc
+      integer                     :: ierr
+      character(len=*), parameter :: subname = 'cam_grid_write_darray_1d_real'
+
+      call cam_pio_get_decomp(iodesc, adims, fdims, PIO_REAL, this%map)
+      call pio_write_darray(File, varid, iodesc, hbuf, ierr)
+      call cam_pio_handle_error(ierr, subname//': Error writing variable')
+   end subroutine cam_grid_write_darray_1d_real
 
    !------------------------------------------------------------------------
    !
@@ -3512,6 +3831,7 @@ contains
       use spmd_utils,      only: mpicom
       use mpi,             only: mpi_min, mpi_max, mpi_real8
       use shr_const_mod,   only: pi=>shr_const_pi
+      use cam_abortutils,  only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_t)                     :: this
@@ -3579,23 +3899,35 @@ contains
          if (cco) then
             ! For collected column output, we need to collect
             !    coordinates and values
-            allocate(patch%latmap(patch%mask%num_elem()))
+            allocate(patch%latmap(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%latmap', file=__FILE__,  &
+                   line=__LINE__-1)
             patch%latmap = 0
-            allocate(patch%latvals(patch%mask%num_elem()))
+            allocate(patch%latvals(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%latvals', file=__FILE__, &
+                   line=__LINE__-1)
             patch%latvals = 91.0_r8
-            allocate(patch%lonmap(patch%mask%num_elem()))
+            allocate(patch%lonmap(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%lonmap', file=__FILE__,  &
+                   line=__LINE__-1)
             patch%lonmap = 0
-            allocate(patch%lonvals(patch%mask%num_elem()))
+            allocate(patch%lonvals(patch%mask%num_elem()), stat=ierr)
+            call check_allocate(ierr, subname, 'patch%lonvals', file=__FILE__, &
+                   line=__LINE__-1)
             patch%lonvals = 361.0_r8
          else
             if (associated(this%lat_coord%values)) then
-               allocate(patch%latmap(LBOUND(this%lat_coord%values, 1):UBOUND(this%lat_coord%values, 1)))
+               allocate(patch%latmap(LBOUND(this%lat_coord%values, 1):UBOUND(this%lat_coord%values, 1)), stat=ierr)
+               call check_allocate(ierr, subname, 'patch%latmap', file=__FILE__, &
+                      line=__LINE__-1)
                patch%latmap = 0
             else
                nullify(patch%latmap)
             end if
             if (associated(this%lon_coord%values)) then
-               allocate(patch%lonmap(LBOUND(this%lon_coord%values, 1):UBOUND(this%lon_coord%values, 1)))
+               allocate(patch%lonmap(LBOUND(this%lon_coord%values, 1):UBOUND(this%lon_coord%values, 1)), stat=ierr)
+               call check_allocate(ierr, subname, 'patch%lonmap', file=__FILE__, &
+                      line=__LINE__-1)
                patch%lonmap = 0
             else
                nullify(patch%lonmap)
@@ -3902,7 +4234,7 @@ contains
 
       ! Local variable
       integer                                  :: index
-      character(len=120)                       :: errormsg
+      character(len=shr_kind_cm)               :: errormsg
       character(len=max_hcoordname_len)        :: grid_name
       logical                                  :: unstruct
 
@@ -3939,7 +4271,7 @@ contains
       character(len=*),          intent(out)   :: name
 
       ! Local variable
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)       :: errormsg
       integer                          :: index
 
       if (cam_grid_check(this%grid_id)) then
@@ -3967,7 +4299,7 @@ contains
       character(len=*),          intent(out)   :: units
 
       ! Local variable
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)       :: errormsg
       integer                          :: index
 
       if (cam_grid_check(this%grid_id)) then
@@ -3989,6 +4321,7 @@ contains
 
    subroutine cam_grid_patch_set_patch(this, lonl, lonu, latl, latu, cco,     &
         id, map)
+      use cam_abortutils, only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_patch_t)            :: this
@@ -3998,6 +4331,10 @@ contains
       integer,                intent(in) :: id
       type(cam_filemap_t),    intent(in) :: map
 
+      ! Local variables
+      integer                            :: ierr
+      character(len=*), parameter        :: subname = 'cam_grid_patch_set_patch'
+
       this%grid_id           = id
       this%lon_range(1)      = lonl
       this%lon_range(2)      = lonu
@@ -4005,7 +4342,9 @@ contains
       this%lat_range(2)      = latu
       this%collected_columns = cco
       if (.not. associated(this%mask)) then
-         allocate(this%mask)
+         allocate(this%mask, stat=ierr)
+         call check_allocate(ierr, subname, 'this%mask', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       call this%mask%copy(map)
       call this%mask%new_index()
@@ -4080,6 +4419,7 @@ contains
       use pio,           only: pio_write_darray, PIO_DOUBLE
       use pio,           only: pio_freedecomp
       use cam_pio_utils, only: cam_pio_handle_error, cam_pio_newdecomp
+      use cam_abortutils,only: check_allocate
 
       ! Dummy arguments
       class(cam_grid_patch_t)                     :: this
@@ -4087,7 +4427,7 @@ contains
       type(cam_grid_header_info_t), intent(inout) :: header_info
 
       ! Local variables
-      type(io_desc_t),  pointer   :: iodesc
+      type(io_desc_t)             :: iodesc
       type(var_desc_t), pointer   :: vdesc
       real(r8),         pointer   :: coord_p(:)
       real(r8),         pointer   :: coord(:)
@@ -4101,7 +4441,6 @@ contains
       nullify(coord_p)
       nullify(coord)
       nullify(map)
-      nullify(iodesc)
       if (this%grid_id /= header_info%get_gridid()) then
          call endrun(subname//': Grid id mismatch')
       end if
@@ -4111,7 +4450,9 @@ contains
          map => this%lonmap
       else
          field_lens(1) = 0
-         allocate(map(0))
+         allocate(map(0), stat=ierr)
+         call check_allocate(ierr, subname, 'map', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       file_lens(1) = this%global_lon_size
       !! XXgoldyXX: Think about caching these decomps
@@ -4123,7 +4464,9 @@ contains
          if (associated(coord_p)) then
             coord => coord_p
          else
-            allocate(coord(0))
+            allocate(coord(0), stat=ierr)
+            call check_allocate(ierr, subname, 'coord', file=__FILE__, &
+                         line=__LINE__-1)
          end if
       end if
       vdesc => header_info%get_lon_varid()
@@ -4143,7 +4486,9 @@ contains
          map => this%latmap
       else
          field_lens(1) = 0
-         allocate(map(0))
+         allocate(map(0), stat=ierr)
+         call check_allocate(ierr, subname, 'map', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       file_lens(1) = this%global_lat_size
       !! XXgoldyXX: Think about caching these decomps
@@ -4156,7 +4501,9 @@ contains
          if (associated(coord_p)) then
             coord => coord_p
          else
-            allocate(coord(0))
+            allocate(coord(0), stat=ierr)
+            call check_allocate(ierr, subname, 'coord', file=__FILE__, &
+                         line=__LINE__-1)
          end if
       end if
       vdesc => header_info%get_lat_varid()
@@ -4221,6 +4568,7 @@ contains
    end subroutine cam_grid_header_info_set_gridid
 
    subroutine cam_grid_header_info_set_hdims(this, hdim1, hdim2)
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(cam_grid_header_info_t)                :: this
       integer,                       intent(in)    :: hdim1
@@ -4228,6 +4576,7 @@ contains
 
       ! Local variables
       integer                     :: hdsize
+      integer                     :: ierr
       character(len=*), parameter :: subname = 'cam_grid_header_info_set_hdims'
 
       if (present(hdim2)) then
@@ -4242,7 +4591,9 @@ contains
             call endrun(subname//': hdims is wrong size')
          end if
       else
-         allocate(this%hdims(hdsize))
+         allocate(this%hdims(hdsize), stat=ierr)
+         call check_allocate(ierr, subname, 'this%hdims', file=__FILE__, &
+                      line=__LINE__-1)
       end if
       this%hdims(1) = hdim1
       if (present(hdim2)) then
@@ -4269,7 +4620,7 @@ contains
       integer,                      intent(in)    :: index
 
       ! Local variable
-      character(len=120)               :: errormsg
+      character(len=shr_kind_cm)                  :: errormsg
 
       if (allocated(this%hdims)) then
          if ((index >= 1) .and. (index <= size(this%hdims))) then

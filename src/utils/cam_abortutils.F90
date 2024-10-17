@@ -66,6 +66,7 @@ CONTAINS
       ! Local variables
       type(open_file_pointer), pointer :: of_ptr
       type(open_file_pointer), pointer :: of_new
+      integer                          :: ierr
       character(len=*),  parameter     :: subname = 'cam_register_open_file'
 
       nullify(of_new)
@@ -80,6 +81,9 @@ CONTAINS
       ! If we get here, go ahead and register the file
       if (associated(open_files_pool)) then
          of_new => open_files_pool
+         allocate(of_new%file_desc, stat=ierr)
+         call check_allocate(ierr, subname, 'of_file%file_desc', file=__FILE__, &
+             line=__LINE__)
          of_new%file_desc = file
          of_new%file_name = file_name
          allocate(open_files_pool%next)

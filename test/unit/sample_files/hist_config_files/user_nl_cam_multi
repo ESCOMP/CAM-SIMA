@@ -1,0 +1,19 @@
+! Users should add all user specific namelist changes below in the form of
+! namelist_var = new_namelist_value
+
+ncdata = 'atm/cam/inic/se/ape_topo_cam4_ne16np4_L32_c171020.nc'
+use_topo_file = .false.
+
+! History configuration
+hist_no_defaults: True
+hist_diag_file;h0: amwg_hist_config
+hist_remove_fields;h0: TAUTMSX, TAUTMSY
+hist_output_frequency;h0: 1*nmonths
+hist_precision;h0: REAL32
+
+hist_add_inst_fields;h3: T, U, V
+hist_output_frequency;h3: 2*nsteps
+hist_precision;h3: REAL64
+hist_max_frames;h3: 24
+hist_write_nstep0;h3: .true.
+hist_filename_template;h3: test_fname_%y.nc

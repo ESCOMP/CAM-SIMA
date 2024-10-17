@@ -97,6 +97,10 @@ def _build_cam():
                               case.get_value("COMP_INTERFACE")),
                  os.path.join(atm_root, "src", "dynamics", "utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
+                 os.path.join(atm_root, "src", "history"),
+                 os.path.join(atm_root, "src", "history", "buffers", "src"),
+                 os.path.join(atm_root, "src", "history", "buffers", "src", "hash"),
+                 os.path.join(atm_root, "src", "history", "buffers", "src", "util"),
                  os.path.join(atm_root, "src", "utils")]
         for path in phys_dirs:
             if path not in paths:
