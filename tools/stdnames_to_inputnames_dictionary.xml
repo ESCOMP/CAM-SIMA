@@ -160,25 +160,37 @@
       <ic_file_input_name>state_zi</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_energies_of_initial_state_in_cam">
+  <entry stdname="vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula">
     <ic_file_input_names>
-      <ic_file_input_name>te_ini</ic_file_input_name>
-      <ic_file_input_name>state_te_ini</ic_file_input_name>
+      <ic_file_input_name>te_ini_phys</ic_file_input_name>
+      <ic_file_input_name>state_te_ini_phys</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_energies_of_current_state_in_cam">
+  <entry stdname="vertically_integrated_total_energy_of_current_state_using_physics_energy_formula">
     <ic_file_input_names>
-      <ic_file_input_name>te_cur</ic_file_input_name>
-      <ic_file_input_name>state_te_cur</ic_file_input_name>
+      <ic_file_input_name>te_cur_phys</ic_file_input_name>
+      <ic_file_input_name>state_te_cur_phys</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_total_water_of_initial_state">
+  <entry stdname="vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula">
+    <ic_file_input_names>
+      <ic_file_input_name>te_ini_dyn</ic_file_input_name>
+      <ic_file_input_name>state_te_ini_dyn</ic_file_input_name>
+    </ic_file_input_names>
+  </entry>
+  <entry stdname="vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula">
+    <ic_file_input_names>
+      <ic_file_input_name>te_cur_dyn</ic_file_input_name>
+      <ic_file_input_name>state_te_cur_dyn</ic_file_input_name>
+    </ic_file_input_names>
+  </entry>
+  <entry stdname="vertically_integrated_water_vapor_and_condensed_water_of_initial_state">
     <ic_file_input_names>
       <ic_file_input_name>tw_ini</ic_file_input_name>
       <ic_file_input_name>state_tw_ini</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_total_water_of_current_state">
+  <entry stdname="vertically_integrated_water_vapor_and_condensed_water_of_current_state">
     <ic_file_input_names>
       <ic_file_input_name>tw_cur</ic_file_input_name>
       <ic_file_input_name>state_tw_cur</ic_file_input_name>

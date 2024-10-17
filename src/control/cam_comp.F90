@@ -23,9 +23,12 @@ module cam_comp
    use time_manager,              only: timemgr_init, get_step_size
    use time_manager,              only: get_nstep
    use time_manager,              only: is_first_step, is_first_restart_step
+   use time_manager,              only: get_curr_calday
 
    use camsrfexch,                only: cam_out_t, cam_in_t
-   use physics_types,             only: phys_state, phys_tend, dtime_phys
+   use physics_types,             only: phys_state, phys_tend
+   use physics_types,             only: dtime_phys
+   use physics_types,             only: calday
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -97,6 +100,7 @@ CONTAINS
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
       use phys_vars_init_check, only: mark_as_initialized
+      use tropopause_climo_read, only: tropopause_climo_read_file
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -162,10 +166,15 @@ CONTAINS
 
       call cam_ctrl_set_orbit(eccen, obliqr, lambm0, mvelpp)
 
+
       call timemgr_init(                                                      &
            dtime, calendar, start_ymd, start_tod, ref_ymd,                    &
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
            perpetual_run, perpetual_ymd, initial_run_in)
+
+      ! Get current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -223,6 +232,9 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
       end if
 
+      ! Read tropopause climatology
+      call tropopause_climo_read_file()
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -266,6 +278,9 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
+
+      ! Update current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
 
    end subroutine cam_timestep_init
    !

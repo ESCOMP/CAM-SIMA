@@ -10,6 +10,7 @@
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
@@ -202,21 +203,37 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>zi state_zi</ic_file_input_names>
     </variable>
-    <variable local_name="te_ini"
+    <variable local_name="te_ini_phys"
               standard_name="vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula"
               units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_ini state_te_ini</ic_file_input_names>
+      <ic_file_input_names>te_ini_phys state_te_ini_phys</ic_file_input_names>
     </variable>
-    <variable local_name="te_cur"
+    <variable local_name="te_cur_phys"
               standard_name="vertically_integrated_total_energy_of_current_state_using_physics_energy_formula"
               units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_cur state_te_cur</ic_file_input_names>
+      <ic_file_input_names>te_cur_phys state_te_cur_phys</ic_file_input_names>
+    </variable>
+    <variable local_name="te_ini_dyn"
+              standard_name="vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula"
+              units="J m-2"
+              type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>te_ini_dyn state_te_ini_dyn</ic_file_input_names>
+    </variable>
+    <variable local_name="te_cur_dyn"
+              standard_name="vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula"
+              units="J m-2"
+              type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>te_cur_dyn state_te_cur_dyn</ic_file_input_names>
     </variable>
     <variable local_name="tw_ini"
               standard_name="vertically_integrated_water_vapor_and_condensed_water_of_initial_state"
@@ -297,8 +314,8 @@
       <data>reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
-      <data>vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula</data>
-      <data>vertically_integrated_total_energy_of_current_state_using_physics_energy_formula</data>
+      <data>vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula</data>
+      <data>vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula</data>
       <data>vertically_integrated_water_vapor_and_condensed_water_of_initial_state</data>
       <data>vertically_integrated_water_vapor_and_condensed_water_of_current_state</data>
     </ddt>
@@ -330,6 +347,12 @@
       <long_name>current timestep number</long_name>
       <initial_value>0</initial_value>
     </variable>
+    <!-- Date and time variables -->
+    <variable local_name="calday"
+              standard_name="fractional_calendar_days_on_end_of_current_timestep"
+              units="1" type="real" kind="kind_phys">
+      <long_name>fractional calendar day at end of current timestep</long_name>
+    </variable>
     <!-- Error handling variables -->
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
@@ -342,6 +365,14 @@
               units="none" type="character" kind="len=512">
       <long_name>ccpp error message</long_name>
       <initial_value>''</initial_value>
+    </variable>
+    <!-- SIMA History (diagnostic output) variables -->
+    <variable local_name="fillvalue"
+              standard_name="fill_value_for_diagnostic_output"
+              units="1" type="real" kind="kind_phys"
+              allocatable="parameter">
+      <long_name>Fill value for diagnostic/history outputs</long_name>
+      <initial_value>1.e36_kind_phys</initial_value>
     </variable>
     <!-- Composition-dependent Variables -->
     <variable local_name="cpairv"

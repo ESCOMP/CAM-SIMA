@@ -1,0 +1,23 @@
+[ccpp-table-properties]
+  name = tropopause_climo_read
+  type = module
+
+[ccpp-arg-table]
+  name  = tropopause_climo_read
+  type  = module
+[ tropp_slices ]
+  standard_name = number_of_months_in_year
+  units = 1
+  type = integer
+  dimensions = ()
+[ tropp_p_loc ]
+  standard_name = tropopause_air_pressure_from_climatology_dataset
+  units = Pa
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_months_in_year)
+[ tropp_days ]
+  standard_name = tropopause_calendar_days_from_climatology
+  long_name = Climatological tropopause calendar day indices from file
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (number_of_months_in_year)
