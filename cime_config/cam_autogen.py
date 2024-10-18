@@ -600,9 +600,9 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 
         # Check that directory exists
         if not os.path.isdir(atm_phys_util_dir):
-            #CAM-SIMA will likely not run without this, so raise an error
+            # CAM-SIMA will likely not run without this, so raise an error
             emsg = "ERROR: Unable to find CCPP physics utilities directory:\n"
-            emsg += f" {atm_phys_util_dir}\n Have you run 'checkout_externals'?"
+            emsg += f" {atm_phys_util_dir}\n Have you run 'git-fleximod'?"
             raise CamAutoGenError(emsg)
         # end if
 
@@ -610,6 +610,25 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         atm_phys_util_files = glob.glob(os.path.join(atm_phys_util_dir, "*.F90"))
         for util_file in atm_phys_util_files:
             shutil.copy(util_file, physics_blddir)
+        # end for
+
+        # Copy to_be_ccppized utility modules to the build directory,
+        # as SIMA cam_constituents depends on them.
+        # Note: to_be_ccppized utility modules to be removed once functionality is migrated
+        # to SIMA or CCPPized in atmospheric_physics.
+        atm_phys_to_be_ccppized_dir = os.path.join(atm_phys_top_dir, "to_be_ccppized")
+
+        # Check that the directory exists
+        if not os.path.isdir(atm_phys_to_be_ccppized_dir):
+            # CAM-SIMA will likely not run without this, so raise an error
+            emsg = "ERROR: Unable to find CCPP physics to_be_ccppized directory:\n"
+            emsg += f" {atm_phys_to_be_ccppized_dir}\n Have you run 'git-fleximod'?"
+            raise CamAutoGenError(emsg)
+        # end if
+
+        atm_phys_to_be_ccppized_files = glob.glob(os.path.join(atm_phys_to_be_ccppized_dir, "*.F90"))
+        for to_be_ccppized_file in atm_phys_to_be_ccppized_files:
+           shutil.copy(to_be_ccppized_file, physics_blddir)
         # end for
     # end if
 

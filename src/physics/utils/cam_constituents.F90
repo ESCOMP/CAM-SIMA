@@ -285,10 +285,14 @@ CONTAINS
    !#######################################################################
 
    subroutine const_get_index(name, cindex, abort, warning, caller)
-      use shr_kind_mod,   only: CX => SHR_KIND_CX
-      use cam_abortutils, only: endrun
-      use cam_logfile,    only: iulog
-      use cam_ccpp_cap,   only: cam_const_get_index
+      ! from to_be_ccppized utility routine
+      use ccpp_const_utils,     only: ccpp_const_get_idx
+
+      use shr_kind_mod,         only: CX => SHR_KIND_CX
+      use cam_abortutils,       only: endrun
+      use cam_logfile,          only: iulog
+      use phys_vars_init_check, only: std_name_len
+      use string_utils,         only: stringify
 
       ! Get the index of a constituent with standard name, <name>.
       ! Setting optional <abort> argument to .false. returns control to
@@ -298,11 +302,11 @@ CONTAINS
       !    instead of <subname> in messages.
 
       !-----------------------------Arguments---------------------------------
-      character(len=*),           intent(in)  :: name   ! constituent name
-      integer,                    intent(out) :: cindex ! global constituent ind
-      logical,          optional, intent(in)  :: abort  ! flag controlling abort
+      character(len=*),           intent(in)  :: name    ! constituent name
+      integer,                    intent(out) :: cindex  ! global constituent index
+      logical,          optional, intent(in)  :: abort   ! flag controlling abort
       logical,          optional, intent(in)  :: warning ! flag controlling warning
-      character(len=*), optional, intent(in)  :: caller ! calling routine
+      character(len=*), optional, intent(in)  :: caller  ! calling routine
 
       !---------------------------Local workspace-----------------------------
       logical                     :: warning_on_error
@@ -312,10 +316,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_get_index: '
       !-----------------------------------------------------------------------
 
-      ! Find tracer name in the master table
-      call cam_const_get_index(name, cindex, errcode=errcode, errmsg=errmsg)
+      call ccpp_const_get_idx(const_props, name, cindex, errmsg, errcode)
 
       if (errcode /= 0) then
+         call endrun(subname//"Error "//stringify((/errcode/))//": "//           &
+                 trim(errmsg), file=__FILE__, line=__LINE__)
+      endif
+
+      if (cindex == -1) then
          ! Unrecognized name, set an error return and possibly abort
          cindex = -1
          if (present(abort)) then
