@@ -23,13 +23,14 @@ module dyn_mpas_subdriver
     ! Modules from MPAS.
     use atm_core, only: atm_compute_output_diagnostics, atm_do_timestep, atm_mpas_init_block
     use atm_core_interface, only: atm_setup_core, atm_setup_domain
-    use atm_time_integration, only: mpas_atm_dynamics_init
+    use atm_time_integration, only: mpas_atm_dynamics_init, mpas_atm_dynamics_finalize
     use mpas_atm_dimensions, only: mpas_atm_set_dims
-    use mpas_atm_halos, only: atm_build_halo_groups, exchange_halo_group
-    use mpas_atm_threading, only: mpas_atm_threading_init
+    use mpas_atm_halos, only: atm_build_halo_groups, atm_destroy_halo_groups, exchange_halo_group
+    use mpas_atm_threading, only: mpas_atm_threading_init, mpas_atm_threading_finalize
     use mpas_attlist, only: mpas_modify_att
     use mpas_bootstrapping, only: mpas_bootstrap_framework_phase1, mpas_bootstrap_framework_phase2
     use mpas_constants, only: mpas_constants_compute_derived
+    use mpas_decomp, only: mpas_decomp_destroy_decomp_list
     use mpas_derived_types, only: core_type, domain_type, &
                                   mpas_pool_type, mpas_pool_field_info_type, &
                                   mpas_pool_character, mpas_pool_real, mpas_pool_integer, &
@@ -42,11 +43,12 @@ module dyn_mpas_subdriver
     use mpas_dmpar, only: mpas_dmpar_exch_halo_field, &
                           mpas_dmpar_max_int, mpas_dmpar_sum_int
     use mpas_domain_routines, only: mpas_allocate_domain
-    use mpas_field_routines, only: mpas_allocate_scratch_field
-    use mpas_framework, only: mpas_framework_init_phase1, mpas_framework_init_phase2
+    use mpas_field_routines, only: mpas_allocate_scratch_field, mpas_deallocate_scratch_field
+    use mpas_framework, only: mpas_framework_init_phase1, mpas_framework_init_phase2, mpas_framework_finalize
     use mpas_io_streams, only: mpas_createstream, mpas_closestream, mpas_streamaddfield, &
                                mpas_readstream, mpas_writestream, mpas_writestreamatt
     use mpas_kind_types, only: rkind, r4kind, r8kind, strkind
+    use mpas_log, only: mpas_log_finalize
     use mpas_pool_routines, only: mpas_pool_create_pool, mpas_pool_destroy_pool, mpas_pool_get_subpool, &
                                   mpas_pool_add_config, mpas_pool_get_config, &
                                   mpas_pool_get_array, &
@@ -56,9 +58,11 @@ module dyn_mpas_subdriver
     use mpas_stream_inquiry, only: mpas_stream_inquiry_new_streaminfo
     use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
     use mpas_string_utils, only: mpas_string_replace
-    use mpas_timekeeping, only: mpas_advance_clock, mpas_get_clock_time, mpas_get_time, &
+    use mpas_timekeeping, only: mpas_advance_clock, mpas_destroy_clock, &
+                                mpas_get_clock_time, mpas_get_time, &
                                 mpas_set_timeinterval, &
                                 operator(+), operator(<)
+    use mpas_timer, only: mpas_timer_write_header, mpas_timer_write, mpas_timer_finalize
     use mpas_vector_operations, only: mpas_initialize_vectors
 
     implicit none
@@ -128,6 +132,7 @@ module dyn_mpas_subdriver
         procedure, pass, public :: compute_edge_wind => dyn_mpas_compute_edge_wind
         procedure, pass, public :: init_phase4 => dyn_mpas_init_phase4
         procedure, pass, public :: run => dyn_mpas_run
+        procedure, pass, public :: final => dyn_mpas_final
 
         ! Accessor subroutines for users to access internal states of MPAS dynamical core.
 
@@ -3020,6 +3025,130 @@ contains
 
         call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_run
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_final
+    !
+    !> \brief  Finalizes MPAS dynamical core as well as its framework
+    !> \author Michael Duda
+    !> \date   29 February 2020
+    !> \details
+    !>  This subroutine finalizes and cleans up MPAS dynamical core as well as its
+    !>  framework that was set up during initialization. Finalization happens in
+    !>  reverse chronological order.
+    !>  Essentially, it closely follows what is done in `atm_core_finalize` and
+    !>  `mpas_finalize`, except that here, there is no need to call MPAS diagnostics
+    !>  manager or MPAS stream manager.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-10-10)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_final(self)
+        class(mpas_dynamical_core_type), intent(inout) :: self
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_final'
+        integer :: ierr
+        type(field2dreal), pointer :: field_2d_real
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(field_2d_real)
+
+        ! First, wind down MPAS dynamical core by calling its own finalization procedures.
+
+        ! Some additional "scratch" fields are needed for interoperability with CAM-SIMA, but they are not finalized by
+        ! `mpas_atm_dynamics_finalize`. Finalize them below.
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_uzonal', field_2d_real, timelevel=1)
+        call mpas_deallocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
+        call mpas_deallocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
+        ! Opposite to `mpas_atm_dynamics_init`.
+        call mpas_atm_dynamics_finalize(self % domain_ptr)
+
+        ! Opposite to `atm_build_halo_groups`.
+        call atm_destroy_halo_groups(self % domain_ptr, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to destroy halo exchange groups', subname, __LINE__)
+        end if
+
+        nullify(exchange_halo_group)
+
+        ! Opposite to `mpas_atm_threading_init`.
+        call mpas_atm_threading_finalize(self % domain_ptr % blocklist, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to clean up OpenMP threading', subname, __LINE__)
+        end if
+
+        ! Opposite to `mpas_create_clock`, which was called by `atm_simulation_clock_init`, then `atm_setup_clock`.
+        call mpas_destroy_clock(self % domain_ptr % clock, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to clean up clock', subname, __LINE__)
+        end if
+
+        ! Opposite to `mpas_decomp_create_decomp_list`, which was called by `atm_setup_decompositions`.
+        call mpas_decomp_destroy_decomp_list(self % domain_ptr % decompositions)
+
+        deallocate(self % domain_ptr % streaminfo)
+
+        ! Write timing information to log.
+        call mpas_timer_write_header()
+        call mpas_timer_write()
+
+        ! Opposite to `mpas_timer_init`, which was called by `mpas_framework_init_phase2`.
+        call mpas_timer_finalize(self % domain_ptr)
+
+        ! Opposite to `mpas_log_init`, which was called by `atm_setup_log`.
+        call mpas_log_finalize(ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to clean up log', subname, __LINE__)
+        end if
+
+        ! Opposite to `mpas_framework_init_phase1` and `mpas_framework_init_phase2`.
+        call mpas_framework_finalize(self % domain_ptr % dminfo, self % domain_ptr)
+
+        call self % debug_print(subname // ' completed')
+
+        call self % debug_print('Successful finalization of MPAS dynamical core')
+
+        ! Second, clean up this MPAS dynamical core instance.
+
+        ! Initialized by `dyn_mpas_init_phase4`.
+        self % coupling_time_interval = 0
+        self % number_of_time_steps = 0
+
+        ! Initialized by `dyn_mpas_define_scalar`.
+        deallocate(self % constituent_name)
+        deallocate(self % index_constituent_to_mpas_scalar)
+        deallocate(self % index_mpas_scalar_to_constituent)
+        deallocate(self % is_water_species)
+
+        ! Initialized by `dyn_mpas_init_phase3`.
+        self % number_of_constituents = 0
+
+        ! Initialized by `dyn_mpas_init_phase1`.
+        self % log_unit = output_unit
+        self % mpi_comm = mpi_comm_null
+        self % mpi_rank = 0
+        self % mpi_rank_root = .false.
+
+        nullify(self % model_error)
+
+        deallocate(self % corelist % domainlist)
+        deallocate(self % corelist)
+
+        nullify(self % corelist)
+        nullify(self % domain_ptr)
+
+        self % debug_output = .false.
+    end subroutine dyn_mpas_final
 
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_get_constituent_name
