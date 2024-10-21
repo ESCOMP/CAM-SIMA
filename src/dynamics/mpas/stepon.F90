@@ -1,7 +1,7 @@
 module stepon
     ! Modules from CAM-SIMA.
     use camsrfexch, only: cam_out_t
-    use dyn_comp, only: dyn_import_t, dyn_export_t, dyn_run
+    use dyn_comp, only: dyn_import_t, dyn_export_t, dyn_run, dyn_final
     use dyn_coupling, only: dynamics_to_physics_coupling, physics_to_dynamics_coupling
     use physics_types, only: physics_state, physics_tend
     use runtime_obj, only: runtime_options
@@ -70,5 +70,7 @@ contains
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
+
+        call dyn_final()
     end subroutine stepon_final
 end module stepon
