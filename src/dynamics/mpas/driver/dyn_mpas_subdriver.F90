@@ -189,6 +189,8 @@ module dyn_mpas_subdriver
     !>     <var name="xCell" type="real" dimensions="nCells" units="m" description="Cartesian x-coordinate of cells" />
     !> Here, it is described as:
     !>     var_info_type(name="xCell", type="real", rank=1)
+    !> However, note that MPAS treats the "Time" dimension specially. It is implemented as 1-d pointer arrays of
+    !> custom derived types. For a variable with the "Time" dimension, its rank needs to be subtracted by one.
     type :: var_info_type
         private
 
@@ -277,40 +279,54 @@ module dyn_mpas_subdriver
     ! the `atm_init_coupled_diagnostics` subroutine in MPAS.
     ! If a variable first appears on the LHS of an equation, it should be in restart.
     ! If a variable first appears on the RHS of an equation, it should be in input.
+    ! The remaining ones of interest should be in output.
 
     !> This list corresponds to the "input" stream in MPAS registry.
     !> It consists of variables that are members of the "diag" and "state" struct.
     !> Only variables that are specific to the "input" stream are included.
     type(var_info_type), parameter :: input_var_info_list(*) = [ &
-        var_info_type('Time'                            , 'real'      , 1), &
+        var_info_type('Time'                            , 'real'      , 0), &
         var_info_type('initial_time'                    , 'character' , 0), &
-        var_info_type('rho'                             , 'real'      , 3), &
-        var_info_type('rho_base'                        , 'real'      , 3), &
+        var_info_type('rho'                             , 'real'      , 2), &
+        var_info_type('rho_base'                        , 'real'      , 2), &
         var_info_type('scalars'                         , 'real'      , 3), &
-        var_info_type('theta'                           , 'real'      , 3), &
-        var_info_type('theta_base'                      , 'real'      , 3), &
-        var_info_type('u'                               , 'real'      , 3), &
-        var_info_type('w'                               , 'real'      , 3), &
-        var_info_type('xtime'                           , 'character' , 1)  &
+        var_info_type('theta'                           , 'real'      , 2), &
+        var_info_type('theta_base'                      , 'real'      , 2), &
+        var_info_type('u'                               , 'real'      , 2), &
+        var_info_type('w'                               , 'real'      , 2), &
+        var_info_type('xtime'                           , 'character' , 0)  &
     ]
 
     !> This list corresponds to the "restart" stream in MPAS registry.
     !> It consists of variables that are members of the "diag" and "state" struct.
     !> Only variables that are specific to the "restart" stream are included.
     type(var_info_type), parameter :: restart_var_info_list(*) = [ &
-        var_info_type('exner'                           , 'real'      , 1), &
-        var_info_type('exner_base'                      , 'real'      , 1), &
-        var_info_type('pressure_base'                   , 'real'      , 1), &
-        var_info_type('pressure_p'                      , 'real'      , 1), &
-        var_info_type('rho_p'                           , 'real'      , 1), &
-        var_info_type('rho_zz'                          , 'real'      , 1), &
-        var_info_type('rtheta_base'                     , 'real'      , 1), &
-        var_info_type('rtheta_p'                        , 'real'      , 1), &
-        var_info_type('ru'                              , 'real'      , 1), &
-        var_info_type('ru_p'                            , 'real'      , 1), &
-        var_info_type('rw'                              , 'real'      , 1), &
-        var_info_type('rw_p'                            , 'real'      , 1), &
-        var_info_type('theta_m'                         , 'real'      , 1)  &
+        var_info_type('exner'                           , 'real'      , 2), &
+        var_info_type('exner_base'                      , 'real'      , 2), &
+        var_info_type('pressure_base'                   , 'real'      , 2), &
+        var_info_type('pressure_p'                      , 'real'      , 2), &
+        var_info_type('rho_p'                           , 'real'      , 2), &
+        var_info_type('rho_zz'                          , 'real'      , 2), &
+        var_info_type('rtheta_base'                     , 'real'      , 2), &
+        var_info_type('rtheta_p'                        , 'real'      , 2), &
+        var_info_type('ru'                              , 'real'      , 2), &
+        var_info_type('ru_p'                            , 'real'      , 2), &
+        var_info_type('rw'                              , 'real'      , 2), &
+        var_info_type('rw_p'                            , 'real'      , 2), &
+        var_info_type('theta_m'                         , 'real'      , 2)  &
+    ]
+
+    !> This list corresponds to the "output" stream in MPAS registry.
+    !> It consists of variables that are members of the "diag" struct.
+    !> Only variables that are specific to the "output" stream are included.
+    type(var_info_type), parameter :: output_var_info_list(*) = [ &
+        var_info_type('divergence'                      , 'real'      , 2), &
+        var_info_type('pressure'                        , 'real'      , 2), &
+        var_info_type('relhum'                          , 'real'      , 2), &
+        var_info_type('surface_pressure'                , 'real'      , 1), &
+        var_info_type('uReconstructMeridional'          , 'real'      , 2), &
+        var_info_type('uReconstructZonal'               , 'real'      , 2), &
+        var_info_type('vorticity'                       , 'real'      , 2)  &
     ]
 contains
     !> Print a debug message with optionally the value(s) of a variable.
@@ -1752,6 +1768,8 @@ contains
                 allocate(var_info_list, source=input_var_info_list)
             case ('restart')
                 allocate(var_info_list, source=restart_var_info_list)
+            case ('output')
+                allocate(var_info_list, source=output_var_info_list)
             case default
                 allocate(var_info_list(0))
 
@@ -1773,6 +1791,13 @@ contains
 
                 if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
                     var_info_list_buffer = pack(restart_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = output_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(output_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
                     var_info_list = [var_info_list, var_info_list_buffer]
                 end if
         end select
