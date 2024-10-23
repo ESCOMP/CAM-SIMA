@@ -2264,11 +2264,15 @@ contains
                         cycle
                     end if
                 case ('real')
+                    ! When MPAS dynamical core is compiled at single precision, pairing it with double precision input data
+                    ! is not allowed to prevent loss of precision.
                     if (rkind == r4kind .and. vartype /= pio_real) then
                         cycle
                     end if
 
-                    if (rkind == r8kind .and. vartype /= pio_double) then
+                    ! When MPAS dynamical core is compiled at double precision, pairing it with single and double precision
+                    ! input data is allowed.
+                    if (rkind == r8kind .and. vartype /= pio_real .and. vartype /= pio_double) then
                         cycle
                     end if
                 case default
