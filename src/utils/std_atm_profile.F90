@@ -60,7 +60,6 @@ subroutine std_atm_pres(height, pstd, user_specified_ps)
    real(r8), optional, intent(in)  :: user_specified_ps
 
    integer  :: i, ii, k, nlev
-   integer  :: ierr
    real(r8) :: pb_local(nreg)
 
    character(len=*), parameter :: routine = 'std_atm_pres'
