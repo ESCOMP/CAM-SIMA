@@ -176,6 +176,8 @@ contains
             zu(k) = 0.5_kind_r8 * (zw(k + 1) + zw(k))
         end do
 
+        deallocate(dzw)
+
         ! Register zeta coordinates with history.
         call add_vert_coord('ilev', pverp, 'Height (zeta) level at layer interfaces', 'm', zw, &
             positive='up')
@@ -214,6 +216,12 @@ contains
             ' |  ' // stringify([p_ref_int(k) / 100.0_kind_r8]))
 
         call ref_pres_init(p_ref_int, p_ref_mid, num_pure_p_lev)
+
+        deallocate(p_ref_int)
+        deallocate(p_ref_mid)
+
+        nullify(zu)
+        nullify(zw)
     end subroutine init_reference_pressure
 
     !> Initialize physics grid in terms of dynamics decomposition.
@@ -287,6 +295,9 @@ contains
         call check_allocate(ierr, subname, 'dyn_attribute_name(0)', 'dyn_grid', __LINE__)
 
         call phys_grid_init(hdim1_d, hdim2_d, 'mpas', dyn_column, 'mpas_cell', dyn_attribute_name)
+
+        deallocate(dyn_column)
+        deallocate(dyn_attribute_name)
     end subroutine init_physics_grid
 
     !> This subroutine defines and registers four variants of dynamics grids in terms of dynamics decomposition.
