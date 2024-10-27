@@ -5,6 +5,7 @@ module dyn_grid
     use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register, &
                                 horiz_coord_t, horiz_coord_create, &
                                 max_hcoordname_len
+    use cam_history_support, only: add_vert_coord
     use cam_initfiles, only: initial_file_get_id
     use cam_map_utils, only: kind_imap => imap
     use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
@@ -139,10 +140,16 @@ contains
         ! `zw` denotes zeta at w-wind levels (i.e., at layer interfaces).
         ! `dzw` denotes the delta/difference between `zw`.
         ! `rdzw` denotes the reciprocal of `dzw`.
-        real(kind_r8), allocatable :: zu(:), zw(:), dzw(:)
+        real(kind_r8), allocatable :: dzw(:)
         real(kind_r8), pointer :: rdzw(:)
+        real(kind_r8), pointer :: zu(:) ! CANNOT be safely deallocated because `add_vert_coord`
+                                        ! just uses pointers to point at it internally.
+        real(kind_r8), pointer :: zw(:) ! CANNOT be safely deallocated because `add_vert_coord`
+                                        ! just uses pointers to point at it internally.
 
         nullify(rdzw)
+        nullify(zu)
+        nullify(zw)
 
         ! Compute reference height.
         call mpas_dynamical_core % get_variable_pointer(rdzw, 'mesh', 'rdzw')
@@ -168,6 +175,12 @@ contains
             zw(k) = zw(k + 1) + dzw(pver - k + 1)
             zu(k) = 0.5_kind_r8 * (zw(k + 1) + zw(k))
         end do
+
+        ! Register zeta coordinates with history.
+        call add_vert_coord('ilev', pverp, 'Height (zeta) level at layer interfaces', 'm', zw, &
+            positive='up')
+        call add_vert_coord('lev', pver, 'Height (zeta) level at layer midpoints', 'm', zu, &
+            positive='up')
 
         ! Compute reference pressure from reference height.
         allocate(p_ref_int(pverp), stat=ierr)
