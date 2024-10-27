@@ -230,7 +230,7 @@ contains
     subroutine init_physics_grid()
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
-        integer :: hdim1_d, hdim2_d
+        integer :: hdim1_d, hdim2_d ! First and second horizontal dimensions of physics grid.
         integer :: i
         integer :: ierr
         integer, pointer :: indextocellid(:)  ! Global indexes of cell centers.
@@ -322,25 +322,25 @@ contains
         real(kind_r8), pointer :: lonedge(:)   ! Edge node longitudes (radians).
         real(kind_r8), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
 
-        ! Global grid indexes. CAN be safely deallocated because its values are copied into
-        ! `cam_grid_attribute_*_t` and `horiz_coord_t`.
+        ! Global grid indexes. CAN be safely deallocated because its values are copied internally by
+        ! `cam_grid_attribute_register` and `horiz_coord_create`.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
         integer(kind_imap), pointer :: global_grid_index(:)
-        ! Global grid maps. CANNOT be safely deallocated because `cam_filemap_t`
-        ! just uses pointers to point at it.
+        ! Global grid maps. CANNOT be safely deallocated because `cam_grid_register`
+        ! just uses pointers to point at it internally.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
         integer(kind_imap), pointer :: global_grid_map(:, :)
-        ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_*_t`
-        ! just uses pointers to point at it.
+        ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_register`
+        ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: cell_area(:)
-        ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_*_t`
-        ! just uses pointers to point at it.
+        ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_register`
+        ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: cell_weight(:)
-        ! Latitude coordinates. CANNOT be safely deallocated because `cam_grid_t`
-        ! just uses pointers to point at it.
+        ! Latitude coordinates. CANNOT be safely deallocated because `cam_grid_register`
+        ! just uses pointers to point at it internally.
         type(horiz_coord_t), pointer :: lat_coord
-        ! Longitude coordinates. CANNOT be safely deallocated because `cam_grid_t`
-        ! just uses pointers to point at it.
+        ! Longitude coordinates. CANNOT be safely deallocated because `cam_grid_register`
+        ! just uses pointers to point at it internally.
         type(horiz_coord_t), pointer :: lon_coord
 
         nullify(indextocellid, indextoedgeid, indextovertexid)
