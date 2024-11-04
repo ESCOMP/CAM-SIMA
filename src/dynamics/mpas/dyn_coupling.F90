@@ -71,7 +71,7 @@ contains
 
         call init_shared_variable()
 
-        call dyn_exchange_constituent_state('i', .true., .false.)
+        call dyn_exchange_constituent_state(direction='i', exchange=.true., conversion=.false.)
 
         call dyn_debug_print('Setting physics state variables column by column')
 
@@ -341,7 +341,7 @@ contains
             end do
 
             ! Note that constituents become moist after this.
-            call dyn_exchange_constituent_state('i', .false., .true.)
+            call dyn_exchange_constituent_state(direction='i', exchange=.false., conversion=.true.)
 
             ! Impose minimum limits on constituents.
             call qneg_run(subname, ncells_solve, pver, minimum_constituents, constituents, ierr, cerr)
@@ -392,7 +392,7 @@ contains
 
         call init_shared_variable()
 
-        call dyn_exchange_constituent_state('e', .true., .true.)
+        call dyn_exchange_constituent_state(direction='e', exchange=.true., conversion=.true.)
 
         call set_mpas_physics_tendency_ru()
         call set_mpas_physics_tendency_rho()

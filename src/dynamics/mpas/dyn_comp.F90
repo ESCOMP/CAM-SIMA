@@ -256,7 +256,7 @@ contains
                 ! the actual availability (checked and handled by MPAS).
                 call dyn_debug_print('Calling dyn_exchange_constituent_state')
 
-                call dyn_exchange_constituent_state('e', .true., .false.)
+                call dyn_exchange_constituent_state(direction='e', exchange=.true., conversion=.false.)
 
                 ! Namelist option that controls if constituents are to be read from the file.
                 if (readtrace) then
