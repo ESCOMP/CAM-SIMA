@@ -20,6 +20,7 @@ module dyn_coupling
                              phys_state, phys_tend
     use qneg, only: qneg_run
     use static_energy, only: update_dry_static_energy_run
+    use string_utils, only: stringify
 
     ! Modules from CESM Share.
     use shr_kind_mod, only: kind_cx => shr_kind_cx, kind_r8 => shr_kind_r8
@@ -347,7 +348,9 @@ contains
             call qneg_run(subname, ncells_solve, pver, minimum_constituents, constituents, ierr, cerr)
 
             if (ierr /= 0) then
-                call endrun('Failed to impose minimum limits on constituents externally', subname, __LINE__)
+                call endrun('Failed to impose minimum limits on constituents externally' // new_line('') // &
+                    'External procedure returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             ! Set `zi` (i.e., geopotential height at layer interfaces) and `zm` (i.e., geopotential height at layer midpoints).
@@ -359,7 +362,9 @@ contains
                 constituent_properties, rairv, constant_g, zvirv, phys_state % zi, phys_state % zm, ncells_solve, ierr, cerr)
 
             if (ierr /= 0) then
-                call endrun('Failed to set variable "zi" and "zm" externally', subname, __LINE__)
+                call endrun('Failed to set variable "zi" and "zm" externally' // new_line('') // &
+                    'External procedure returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             ! Set `dse` (i.e., dry static energy).
@@ -368,7 +373,9 @@ contains
                 pver, constant_g, phys_state % t, phys_state % zm, phys_state % phis, phys_state % dse, cpairv, ierr, cerr)
 
             if (ierr /= 0) then
-                call endrun('Failed to set variable "dse" externally', subname, __LINE__)
+                call endrun('Failed to set variable "dse" externally' // new_line('') // &
+                    'External procedure returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             deallocate(minimum_constituents)
