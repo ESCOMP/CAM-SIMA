@@ -231,9 +231,9 @@ contains
             ! The numerator terms are just `tm_mid_col` here (i.e., modified "moist" temperature).
             tv_mid_col(:) = tm_mid_col(:) / sigma_all_q_mid_col(:)
 
-            ! Hydrostatic equation with equation of state plugged in and arranging for pressure.
-            pd_mid_col(:) = -constant_rd * t_mid_col(:) * dpd_col(:) / (constant_g * dz_col(:))
-            p_mid_col(:) = -constant_rd * tv_mid_col(:) * dp_col(:) / (constant_g * dz_col(:))
+            ! Equation of state.
+            pd_mid_col(:) = rhod_mid_col(:) * constant_rd * t_mid_col(:)
+            p_mid_col(:) = rho_mid_col(:) * constant_rd * tv_mid_col(:)
 
             ! By definition.
             p_int_col(pverp) = p_mid_col(pver) + 0.5_kind_r8 * dp_col(pver)
