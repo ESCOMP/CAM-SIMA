@@ -69,7 +69,7 @@ contains
         real(kind_r8), pointer :: zgrid(:, :)
         real(kind_r8), pointer :: zz(:, :)
 
-        call init_shared_variable()
+        call init_shared_variables()
 
         call dyn_exchange_constituent_state(direction='i', exchange=.true., conversion=.false.)
 
@@ -78,19 +78,19 @@ contains
         ! Set variables in the `physics_state` derived type column by column.
         ! This way, peak memory usage can be reduced.
         do column_index = 1, ncells_solve
-            call update_shared_variable(column_index)
+            call update_shared_variables(column_index)
             call set_physics_state_column(column_index)
         end do
 
         call set_physics_state_external()
 
-        call final_shared_variable()
+        call final_shared_variables()
     contains
-        !> Initialize variables that are shared and repeatedly used by the `update_shared_variable` and
+        !> Initialize variables that are shared and repeatedly used by the `update_shared_variables` and
         !> `set_physics_state_column` internal subroutines.
         !> (KCW, 2024-07-20)
-        subroutine init_shared_variable()
-            character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::init_shared_variable'
+        subroutine init_shared_variables()
+            character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::init_shared_variables'
             integer :: i
             integer :: ierr
             logical, allocatable :: is_water_species(:)
@@ -165,13 +165,13 @@ contains
             call mpas_dynamical_core % get_variable_pointer(w, 'state', 'w', time_level=1)
             call mpas_dynamical_core % get_variable_pointer(zgrid, 'mesh', 'zgrid')
             call mpas_dynamical_core % get_variable_pointer(zz, 'mesh', 'zz')
-        end subroutine init_shared_variable
+        end subroutine init_shared_variables
 
-        !> Finalize variables that are shared and repeatedly used by the `update_shared_variable` and
+        !> Finalize variables that are shared and repeatedly used by the `update_shared_variables` and
         !> `set_physics_state_column` internal subroutines.
         !> (KCW, 2024-07-20)
-        subroutine final_shared_variable()
-            character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::final_shared_variable'
+        subroutine final_shared_variables()
+            character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::final_shared_variables'
 
             deallocate(is_water_species_index)
             deallocate(pd_int_col, pd_mid_col, p_int_col, p_mid_col, z_int_col)
@@ -189,15 +189,15 @@ contains
             nullify(ucellzonal, ucellmeridional, w)
             nullify(zgrid)
             nullify(zz)
-        end subroutine final_shared_variable
+        end subroutine final_shared_variables
 
         !> Update variables for the specific column, indicated by `i`. This subroutine and `set_physics_state_column`
         !> should be called in pairs.
         !> (KCW, 2024-07-30)
-        subroutine update_shared_variable(i)
+        subroutine update_shared_variables(i)
             integer, intent(in) :: i
 
-            character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::update_shared_variable'
+            character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::update_shared_variables'
             integer :: k
 
             ! The summation term of equation 5 in doi:10.1029/2017MS001257.
@@ -252,10 +252,10 @@ contains
             u_mid_col(:) = ucellzonal(:, i)
             v_mid_col(:) = ucellmeridional(:, i)
             omega_mid_col(:) = -rhod_mid_col(:) * constant_g * 0.5_kind_r8 * (w(1:pver, i) + w(2:pverp, i))
-        end subroutine update_shared_variable
+        end subroutine update_shared_variables
 
         !> Set variables for the specific column, indicated by `i`, in the `physics_state` derived type.
-        !> This subroutine and `update_shared_variable` should be called in pairs.
+        !> This subroutine and `update_shared_variables` should be called in pairs.
         !> (KCW, 2024-07-30)
         subroutine set_physics_state_column(i)
             integer, intent(in) :: i
@@ -390,7 +390,7 @@ contains
         real(kind_r8), pointer :: scalars(:, :, :)
         real(kind_r8), pointer :: zz(:, :)
 
-        call init_shared_variable()
+        call init_shared_variables()
 
         call dyn_exchange_constituent_state(direction='e', exchange=.true., conversion=.true.)
 
@@ -398,12 +398,12 @@ contains
         call set_mpas_physics_tendency_rho()
         call set_mpas_physics_tendency_rtheta()
 
-        call final_shared_variable()
+        call final_shared_variables()
     contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_physics_tendency_*` internal subroutines.
         !> (KCW, 2024-09-13)
-        subroutine init_shared_variable()
-            character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::init_shared_variable'
+        subroutine init_shared_variables()
+            character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::init_shared_variables'
             integer :: ierr
 
             call dyn_debug_print('Preparing for physics-dynamics coupling')
@@ -426,12 +426,12 @@ contains
             ! Save water vapor mixing ratio before being updated by physics because `set_mpas_physics_tendency_rtheta`
             ! needs it. This must be done before calling `dyn_exchange_constituent_state`.
             qv_prev(:, :) = scalars(index_qv, :, 1:ncells_solve)
-        end subroutine init_shared_variable
+        end subroutine init_shared_variables
 
         !> Finalize variables that are shared and repeatedly used by the `set_mpas_physics_tendency_*` internal subroutines.
         !> (KCW, 2024-09-13)
-        subroutine final_shared_variable()
-            character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::final_shared_variable'
+        subroutine final_shared_variables()
+            character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::final_shared_variables'
 
             deallocate(qv_prev)
 
@@ -439,7 +439,7 @@ contains
             nullify(rho_zz)
             nullify(scalars)
             nullify(zz)
-        end subroutine final_shared_variable
+        end subroutine final_shared_variables
 
         !> Set MPAS physics tendency `tend_ru_physics` (i.e., "coupled" tendency of horizontal velocity at edge interfaces
         !> due to physics). In MPAS, a "coupled" variable means that it is multiplied by a vertical metric term, `rho_zz`.

@@ -365,7 +365,7 @@ contains
         real(kind_r8), pointer :: zgrid(:, :)     ! Geometric height (meters) at layer interfaces.
                                                   ! Dimension and vertical index orders follow MPAS convention.
 
-        call init_shared_variable()
+        call init_shared_variables()
 
         call set_mpas_state_u()
         call set_mpas_state_w()
@@ -373,12 +373,12 @@ contains
         call set_mpas_state_rho_theta()
         call set_mpas_state_rho_base_theta_base()
 
-        call final_shared_variable()
+        call final_shared_variables()
     contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
-        subroutine init_shared_variable()
-            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variable'
+        subroutine init_shared_variables()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variables'
             integer :: ierr
             integer :: i
             integer, pointer :: indextocellid(:)
@@ -431,19 +431,19 @@ contains
             do i = 1, ncells_solve
                 z_int(i, :) = reverse(zgrid(:, i))
             end do
-        end subroutine init_shared_variable
+        end subroutine init_shared_variables
 
         !> Finalize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
-        subroutine final_shared_variable()
-            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::final_shared_variable'
+        subroutine final_shared_variables()
+            character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::final_shared_variables'
 
             deallocate(global_grid_index)
             deallocate(lat_rad, lon_rad)
             deallocate(z_int)
 
             nullify(zgrid)
-        end subroutine final_shared_variable
+        end subroutine final_shared_variables
 
         !> Set MPAS state `u` (i.e., horizontal velocity at edge interfaces).
         !> (KCW, 2024-05-13)
