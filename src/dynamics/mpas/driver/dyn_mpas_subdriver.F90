@@ -3002,7 +3002,8 @@ contains
 
         call self % debug_print('Time integration of MPAS dynamical core ends at ' // trim(adjustl(date_time)))
 
-        ! Compute diagnostic variables like `pressure`, `rho` and `theta` by calling upstream MPAS functionality.
+        ! Compute diagnostic variables like `pressure`, `rho` and `theta` from time level 1 of MPAS `state` pool
+        ! by calling upstream MPAS functionality.
         call atm_compute_output_diagnostics(mpas_pool_state, 1, mpas_pool_diag, mpas_pool_mesh)
 
         nullify(config_dt)
