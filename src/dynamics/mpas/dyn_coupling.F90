@@ -599,6 +599,15 @@ contains
             ! described herein:
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
+            !
+            ! In short, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
+            ! \begin{equation*}
+            !     \begin{cases}
+            !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
+            !         P &= \rho_d R_d T_m \\
+            !         T_m &= T (1 + \frac{R_v}{R_d} q_v)
+            !     \end{cases}
+            ! \end{equation*}
             t = (theta ** (constant_cpd / constant_cvd)) * &
                 (((rhod * constant_rd * (1.0_kind_r8 + constant_rv / constant_rd * qv)) / constant_p0) ** &
                 (constant_rd / constant_cvd))
@@ -624,6 +633,15 @@ contains
             ! described herein:
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
+            !
+            ! In short, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
+            ! \begin{equation*}
+            !     \begin{cases}
+            !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
+            !         P &= \rho_d R_d T_m \\
+            !         T_m &= T (1 + \frac{R_v}{R_d} q_v)
+            !     \end{cases}
+            ! \end{equation*}
             theta = (t ** (constant_cvd / constant_cpd)) * &
                 ((constant_p0 / (rhod * constant_rd * (1.0_kind_r8 + constant_rv / constant_rd * qv))) ** &
                 (constant_rd / constant_cpd))
