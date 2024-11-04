@@ -791,7 +791,7 @@ contains
         logical, allocatable :: is_conversion_needed(:)
         logical, allocatable :: is_water_species(:)
         real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
-        real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water mixing ratio.
+        real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water species mixing ratios.
         real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
 
         select case (trim(adjustl(direction)))
@@ -829,8 +829,8 @@ contains
             'dyn_comp', __LINE__)
 
         do j = 1, num_advected
-            ! All constituent mixing ratio in MPAS is dry.
-            ! Therefore, conversion in between is needed for any constituent mixing ratio that is not dry in CAM-SIMA.
+            ! All constituent mixing ratios in MPAS are dry.
+            ! Therefore, conversion in between is needed for any constituent mixing ratios that are not dry in CAM-SIMA.
             is_conversion_needed(j) = .not. const_is_dry(j)
             is_water_species(j) = const_is_water_species(j)
         end do

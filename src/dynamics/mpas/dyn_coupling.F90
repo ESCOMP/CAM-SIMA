@@ -52,7 +52,7 @@ contains
                                       dp_col(:), &           ! Full air pressure difference (Pa) between layer interfaces.
                                       dz_col(:)              ! Geometric height difference (m) between layer interfaces.
         real(kind_r8), allocatable :: qv_mid_col(:), &       ! Water vapor mixing ratio (kg kg-1).
-                                      sigma_all_q_mid_col(:) ! Summation of all water mixing ratio (kg kg-1).
+                                      sigma_all_q_mid_col(:) ! Summation of all water species mixing ratios (kg kg-1).
         real(kind_r8), allocatable :: rhod_mid_col(:), &     ! Dry air density (kg m-3).
                                       rho_mid_col(:)         ! Full air density (kg m-3).
         real(kind_r8), allocatable :: t_mid_col(:), &        ! Temperature (K).
