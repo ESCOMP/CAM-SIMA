@@ -859,7 +859,7 @@ contains
                     ! The summation term of equation 8 in doi:10.1029/2017MS001257.
                     ! Using equation 7 here is not possible because it requires all constituent mixing ratio to be moist
                     ! on the RHS of it. There is no such guarantee in CAM-SIMA.
-                    sigma_all_q(:) = phys_state % pdel(i, :) / phys_state % pdeldry(i, :)
+                    sigma_all_q(:) = reverse(phys_state % pdel(i, :) / phys_state % pdeldry(i, :))
                 end if
 
                 ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
@@ -873,7 +873,7 @@ contains
                     if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
                         ! Equation 8 in doi:10.1029/2017MS001257.
                         scalars(j, :, i) = &
-                            scalars(j, :, i) * reverse(sigma_all_q)
+                            scalars(j, :, i) * sigma_all_q(:)
                     end if
                 end do
             end do
@@ -884,7 +884,7 @@ contains
             do i = 1, ncells_solve
                 if (conversion .and. any(is_conversion_needed)) then
                     ! The summation term of equation 8 in doi:10.1029/2017MS001257.
-                    sigma_all_q(:) = 1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1)
+                    sigma_all_q(:) = reverse(1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1))
                 end if
 
                 ! `j` is indexing into `constituents`, so it is regarded as constituent index.
@@ -898,7 +898,7 @@ contains
                     if (conversion .and. is_conversion_needed(j)) then
                         ! Equation 8 in doi:10.1029/2017MS001257.
                         constituents(i, :, j) = &
-                            constituents(i, :, j) / reverse(sigma_all_q)
+                            constituents(i, :, j) / sigma_all_q(:)
                     end if
                 end do
             end do
