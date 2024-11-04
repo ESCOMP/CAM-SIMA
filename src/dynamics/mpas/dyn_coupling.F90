@@ -236,10 +236,8 @@ contains
             p_mid_col(:) = rho_mid_col(:) * constant_rd * tv_mid_col(:)
 
             ! By definition.
+            pd_int_col(pverp) = pd_mid_col(pver) + 0.5_kind_r8 * dpd_col(pver)
             p_int_col(pverp) = p_mid_col(pver) + 0.5_kind_r8 * dp_col(pver)
-
-            ! Assume no water at top of model.
-            pd_int_col(pverp) = p_int_col(pverp)
 
             ! Integrate downward.
             do k = pver, 1, -1
