@@ -74,6 +74,8 @@ contains
         ! Read time-invariant (e.g., grid/mesh) variables.
         call mpas_dynamical_core % read_write_stream(pio_file, 'r', 'invariant')
 
+        nullify(pio_file)
+
         ! Compute local east, north and edge-normal unit vectors whenever time-invariant (e.g., grid/mesh) variables are read.
         call mpas_dynamical_core % compute_unit_vector()
 
@@ -422,6 +424,7 @@ contains
         call cam_grid_attribute_register('mpas_cell', 'cell_weight', 'MPAS cell weight', 'nCells', cell_weight, &
             map=global_grid_index)
 
+        nullify(areacell)
         nullify(cell_area, cell_weight)
         nullify(lat_coord, lon_coord)
 
@@ -438,7 +441,6 @@ contains
         call cam_grid_register('cam_cell', dyn_grid_id('cam_cell'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
 
-        nullify(areacell)
         nullify(indextocellid)
         nullify(latcell, loncell)
 
