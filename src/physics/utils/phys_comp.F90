@@ -10,6 +10,7 @@ module phys_comp
    private
 
    public :: phys_readnl
+   public :: phys_register
    public :: phys_init
    public :: phys_timestep_init
    public :: phys_run1
@@ -129,26 +130,14 @@ CONTAINS
 
    end subroutine phys_readnl
 
-   subroutine phys_init()
-      use cam_abortutils,       only: endrun
-      use physics_grid,         only: columns_on_task
-      use vert_coord,           only: pver, pverp
-      use cam_thermo,           only: cam_thermo_init
-      use physics_types,        only: allocate_physics_types_fields
-      use cam_ccpp_cap,         only: cam_ccpp_physics_initialize
+   subroutine phys_register()
+      use cam_ccpp_cap,         only: cam_ccpp_physics_register
       use cam_ccpp_cap,         only: ccpp_physics_suite_part_list
+      use cam_abortutils,       only: endrun
 
       ! Local variables
       integer                    :: i_group
 
-      call cam_thermo_init(columns_on_task, pver, pverp)
-
-      call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
-           set_init_val_in=.true., reallocate_in=.false.)
-      call cam_ccpp_physics_initialize(phys_suite_name)
-      if (errcode /= 0) then
-         call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
-      end if
       call ccpp_physics_suite_part_list(phys_suite_name, suite_parts,         &
            errmsg, errcode)
       if (errcode /= 0) then
@@ -158,11 +147,35 @@ CONTAINS
       ! Confirm that the suite parts are as expected
       do i_group = 1, size(suite_parts)
          if (.not. any(suite_parts(i_group) == suite_parts_expect)) then
-            write(errmsg, *) 'phys_init: SDF suite groups MUST be ',             &
+            write(errmsg, *) 'phys_register: SDF suite groups MUST be ',      &
                 'ONLY `physics_before_coupler` and/or `physics_after_coupler`'
             call endrun(errmsg)
          end if
       end do
+      ! Call CCPP register phase
+      call cam_ccpp_physics_register(phys_suite_name)
+      if (errcode /= 0) then
+         call endrun('cam_ccpp_physics_register: '//trim(errmsg))
+      end if
+
+   end subroutine phys_register
+
+   subroutine phys_init()
+      use cam_abortutils,       only: endrun
+      use physics_grid,         only: columns_on_task
+      use vert_coord,           only: pver, pverp
+      use cam_thermo,           only: cam_thermo_init
+      use physics_types,        only: allocate_physics_types_fields
+      use cam_ccpp_cap,         only: cam_ccpp_physics_initialize
+
+      call cam_thermo_init(columns_on_task, pver, pverp)
+
+      call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
+           set_init_val_in=.true., reallocate_in=.false.)
+      call cam_ccpp_physics_initialize(phys_suite_name)
+      if (errcode /= 0) then
+         call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
+      end if
 
    end subroutine phys_init
 

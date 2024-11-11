@@ -86,6 +86,7 @@ CONTAINS
       use cam_initfiles,        only: cam_initfiles_open
       use dyn_grid,             only: model_grid_init
       use phys_comp,            only: phys_init
+      use phys_comp,            only: phys_register
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
       use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
@@ -185,6 +186,10 @@ CONTAINS
 
       ! Open initial or restart file, and topo file if specified.
       call cam_initfiles_open()
+
+      ! Call CCPP physics register phase (must happen before
+      !   cam_register_constituents)
+      call phys_register()
 
       ! Initialize constituent information
       !    This will set the total number of constituents and the

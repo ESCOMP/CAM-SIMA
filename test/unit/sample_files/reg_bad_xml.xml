@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_complete" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <use module="physconst" reference="rair"/>
+    <use module="physconst" reference="cpair"/>
+    <variable local_name="ncol" standard_name="horizontal_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of horizontal columns</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="pver" standard_name="vertical_layer_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of vertical layers</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="ix_qv"
+              standard_name="index_of_water_vapor_specific_humidity"
+              units="count" type="integer">
+      <initial_value>1</initial_value>
+    </variable>
+    <variable local_name="ix_cld_liq"
+              standard_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
+              units="count" type="integer">
+      <initial_value>2</initial_value>
+    </variable>
+    <variable local_name="latitude" standard_name="latitude"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_name>lat</ic_file_input_name>
+    </variable>
+    <variable local_name="longitude" standard_name="longitude"
+              units="radians" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>lon</ic_file_input_names>
+    </variable>
+    <variable local_name="u" standard_name="x_wind"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>u_wind</ic_file_input_names>
+    </variable>
+    <variable local_name="v" standard_name="y_wind"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="pointer" access="protected">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>v_wind</ic_file_input_names>
+    </variable>
+    <variable local_name="param_val_var"
+              standard_name="made_up_param_variable"
+              units="count" type="integer" allocatable="parameter">
+              <initial_value>42</initial_value>
+    </variable>
+    <variable local_name="standard_var"
+              standard_name="standard_non_ddt_variable"
+              units="K" type="real" phys_timestep_init_zero="true">
+              <ic_file_input_names>stand_var</ic_file_input_names>
+    </variable>
+    <variable local_name="cappav"
+              standard_name="composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>1 + rair/cpair - rair * 2</initial_value>
+    </variable>
+    <array local_name="q" standard_name="constituent_mixing_ratio"
+              units="kg kg-1"
+              type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension
+      number_of_constituents</dimensions>
+      <element standard_name="water_vapor_specific_humidity"
+               index_name="index_of_water_vapor_specific_humidity"
+               index_pos="number_of_constituents">
+               <ic_file_input_names>Q Q_snapshot</ic_file_input_names>
+      </element>
+      <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
+               index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
+               index_pos="number_of_constituents">
+               <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>
+      </element>
+    </array>
+    <ddt type="physics_base" bindC="true">
+      <data>horizontal_dimension</data>
+      <data>vertical_layer_dimension</data>
+    </ddt>
+    <ddt type="model_wind">
+      <data>x_wind</data>
+      <data>y_wind</data>
+    </ddt>
+    <variable local_name="wind" standard_name="model_wind"
+              units="None" type="model_wind" />
+    <ddt type="physics_state" extends="physics_base">
+      <data>latitude</data>
+      <data>longitude</data>
+      <data>model_wind</data>
+      <data>constituent_mixing_ratio</data>
+    </ddt>
+    <variable local_name="phys_state"
+              standard_name="physics_state_due_to_dynamics"
+              units="None" type="physics_state" phys_timestep_init_zero="true">
+      <long_name>Physics state variables updated by dynamical core</long_name>
+    </variable>
+  </file>
+  <metadata_file>$SRCROOT/test/unit/sample_files/ref_pres.meta</metadata_file>
+</registry>

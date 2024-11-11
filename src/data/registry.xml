@@ -154,7 +154,7 @@
               allocatable="pointer">
       <long_name>inverse exner function w.r.t. surface pressure (ps/p)^(R/cp)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>exner state_exner</ic_file_input_names>
+      <ic_file_input_names>exner state_exner inverse_exner_function_wrt_surface_pressure</ic_file_input_names>
     </variable>
     <variable local_name="zm"
               standard_name="geopotential_height_wrt_surface"

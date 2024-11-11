@@ -52,15 +52,26 @@ real(r8), parameter :: c1 = g0*mw/rg
 CONTAINS
 !=========================================================================================
 
-subroutine std_atm_pres(height, pstd)
+subroutine std_atm_pres(height, pstd, user_specified_ps)
 
    ! arguments
-   real(r8), intent(in)  :: height(:) ! height above sea level in meters
-   real(r8), intent(out) :: pstd(:)   ! std pressure in Pa
+   real(r8),           intent(in)  :: height(:) ! height above sea level in meters
+   real(r8),           intent(out) :: pstd(:)   ! std pressure in Pa
+   real(r8), optional, intent(in)  :: user_specified_ps
 
-   integer :: i, ii, k, nlev
+   integer  :: i, ii, k, nlev
+   real(r8) :: pb_local(nreg)
+
    character(len=*), parameter :: routine = 'std_atm_pres'
    !----------------------------------------------------------------------------
+
+   ! Initialize local standard pressure values array
+   pb_local = pb
+
+   ! Set new surface pressure value if provided by the caller
+   if (present(user_specified_ps)) then
+      pb_local(1) = user_specified_ps
+   end if
 
    nlev = size(height)
    do k = 1, nlev
@@ -78,13 +89,12 @@ subroutine std_atm_pres(height, pstd)
       end if
 
       if (lb(ii) /= 0._r8) then
-         pstd(k) = pb(ii) * ( tb(ii) / (tb(ii) + lb(ii)*(height(k) - hb(ii)) ) )**(c1/lb(ii))
+         pstd(k) = pb_local(ii) * ( tb(ii) / (tb(ii) + lb(ii)*(height(k) - hb(ii)) ) )**(c1/lb(ii))
       else
-         pstd(k) = pb(ii) * exp( -c1*(height(k) - hb(ii))/tb(ii) )
+         pstd(k) = pb_local(ii) * exp( -c1*(height(k) - hb(ii))/tb(ii) )
       end if
 
    end do
-
 end subroutine std_atm_pres
 
 !=========================================================================================

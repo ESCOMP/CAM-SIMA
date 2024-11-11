@@ -42,6 +42,7 @@ sys.path.append(__REGISTRY_DIR)
 from generate_registry_data import gen_registry
 from generate_registry_data import metadata_file_to_files, TypeRegistry
 from framework_env import CCPPFrameworkEnv
+from parse_source import CCPPError
 # pylint: enable=wrong-import-position
 
 ###############################################################################
@@ -115,6 +116,25 @@ class RegistryTest(unittest.TestCase):
         amsg = f"{out_source} does not match {in_source}"
         self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
                         msg=amsg)
+
+    def test_bad_registry_xml(self):
+        """Test that the full error messages from xmllint is returned"""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_bad_xml.xml")
+        out_name = "physics_types_bad"
+        # Try to generate the registry
+        with self.assertRaises(CCPPError) as cerr:
+            retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                             _SRC_MOD_DIR, _CAM_ROOT,
+                                             loglevel=logging.ERROR,
+                                             error_on_no_validate=True)
+        # end with
+        expected_error = "reg_bad_xml.xml:32: element ic_file_input_name: Schemas validity error : Element 'ic_file_input_name': This element is not expected. Expected is one of ( initial_value, ic_file_input_names )."
+        split_exception = str(cerr.exception).split('\n')
+        amsg = f"Test failure: exception raised is {len(split_exception)} lines long and is expected to be 4"
+        self.assertEqual(len(split_exception), 4, msg=amsg)
+        # Check that the full xmllint message was returned
+        self.assertTrue(split_exception[2].endswith(expected_error))
 
     def test_good_ddt_registry(self):
         """Test code and metadata generation from a good registry with a DDT.

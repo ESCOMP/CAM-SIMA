@@ -5,13 +5,14 @@ module dyn_grid
     use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register, &
                                 horiz_coord_t, horiz_coord_create, &
                                 max_hcoordname_len
+    use cam_history_support, only: add_vert_coord
     use cam_initfiles, only: initial_file_get_id
     use cam_map_utils, only: kind_imap => imap
     use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
         ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
         ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
         sphere_radius
-    use dynconst, only: constant_pi => pi, rad_to_deg, dynconst_init
+    use dynconst, only: constant_p0 => pref, constant_pi => pi, rad_to_deg, dynconst_init
     use physics_column_type, only: kind_pcol, physics_column_t
     use physics_grid, only: phys_decomp, phys_grid_init
     use ref_pres, only: ref_pres_init
@@ -107,7 +108,7 @@ contains
             call endrun('Numbers of vertical layers mismatch', subname, __LINE__)
         end if
 
-        ! Initialize reference pressure.
+        ! Initialize reference pressure for use by physics.
         call dyn_debug_print('Calling init_reference_pressure')
 
         call init_reference_pressure()
@@ -123,7 +124,7 @@ contains
         call define_cam_grid()
     end subroutine model_grid_init
 
-    !> Initialize reference pressure by computing necessary variables and calling `ref_pres_init`.
+    !> Initialize reference pressure for use by physics.
     !> (KCW, 2024-03-25)
     subroutine init_reference_pressure()
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
@@ -139,10 +140,16 @@ contains
         ! `zw` denotes zeta at w-wind levels (i.e., at layer interfaces).
         ! `dzw` denotes the delta/difference between `zw`.
         ! `rdzw` denotes the reciprocal of `dzw`.
-        real(kind_r8), allocatable :: zu(:), zw(:), dzw(:)
+        real(kind_r8), allocatable :: dzw(:)
         real(kind_r8), pointer :: rdzw(:)
+        real(kind_r8), pointer :: zu(:) ! CANNOT be safely deallocated because `add_vert_coord`
+                                        ! just uses pointers to point at it internally.
+        real(kind_r8), pointer :: zw(:) ! CANNOT be safely deallocated because `add_vert_coord`
+                                        ! just uses pointers to point at it internally.
 
         nullify(rdzw)
+        nullify(zu)
+        nullify(zw)
 
         ! Compute reference height.
         call mpas_dynamical_core % get_variable_pointer(rdzw, 'mesh', 'rdzw')
@@ -169,11 +176,19 @@ contains
             zu(k) = 0.5_kind_r8 * (zw(k + 1) + zw(k))
         end do
 
+        deallocate(dzw)
+
+        ! Register zeta coordinates with history.
+        call add_vert_coord('ilev', pverp, 'Height (zeta) level at layer interfaces', 'm', zw, &
+            positive='up')
+        call add_vert_coord('lev', pver, 'Height (zeta) level at layer midpoints', 'm', zu, &
+            positive='up')
+
         ! Compute reference pressure from reference height.
         allocate(p_ref_int(pverp), stat=ierr)
         call check_allocate(ierr, subname, 'p_ref_int(pverp)', 'dyn_grid', __LINE__)
 
-        call std_atm_pres(zw, p_ref_int)
+        call std_atm_pres(zw, p_ref_int, user_specified_ps=constant_p0)
 
         allocate(p_ref_mid(pver), stat=ierr)
         call check_allocate(ierr, subname, 'p_ref_mid(pver)', 'dyn_grid', __LINE__)
@@ -201,6 +216,12 @@ contains
             ' |  ' // stringify([p_ref_int(k) / 100.0_kind_r8]))
 
         call ref_pres_init(p_ref_int, p_ref_mid, num_pure_p_lev)
+
+        deallocate(p_ref_int)
+        deallocate(p_ref_mid)
+
+        nullify(zu)
+        nullify(zw)
     end subroutine init_reference_pressure
 
     !> Initialize physics grid in terms of dynamics decomposition.
@@ -209,7 +230,7 @@ contains
     subroutine init_physics_grid()
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
-        integer :: hdim1_d, hdim2_d
+        integer :: hdim1_d, hdim2_d ! First and second horizontal dimensions of physics grid.
         integer :: i
         integer :: ierr
         integer, pointer :: indextocellid(:)  ! Global indexes of cell centers.
@@ -274,6 +295,9 @@ contains
         call check_allocate(ierr, subname, 'dyn_attribute_name(0)', 'dyn_grid', __LINE__)
 
         call phys_grid_init(hdim1_d, hdim2_d, 'mpas', dyn_column, 'mpas_cell', dyn_attribute_name)
+
+        deallocate(dyn_column)
+        deallocate(dyn_attribute_name)
     end subroutine init_physics_grid
 
     !> This subroutine defines and registers four variants of dynamics grids in terms of dynamics decomposition.
@@ -298,25 +322,25 @@ contains
         real(kind_r8), pointer :: lonedge(:)   ! Edge node longitudes (radians).
         real(kind_r8), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
 
-        ! Global grid indexes. CAN be safely deallocated because its values are copied into
-        ! `cam_grid_attribute_*_t` and `horiz_coord_t`.
+        ! Global grid indexes. CAN be safely deallocated because its values are copied internally by
+        ! `cam_grid_attribute_register` and `horiz_coord_create`.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
         integer(kind_imap), pointer :: global_grid_index(:)
-        ! Global grid maps. CANNOT be safely deallocated because `cam_filemap_t`
-        ! just uses pointers to point at it.
+        ! Global grid maps. CANNOT be safely deallocated because `cam_grid_register`
+        ! just uses pointers to point at it internally.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
         integer(kind_imap), pointer :: global_grid_map(:, :)
-        ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_*_t`
-        ! just uses pointers to point at it.
+        ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_register`
+        ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: cell_area(:)
-        ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_*_t`
-        ! just uses pointers to point at it.
+        ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_register`
+        ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: cell_weight(:)
-        ! Latitude coordinates. CANNOT be safely deallocated because `cam_grid_t`
-        ! just uses pointers to point at it.
+        ! Latitude coordinates. CANNOT be safely deallocated because `cam_grid_register`
+        ! just uses pointers to point at it internally.
         type(horiz_coord_t), pointer :: lat_coord
-        ! Longitude coordinates. CANNOT be safely deallocated because `cam_grid_t`
-        ! just uses pointers to point at it.
+        ! Longitude coordinates. CANNOT be safely deallocated because `cam_grid_register`
+        ! just uses pointers to point at it internally.
         type(horiz_coord_t), pointer :: lon_coord
 
         nullify(indextocellid, indextoedgeid, indextovertexid)
