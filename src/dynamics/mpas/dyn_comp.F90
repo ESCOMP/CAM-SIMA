@@ -1,46 +1,9 @@
 module dyn_comp
+    ! Module(s) from CESM Share.
+    use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                            len_cs => shr_kind_cs
+    ! Module(s) from MPAS.
     use dyn_mpas_subdriver, only: mpas_dynamical_core_type
-
-    ! Modules from CAM-SIMA.
-    use air_composition, only: thermodynamic_active_species_num, &
-                               thermodynamic_active_species_liq_num, &
-                               thermodynamic_active_species_ice_num, &
-                               thermodynamic_active_species_idx, thermodynamic_active_species_idx_dycore, &
-                               thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
-                               thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
-    use cam_abortutils, only: check_allocate, endrun
-    use cam_constituents, only: const_name, const_is_dry, const_is_water_species, num_advected, readtrace
-    use cam_control_mod, only: initial_run
-    use cam_field_read, only: cam_read_field
-    use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
-    use cam_initfiles, only: initial_file_get_id, topo_file_get_id
-    use cam_instance, only: atm_id
-    use cam_logfile, only: debug_output, debugout_none, iulog
-    use cam_pio_utils, only: clean_iodesc_list
-    use dyn_tests_utils, only: vc_height
-    use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, constant_pi => pi, &
-                        constant_rd => rair, constant_rv => rh2o, &
-                        deg_to_rad
-    use inic_analytic, only: analytic_ic_active, dyn_set_inic_col
-    use runtime_obj, only: runtime_options
-    use spmd_utils, only: iam, masterproc, mpicom
-    use string_utils, only: stringify
-    use time_manager, only: get_start_date, get_stop_date, get_step_size, get_run_duration, timemgr_get_calendar_cf
-    use vert_coord, only: pver, pverp
-
-    ! Modules from CCPP.
-    use cam_ccpp_cap, only: cam_constituents_array
-    use ccpp_kinds, only: kind_phys
-    use phys_vars_init_check, only: mark_as_initialized, std_name_len
-    use physics_types, only: phys_state
-
-    ! Modules from CESM Share.
-    use shr_file_mod, only: shr_file_getunit
-    use shr_kind_mod, only: kind_cs => shr_kind_cs, kind_r8 => shr_kind_r8
-    use shr_pio_mod, only: shr_pio_getiosys
-
-    ! Modules from external libraries.
-    use pio, only: file_desc_t, iosystem_desc_t, pio_file_is_open
 
     implicit none
 
@@ -87,6 +50,11 @@ contains
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
     subroutine dyn_debug_print(message, variable, printer)
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debug_output, debugout_none, iulog
+        use spmd_utils, only: iam, masterproc
+        use string_utils, only: stringify
+
         character(*), intent(in) :: message
         class(*), optional, intent(in) :: variable(:)
         integer, optional, intent(in) :: printer
@@ -121,10 +89,23 @@ contains
     !
     ! Called by `read_namelist` in `src/control/runtime_opts.F90`.
     subroutine dyn_readnl(namelist_path)
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: endrun
+        use cam_control_mod, only: initial_run
+        use cam_instance, only: atm_id
+        use cam_logfile, only: debug_output, debugout_none, iulog
+        use spmd_utils, only: mpicom
+        use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
+        ! Module(s) from CESM Share.
+        use shr_file_mod, only: shr_file_getunit
+        use shr_pio_mod, only: shr_pio_getiosys
+        ! Module(s) from external libraries.
+        use pio, only: iosystem_desc_t
+
         character(*), intent(in) :: namelist_path
 
         character(*), parameter :: subname = 'dyn_comp::dyn_readnl'
-        character(kind_cs) :: cam_calendar
+        character(len_cs) :: cam_calendar
         integer :: log_unit(2)
         integer :: start_date_time(6), & ! YYYY, MM, DD, hh, mm, ss.
                    stop_date_time(6),  & ! YYYY, MM, DD, hh, mm, ss.
@@ -187,8 +168,27 @@ contains
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+        ! Module(s) from CAM-SIMA.
+        use air_composition, only: thermodynamic_active_species_num, &
+                                   thermodynamic_active_species_liq_num, &
+                                   thermodynamic_active_species_ice_num, &
+                                   thermodynamic_active_species_idx, thermodynamic_active_species_idx_dycore, &
+                                   thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
+                                   thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
+        use cam_abortutils, only: check_allocate
+        use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
+        use cam_control_mod, only: initial_run
+        use cam_initfiles, only: initial_file_get_id, topo_file_get_id
+        use cam_pio_utils, only: clean_iodesc_list
         use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
+        use inic_analytic, only: analytic_ic_active
         use physics_types, only: dycore_energy_consistency_adjust
+        use runtime_obj, only: runtime_options
+        use time_manager, only: get_step_size
+        ! Module(s) from CCPP.
+        use phys_vars_init_check, only: std_name_len
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t
 
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
@@ -306,6 +306,14 @@ contains
     !> Otherwise, if topography file is not used, check that the surface geometric height in MPAS is zero.
     !> (KCW, 2024-05-10)
     subroutine check_topography_data(pio_file)
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate, endrun
+        use cam_field_read, only: cam_read_field
+        use cam_logfile, only: debug_output, debugout_none
+        use dynconst, only: constant_g => gravit
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, pio_file_is_open
+
         type(file_desc_t), pointer, intent(in) :: pio_file
 
         character(*), parameter :: subname = 'dyn_comp::check_topography_data'
@@ -389,9 +397,15 @@ contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
         subroutine init_shared_variables()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate, endrun
+            use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
+            use dynconst, only: deg_to_rad
+            use vert_coord, only: pverp
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variables'
-            integer :: ierr
             integer :: i
+            integer :: ierr
             integer, pointer :: indextocellid(:)
             real(kind_r8), pointer :: lat_deg(:), lon_deg(:)
 
@@ -459,9 +473,15 @@ contains
         !> Set MPAS state `u` (i.e., horizontal velocity at edge interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_u()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dyn_tests_utils, only: vc_height
+            use inic_analytic, only: dyn_set_inic_col
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_u'
-            integer :: ierr
             integer :: i
+            integer :: ierr
             real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
 
             call dyn_debug_print('Setting MPAS state "u"')
@@ -522,6 +542,13 @@ contains
         !> Set MPAS state `scalars` (i.e., constituents).
         !> (KCW, 2024-05-17)
         subroutine set_mpas_state_scalars()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use cam_constituents, only: num_advected
+            use dyn_tests_utils, only: vc_height
+            use inic_analytic, only: dyn_set_inic_col
+            use vert_coord, only: pver
+
             ! CCPP standard name of `qv`, which denotes water vapor mixing ratio.
             character(*), parameter :: constituent_qv_standard_name = &
                 'water_vapor_mixing_ratio_wrt_dry_air'
@@ -588,6 +615,13 @@ contains
         !> Set MPAS state `rho` (i.e., dry air density) and `theta` (i.e., potential temperature).
         !> (KCW, 2024-05-19)
         subroutine set_mpas_state_rho_theta()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dyn_tests_utils, only: vc_height
+            use dynconst, only: constant_p0 => pref, constant_rd => rair, constant_rv => rh2o
+            use inic_analytic, only: dyn_set_inic_col
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_theta'
             integer :: i, k
             integer :: ierr
@@ -700,6 +734,11 @@ contains
         !> Set MPAS state `rho_base` (i.e., base state dry air density) and `theta_base` (i.e., base state potential temperature).
         !> (KCW, 2024-05-21)
         subroutine set_mpas_state_rho_base_theta_base()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dynconst, only: constant_p0 => pref, constant_rd => rair
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_base_theta_base'
             integer :: i, k
             integer :: ierr
@@ -758,6 +797,9 @@ contains
         !> `t_v` is the mean virtual temperature between `z_1` and `z_2`.
         !> (KCW, 2024-07-02)
         pure elemental function p_by_hypsometric_equation(p_1, z_1, t_v, z_2) result(p_2)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_g => gravit, constant_rd => rair
+
             real(kind_r8), intent(in) :: p_1, z_1, t_v, z_2
             real(kind_r8) :: p_2
 
@@ -772,6 +814,9 @@ contains
         !> Poisson equation.
         !> (KCW, 2024-07-02)
         pure elemental function theta_by_poisson_equation(p_1, t_1, p_0) result(t_0)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_cpd => cpair, constant_rd => rair
+
             real(kind_r8), intent(in) :: p_1, t_1, p_0
             real(kind_r8) :: t_0
 
@@ -791,6 +836,15 @@ contains
     !> Some procedures in CAM-SIMA expect constituent states to be dry, while the others expect them to be moist.
     !> (KCW, 2024-09-26)
     subroutine dyn_exchange_constituent_state(direction, exchange, conversion)
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate, endrun
+        use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
+        use physics_types, only: phys_state
+        use vert_coord, only: pver
+        ! Module(s) from CCPP.
+        use cam_ccpp_cap, only: cam_constituents_array
+        use ccpp_kinds, only: kind_phys
+
         character(*), intent(in) :: direction
         logical, intent(in) :: exchange
         logical, intent(in) :: conversion
@@ -933,6 +987,11 @@ contains
     !> to prevent physics from attempting to read them from a file.
     !> (KCW, 2024-05-23)
     subroutine mark_variable_as_initialized()
+        ! Module(s) from CAM-SIMA.
+        use cam_constituents, only: const_name, num_advected
+        ! Module(s) from CCPP.
+        use phys_vars_init_check, only: mark_as_initialized
+
         character(*), parameter :: subname = 'dyn_comp::mark_variable_as_initialized'
         integer :: i
 

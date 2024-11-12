@@ -1,31 +1,10 @@
 module dyn_grid
-    ! Modules from CAM-SIMA.
-    use cam_abortutils, only: check_allocate, endrun
-    use cam_constituents, only: num_advected
-    use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register, &
-                                horiz_coord_t, horiz_coord_create, &
-                                max_hcoordname_len
-    use cam_history_support, only: add_vert_coord
-    use cam_initfiles, only: initial_file_get_id
+    ! Module(s) from CAM-SIMA.
+    use cam_grid_support, only: max_hcoordname_len
     use cam_map_utils, only: kind_imap => imap
-    use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
-        ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
-        ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
-        sphere_radius
-    use dynconst, only: constant_p0 => pref, constant_pi => pi, rad_to_deg, dynconst_init
-    use physics_column_type, only: kind_pcol, physics_column_t
-    use physics_grid, only: phys_decomp, phys_grid_init
-    use ref_pres, only: ref_pres_init
-    use spmd_utils, only: iam
-    use std_atm_profile, only: std_atm_pres
-    use string_utils, only: stringify
-    use vert_coord, only: pver, pverp, vert_coord_init
-
-    ! Modules from CESM Share.
+    use physics_column_type, only: kind_pcol
+    ! Module(s) from CESM Share.
     use shr_kind_mod, only: kind_r8 => shr_kind_r8
-
-    ! Modules from external libraries.
-    use pio, only: file_desc_t
 
     implicit none
 
@@ -52,6 +31,20 @@ contains
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine model_grid_init()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: endrun
+        use cam_constituents, only: num_advected
+        use cam_initfiles, only: initial_file_get_id
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
+                            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
+                            ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
+                            sphere_radius
+        use dynconst, only: dynconst_init
+        use string_utils, only: stringify
+        use vert_coord, only: pver, vert_coord_init
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t
+
         character(*), parameter :: subname = 'dyn_grid::model_grid_init'
         type(file_desc_t), pointer :: pio_file
 
@@ -127,6 +120,16 @@ contains
     !> Initialize reference pressure for use by physics.
     !> (KCW, 2024-03-25)
     subroutine init_reference_pressure()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use cam_history_support, only: add_vert_coord
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
+        use dynconst, only: constant_p0 => pref
+        use ref_pres, only: ref_pres_init
+        use std_atm_profile, only: std_atm_pres
+        use string_utils, only: stringify
+        use vert_coord, only: pver, pverp
+
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
         ! Number of pure pressure levels at model top.
         integer, parameter :: num_pure_p_lev = 0
@@ -228,6 +231,15 @@ contains
     !> Provide grid and mapping information between global and local indexes to physics by calling `phys_grid_init`.
     !> (KCW, 2024-03-27)
     subroutine init_physics_grid()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use dyn_comp, only: mpas_dynamical_core, ncells_global, ncells_solve, sphere_radius
+        use dynconst, only: constant_pi => pi, rad_to_deg
+        use physics_column_type, only: physics_column_t
+        use physics_grid, only: phys_grid_init
+        use spmd_utils, only: iam
+        use string_utils, only: stringify
+
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
         integer :: hdim1_d, hdim2_d ! First and second horizontal dimensions of physics grid.
@@ -308,6 +320,17 @@ contains
     !> * "mpas_vertex": Grid that is centered at MPAS "vertex" points.
     !> (KCW, 2024-03-28)
     subroutine define_cam_grid()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use cam_grid_support, only: cam_grid_attribute_register, cam_grid_register, &
+                                    horiz_coord_create, horiz_coord_t
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
+                            ncells_global, nedges_global, nvertices_global, &
+                            ncells_solve, nedges_solve, nvertices_solve, &
+                            sphere_radius
+        use dynconst, only: constant_pi => pi, rad_to_deg
+        use string_utils, only: stringify
+
         character(*), parameter :: subname = 'dyn_grid::define_cam_grid'
         integer :: i
         integer :: ierr
@@ -500,6 +523,9 @@ contains
     !> Helper function for returning grid id given its name.
     !> (KCW, 2024-03-27)
     pure function dyn_grid_id(name)
+        ! Module(s) from CAM-SIMA.
+        use physics_grid, only: phys_decomp
+
         character(*), intent(in) :: name
         integer :: dyn_grid_id
 

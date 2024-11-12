@@ -1,31 +1,7 @@
 module dyn_coupling
-    ! Modules from CAM-SIMA.
-    use cam_abortutils, only: check_allocate, endrun
-    use cam_constituents, only: const_is_water_species, const_qmin, num_advected
-    use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
-    use cam_thermo_formula, only: energy_formula_dycore_mpas
-    use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_state, reverse, mpas_dynamical_core, &
-        ncells_solve
-    use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
-                        constant_rd => rair, constant_rv => rh2o
-    use runtime_obj, only: cam_runtime_opts
-    use vert_coord, only: pver, pverp
-
-    ! Modules from CCPP.
-    use cam_ccpp_cap, only: cam_constituents_array, cam_model_const_properties
-    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-    use ccpp_kinds, only: kind_phys
-    use geopotential_temp, only: geopotential_temp_run
-    use physics_types, only: cappav, cpairv, rairv, zvirv, &
-                             dtime_phys, lagrangian_vertical, &
-                             phys_state, phys_tend
-    use physics_types, only: cp_or_cv_dycore
-    use qneg, only: qneg_run
-    use static_energy, only: update_dry_static_energy_run
-    use string_utils, only: stringify
-
-    ! Modules from CESM Share.
-    use shr_kind_mod, only: kind_cx => shr_kind_cx, kind_r8 => shr_kind_r8
+    ! Module(s) from CESM Share.
+    use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                            len_cx => shr_kind_cx
 
     implicit none
 
@@ -38,6 +14,9 @@ contains
     !> The other coupling direction is implemented by its counterpart, `physics_to_dynamics_coupling`.
     !> (KCW, 2024-07-31)
     subroutine dynamics_to_physics_coupling()
+        ! Module(s) from CAM-SIMA.
+        use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_state, ncells_solve
+
         character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling'
         integer :: column_index
         integer, allocatable :: is_water_species_index(:)
@@ -93,6 +72,12 @@ contains
         !> `set_physics_state_column` internal subroutines.
         !> (KCW, 2024-07-20)
         subroutine init_shared_variables()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use cam_constituents, only: const_is_water_species, num_advected
+            use dyn_comp, only: mpas_dynamical_core
+            use vert_coord, only: pver, pverp
+
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::init_shared_variables'
             integer :: i
             integer :: ierr
@@ -198,6 +183,10 @@ contains
         !> should be called in pairs.
         !> (KCW, 2024-07-30)
         subroutine update_shared_variables(i)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_g => gravit, constant_rd => rair, constant_rv => rh2o
+            use vert_coord, only: pver, pverp
+
             integer, intent(in) :: i
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::update_shared_variables'
@@ -259,6 +248,11 @@ contains
         !> This subroutine and `update_shared_variables` should be called in pairs.
         !> (KCW, 2024-07-30)
         subroutine set_physics_state_column(i)
+            ! Module(s) from CAM-SIMA.
+            use dyn_comp, only: reverse
+            use dynconst, only: constant_g => gravit
+            use physics_types, only: phys_state
+
             integer, intent(in) :: i
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::set_physics_state_column'
@@ -294,8 +288,27 @@ contains
         !> Set variables in the `physics_state` derived type by calling external procedures.
         !> (KCW, 2024-07-30)
         subroutine set_physics_state_external()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate, endrun
+            use cam_constituents, only: const_qmin, num_advected
+            use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
+            use cam_thermo_formula, only: energy_formula_dycore_mpas
+            use dyn_comp, only: mpas_dynamical_core
+            use dynconst, only: constant_g => gravit
+            use physics_types, only: cappav, cp_or_cv_dycore, cpairv, lagrangian_vertical, phys_state, rairv, zvirv
+            use runtime_obj, only: cam_runtime_opts
+            use string_utils, only: stringify
+            use vert_coord, only: pver, pverp
+            ! Module(s) from CCPP.
+            use cam_ccpp_cap, only: cam_constituents_array, cam_model_const_properties
+            use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+            use ccpp_kinds, only: kind_phys
+            use geopotential_temp, only: geopotential_temp_run
+            use qneg, only: qneg_run
+            use static_energy, only: update_dry_static_energy_run
+
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::set_physics_state_external'
-            character(kind_cx) :: cerr
+            character(len_cx) :: cerr
             integer :: i
             integer :: ierr
             real(kind_phys), allocatable :: minimum_constituents(:)
@@ -394,6 +407,9 @@ contains
     !> The other coupling direction is implemented by its counterpart, `dynamics_to_physics_coupling`.
     !> (KCW, 2024-09-20)
     subroutine physics_to_dynamics_coupling()
+        ! Module(s) from CAM-SIMA.
+        use dyn_comp, only: dyn_exchange_constituent_state
+
         character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling'
         integer, pointer :: index_qv
         real(kind_r8), allocatable :: qv_prev(:, :) ! Water vapor mixing ratio (kg kg-1)
@@ -415,6 +431,11 @@ contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_physics_tendency_*` internal subroutines.
         !> (KCW, 2024-09-13)
         subroutine init_shared_variables()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_solve
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::init_shared_variables'
             integer :: ierr
 
@@ -457,6 +478,10 @@ contains
         !> due to physics). In MPAS, a "coupled" variable means that it is multiplied by a vertical metric term, `rho_zz`.
         !> (KCW, 2024-09-11)
         subroutine set_mpas_physics_tendency_ru()
+            ! Module(s) from CAM-SIMA.
+            use dyn_comp, only: dyn_debug_print, reverse, mpas_dynamical_core, ncells_solve
+            use physics_types, only: phys_tend
+
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_ru'
             integer :: i
             real(kind_r8), pointer :: u_tendency(:, :), v_tendency(:, :)
@@ -484,6 +509,9 @@ contains
         !> In MPAS, a "coupled" variable means that it is multiplied by a vertical metric term, `rho_zz`.
         !> (KCW, 2024-09-11)
         subroutine set_mpas_physics_tendency_rho()
+            ! Module(s) from CAM-SIMA.
+            use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_solve
+
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_rho'
             real(kind_r8), pointer :: rho_tendency(:, :)
 
@@ -506,6 +534,13 @@ contains
         !> due to physics). In MPAS, a "coupled" variable means that it is multiplied by a vertical metric term, `rho_zz`.
         !> (KCW, 2024-09-19)
         subroutine set_mpas_physics_tendency_rtheta()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dyn_comp, only: dyn_debug_print, reverse, mpas_dynamical_core, ncells_solve
+            use dynconst, only: constant_rd => rair, constant_rv => rh2o
+            use physics_types, only: dtime_phys, phys_tend
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_rtheta'
             integer :: i
             integer :: ierr
@@ -592,6 +627,10 @@ contains
         !> `t == t_of_theta_rhod_qv(theta_of_t_rhod_qv(t, rhod, qv), rhod, qv)`.
         !> (KCW, 2024-09-13)
         pure elemental function t_of_theta_rhod_qv(theta, rhod, qv) result(t)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
+                                constant_rd => rair, constant_rv => rh2o
+
             real(kind_r8), intent(in) :: theta, rhod, qv
             real(kind_r8) :: t
 
@@ -626,6 +665,10 @@ contains
         !> `theta == theta_of_t_rhod_qv(t_of_theta_rhod_qv(theta, rhod, qv), rhod, qv)`.
         !> (KCW, 2024-09-13)
         pure elemental function theta_of_t_rhod_qv(t, rhod, qv) result(theta)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
+                                constant_rd => rair, constant_rv => rh2o
+
             real(kind_r8), intent(in) :: t, rhod, qv
             real(kind_r8) :: theta
 
