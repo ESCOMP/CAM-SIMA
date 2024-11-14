@@ -5,6 +5,8 @@ module dyn_grid
     use physics_column_type, only: kind_pcol
     ! Module(s) from CESM Share.
     use shr_kind_mod, only: kind_r8 => shr_kind_r8
+    ! Module(s) from MPAS.
+    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
     implicit none
 
@@ -144,7 +146,7 @@ contains
         ! `dzw` denotes the delta/difference between `zw`.
         ! `rdzw` denotes the reciprocal of `dzw`.
         real(kind_r8), allocatable :: dzw(:)
-        real(kind_r8), pointer :: rdzw(:)
+        real(kind_dyn_mpas), pointer :: rdzw(:)
         real(kind_r8), pointer :: zu(:) ! CANNOT be safely deallocated because `add_vert_coord`
                                         ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: zw(:) ! CANNOT be safely deallocated because `add_vert_coord`
@@ -160,7 +162,7 @@ contains
         allocate(dzw(pver), stat=ierr)
         call check_allocate(ierr, subname, 'dzw(pver)', 'dyn_grid', __LINE__)
 
-        dzw(:) = 1.0_kind_r8 / rdzw
+        dzw(:) = 1.0_kind_r8 / real(rdzw(:), kind_r8)
 
         nullify(rdzw)
 
@@ -245,10 +247,10 @@ contains
         integer :: hdim1_d, hdim2_d ! First and second horizontal dimensions of physics grid.
         integer :: i
         integer :: ierr
-        integer, pointer :: indextocellid(:)  ! Global indexes of cell centers.
-        real(kind_r8), pointer :: areacell(:) ! Cell areas (square meters).
-        real(kind_r8), pointer :: latcell(:)  ! Cell center latitudes (radians).
-        real(kind_r8), pointer :: loncell(:)  ! Cell center longitudes (radians).
+        integer, pointer :: indextocellid(:)        ! Global indexes of cell centers.
+        real(kind_dyn_mpas), pointer :: areacell(:) ! Cell areas (square meters).
+        real(kind_dyn_mpas), pointer :: latcell(:)  ! Cell center latitudes (radians).
+        real(kind_dyn_mpas), pointer :: loncell(:)  ! Cell center longitudes (radians).
         type(physics_column_t), allocatable :: dyn_column(:) ! Grid and mapping information between global and local indexes.
 
         nullify(areacell)
@@ -273,12 +275,13 @@ contains
             ! Column information.
             dyn_column(i) % lat_rad = real(latcell(i), kind_pcol)
             dyn_column(i) % lon_rad = real(loncell(i), kind_pcol)
-            dyn_column(i) % lat_deg = real(latcell(i) * rad_to_deg, kind_pcol)
-            dyn_column(i) % lon_deg = real(loncell(i) * rad_to_deg, kind_pcol)
+            dyn_column(i) % lat_deg = real(real(latcell(i), kind_r8) * rad_to_deg, kind_pcol)
+            dyn_column(i) % lon_deg = real(real(loncell(i), kind_r8) * rad_to_deg, kind_pcol)
             ! Cell areas normalized to unit sphere.
             dyn_column(i) % area    = real(areacell(i) / (sphere_radius ** 2), kind_pcol)
             ! Cell weights normalized to unity.
-            dyn_column(i) % weight  = real(areacell(i) / (4.0_kind_r8 * constant_pi * sphere_radius ** 2), kind_pcol)
+            dyn_column(i) % weight  = &
+                real(real(areacell(i), kind_r8) / (4.0_kind_r8 * constant_pi * real(sphere_radius, kind_r8) ** 2), kind_pcol)
 
             ! File decomposition.
             ! For unstructured grid, `coord_indices` is not used by `phys_grid_init`.
@@ -337,13 +340,13 @@ contains
         integer, pointer :: indextocellid(:)   ! Global indexes of cell centers.
         integer, pointer :: indextoedgeid(:)   ! Global indexes of edge nodes.
         integer, pointer :: indextovertexid(:) ! Global indexes of vertex nodes.
-        real(kind_r8), pointer :: areacell(:)  ! Cell areas (square meters).
-        real(kind_r8), pointer :: latcell(:)   ! Cell center latitudes (radians).
-        real(kind_r8), pointer :: latedge(:)   ! Edge node latitudes (radians).
-        real(kind_r8), pointer :: latvertex(:) ! Vertex node latitudes (radians).
-        real(kind_r8), pointer :: loncell(:)   ! Cell center longitudes (radians).
-        real(kind_r8), pointer :: lonedge(:)   ! Edge node longitudes (radians).
-        real(kind_r8), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
+        real(kind_dyn_mpas), pointer :: areacell(:)  ! Cell areas (square meters).
+        real(kind_dyn_mpas), pointer :: latcell(:)   ! Cell center latitudes (radians).
+        real(kind_dyn_mpas), pointer :: latedge(:)   ! Edge node latitudes (radians).
+        real(kind_dyn_mpas), pointer :: latvertex(:) ! Vertex node latitudes (radians).
+        real(kind_dyn_mpas), pointer :: loncell(:)   ! Cell center longitudes (radians).
+        real(kind_dyn_mpas), pointer :: lonedge(:)   ! Edge node longitudes (radians).
+        real(kind_dyn_mpas), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
 
         ! Global grid indexes. CAN be safely deallocated because its values are copied internally by
         ! `cam_grid_attribute_register` and `horiz_coord_create`.
@@ -390,9 +393,9 @@ contains
         global_grid_index(:) = int(indextocellid(1:ncells_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latCell', 'nCells', ncells_global, 'latitude', 'degrees_north', &
-            1, ncells_solve, latcell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(latcell, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lonCell', 'nCells', ncells_global, 'longitude', 'degrees_east', &
-            1, ncells_solve, loncell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(loncell, kind_r8) * rad_to_deg, map=global_grid_index)
 
         allocate(cell_area(ncells_solve), stat=ierr)
         call check_allocate(ierr, subname, 'cell_area(ncells_solve)', 'dyn_grid', __LINE__)
@@ -402,8 +405,8 @@ contains
         call check_allocate(ierr, subname, 'global_grid_map(3, ncells_solve)', 'dyn_grid', __LINE__)
 
         do i = 1, ncells_solve
-            cell_area(i)   = areacell(i)
-            cell_weight(i) = areacell(i) / (4.0_kind_r8 * constant_pi * sphere_radius ** 2)
+            cell_area(i)   = real(areacell(i), kind_r8)
+            cell_weight(i) = real(areacell(i), kind_r8) / (4.0_kind_r8 * constant_pi * real(sphere_radius, kind_r8) ** 2)
 
             global_grid_map(1, i) = int(i, kind_imap)
             global_grid_map(2, i) = int(1, kind_imap)
@@ -426,9 +429,9 @@ contains
         ! Standard CAM-SIMA coordinate and dimension names are used.
 
         lat_coord => horiz_coord_create('lat', 'ncol', ncells_global, 'latitude', 'degrees_north', &
-            1, ncells_solve, latcell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(latcell, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lon', 'ncol', ncells_global, 'longitude', 'degrees_east', &
-            1, ncells_solve, loncell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(loncell, kind_r8) * rad_to_deg, map=global_grid_index)
 
         call dyn_debug_print('Registering grid "cam_cell" with id ' // stringify([dyn_grid_id('cam_cell')]))
 
@@ -456,9 +459,9 @@ contains
         global_grid_index(:) = int(indextoedgeid(1:nedges_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latEdge', 'nEdges', nedges_global, 'latitude', 'degrees_north', &
-            1, nedges_solve, latedge * rad_to_deg, map=global_grid_index)
+            1, nedges_solve, real(latedge, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lonEdge', 'nEdges', nedges_global, 'longitude', 'degrees_east', &
-            1, nedges_solve, lonedge * rad_to_deg, map=global_grid_index)
+            1, nedges_solve, real(lonedge, kind_r8) * rad_to_deg, map=global_grid_index)
 
         allocate(global_grid_map(3, nedges_solve), stat=ierr)
         call check_allocate(ierr, subname, 'global_grid_map(3, nedges_solve)', 'dyn_grid', __LINE__)
@@ -494,9 +497,9 @@ contains
         global_grid_index(:) = int(indextovertexid(1:nvertices_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latVertex', 'nVertices', nvertices_global, 'latitude', 'degrees_north', &
-            1, nvertices_solve, latvertex * rad_to_deg, map=global_grid_index)
+            1, nvertices_solve, real(latvertex, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lonVertex', 'nVertices', nvertices_global, 'longitude', 'degrees_east', &
-            1, nvertices_solve, lonvertex * rad_to_deg, map=global_grid_index)
+            1, nvertices_solve, real(lonvertex, kind_r8) * rad_to_deg, map=global_grid_index)
 
         allocate(global_grid_map(3, nvertices_solve), stat=ierr)
         call check_allocate(ierr, subname, 'global_grid_map(3, nvertices_solve)', 'dyn_grid', __LINE__)

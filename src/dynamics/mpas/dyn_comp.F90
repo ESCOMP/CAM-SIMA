@@ -3,7 +3,7 @@ module dyn_comp
     use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
                             len_cs => shr_kind_cs
     ! Module(s) from MPAS.
-    use dyn_mpas_subdriver, only: mpas_dynamical_core_type
+    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type
 
     implicit none
 
@@ -44,7 +44,7 @@ module dyn_comp
     ! Local and global mesh dimensions of MPAS dynamical core.
     integer :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     integer :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    real(kind_r8) :: sphere_radius
+    real(kind_dyn_mpas) :: sphere_radius
 contains
     !> Print a debug message with optionally the value(s) of a variable.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
@@ -322,7 +322,7 @@ contains
         real(kind_r8), parameter :: error_tolerance = 1.0E-3_kind_r8 ! Error tolerance for consistency check.
         real(kind_r8), allocatable :: surface_geometric_height(:)    ! Computed from topography file.
         real(kind_r8), allocatable :: surface_geopotential(:)        ! Read from topography file.
-        real(kind_r8), pointer :: zgrid(:, :)                        ! From MPAS. Geometric height (meters) at layer interfaces.
+        real(kind_dyn_mpas), pointer :: zgrid(:, :)                  ! From MPAS. Geometric height (meters) at layer interfaces.
 
         nullify(zgrid)
 
@@ -354,7 +354,7 @@ contains
             surface_geometric_height(:) = surface_geopotential(:) / constant_g
 
             ! Surface geometric height in MPAS should match the values in topography file.
-            if (any(abs(zgrid(1, 1:ncells_solve) - surface_geometric_height) > error_tolerance)) then
+            if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8) - surface_geometric_height(:)) > error_tolerance)) then
                 call endrun('Surface geometric height in MPAS is not consistent with topography data', subname, __LINE__)
             end if
 
@@ -364,7 +364,7 @@ contains
             call dyn_debug_print('Topography file is not used')
 
             ! Surface geometric height in MPAS should be zero.
-            if (any(abs(zgrid(1, 1:ncells_solve)) > error_tolerance)) then
+            if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8)) > error_tolerance)) then
                 call endrun('Surface geometric height in MPAS is not zero', subname, __LINE__)
             end if
         end if
@@ -379,10 +379,10 @@ contains
         integer, allocatable :: global_grid_index(:)
         real(kind_r8), allocatable :: buffer_2d_real(:, :), buffer_3d_real(:, :, :)
         real(kind_r8), allocatable :: lat_rad(:), lon_rad(:)
-        real(kind_r8), allocatable :: z_int(:, :) ! Geometric height (meters) at layer interfaces.
-                                                  ! Dimension and vertical index orders follow CAM-SIMA convention.
-        real(kind_r8), pointer :: zgrid(:, :)     ! Geometric height (meters) at layer interfaces.
-                                                  ! Dimension and vertical index orders follow MPAS convention.
+        real(kind_r8), allocatable :: z_int(:, :)   ! Geometric height (meters) at layer interfaces.
+                                                    ! Dimension and vertical index orders follow CAM-SIMA convention.
+        real(kind_dyn_mpas), pointer :: zgrid(:, :) ! Geometric height (meters) at layer interfaces.
+                                                    ! Dimension and vertical index orders follow MPAS convention.
 
         call init_shared_variables()
 
@@ -454,7 +454,7 @@ contains
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             do i = 1, ncells_solve
-                z_int(i, :) = reverse(zgrid(:, i))
+                z_int(i, :) = reverse(real(zgrid(:, i), kind_r8))
             end do
         end subroutine init_shared_variables
 
@@ -482,7 +482,7 @@ contains
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_u'
             integer :: i
             integer :: ierr
-            real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
+            real(kind_dyn_mpas), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
 
             call dyn_debug_print('Setting MPAS state "u"')
 
@@ -500,7 +500,7 @@ contains
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             do i = 1, ncells_solve
-                ucellzonal(:, i) = reverse(buffer_2d_real(i, :))
+                ucellzonal(:, i) = real(reverse(buffer_2d_real(i, :)), kind_dyn_mpas)
             end do
 
             buffer_2d_real(:, :) = 0.0_kind_r8
@@ -509,7 +509,7 @@ contains
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             do i = 1, ncells_solve
-                ucellmeridional(:, i) = reverse(buffer_2d_real(i, :))
+                ucellmeridional(:, i) = real(reverse(buffer_2d_real(i, :)), kind_dyn_mpas)
             end do
 
             deallocate(buffer_2d_real)
@@ -523,7 +523,7 @@ contains
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_w()
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_w'
-            real(kind_r8), pointer :: w(:, :)
+            real(kind_dyn_mpas), pointer :: w(:, :)
 
             call dyn_debug_print('Setting MPAS state "w"')
 
@@ -531,7 +531,7 @@ contains
 
             call mpas_dynamical_core % get_variable_pointer(w, 'state', 'w', time_level=1)
 
-            w(:, 1:ncells_solve) = 0.0_kind_r8
+            w(:, 1:ncells_solve) = 0.0_kind_dyn_mpas
 
             nullify(w)
 
@@ -558,7 +558,7 @@ contains
             integer :: ierr
             integer, allocatable :: constituent_index(:)
             integer, pointer :: index_qv
-            real(kind_r8), pointer :: scalars(:, :, :)
+            real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
             call dyn_debug_print('Setting MPAS state "scalars"')
 
@@ -585,7 +585,7 @@ contains
                 do j = 1, num_advected
                     ! Vertical index order is reversed between CAM-SIMA and MPAS.
                     scalars(j, :, i) = &
-                        reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j)))
+                        real(reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
                 end do
             end do
 
@@ -599,7 +599,7 @@ contains
 
                 ! Convert specific humidity to water vapor mixing ratio.
                 scalars(index_qv, :, 1:ncells_solve) = &
-                    scalars(index_qv, :, 1:ncells_solve) / (1.0_kind_r8 - scalars(index_qv, :, 1:ncells_solve))
+                    scalars(index_qv, :, 1:ncells_solve) / (1.0_kind_dyn_mpas - scalars(index_qv, :, 1:ncells_solve))
             end if
 
             deallocate(buffer_3d_real)
@@ -635,9 +635,9 @@ contains
             real(kind_r8), allocatable :: tm_mid_col(:) ! Modified "moist" temperature (K) at layer midpoints of each column.
                                                         ! Be advised that it is not virtual temperature.
                                                         ! See doi:10.5065/1DFH-6P97 and doi:10.1175/MWR-D-11-00215.1 for details.
-            real(kind_r8), pointer :: rho(:, :)
-            real(kind_r8), pointer :: theta(:, :)
-            real(kind_r8), pointer :: scalars(:, :, :)
+            real(kind_dyn_mpas), pointer :: rho(:, :)
+            real(kind_dyn_mpas), pointer :: theta(:, :)
+            real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
             call dyn_debug_print('Setting MPAS state "rho" and "theta"')
 
@@ -686,16 +686,16 @@ contains
 
             ! Set `rho` and `theta` column by column. This way, peak memory usage can be reduced.
             do i = 1, ncells_solve
-                qv_mid_col(:) = scalars(index_qv, :, i)
+                qv_mid_col(:) = real(scalars(index_qv, :, i), kind_r8)
                 tm_mid_col(:) = t_mid(:, i) * (1.0_kind_r8 + constant_rv / constant_rd * qv_mid_col(:))
 
                 ! Piecewise integrate hypsometric equation to derive `p_mid_col(1)`.
                 ! The formulation used here is exact.
                 p_mid_col(1) = p_by_hypsometric_equation( &
                     p_sfc(i), &
-                    zgrid(1, i), &
+                    real(zgrid(1, i), kind_r8), &
                     tm_mid_col(1) / (1.0_kind_r8 + qv_mid_col(1)), &
-                    0.5_kind_r8 * (zgrid(2, i) + zgrid(1, i)))
+                    0.5_kind_r8 * real(zgrid(2, i) + zgrid(1, i), kind_r8))
 
                 ! Piecewise integrate hypsometric equation to derive subsequent `p_mid_col(k)`.
                 ! The formulation used here is exact.
@@ -703,16 +703,16 @@ contains
                     p_mid_col(k) = p_by_hypsometric_equation( &
                         p_by_hypsometric_equation( &
                             p_mid_col(k - 1), &
-                            0.5_kind_r8 * (zgrid(k, i) + zgrid(k - 1, i)), &
+                            0.5_kind_r8 * real(zgrid(k, i) + zgrid(k - 1, i), kind_r8), &
                             tm_mid_col(k - 1) / (1.0_kind_r8 + qv_mid_col(k - 1)), &
-                            zgrid(k, i)), &
-                        zgrid(k, i), &
+                            real(zgrid(k, i), kind_r8)), &
+                        real(zgrid(k, i), kind_r8), &
                         tm_mid_col(k) / (1.0_kind_r8 + qv_mid_col(k)), &
-                        0.5_kind_r8 * (zgrid(k + 1, i) + zgrid(k, i)))
+                        0.5_kind_r8 * real(zgrid(k + 1, i) + zgrid(k, i), kind_r8))
                 end do
 
-                rho(:, i) = p_mid_col(:) / (constant_rd * tm_mid_col(:))
-                theta(:, i) = theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0)
+                rho(:, i) = real(p_mid_col(:) / (constant_rd * tm_mid_col(:)), kind_dyn_mpas)
+                theta(:, i) = real(theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0), kind_dyn_mpas)
             end do
 
             deallocate(p_mid_col)
@@ -745,9 +745,9 @@ contains
             real(kind_r8), parameter :: t_base = 250.0_kind_r8 ! Base state temperature (K) of dry isothermal atmosphere.
                                                                ! The value used here is identical to MPAS.
             real(kind_r8), allocatable :: p_base(:)            ! Base state pressure (Pa) at layer midpoints of each column.
-            real(kind_r8), pointer :: rho_base(:, :)
-            real(kind_r8), pointer :: theta_base(:, :)
-            real(kind_r8), pointer :: zz(:, :)
+            real(kind_dyn_mpas), pointer :: rho_base(:, :)
+            real(kind_dyn_mpas), pointer :: theta_base(:, :)
+            real(kind_dyn_mpas), pointer :: zz(:, :)
 
             call dyn_debug_print('Setting MPAS state "rho_base" and "theta_base"')
 
@@ -771,11 +771,11 @@ contains
                         constant_p0, &
                         0.0_kind_r8, &
                         t_base, &
-                        0.5_kind_r8 * (zgrid(k + 1, i) + zgrid(k, i)))
+                        0.5_kind_r8 * real(zgrid(k + 1, i) + zgrid(k, i), kind_r8))
                 end do
 
-                rho_base(:, i) = p_base(:) / (constant_rd * t_base * zz(:, i))
-                theta_base(:, i) = theta_by_poisson_equation(p_base, t_base, constant_p0)
+                rho_base(:, i) = real(p_base(:) / (constant_rd * t_base * real(zz(:, i), kind_r8)), kind_dyn_mpas)
+                theta_base(:, i) = real(theta_by_poisson_equation(p_base, t_base, constant_p0), kind_dyn_mpas)
             end do
 
             deallocate(p_base)
@@ -857,7 +857,7 @@ contains
         logical, allocatable :: is_water_species(:)
         real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
         real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water species mixing ratios.
-        real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
+        real(kind_dyn_mpas), pointer :: scalars(:, :, :)  ! This points to MPAS memory.
 
         select case (trim(adjustl(direction)))
             case ('e', 'export')
@@ -932,13 +932,13 @@ contains
                     if (exchange) then
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         scalars(j, :, i) = &
-                            reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)))
+                            real(reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
                     end if
 
                     if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
                         ! Equation 8 in doi:10.1029/2017MS001257.
                         scalars(j, :, i) = &
-                            scalars(j, :, i) * sigma_all_q(:)
+                            real(real(scalars(j, :, i), kind_r8) * sigma_all_q(:), kind_dyn_mpas)
                     end if
                 end do
             end do
@@ -949,7 +949,7 @@ contains
             do i = 1, ncells_solve
                 if (conversion .and. any(is_conversion_needed)) then
                     ! The summation term of equation 8 in doi:10.1029/2017MS001257.
-                    sigma_all_q(:) = reverse(1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1))
+                    sigma_all_q(:) = reverse(1.0_kind_r8 + sum(real(scalars(is_water_species_index, :, i), kind_r8), 1))
                 end if
 
                 ! `j` is indexing into `constituents`, so it is regarded as constituent index.
@@ -957,7 +957,7 @@ contains
                     if (exchange) then
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         constituents(i, :, j) = &
-                            reverse(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i))
+                            reverse(real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8))
                     end if
 
                     if (conversion .and. is_conversion_needed(j)) then
@@ -1084,7 +1084,7 @@ contains
         character(*), parameter :: subname = 'dyn_comp::dyn_variable_dump'
         integer :: ierr
         integer :: pio_ioformat, pio_iotype
-        real(kind_r8), pointer :: surface_pressure(:)
+        real(kind_dyn_mpas), pointer :: surface_pressure(:)
         type(file_desc_t), pointer :: pio_file
         type(iosystem_desc_t), pointer :: pio_iosystem
 
@@ -1094,7 +1094,7 @@ contains
 
         call mpas_dynamical_core % get_variable_pointer(surface_pressure, 'diag', 'surface_pressure')
 
-        surface_pressure(1:ncells_solve) = phys_state % ps(:)
+        surface_pressure(1:ncells_solve) = real(phys_state % ps(:), kind_dyn_mpas)
 
         nullify(surface_pressure)
 

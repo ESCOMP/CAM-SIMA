@@ -49,6 +49,10 @@ export CPPFLAGS       := -D_MPI \
 ifneq ($(strip $(PIODEF)),)
     export CPPFLAGS   += $(strip $(PIODEF))
 endif
+# Uncomment below for MPI Fortran 2008 interface support. There is currently no corresponding option in CIME to enable this.
+# export CPPFLAGS       += -DMPAS_USE_MPI_F08
+# Uncomment below for single precision mode support. There is currently no corresponding option in CIME to enable this.
+# export CPPFLAGS       += -DSINGLE_PRECISION
 export LINKER         := $(strip $(FC))
 export SCC            := $(strip $(CC))
 export SCXX           := $(strip $(CXX))

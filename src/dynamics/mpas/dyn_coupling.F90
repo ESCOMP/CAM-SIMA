@@ -2,6 +2,8 @@ module dyn_coupling
     ! Module(s) from CESM Share.
     use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
                             len_cx => shr_kind_cx
+    ! Module(s) from MPAS.
+    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
     implicit none
 
@@ -43,13 +45,13 @@ contains
         real(kind_r8), allocatable :: u_mid_col(:), &        ! Eastward wind velocity (m s-1).
                                       v_mid_col(:), &        ! Northward wind velocity (m s-1).
                                       omega_mid_col(:)       ! Vertical wind velocity (Pa s-1).
-        real(kind_r8), pointer :: exner(:, :)
-        real(kind_r8), pointer :: rho_zz(:, :)
-        real(kind_r8), pointer :: scalars(:, :, :)
-        real(kind_r8), pointer :: theta_m(:, :)
-        real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :), w(:, :)
-        real(kind_r8), pointer :: zgrid(:, :)
-        real(kind_r8), pointer :: zz(:, :)
+        real(kind_dyn_mpas), pointer :: exner(:, :)
+        real(kind_dyn_mpas), pointer :: rho_zz(:, :)
+        real(kind_dyn_mpas), pointer :: scalars(:, :, :)
+        real(kind_dyn_mpas), pointer :: theta_m(:, :)
+        real(kind_dyn_mpas), pointer :: ucellzonal(:, :), ucellmeridional(:, :), w(:, :)
+        real(kind_dyn_mpas), pointer :: zgrid(:, :)
+        real(kind_dyn_mpas), pointer :: zz(:, :)
 
         call init_shared_variables()
 
@@ -198,10 +200,10 @@ contains
             ! Compute thermodynamic variables.
 
             ! By definition.
-            z_int_col(:) = zgrid(:, i)
+            z_int_col(:) = real(zgrid(:, i), kind_r8)
             dz_col(:) = z_int_col(2:pverp) - z_int_col(1:pver)
-            qv_mid_col(:) = scalars(index_qv, :, i)
-            rhod_mid_col(:) = rho_zz(:, i) * zz(:, i)
+            qv_mid_col(:) = real(scalars(index_qv, :, i), kind_r8)
+            rhod_mid_col(:) = real(rho_zz(:, i) * zz(:, i), kind_r8)
 
             ! Equation 5 in doi:10.1029/2017MS001257.
             rho_mid_col(:) = rhod_mid_col(:) * sigma_all_q_mid_col(:)
@@ -211,7 +213,7 @@ contains
             dp_col(:) = -rho_mid_col(:) * constant_g * dz_col(:)
 
             ! By definition of Exner function. Also see below.
-            tm_mid_col(:) = theta_m(:, i) * exner(:, i)
+            tm_mid_col(:) = real(theta_m(:, i) * exner(:, i), kind_r8)
 
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
@@ -239,9 +241,9 @@ contains
             ! Compute momentum variables.
 
             ! By definition.
-            u_mid_col(:) = ucellzonal(:, i)
-            v_mid_col(:) = ucellmeridional(:, i)
-            omega_mid_col(:) = -rhod_mid_col(:) * constant_g * 0.5_kind_r8 * (w(1:pver, i) + w(2:pverp, i))
+            u_mid_col(:) = real(ucellzonal(:, i), kind_r8)
+            v_mid_col(:) = real(ucellmeridional(:, i), kind_r8)
+            omega_mid_col(:) = -rhod_mid_col(:) * constant_g * 0.5_kind_r8 * real(w(1:pver, i) + w(2:pverp, i), kind_r8)
         end subroutine update_shared_variables
 
         !> Set variables for the specific column, indicated by `i`, in the `physics_state` derived type.
@@ -414,9 +416,9 @@ contains
         integer, pointer :: index_qv
         real(kind_r8), allocatable :: qv_prev(:, :) ! Water vapor mixing ratio (kg kg-1)
                                                     ! before being updated by physics.
-        real(kind_r8), pointer :: rho_zz(:, :)
-        real(kind_r8), pointer :: scalars(:, :, :)
-        real(kind_r8), pointer :: zz(:, :)
+        real(kind_dyn_mpas), pointer :: rho_zz(:, :)
+        real(kind_dyn_mpas), pointer :: scalars(:, :, :)
+        real(kind_dyn_mpas), pointer :: zz(:, :)
 
         call init_shared_variables()
 
@@ -458,7 +460,7 @@ contains
 
             ! Save water vapor mixing ratio before being updated by physics because `set_mpas_physics_tendency_rtheta`
             ! needs it. This must be done before calling `dyn_exchange_constituent_state`.
-            qv_prev(:, :) = scalars(index_qv, :, 1:ncells_solve)
+            qv_prev(:, :) = real(scalars(index_qv, :, 1:ncells_solve), kind_r8)
         end subroutine init_shared_variables
 
         !> Finalize variables that are shared and repeatedly used by the `set_mpas_physics_tendency_*` internal subroutines.
@@ -484,7 +486,7 @@ contains
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_ru'
             integer :: i
-            real(kind_r8), pointer :: u_tendency(:, :), v_tendency(:, :)
+            real(kind_dyn_mpas), pointer :: u_tendency(:, :), v_tendency(:, :)
 
             call dyn_debug_print('Setting MPAS physics tendency "tend_ru_physics"')
 
@@ -496,8 +498,8 @@ contains
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             ! Always call `reverse` when assigning anything to/from the `physics_tend` derived type.
             do i = 1, ncells_solve
-                u_tendency(:, i) = reverse(phys_tend % dudt_total(i, :)) * rho_zz(:, i)
-                v_tendency(:, i) = reverse(phys_tend % dvdt_total(i, :)) * rho_zz(:, i)
+                u_tendency(:, i) = real(reverse(phys_tend % dudt_total(i, :)) * real(rho_zz(:, i), kind_r8), kind_dyn_mpas)
+                v_tendency(:, i) = real(reverse(phys_tend % dvdt_total(i, :)) * real(rho_zz(:, i), kind_r8), kind_dyn_mpas)
             end do
 
             nullify(u_tendency, v_tendency)
@@ -513,7 +515,7 @@ contains
             use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_solve
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_rho'
-            real(kind_r8), pointer :: rho_tendency(:, :)
+            real(kind_dyn_mpas), pointer :: rho_tendency(:, :)
 
             call dyn_debug_print('Setting MPAS physics tendency "tend_rho_physics"')
 
@@ -522,7 +524,7 @@ contains
             call mpas_dynamical_core % get_variable_pointer(rho_tendency, 'tend_physics', 'tend_rho_physics')
 
             ! The material derivative of `rho` (i.e., dry air density) is zero for incompressible fluid.
-            rho_tendency(:, 1:ncells_solve) = 0.0_kind_r8
+            rho_tendency(:, 1:ncells_solve) = 0.0_kind_dyn_mpas
 
             nullify(rho_tendency)
 
@@ -553,8 +555,8 @@ contains
             real(kind_r8), allocatable :: t_col_prev(:), t_col_curr(:)           ! Temperature (K).
             real(kind_r8), allocatable :: theta_col_prev(:), theta_col_curr(:)   ! Potential temperature (K).
             real(kind_r8), allocatable :: thetam_col_prev(:), thetam_col_curr(:) ! Modified "moist" potential temperature (K).
-            real(kind_r8), pointer :: theta_m(:, :)
-            real(kind_r8), pointer :: theta_m_tendency(:, :)
+            real(kind_dyn_mpas), pointer :: theta_m(:, :)
+            real(kind_dyn_mpas), pointer :: theta_m_tendency(:, :)
 
             call dyn_debug_print('Setting MPAS physics tendency "tend_rtheta_physics"')
 
@@ -591,11 +593,11 @@ contains
 
             ! Set `theta_m_tendency` column by column. This way, peak memory usage can be reduced.
             do i = 1, ncells_solve
-                qv_col_curr(:) = scalars(index_qv, :, i)
+                qv_col_curr(:) = real(scalars(index_qv, :, i), kind_r8)
                 qv_col_prev(:) = qv_prev(:, i)
-                rhod_col(:) = rho_zz(:, i) * zz(:, i)
+                rhod_col(:) = real(rho_zz(:, i) * zz(:, i), kind_r8)
 
-                thetam_col_prev(:) = theta_m(:, i)
+                thetam_col_prev(:) = real(theta_m(:, i), kind_r8)
                 theta_col_prev(:) = thetam_col_prev(:) / (1.0_kind_r8 + constant_rv / constant_rd * qv_col_prev(:))
                 t_col_prev(:) = t_of_theta_rhod_qv(theta_col_prev, rhod_col, qv_col_prev)
 
@@ -605,7 +607,8 @@ contains
                 theta_col_curr(:) = theta_of_t_rhod_qv(t_col_curr, rhod_col, qv_col_curr)
                 thetam_col_curr(:) = theta_col_curr(:) * (1.0_kind_r8 + constant_rv / constant_rd * qv_col_curr(:))
 
-                theta_m_tendency(:, i) = (thetam_col_curr(:) - thetam_col_prev(:)) * rho_zz(:, i) / dtime_phys
+                theta_m_tendency(:, i) = &
+                    real((thetam_col_curr(:) - thetam_col_prev(:)) * real(rho_zz(:, i), kind_r8) / dtime_phys, kind_dyn_mpas)
             end do
 
             deallocate(qv_col_prev, qv_col_curr)

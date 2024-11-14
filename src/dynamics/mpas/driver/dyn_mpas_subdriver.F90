@@ -22,6 +22,7 @@ module dyn_mpas_subdriver
     implicit none
 
     private
+    public :: mpas_dynamical_core_real_kind
     public :: mpas_dynamical_core_type
 
     abstract interface
@@ -32,6 +33,9 @@ module dyn_mpas_subdriver
             integer,      optional, intent(in) :: line
         end subroutine model_error_if
     end interface
+
+    !> The native floating-point precision of MPAS dynamical core.
+    integer, parameter :: mpas_dynamical_core_real_kind = rkind
 
     !> The "class" of MPAS dynamical core.
     !> Important data structures like states of MPAS dynamical core are encapsulated inside this derived type to prevent misuse.
