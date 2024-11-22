@@ -37,10 +37,7 @@ contains
         use cam_abortutils, only: endrun
         use cam_constituents, only: num_advected
         use cam_initfiles, only: initial_file_get_id
-        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
-                            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
-                            ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
-                            sphere_radius
+        use dyn_comp, only: dyn_debug_print, dyn_inquire_mesh_dimensions, mpas_dynamical_core, nvertlevels
         use dynconst, only: dynconst_init
         use string_utils, only: stringify
         use vert_coord, only: pver, vert_coord_init
@@ -79,23 +76,8 @@ contains
         ! Compute local east, north and edge-normal unit vectors whenever time-invariant (e.g., grid/mesh) variables are read.
         call mpas_dynamical_core % compute_unit_vector()
 
-        ! Inquire local and global mesh dimensions and save them as module variables.
-        call dyn_debug_print('Inquiring local and global mesh dimensions')
-
-        call mpas_dynamical_core % get_local_mesh_dimension( &
-            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
-
-        call mpas_dynamical_core % get_global_mesh_dimension( &
-            ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
-            sphere_radius)
-
-        call dyn_debug_print('ncells_global    = ' // stringify([ncells_global]))
-        call dyn_debug_print('nedges_global    = ' // stringify([nedges_global]))
-        call dyn_debug_print('nvertices_global = ' // stringify([nvertices_global]))
-        call dyn_debug_print('nvertlevels      = ' // stringify([nvertlevels]))
-        call dyn_debug_print('ncells_max       = ' // stringify([ncells_max]))
-        call dyn_debug_print('nedges_max       = ' // stringify([nedges_max]))
-        call dyn_debug_print('sphere_radius    = ' // stringify([sphere_radius]))
+        ! Inquire local and global mesh dimensions.
+        call dyn_inquire_mesh_dimensions()
 
         ! Check for consistency in numbers of vertical layers.
         if (nvertlevels /= pver) then

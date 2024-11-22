@@ -18,6 +18,7 @@ module dyn_comp
 
     public :: dyn_debug_print
     public :: dyn_exchange_constituent_state
+    public :: dyn_inquire_mesh_dimensions
     public :: reverse
     public :: mpas_dynamical_core
     public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
@@ -42,9 +43,9 @@ module dyn_comp
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
 
     ! Local and global mesh dimensions of MPAS dynamical core.
-    integer :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
-    integer :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    real(kind_dyn_mpas) :: sphere_radius
+    integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+    integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
+    real(kind_dyn_mpas), protected :: sphere_radius
 contains
     !> Print a debug message with optionally the value(s) of a variable.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
@@ -982,6 +983,32 @@ contains
             call mpas_dynamical_core % exchange_halo('scalars')
         end if
     end subroutine dyn_exchange_constituent_state
+
+    !> Inquire local and global mesh dimensions. Save them as protected module variables.
+    !> (KCW, 2024-11-21)
+    subroutine dyn_inquire_mesh_dimensions()
+        ! Module(s) from CAM-SIMA.
+        use string_utils, only: stringify
+
+        character(*), parameter :: subname = 'dyn_comp::dyn_inquire_mesh_dimensions'
+
+        call dyn_debug_print('Inquiring local and global mesh dimensions')
+
+        call mpas_dynamical_core % get_local_mesh_dimension( &
+            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
+
+        call mpas_dynamical_core % get_global_mesh_dimension( &
+            ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
+            sphere_radius)
+
+        call dyn_debug_print('ncells_global    = ' // stringify([ncells_global]))
+        call dyn_debug_print('nedges_global    = ' // stringify([nedges_global]))
+        call dyn_debug_print('nvertices_global = ' // stringify([nvertices_global]))
+        call dyn_debug_print('nvertlevels      = ' // stringify([nvertlevels]))
+        call dyn_debug_print('ncells_max       = ' // stringify([ncells_max]))
+        call dyn_debug_print('nedges_max       = ' // stringify([nedges_max]))
+        call dyn_debug_print('sphere_radius    = ' // stringify([sphere_radius]))
+    end subroutine dyn_inquire_mesh_dimensions
 
     !> Mark everything in the `physics_types` module along with constituents as initialized
     !> to prevent physics from attempting to read them from a file.
