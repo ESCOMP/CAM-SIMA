@@ -517,7 +517,7 @@ contains
 
             nullify(ucellzonal, ucellmeridional)
 
-            call mpas_dynamical_core % compute_edge_wind(.false.)
+            call mpas_dynamical_core % compute_edge_wind(wind_tendency=.false.)
         end subroutine set_mpas_state_u
 
         !> Set MPAS state `w` (i.e., vertical velocity at cell interfaces).

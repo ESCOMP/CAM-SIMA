@@ -504,7 +504,7 @@ contains
 
             nullify(u_tendency, v_tendency)
 
-            call mpas_dynamical_core % compute_edge_wind(.true.)
+            call mpas_dynamical_core % compute_edge_wind(wind_tendency=.true.)
         end subroutine set_mpas_physics_tendency_ru
 
         !> Set MPAS physics tendency `tend_rho_physics` (i.e., "coupled" tendency of dry air density due to physics).
