@@ -31,7 +31,7 @@ jobs:
       - name: Build cam-sima
         run: |
           cmake \
-            -DCMAKE_PREFIX_PATH=/home/runner/work/cam-sima/cam-sima/pFUnit/build/installed \
+            -DCMAKE_PREFIX_PATH=/home/runner/work/CAM-SIMA/CAM-SIMA/pFUnit/build/installed \
             -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
             -B./build \
             -S./test/unit-fortran
