@@ -1,0 +1,14 @@
+@test
+subroutine test_to_str()
+    use funit
+    use string_core_utils, only : to_str
+
+    integer :: to_convert
+    character(len=*) :: actual
+
+    to_convert = 1
+    actual = to_str(to_convert)
+
+    @assertEqual("1", actual)
+
+end subroutine test_to_str

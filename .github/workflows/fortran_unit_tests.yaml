@@ -1,0 +1,44 @@
+name: fortran_unit_tests
+
+on:
+  push:
+    branches:
+      - development
+      - main
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  gcc-toolchain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout cam-sima
+        uses: actions/checkout@v4
+
+      - name: Build pFUnit
+        run: |
+          git clone --depth 1 --branch v4.10.0 https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
+          cd pFUnit
+          pwd
+          cmake -B./build -S.
+          cd build
+          make install
+
+      - name: Build cam-sima
+        run: |
+          cmake \
+            -DCMAKE_PREFIX_PATH=/home/runner/work/cam-sima/cam-sima/pFUnit/build/installed \
+            -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
+            -B./build \
+            -S./test/unit-fortran
+          cd build
+          make
+      
+      - name: Run unit tests
+        run: |
+          cd build
+          make test
