@@ -1,4 +1,4 @@
-name: fortran_unit_tests
+name: Fortran Unit Tests
 
 on:
   push:
