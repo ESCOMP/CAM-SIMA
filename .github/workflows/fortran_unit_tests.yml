@@ -38,7 +38,30 @@ jobs:
           cd build
           make
       
-      - name: Run unit tests
+      - name: Run fortran unit tests
         run: |
+          cd build && ctest -V --output-on-failure --output-junit test_results.xml
+
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: build/test_results.xml
+
+      - name: Setup GCov
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip3 install gcovr
+
+      - name: Run Gcov
+        run: |
+          source venv/bin/activate
           cd build
-          make test
+          gcovr -r .. --filter '\.\./src' --html cam_sima_code_coverage.html --txt
+
+      - name: Upload code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-results
+          path: build/cam_sima_code_coverage.html
