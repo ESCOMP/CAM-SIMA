@@ -1,14 +1,27 @@
 @test
-subroutine test_to_str()
+subroutine test_integer_one_to_str()
     use funit
     use string_core_utils, only : to_str
 
     integer :: to_convert
-    character(len=*) :: actual
+    character(len=10) :: actual
 
     to_convert = 1
     actual = to_str(to_convert)
 
     @assertEqual("1", actual)
+end subroutine test_integer_one_to_str
 
-end subroutine test_to_str
+@test
+subroutine test_integer_with_leading_zeros_to_str()
+    use funit
+    use string_core_utils, only : to_str
+
+    integer :: to_convert
+    character(len=10) :: actual
+
+    to_convert = 001
+    actual = to_str(to_convert)
+
+    @assertEqual("1", actual)
+end subroutine test_integer_with_leading_zeros_to_str
