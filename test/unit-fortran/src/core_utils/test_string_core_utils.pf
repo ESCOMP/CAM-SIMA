@@ -25,3 +25,45 @@ subroutine test_integer_with_leading_zeros_to_str()
 
     @assertEqual("1", actual)
 end subroutine test_integer_with_leading_zeros_to_str
+
+@test
+subroutine test_integer_with_trailing_zeros_to_str()
+    use funit
+    use string_core_utils, only : to_str
+
+    integer :: to_convert
+    character(len=10) :: actual
+
+    to_convert = 100
+    actual = to_str(to_convert)
+
+    @assertEqual("100", actual)
+end subroutine test_integer_with_trailing_zeros_to_str
+
+@test
+subroutine test_one_int_date_to_yyyymmdd()
+    use funit
+    use string_core_utils, only : int_date_to_yyyymmdd
+
+    integer :: to_convert
+    character(len=10) :: actual
+
+    to_convert = 1
+    actual = int_date_to_yyyymmdd(to_convert)
+
+    @assertEqual("0000-00-01", actual)
+end subroutine test_one_int_date_to_yyyymmdd
+
+@test
+subroutine test_zero_int_seconds_to_hhmmss()
+    use funit
+    use string_core_utils, only : int_seconds_to_hhmmss
+
+    integer :: to_convert
+    character(len=8) :: actual
+
+    to_convert = 0
+    actual = int_seconds_to_hhmmss(to_convert)
+
+    @assertEqual("00:00:00", actual)
+end subroutine test_zero_int_seconds_to_hhmmss
