@@ -17,7 +17,7 @@ contains
     !> (KCW, 2024-07-31)
     subroutine dynamics_to_physics_coupling()
         ! Module(s) from CAM-SIMA.
-        use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_state, ncells_solve
+        use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_states, ncells_solve
 
         character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling'
         integer :: column_index
@@ -55,7 +55,7 @@ contains
 
         call init_shared_variables()
 
-        call dyn_exchange_constituent_state(direction='i', exchange=.true., conversion=.false.)
+        call dyn_exchange_constituent_states(direction='i', exchange=.true., conversion=.false.)
 
         call dyn_debug_print('Setting physics state variables column by column')
 
@@ -362,7 +362,7 @@ contains
             end do
 
             ! Note that constituents become moist after this.
-            call dyn_exchange_constituent_state(direction='i', exchange=.false., conversion=.true.)
+            call dyn_exchange_constituent_states(direction='i', exchange=.false., conversion=.true.)
 
             ! Impose minimum limits on constituents.
             call qneg_run(subname, ncells_solve, pver, minimum_constituents, constituents, ierr, cerr)
@@ -410,7 +410,7 @@ contains
     !> (KCW, 2024-09-20)
     subroutine physics_to_dynamics_coupling()
         ! Module(s) from CAM-SIMA.
-        use dyn_comp, only: dyn_exchange_constituent_state
+        use dyn_comp, only: dyn_exchange_constituent_states
 
         character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling'
         integer, pointer :: index_qv
@@ -422,7 +422,7 @@ contains
 
         call init_shared_variables()
 
-        call dyn_exchange_constituent_state(direction='e', exchange=.true., conversion=.true.)
+        call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.true.)
 
         call set_mpas_physics_tendency_ru()
         call set_mpas_physics_tendency_rho()
@@ -459,7 +459,7 @@ contains
                 'dyn_coupling', __LINE__)
 
             ! Save water vapor mixing ratio before being updated by physics because `set_mpas_physics_tendency_rtheta`
-            ! needs it. This must be done before calling `dyn_exchange_constituent_state`.
+            ! needs it. This must be done before calling `dyn_exchange_constituent_states`.
             qv_prev(:, :) = real(scalars(index_qv, :, 1:ncells_solve), kind_r8)
         end subroutine init_shared_variables
 

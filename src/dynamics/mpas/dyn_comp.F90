@@ -17,7 +17,7 @@ module dyn_comp
     public :: dyn_final
 
     public :: dyn_debug_print
-    public :: dyn_exchange_constituent_state
+    public :: dyn_exchange_constituent_states
     public :: dyn_inquire_mesh_dimensions
     public :: reverse
     public :: mpas_dynamical_core
@@ -266,9 +266,9 @@ contains
                 ! Perform default initialization for all constituents.
                 ! Subsequently, they can be overridden depending on the namelist option (below) and
                 ! the actual availability (checked and handled by MPAS).
-                call dyn_debug_print('Calling dyn_exchange_constituent_state')
+                call dyn_debug_print('Calling dyn_exchange_constituent_states')
 
-                call dyn_exchange_constituent_state(direction='e', exchange=.true., conversion=.false.)
+                call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
                 ! Namelist option that controls if constituents are to be read from the file.
                 if (readtrace) then
@@ -287,7 +287,7 @@ contains
         end if
 
         call clean_iodesc_list()
-        call mark_variable_as_initialized()
+        call mark_variables_as_initialized()
 
         nullify(pio_init_file)
         nullify(pio_topo_file)
@@ -830,13 +830,13 @@ contains
     !> If `exchange` is `.true.` and `direction` is "i" or "import", set physics state `constituents` from MPAS state `scalars`.
     !> Think of it as "exporting/importing constituent states in CAM-SIMA to/from MPAS".
     !> Otherwise, if `exchange` is `.false.`, no exchange is performed at all.
-    !> If `conversion` is `.true.`, appropriate conversion is performed for constituent mixing ratio that has different
+    !> If `conversion` is `.true.`, appropriate conversion is performed for constituent mixing ratios that have different
     !> definitions between CAM-SIMA and MPAS (i.e., dry/moist).
     !> Otherwise, if `conversion` is `.false.`, no conversion is performed at all.
     !> This subroutine is intentionally designed to have these elaborate controls due to complications in CAM-SIMA.
     !> Some procedures in CAM-SIMA expect constituent states to be dry, while the others expect them to be moist.
     !> (KCW, 2024-09-26)
-    subroutine dyn_exchange_constituent_state(direction, exchange, conversion)
+    subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
         use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
@@ -850,7 +850,7 @@ contains
         logical, intent(in) :: exchange
         logical, intent(in) :: conversion
 
-        character(*), parameter :: subname = 'dyn_comp::dyn_exchange_constituent_state'
+        character(*), parameter :: subname = 'dyn_comp::dyn_exchange_constituent_states'
         integer :: i, j
         integer :: ierr
         integer, allocatable :: is_water_species_index(:)
@@ -982,7 +982,7 @@ contains
             ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
             call mpas_dynamical_core % exchange_halo('scalars')
         end if
-    end subroutine dyn_exchange_constituent_state
+    end subroutine dyn_exchange_constituent_states
 
     !> Inquire local and global mesh dimensions. Save them as protected module variables.
     !> (KCW, 2024-11-21)
@@ -1013,13 +1013,13 @@ contains
     !> Mark everything in the `physics_types` module along with constituents as initialized
     !> to prevent physics from attempting to read them from a file.
     !> (KCW, 2024-05-23)
-    subroutine mark_variable_as_initialized()
+    subroutine mark_variables_as_initialized()
         ! Module(s) from CAM-SIMA.
         use cam_constituents, only: const_name, num_advected
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: mark_as_initialized
 
-        character(*), parameter :: subname = 'dyn_comp::mark_variable_as_initialized'
+        character(*), parameter :: subname = 'dyn_comp::mark_variables_as_initialized'
         integer :: i
 
         ! The variables below are managed by dynamics interface.
@@ -1074,7 +1074,7 @@ contains
         call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_water')
         call mark_as_initialized('vertically_integrated_total_water_at_start_of_physics_timestep')
-    end subroutine mark_variable_as_initialized
+    end subroutine mark_variables_as_initialized
 
     !> Run MPAS dynamical core to integrate the dynamical states with time.
     !> (KCW, 2024-07-11)
