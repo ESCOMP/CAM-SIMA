@@ -3,10 +3,10 @@ module string_core_utils
     implicit none
     private
 
-    public :: to_str           ! convert integer to left justified string
-    public :: int_date_to_yyyymmdd    ! convert encoded date integer to "yyyy-mm-dd" format
-    public :: int_seconds_to_hhmmss          ! convert integer seconds past midnight to "hh:mm:ss" format
-    public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
+    public :: to_str                ! Convert integer to left justified string
+    public :: int_date_to_yyyymmdd  ! Convert encoded date integer to "yyyy-mm-dd" format
+    public :: int_seconds_to_hhmmss ! Convert integer seconds past midnight to "hh:mm:ss" format
+    public :: stringify             ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
 CONTAINS
 
