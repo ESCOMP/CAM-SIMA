@@ -5,6 +5,14 @@ project(CAM-SIMA-core-utils LANGUAGES Fortran)
 option(CAM_SIMA_ENABLE_TESTS "Run pFUnit unit tests" OFF)
 option(CAM_SIMA_ENABLE_CODE_COVERAGE "Run code coverage tool" OFF)
 
+if(NOT CAM-SIMA-core-utils_IS_TOP_LEVEL)
+  message(WARNING "CAM-SIMA-core-utils is not integrated into the CMake build of any top level "
+                  "project yet and this CMake is for testing purposes only.  "
+                  "Making a change to this project's CMake will not impact the build of "
+                  "a parent project at this time.")
+endif()
+
+
 if(CAM_SIMA_ENABLE_CODE_COVERAGE)
   add_compile_options(-O0 --coverage)
   add_link_options(--coverage)
