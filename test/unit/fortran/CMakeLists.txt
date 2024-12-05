@@ -18,7 +18,7 @@ if(CAM_SIMA_ENABLE_CODE_COVERAGE)
   add_link_options(--coverage)
 endif()
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/../../src/core_utils ${CMAKE_BINARY_DIR}/src)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../../../src/core_utils ${CMAKE_BINARY_DIR}/src)
 
 if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE)
 set(CMAKE_BUILD_TYPE Debug)
