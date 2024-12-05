@@ -409,18 +409,18 @@ class CreateReadnlFilesTest(unittest.TestCase):
         # Check logger
         lmsgs = [("INFO:test_double_namelist_def:Reading CAM physics "      \
                   "namelist definition file, ",
-                  "test/unit_python/sample_files/banana_namelist.xml'"),
+                  "test/unit/python/sample_files/banana_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
                   "unit/tmp/namelist_files/banana_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
                   "unit/tmp/namelist_files/banana_namelist.F90"),
                  ("INFO:test_double_namelist_def:Reading CAM physics "     \
                   "namelist definition file, ",
-                  "test/unit_python/sample_files/kumquat_namelist.xml'"),
+                  "test/unit/python/sample_files/kumquat_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
-                  "test/unit_python/tmp/namelist_files/kumquat_namelist.meta"),
+                  "test/unit/python/tmp/namelist_files/kumquat_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
-                  "test/unit_python/tmp/namelist_files/kumquat_namelist.F90")]
+                  "test/unit/python/tmp/namelist_files/kumquat_namelist.F90")]
         comp_lmsgs = cmp_log.output
         amsg = "Test failure: Number of log output messages, " \
                f"{len(comp_lmsgs)} does not match what is expected, " \

@@ -57,4 +57,4 @@ jobs:
         pytest src/data --doctest-modules
 
         # Run all python unit tests:
-        pytest test/unit_python
+        pytest test/unit/python
