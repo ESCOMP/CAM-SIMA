@@ -132,7 +132,7 @@ def _find_scheme_source(source_dirs, metadata_file_name):
     doctests:
 
     1.  Check that the function can correctly find source and namelist files:
-    >>> _find_scheme_source([os.path.join(_CAM_ROOT_DIR, "test", "unit", "sample_files", \
+    >>> _find_scheme_source([os.path.join(_CAM_ROOT_DIR, "test", "unit", "python", "sample_files", \
                             "autogen_files")], "two_scheme_banana") # doctest: +ELLIPSIS
     ('...two_scheme_banana.F90', '...two_scheme_banana_namelist.xml')
 
