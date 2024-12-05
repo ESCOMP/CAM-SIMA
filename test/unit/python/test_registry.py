@@ -325,7 +325,7 @@ class RegistryTest(unittest.TestCase):
         remove_files([out_source, out_meta])
 
         # Create new directory:
-        tmp_src_dir = os.path.join(_TMP_DIR, "test", "unit", \
+        tmp_src_dir = os.path.join(_TMP_DIR, "test", "unit", "python", \
                                    "sample_files")
         if not os.path.exists(tmp_src_dir):
             os.makedirs(tmp_src_dir)
