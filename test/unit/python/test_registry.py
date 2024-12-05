@@ -22,7 +22,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 __TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-_CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir))
+_CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir, os.pardir))
 __REGISTRY_DIR = os.path.join(_CAM_ROOT, "src", "data")
 _SAMPLE_FILES_DIR = os.path.join(__TEST_DIR, "sample_files")
 _TMP_DIR = os.path.join(__TEST_DIR, "tmp")

@@ -22,7 +22,7 @@ import unittest
 import xml.etree.ElementTree as ET
 
 _TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-_CAM_ROOT = os.path.abspath(os.path.join(_TEST_DIR, os.pardir, os.pardir))
+_CAM_ROOT = os.path.abspath(os.path.join(_TEST_DIR, os.pardir, os.pardir, os.pardir))
 _CCPP_DIR = os.path.join(_CAM_ROOT, "ccpp_framework", "scripts")
 _CIME_CONFIG_DIR = os.path.join(_CAM_ROOT, "cime_config")
 _XML_SAMPLES_DIR = os.path.join(_TEST_DIR, "sample_files")
