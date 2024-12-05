@@ -175,7 +175,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -238,7 +238,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, constituents = gen_registry(filename, 'se', _TMP_DIR, 3,
                                       _SRC_MOD_DIR, _CAM_ROOT,
                                       loglevel=logging.ERROR,
                                       error_on_no_validate=True)
@@ -258,7 +258,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, ic_names, constituents, _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -340,7 +340,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -403,7 +403,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -423,7 +423,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -507,7 +507,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [],  _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -572,7 +572,7 @@ class WriteInitTest(unittest.TestCase):
         remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -592,7 +592,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        _ = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        _ = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                         find_file, _INC_SEARCH_DIRS,
                                         3, logger,
                                         phys_check_filename=vic_name,
@@ -647,7 +647,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -667,7 +667,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        _ = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        _ = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                         find_file, _INC_SEARCH_DIRS,
                                         3, logger,
                                         phys_check_filename=vic_name,
@@ -722,7 +722,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -741,7 +741,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -815,7 +815,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -878,7 +878,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -897,7 +897,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [],  _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -959,7 +959,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                          _SRC_MOD_DIR, _CAM_ROOT,
                          loglevel=logging.ERROR,
                          error_on_no_validate=True)
@@ -978,7 +978,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, ic_names, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -1059,7 +1059,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -1140,7 +1140,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -1224,7 +1224,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        retmsg = write_init.write_init_files(cap_database, {}, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,

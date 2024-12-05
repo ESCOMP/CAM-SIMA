@@ -226,6 +226,7 @@ class BuildCacheCAM:
         self.__kind_types = {}
         self.__reg_gen_files = []
         self.__ic_names = {}
+        self.__constituents = []
         if os.path.exists(build_cache):
             # Initialize build cache state
             _, cache = read_xml_file(build_cache)
@@ -252,6 +253,10 @@ class BuildCacheCAM:
                             # end if
                             itext = clean_xml_text(item)
                             self.__ic_names[stdname].append(itext)
+                        elif item.tag == 'constituent_entry':
+                            stdname = item.get('standard_name')
+                            itext = clean_xml_text(item)
+                            self.__constituents.append(itext)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -313,7 +318,7 @@ class BuildCacheCAM:
         # end if
 
     def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, reg_file_list, ic_names):
+                        dycore, reg_file_list, ic_names, constituents):
         """Replace the registry cache data with input data
         """
         self.__dycore = dycore
@@ -328,6 +333,7 @@ class BuildCacheCAM:
         # ic_names are the initial condition variable names from the registry,
         # and should already be of type dict:
         self.__ic_names = ic_names
+        self.__constituents = constituents
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
                     xml_files, namelist_meta_files, namelist_groups,
@@ -399,6 +405,10 @@ class BuildCacheCAM:
                 ic_entry.set('standard_name', stdname)
                 ic_entry.text = ic_name
             # end for
+        # end for
+        for stdname in self.__constituents:
+            const_entry = ET.SubElement(registry, 'constituent_entry')
+            const_entry.text = stdname
         # end for
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')
@@ -602,6 +612,10 @@ class BuildCacheCAM:
     def ic_names(self):
         """Return a copy of the registry initial conditions dictionary"""
         return dict(self.__ic_names)
+
+    def constituents(self):
+        """Return a copy of the registry constituents list"""
+        return list(self.__constituents)
 
 #############
 # End of file

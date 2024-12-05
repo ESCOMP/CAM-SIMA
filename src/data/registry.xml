@@ -445,5 +445,17 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
     </variable>
+    <variable local_name="snowqm"
+              standard_name="snow_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>snow mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>SNOWQM cnst_SNOWQM</ic_file_input_names>
+    </variable>
+    <variable local_name="grauqm"
+              standard_name="graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
+    </variable>
   </file>
 </registry>

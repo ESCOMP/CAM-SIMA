@@ -838,7 +838,7 @@ class ConfigCAM:
         retvals = generate_registry(data_search, build_cache, self.__atm_root,
                                     self.__bldroot, source_mods_dir,
                                     dyn, gen_fort_indent)
-        reg_dir, force_ccpp, reg_files, ic_names = retvals
+        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents = retvals
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -871,7 +871,7 @@ class ConfigCAM:
         init_dir = generate_init_routines(build_cache, self.__bldroot,
                                           force_ccpp, force_init,
                                           source_mods_dir, gen_fort_indent,
-                                          capgen_db, ic_names)
+                                          capgen_db, ic_names, registry_constituents)
 
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initialization code."

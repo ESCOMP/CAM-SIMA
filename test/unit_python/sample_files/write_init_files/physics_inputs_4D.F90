@@ -36,7 +36,7 @@ CONTAINS
       use physics_data,              only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
       use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                only: kind_phys
-      use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
+      use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_logfile,               only: iulog
       use physics_types_4D,          only: slp, theta
@@ -69,10 +69,12 @@ CONTAINS
       character(len=2)           :: sep3            !String separator used to print err messages
       real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
       logical                    :: var_found       !Bool to determine if consituent found in data files
+      character(len=std_name_len) :: std_name       !Variable to hold constiutent standard name
 
       ! Fields needed for getting default data value for constituents
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
       real(kind=kind_phys)                       :: constituent_default_value
+      real(kind=kind_phys)                       :: constituent_min_value
       integer                                    :: constituent_errflg
       character(len=512)                         :: constituent_errmsg
       logical                                    :: constituent_has_default
@@ -133,51 +135,7 @@ CONTAINS
 
                case (const_idx)
 
-                  ! If an index was found in the constituent hash table, then read in the data to that index of the constituent array
-
-                  var_found = .false.
-                  field_data_ptr => cam_constituents_array()
-
-                  ! Check if constituent standard name in registered SIMA standard names list:
-                  if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                     ! Find array index to extract correct input names:
-                     do n=1, phys_var_num
-                        if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
-                           const_input_idx = n
-                           exit
-                        end if
-                     end do
-                     call read_field(file, ccpp_required_data(req_idx), input_var_names(:,const_input_idx), 'lev', timestep,                           &
-                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
-                  else
-                     ! If not in standard names list, then just use constituent name as input file name:
-                     call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep,                                &
-                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
-                  end if
-                  if(.not. var_found) then
-                     const_props => cam_model_const_properties()
-                     constituent_has_default = .false.
-                     call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)
-                     if (constituent_errflg /= 0) then
-                        call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-                     end if
-                     if (constituent_has_default) then
-                        call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
-                        if (constituent_errflg /= 0) then
-                           call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-                        end if
-                        field_data_ptr(:,:,constituent_idx) = constituent_default_value
-                        if (masterproc) then
-                           write(iulog,*) 'Consitituent ', trim(ccpp_required_data(req_idx)), ' initialized to default value: ',                       &
-                                constituent_default_value
-                        end if
-                     else
-                        field_data_ptr(:,:,constituent_idx) = 0._kind_phys
-                        if (masterproc) then
-                           write(iulog,*) 'Constituent ', trim(ccpp_required_data(req_idx)), ' default value not configured.  Setting to 0.'
-                        end if
-                     end if
-                  end if
+                  ! If an index was found in the constituent hash table, then do nothing, this will be handled later
 
                case default
 
@@ -212,23 +170,78 @@ CONTAINS
 
       end do !CCPP suites
 
+      ! Read in constituent variables if not using init variables
+      field_data_ptr => cam_constituents_array()
+      const_props => cam_model_const_properties()
+
+      ! Iterate over all registered constituents
+      do constituent_idx = 1, size(const_props)
+         var_found = .false.
+         ! Check if constituent standard name in registered SIMA standard names list:
+         call const_props(constituent_idx)%standard_name(std_name)
+         if(any(phys_var_stdnames == trim(std_name))) then
+            ! Don't read the variable in if it's already initialized
+            if (is_initialized(std_name)) then
+               cycle
+            end if
+            ! Find array index to extract correct input names:
+            do n=1, phys_var_num
+               if(trim(phys_var_stdnames(n)) == trim(std_name)) then
+                  const_input_idx = n
+                  exit
+               end if
+            end do
+            call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                  &
+                 mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+         else
+            ! If not in standard names list, then just use constituent name as input file name:
+            call read_field(file, std_name, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.,                    &
+                 error_on_not_found=.false., var_found=var_found)
+         end if
+         if(.not. var_found) then
+            constituent_has_default = .false.
+            call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)
+            if (constituent_errflg /= 0) then
+               call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
+            end if
+            if (constituent_has_default) then
+               call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
+               if (constituent_errflg /= 0) then
+                  call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
+               end if
+               field_data_ptr(:,:,constituent_idx) = constituent_default_value
+               if (masterproc) then
+                  write(iulog,*) 'Constituent ', trim(std_name), ' initialized to default value: ', constituent_default_value
+               end if
+            else
+               ! Intialize to constituent's configured minimum value
+               call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
+               field_data_ptr(:,:,constituent_idx) = constituent_min_value
+               if (masterproc) then
+                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'
+               end if
+            end if
+         end if
+      end do
+
    end subroutine physics_read_data
 
    subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value)
-      use pio,                     only: file_desc_t, pio_nowrite
-      use cam_abortutils,          only: endrun
-      use shr_kind_mod,            only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,            only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,            only: ccpp_physics_suite_variables, cam_advected_constituents_array
-      use cam_constituents,        only: const_get_index
-      use ccpp_kinds,              only: kind_phys
-      use cam_logfile,             only: iulog
-      use spmd_utils,              only: masterproc
-      use phys_vars_init_check,    only: is_read_from_file
-      use ioFileMod,               only: cam_get_file
-      use cam_pio_utils,           only: cam_pio_openfile, cam_pio_closefile
-      use phys_vars_init_check_4D, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_4D,        only: slp, theta
+      use pio,                       only: file_desc_t, pio_nowrite
+      use cam_abortutils,            only: endrun
+      use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,              only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_advected_constituents_array, cam_model_const_properties
+      use cam_constituents,          only: const_get_index
+      use ccpp_kinds,                only: kind_phys
+      use cam_logfile,               only: iulog
+      use spmd_utils,                only: masterproc
+      use phys_vars_init_check,      only: is_read_from_file
+      use ioFileMod,                 only: cam_get_file
+      use cam_pio_utils,             only: cam_pio_openfile, cam_pio_closefile
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
+      use physics_types_4D,          only: slp, theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -260,7 +273,9 @@ CONTAINS
       logical                    :: file_found
       logical                    :: is_first
       logical                    :: is_read
+      character(len=std_name_len) :: std_name       !Variable to hold constiutent standard name
       real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
+      type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
 
       ! Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
@@ -299,25 +314,7 @@ CONTAINS
             ! First check if the required variable is a constituent:
             call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)
             if (constituent_idx > -1) then
-               ! The required variable is a constituent. Call check variable routine on the relevant index of the constituent array
-               field_data_ptr => cam_advected_constituents_array()
-
-               ! Check if constituent standard name in registered SIMA standard names list:
-               if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                  ! Find array index to extract correct input names:
-                  do n=1, phys_var_num
-                     if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
-                        const_input_idx = n
-                        exit
-                     end if
-                  end do
-                  call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                     &
-                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
-               else
-                  ! If not in standard names list, then just use constituent name as input file name:
-                  call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx),                          &
-                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
-               end if
+               cycle
             else
                ! The required variable is not a constituent. Check if the variable was read from a file
                ! Find IC file input name array index for required variable:
@@ -344,6 +341,29 @@ CONTAINS
 
       end do !CCPP suites
 
+      ! Check constituent variables
+      field_data_ptr => cam_advected_constituents_array()
+      const_props => cam_model_const_properties()
+
+      do constituent_idx = 1, size(const_props)
+         ! Check if constituent standard name in registered SIMA standard names list:
+         call const_props(constituent_idx)%standard_name(std_name)
+         if(any(phys_var_stdnames == std_name)) then
+            ! Find array index to extract correct input names:
+            do n=1, phys_var_num
+               if(trim(phys_var_stdnames(n)) == trim(std_name)) then
+                  const_input_idx = n
+                  exit
+               end if
+            end do
+            call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name,                 &
+                 min_difference, min_relative_value, is_first)
+         else
+            ! If not in standard names list, then just use constituent name as input file name:
+            call check_field(file, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value,     &
+                 is_first)
+         end if
+      end do
       ! Close check file:
       call cam_pio_closefile(file)
       deallocate(file)

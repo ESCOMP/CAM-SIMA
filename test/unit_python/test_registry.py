@@ -95,7 +95,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
         # Run test
-        retcode, files, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -156,7 +156,7 @@ class RegistryTest(unittest.TestCase):
             out_meta = os.path.join(_TMP_DIR, out_meta_name)
             remove_files([out_source, out_meta])
             # Run dycore
-            retcode, files, _ = gen_registry(filename, dycore, _TMP_DIR, 2,
+            retcode, files, _, _ = gen_registry(filename, dycore, _TMP_DIR, 2,
                                              _SRC_MOD_DIR, _CAM_ROOT,
                                              loglevel=logging.ERROR,
                                              error_on_no_validate=True)
@@ -203,7 +203,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -243,7 +243,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -281,7 +281,7 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
         # generate registry
-        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -335,7 +335,7 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, tmp_src_dir)
 
         # Generate registry
-        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _TMP_DIR,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -392,7 +392,7 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, source_mod_file)
 
         # Generate registry
-        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          tmp_src_dir, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -443,7 +443,7 @@ class RegistryTest(unittest.TestCase):
         remove_files([out_source, out_meta])
 
         # Run test
-        retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -550,7 +550,7 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode, files, _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
+        retcode, files, _, _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
