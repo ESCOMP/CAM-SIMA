@@ -411,9 +411,9 @@ class CreateReadnlFilesTest(unittest.TestCase):
                   "namelist definition file, ",
                   "test/unit/python/sample_files/banana_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
-                  "unit/tmp/namelist_files/banana_namelist.meta"),
+                  "unit/python/tmp/namelist_files/banana_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
-                  "unit/tmp/namelist_files/banana_namelist.F90"),
+                  "unit/python/tmp/namelist_files/banana_namelist.F90"),
                  ("INFO:test_double_namelist_def:Reading CAM physics "     \
                   "namelist definition file, ",
                   "test/unit/python/sample_files/kumquat_namelist.xml'"),
