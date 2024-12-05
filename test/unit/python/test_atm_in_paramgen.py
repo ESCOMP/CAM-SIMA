@@ -30,7 +30,7 @@ import unittest
 
 #Add directory to python path:
 _TEST_DIR = os.path.abspath(os.path.dirname(__file__))
-_CAM_ROOT_DIR = os.path.join(_TEST_DIR, os.pardir, os.pardir)
+_CAM_ROOT_DIR = os.path.join(_TEST_DIR, os.pardir, os.pardir, os.pardir)
 _CIME_CONF_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "cime_config"))
 
 _SAMPLES_DIR = os.path.join(os.path.join(_TEST_DIR, "sample_files"), "atm_in_files")
