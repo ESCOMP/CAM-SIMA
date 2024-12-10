@@ -4,6 +4,7 @@
   <!-- CAM-SIMA Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
