@@ -52,7 +52,7 @@ contains
     use shr_orb_mod,     only: shr_orb_decl, shr_orb_cosz
     use cam_control_mod, only: eccen, mvelpp, lambm0, obliqr
 
-    real(R8), intent(in) :: calendar_day  ! Julian calendar day (1.xx to 365.xx)
+    real(R8), intent(in) :: calendar_day  ! Fractional Julian calendar day (1.xx to 365.xx)
     real(R8), intent(in) :: latitudes(:)  ! Centered latitude (column) [radians]
     real(R8), intent(in) :: longitudes(:) ! Centered longitude (column) [radians]
 
