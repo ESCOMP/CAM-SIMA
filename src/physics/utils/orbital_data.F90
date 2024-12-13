@@ -7,7 +7,7 @@ module orbital_data
 !
 !--------------------------------------------------------------------------
 
-  use shr_kind_mod,  only: R8 => SHR_KIND_R8
+  use shr_kind_mod,  only: kind_phys => SHR_KIND_R8
   use shr_const_mod, only: PI => SHR_CONST_PI
   use shr_orb_mod,   only: FILL_R8 => SHR_ORB_UNDEF_REAL
 
@@ -16,10 +16,12 @@ module orbital_data
 
   public :: orbital_data_init, orbital_data_advance
 
-  ! Calculated orbidal data for the current simulation day
-   real(R8),              protected, public :: solar_declination  = FILL_R8 ! Solar declination angle [radians]
-   real(R8),              protected, public :: earth_sun_distance = FILL_R8 ! Earth-sun distance [AU]
-   real(R8), allocatable, protected, public :: solar_zenith_angle(:)        ! Solar zenith angle (column) [radians]
+  !> \section arg_table_orbital_data Argument Table
+  !! \htmlinclude arg_table_orbital_data.html
+  !!
+  real(kind_phys),              protected, public :: solar_declination  = FILL_R8 ! Solar declination angle [radians]
+  real(kind_phys),              protected, public :: earth_sun_distance = FILL_R8 ! Earth-sun distance [AU]
+  real(kind_phys), allocatable, protected, public :: solar_zenith_angle(:)        ! Solar zenith angle (column) [radians]
     
 !=======================================================================
 contains
@@ -52,9 +54,9 @@ contains
     use shr_orb_mod,     only: shr_orb_decl, shr_orb_cosz
     use cam_control_mod, only: eccen, mvelpp, lambm0, obliqr
 
-    real(R8), intent(in) :: calendar_day  ! Fractional Julian calendar day (1.xx to 365.xx)
-    real(R8), intent(in) :: latitudes(:)  ! Centered latitude (column) [radians]
-    real(R8), intent(in) :: longitudes(:) ! Centered longitude (column) [radians]
+    real(kind_phys), intent(in) :: calendar_day  ! Fractional Julian calendar day (1.xx to 365.xx)
+    real(kind_phys), intent(in) :: latitudes(:)  ! Centered latitude (column) [radians]
+    real(kind_phys), intent(in) :: longitudes(:) ! Centered longitude (column) [radians]
 
     integer :: i
 

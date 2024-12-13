@@ -106,4 +106,4 @@ RUN /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 # # add the snapshot file
 RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
 
-RUN ./case.build
+#RUN ./case.build

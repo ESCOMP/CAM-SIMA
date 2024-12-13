@@ -83,26 +83,27 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,        only: cam_initfiles_open
-      use dyn_grid,             only: model_grid_init
-      use phys_comp,            only: phys_init
-      use phys_comp,            only: phys_register
-      use dyn_comp,             only: dyn_init
-!      use cam_restart,          only: cam_read_restart
-      use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-      use cam_history,          only: history_init_files
-!      use history_scam,         only: scm_intht
-      use cam_pio_utils,        only: init_pio_subsystem
-      use cam_instance,         only: inst_suffix
-!      use history_defaults,     only: initialize_iop_history
-      use stepon,               only: stepon_init
-      use air_composition,      only: air_composition_init
-      use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
-      use physics_grid,         only: columns_on_task
-      use vert_coord,           only: pver
-      use phys_vars_init_check, only: mark_as_initialized
-      use tropopause_climo_read, only: tropopause_climo_read_file
-      use orbital_data,         only: orbital_data_init
+      use cam_initfiles,            only: cam_initfiles_open
+      use dyn_grid,                 only: model_grid_init
+      use phys_comp,                only: phys_init
+      use phys_comp,                only: phys_register
+      use dyn_comp,                 only: dyn_init
+!      use cam_restart,              only: cam_read_restart
+      use camsrfexch,               only: hub2atm_alloc, atm2hub_alloc
+      use cam_history,              only: history_init_files
+!      use history_scam,             only: scm_intht
+      use cam_pio_utils,            only: init_pio_subsystem
+      use cam_instance,             only: inst_suffix
+!      use history_defaults,         only: initialize_iop_history
+      use stepon,                   only: stepon_init
+      use air_composition,          only: air_composition_init
+      use cam_ccpp_cap,             only: cam_ccpp_initialize_constituents
+      use physics_grid,             only: columns_on_task
+      use vert_coord,               only: pver
+      use phys_vars_init_check,     only: mark_as_initialized
+      use tropopause_climo_read,    only: tropopause_climo_read_file
+      use musica_ccpp_dependencies, only: musica_ccpp_dependencies_init
+      use orbital_data,             only: orbital_data_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -253,6 +254,11 @@ CONTAINS
       !    call scm_intht()
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
+
+      ! Temporary:  Initialize MUSICA dependencies
+      ! Remove this when MUSICA dependencies are available from CAM-SIMA or
+      ! other physics schemes.
+      call musica_ccpp_dependencies_init(columns_on_task, pver)
 
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)
