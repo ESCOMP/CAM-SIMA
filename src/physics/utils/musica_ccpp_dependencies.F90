@@ -38,6 +38,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     integer, intent(in) :: horizontal_dimension
+    integer, intent(in) :: vertical_layer_dimension
 
     allocate(photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension))
     allocate(extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension))
