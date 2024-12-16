@@ -3,7 +3,13 @@
 module musica_ccpp_dependencies
 !--------------------------------------------------------------------------
 !
-! Temporarily provides access to conditions required by the MUSICA scheme.
+! This module temporarily provides data that MUSICA chemistry consumes but
+! does not produce. The values are realistic but are not based on the
+! actual model state. These should be removed as the producers of this data
+! are added to CAM-SIMA or as CCPP-compliant physics schemes.
+!
+! IMPORTANT: This module must be completely removed before doing any actual
+!            science with MUSICA chemistry in CAM-SIMA.
 !
 !--------------------------------------------------------------------------
 
@@ -25,11 +31,17 @@ module musica_ccpp_dependencies
   real(kind_phys), allocatable, public, protected :: blackbody_temperature_at_surface(:)
   real(kind_phys), allocatable, public, protected :: cloud_area_fraction(:,:)
 
+  ! local parameters
+  character(len=*), parameter :: module_name = '(musica_ccpp_dependencies)'
+
 !==============================================================================
 CONTAINS
 !==============================================================================
 
-  subroutine musica_ccpp_dependencies_init(horizontal_dimension, vertical_layer_dimension)
+  subroutine musica_ccpp_dependencies_init(horizontal_dimension, &
+      vertical_layer_dimension, log_file_unit)
+
+    use cam_abortutils, only: check_allocate
 
     !-----------------------------------------------------------------------
     !
@@ -39,12 +51,36 @@ CONTAINS
 
     integer, intent(in) :: horizontal_dimension
     integer, intent(in) :: vertical_layer_dimension
+    integer, intent(in) :: log_file_unit
 
-    allocate(photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension))
-    allocate(extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension))
-    allocate(surface_albedo(horizontal_dimension))
-    allocate(blackbody_temperature_at_surface(horizontal_dimension))
-    allocate(cloud_area_fraction(horizontal_dimension, vertical_layer_dimension))
+    integer :: error_code
+    character(len=*), parameter :: subroutine_name = &
+        trim(module_name)//':(musica_ccpp_dependencies_init)'
+
+    write(log_file_unit,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
+
+    allocate(photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension), &
+             stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension)', &
+                        file=__FILE__, line=__LINE__)
+    allocate(extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension), &
+             stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension)', &
+                        file=__FILE__, line=__LINE__)
+    allocate(surface_albedo(horizontal_dimension), stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'surface_albedo(horizontal_dimension)', &
+                        file=__FILE__, line=__LINE__)
+    allocate(blackbody_temperature_at_surface(horizontal_dimension), stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'blackbody_temperature_at_surface(horizontal_dimension)', &
+                        file=__FILE__, line=__LINE__)
+    allocate(cloud_area_fraction(horizontal_dimension, vertical_layer_dimension), stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'cloud_area_fraction(horizontal_dimension, vertical_layer_dimension)', &
+                        file=__FILE__, line=__LINE__)
 
     surface_albedo(:) = 0.1_kind_phys
     blackbody_temperature_at_surface(:) = 292.3_kind_phys

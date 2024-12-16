@@ -15,6 +15,22 @@ module shr_const_mod
   implicit none
   real(kind=R8), parameter :: SHR_CONST_PI = 3.14159265358979323846_R8
 end module shr_const_mod
+module cam_abortutils
+  implicit none
+  public :: check_allocate
+contains
+  subroutine check_allocate(error_code, subroutine_name, variable_name, file, line)
+    integer, intent(in) :: error_code
+    character(len=*), intent(in) :: subroutine_name
+    character(len=*), intent(in) :: variable_name
+    character(len=*), intent(in) :: file
+    integer, intent(in) :: line
+    if (error_code /= 0) then
+      write(*,*) "Allocation of '", variable_name, "' failed with code ", error_code, " in ", subroutine_name, " at ", file, ":", line
+      stop 3
+    end if  
+  end subroutine check_allocate
+end module cam_abortutils
 module shr_orb_mod
   use shr_kind_mod, only: R8 => SHR_KIND_R8
   implicit none

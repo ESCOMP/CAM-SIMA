@@ -22,12 +22,17 @@ module orbital_data
   real(kind_phys),              protected, public :: solar_declination  = FILL_R8 ! Solar declination angle [radians]
   real(kind_phys),              protected, public :: earth_sun_distance = FILL_R8 ! Earth-sun distance [AU]
   real(kind_phys), allocatable, protected, public :: solar_zenith_angle(:)        ! Solar zenith angle (column) [radians]
-    
+
+  ! Local parameters
+  character(len=*), parameter :: module_name = '(orbital_data)'
+
 !=======================================================================
 contains
 !=======================================================================
 
   subroutine orbital_data_init(number_of_columns)
+
+    use cam_abortutils, only: check_allocate
 
     !-----------------------------------------------------------------------
     !
@@ -36,8 +41,16 @@ contains
     !-----------------------------------------------------------------------
 
     integer, intent(in) :: number_of_columns
+
+    integer :: error_code
+    character(len=*), parameter :: subroutine_name = &
+        trim(module_name)//':(orbital_data_init)'
    
-    allocate(solar_zenith_angle(number_of_columns), source=FILL_R8)
+    allocate(solar_zenith_angle(number_of_columns), source=FILL_R8, &
+             stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'solar_zenith_angle(number_of_columns)', &
+                        file=__FILE__, line=__LINE__)
    
   end subroutine orbital_data_init
 
