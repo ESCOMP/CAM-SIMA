@@ -187,9 +187,8 @@ contains
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-        use cam_thermo_formula,   only: energy_formula_dycore, ENERGY_FORMULA_DYCORE_MPAS
-        use phys_vars_init_check, only: mark_as_initialized
-        use physics_types,        only: dycore_energy_consistency_adjust
+        use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
+        use physics_types, only: dycore_energy_consistency_adjust
 
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
@@ -207,14 +206,13 @@ contains
         nullify(pio_init_file)
         nullify(pio_topo_file)
 
-        ! Set dynamical core energy formula for use in cam_thermo.
-        energy_formula_dycore = ENERGY_FORMULA_DYCORE_MPAS
-        call mark_as_initialized('total_energy_formula_for_dycore')
+        ! Set the energy formula of dynamical core to MPAS for use in `cam_thermo`.
+        energy_formula_dycore = energy_formula_dycore_mpas
 
-        ! Dynamical core energy is not consistent with CAM physics and requires
-        ! temperature and temperature tendency adjustment at end of physics.
+        ! The total energy of dynamical core, which uses "MPAS formula" as set above, is not consistent with
+        ! that of CAM physics, which uses "FV formula". Therefore, temperature and temperature tendency adjustments
+        ! are needed at the end of each physics time step.
         dycore_energy_consistency_adjust = .true.
-        call mark_as_initialized('flag_for_dycore_energy_consistency_adjustment')
 
         allocate(constituent_name(num_advected), stat=ierr)
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
@@ -931,15 +929,21 @@ contains
         end if
     end subroutine dyn_exchange_constituent_state
 
-    !> Mark everything in the `physics_{state,tend}` derived types along with constituents as initialized
-    !> to prevent physics from attempting to read them from a file. These variables are to be exchanged later
-    !> during dynamics-physics coupling.
+    !> Mark everything in the `physics_types` module along with constituents as initialized
+    !> to prevent physics from attempting to read them from a file.
     !> (KCW, 2024-05-23)
     subroutine mark_variable_as_initialized()
         character(*), parameter :: subname = 'dyn_comp::mark_variable_as_initialized'
         integer :: i
 
-        ! CCPP standard names of physical quantities in the `physics_{state,tend}` derived types.
+        ! The variables below are managed by dynamics interface.
+        ! We are responsible for initializing and updating them.
+
+        ! These variables are to be set during dynamics initialization.
+        call mark_as_initialized('flag_for_dycore_energy_consistency_adjustment')
+        call mark_as_initialized('total_energy_formula_for_dycore')
+
+        ! These variables are to be set during dynamics-physics coupling.
         call mark_as_initialized('air_pressure')
         call mark_as_initialized('air_pressure_at_interface')
         call mark_as_initialized('air_pressure_of_dry_air')
@@ -960,6 +964,7 @@ contains
         call mark_as_initialized('reciprocal_of_air_pressure_thickness')
         call mark_as_initialized('reciprocal_of_air_pressure_thickness_of_dry_air')
         call mark_as_initialized('reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure')
+        call mark_as_initialized('specific_heat_of_air_used_in_dycore')
         call mark_as_initialized('surface_air_pressure')
         call mark_as_initialized('surface_geopotential')
         call mark_as_initialized('surface_pressure_of_dry_air')
@@ -972,10 +977,10 @@ contains
             call mark_as_initialized(trim(adjustl(const_name(i))))
         end do
 
-        call mark_as_initialized('specific_heat_of_air_used_in_dycore')
+        ! The variables below are not managed by dynamics interface. They are used by external CCPP physics schemes.
+        ! While we are not responsible for initializing or updating them, we still need to help mark them as initialized.
 
-        ! These energy variables are calculated by check_energy_timestep_init
-        ! but need to be marked here
+        ! These variables are to be set externally by the `check_energy_chng` CCPP physics scheme.
         call mark_as_initialized('vertically_integrated_total_energy_at_end_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula')
         call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep')
