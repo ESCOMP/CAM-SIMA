@@ -282,6 +282,12 @@ CONTAINS
       use orbital_data, only: orbital_data_advance
       use stepon,       only: stepon_timestep_init
 
+      ! Update current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+
+      ! Update the orbital data
+      call orbital_data_advance(calday, lat_rad, lon_rad)
+
       !----------------------------------------------------------
       ! First phase of dynamics (at least couple from dynamics to physics)
       ! Return time-step for physics from dynamics.
@@ -297,12 +303,6 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
-
-      ! Update current fractional calendar day. Needs to be updated at every timestep.
-      calday = get_curr_calday()
-
-      ! Update the orbital data
-      call orbital_data_advance(calday, lat_rad, lon_rad)
 
    end subroutine cam_timestep_init
    !

@@ -18,4 +18,4 @@
   standard_name = solar_zenith_angle
   units = radians
   type = real | kind = kind_phys
-  dimensions = (horizontal_loop_extent)
+  dimensions = (horizontal_dimension)

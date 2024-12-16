@@ -35,7 +35,7 @@ module musica_ccpp_dependencies
   character(len=*), parameter :: module_name = '(musica_ccpp_dependencies)'
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
   subroutine musica_ccpp_dependencies_init(horizontal_dimension, &

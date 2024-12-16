@@ -10,11 +10,10 @@ module shr_kind_mod
   implicit none
   integer, parameter :: SHR_KIND_R8 = selected_real_kind(15)
 end module shr_kind_mod
-module shr_const_mod
-  use shr_kind_mod, only: R8 => SHR_KIND_R8
+module ccpp_kinds
   implicit none
-  real(kind=R8), parameter :: SHR_CONST_PI = 3.14159265358979323846_R8
-end module shr_const_mod
+  integer, parameter :: kind_phys = selected_real_kind(15)
+end module ccpp_kinds
 module cam_abortutils
   implicit none
   public :: check_allocate

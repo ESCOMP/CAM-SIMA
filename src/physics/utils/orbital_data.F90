@@ -7,8 +7,7 @@ module orbital_data
 !
 !--------------------------------------------------------------------------
 
-  use shr_kind_mod,  only: kind_phys => SHR_KIND_R8
-  use shr_const_mod, only: PI => SHR_CONST_PI
+  use ccpp_kinds,    only: kind_phys
   use shr_orb_mod,   only: FILL_R8 => SHR_ORB_UNDEF_REAL
 
   implicit none
