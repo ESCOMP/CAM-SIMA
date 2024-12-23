@@ -2,12 +2,7 @@ SMS_Ln2.mpasa480_mpasa480.FKESSLER.derecho_intel.cam-outfrq_kessler_mpas_derecho
 SMS_Ln2.mpasa480_mpasa480.FKESSLER.derecho_gnu.cam-outfrq_kessler_mpas_derecho (Overall: FAIL)
  - will fail until MPAS is fully integrated
 
-SMS_Ln9.ne5pg3_ne5pg3_mg37.FTJ16.derecho_intel.cam-outfrq_se_cslam (Overall: FAIL)
-SMS_Ln9.ne5pg3_ne5pg3_mg37.FKESSLER.derecho_intel.cam-outfrq_se_cslam (Overall: FAIL)
-SMS_Ln2.ne3pg3_ne3pg3_mg37.FPHYStest.derecho_intel.cam-outfrq_kessler_derecho (Overall: FAIL)
-SMS_Ln9.ne5pg3_ne5pg3_mg37.FCAM7.derecho_intel.cam-outfrq_se_cslam_analy_ic (Overall: FAIL)
-SMS_Ln9.ne5pg3_ne5pg3_mg37.FTJ16.derecho_gnu.cam-outfrq_se_cslam (Overall: FAIL)
-SMS_Ln9.ne5pg3_ne5pg3_mg37.FKESSLER.derecho_gnu.cam-outfrq_se_cslam (Overall: FAIL)
-SMS_Ln2.ne3pg3_ne3pg3_mg37.FPHYStest.derecho_gnu.cam-outfrq_kessler_derecho (Overall: FAIL)
-SMS_Ln9.ne5pg3_ne5pg3_mg37.FCAM7.derecho_gnu.cam-outfrq_se_cslam_analy_ic (Overall: FAIL)
- - will fail until https://github.com/ESCOMP/CAM-SIMA/pull/316 is merged
+SMS_Ln9.ne5pg3_ne5pg3_mg37.FCAM7.derecho_intel.cam-outfrq_se_cslam_analy_ic (Overall: PEND) details:
+SMS_Ln9.ne5pg3_ne5pg3_mg37.FCAM7.derecho_gnu.cam-outfrq_se_cslam_analy_ic (Overall: PEND) details:
+ - build failure due to dadadj_apply_qv_tendency removal, needs to be updated to use constituent tendency updater atmospheric_physics#179
+ - also expected runtime failure CAM-SIMA#335

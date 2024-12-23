@@ -161,8 +161,7 @@
       <value compset="_CAM\d0%WX.*%SDYN">-nlev 145</value> -->
 
       <!-- Simple models -->
-<!--      <value compset="_CAM%ADIAB">-phys adiabatic</value>
-      <value compset="_CAM%DABIP04">-phys adiabatic</value> -->
+      <value compset="_CAM%ADIAB">--physics-suites adiabatic</value>
       <value compset="_CAM%TJ16">--physics-suites tj2016 --analytic_ic</value>
 <!--      <value compset="_CAM%KESSLER">-phys kessler -chem terminator -analytic_ic</value> -->
       <value compset="_CAM%KESSLER">--physics-suites kessler --analytic_ic</value>

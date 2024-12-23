@@ -566,6 +566,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use dyn_thermo,         only: get_molecular_diff_coef_reference
    !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
    use gravity_waves_sources, only: gws_init
+   use cam_thermo_formula, only: energy_formula_dycore, ENERGY_FORMULA_DYCORE_SE
+   use physics_types,      only: dycore_energy_consistency_adjust
+   use phys_vars_init_check, only: mark_as_initialized
 
    !SE dycore:
    use prim_advance_mod,   only: prim_advance_init
@@ -642,6 +645,14 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    real(r8) :: tau0, krange, otau0, scale
    real(r8) :: km_sponge_factor_local(nlev+1)
    !----------------------------------------------------------------------------
+   ! Set dynamical core energy formula for use in cam_thermo.
+   energy_formula_dycore = ENERGY_FORMULA_DYCORE_SE
+   call mark_as_initialized("total_energy_formula_for_dycore")
+
+   ! Dynamical core energy is not consistent with CAM physics and requires
+   ! temperature and temperature tendency adjustment at end of physics.
+   dycore_energy_consistency_adjust = .true.
+   call mark_as_initialized("flag_for_dycore_energy_consistency_adjustment")
 
    ! Now allocate and set condenstate vars
    allocate(cnst_name_gll(qsize), stat=iret) ! constituent names for gll tracers
@@ -1852,6 +1863,17 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("tendency_of_air_temperature_due_to_model_physics")
    call mark_as_initialized("tendency_of_eastward_wind_due_to_model_physics")
    call mark_as_initialized("tendency_of_northward_wind_due_to_model_physics")
+   call mark_as_initialized("specific_heat_of_air_used_in_dycore")
+
+   ! These energy variables are calculated by check_energy_timestep_init
+   ! but need to be marked here
+   call mark_as_initialized("vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep")
+   call mark_as_initialized("vertically_integrated_total_energy_using_physics_energy_formula")
+   call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep")
+   call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula")
+   call mark_as_initialized("vertically_integrated_total_water_at_start_of_physics_timestep")
+   call mark_as_initialized("vertically_integrated_total_water")
+   call mark_as_initialized("vertically_integrated_total_energy_at_end_of_physics_timestep")
 
 end subroutine read_inidat
 

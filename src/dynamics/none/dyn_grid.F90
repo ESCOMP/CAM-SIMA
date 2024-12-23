@@ -49,6 +49,7 @@ module dyn_grid
    ! Private module routines
    private :: find_units
    private :: find_dimension
+   private :: find_energy_formula
 
 !==============================================================================
 CONTAINS
@@ -126,6 +127,7 @@ CONTAINS
 
       ! We will handle errors for this routine
       call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, oldmethod=err_handling)
+
       ! Find the latitude variable and dimension(s)
       call cam_pio_find_var(fh_ini, (/ 'lat     ', 'lat_d   ', 'latitude' /), lat_name,         &
            lat_vardesc, var_found)
@@ -159,6 +161,11 @@ CONTAINS
             write(iulog, *) subname, ': Grid is unstructured'
          end if
       end if
+
+      ! Find the dynamical core from which snapshot was saved to populate energy formula used
+      ! Some information about the grid is needed to determine this.
+      call find_energy_formula(fh_ini, grid_is_latlon)
+
       ! Find the longitude variable and dimension(s)
       call cam_pio_find_var(fh_ini, (/ 'lon      ', 'lon_d    ', 'longitude' /), lon_name,         &
            lon_vardesc, var_found)
@@ -625,5 +632,79 @@ CONTAINS
          call endrun(errmsg)
       end if
    end subroutine find_dimension
+
+   !===========================================================================
+
+   subroutine find_energy_formula(file, grid_is_latlon)
+      use pio,                  only: file_desc_t
+      use pio,                  only: pio_inq_att, pio_global, PIO_NOERR
+      use cam_thermo_formula,   only: energy_formula_physics, energy_formula_dycore
+      use cam_thermo_formula,   only: ENERGY_FORMULA_DYCORE_SE, ENERGY_FORMULA_DYCORE_FV, ENERGY_FORMULA_DYCORE_MPAS
+      use physics_types,        only: dycore_energy_consistency_adjust
+      use phys_vars_init_check, only: mark_as_initialized
+
+      ! Find which dynamical core is used in <file> and set the energy formulation
+      ! (also called vc_dycore in CAM)
+      !
+      ! This functionality is only used to recognize the originating dynamical core
+      ! from the snapshot file in order to set the energy formulation when running
+      ! with the null dycore. Other dynamical cores set energy_formula_dycore at their
+      ! initialization.
+
+      type(file_desc_t), intent(inout) :: file
+      logical, intent(in)              :: grid_is_latlon
+
+      ! Local variables
+      integer                          :: ierr, xtype
+      character(len=*), parameter      :: subname = 'find_energy_formula'
+
+      energy_formula_dycore = -1
+
+      ! Is FV dycore? (has lat lon dimension)
+      if(grid_is_latlon) then
+         energy_formula_dycore = ENERGY_FORMULA_DYCORE_FV
+         dycore_energy_consistency_adjust = .false.
+         if(masterproc) then
+            write(iulog, *) subname, ': Null dycore will use FV dycore energy formula'
+         endif
+      else
+         ! Is SE dycore?
+         ierr = pio_inq_att(file, pio_global, 'ne', xtype)
+         if (ierr == PIO_NOERR) then
+            ! Has ne property - is SE dycore.
+            ! if has fv_nphys then is physics grid (ne..pg..), but the energy formulation is the same.
+            energy_formula_dycore = ENERGY_FORMULA_DYCORE_SE
+            dycore_energy_consistency_adjust = .true.
+            if(masterproc) then
+               write(iulog, *) subname, ': Null dycore will use SE dycore energy formula'
+            endif
+         else
+            ! Is unstructured and is MPAS dycore
+            ! there are no global attributes to identify MPAS dycore, so this has to do for now.
+            energy_formula_dycore = ENERGY_FORMULA_DYCORE_MPAS
+            dycore_energy_consistency_adjust = .true.
+            if(masterproc) then
+               write(iulog, *) subname, ': Null dycore will use MPAS dycore energy formula'
+            endif
+         endif
+      endif
+
+      if(energy_formula_dycore /= -1) then
+         call mark_as_initialized("total_energy_formula_for_dycore")
+      endif
+      call mark_as_initialized("flag_for_dycore_energy_consistency_adjustment")
+
+      ! Mark other energy variables calculated by check_energy_timestep_init
+      ! here since it will always run when required
+      call mark_as_initialized("specific_heat_of_air_used_in_dycore")
+      call mark_as_initialized("vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep")
+      call mark_as_initialized("vertically_integrated_total_energy_using_physics_energy_formula")
+      call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep")
+      call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula")
+      call mark_as_initialized("vertically_integrated_total_water_at_start_of_physics_timestep")
+      call mark_as_initialized("vertically_integrated_total_water")
+      call mark_as_initialized("vertically_integrated_total_energy_at_end_of_physics_timestep")
+
+   end subroutine find_energy_formula
 
 end module dyn_grid

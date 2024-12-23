@@ -2,7 +2,8 @@ module dyn_coupling
     ! Modules from CAM-SIMA.
     use cam_abortutils, only: check_allocate, endrun
     use cam_constituents, only: const_is_water_species, const_qmin, num_advected
-    use cam_thermo, only: cam_thermo_update
+    use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
+    use cam_thermo_formula, only: ENERGY_FORMULA_DYCORE_MPAS
     use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_state, reverse, mpas_dynamical_core, &
         ncells_solve
     use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
@@ -18,6 +19,7 @@ module dyn_coupling
     use physics_types, only: cappav, cpairv, rairv, zvirv, &
                              dtime_phys, lagrangian_vertical, &
                              phys_state, phys_tend
+    use physics_types, only: cp_or_cv_dycore
     use qneg, only: qneg_run
     use static_energy, only: update_dry_static_energy_run
     use string_utils, only: stringify
@@ -326,15 +328,25 @@ contains
                 call endrun('Failed to find variable "constituent_properties"', subname, __LINE__)
             end if
 
-            ! Update `cappav`, `cpairv`, `rairv`, `zvirv`, etc. as needed by calling `cam_thermo_update`.
+            ! Update `cappav`, `cpairv`, `rairv`, `zvirv`, etc. as needed by calling `cam_thermo_dry_air_update`.
             ! Note that this subroutine expects constituents to be dry.
-            call cam_thermo_update( &
-                constituents, phys_state % t, ncells_solve, cam_runtime_opts % update_thermodynamic_variables())
+            call cam_thermo_dry_air_update( &
+                constituents, phys_state % t, ncells_solve, pver, cam_runtime_opts % update_thermodynamic_variables())
+
+            ! update cp_or_cv_dycore in SIMA state.
+            ! (note: at this point q is dry)
+            call cam_thermo_water_update( &
+                 mmr             = constituents,               & ! dry MMR
+                 ncol            = ncells_solve,               &
+                 pver            = pver,                       &
+                 energy_formula  = ENERGY_FORMULA_DYCORE_MPAS, &
+                 cp_or_cv_dycore = cp_or_cv_dycore             &
+            )
 
             ! This variable name is really misleading. It actually represents the reciprocal of Exner function
             ! with respect to surface pressure. This definition is sometimes used for boundary layer work. See
             ! the paragraph below equation 1.5.1c in doi:10.1007/978-94-009-3027-8.
-            ! Also note that `cappav` is updated externally by `cam_thermo_update`.
+            ! Also note that `cappav` is updated externally by `cam_thermo_dry_air_update`.
             do i = 1, ncells_solve
                 phys_state % exner(i, :) = (phys_state % ps(i) / phys_state % pmid(i, :)) ** cappav(i, :)
             end do

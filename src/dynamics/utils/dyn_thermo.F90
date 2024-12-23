@@ -61,7 +61,7 @@ CONTAINS
       !Declare local variables:
       real(kind_phys), allocatable :: tracer_phys(:,:,:,:)
       real(kind_phys), allocatable :: cp_phys(:,:,:)
-      real(kind_phys), allocatable :: dp_dry_phys(:,:,:)
+      real(kind_phys), allocatable :: factor_phys(:,:,:)
 
       !check_allocate variables:
       integer :: iret !allocate status integer
@@ -70,11 +70,16 @@ CONTAINS
       !Check if kinds are different:
       if (kind_phys == kind_dyn) then
 
-         !The dynamics and physics kind is the same, so just call the physics
-         !routine directly:
-         call get_cp_phys(tracer,inv_cp,cp, &
-                          dp_dry=dp_dry, &
-                          active_species_idx_dycore=active_species_idx_dycore)
+         ! The dynamics and physics kind is the same, so just call the physics
+         ! routine directly:
+         if(present(dp_dry)) then
+            call get_cp_phys(tracer,inv_cp,cp, &
+                             factor=1.0_kind_phys/dp_dry, &
+                             active_species_idx_dycore=active_species_idx_dycore)
+         else
+            call get_cp_phys(tracer,inv_cp,cp, &
+                             active_species_idx_dycore=active_species_idx_dycore)
+         endif
 
       else
 
@@ -95,18 +100,18 @@ CONTAINS
 
          !Allocate and set optional variables:
          if (present(dp_dry)) then
-            allocate(dp_dry_phys(size(dp_dry, 1), size(dp_dry, 2), size(dp_dry,3)), stat=iret)
+            allocate(factor_phys(size(dp_dry, 1), size(dp_dry, 2), size(dp_dry,3)), stat=iret)
             call check_allocate(iret, subname, &
-                                'dp_dry_phys', &
+                                'factor_phys', &
                                 file=__FILE__, line=__LINE__)
 
             !Set optional local variable:
-            dp_dry_phys = real(dp_dry, kind_phys)
+            factor_phys = 1.0_kind_phys/real(dp_dry, kind_phys)
          end if
 
-         !Call physics routine using local vriables with matching kinds:
+         !Call physics routine using local variables with matching kinds:
          call get_cp_phys(tracer_phys,inv_cp,cp_phys, &
-                          dp_dry=dp_dry_phys, &
+                          factor=factor_phys, &
                           active_species_idx_dycore=active_species_idx_dycore)
 
          !Set output variables back to dynamics kind:
@@ -116,8 +121,8 @@ CONTAINS
          deallocate(tracer_phys)
          deallocate(cp_phys)
 
-         if (allocated(dp_dry_phys)) then
-            deallocate(dp_dry_phys)
+         if (allocated(factor_phys)) then
+            deallocate(factor_phys)
          end if
 
 
@@ -957,7 +962,7 @@ CONTAINS
 
          end if
 
-         !Call physics routine using local vriables with matching kinds:
+         !Call physics routine using local variables with matching kinds:
          call get_rho_dry_phys(tracer_phys,temp_phys, &
                                ptop_phys, dp_dry_phys,tracer_mass, &
                                rho_dry=rho_dry_phys, &

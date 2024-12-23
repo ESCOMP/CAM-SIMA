@@ -187,6 +187,10 @@ contains
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+        use cam_thermo_formula,   only: energy_formula_dycore, ENERGY_FORMULA_DYCORE_MPAS
+        use phys_vars_init_check, only: mark_as_initialized
+        use physics_types,        only: dycore_energy_consistency_adjust
+
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
@@ -202,6 +206,15 @@ contains
 
         nullify(pio_init_file)
         nullify(pio_topo_file)
+
+        ! Set dynamical core energy formula for use in cam_thermo.
+        energy_formula_dycore = ENERGY_FORMULA_DYCORE_MPAS
+        call mark_as_initialized('total_energy_formula_for_dycore')
+
+        ! Dynamical core energy is not consistent with CAM physics and requires
+        ! temperature and temperature tendency adjustment at end of physics.
+        dycore_energy_consistency_adjust = .true.
+        call mark_as_initialized('flag_for_dycore_energy_consistency_adjustment')
 
         allocate(constituent_name(num_advected), stat=ierr)
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
@@ -958,6 +971,18 @@ contains
         do i = 1, num_advected
             call mark_as_initialized(trim(adjustl(const_name(i))))
         end do
+
+        call mark_as_initialized('specific_heat_of_air_used_in_dycore')
+
+        ! These energy variables are calculated by check_energy_timestep_init
+        ! but need to be marked here
+        call mark_as_initialized('vertically_integrated_total_energy_at_end_of_physics_timestep')
+        call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula')
+        call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep')
+        call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula')
+        call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep')
+        call mark_as_initialized('vertically_integrated_total_water')
+        call mark_as_initialized('vertically_integrated_total_water_at_start_of_physics_timestep')
     end subroutine mark_variable_as_initialized
 
     !> Run MPAS dynamical core to integrate the dynamical states with time.

@@ -1015,6 +1015,7 @@ CONTAINS
          end do
       end do
       ! Determine the maximum number of dimensions
+      max_mdims = 0
       do field_index = 1, size(this%field_list)
          max_mdims = max(max_mdims, size(this%field_list(field_index)%dimensions()))
       end do
