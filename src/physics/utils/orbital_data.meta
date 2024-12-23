@@ -6,7 +6,7 @@
   type = module
 [solar_declination]
   standard_name = solar_declination
-  units = radians
+  units = rad
   type = real | kind = kind_phys
   dimensions = ()
 [earth_sun_distance]
@@ -16,6 +16,6 @@
   dimensions = ()
 [solar_zenith_angle]
   standard_name = solar_zenith_angle
-  units = radians
+  units = rad
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
