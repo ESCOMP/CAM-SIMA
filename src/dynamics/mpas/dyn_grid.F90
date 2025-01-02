@@ -1,12 +1,6 @@
 module dyn_grid
     ! Module(s) from CAM-SIMA.
     use cam_grid_support, only: max_hcoordname_len
-    use cam_map_utils, only: kind_imap => imap
-    use physics_column_type, only: kind_pcol
-    ! Module(s) from CESM Share.
-    use shr_kind_mod, only: kind_r8 => shr_kind_r8
-    ! Module(s) from MPAS.
-    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
     implicit none
 
@@ -115,6 +109,10 @@ contains
         use std_atm_profile, only: std_atm_pres
         use string_utils, only: stringify
         use vert_coord, only: pver, pverp
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
         ! Number of pure pressure levels at model top.
@@ -221,10 +219,14 @@ contains
         use cam_abortutils, only: check_allocate
         use dyn_comp, only: mpas_dynamical_core, ncells_global, ncells_solve, sphere_radius
         use dynconst, only: constant_pi => pi, rad_to_deg
-        use physics_column_type, only: physics_column_t
+        use physics_column_type, only: kind_pcol, physics_column_t
         use physics_grid, only: phys_grid_init
         use spmd_utils, only: iam
         use string_utils, only: stringify
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
@@ -311,12 +313,17 @@ contains
         use cam_abortutils, only: check_allocate
         use cam_grid_support, only: cam_grid_attribute_register, cam_grid_register, &
                                     horiz_coord_create, horiz_coord_t
+        use cam_map_utils, only: kind_imap => imap
         use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
                             ncells_global, nedges_global, nvertices_global, &
                             ncells_solve, nedges_solve, nvertices_solve, &
                             sphere_radius
         use dynconst, only: constant_pi => pi, rad_to_deg
         use string_utils, only: stringify
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_grid::define_cam_grid'
         integer :: i

@@ -17,7 +17,7 @@ module dyn_mpas_subdriver
 #endif
     ! Module(s) from MPAS.
     use mpas_derived_types, only: core_type, domain_type
-    use mpas_kind_types, only: rkind, r4kind, r8kind, strkind
+    use mpas_kind_types, only: rkind, strkind
 
     implicit none
 
@@ -1897,6 +1897,7 @@ contains
         use mpas_derived_types, only: field0dchar, field1dchar, &
                                       field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
                                       field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal
+        use mpas_kind_types, only: r4kind, r8kind
         use mpas_pool_routines, only: mpas_pool_get_field
 
         class(mpas_dynamical_core_type), intent(in) :: self

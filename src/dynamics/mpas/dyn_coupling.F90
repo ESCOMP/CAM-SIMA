@@ -1,10 +1,4 @@
 module dyn_coupling
-    ! Module(s) from CESM Share.
-    use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
-                            len_cx => shr_kind_cx
-    ! Module(s) from MPAS.
-    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
-
     implicit none
 
     private
@@ -18,6 +12,10 @@ contains
     subroutine dynamics_to_physics_coupling()
         ! Module(s) from CAM-SIMA.
         use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_states, ncells_solve
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling'
         integer :: column_index
@@ -308,6 +306,8 @@ contains
             use geopotential_temp, only: geopotential_temp_run
             use qneg, only: qneg_run
             use static_energy, only: update_dry_static_energy_run
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::set_physics_state_external'
             character(len_cx) :: cerr
@@ -411,6 +411,10 @@ contains
     subroutine physics_to_dynamics_coupling()
         ! Module(s) from CAM-SIMA.
         use dyn_comp, only: dyn_exchange_constituent_states
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling'
         integer, pointer :: index_qv

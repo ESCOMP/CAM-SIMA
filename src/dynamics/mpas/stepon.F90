@@ -1,7 +1,4 @@
 module stepon
-    ! Module(s) from CCPP.
-    use ccpp_kinds, only: kind_phys
-
     implicit none
 
     private
@@ -31,6 +28,8 @@ contains
         use physics_types, only: physics_state, physics_tend
         use runtime_obj, only: runtime_options
         use time_manager, only: get_step_size
+        ! Module(s) from CCPP.
+        use ccpp_kinds, only: kind_phys
 
         real(kind_phys), intent(out) :: dtime_phys
         type(runtime_options), intent(in) :: cam_runtime_opts
@@ -69,6 +68,8 @@ contains
         use dyn_comp, only: dyn_export_t, dyn_import_t, dyn_run
         use physics_types, only: physics_state
         use runtime_obj, only: runtime_options
+        ! Module(s) from CCPP.
+        use ccpp_kinds, only: kind_phys
 
         real(kind_phys), intent(in) :: dtime_phys
         type(runtime_options), intent(in) :: cam_runtime_opts

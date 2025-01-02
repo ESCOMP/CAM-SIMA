@@ -1,7 +1,4 @@
 module dyn_comp
-    ! Module(s) from CESM Share.
-    use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
-                            len_cs => shr_kind_cs
     ! Module(s) from MPAS.
     use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type
 
@@ -99,6 +96,7 @@ contains
         use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
         ! Module(s) from CESM Share.
         use shr_file_mod, only: shr_file_getunit
+        use shr_kind_mod, only: len_cs => shr_kind_cs
         use shr_pio_mod, only: shr_pio_getiosys
         ! Module(s) from external libraries.
         use pio, only: iosystem_desc_t
@@ -312,6 +310,8 @@ contains
         use cam_field_read, only: cam_read_field
         use cam_logfile, only: debug_output, debugout_none
         use dynconst, only: constant_g => gravit
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
 
@@ -376,6 +376,9 @@ contains
     !> Set analytic initial condition for MPAS.
     !> (KCW, 2024-05-22)
     subroutine set_analytic_initial_condition()
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+
         character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition'
         integer, allocatable :: global_grid_index(:)
         real(kind_r8), allocatable :: buffer_2d_real(:, :), buffer_3d_real(:, :, :)
@@ -845,6 +848,8 @@ contains
         ! Module(s) from CCPP.
         use cam_ccpp_cap, only: cam_constituents_array
         use ccpp_kinds, only: kind_phys
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
 
         character(*), intent(in) :: direction
         logical, intent(in) :: exchange
@@ -1156,6 +1161,9 @@ contains
     !> Helper function for reversing the order of elements in `array`.
     !> (KCW, 2024-07-17)
     pure function reverse(array)
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+
         real(kind_r8), intent(in) :: array(:)
         real(kind_r8) :: reverse(size(array))
 
