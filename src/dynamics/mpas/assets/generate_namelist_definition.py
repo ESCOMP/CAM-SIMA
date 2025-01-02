@@ -93,7 +93,7 @@ def parse_argument() -> argparse.Namespace:
         default='Namelist.xml',
         type=str,
         required=False,
-        help='XML namelist definition file.',
+        help='XML CAM-SIMA namelist definition file.',
         dest='nml_xml'
     )
     parser.add_argument(
@@ -101,7 +101,7 @@ def parse_argument() -> argparse.Namespace:
         default=None,
         type=str,
         required=False,
-        help='XML schema for namelist definition file.',
+        help='XML schema for CAM-SIMA namelist definition file.',
         dest='nml_xsd'
     )
 
@@ -158,7 +158,7 @@ def translate_element_tree(reg_xml_et: ET.ElementTree) -> ET.ElementTree:
         INDENT_PER_LEVEL * 2 + 'MPAS dycore' + '\n' +
         '\n' +
         INDENT_PER_LEVEL * 2 + 'Note to developers/maintainers:' + '\n' +
-        INDENT_PER_LEVEL * 2 + 'This file is auto-generated from MPAS registry. Do not edit directly.' + '\n' +
+        INDENT_PER_LEVEL * 2 + 'This file is auto-generated from the MPAS registry. Do not edit directly.' + '\n' +
         INDENT_PER_LEVEL * 2 + 'Instead, use the Python script at `src/dynamics/mpas/assets/generate_namelist_definition.py`.' + '\n' +
         INDENT_PER_LEVEL
     )
