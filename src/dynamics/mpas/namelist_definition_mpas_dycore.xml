@@ -4,7 +4,7 @@
         MPAS dycore
 
         Note to developers/maintainers:
-        This file is auto-generated from MPAS registry. Do not edit directly.
+        This file is auto-generated from the MPAS registry. Do not edit directly.
         Instead, use the Python script at `src/dynamics/mpas/assets/generate_namelist_definition.py`.
     -->
     <entry id="mpas_apvm_upwinding">
