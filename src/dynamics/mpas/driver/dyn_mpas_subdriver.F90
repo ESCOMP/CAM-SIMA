@@ -21,7 +21,7 @@ module dyn_mpas_subdriver
                    pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
 
     ! Modules from MPAS.
-    use atm_core, only: atm_mpas_init_block
+    use atm_core, only: atm_compute_output_diagnostics, atm_do_timestep, atm_mpas_init_block
     use atm_core_interface, only: atm_setup_core, atm_setup_domain
     use atm_time_integration, only: mpas_atm_dynamics_init
     use mpas_atm_dimensions, only: mpas_atm_set_dims
@@ -34,7 +34,7 @@ module dyn_mpas_subdriver
                                   mpas_pool_type, mpas_pool_field_info_type, &
                                   mpas_pool_character, mpas_pool_real, mpas_pool_integer, &
                                   mpas_stream_type, mpas_stream_noerr, &
-                                  mpas_time_type, mpas_start_time, &
+                                  mpas_time_type, mpas_timeinterval_type, mpas_now, mpas_start_time, &
                                   mpas_io_native_precision, mpas_io_pnetcdf, mpas_io_read, mpas_io_write, &
                                   field0dchar, field1dchar, &
                                   field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
@@ -42,6 +42,7 @@ module dyn_mpas_subdriver
     use mpas_dmpar, only: mpas_dmpar_exch_halo_field, &
                           mpas_dmpar_max_int, mpas_dmpar_sum_int
     use mpas_domain_routines, only: mpas_allocate_domain
+    use mpas_field_routines, only: mpas_allocate_scratch_field
     use mpas_framework, only: mpas_framework_init_phase1, mpas_framework_init_phase2
     use mpas_io_streams, only: mpas_createstream, mpas_closestream, mpas_streamaddfield, &
                                mpas_readstream, mpas_writestream, mpas_writestreamatt
@@ -51,11 +52,13 @@ module dyn_mpas_subdriver
                                   mpas_pool_get_array, &
                                   mpas_pool_add_dimension, mpas_pool_get_dimension, &
                                   mpas_pool_get_field, mpas_pool_get_field_info, &
-                                  mpas_pool_initialize_time_levels
+                                  mpas_pool_initialize_time_levels, mpas_pool_shift_time_levels
     use mpas_stream_inquiry, only: mpas_stream_inquiry_new_streaminfo
     use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
     use mpas_string_utils, only: mpas_string_replace
-    use mpas_timekeeping, only: mpas_get_clock_time, mpas_get_time
+    use mpas_timekeeping, only: mpas_advance_clock, mpas_get_clock_time, mpas_get_time, &
+                                mpas_set_timeinterval, &
+                                operator(+), operator(<)
     use mpas_vector_operations, only: mpas_initialize_vectors
 
     implicit none
@@ -106,7 +109,8 @@ module dyn_mpas_subdriver
         logical, allocatable :: is_water_species(:)
 
         ! Initialized by `dyn_mpas_init_phase4`.
-        integer :: coupling_time_interval
+        integer :: coupling_time_interval = 0
+        integer :: number_of_time_steps = 0
     contains
         private
 
@@ -123,6 +127,7 @@ module dyn_mpas_subdriver
         procedure, pass, public :: compute_unit_vector => dyn_mpas_compute_unit_vector
         procedure, pass, public :: compute_edge_wind => dyn_mpas_compute_edge_wind
         procedure, pass, public :: init_phase4 => dyn_mpas_init_phase4
+        procedure, pass, public :: run => dyn_mpas_run
 
         ! Accessor subroutines for users to access internal states of MPAS dynamical core.
 
@@ -2525,19 +2530,21 @@ contains
     !> \date   16 January 2020
     !> \details
     !>  This subroutine computes the edge-normal wind vectors at edge points
-    !>  (i.e., `u` in MPAS `state` pool) from wind components at cell points
+    !>  (i.e., `u` in MPAS `state` pool) from the wind components at cell points
     !>  (i.e., `uReconstruct{Zonal,Meridional}` in MPAS `diag` pool). In MPAS, the
     !>  former are PROGNOSTIC variables, while the latter are DIAGNOSTIC variables
     !>  that are "reconstructed" from the former. This subroutine is essentially the
     !>  inverse function of that reconstruction. The purpose is to provide an
     !>  alternative way for MPAS to initialize from zonal and meridional wind
-    !>  components at cell points.
+    !>  components at cell points. If `wind_tendency` is `.true.`, this subroutine
+    !>  operates on the wind tendency due to physics instead.
     !> \addenda
     !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-08)
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_compute_edge_wind(self)
+    subroutine dyn_mpas_compute_edge_wind(self, wind_tendency)
         class(mpas_dynamical_core_type), intent(in) :: self
+        logical, intent(in) :: wind_tendency
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_edge_wind'
         integer :: cell1, cell2, i
@@ -2561,14 +2568,24 @@ contains
         nullify(uedge)
 
         ! Make sure halo layers are up-to-date before computation.
-        call self % exchange_halo('uReconstructZonal')
-        call self % exchange_halo('uReconstructMeridional')
+        if (wind_tendency) then
+            call self % exchange_halo('tend_uzonal')
+            call self % exchange_halo('tend_umerid')
+        else
+            call self % exchange_halo('uReconstructZonal')
+            call self % exchange_halo('uReconstructMeridional')
+        end if
 
         ! Input.
         call self % get_variable_pointer(nedges, 'dim', 'nEdges')
 
-        call self % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
-        call self % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
+        if (wind_tendency) then
+            call self % get_variable_pointer(ucellzonal, 'tend_physics', 'tend_uzonal')
+            call self % get_variable_pointer(ucellmeridional, 'tend_physics', 'tend_umerid')
+        else
+            call self % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
+            call self % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
+        end if
 
         call self % get_variable_pointer(cellsonedge, 'mesh', 'cellsOnEdge')
         call self % get_variable_pointer(east, 'mesh', 'east')
@@ -2576,7 +2593,11 @@ contains
         call self % get_variable_pointer(edgenormalvectors, 'mesh', 'edgeNormalVectors')
 
         ! Output.
-        call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
+        if (wind_tendency) then
+            call self % get_variable_pointer(uedge, 'tend_physics', 'tend_ru_physics')
+        else
+            call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
+        end if
 
         do i = 1, nedges
             cell1 = cellsonedge(1, i)
@@ -2607,7 +2628,11 @@ contains
         nullify(uedge)
 
         ! Make sure halo layers are up-to-date after computation.
-        call self % exchange_halo('u')
+        if (wind_tendency) then
+            call self % exchange_halo('tend_ru_physics')
+        else
+            call self % exchange_halo('u')
+        end if
 
         call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_compute_edge_wind
@@ -2640,6 +2665,7 @@ contains
         logical, pointer :: config_do_restart
         real(rkind), pointer :: config_dt
         type(field0dreal), pointer :: field_0d_real
+        type(field2dreal), pointer :: field_2d_real
         type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_time_type) :: mpas_time
 
@@ -2651,6 +2677,7 @@ contains
         nullify(config_do_restart)
         nullify(config_dt)
         nullify(field_0d_real)
+        nullify(field_2d_real)
         nullify(mpas_pool)
 
         if (coupling_time_interval <= 0) then
@@ -2673,6 +2700,7 @@ contains
         end if
 
         self % coupling_time_interval = coupling_time_interval
+        self % number_of_time_steps = 0
 
         call self % debug_print('Coupling time interval is ' // stringify([real(self % coupling_time_interval, rkind)]) // &
             ' seconds')
@@ -2814,6 +2842,16 @@ contains
         ! Prepare dynamics for time integration.
         call mpas_atm_dynamics_init(self % domain_ptr)
 
+        ! Some additional "scratch" fields are needed for interoperability with CAM-SIMA, but they are not initialized by
+        ! `mpas_atm_dynamics_init`. Initialize them below.
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_uzonal', field_2d_real, timelevel=1)
+        call mpas_allocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
+        call mpas_allocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
         call self % debug_print(subname // ' completed')
 
         call self % debug_print('Successful initialization of MPAS dynamical core')
@@ -2866,6 +2904,113 @@ contains
             almost_equal = .false.
         end function almost_equal
     end subroutine dyn_mpas_init_phase4
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_run
+    !
+    !> \brief  Integrates the dynamical states with time
+    !> \author Michael Duda
+    !> \date   29 February 2020
+    !> \details
+    !>  This subroutine calls MPAS dynamical solver in a loop, with each iteration
+    !>  of the loop advancing the dynamical states forward by one time step, until
+    !>  the coupling time interval is reached.
+    !>  Essentially, it closely follows what is done in `atm_core_run`, but without
+    !>  any calls to MPAS diagnostics manager or MPAS stream manager.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-06-21)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_run(self)
+        class(mpas_dynamical_core_type), intent(inout) :: self
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_run'
+        character(strkind) :: date_time
+        integer :: ierr
+        real(rkind), pointer :: config_dt
+        type(mpas_pool_type), pointer :: mpas_pool_diag, mpas_pool_mesh, mpas_pool_state
+        type(mpas_time_type) :: mpas_time_end, mpas_time_now ! This derived type is analogous to `ESMF_Time`.
+        type(mpas_timeinterval_type) :: mpas_time_interval   ! This derived type is analogous to `ESMF_TimeInterval`.
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(config_dt)
+        nullify(mpas_pool_diag, mpas_pool_mesh, mpas_pool_state)
+
+        call self % get_variable_pointer(config_dt, 'cfg', 'config_dt')
+        call self % get_pool_pointer(mpas_pool_diag, 'diag')
+        call self % get_pool_pointer(mpas_pool_mesh, 'mesh')
+        call self % get_pool_pointer(mpas_pool_state, 'state')
+
+        mpas_time_now = mpas_get_clock_time(self % domain_ptr % clock, mpas_now, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
+        end if
+
+        call mpas_get_time(mpas_time_now, datetimestring=date_time, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
+        end if
+
+        call self % debug_print('Time integration of MPAS dynamical core begins at ' // trim(adjustl(date_time)))
+
+        call mpas_set_timeinterval(mpas_time_interval, s=self % coupling_time_interval, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to set coupling time interval', subname, __LINE__)
+        end if
+
+        ! The `+` operator is overloaded here.
+        mpas_time_end = mpas_time_now + mpas_time_interval
+
+        ! Integrate until the coupling time interval is reached.
+        ! The `<` operator is overloaded here.
+        do while (mpas_time_now < mpas_time_end)
+            ! Number of time steps that has been completed in this MPAS dynamical core instance.
+            self % number_of_time_steps = self % number_of_time_steps + 1
+
+            ! Advance the dynamical states forward in time by `config_dt` seconds.
+            ! Current states are in time level 1. Upon exit, time level 2 will contain updated states.
+            call atm_do_timestep(self % domain_ptr, config_dt, self % number_of_time_steps)
+
+            ! MPAS `state` pool has two time levels.
+            ! Swap them after advancing a time step.
+            call mpas_pool_shift_time_levels(mpas_pool_state)
+
+            call mpas_advance_clock(self % domain_ptr % clock, ierr=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to advance clock', subname, __LINE__)
+            end if
+
+            mpas_time_now = mpas_get_clock_time(self % domain_ptr % clock, mpas_now, ierr=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
+            end if
+
+            call self % debug_print('Time step ' // stringify([self % number_of_time_steps]) // ' completed')
+        end do
+
+        call mpas_get_time(mpas_time_now, datetimestring=date_time, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
+        end if
+
+        call self % debug_print('Time integration of MPAS dynamical core ends at ' // trim(adjustl(date_time)))
+
+        ! Compute diagnostic variables like `pressure`, `rho` and `theta` from time level 1 of MPAS `state` pool
+        ! by calling upstream MPAS functionality.
+        call atm_compute_output_diagnostics(mpas_pool_state, 1, mpas_pool_diag, mpas_pool_mesh)
+
+        nullify(config_dt)
+        nullify(mpas_pool_diag, mpas_pool_mesh, mpas_pool_state)
+
+        call self % debug_print(subname // ' completed')
+    end subroutine dyn_mpas_run
 
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_get_constituent_name
@@ -3148,7 +3293,7 @@ contains
                 pool_pointer => self % domain_ptr % configs
             case ('dim')
                 pool_pointer => self % domain_ptr % blocklist % dimensions
-            case ('diag', 'mesh', 'state', 'tend')
+            case ('diag', 'mesh', 'state', 'tend', 'tend_physics')
                 call mpas_pool_get_subpool(self % domain_ptr % blocklist % allstructs, trim(adjustl(pool_name)), pool_pointer)
             case default
                 call self % model_error('Unsupported pool name "' // trim(adjustl(pool_name)) // '"', subname, __LINE__)

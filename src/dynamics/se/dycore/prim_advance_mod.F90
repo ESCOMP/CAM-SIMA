@@ -1674,8 +1674,12 @@ contains
         call get_dp(elem(ie)%state%Qdp(:,:,:,1:qsize,tl_qdp),MASS_MIXING_RATIO,thermodynamic_active_species_idx_dycore,&
              elem(ie)%state%dp3d(:,:,:,tl),pdel,ps=ps,ptop=hyai(1)*ps0)
         call get_cp(elem(ie)%state%Qdp(:,:,:,1:qsize,tl_qdp),&
-             .false.,cp,dp_dry=elem(ie)%state%dp3d(:,:,:,tl),&
+             .false.,cp,factor=1.0_r8/elem(ie)%state%dp3d(:,:,:,tl),&
              active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
+
+        ! TODO: need to port cam6_3_109 changes to total energy using get_hydrostatic_energy
+        ! https://github.com/ESCOMP/CAM/pull/761/files#diff-946bde17289e2f42e43e64413610aa11d102deda8b5199ddaa5b71e67e5d517a
+
         do k = 1, nlev
           do j=1,np
             do i = 1, np

@@ -1,4 +1,0 @@
-ncdata=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_held_suarez_snapshot_derecho_gnu_before.nc
-ncdata_check=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_held_suarez_snapshot_derecho_gnu_after.nc
-debug_output=0
-pver=30

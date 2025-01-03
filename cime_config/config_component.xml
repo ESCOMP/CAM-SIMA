@@ -8,6 +8,7 @@
       CAM
     ===============
    -->
+    <desc atm="CAM70[%1PCT][%4xCO2][%CCTS][%CFIRE][%CVBSX][%PORT][%RCO2][%SCAM][%SDYN][%WCCM][%WCMD][%WCSC][%WCTS][%WXIE]">CAM cam7 physics:</desc>
     <desc atm="CAM60[%1PCT][%4xCO2][%CCTS][%CFIRE][%CVBSX][%PORT][%RCO2][%SCAM][%SDYN][%WCCM][%WCMD][%WCSC][%WCTS][%WXIE]">CAM cam6 physics:</desc>
     <desc atm="CAM50[%CCTS][%CLB][%PORT][%RCO2][%SCAM][%SDYN][%WCSC][%WCTS]"              >CAM cam5 physics:</desc>
     <desc atm="CAM40[%PORT][%RCO2][%SCAM][%SDYN][%TMOZ][%WXIE][%WXIED][%WCMD]"                   >CAM cam4 physics:</desc>
@@ -120,6 +121,7 @@
     <valid_values></valid_values>
     <default_value></default_value>
     <values match="last" modifier='additive'>
+      <value compset="_CAM70">--physics-suites cam7</value>
 <!--      <value compset="_CAM40">-phys cam4</value>
       <value compset="_CAM50">-phys cam5</value>
       <value compset="_CAM60">-phys cam6</value> -->
@@ -159,8 +161,7 @@
       <value compset="_CAM\d0%WX.*%SDYN">-nlev 145</value> -->
 
       <!-- Simple models -->
-<!--      <value compset="_CAM%ADIAB">-phys adiabatic</value>
-      <value compset="_CAM%DABIP04">-phys adiabatic</value> -->
+      <value compset="_CAM%ADIAB">--physics-suites adiabatic</value>
       <value compset="_CAM%TJ16">--physics-suites tj2016 --analytic_ic</value>
 <!--      <value compset="_CAM%KESSLER">-phys kessler -chem terminator -analytic_ic</value> -->
       <value compset="_CAM%KESSLER">--physics-suites kessler --analytic_ic</value>

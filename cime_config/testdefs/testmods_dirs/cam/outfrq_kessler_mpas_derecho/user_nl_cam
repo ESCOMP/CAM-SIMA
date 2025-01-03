@@ -1,0 +1,4 @@
+debug_output=0
+hist_add_inst_fields;h2: Q,T,U,V,PS
+hist_output_frequency;h2: nsteps
+hist_write_nstep0;h2: .true.

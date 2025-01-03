@@ -1,13 +1,6 @@
 #!/bin/sh -f
 
-echo
-
-if [ $# -ne 1 ]; then
-    echo "Invoke archive_baseline.sh -help for usage."
-    exit 1
-fi
-
-if [ $1 == "-help" ] || [ $1 == "--help" ]; then
+show_help() {
 cat << EOF1
 NAME
 
@@ -17,14 +10,14 @@ NAME
 
 SYNOPSIS
 
-	archive_baseline.sh TAGNAME
-	  [-help]
+	archive_baseline.sh TAGNAME [--no-symlink]
+	  [--help]
 
 
 ENVIROMENT VARIABLES
 
 	CESM_TESTDIR - Directory that contains the CESM finished results you wish to archive.
-	CAM_FC      - Compiler used, used on izumi and derecho (GNU,NAG), where the compiler
+	CAM_FC      - Compiler used, used on izumi and derecho (GNU,NAG,INTEL,NVHPC), where the compiler
                       name is appended to the archive directory.
 
 
@@ -35,31 +28,23 @@ BASELINE ARCHIVED LOCATION
         derecho:  /glade/campaign/cesm/community/amwg/sima_baselines/TAGNAME
 
 
-
-HOW TO USE ARCHIVE BASELINES
-
-	Set BL_TESTDIR to the archived baseline you wish to load.
+SYMLINK
+        By default, this script will create a symlink between the new baseline directory and
+        $baseline_dir/latest_${CAM_FC} so that future tests can be run against these baselines
+        until the next baselines are established. If you'd like to not create the symlink (e.g.
+        you are archiving old baselines), use the "--no-symlink" argument.
 
 
 WORK FLOW
 
-	This is an example for izumi.
+	This is an example for derecho.
 
 	Modify your sandbox with the changes you want.
-        setenv CAM_FC GNU
-        setenv CAM_TESTDIR /scratch/cluster/fischer/cam5_2_06
-        Run the cam test suite.
+        Run the sima test suite.
         Make your trunk tag
-	archive_baseline.sh cam5_2_06
-
-	Create a new sandbox.
         setenv CAM_FC GNU
-	setenv CAM_TESTDIR /scratch/cluster/fischer/cam5_2_07
-        setenv BL_TESTDIR /fs/cgd/csm/models/atm/sima/pretag_bl/cam5_2_06_gnu
-        Run the cam test suite.
-        Make your trunk tag
-        archive_baseline.sh cam5_2_07
-
+        setenv CESM_TESTDIR /scratch/cluster/fischer/aux_sima_gnu_20241113133750
+	./archive_baseline.sh sima0_00_001
 
 WARNING
 
@@ -67,10 +52,40 @@ WARNING
         if you are getting unexpected baseline failures.
 
 EOF1
-exit
-fi
+}
 
+symlink=true
 hostname=`hostname`
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-symlink)
+      symlink=false
+      shift
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    -*)
+      echo "Unknown option: $1"
+      show_help
+      exit 1
+      ;;
+    *)
+      # Assume the first non-flag argument is the tag
+      if [ -z "$cam_tag" ]; then
+        cam_tag="$1"
+      else
+        echo "Unexpected argument: $1"
+        show_help
+        exit 1
+      fi
+      shift
+  esac
+done
+
 case $hostname in
 
   iz*)
@@ -78,8 +93,7 @@ case $hostname in
     if [ -z "$CAM_FC" ]; then
       CAM_FC="GNU"
     fi
-    test_file_list="tests_pretag_izumi_${CAM_FC,,}"
-    cam_tag=$1_${CAM_FC,,}
+    cam_tag=${cam_tag}_${CAM_FC,,}
     baselinedir="/fs/cgd/csm/models/atm/sima/pretag_bl/$cam_tag"
   ;;
 
@@ -88,8 +102,7 @@ case $hostname in
     if [ -z "$CAM_FC" ]; then
       CAM_FC="INTEL"
     fi
-    test_file_list="tests_pretag_derecho"
-    cam_tag=$1
+    cam_tag=${cam_tag}_${CAM_FC,,}
     baselinedir="/glade/campaign/cesm/community/amwg/sima_baselines/$cam_tag"
   ;;
 
@@ -110,6 +123,11 @@ if [ -n "$CESM_TESTDIR" ]; then
     if [ -d $CESM_TESTDIR/baselines ]; then
       echo "Using cp to archive baselines."
       cp -r $CESM_TESTDIR/baselines/. $root_baselinedir/$cam_tag
+      chmod -R a+r ${baselinedir}
+      if [ "${symlink}" = true ]; then
+        echo "Establishing symlink from '$root_baselinedir/latest_${CAM_FC,,}' to '$root_baselinedir/$cam_tag'"
+        ln -sfn $root_baselinedir/$cam_tag $root_baselinedir/latest_${CAM_FC,,}
+      fi
     else
       echo "Using bless_test_results to archive baselines."
       ../../cime/CIME/Tools/bless_test_results -p -t '' -c '' -r $CESM_TESTDIR --baseline-root $root_baselinedir -b $cam_tag -f -s

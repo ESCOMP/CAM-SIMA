@@ -1,0 +1,9 @@
+ncdata=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_kessler_snapshot_derecho_gnu_before_c20240412.nc
+ncdata_check=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_kessler_snapshot_derecho_gnu_after_c20240412.nc
+ncdata_check_err=.true.
+min_difference=1.0e-15
+debug_output=0
+pver=30
+hist_add_inst_fields;h2: Q, T
+hist_output_frequency;h2: 2*nsteps
+hist_write_nstep0;h2: .true.

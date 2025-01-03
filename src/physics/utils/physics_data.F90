@@ -326,7 +326,7 @@ CONTAINS
    end subroutine read_field_3d
 
    subroutine check_field_2d(file, var_names, timestep, current_value,        &
-      stdname, min_difference, min_relative_value, is_first)
+      stdname, min_difference, min_relative_value, is_first, diff_found)
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use spmd_utils,     only: mpicom, iam
@@ -348,6 +348,7 @@ CONTAINS
       real(kind_phys),   intent(in)    :: min_difference
       real(kind_phys),   intent(in)    :: min_relative_value
       logical,           intent(inout) :: is_first
+      logical,           intent(out)   :: diff_found
 
       !Local variables:
       logical                          :: var_found
@@ -375,6 +376,7 @@ CONTAINS
       diff          = 0._kind_phys
       max_diff(1) = 0._kind_phys
       max_diff(2) = real(iam, kind_phys) !MPI rank for this task
+      diff_found = .false.
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (.not. var_found) then
@@ -437,6 +439,7 @@ CONTAINS
                                                int(max_diff_gl(2)),         &
                                                max_diff_gl_col, is_first)
                   is_first = .false.
+                  diff_found = .true.
                end if
             end if
          end if
@@ -445,7 +448,8 @@ CONTAINS
    end subroutine check_field_2d
 
    subroutine check_field_3d(file, var_names, vcoord_name, timestep,          &
-      current_value, stdname, min_difference, min_relative_value, is_first)
+      current_value, stdname, min_difference, min_relative_value, is_first,   &
+      diff_found)
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
@@ -470,6 +474,7 @@ CONTAINS
       real(kind_phys),   intent(in)    :: min_difference
       real(kind_phys),   intent(in)    :: min_relative_value
       logical,           intent(inout) :: is_first
+      logical,           intent(out)   :: diff_found
 
       !Local variables:
       logical                          :: var_found = .true.
@@ -503,6 +508,7 @@ CONTAINS
       diff          = 0._kind_phys
       max_diff(1)   = 0._kind_phys
       max_diff(2)   = real(iam, kind_phys) !MPI rank for this task
+      diff_found = .false.
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (.not. var_found) then
@@ -586,6 +592,7 @@ CONTAINS
                                                is_first,                      &
                                                max_diff_lev=max_diff_gl_lev)
                   is_first = .false.
+                  diff_found = .true.
                end if
             end if
          end if

@@ -33,8 +33,10 @@ module cam_thermo
 
    ! cam_thermo_init: Initialize constituent dependent properties
    public :: cam_thermo_init
-   ! cam_thermo_update: Update constituent dependent properties
-   public :: cam_thermo_update
+   ! cam_thermo_dry_air_update: Update dry air composition dependent properties
+   public :: cam_thermo_dry_air_update
+   ! cam_thermo_water_update: Update water dependent properties
+   public :: cam_thermo_water_update
    ! get_enthalpy: enthalpy quantity = dp*cp*T
    public :: get_enthalpy
    ! get_virtual_temp: virtual temperature
@@ -77,6 +79,7 @@ module cam_thermo
    ! mixing_ratio options
    integer, public, parameter :: DRY_MIXING_RATIO = 1
    integer, public, parameter :: MASS_MIXING_RATIO = 2
+
    !> \section arg_table_cam_thermo  Argument Table
    !! \htmlinclude cam_thermo.html
    !---------------  Variables below here are for WACCM-X ---------------------
@@ -85,7 +88,7 @@ module cam_thermo
    ! kmcnd: molecular conductivity   J m-1 s-1 K-1
    real(kind_phys), public, protected, allocatable :: kmcnd(:,:)
 
-   !------------- Variables for consistent themodynamics --------------------
+   !------------- Variables for consistent thermodynamics --------------------
    !
 
    !
@@ -179,6 +182,7 @@ CONTAINS
 
    subroutine cam_thermo_init(pcols, pver, pverp)
       use shr_infnan_mod,  only: assignment(=), shr_infnan_qnan
+      use shr_kind_mod,    only: shr_kind_cl
       use physconst,       only: cpair, rair, mwdry
 
       integer, intent(in) :: pcols
@@ -187,16 +191,19 @@ CONTAINS
 
       integer                     :: ierr
       character(len=*), parameter :: subname = "cam_thermo_init"
+      character(len=shr_kind_cl)  :: errmsg
+
+      errmsg = ''
 
       !------------------------------------------------------------------------
       !  Allocate constituent dependent properties
       !------------------------------------------------------------------------
-      allocate(kmvis(pcols,pverp), stat=ierr)
+      allocate(kmvis(pcols,pverp), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'kmvis(pcols,pverp)', &
-                                file=__FILE__, line=__LINE__)
-      allocate(kmcnd(pcols,pverp), stat=ierr)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(kmcnd(pcols,pverp), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'kmcnd(pcols,pverp)', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       !------------------------------------------------------------------------
       !  Initialize constituent dependent properties
@@ -208,51 +215,89 @@ CONTAINS
 
    !===========================================================================
 
-   !***************************************************************************
-   !
-   ! cam_thermo_update: update species dependent constants for physics
    !
    !***************************************************************************
    !
-   subroutine cam_thermo_update(mmr, T, ncol, update_thermo_variables, to_moist_factor)
-      use air_composition, only: air_composition_update, update_zvirv
-      use string_utils,    only: to_str
-      !-----------------------------------------------------------------------
-      ! Update the physics "constants" that vary
-      !-------------------------------------------------------------------------
+   ! cam_thermo_dry_air_update: update dry air species dependent constants for physics
+   !
+   !***************************************************************************
+   !
+   subroutine cam_thermo_dry_air_update(mmr, T, ncol, pver, update_thermo_variables, to_dry_factor)
+      use air_composition, only: dry_air_composition_update
+      use air_composition, only: update_zvirv
+      use string_utils,    only: stringify
 
-      !------------------------------Arguments----------------------------------
+      real(kind_phys),    intent(in) :: mmr(:,:,:) ! constituents array (mmr = dry mixing ratio, if not use to_dry_factor to convert)
+      real(kind_phys),    intent(in) :: T(:,:)     ! temperature
+      integer,            intent(in) :: pver       ! number of vertical levels
+      integer,            intent(in) :: ncol       ! number of columns
+      logical,            intent(in) :: update_thermo_variables ! true: calculate composition-dependent thermo variables
+                                                                ! false: do not calculate composition-dependent thermo variables
+      real(kind_phys), optional, intent(in) :: to_dry_factor(:,:) ! conversion factor to dry if mmr is wet or moist
 
-      real(kind_phys),           intent(in) :: mmr(:,:,:) ! constituents array
-      real(kind_phys),           intent(in) :: T(:,:)     ! temperature
-      integer,                   intent(in) :: ncol       ! number of columns
-      logical,                   intent(in) :: update_thermo_variables ! true: calculate composition-dependent thermo variables
-                                                                       ! false: do not calculate composition-dependent thermo variables
-
-      real(kind_phys), optional, intent(in) :: to_moist_factor(:,:)
-      !
-      !---------------------------Local storage-------------------------------
-      real(kind_phys):: sponge_factor(SIZE(mmr, 2))
-      character(len=*), parameter :: subname = 'cam_thermo_update: '
+      ! Local vars
+      real(kind_phys) :: sponge_factor(SIZE(mmr, 2))
+      character(len=*), parameter :: subname = 'cam_thermo_dry_air_update: '
 
       if (.not. update_thermo_variables) then
          return
       end if
 
-      if (present(to_moist_factor)) then
-         if (SIZE(to_moist_factor, 1) /= ncol) then
-            call endrun(subname//'DIM 1 of to_moist_factor is'//to_str(SIZE(to_moist_factor,1))//'but should be'//to_str(ncol))
-         end if
+      if (present(to_dry_factor)) then
+        if (SIZE(to_dry_factor, 1) /= ncol) then
+          call endrun(subname//'DIM 1 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,1)/))//' but should be '//stringify((/ncol/)))
+        end if
+        if (SIZE(to_dry_factor, 2) /= pver) then
+          call endrun(subname//'DIM 2 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,2)/))//' but should be '//stringify((/pver/)))
+        end if
       end if
+
       sponge_factor = 1.0_kind_phys
 
-      call air_composition_update(mmr, ncol, to_moist_factor=to_moist_factor)
+      call dry_air_composition_update(mmr, ncol, to_dry_factor=to_dry_factor)
       call get_molecular_diff_coef(T(:ncol,:), .true., sponge_factor, kmvis(:ncol,:), &
-           kmcnd(:ncol,:), tracer=mmr(:ncol,:,:), fact=to_moist_factor,  &
+           kmcnd(:ncol,:), tracer=mmr(:ncol,:,:), fact=to_dry_factor,  &
            active_species_idx_dycore=thermodynamic_active_species_idx)
+
+      ! Calculate zvirv for WACCM-X.
       call update_zvirv()
 
-   end subroutine cam_thermo_update
+    end subroutine cam_thermo_dry_air_update
+
+    !
+    !***************************************************************************
+    !
+    ! cam_thermo_water_update: update water species dependent constants for physics
+    !
+    !***************************************************************************
+    !
+    subroutine cam_thermo_water_update(mmr, ncol, pver, energy_formula, cp_or_cv_dycore, to_dry_factor)
+      use air_composition, only: water_composition_update
+      use string_utils,    only: stringify
+      !-----------------------------------------------------------------------
+      ! Update the physics "constants" that vary
+      !-------------------------------------------------------------------------
+
+      real(kind_phys),           intent(in)  :: mmr(:,:,:)            ! constituents array (mmr = dry mixing ratio, if not use to_dry_factor to convert)
+      integer,                   intent(in)  :: ncol                  ! number of columns
+      integer,                   intent(in)  :: pver                  ! number of vertical levels
+      integer,                   intent(in)  :: energy_formula
+      real(kind_phys),           intent(out) :: cp_or_cv_dycore(:,:)  ! enthalpy or heat capacity, dycore dependent [J K-1 kg-1]
+      real(kind_phys), optional, intent(in)  :: to_dry_factor(:,:)
+
+      character(len=*), parameter :: subname = 'cam_thermo_water_update: '
+
+      if (present(to_dry_factor)) then
+        if (SIZE(to_dry_factor, 1) /= ncol) then
+          call endrun(subname//'DIM 1 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,1)/))//' but should be '//stringify((/ncol/)))
+        end if
+        if (SIZE(to_dry_factor, 2) /= pver) then
+          call endrun(subname//'DIM 2 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,2)/))//' but should be '//stringify((/pver/)))
+        end if
+      end if
+
+      call water_composition_update(mmr, ncol, energy_formula, cp_or_cv_dycore, to_dry_factor=to_dry_factor)
+    end subroutine cam_thermo_water_update
 
    !===========================================================================
 
@@ -1554,28 +1599,32 @@ CONTAINS
    !
    !***************************************************************************
    !
-   subroutine get_hydrostatic_energy_1hd(tracer, pdel, cp_or_cv, U, V, T,     &
-        vcoord, ps, phis, z_mid, dycore_idx, qidx, te, se, ke,                &
-        wv, H2O, liq, ice)
+   subroutine get_hydrostatic_energy_1hd(tracer, moist_mixing_ratio, pdel_in, &
+        cp_or_cv, U, V, T, vcoord, ptop, phis, z_mid, dycore_idx, qidx,       &
+        te, se, po, ke, wv, H2O, liq, ice)
 
+      use cam_thermo_formula, only: ENERGY_FORMULA_DYCORE_FV, ENERGY_FORMULA_DYCORE_SE, ENERGY_FORMULA_DYCORE_MPAS
       use cam_logfile,     only: iulog
-      use dyn_tests_utils, only: vc_height, vc_moist_pressure, vc_dry_pressure
       use air_composition, only: wv_idx
-      use physconst,       only: gravit, latvap, latice
+      use air_composition, only: dry_air_species_num
+      use physconst,       only: rga, latvap, latice
 
       ! Dummy arguments
       ! tracer: tracer mixing ratio
+      !
+      ! note - if pdeldry passed to subroutine then tracer mixing ratio must be dry
       real(kind_phys), intent(in)            :: tracer(:,:,:)
+      logical, intent(in)             :: moist_mixing_ratio
       ! pdel: pressure level thickness
-      real(kind_phys), intent(in)            :: pdel(:,:)
-      ! cp_or_cv: dry air heat capacity under constant pressure or
-      !           constant volume (depends on vcoord)
+      real(kind_phys), intent(in)            :: pdel_in(:,:)
+      ! cp_or_cv: air heat capacity under constant pressure or
+      !           constant volume (depends on energy formula)
       real(kind_phys), intent(in)            :: cp_or_cv(:,:)
       real(kind_phys), intent(in)            :: U(:,:)
       real(kind_phys), intent(in)            :: V(:,:)
       real(kind_phys), intent(in)            :: T(:,:)
-      integer,         intent(in)            :: vcoord ! vertical coordinate
-      real(kind_phys), intent(in),  optional :: ps(:)
+      integer,         intent(in)            :: vcoord !REMOVECAM - vcoord or energy formula to use
+      real(kind_phys), intent(in),  optional :: ptop(:)
       real(kind_phys), intent(in),  optional :: phis(:)
       real(kind_phys), intent(in),  optional :: z_mid(:,:)
       ! dycore_idx: use dycore index for thermodynamic active species
@@ -1588,8 +1637,12 @@ CONTAINS
       real(kind_phys), intent(out), optional :: te (:)
       ! KE: vertically integrated kinetic energy
       real(kind_phys), intent(out), optional :: ke (:)
-      ! SE: vertically integrated internal+geopotential energy
+      ! SE: vertically integrated enthalpy (pressure coordinate)
+      !     or internal energy (z coordinate)
       real(kind_phys), intent(out), optional :: se (:)
+      ! PO: vertically integrated PHIS term (pressure coordinate)
+      !     or potential energy (z coordinate)
+      real(kind_phys), intent(out), optional :: po (:)
       ! WV: vertically integrated water vapor
       real(kind_phys), intent(out), optional :: wv (:)
       ! liq: vertically integrated liquid
@@ -1599,10 +1652,12 @@ CONTAINS
 
       ! Local variables
       real(kind_phys) :: ke_vint(SIZE(tracer, 1))  ! Vertical integral of KE
-      real(kind_phys) :: se_vint(SIZE(tracer, 1))  ! Vertical integral of SE
+      real(kind_phys) :: se_vint(SIZE(tracer, 1))  ! Vertical integral of enthalpy or internal energy
+      real(kind_phys) :: po_vint(SIZE(tracer, 1))  ! Vertical integral of PHIS or potential energy
       real(kind_phys) :: wv_vint(SIZE(tracer, 1))  ! Vertical integral of wv
       real(kind_phys) :: liq_vint(SIZE(tracer, 1)) ! Vertical integral of liq
       real(kind_phys) :: ice_vint(SIZE(tracer, 1)) ! Vertical integral of ice
+      real(kind_phys) :: pdel(SIZE(tracer, 1),SIZE(tracer, 2)) ! moist pressure level thickness
       real(kind_phys)                      :: latsub ! latent heat of sublimation
 
       integer                       :: ierr
@@ -1633,12 +1688,12 @@ CONTAINS
             species_liq_idx(:) = thermodynamic_active_species_liq_idx_dycore(:)
             species_ice_idx(:) = thermodynamic_active_species_ice_idx_dycore(:)
          else
-            species_idx(:) = thermodynamic_active_species_idx(:)
+            species_idx(:) = thermodynamic_active_species_idx(1:)
             species_liq_idx(:) = thermodynamic_active_species_liq_idx(:)
             species_ice_idx(:) = thermodynamic_active_species_ice_idx(:)
          end if
       else
-         species_idx(:) = thermodynamic_active_species_idx(:)
+         species_idx(:) = thermodynamic_active_species_idx(1:)
          species_liq_idx(:) = thermodynamic_active_species_liq_idx(:)
          species_ice_idx(:) = thermodynamic_active_species_ice_idx(:)
       end if
@@ -1649,78 +1704,96 @@ CONTAINS
          wvidx = wv_idx
       end if
 
+      if (moist_mixing_ratio) then
+        pdel     = pdel_in
+      else
+        pdel     = pdel_in
+        do qdx = dry_air_species_num+1, thermodynamic_active_species_num
+          pdel(:,:) = pdel(:,:) + pdel_in(:, :)*tracer(:,:,species_idx(qdx))
+        end do
+      end if
+
+      ke_vint = 0._kind_phys
+      se_vint = 0._kind_phys
       select case (vcoord)
-      case(vc_moist_pressure, vc_dry_pressure)
-         if ((.not. present(ps)) .or. (.not. present(phis))) then
-            write(iulog, *) subname, ' ps and phis must be present for ',     &
-                 'moist/dry pressure vertical coordinate'
-            call endrun(subname//':  ps and phis must be present for '//      &
-                 'moist/dry pressure vertical coordinate')
+      case(ENERGY_FORMULA_DYCORE_FV, ENERGY_FORMULA_DYCORE_SE)
+         if (.not. present(ptop).or. (.not. present(phis))) then
+            write(iulog, *) subname, ' ptop and phis must be present for ',     &
+                 'FV/SE energy formula'
+            call endrun(subname//':  ptop and phis must be present for '//      &
+                 'FV/SE energy formula')
          end if
-         ke_vint = 0._kind_phys
-         se_vint = 0._kind_phys
-         wv_vint = 0._kind_phys
+         po_vint = ptop
          do kdx = 1, SIZE(tracer, 2)
             do idx = 1, SIZE(tracer, 1)
                ke_vint(idx) = ke_vint(idx) + (pdel(idx, kdx) *                &
-                    0.5_kind_phys * (U(idx, kdx)**2 + V(idx, kdx)**2) / gravit)
+                    0.5_kind_phys * (U(idx, kdx)**2 + V(idx, kdx)**2)) * rga
                se_vint(idx) = se_vint(idx) + (T(idx, kdx) *                   &
-                    cp_or_cv(idx, kdx) * pdel(idx, kdx) / gravit)
-               wv_vint(idx) = wv_vint(idx) + (tracer(idx, kdx, wvidx) *       &
-                    pdel(idx, kdx) / gravit)
+                    cp_or_cv(idx, kdx) * pdel(idx, kdx) * rga)
+               po_vint(idx) =  po_vint(idx)+pdel(idx, kdx)
+
             end do
          end do
          do idx = 1, SIZE(tracer, 1)
-            se_vint(idx) = se_vint(idx) + (phis(idx) * ps(idx) / gravit)
+            po_vint(idx) =  (phis(idx) * po_vint(idx) * rga)
          end do
-      case(vc_height)
-         if (.not. present(z_mid)) then
-            write(iulog, *) subname,                                          &
-                 ' z_mid must be present for height vertical coordinate'
-            call endrun(subname//': z_mid must be present for height '//      &
-                 'vertical coordinate')
+      case(ENERGY_FORMULA_DYCORE_MPAS)
+         if (.not. present(phis)) then
+            write(iulog, *) subname, ' phis must be present for ',     &
+                 'MPAS energy formula'
+            call endrun(subname//':  phis must be present for '//      &
+                 'MPAS energy formula')
          end if
-         ke_vint = 0._kind_phys
-         se_vint = 0._kind_phys
-         wv_vint = 0._kind_phys
+         po_vint = 0._kind_phys
          do kdx = 1, SIZE(tracer, 2)
             do idx = 1, SIZE(tracer, 1)
                ke_vint(idx) = ke_vint(idx) + (pdel(idx, kdx) *                &
-                    0.5_kind_phys * (U(idx, kdx)**2 + V(idx, kdx)**2) / gravit)
+                    0.5_kind_phys * (U(idx, kdx)**2 + V(idx, kdx)**2) * rga)
                se_vint(idx) = se_vint(idx) + (T(idx, kdx) *                   &
-                    cp_or_cv(idx, kdx) * pdel(idx, kdx) / gravit)
+                    cp_or_cv(idx, kdx) * pdel(idx, kdx) * rga)
                ! z_mid is height above ground
-               se_vint(idx) = se_vint(idx) + (z_mid(idx, kdx) +               &
-                    phis(idx) / gravit) * pdel(idx, kdx)
-               wv_vint(idx) = wv_vint(idx) + (tracer(idx, kdx, wvidx) *       &
-                    pdel(idx, kdx) / gravit)
+               po_vint(idx) = po_vint(idx) + (z_mid(idx, kdx) +               &
+                    phis(idx) * rga) * pdel(idx, kdx)
             end do
          end do
       case default
-         write(iulog, *) subname, ' vertical coordinate not supported: ', vcoord
-         call endrun(subname//': vertical coordinate not supported')
+         write(iulog, *) subname, ' energy formula not supported: ', vcoord
+         call endrun(subname//': energy formula not supported')
       end select
       if (present(te)) then
-         te  = se_vint + ke_vint
+         te  = se_vint + po_vint + ke_vint
       end if
       if (present(se)) then
          se = se_vint
       end if
+      if (present(po)) then
+         po = po_vint
+      end if
       if (present(ke)) then
          ke = ke_vint
-      end if
-      if (present(wv)) then
-         wv = wv_vint
       end if
       !
       ! vertical integral of total liquid water
       !
+      if (.not.moist_mixing_ratio) then
+        pdel = pdel_in! set pseudo density to dry
+      end if
+
+      wv_vint = 0._kind_phys
+      do kdx = 1, SIZE(tracer, 2)
+        do idx = 1, SIZE(tracer, 1)
+          wv_vint(idx) = wv_vint(idx) + (tracer(idx, kdx, wvidx) *       &
+               pdel(idx, kdx) * rga)
+        end do
+      end do
+      if (present(wv)) wv = wv_vint
+
       liq_vint = 0._kind_phys
       do qdx = 1, thermodynamic_active_species_liq_num
          do kdx = 1, SIZE(tracer, 2)
             do idx = 1, SIZE(tracer, 1)
-               liq_vint(idx) = liq_vint(idx) + (pdel(idx, kdx) *              &
-                    tracer(idx, kdx, species_liq_idx(qdx)) / gravit)
+               liq_vint(idx) = liq_vint(idx) + (pdel(idx, kdx) *         &
+                    tracer(idx, kdx, species_liq_idx(qdx)) * rga)
             end do
          end do
       end do
@@ -1734,7 +1807,7 @@ CONTAINS
          do kdx = 1, SIZE(tracer, 2)
             do idx = 1, SIZE(tracer, 1)
                ice_vint(idx) = ice_vint(idx) + (pdel(idx, kdx) *              &
-                    tracer(idx, kdx, species_ice_idx(qdx))  / gravit)
+                    tracer(idx, kdx, species_ice_idx(qdx))  * rga)
             end do
          end do
       end do
@@ -1762,7 +1835,6 @@ CONTAINS
          end select
       end if
       deallocate(species_idx, species_liq_idx, species_ice_idx)
-
    end subroutine get_hydrostatic_energy_1hd
 
    !===========================================================================

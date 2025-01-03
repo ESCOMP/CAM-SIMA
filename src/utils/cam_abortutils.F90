@@ -29,7 +29,7 @@ module cam_abortutils
 
 CONTAINS
 
-   subroutine check_allocate(errcode, subname, fieldname, file, line)
+   subroutine check_allocate(errcode, subname, fieldname, file, line, errmsg)
       ! If <errcode> is not zero, call endrun with an error message
 
       ! Dummy arguments
@@ -38,6 +38,8 @@ CONTAINS
       character(len=*),           intent(in) :: fieldname
       character(len=*), optional, intent(in) :: file
       integer,          optional, intent(in) :: line
+      character(len=*), optional, intent(in) :: errmsg
+
       ! Local variables
       character(len=max_chars) :: abort_msg
       real(r8)                 :: mem_val, mem_hw_val
@@ -48,10 +50,15 @@ CONTAINS
 
          ! Write error message with memory stats
          write(abort_msg, '(4a,i0,a,f10.2,a,f10.2,a)') &
-              trim(subname), ": Allocate of '",  &
+              trim(subname), ": Allocation of '",  &
               trim(fieldname), "' failed with code ", errcode, &
               ". Memory highwater is ", mem_hw_val, &
               " mb, current memory usage is ", mem_val, " mb"
+
+         ! If the optional fortran allocate error message is passed in, include it in the abort message
+         if(present(errmsg)) then
+            write(abort_msg, '(a)') trim(abort_msg) // new_line('a') // "Allocation failed with: " // trim(errmsg)
+         endif
 
          ! End the simulation
          call endrun(abort_msg, file=file, line=line)
@@ -80,25 +87,31 @@ CONTAINS
       end do
       ! If we get here, go ahead and register the file
       if (associated(open_files_pool)) then
+         ! Reuse pooled structure and point to the next pool entry
          of_new => open_files_pool
+         open_files_pool => open_files_pool%next
          allocate(of_new%file_desc, stat=ierr)
          call check_allocate(ierr, subname, 'of_file%file_desc', file=__FILE__, &
              line=__LINE__)
          of_new%file_desc = file
          of_new%file_name = file_name
-         allocate(open_files_pool%next)
-         open_files_pool%next => open_files_pool
+         nullify(of_new%next)
       else
          allocate(of_new)
          allocate(of_new%file_desc)
          of_new%file_desc = file
          of_new%file_name = file_name
-         open_files_pool => of_new
+         nullify(of_new%next)
       end if
-      open_files_tail => of_new
-      if (.not. associated(open_files_head)) then
-         open_files_head => of_new
-      end if
+
+      ! Add the registered file to the tail of the open files list
+      if(associated(open_files_tail)) then
+         open_files_tail%next => of_new
+         open_files_tail      => of_new
+      else
+         open_files_head      => of_new
+         open_files_tail      => of_new
+      endif
    end subroutine cam_register_open_file
 
    subroutine cam_register_close_file(file, log_shutdown_in)

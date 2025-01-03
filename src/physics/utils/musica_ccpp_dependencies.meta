@@ -1,0 +1,48 @@
+[ccpp-table-properties]
+  name = musica_ccpp_dependencies
+  type = module
+[ccpp-arg-table]
+  name  = musica_ccpp_dependencies
+  type  = module
+[ photolysis_wavelength_grid_section_dimension ]
+  standard_name = photolysis_wavelength_grid_section_dimension
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ photolysis_wavelength_grid_interface_dimension ]
+  standard_name = photolysis_wavelength_grid_interface_dimension
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ photolysis_wavelength_grid_interfaces ]
+  standard_name = photolysis_wavelength_grid_interfaces
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (photolysis_wavelength_grid_interface_dimension)
+  protected = True
+[ extraterrestrial_radiation_flux ]
+  standard_name = extraterrestrial_radiation_flux
+  units = photons cm-2 s-1 nm-1
+  type = real | kind = kind_phys
+  dimensions = (photolysis_wavelength_grid_section_dimension)
+  protected = True
+[ surface_albedo ]
+  standard_name = surface_albedo_due_to_UV_and_VIS_direct
+  units = none
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ blackbody_temperature_at_surface ]
+  standard_name = blackbody_temperature_at_surface
+  type = real | kind = kind_phys
+  units = K
+  dimensions = (horizontal_dimension)
+  protected = True
+[ cloud_area_fraction ]
+  standard_name = cloud_area_fraction
+  type = real | kind = kind_phys
+  units = fraction
+  dimensions = (horizontal_dimension,vertical_layer_dimension)
+  protected = True

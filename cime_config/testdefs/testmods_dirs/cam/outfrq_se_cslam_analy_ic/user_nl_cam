@@ -1,0 +1,4 @@
+hist_add_inst_fields;h1: T, Q, U, V, PS
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+analytic_ic_type=held_suarez_1994

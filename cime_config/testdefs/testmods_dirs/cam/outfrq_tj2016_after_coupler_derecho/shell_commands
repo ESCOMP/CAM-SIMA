@@ -1,0 +1,1 @@
+ ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites tj2016_sfc_pbl_hs"

@@ -1,4 +1,8 @@
 ncdata=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_tj2016_precip_tend_ne3pg3mg37_derecho_gnu_before.nc
 ncdata_check=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_tj2016_precip_tend_ne3pg3mg37_derecho_gnu_after.nc
+ncdata_check_err=.true.
 debug_output=0
 pver=30
+hist_add_inst_fields;h2: Q, T
+hist_output_frequency;h2: 2*nsteps
+hist_write_nstep0;h2: .true.

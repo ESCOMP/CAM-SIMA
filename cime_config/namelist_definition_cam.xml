@@ -104,6 +104,15 @@
       <value hgrid="8x16" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/gaus/cami_0000-01-01_8x16_L26_c030228.nc</value>
       <value hgrid="8x16" ic_ymd="901" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/gaus/cami_0000-09-01_8x16_L26_c030918.nc</value>
       <value hgrid="8x16" ic_ymd="10101" nlev="30">${DIN_LOC_ROOT}/atm/cam/inic/gaus/cami_0000-01-01_8x16_L30_c090102.nc</value>
+      <value dyn="se" hgrid="ne3np4" nlev="93" chem="trop_strat_mam5_ts4">${DIN_LOC_ROOT}/atm/cam/inic/se/FCts4MTHIST_ne3pg3_spinup02.cam.i.1980-01-01_c240702.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="10101" nlev="32">${DIN_LOC_ROOT}/atm/cam/inic/se/cam6_QPC6_topo_ne3pg3_mg37_L32_01-01-31_c221214.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="901"   nlev="32">${DIN_LOC_ROOT}/atm/cam/inic/se/CESM2.F2000climo.ne3np4.cam.i.0003-09-01-00000.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="10101" nlev="30">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L30_c120315.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="901"   nlev="30">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L30_c120315.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L26_c120525.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="901"   nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L26_c120525.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="10101" nlev="58">${DIN_LOC_ROOT}/atm/cam/inic/se/cam6_QPC6_topo_ne3pg3_mg37_L58_01-01-31_c221214.nc</value>
+      <value dyn="se" hgrid="ne3np4" ic_ymd="10101" nlev="93">${DIN_LOC_ROOT}/atm/cam/inic/se/cam6_FMTHIST_ne3pg3_mg37_L93_79-02-01_c240517.nc</value>
       <value dyn="se" hgrid="ne5np4" ic_ymd="10101" nlev="30">${DIN_LOC_ROOT}/atm/cam/inic/homme/cami-mam3_0000-01_ne5np4_L30.140707.nc</value>
       <value dyn="se" hgrid="ne16np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne16np4_L26_c171020.nc</value>
       <value dyn="se" hgrid="ne16np4" ic_ymd="10101" nlev="30">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne16np4_L30_c171020.nc</value>
@@ -208,6 +217,7 @@
       <value hgrid="2.5x3.33">${DIN_LOC_ROOT}/atm/cam/topo/USGS-gtopo30_2.5x3.33_remap_c100204.nc</value>
       <value hgrid="4x5">${DIN_LOC_ROOT}/atm/cam/topo/USGS-gtopo30_4x5_remap_c050520.nc</value>
       <value hgrid="10x15">${DIN_LOC_ROOT}/atm/cam/topo/fv_10x15_nc0540_Nsw042_Nrs008_Co060_Fi001_20171220.nc</value>
+      <value hgrid="ne3np4">${DIN_LOC_ROOT}/atm/cam/topo/se/ne3np4_gmted2010_modis_bedmachine_nc0540_Laplace1000_noleak_20230717.nc</value>
       <value hgrid="ne5np4">${DIN_LOC_ROOT}/atm/cam/topo/se/ne5np4_nc3000_Co360_Fi001_MulG_PF_nullRR_Nsw064_20170515.nc</value>
       <value hgrid="ne16np4">${DIN_LOC_ROOT}/atm/cam/topo/se/ne16np4_nc3000_Co120_Fi001_PF_nullRR_Nsw084_20171012.nc</value>
       <value hgrid="ne30np4">${DIN_LOC_ROOT}/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc</value>
@@ -219,6 +229,7 @@
       <value hgrid="ne60np4" npg="2">${DIN_LOC_ROOT}/atm/cam/topo/se/ne60pg2_nc3000_Co030_Fi001_PF_nullRR_Nsw021_20171014.nc</value>
       <value hgrid="ne120np4" npg="2">${DIN_LOC_ROOT}/atm/cam/topo/se/ne120pg2_nc3000_Co015_Fi001_PF_nullRR_Nsw010_20171012.nc</value>
       <value hgrid="ne240np4" npg="2">${DIN_LOC_ROOT}/atm/cam/topo/se/ne240pg2_nc3000_Co008_Fi001_PF_nullRR_Nsw005_20171014.nc</value>
+      <value hgrid="ne3np4" npg="3">${DIN_LOC_ROOT}/atm/cam/topo/se/ne3pg3_gmted2010_modis_bedmachine_nc0540_Laplace1000_noleak_20230209.nc</value>
       <value hgrid="ne5np4" npg="3">${DIN_LOC_ROOT}/atm/cam/topo/se/ne5pg3_nc3000_Co360_Fi001_MulG_PF_nullRR_Nsw064_20170516.nc</value>
       <value hgrid="ne16np4" npg="3">${DIN_LOC_ROOT}/atm/cam/topo/se/ne16pg3_nc3000_Co120_Fi001_PF_nullRR_Nsw084_20171012.nc</value>
       <value hgrid="ne30np4" npg="3">${DIN_LOC_ROOT}/atm/cam/topo/se/ne30pg3_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171014.nc</value>
@@ -250,6 +261,18 @@
     </desc>
     <values>
       <value>UNSET_PATH</value>
+    </values>
+  </entry>
+  <entry id="ncdata_check_err">
+    <type>logical</type>
+    <category>initial_conditions</category>
+    <group>physics_nl</group>
+    <desc>
+      Flag to determine whether to endrun if the ncdata check fails.
+      Default: FALSE
+    </desc>
+    <values>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="min_difference">

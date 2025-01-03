@@ -160,40 +160,45 @@
       <ic_file_input_name>state_zi</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula">
+  <entry stdname="vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep">
     <ic_file_input_names>
       <ic_file_input_name>te_ini_phys</ic_file_input_name>
       <ic_file_input_name>state_te_ini_phys</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_total_energy_of_current_state_using_physics_energy_formula">
+  <entry stdname="vertically_integrated_total_energy_using_physics_energy_formula">
     <ic_file_input_names>
       <ic_file_input_name>te_cur_phys</ic_file_input_name>
       <ic_file_input_name>state_te_cur_phys</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula">
+  <entry stdname="vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep">
     <ic_file_input_names>
       <ic_file_input_name>te_ini_dyn</ic_file_input_name>
       <ic_file_input_name>state_te_ini_dyn</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula">
+  <entry stdname="vertically_integrated_total_energy_using_dycore_energy_formula">
     <ic_file_input_names>
       <ic_file_input_name>te_cur_dyn</ic_file_input_name>
       <ic_file_input_name>state_te_cur_dyn</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_water_vapor_and_condensed_water_of_initial_state">
+  <entry stdname="vertically_integrated_total_water_at_start_of_physics_timestep">
     <ic_file_input_names>
       <ic_file_input_name>tw_ini</ic_file_input_name>
       <ic_file_input_name>state_tw_ini</ic_file_input_name>
     </ic_file_input_names>
   </entry>
-  <entry stdname="vertically_integrated_water_vapor_and_condensed_water_of_current_state">
+  <entry stdname="vertically_integrated_total_water">
     <ic_file_input_names>
       <ic_file_input_name>tw_cur</ic_file_input_name>
       <ic_file_input_name>state_tw_cur</ic_file_input_name>
+    </ic_file_input_names>
+  </entry>
+  <entry stdname="specific_heat_of_air_used_in_dycore">
+    <ic_file_input_names>
+      <ic_file_input_name>cp_or_cv_dycore</ic_file_input_name>
     </ic_file_input_names>
   </entry>
   <entry stdname="density_of_dry_air_at_stp">

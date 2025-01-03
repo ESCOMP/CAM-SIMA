@@ -1,0 +1,17 @@
+[ccpp-table-properties]
+  name = cam_thermo_formula
+  type = module
+
+[ccpp-arg-table]
+  name  = cam_thermo_formula
+  type  = module
+[ energy_formula_dycore ]
+  standard_name = total_energy_formula_for_dycore
+  units = 1
+  type = integer
+  dimensions = ()
+[ energy_formula_physics ]
+  standard_name = total_energy_formula_for_physics
+  units = 1
+  type = integer
+  dimensions = ()

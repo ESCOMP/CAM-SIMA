@@ -26,6 +26,7 @@ help () {
   echo "${hprefix} [ -j ] (number of jobs for gmake)"
   echo "${hprefix} [ --baseline-dir <directory> ] (directory for saving baselines of cime tests)"
   echo "${hprefix} [ --no-baseline] (baselines of cime tests are not saved)"
+  echo "${hprefix} [ --no-bl-compare] (turns off default baseline path)"
   echo "${hprefix} [ --xml-driver <driver_name> ] (mct or nuopc)"
   echo "${hprefix} [ --cesm <test_name(s)> ] (default aux_sima)"
   echo "${hprefix} [ --rerun-cesm <test_id> ] (rerun the cesm tests with the --use-existing-flag)"
@@ -36,7 +37,7 @@ help () {
   echo "${hprefix}   'env var1=setting var2=setting '"
   echo ""
   echo "Supported ENVIRONMENT variables"
-  echo "BL_TESTDIR:        Default = none (used to set baseline compare dir)"
+  echo "BL_TESTDIR:        Default = latest_[CAM_FC] (used to set baseline compare dir)"
   echo "CAM_ACCOUNT:       Default = none"
   echo "CAM_BATCHQ:        Default = machine dependent"
   echo "CAM_FC:            Default = machine dependent"
@@ -80,6 +81,7 @@ interactive=false
 use_existing=''
 namelists_only=false
 batch=false
+baseline_default=true
 
 # Understand where we are and where the CAM root and CIME reside
 if [ -n "${CAM_ROOT}" ]; then
@@ -130,6 +132,9 @@ while [ "${1:0:1}" == "-" ]; do
             ;;
 
         --no-baseline ) no_baseline=false
+             ;;
+
+        --no-bl-compare ) baseline_default=false
              ;;
 
         -b ) export CAM_BASEBACK="YES"
@@ -253,12 +258,17 @@ case $hostname in
     CAM_RESTART_THREADS=1
 
     mach_workspace="/glade/derecho/scratch"
+    default_bl_dir="/glade/campaign/cesm/community/amwg/sima_baselines/latest_${CAM_FC,,}"
 
-####    # Check for CESM baseline directory
-####    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit 3
-####    fi
+    # Check for CESM baseline directory
+    if [ -z "${BL_TESTDIR}" ] && [ "${baseline_default}" = true ]; then
+        echo "using default BL_TESTDIR of ${default_bl_dir}"
+	BL_TESTDIR=$default_bl_dir
+    fi
+    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit 3
+    fi
 
 #-------------------------------------------
 
@@ -306,11 +316,11 @@ EOF
 
     mach_workspace="/scratch/cluster"
 
-####    # Check for CESM baseline directory
-####    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit
-####    fi
+    # Check for CESM baseline directory
+    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit
+    fi
 
 #-------------------------------------------
 
@@ -362,12 +372,19 @@ EOF
     fi
 
     mach_workspace="/scratch/cluster"
+    default_bl_dir="/fs/cgd/csm/models/atm/sima/pretag_bl/latest_${CAM_FC,,}"
 
-####    # Check for CESM baseline directory
-####    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit
-####    fi
+    # Check for CESM baseline directory
+    if [ -z "${BL_TESTDIR}" ] && [ "${baseline_default}" = true ]; then
+        echo "using default BL_TESTDIR of ${default_bl_dir}"
+	BL_TESTDIR=$default_bl_dir
+    fi
+
+    # Check for CESM baseline directory
+    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit
+    fi
 
 #-------------------------------------------
 
@@ -421,11 +438,11 @@ EOF
 
     mach_workspace="/glade/scratch"
 
-####    # Check for CESM baseline directory
-####    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit
-####    fi
+    # Check for CESM baseline directory
+    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit
+    fi
 
 #-------------------------------------------
 
@@ -475,7 +492,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
 
 
   for cesm_test in ${cesm_test_suite}; do
-    testargs="--xml-category ${cesm_test} --xml-machine ${cesm_test_mach} --retry 2 --no-run"
+    testargs="--xml-category ${cesm_test} --xml-machine ${cesm_test_mach} --retry 2"
 
     if [ -n "${use_existing}" ]; then
       test_id="${use_existing}"

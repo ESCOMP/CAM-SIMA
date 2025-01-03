@@ -39,8 +39,10 @@ module physics_grid
    public :: get_rlat_p     ! latitude of a physics column in radians
    public :: get_rlon_p     ! longitude of a physics column in radians
    public :: get_area_p     ! area of a physics column in radians squared
+   public :: get_wght_p     ! weight of a physics column in radians squared
    public :: get_rlat_all_p ! latitudes of physics cols on task (radians)
    public :: get_rlon_all_p ! longitudes of physics cols on task (radians)
+   public :: get_wght_all_p ! weights of physics cols on task
    public :: get_dyn_col_p  ! dynamics local blk number and blk offset(s)
    public :: global_index_p ! global column index of a physics column
    public :: local_index_p  ! local column index of a physics column
@@ -376,8 +378,6 @@ CONTAINS
    !========================================================================
 
    real(r8) function get_dlat_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! latitude of a physics column in degrees
 
       ! Dummy argument
@@ -396,8 +396,6 @@ CONTAINS
    !========================================================================
 
    real(r8) function get_dlon_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! longitude of a physics column in degrees
 
       ! Dummy argument
@@ -416,8 +414,6 @@ CONTAINS
    !========================================================================
 
    real(r8) function get_rlat_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! latitude of a physics column in radians
 
       ! Dummy argument
@@ -436,8 +432,6 @@ CONTAINS
    !========================================================================
 
    real(r8) function get_rlon_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! longitude of a physics column in radians
 
       ! Dummy argument
@@ -456,8 +450,6 @@ CONTAINS
    !========================================================================
 
    real(r8) function get_area_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! area of a physics column in radians squared
 
       ! Dummy argument
@@ -475,9 +467,25 @@ CONTAINS
 
    !========================================================================
 
+   real(r8) function get_wght_p(index)
+      ! weight of a physics column in radians squared
+
+      ! Dummy argument
+      integer, intent(in) :: index
+      ! Local variables
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_wght_p'
+
+      ! Check that input is valid:
+      call check_phys_input(subname, index)
+
+      get_wght_p = phys_columns(index)%weight
+
+   end function get_wght_p
+
+   !========================================================================
+
    subroutine get_rlat_all_p(rlatdim, rlats)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       !-----------------------------------------------------------------------
       !
       ! get_rlat_all_p: Return all latitudes (in radians) on task.
@@ -506,8 +514,6 @@ CONTAINS
    !========================================================================
 
    subroutine get_rlon_all_p(rlondim, rlons)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       !-----------------------------------------------------------------------
       !
       ! get_rlon_all_p: Return all longitudes (in radians) on task.
@@ -535,8 +541,35 @@ CONTAINS
 
    !========================================================================
 
+   subroutine get_wght_all_p(wghtdim, wghts)
+      !-----------------------------------------------------------------------
+      !
+      ! get_wght_all_p: Return all weights on task.
+      !
+      !-----------------------------------------------------------------------
+      ! Dummy Arguments
+      integer,  intent(in)  :: wghtdim        ! declared size of output array
+      real(r8), intent(out) :: wghts(wghtdim) ! array of weights
+
+      ! Local variables
+      integer                     :: index ! loop index
+      character(len=128)          :: errmsg
+      character(len=*), parameter :: subname = 'get_wght_all_p: '
+
+      !-----------------------------------------------------------------------
+
+      ! Check that input is valid:
+      call check_phys_input(subname, wghtdim)
+
+      do index = 1, wghtdim
+         wghts(index) = phys_columns(index)%weight
+      end do
+
+   end subroutine get_wght_all_p
+
+   !========================================================================
+
    subroutine get_dyn_col_p(index, blk_num, blk_ind)
-      use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
       ! Return the dynamics local block number and block offset(s) for
       ! the physics column indicated by <index>.
@@ -568,8 +601,6 @@ CONTAINS
    !========================================================================
 
    integer function global_index_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! global column index of a physics column
 
       ! Dummy argument
@@ -586,8 +617,6 @@ CONTAINS
    end function global_index_p
 
    integer function local_index_p(index)
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
       ! global column index of a physics column
 
       ! Dummy argument

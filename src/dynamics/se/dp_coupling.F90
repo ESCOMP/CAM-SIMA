@@ -582,18 +582,22 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use cam_constituents,  only: const_qmin
    use runtime_obj,       only: wv_stdname
    use physics_types,     only: lagrangian_vertical
-   use physconst,         only: cpair, gravit, zvir, cappa
-   use cam_thermo,        only: cam_thermo_update
-   use physics_types,     only: cpairv, rairv, zvirv
+   use physconst,         only: cpair, gravit, zvir
+   use cam_thermo,        only: cam_thermo_dry_air_update, cam_thermo_water_update
+   use air_composition,   only: thermodynamic_active_species_num
+   use air_composition,   only: thermodynamic_active_species_idx
+   use air_composition,   only: dry_air_species_num
+   use physics_types,     only: cpairv, rairv, zvirv, cappav
+   use physics_types,     only: cp_or_cv_dycore
    use physics_grid,      only: columns_on_task
    use geopotential_temp, only: geopotential_temp_run
    use static_energy,     only: update_dry_static_energy_run
    use qneg,              only: qneg_run
-!   use check_energy,   only: check_energy_timestep_init
    use hycoef,            only: hyai, ps0
    use shr_vmath_mod,     only: shr_vmath_log
    use shr_kind_mod,      only: shr_kind_cx
    use dyn_comp,          only: ixo, ixo2, ixh, ixh2
+   use cam_thermo_formula,only: ENERGY_FORMULA_DYCORE_SE
 
    ! arguments
    type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
@@ -607,7 +611,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    !constituent properties pointer
    type(ccpp_constituent_prop_ptr_t), pointer :: const_prop_ptr(:)
 
-   integer :: m, i, k
+   integer :: m, i, k, m_cnst
    integer :: ix_q
 
    !Needed for "geopotential_temp" CCPP scheme
@@ -622,6 +626,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
     real(r8) :: mmrSum_O_O2_H                ! Sum of mass mixing ratios for O, O2, and H
     real(r8), parameter :: mmrMin=1.e-20_r8  ! lower limit of o2, o, and h mixing ratios
     real(r8), parameter :: N2mmrMin=1.e-6_r8 ! lower limit of o2, o, and h mixing ratios
+    real(r8), parameter :: H2lim=6.e-5_r8    ! H2 limiter: 10x global H2 MMR (Roble, 1995)
    !----------------------------------------------------------------------------
 
    ! Nullify pointers
@@ -683,14 +688,23 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    end do
 
    ! wet pressure variables (should be removed from physics!)
+   factor_array(:,:) = 1.0_kind_phys
+   !$omp parallel do num_threads(horz_num_threads) private (k, i, m_cnst)
+   do m_cnst = dry_air_species_num + 1, thermodynamic_active_species_num
+      ! include all water species in the factor array.
+      m = thermodynamic_active_species_idx(m_cnst)
+      do k = 1, nlev
+         do i = 1, pcols
+            ! at this point all q's are dry
+            factor_array(i,k) = factor_array(i,k) + const_data_ptr(i,k,m)
+         end do
+      end do
+   end do
 
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
-   do k=1,nlev
-      do i=1, pcols
-         ! to be consistent with total energy formula in physic's check_energy module only
-         ! include water vapor in moist dp
-         factor_array(i,k) = 1._kind_phys+const_data_ptr(i,k,ix_q)
-         phys_state%pdel(i,k) = phys_state%pdeldry(i,k)*factor_array(i,k)
+   do k = 1, nlev
+      do i = 1, pcols
+         phys_state%pdel(i,k) = phys_state%pdeldry(i,k) * factor_array(i,k)
       end do
    end do
 
@@ -721,31 +735,12 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    do k = 1, nlev
       do i = 1, pcols
          phys_state%rpdel(i,k) = 1._kind_phys/phys_state%pdel(i,k)
-         phys_state%exner(i,k) = (phys_state%pint(i,pver+1)/phys_state%pmid(i,k))**cappa
-      end do
-   end do
-
-   ! all tracers (including moisture) are in dry mixing ratio units
-   ! physics expect water variables moist
-   factor_array(:,1:nlev) = 1._kind_phys/factor_array(:,1:nlev)
-
-   !$omp parallel do num_threads(horz_num_threads) private (m, k, i)
-   do m=1, num_advected
-      do k = 1, nlev
-         do i=1, pcols
-            !This should ideally check if a constituent is a wet
-            !mixing ratio or not, but until that is working properly
-            !in the CCPP framework just check for the water species status
-            !instead, which is all that CAM physics requires:
-            if (const_is_water_species(m)) then
-              const_data_ptr(i,k,m) = factor_array(i,k)*const_data_ptr(i,k,m)
-            end if
-         end do
       end do
    end do
 
    !------------------------------------------------------------
-   ! Ensure O2 + O + H (N2) mmr greater than one.
+   ! Apply limiters to mixing ratios of major species (WACCMX):
+   ! Ensure N2 = 1 - (O2 + O + H) mmr is greater than 0
    ! Check for unusually large H2 values and set to lower value.
    !------------------------------------------------------------
    if (cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
@@ -769,8 +764,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
             endif
 
-            if(const_data_ptr(i,k,ixh2) .gt. 6.e-5_r8) then
-               const_data_ptr(i,k,ixh2) = 6.e-5_r8
+            if(const_data_ptr(i,k,ixh2) > H2lim) then
+               const_data_ptr(i,k,ixh2) = H2lim
             endif
 
          end do
@@ -789,11 +784,61 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Compute molecular viscosity(kmvis) and conductivity(kmcnd).
    ! Update zvirv registry variable; calculated for WACCM-X.
    !-----------------------------------------------------------------------------
+   if (dry_air_species_num > 0) then
+      call cam_thermo_dry_air_update( &
+           mmr                     = const_data_ptr, & ! dry MMR
+           T                       = phys_state%t,   &
+           ncol                    = pcols,          &
+           pver                    = pver,           &
+           update_thermo_variables = cam_runtime_opts%update_thermodynamic_variables() &
+      )
+   else
+      zvirv(:,:) = zvir
+   end if
 
-   call cam_thermo_update(const_data_ptr, phys_state%t, pcols, &
-        cam_runtime_opts%update_thermodynamic_variables())
+   !
+   ! update cp_or_cv_dycore in SIMA state.
+   ! (note: at this point q is dry)
+   !
+   call cam_thermo_water_update( &
+        mmr             = const_data_ptr,           & ! dry MMR
+        ncol            = pcols,                    &
+        pver            = pver,                     &
+        energy_formula  = ENERGY_FORMULA_DYCORE_SE, &
+        cp_or_cv_dycore = cp_or_cv_dycore           &
+   )
 
-   !Call geopotential_temp CCPP scheme:
+   !$omp parallel do num_threads(horz_num_threads) private (k, i)
+   do k = 1, nlev
+      do i = 1, pcols
+         phys_state%exner(i,k) = (phys_state%pint(i,pver+1)/phys_state%pmid(i,k))**cappav(i,k)
+      end do
+   end do
+
+   ! ========= Q is dry ^^^ ---- Q is moist vvv ========= !
+
+   !
+   ! CAM physics expects that: water tracers (including moisture) are moist; the rest dry mixing ratio
+   ! at this point Q is converted to moist.
+   !
+   factor_array(:,1:nlev) = 1._kind_phys/factor_array(:,1:nlev)
+
+   !$omp parallel do num_threads(horz_num_threads) private (m, k, i)
+   do m = 1, num_advected
+      do k = 1, nlev
+         do i = 1, pcols
+            ! This should ideally check if a constituent is a wet
+            ! mixing ratio or not, but until that is working properly
+            ! in the CCPP framework just check for the water species status
+            ! instead, which is all that CAM physics requires:
+            if (const_is_water_species(m)) then
+              const_data_ptr(i,k,m) = factor_array(i,k)*const_data_ptr(i,k,m)
+            end if
+         end do
+      end do
+   end do
+
+   ! Call geopotential_temp CCPP scheme:
    call geopotential_temp_run(pver, lagrangian_vertical, pver, 1,                        &
                               pverp, 1, num_advected, phys_state%lnpint,                 &
                               phys_state%pint, phys_state%pmid, phys_state%pdel,         &
@@ -806,12 +851,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call update_dry_static_energy_run(pver, gravit, phys_state%t, phys_state%zm,          &
                                      phys_state%phis, phys_state%dse, cpairv,            &
                                      errflg, errmsg)
-
-!Remove once check_energy scheme exists in CAMDEN:
-#if 0
-      ! Compute energy and water integrals of input state
-      call check_energy_timestep_init(phys_state, phys_tend, pbuf_chnk)
-#endif
 
 end subroutine derived_phys_dry
 

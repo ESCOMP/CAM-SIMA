@@ -38,13 +38,13 @@
   protected = True
 [ lat_rad ]
   standard_name = latitude
-  units = radians
+  units = rad
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
 [ lon_rad ]
   standard_name = longitude
-  units = radians
+  units = rad
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
@@ -62,7 +62,7 @@
   protected = True
 [ area ]
   standard_name = cell_angular_area
-  units = steradian
+  units = sr
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True

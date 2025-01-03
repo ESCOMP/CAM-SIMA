@@ -85,7 +85,7 @@ contains
     !------------------------------------------------------------------
     use shr_kind_mod,         only: shr_kind_cm
     use cam_logfile,          only: iulog
-    use cam_abortutils,       only: endrun
+    use cam_abortutils,       only: endrun, check_allocate
     use spmd_utils,           only: masterproc
     use interpolate_data,     only: lininterp_init, lininterp, interp_type, lininterp_finish
     use physics_grid,         only: get_rlat_all_p, get_rlon_all_p
@@ -121,7 +121,8 @@ contains
     real(kind_phys) :: to_lats(pcols), to_lons(pcols)
     real(kind_phys), parameter :: d2r=pi/180._kind_phys, zero=0._kind_phys, twopi=pi*2._kind_phys
     character(len=shr_kind_cl) :: locfn
-    character(len=shr_kind_cm) :: errmsg
+    character(len=shr_kind_cl) :: errmsg
+    character(len=*), parameter :: subname = "tropopause_climo_read_file"
 
     errmsg = ''
 
@@ -146,10 +147,9 @@ contains
     ierr = pio_inq_dimid( pio_id, 'lat', dimid )
     ierr = pio_inq_dimlen( pio_id, dimid, nlat )
     allocate( lat(nlat), stat=ierr, errmsg=errmsg )
-    if( ierr /= 0 ) then
-       write(iulog,*) 'tropopause_climo_read_file: lat allocation error = ',ierr
-       call endrun('tropopause_climo_read_file: failed to allocate lat, error = ' // errmsg)
-    end if
+    call check_allocate(ierr, subname, 'lat(nlat)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+
     ierr = pio_inq_varid( pio_id, 'lat', vid )
     ierr = pio_get_var( pio_id, vid, lat )
     lat(:nlat) = lat(:nlat) * d2r
@@ -159,10 +159,9 @@ contains
     ierr = pio_inq_dimid( pio_id, 'lon', dimid )
     ierr = pio_inq_dimlen( pio_id, dimid, nlon )
     allocate( lon(nlon), stat=ierr, errmsg=errmsg )
-    if( ierr /= 0 ) then
-       write(iulog,*) 'tropopause_climo_read_file: lon allocation error = ',ierr
-       call endrun('tropopause_climo_read_file: failed to allocate lon, error = ' // errmsg)
-    end if
+    call check_allocate(ierr, subname, 'lon(nlon)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+
     ierr = pio_inq_varid( pio_id, 'lon', vid )
     ierr = pio_get_var( pio_id, vid, lon )
     lon(:nlon) = lon(:nlon) * d2r
@@ -171,10 +170,9 @@ contains
     !  ... allocate arrays
     !------------------------------------------------------------------
     allocate( tropp_p_in(nlon,nlat,ntimes), stat=ierr, errmsg=errmsg )
-    if( ierr /= 0 ) then
-       write(iulog,*) 'tropopause_climo_read_file: tropp_p_in allocation error = ',ierr
-       call endrun('tropopause_climo_read_file: failed to allocate tropp_p_in, error = ' // errmsg)
-    end if
+    call check_allocate(ierr, subname, 'tropp_p_in(nlon,nlat,ntimes)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+
     !------------------------------------------------------------------
     !  ... read in the tropopause pressure
     !------------------------------------------------------------------
@@ -191,13 +189,9 @@ contains
     !--------------------------------------------------------------------
     !  ... regrid
     !--------------------------------------------------------------------
-
     allocate( tropp_p_loc(pcols,ntimes), stat=ierr, errmsg=errmsg )
-
-    if( ierr /= 0 ) then
-      write(iulog,*) 'tropopause_climo_read_file: tropp_p_loc allocation error = ',ierr
-      call endrun('tropopause_climo_read_file: failed to allocate tropp_p_loc, error = ' // errmsg)
-    end if
+    call check_allocate(ierr, subname, 'tropp_p_loc(pcols,ntimes)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     call get_rlat_all_p(pcols, to_lats)
     call get_rlon_all_p(pcols, to_lons)
@@ -217,10 +211,8 @@ contains
     !--------------------------------------------------------
 
     allocate( tropp_days(tropp_slices), stat=ierr, errmsg=errmsg )
-    if( ierr /= 0 ) then
-      write(iulog,*) 'tropopause_climo_read_file: tropp_days allocation error = ',ierr
-      call endrun('tropopause_climo_read_file: failed to allocate tropp_days, error = ' // errmsg)
-    end if
+    call check_allocate(ierr, subname, 'tropp_days(tropp_slices)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     do n = 1,tropp_slices
        tropp_days(n) = get_calday( dates(n), 0 )
@@ -233,8 +225,8 @@ contains
     !--------------------------------------------------------
     ! Mark variables as initialized so they are not read from initial conditions
     !--------------------------------------------------------
-    call mark_as_initialized('tropopause_air_pressure_from_climatology_dataset')
-    call mark_as_initialized('tropopause_calendar_days_from_climatology')
+    call mark_as_initialized('tropopause_air_pressure_from_tropopause_climatology_dataset')
+    call mark_as_initialized('tropopause_calendar_days_from_tropopause_climatology')
 
   end subroutine tropopause_climo_read_file
 end module tropopause_climo_read
