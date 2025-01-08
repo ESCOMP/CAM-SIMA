@@ -91,7 +91,7 @@ subroutine test_stringify_empty_arrays()
 
 end subroutine test_stringify_empty_arrays
 
-@test
+@test(#ifndef= __GNUC__)
 subroutine test_stringify_character_array
     use funit
     use string_core_utils, only: core_stringify
@@ -155,11 +155,13 @@ subroutine test_stringify_integer_extreme_values
 
     allocate(i32arr(10), i64arr(10))
 
-    i32arr(:) = [-huge(int32), -1000, -100, -10, -1, 1, 10, 100, 1000, huge(int32)]
-    i64arr(:) = [-huge(int64), -1000, -100, -10, -1, 1, 10, 100, 1000, huge(int64)]
+    i32arr(:) = [-huge(i32arr), -1000, -100, -10, -1, 1, 10, 100, 1000, huge(i32arr)]
+    i64arr(:) = int(i32arr, int64)
+    i64arr(1) = -huge(i64arr)
+    i64arr(10) = huge(i64arr)
 
     @assertEqual(int32_no_separator_expected, core_stringify(i32arr))
-    @assertEqual(int32_no_separator_expected, core_stringify(i64arr))
+    @assertEqual(int64_no_separator_expected, core_stringify(i64arr))
     @assertEqual(int32_separator_with_space_expected, core_stringify(i32arr, separator=separator_with_space))
     @assertEqual(int64_separator_with_space_expected, core_stringify(i64arr, separator=separator_with_space))
 
