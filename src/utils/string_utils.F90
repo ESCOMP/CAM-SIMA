@@ -4,7 +4,8 @@ module string_utils
    use shr_string_mod, only: to_lower => shr_string_toLower
    use cam_logfile,    only: iulog
    use cam_abortutils, only: endrun
-   use string_core_utils, only: to_str, int_date_to_yyyymmdd, int_seconds_to_hhmmss, stringify
+   use string_core_utils, only: core_int_date_to_yyyymmdd, core_int_seconds_to_hhmmss
+   use string_core_utils, only: core_stringify=>stringify
 
    implicit none
    private
@@ -14,6 +15,8 @@ module string_utils
    public :: strlist_get_ind  ! Gets the index of a given string in a list of strings
    public :: date2yyyymmdd    ! convert encoded date integer to "yyyy-mm-dd" format
    public :: sec2hms          ! convert integer seconds past midnight to "hh:mm:ss" format
+   public :: to_str
+   public :: stringify
 
    ! Private module variables
    integer, parameter :: lower_to_upper = iachar("A") - iachar("a")
@@ -72,7 +75,7 @@ CONTAINS
          call endrun ('DATE2YYYYMMDD: negative date not allowed')
       end if
 
-      date2yyyymmdd = int_date_to_yyyymmdd(date)
+      date2yyyymmdd = core_int_date_to_yyyymmdd(date)
 
    end function date2yyyymmdd
 
@@ -86,9 +89,18 @@ CONTAINS
          call endrun ('SEC2HMS: bad input seconds: '//stringify((/seconds/)))
       end if
 
-      sec2hms = int_seconds_to_hhmmss(seconds)
+      sec2hms = core_int_seconds_to_hhmmss(seconds)
 
    end function sec2hms
+
+   character(len=10) pure function to_str(n)
+      use string_core_utils, only: core_to_str
+      integer, intent(in) :: n
+      character(len=10) :: local_str
+
+      local_str = core_to_str(n)
+      to_str = local_str
+   end function to_str
 
 !=========================================================================================
 

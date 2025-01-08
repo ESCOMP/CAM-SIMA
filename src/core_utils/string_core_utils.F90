@@ -3,25 +3,27 @@ module string_core_utils
     implicit none
     private
 
-    public :: to_str                ! Convert integer to left justified string
-    public :: int_date_to_yyyymmdd  ! Convert encoded date integer to "yyyy-mm-dd" format
-    public :: int_seconds_to_hhmmss ! Convert integer seconds past midnight to "hh:mm:ss" format
-    public :: stringify             ! Convert one or more values of any intrinsic data types to a character string for pretty printing
+    public :: core_to_str                ! Convert integer to left justified string
+    public :: core_int_date_to_yyyymmdd  ! Convert encoded date integer to "yyyy-mm-dd" format
+    public :: core_int_seconds_to_hhmmss ! Convert integer seconds past midnight to "hh:mm:ss" format
+    public :: core_stringify             ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
 CONTAINS
 
-    character(len=10) pure function to_str(n)
+    character(len=10) pure function core_to_str(n)
         ! return default integer as a left justified string
     
         ! arguments
         integer, intent(in) :: n
+        ! character(len=10) :: local_str
         !----------------------------------------------------------------------------
     
-        write(to_str,'(i0)') n
+        write(core_to_str,'(i0)') n
+        ! core_to_str = local_str
     
-    end function to_str
+    end function core_to_str
 
-    character(len=10) pure function int_date_to_yyyymmdd (date)
+    character(len=10) pure function core_int_date_to_yyyymmdd (date)
     ! Undefined behavior if date <= 0
 
         ! Input arguments
@@ -36,12 +38,12 @@ CONTAINS
         month = (date - year*10000) / 100
         day   = date - year*10000 - month*100
 
-        write(int_date_to_yyyymmdd, '(i4.4,A,i2.2,A,i2.2)') &
+        write(core_int_date_to_yyyymmdd, '(i4.4,A,i2.2,A,i2.2)') &
                                      year,'-',month,'-',day
 
-    end function int_date_to_yyyymmdd
+    end function core_int_date_to_yyyymmdd
 
-    character(len=8) pure function int_seconds_to_hhmmss (seconds)
+    character(len=8) pure function core_int_seconds_to_hhmmss (seconds)
     ! Undefined behavior if seconds outside [0, 86400]
 
         ! Input arguments
@@ -56,10 +58,10 @@ CONTAINS
         minutes = (seconds - hours*3600) / 60
         secs    = (seconds - hours*3600 - minutes*60)
 
-        write(int_seconds_to_hhmmss,'(i2.2,A,i2.2,A,i2.2)') &
+        write(core_int_seconds_to_hhmmss,'(i2.2,A,i2.2,A,i2.2)') &
                                  hours,':',minutes,':',secs
 
-    end function int_seconds_to_hhmmss
+    end function core_int_seconds_to_hhmmss
 
     !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
     !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
@@ -67,12 +69,12 @@ CONTAINS
     !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
     !> If `separator` is not supplied, it defaults to `, ` (i.e., a comma and a space).
     !> (KCW, 2024-02-04)
-    pure function stringify(value, separator)
+    pure function core_stringify(value, separator)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
 
         class(*), intent(in) :: value(:)
         character(*), optional, intent(in) :: separator
-        character(:), allocatable :: stringify
+        character(:), allocatable :: core_stringify
 
         integer, parameter :: sizelimit = 1024
 
@@ -88,7 +90,7 @@ CONTAINS
         n = min(size(value), sizelimit)
 
         if (n == 0) then
-            stringify = ''
+            core_stringify = ''
             return
         end if
 
@@ -153,11 +155,11 @@ CONTAINS
 
                 write(buffer, format) value
             class default
-                stringify = ''
+            core_stringify = ''
                 return
         end select
 
-        stringify = trim(buffer)
-    end function stringify
+        core_stringify = trim(buffer)
+    end function core_stringify
 
 end module string_core_utils
