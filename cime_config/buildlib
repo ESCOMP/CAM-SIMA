@@ -101,7 +101,8 @@ def _build_cam():
                  os.path.join(atm_root, "src", "history", "buffers", "src"),
                  os.path.join(atm_root, "src", "history", "buffers", "src", "hash"),
                  os.path.join(atm_root, "src", "history", "buffers", "src", "util"),
-                 os.path.join(atm_root, "src", "utils")]
+                 os.path.join(atm_root, "src", "utils"),
+                 os.path.join(atm_root, "src", "core_utils")]
         for path in phys_dirs:
             if path not in paths:
                 paths.append(path)
