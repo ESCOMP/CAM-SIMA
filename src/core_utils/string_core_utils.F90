@@ -12,19 +12,15 @@ CONTAINS
 
     character(len=10) pure function core_to_str(n)
         ! return default integer as a left justified string
-    
-        ! arguments
+
         integer, intent(in) :: n
-        ! character(len=10) :: local_str
-        !----------------------------------------------------------------------------
     
         write(core_to_str,'(i0)') n
-        ! core_to_str = local_str
     
     end function core_to_str
 
     character(len=10) pure function core_int_date_to_yyyymmdd (date)
-    ! Undefined behavior if date <= 0
+        ! Undefined behavior if date <= 0
 
         ! Input arguments
         integer, intent(in) :: date
@@ -39,12 +35,12 @@ CONTAINS
         day   = date - year*10000 - month*100
 
         write(core_int_date_to_yyyymmdd, '(i4.4,A,i2.2,A,i2.2)') &
-                                     year,'-',month,'-',day
+                                           year,'-',month,'-',day
 
     end function core_int_date_to_yyyymmdd
 
     character(len=8) pure function core_int_seconds_to_hhmmss (seconds)
-    ! Undefined behavior if seconds outside [0, 86400]
+        ! Undefined behavior if seconds outside [0, 86400]
 
         ! Input arguments
         integer, intent(in) :: seconds
@@ -59,7 +55,7 @@ CONTAINS
         secs    = (seconds - hours*3600 - minutes*60)
 
         write(core_int_seconds_to_hhmmss,'(i2.2,A,i2.2,A,i2.2)') &
-                                 hours,':',minutes,':',secs
+                                        hours,':',minutes,':',secs
 
     end function core_int_seconds_to_hhmmss
 
@@ -160,6 +156,7 @@ CONTAINS
         end select
 
         core_stringify = trim(buffer)
+
     end function core_stringify
 
 end module string_core_utils

@@ -5,18 +5,17 @@ module string_utils
    use cam_logfile,    only: iulog
    use cam_abortutils, only: endrun
    use string_core_utils, only: core_int_date_to_yyyymmdd, core_int_seconds_to_hhmmss
-   use string_core_utils, only: core_stringify=>stringify
+   use string_core_utils, only: stringify=>core_stringify, to_str=>core_to_str
 
    implicit none
    private
 
    ! Public interface methods
-
    public :: strlist_get_ind  ! Gets the index of a given string in a list of strings
-   public :: date2yyyymmdd    ! convert encoded date integer to "yyyy-mm-dd" format
-   public :: sec2hms          ! convert integer seconds past midnight to "hh:mm:ss" format
-   public :: to_str
-   public :: stringify
+   public :: date2yyyymmdd    ! Convert encoded date integer to "yyyy-mm-dd" format
+   public :: sec2hms          ! Convert integer seconds past midnight to "hh:mm:ss" format
+   public :: to_str           ! Convert integer to left justified string
+   public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
    ! Private module variables
    integer, parameter :: lower_to_upper = iachar("A") - iachar("a")
@@ -24,45 +23,43 @@ module string_utils
 
 CONTAINS
 
-   !=========================================================================================
-
    subroutine strlist_get_ind(strlist, str, ind, abort)
 
-   ! Get the index of a given string in a list of strings.  Optional abort argument
-   ! allows returning control to caller when the string is not found.  Default
-   ! behavior is to call endrun when string is not found.
+      ! Get the index of a given string in a list of strings.  Optional abort argument
+      ! allows returning control to caller when the string is not found.  Default
+      ! behavior is to call endrun when string is not found.
 
-   ! Arguments
-   character(len=*),  intent(in)  :: strlist(:) ! list of strings
-   character(len=*),  intent(in)  :: str        ! string to search for
-   integer,           intent(out) :: ind        ! index of str in strlist
-   logical, optional, intent(in)  :: abort      ! flag controlling abort
+      ! Arguments
+      character(len=*),  intent(in)  :: strlist(:) ! list of strings
+      character(len=*),  intent(in)  :: str        ! string to search for
+      integer,           intent(out) :: ind        ! index of str in strlist
+      logical, optional, intent(in)  :: abort      ! flag controlling abort
 
-   ! Local variables
-   integer :: m
-   logical :: abort_on_error
-   character(len=*), parameter :: sub='strlist_get_ind'
-   !----------------------------------------------------------------------------
+      ! Local variables
+      integer :: m
+      logical :: abort_on_error
+      character(len=*), parameter :: sub='strlist_get_ind'
+      !----------------------------------------------------------------------------
 
-   ! Find string in list
-   do m = 1, size(strlist)
-      if (str == strlist(m)) then
-         ind  = m
-         return
+      ! Find string in list
+      do m = 1, size(strlist)
+         if (str == strlist(m)) then
+            ind  = m
+            return
+         end if
+      end do
+
+      ! String not found
+      abort_on_error = .true.
+      if (present(abort)) abort_on_error = abort
+
+      if (abort_on_error) then
+         write(iulog, *) sub//': FATAL: string:', trim(str), ' not found in list:', strlist(:)
+         call endrun(sub//': FATAL: string not found')
       end if
-   end do
 
-   ! String not found
-   abort_on_error = .true.
-   if (present(abort)) abort_on_error = abort
-
-   if (abort_on_error) then
-      write(iulog, *) sub//': FATAL: string:', trim(str), ' not found in list:', strlist(:)
-      call endrun(sub//': FATAL: string not found')
-   end if
-
-   ! error return
-   ind = -1
+      ! error return
+      ind = -1
 
    end subroutine strlist_get_ind
 
@@ -81,7 +78,6 @@ CONTAINS
 
    character(len=8) function sec2hms (seconds)
 
-      ! Input arguments
       integer, intent(in) :: seconds
 
       if (seconds < 0 .or. seconds > 86400) then
@@ -92,16 +88,5 @@ CONTAINS
       sec2hms = core_int_seconds_to_hhmmss(seconds)
 
    end function sec2hms
-
-   character(len=10) pure function to_str(n)
-      use string_core_utils, only: core_to_str
-      integer, intent(in) :: n
-      character(len=10) :: local_str
-
-      local_str = core_to_str(n)
-      to_str = local_str
-   end function to_str
-
-!=========================================================================================
 
 end module string_utils
