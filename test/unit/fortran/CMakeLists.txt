@@ -12,6 +12,11 @@ if(NOT CAM-SIMA-core-utils_IS_TOP_LEVEL)
                   "a parent project at this time.")
 endif()
 
+# Overwrite the init flags chosen by CMake
+if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU")
+  set(CMAKE_Fortran_FLAGS_INIT "-ffree-line-length-none")
+endif()
+
 
 if(CAM_SIMA_ENABLE_CODE_COVERAGE)
   add_compile_options(-O0 --coverage)
