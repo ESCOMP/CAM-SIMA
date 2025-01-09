@@ -42,7 +42,7 @@ jobs:
             -B./build \
             -S./test/unit/fortran
           cd build
-          make
+          VERBOSE=1 make
       
       - name: Run fortran unit tests
         run: |

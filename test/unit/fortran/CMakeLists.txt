@@ -14,9 +14,9 @@ endif()
 
 # Overwrite the init flags chosen by CMake
 if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU")
+  message("Adding free line length to command line.")
   set(CMAKE_Fortran_FLAGS_INIT "-ffree-line-length-none")
 endif()
-
 
 if(CAM_SIMA_ENABLE_CODE_COVERAGE)
   add_compile_options(-O0 --coverage)
