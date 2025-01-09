@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [10, 11, 12]
+        version: [12, 13, 14]
     env:
       CC: gcc-${{ matrix.version }}
       CXX: g++-${{ matrix.version }}
@@ -28,7 +28,6 @@ jobs:
 
       - name: Build pFUnit
         run: |
-          ls -larth `which gfortran`*
           git clone --depth 1 --branch v4.10.0 https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
           cd pFUnit
           cmake -B./build -S.
