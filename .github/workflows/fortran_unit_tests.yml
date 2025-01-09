@@ -51,7 +51,7 @@ jobs:
       - name: Upload unit test results
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-results
+          name: unit-test-results-${{ env.FC }}
           path: build/test_results.xml
 
       - name: Setup GCov
@@ -69,5 +69,5 @@ jobs:
       - name: Upload code coverage results
         uses: actions/upload-artifact@v4
         with:
-          name: code-coverage-results
+          name: code-coverage-results-${{ env.FC }}
           path: build/cam_sima_code_coverage.html
