@@ -17,10 +17,6 @@ module string_utils
    public :: to_str           ! Convert integer to left justified string
    public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
-   ! Private module variables
-   integer, parameter :: lower_to_upper = iachar("A") - iachar("a")
-   integer, parameter :: upper_to_lower = iachar("a") - iachar("A")
-
 CONTAINS
 
    subroutine strlist_get_ind(strlist, str, ind, abort)
@@ -39,7 +35,6 @@ CONTAINS
       integer :: m
       logical :: abort_on_error
       character(len=*), parameter :: sub='strlist_get_ind'
-      !----------------------------------------------------------------------------
 
       ! Find string in list
       do m = 1, size(strlist)
