@@ -9,6 +9,8 @@
   <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/orbital_data.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/musica_ccpp_dependencies.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>

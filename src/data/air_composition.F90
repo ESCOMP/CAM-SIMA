@@ -128,6 +128,7 @@ CONTAINS
    !===========================================================================
 
    subroutine air_composition_init()
+      use shr_kind_mod,         only: shr_kind_cl
       use string_utils,         only: to_str
       use spmd_utils,           only: masterproc
       use cam_logfile,          only: iulog
@@ -150,6 +151,7 @@ CONTAINS
       character(len=std_name_len) :: cnst_stdname
 
       character(len=*), parameter :: subname = 'air_composition_init'
+      character(len=shr_kind_cl)  :: errmsg
 
       !
       ! define cp and R for species in species_name
@@ -173,6 +175,8 @@ CONTAINS
       real(kind_phys), parameter :: cv3 = 0.5_kind_phys * r_universal * dof3
       real(kind_phys), parameter :: cp3 = 0.5_kind_phys * r_universal * (2._kind_phys + dof3)
 
+      errmsg = ''
+
       liq_num = 0
       ice_num = 0
       has_liq = .false.
@@ -187,33 +191,33 @@ CONTAINS
 
       ! init for variable composition dry air
 
-      allocate(thermodynamic_active_species_idx(0:num_advected), stat=ierr)
+      allocate(thermodynamic_active_species_idx(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_idx(num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_idx_dycore(num_advected), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_idx_dycore(num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_idx_dycore(num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_cp(0:num_advected), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_cp(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_cp(0:num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_cv(0:num_advected), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_cv(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_cv(0:num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_R(0:num_advected), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_R(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_R(0:num_advected)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(thermodynamic_active_species_mwi(0:num_advected), stat=ierr)
+      allocate(thermodynamic_active_species_mwi(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_mwi(0:num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_kv(0:num_advected), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_kv(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_kv(0:num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_kc(0:num_advected), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_kc(0:num_advected), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_kc(0:num_advected)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(const_is_water_species(num_advected), stat=ierr)
-      call check_allocate(ierr, subname, 'const_is_water_species', file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(const_is_water_species(num_advected), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'const_is_water_species', file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       thermodynamic_active_species_idx        = -HUGE(1)
       thermodynamic_active_species_idx_dycore = -HUGE(1)

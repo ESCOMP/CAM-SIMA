@@ -1,0 +1,21 @@
+[ccpp-table-properties]
+  name = orbital_data
+  type = module
+[ccpp-arg-table]
+  name = orbital_data
+  type = module
+[solar_declination]
+  standard_name = solar_declination
+  units = rad
+  type = real | kind = kind_phys
+  dimensions = ()
+[earth_sun_distance]
+  standard_name = earth_sun_distance
+  units = AU
+  type = real | kind = kind_phys
+  dimensions = ()
+[solar_zenith_angle]
+  standard_name = solar_zenith_angle
+  units = rad
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)

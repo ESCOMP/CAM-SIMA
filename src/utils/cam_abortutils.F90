@@ -29,7 +29,7 @@ module cam_abortutils
 
 CONTAINS
 
-   subroutine check_allocate(errcode, subname, fieldname, file, line)
+   subroutine check_allocate(errcode, subname, fieldname, file, line, errmsg)
       ! If <errcode> is not zero, call endrun with an error message
 
       ! Dummy arguments
@@ -38,6 +38,8 @@ CONTAINS
       character(len=*),           intent(in) :: fieldname
       character(len=*), optional, intent(in) :: file
       integer,          optional, intent(in) :: line
+      character(len=*), optional, intent(in) :: errmsg
+
       ! Local variables
       character(len=max_chars) :: abort_msg
       real(r8)                 :: mem_val, mem_hw_val
@@ -48,10 +50,15 @@ CONTAINS
 
          ! Write error message with memory stats
          write(abort_msg, '(4a,i0,a,f10.2,a,f10.2,a)') &
-              trim(subname), ": Allocate of '",  &
+              trim(subname), ": Allocation of '",  &
               trim(fieldname), "' failed with code ", errcode, &
               ". Memory highwater is ", mem_hw_val, &
               " mb, current memory usage is ", mem_val, " mb"
+
+         ! If the optional fortran allocate error message is passed in, include it in the abort message
+         if(present(errmsg)) then
+            write(abort_msg, '(a)') trim(abort_msg) // new_line('a') // "Allocation failed with: " // trim(errmsg)
+         endif
 
          ! End the simulation
          call endrun(abort_msg, file=file, line=line)

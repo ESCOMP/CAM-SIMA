@@ -9,7 +9,6 @@
   <!-- Derecho physics tests -->
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_kessler_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
@@ -19,7 +18,6 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_held_suarez_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
@@ -29,7 +27,6 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_tj2016_before_coupler_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
@@ -39,7 +36,6 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_tj2016_after_coupler_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
