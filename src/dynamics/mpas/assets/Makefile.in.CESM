@@ -15,6 +15,13 @@ else
     MPAS_SRC_ROOT := $(SRCROOT)/src/dynamics/mpas/dycore
 endif
 
+# `PIO_VERSION` is defined by CIME under normal circumstances.
+ifeq ($(filter 1 2,$(PIO_VERSION)),)
+    $(warning `PIO_VERSION` should have a value of `1` or `2`. Defaulting to `2`)
+
+    PIO_VERSION := 2
+endif
+
 #
 # Define and export variables used by MPAS build infrastructure.
 #
@@ -47,9 +54,8 @@ export CPPFLAGS        := -D_MPI \
                           -DMPAS_NATIVE_TIMERS \
                           -DMPAS_NO_ESMF_INIT \
                           -DMPAS_PIO_SUPPORT
-# `PIODEF` is defined by CIME Makefile (i.e., `cime/CIME/Tools/Makefile`). Its value can be empty or `-DUSE_PIO2`.
-ifneq ($(strip $(PIODEF)),)
-    export CPPFLAGS   += $(strip $(PIODEF))
+ifeq ($(strip $(PIO_VERSION)),2)
+    export CPPFLAGS    += -DUSE_PIO2
 endif
 # Uncomment below for MPI Fortran 2008 interface support. There is currently no corresponding option in CIME to enable this.
 # export CPPFLAGS        += -DMPAS_USE_MPI_F08
@@ -69,12 +75,12 @@ all:
 	@echo 'Supplemental Makefile for MPAS Dynamical Core in CESM'
 	@echo ''
 	@echo 'MPAS will be built as a static library located at `$${LIBROOT}/libmpas.a`.'
-	@echo 'Users are responsible to provide all necessary build options via environment variables or command line arguments.'
+	@echo 'Users are responsible for providing all necessary build options via environment variables or command line arguments.'
 	@echo ''
 	@echo 'Usage hints:'
-	@echo '    `make libmpas-prepare ESM="CESM" LIBROOT="..." SRCROOT="..."`'
-	@echo '    `make libmpas-build ESM="CESM" LIBROOT="..." SRCROOT="..."`'
-	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..." SRCROOT="..."`'
+	@echo '    `make libmpas-prepare ESM="CESM" LIBROOT="..." SRCROOT="..." PIO_VERSION="1|2"`'
+	@echo '    `make libmpas-build ESM="CESM" LIBROOT="..." SRCROOT="..." PIO_VERSION="1|2"`'
+	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..." SRCROOT="..." PIO_VERSION="1|2"`'
 
 .PHONY: libmpas-prepare
 libmpas-prepare: libmpas-apply-patch libmpas-archiver-script.txt libmpas-preview
