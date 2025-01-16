@@ -1,62 +1,64 @@
+# `LIBROOT` is defined by CIME under normal circumstances.
 ifeq ($(strip $(LIBROOT)),)
     $(warning `LIBROOT` should not be empty. Defaulting to `..`)
 
-    LIBROOT = ..
+    LIBROOT := ..
 endif
 
+# `SRCROOT` is defined by CIME under normal circumstances.
 ifeq ($(strip $(SRCROOT)),)
     $(warning `SRCROOT` should not be empty. Defaulting to `..`)
 
-    SRCROOT = ..
-    MPAS_SRC_ROOT = $(SRCROOT)
+    SRCROOT := ..
+    MPAS_SRC_ROOT := $(SRCROOT)
 else
-    MPAS_SRC_ROOT = $(SRCROOT)/src/dynamics/mpas/dycore
+    MPAS_SRC_ROOT := $(SRCROOT)/src/dynamics/mpas/dycore
 endif
 
 #
 # Define and export variables used by MPAS build infrastructure.
 #
 
-export CP = cp -afv
-export LN = ln -fsv
-export MKDIR = mkdir -pv
-export RM = rm -frv
+export CP := cp -afv
+export LN := ln -fsv
+export MKDIR := mkdir -pv
+export RM := rm -frv
 
 # Constants.
-export AUTOCLEAN       = false
-export BUILD_TARGET    = N/A
-export CORE            = atmosphere
-export EXE_NAME        = atmosphere_model
-export GEN_F90         = false
-export GIT_VERSION     = $(shell git -C "$(MPAS_SRC_ROOT)" describe --always --dirty --tags || echo "N/A")
-export NAMELIST_SUFFIX = atmosphere
+export AUTOCLEAN       := false
+export BUILD_TARGET    := N/A
+export CORE            := atmosphere
+export EXE_NAME        := atmosphere_model
+export GEN_F90         := false
+export GIT_VERSION     := $(shell git -C "$(MPAS_SRC_ROOT)" describe --always --dirty --tags || echo "N/A")
+export NAMELIST_SUFFIX := atmosphere
 
 # Customize variables (e.g., build options) for use with CESM.
-export AR             := ar
-export ARFLAGS        := -M
-export CPP            := cpp -P -traditional
-export CPPFLAGS       := -D_MPI \
-                         -DMPAS_BUILD_TARGET="$(BUILD_TARGET)" \
-                         -DMPAS_CAM_DYCORE \
-                         -DMPAS_EXE_NAME="$(EXE_NAME)" \
-                         -DMPAS_EXTERNAL_ESMF_LIB \
-                         -DMPAS_GIT_VERSION="$(GIT_VERSION)" \
-                         -DMPAS_NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
-                         -DMPAS_NATIVE_TIMERS \
-                         -DMPAS_NO_ESMF_INIT \
-                         -DMPAS_PIO_SUPPORT
+export AR              := ar
+export ARFLAGS         := -M
+export CPP             := cpp -P -traditional
+export CPPFLAGS        := -D_MPI \
+                          -DMPAS_BUILD_TARGET="$(BUILD_TARGET)" \
+                          -DMPAS_CAM_DYCORE \
+                          -DMPAS_EXE_NAME="$(EXE_NAME)" \
+                          -DMPAS_EXTERNAL_ESMF_LIB \
+                          -DMPAS_GIT_VERSION="$(GIT_VERSION)" \
+                          -DMPAS_NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
+                          -DMPAS_NATIVE_TIMERS \
+                          -DMPAS_NO_ESMF_INIT \
+                          -DMPAS_PIO_SUPPORT
 # `PIODEF` is defined by CIME Makefile (i.e., `cime/CIME/Tools/Makefile`). Its value can be empty or `-DUSE_PIO2`.
 ifneq ($(strip $(PIODEF)),)
     export CPPFLAGS   += $(strip $(PIODEF))
 endif
 # Uncomment below for MPI Fortran 2008 interface support. There is currently no corresponding option in CIME to enable this.
-# export CPPFLAGS       += -DMPAS_USE_MPI_F08
+# export CPPFLAGS        += -DMPAS_USE_MPI_F08
 # Uncomment below for single precision mode support. There is currently no corresponding option in CIME to enable this.
-# export CPPFLAGS       += -DSINGLE_PRECISION
-export LINKER         := $(strip $(FC))
-export SCC            := $(strip $(CC))
-export SCXX           := $(strip $(CXX))
-export SFC            := $(strip $(FC))
+# export CPPFLAGS        += -DSINGLE_PRECISION
+export LINKER          := $(strip $(FC))
+export SCC             := $(strip $(CC))
+export SCXX            := $(strip $(CXX))
+export SFC             := $(strip $(FC))
 
 #
 # Targets.
