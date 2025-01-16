@@ -146,10 +146,6 @@ def _build_cam():
         # build the library
         #-------------------------------------------------------
 
-        # If dynamical core is MPAS, setup its build infrastructure so it can be built along with CAM below.
-        if dycore == "mpas":
-            _setup_mpas(case)
-
         complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
 
@@ -161,13 +157,29 @@ def _build_cam():
             ccpp_defs_str = ' '.join(config.cpp_defs)
             cmd += f" USER_CPPDEFS='{ccpp_defs_str}'"
 
+        # If dynamical core is MPAS, prepare its build infrastructure so it can be built along with CAM-SIMA below.
+        if dycore == "mpas":
+            _prepare_mpas(case)
+
+            optional_mpas_features = []
+
+            if case.get_value("USE_ESMF_LIB"):
+                optional_mpas_features.append("+ESMF_LIBRARY")
+                optional_mpas_features.append("+PERF_MOD_LIBRARY")
+
+            if config.get_value("dyn_kind") == "REAL32":
+                optional_mpas_features.append("+SINGLE_PRECISION")
+
+            if len(optional_mpas_features) > 0:
+                cmd += " OPTIONAL_MPAS_FEATURES=\"" + " ".join(optional_mpas_features) + "\""
+
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
-def _setup_mpas(case: Case) -> None:
+def _prepare_mpas(case: Case) -> None:
     """
-    Setup MPAS build infrastructure.
+    Prepare MPAS build infrastructure.
     """
 
     atm_src_root = os.path.normpath(case.get_value("COMP_ROOT_DIR_ATM"))
@@ -176,7 +188,7 @@ def _setup_mpas(case: Case) -> None:
     mpas_dycore_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas", "dycore", "src")
     mpas_dycore_bld_root = os.path.join(atm_bld_root, "mpas")
 
-    # Make sure `mpas_dycore_src_root` exists. If not, it is likely that `./manage_externals/checkout_externals` did not succeed.
+    # Make sure `mpas_dycore_src_root` exists. If not, it is likely that `./bin/git-fleximod update` did not succeed.
     if os.path.isfile(mpas_dycore_src_root):
         raise FileExistsError(1, "Unexpected file", mpas_dycore_src_root)
 

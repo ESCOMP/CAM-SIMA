@@ -48,23 +48,35 @@ export CPPFLAGS        := -D_MPI \
                           -DMPAS_BUILD_TARGET="$(BUILD_TARGET)" \
                           -DMPAS_CAM_DYCORE \
                           -DMPAS_EXE_NAME="$(EXE_NAME)" \
-                          -DMPAS_EXTERNAL_ESMF_LIB \
                           -DMPAS_GIT_VERSION="$(GIT_VERSION)" \
                           -DMPAS_NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
-                          -DMPAS_NATIVE_TIMERS \
-                          -DMPAS_NO_ESMF_INIT \
                           -DMPAS_PIO_SUPPORT
 ifeq ($(strip $(PIO_VERSION)),2)
     export CPPFLAGS    += -DUSE_PIO2
 endif
-# Uncomment below for MPI Fortran 2008 interface support. There is currently no corresponding option in CIME to enable this.
-# export CPPFLAGS        += -DMPAS_USE_MPI_F08
-# Uncomment below for single precision mode support. There is currently no corresponding option in CIME to enable this.
-# export CPPFLAGS        += -DSINGLE_PRECISION
 export LINKER          := $(strip $(FC))
 export SCC             := $(strip $(CC))
 export SCXX            := $(strip $(CXX))
 export SFC             := $(strip $(FC))
+
+# Check for optional features.
+is-enabled = $(if $(filter +$(1),$(sort $(strip $(OPTIONAL_MPAS_FEATURES)))),true,false)
+
+ifeq ($(call is-enabled,ESMF_LIBRARY),true)
+    export CPPFLAGS    += -DMPAS_EXTERNAL_ESMF_LIB \
+                          -DMPAS_NO_ESMF_INIT
+endif
+ifeq ($(call is-enabled,MPI_F08_INTERFACE),true)
+    export CPPFLAGS    += -DMPAS_USE_MPI_F08
+endif
+ifeq ($(call is-enabled,PERF_MOD_LIBRARY),true)
+    export CPPFLAGS    += -DMPAS_PERF_MOD_TIMERS
+else
+    export CPPFLAGS    += -DMPAS_NATIVE_TIMERS
+endif
+ifeq ($(call is-enabled,SINGLE_PRECISION),true)
+    export CPPFLAGS    += -DSINGLE_PRECISION
+endif
 
 #
 # Targets.
@@ -143,6 +155,9 @@ libmpas-clean: clean
 
 .PHONY: externals
 externals: $(AUTOCLEAN_DEPS)
+ifeq ($(call is-enabled,ESMF_LIBRARY),false)
+	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" esmf_time )
+endif
 	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" ezxml-lib )
 
 .PHONY: subdrv
