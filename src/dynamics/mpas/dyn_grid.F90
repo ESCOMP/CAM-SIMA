@@ -257,9 +257,9 @@ contains
         integer :: i
         integer :: ierr
         integer, pointer :: indextocellid(:)        ! Global indexes of cell centers.
-        real(kind_dyn_mpas), pointer :: areacell(:) ! Cell areas (square meters).
-        real(kind_dyn_mpas), pointer :: latcell(:)  ! Cell center latitudes (radians).
-        real(kind_dyn_mpas), pointer :: loncell(:)  ! Cell center longitudes (radians).
+        real(kind_dyn_mpas), pointer :: areacell(:) ! Cell areas (m2).
+        real(kind_dyn_mpas), pointer :: latcell(:)  ! Cell center latitudes (rad).
+        real(kind_dyn_mpas), pointer :: loncell(:)  ! Cell center longitudes (rad).
         type(physics_column_t), allocatable :: dyn_column(:) ! Grid and mapping information between global and local indexes.
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
@@ -359,13 +359,13 @@ contains
         integer, pointer :: indextocellid(:)   ! Global indexes of cell centers.
         integer, pointer :: indextoedgeid(:)   ! Global indexes of edge nodes.
         integer, pointer :: indextovertexid(:) ! Global indexes of vertex nodes.
-        real(kind_dyn_mpas), pointer :: areacell(:)  ! Cell areas (square meters).
-        real(kind_dyn_mpas), pointer :: latcell(:)   ! Cell center latitudes (radians).
-        real(kind_dyn_mpas), pointer :: latedge(:)   ! Edge node latitudes (radians).
-        real(kind_dyn_mpas), pointer :: latvertex(:) ! Vertex node latitudes (radians).
-        real(kind_dyn_mpas), pointer :: loncell(:)   ! Cell center longitudes (radians).
-        real(kind_dyn_mpas), pointer :: lonedge(:)   ! Edge node longitudes (radians).
-        real(kind_dyn_mpas), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
+        real(kind_dyn_mpas), pointer :: areacell(:)  ! Cell areas (m2).
+        real(kind_dyn_mpas), pointer :: latcell(:)   ! Cell center latitudes (rad).
+        real(kind_dyn_mpas), pointer :: latedge(:)   ! Edge node latitudes (rad).
+        real(kind_dyn_mpas), pointer :: latvertex(:) ! Vertex node latitudes (rad).
+        real(kind_dyn_mpas), pointer :: loncell(:)   ! Cell center longitudes (rad).
+        real(kind_dyn_mpas), pointer :: lonedge(:)   ! Edge node longitudes (rad).
+        real(kind_dyn_mpas), pointer :: lonvertex(:) ! Vertex node longitudes (rad).
 
         ! Global grid indexes. CAN be safely deallocated because its values are copied internally by
         ! `cam_grid_attribute_register` and `horiz_coord_create`.
@@ -375,7 +375,7 @@ contains
         ! just uses pointers to point at it internally.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
         integer(kind_imap), pointer :: global_grid_map(:, :)
-        ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_register`
+        ! Cell areas (m2). CANNOT be safely deallocated because `cam_grid_attribute_register`
         ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: cell_area(:)
         ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_register`
