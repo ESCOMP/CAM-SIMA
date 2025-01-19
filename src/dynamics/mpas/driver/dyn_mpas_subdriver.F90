@@ -1,14 +1,20 @@
 ! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
 ! SPDX-License-Identifier: Apache-2.0
-module dyn_mpas_subdriver
-    !-------------------------------------------------------------------------------
-    ! module dyn_mpas_subdriver
-    !
-    ! This module manages the life cycle (i.e., initialization, running, and
-    ! finalization) of MPAS as a dynamical core within CAM-SIMA.
-    !
-    !-------------------------------------------------------------------------------
 
+!> This module, the MPAS subdriver, manages the life cycle (i.e., initialization, running, and
+!> finalization) of MPAS as a dynamical core within CAM-SIMA as well as potentially other
+!> host models.
+!>
+!> It is a ground-up implementation that not only adheres to the Fortran 2018 standard, but also
+!> incorporates a modern object-oriented design. As such, the implementation details of MPAS are
+!> abstracted away from CAM-SIMA, which enables a more stable interface between the two.
+!>
+!> Users should begin by creating an "instance" of MPAS dynamical core from the `mpas_dynamical_core_type`
+!> derived type. Then, interaction with the instance is done through its public type-bound procedures.
+!> Developers wishing to integrate MPAS dynamical core into other host models could take advantage of
+!> the object-oriented design to add new functionalities or modify existing ones simply by extending
+!> the `mpas_dynamical_core_type` derived type.
+module dyn_mpas_subdriver
     use, intrinsic :: iso_fortran_env, only: output_unit
     ! Module(s) from external libraries.
 #ifdef MPAS_USE_MPI_F08

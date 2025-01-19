@@ -1,5 +1,10 @@
 ! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
 ! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It implements the bidirectional coupling between dynamics and physics states.
 module dyn_coupling
     implicit none
 

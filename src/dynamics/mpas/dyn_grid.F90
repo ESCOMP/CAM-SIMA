@@ -1,5 +1,11 @@
 ! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
 ! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It reads and uses the information from MPAS mesh to initialize various model grids
+!> (e.g., dynamics, physics) for CAM-SIMA in terms of dynamics decomposition.
 module dyn_grid
     ! Module(s) from CAM-SIMA.
     use cam_grid_support, only: max_hcoordname_len
