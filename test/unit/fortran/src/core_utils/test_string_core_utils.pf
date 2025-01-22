@@ -284,3 +284,4 @@ subroutine test_stringify_logical_values
     @assertEqual('T .or. F .or. T .or. F .or. T .or. F .or. T .or. F .or. T .or. F', core_stringify(larr, separator=" .or. "))
 
 end subroutine test_stringify_logical_values
+

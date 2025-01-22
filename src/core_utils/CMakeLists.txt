@@ -6,3 +6,4 @@ set(CORE_UTILS_SRC string_core_utils.F90)
 # a parent project at this time.
 add_library(core_utils ${CORE_UTILS_SRC})
 target_include_directories(core_utils PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
