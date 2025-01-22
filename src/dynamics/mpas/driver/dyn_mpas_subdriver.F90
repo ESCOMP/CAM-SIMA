@@ -8,62 +8,21 @@ module dyn_mpas_subdriver
     !-------------------------------------------------------------------------------
 
     use, intrinsic :: iso_fortran_env, only: output_unit
-
-    ! Modules from external libraries.
+    ! Module(s) from external libraries.
 #ifdef MPAS_USE_MPI_F08
     use mpi_f08, only: mpi_comm_null, mpi_comm_rank, mpi_success, &
                        mpi_comm_type => mpi_comm, operator(==)
 #else
     use mpi, only: mpi_comm_null, mpi_comm_rank, mpi_success
 #endif
-    use pio, only: pio_char, pio_int, pio_real, pio_double, &
-                   file_desc_t, iosystem_desc_t, pio_file_is_open, pio_iosystem_is_active, &
-                   pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
-
-    ! Modules from MPAS.
-    use atm_core, only: atm_compute_output_diagnostics, atm_do_timestep, atm_mpas_init_block
-    use atm_core_interface, only: atm_setup_core, atm_setup_domain
-    use atm_time_integration, only: mpas_atm_dynamics_init
-    use mpas_atm_dimensions, only: mpas_atm_set_dims
-    use mpas_atm_halos, only: atm_build_halo_groups, exchange_halo_group
-    use mpas_atm_threading, only: mpas_atm_threading_init
-    use mpas_attlist, only: mpas_modify_att
-    use mpas_bootstrapping, only: mpas_bootstrap_framework_phase1, mpas_bootstrap_framework_phase2
-    use mpas_constants, only: mpas_constants_compute_derived
-    use mpas_derived_types, only: core_type, domain_type, &
-                                  mpas_pool_type, mpas_pool_field_info_type, &
-                                  mpas_pool_character, mpas_pool_real, mpas_pool_integer, &
-                                  mpas_stream_type, mpas_stream_noerr, &
-                                  mpas_time_type, mpas_timeinterval_type, mpas_now, mpas_start_time, &
-                                  mpas_io_native_precision, mpas_io_pnetcdf, mpas_io_read, mpas_io_write, &
-                                  field0dchar, field1dchar, &
-                                  field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
-                                  field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal
-    use mpas_dmpar, only: mpas_dmpar_exch_halo_field, &
-                          mpas_dmpar_max_int, mpas_dmpar_sum_int
-    use mpas_domain_routines, only: mpas_allocate_domain
-    use mpas_field_routines, only: mpas_allocate_scratch_field
-    use mpas_framework, only: mpas_framework_init_phase1, mpas_framework_init_phase2
-    use mpas_io_streams, only: mpas_createstream, mpas_closestream, mpas_streamaddfield, &
-                               mpas_readstream, mpas_writestream, mpas_writestreamatt
-    use mpas_kind_types, only: rkind, r4kind, r8kind, strkind
-    use mpas_pool_routines, only: mpas_pool_create_pool, mpas_pool_destroy_pool, mpas_pool_get_subpool, &
-                                  mpas_pool_add_config, mpas_pool_get_config, &
-                                  mpas_pool_get_array, &
-                                  mpas_pool_add_dimension, mpas_pool_get_dimension, &
-                                  mpas_pool_get_field, mpas_pool_get_field_info, &
-                                  mpas_pool_initialize_time_levels, mpas_pool_shift_time_levels
-    use mpas_stream_inquiry, only: mpas_stream_inquiry_new_streaminfo
-    use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
-    use mpas_string_utils, only: mpas_string_replace
-    use mpas_timekeeping, only: mpas_advance_clock, mpas_get_clock_time, mpas_get_time, &
-                                mpas_set_timeinterval, &
-                                operator(+), operator(<)
-    use mpas_vector_operations, only: mpas_initialize_vectors
+    ! Module(s) from MPAS.
+    use mpas_derived_types, only: core_type, domain_type
+    use mpas_kind_types, only: rkind, strkind
 
     implicit none
 
     private
+    public :: mpas_dynamical_core_real_kind
     public :: mpas_dynamical_core_type
 
     abstract interface
@@ -74,6 +33,9 @@ module dyn_mpas_subdriver
             integer,      optional, intent(in) :: line
         end subroutine model_error_if
     end interface
+
+    !> The native floating-point precision of MPAS dynamical core.
+    integer, parameter :: mpas_dynamical_core_real_kind = rkind
 
     !> The "class" of MPAS dynamical core.
     !> Important data structures like states of MPAS dynamical core are encapsulated inside this derived type to prevent misuse.
@@ -128,6 +90,7 @@ module dyn_mpas_subdriver
         procedure, pass, public :: compute_edge_wind => dyn_mpas_compute_edge_wind
         procedure, pass, public :: init_phase4 => dyn_mpas_init_phase4
         procedure, pass, public :: run => dyn_mpas_run
+        procedure, pass, public :: final => dyn_mpas_final
 
         ! Accessor subroutines for users to access internal states of MPAS dynamical core.
 
@@ -189,6 +152,8 @@ module dyn_mpas_subdriver
     !>     <var name="xCell" type="real" dimensions="nCells" units="m" description="Cartesian x-coordinate of cells" />
     !> Here, it is described as:
     !>     var_info_type(name="xCell", type="real", rank=1)
+    !> However, note that MPAS treats the "Time" dimension specially. It is implemented as 1-d pointer arrays of
+    !> custom derived types. For a variable with the "Time" dimension, its rank needs to be subtracted by one.
     type :: var_info_type
         private
 
@@ -277,40 +242,54 @@ module dyn_mpas_subdriver
     ! the `atm_init_coupled_diagnostics` subroutine in MPAS.
     ! If a variable first appears on the LHS of an equation, it should be in restart.
     ! If a variable first appears on the RHS of an equation, it should be in input.
+    ! The remaining ones of interest should be in output.
 
     !> This list corresponds to the "input" stream in MPAS registry.
     !> It consists of variables that are members of the "diag" and "state" struct.
     !> Only variables that are specific to the "input" stream are included.
     type(var_info_type), parameter :: input_var_info_list(*) = [ &
-        var_info_type('Time'                            , 'real'      , 1), &
+        var_info_type('Time'                            , 'real'      , 0), &
         var_info_type('initial_time'                    , 'character' , 0), &
-        var_info_type('rho'                             , 'real'      , 3), &
-        var_info_type('rho_base'                        , 'real'      , 3), &
+        var_info_type('rho'                             , 'real'      , 2), &
+        var_info_type('rho_base'                        , 'real'      , 2), &
         var_info_type('scalars'                         , 'real'      , 3), &
-        var_info_type('theta'                           , 'real'      , 3), &
-        var_info_type('theta_base'                      , 'real'      , 3), &
-        var_info_type('u'                               , 'real'      , 3), &
-        var_info_type('w'                               , 'real'      , 3), &
-        var_info_type('xtime'                           , 'character' , 1)  &
+        var_info_type('theta'                           , 'real'      , 2), &
+        var_info_type('theta_base'                      , 'real'      , 2), &
+        var_info_type('u'                               , 'real'      , 2), &
+        var_info_type('w'                               , 'real'      , 2), &
+        var_info_type('xtime'                           , 'character' , 0)  &
     ]
 
     !> This list corresponds to the "restart" stream in MPAS registry.
     !> It consists of variables that are members of the "diag" and "state" struct.
     !> Only variables that are specific to the "restart" stream are included.
     type(var_info_type), parameter :: restart_var_info_list(*) = [ &
-        var_info_type('exner'                           , 'real'      , 1), &
-        var_info_type('exner_base'                      , 'real'      , 1), &
-        var_info_type('pressure_base'                   , 'real'      , 1), &
-        var_info_type('pressure_p'                      , 'real'      , 1), &
-        var_info_type('rho_p'                           , 'real'      , 1), &
-        var_info_type('rho_zz'                          , 'real'      , 1), &
-        var_info_type('rtheta_base'                     , 'real'      , 1), &
-        var_info_type('rtheta_p'                        , 'real'      , 1), &
-        var_info_type('ru'                              , 'real'      , 1), &
-        var_info_type('ru_p'                            , 'real'      , 1), &
-        var_info_type('rw'                              , 'real'      , 1), &
-        var_info_type('rw_p'                            , 'real'      , 1), &
-        var_info_type('theta_m'                         , 'real'      , 1)  &
+        var_info_type('exner'                           , 'real'      , 2), &
+        var_info_type('exner_base'                      , 'real'      , 2), &
+        var_info_type('pressure_base'                   , 'real'      , 2), &
+        var_info_type('pressure_p'                      , 'real'      , 2), &
+        var_info_type('rho_p'                           , 'real'      , 2), &
+        var_info_type('rho_zz'                          , 'real'      , 2), &
+        var_info_type('rtheta_base'                     , 'real'      , 2), &
+        var_info_type('rtheta_p'                        , 'real'      , 2), &
+        var_info_type('ru'                              , 'real'      , 2), &
+        var_info_type('ru_p'                            , 'real'      , 2), &
+        var_info_type('rw'                              , 'real'      , 2), &
+        var_info_type('rw_p'                            , 'real'      , 2), &
+        var_info_type('theta_m'                         , 'real'      , 2)  &
+    ]
+
+    !> This list corresponds to the "output" stream in MPAS registry.
+    !> It consists of variables that are members of the "diag" struct.
+    !> Only variables that are specific to the "output" stream are included.
+    type(var_info_type), parameter :: output_var_info_list(*) = [ &
+        var_info_type('divergence'                      , 'real'      , 2), &
+        var_info_type('pressure'                        , 'real'      , 2), &
+        var_info_type('relhum'                          , 'real'      , 2), &
+        var_info_type('surface_pressure'                , 'real'      , 1), &
+        var_info_type('uReconstructMeridional'          , 'real'      , 2), &
+        var_info_type('uReconstructZonal'               , 'real'      , 2), &
+        var_info_type('vorticity'                       , 'real'      , 2)  &
     ]
 contains
     !> Print a debug message with optionally the value(s) of a variable.
@@ -461,6 +440,11 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_unit, mpas_log_unit)
+        ! Module(s) from MPAS.
+        use atm_core_interface, only: atm_setup_core, atm_setup_domain
+        use mpas_domain_routines, only: mpas_allocate_domain
+        use mpas_framework, only: mpas_framework_init_phase1
+
         class(mpas_dynamical_core_type), intent(inout) :: self
 #ifdef MPAS_USE_MPI_F08
         type(mpi_comm_type), intent(in) :: mpi_comm
@@ -619,11 +603,7 @@ contains
                     subname, __LINE__)
         end select
 
-        call mpas_pool_get_config(self % domain_ptr % configs, 'config_calendar_type', config_pointer_c)
-
-        if (.not. associated(config_pointer_c)) then
-            call self % model_error('Failed to find config "config_calendar_type"', subname, __LINE__)
-        end if
+        call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_calendar_type')
 
         config_pointer_c = trim(adjustl(mpas_calendar))
         call self % debug_print('config_calendar_type = ', [config_pointer_c])
@@ -632,43 +612,27 @@ contains
         ! MPAS represents date and time in ISO 8601 format. However, the separator between date and time is `_`
         ! instead of standard `T`.
         ! Format in `YYYY-MM-DD_hh:mm:ss` is acceptable.
-        call mpas_pool_get_config(self % domain_ptr % configs, 'config_start_time', config_pointer_c)
-
-        if (.not. associated(config_pointer_c)) then
-            call self % model_error('Failed to find config "config_start_time"', subname, __LINE__)
-        end if
+        call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_start_time')
 
         config_pointer_c = stringify(start_date_time(1:3), '-') // '_' // stringify(start_date_time(4:6), ':')
         call self % debug_print('config_start_time = ', [config_pointer_c])
         nullify(config_pointer_c)
 
-        call mpas_pool_get_config(self % domain_ptr % configs, 'config_stop_time', config_pointer_c)
-
-        if (.not. associated(config_pointer_c)) then
-            call self % model_error('Failed to find config "config_stop_time"', subname, __LINE__)
-        end if
+        call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_stop_time')
 
         config_pointer_c = stringify(stop_date_time(1:3), '-') // '_' // stringify(stop_date_time(4:6), ':')
         call self % debug_print('config_stop_time = ', [config_pointer_c])
         nullify(config_pointer_c)
 
         ! Format in `DD_hh:mm:ss` is acceptable.
-        call mpas_pool_get_config(self % domain_ptr % configs, 'config_run_duration', config_pointer_c)
-
-        if (.not. associated(config_pointer_c)) then
-            call self % model_error('Failed to find config "config_run_duration"', subname, __LINE__)
-        end if
+        call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_run_duration')
 
         config_pointer_c = stringify([run_duration(1)]) // '_' // stringify(run_duration(2:4), ':')
         call self % debug_print('config_run_duration = ', [config_pointer_c])
         nullify(config_pointer_c)
 
         ! Reflect current run type to MPAS.
-        call mpas_pool_get_config(self % domain_ptr % configs, 'config_do_restart', config_pointer_l)
-
-        if (.not. associated(config_pointer_l)) then
-            call self % model_error('Failed to find config "config_do_restart"', subname, __LINE__)
-        end if
+        call self % get_variable_pointer(config_pointer_l, 'cfg', 'config_do_restart')
 
         if (initial_run) then
             ! Run type is initial run.
@@ -699,6 +663,12 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase2(self, pio_iosystem)
+        ! Module(s) from external libraries.
+        use pio, only: iosystem_desc_t, pio_iosystem_is_active
+        ! Module(s) from MPAS.
+        use mpas_framework, only: mpas_framework_init_phase2
+        use mpas_stream_inquiry, only: mpas_stream_inquiry_new_streaminfo
+
         class(mpas_dynamical_core_type), intent(in) :: self
         type(iosystem_desc_t), pointer, intent(in) :: pio_iosystem
 
@@ -788,6 +758,13 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase3(self, number_of_constituents, pio_file)
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, pio_file_is_open
+        ! Module(s) from MPAS.
+        use mpas_bootstrapping, only: mpas_bootstrap_framework_phase1, mpas_bootstrap_framework_phase2
+        use mpas_derived_types, only: mpas_io_pnetcdf, mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_add_config, mpas_pool_add_dimension, mpas_pool_get_dimension
+
         class(mpas_dynamical_core_type), intent(inout) :: self
         integer, intent(in) :: number_of_constituents
         type(file_desc_t), pointer, intent(in) :: pio_file
@@ -884,6 +861,10 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_define_scalar(self, constituent_name, is_water_species)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: field3dreal, mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_add_dimension, mpas_pool_get_field
+
         class(mpas_dynamical_core_type), intent(inout) :: self
         character(*), intent(in) :: constituent_name(:)
         logical, intent(in) :: is_water_species(:)
@@ -1142,6 +1123,14 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_read_write_stream(self, pio_file, stream_mode, stream_name)
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type, mpas_stream_noerr, mpas_stream_type
+        use mpas_io_streams, only: mpas_closestream, mpas_readstream, mpas_writestream
+        use mpas_pool_routines, only: mpas_pool_destroy_pool
+        use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
+
         class(mpas_dynamical_core_type), intent(in) :: self
         type(file_desc_t), pointer, intent(in) :: pio_file
         character(*), intent(in) :: stream_mode
@@ -1248,6 +1237,17 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_stream_with_pool(self, mpas_pool, mpas_stream, pio_file, stream_mode, stream_name)
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, pio_file_is_open
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: field0dchar, field1dchar, &
+                                      field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
+                                      field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal, &
+                                      mpas_io_native_precision, mpas_io_pnetcdf, mpas_io_read, mpas_io_write, &
+                                      mpas_pool_type, mpas_stream_noerr, mpas_stream_type
+        use mpas_io_streams, only: mpas_createstream, mpas_streamaddfield
+        use mpas_pool_routines, only: mpas_pool_add_config, mpas_pool_create_pool, mpas_pool_get_field
+
         class(mpas_dynamical_core_type), intent(in) :: self
         type(mpas_pool_type), pointer, intent(out) :: mpas_pool
         type(mpas_stream_type), pointer, intent(out) :: mpas_stream
@@ -1583,6 +1583,9 @@ contains
         !> Helper subroutine for adding a 0-d stream attribute by calling `mpas_writestreamatt` with error checking.
         !> (KCW, 2024-03-14)
         subroutine add_stream_attribute_0d(attribute_name, attribute_value)
+            ! Module(s) from MPAS.
+            use mpas_io_streams, only: mpas_writestreamatt
+
             character(*), intent(in) :: attribute_name
             class(*), intent(in) :: attribute_value
 
@@ -1620,6 +1623,9 @@ contains
         !> Helper subroutine for adding a 1-d stream attribute by calling `mpas_writestreamatt` with error checking.
         !> (KCW, 2024-03-14)
         subroutine add_stream_attribute_1d(attribute_name, attribute_value)
+            ! Module(s) from MPAS.
+            use mpas_io_streams, only: mpas_writestreamatt
+
             character(*), intent(in) :: attribute_name
             class(*), intent(in) :: attribute_value(:)
 
@@ -1752,6 +1758,8 @@ contains
                 allocate(var_info_list, source=input_var_info_list)
             case ('restart')
                 allocate(var_info_list, source=restart_var_info_list)
+            case ('output')
+                allocate(var_info_list, source=output_var_info_list)
             case default
                 allocate(var_info_list(0))
 
@@ -1773,6 +1781,13 @@ contains
 
                 if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
                     var_info_list_buffer = pack(restart_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = output_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(output_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
                     var_info_list = [var_info_list, var_info_list_buffer]
                 end if
         end select
@@ -1874,6 +1889,17 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_check_variable_status(self, var_is_present, var_is_tkr_compatible, pio_file, var_info)
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, pio_file_is_open, &
+                       pio_char, pio_int, pio_real, pio_double, &
+                       pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: field0dchar, field1dchar, &
+                                      field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
+                                      field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal
+        use mpas_kind_types, only: r4kind, r8kind
+        use mpas_pool_routines, only: mpas_pool_get_field
+
         class(mpas_dynamical_core_type), intent(in) :: self
         logical, allocatable, intent(out) :: var_is_present(:)
         logical, allocatable, intent(out) :: var_is_tkr_compatible(:)
@@ -2239,11 +2265,15 @@ contains
                         cycle
                     end if
                 case ('real')
+                    ! When MPAS dynamical core is compiled at single precision, pairing it with double precision input data
+                    ! is not allowed to prevent loss of precision.
                     if (rkind == r4kind .and. vartype /= pio_real) then
                         cycle
                     end if
 
-                    if (rkind == r8kind .and. vartype /= pio_double) then
+                    ! When MPAS dynamical core is compiled at double precision, pairing it with single and double precision
+                    ! input data is allowed.
+                    if (rkind == r8kind .and. vartype /= pio_real .and. vartype /= pio_double) then
                         cycle
                     end if
                 case default
@@ -2285,6 +2315,13 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_exchange_halo(self, field_name)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: field1dinteger, field2dinteger, field3dinteger, &
+                                      field1dreal, field2dreal, field3dreal, field4dreal, field5dreal, &
+                                      mpas_pool_field_info_type, mpas_pool_integer, mpas_pool_real
+        use mpas_dmpar, only: mpas_dmpar_exch_halo_field
+        use mpas_pool_routines, only: mpas_pool_get_field, mpas_pool_get_field_info
+
         class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: field_name
 
@@ -2468,6 +2505,10 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_compute_unit_vector(self)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_vector_operations, only: mpas_initialize_vectors
+
         class(mpas_dynamical_core_type), intent(in) :: self
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_unit_vector'
@@ -2652,6 +2693,21 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase4(self, coupling_time_interval)
+        ! Module(s) from MPAS.
+        use atm_core, only: atm_mpas_init_block
+        use atm_time_integration, only: mpas_atm_dynamics_init
+        use mpas_atm_dimensions, only: mpas_atm_set_dims
+        use mpas_atm_halos, only: atm_build_halo_groups, exchange_halo_group
+        use mpas_atm_threading, only: mpas_atm_threading_init
+        use mpas_attlist, only: mpas_modify_att
+        use mpas_constants, only: mpas_constants_compute_derived
+        use mpas_derived_types, only: field0dreal, field2dreal, mpas_pool_type, mpas_time_type, &
+                                      mpas_start_time
+        use mpas_field_routines, only: mpas_allocate_scratch_field
+        use mpas_pool_routines, only: mpas_pool_get_field, mpas_pool_initialize_time_levels
+        use mpas_string_utils, only: mpas_string_replace
+        use mpas_timekeeping, only: mpas_get_clock_time, mpas_get_time
+
         class(mpas_dynamical_core_type), intent(inout) :: self
         integer, intent(in) :: coupling_time_interval ! Set the time interval, in seconds, over which MPAS dynamical core
                                                       ! should integrate each time it is called to run.
@@ -2922,6 +2978,15 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_run(self)
+        ! Module(s) from MPAS.
+        use atm_core, only: atm_compute_output_diagnostics, atm_do_timestep
+        use mpas_derived_types, only: mpas_pool_type, mpas_time_type, mpas_timeinterval_type, &
+                                      mpas_now
+        use mpas_pool_routines, only: mpas_pool_shift_time_levels
+        use mpas_timekeeping, only: mpas_advance_clock, mpas_get_clock_time, mpas_get_time, &
+                                    mpas_set_timeinterval, &
+                                    operator(+), operator(<)
+
         class(mpas_dynamical_core_type), intent(inout) :: self
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_run'
@@ -3011,6 +3076,143 @@ contains
 
         call self % debug_print(subname // ' completed')
     end subroutine dyn_mpas_run
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_final
+    !
+    !> \brief  Finalizes MPAS dynamical core as well as its framework
+    !> \author Michael Duda
+    !> \date   29 February 2020
+    !> \details
+    !>  This subroutine finalizes and cleans up MPAS dynamical core as well as its
+    !>  framework that was set up during initialization. Finalization happens in
+    !>  reverse chronological order.
+    !>  Essentially, it closely follows what is done in `atm_core_finalize` and
+    !>  `mpas_finalize`, except that here, there is no need to call MPAS diagnostics
+    !>  manager or MPAS stream manager.
+    !> \addenda
+    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-10-10)
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_final(self)
+        ! Module(s) from MPAS.
+        use atm_time_integration, only: mpas_atm_dynamics_finalize
+        use mpas_atm_halos, only: atm_destroy_halo_groups, exchange_halo_group
+        use mpas_atm_threading, only: mpas_atm_threading_finalize
+        use mpas_decomp, only: mpas_decomp_destroy_decomp_list
+        use mpas_derived_types, only: field2dreal
+        use mpas_field_routines, only: mpas_deallocate_scratch_field
+        use mpas_framework, only: mpas_framework_finalize
+        use mpas_log, only: mpas_log_finalize
+        use mpas_pool_routines, only: mpas_pool_get_field
+        use mpas_timekeeping, only: mpas_destroy_clock
+        use mpas_timer, only: mpas_timer_write_header, mpas_timer_write, mpas_timer_finalize
+
+        class(mpas_dynamical_core_type), intent(inout) :: self
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_final'
+        integer :: ierr
+        type(field2dreal), pointer :: field_2d_real
+
+        call self % debug_print(subname // ' entered')
+
+        nullify(field_2d_real)
+
+        ! First, wind down MPAS dynamical core by calling its own finalization procedures.
+
+        ! Some additional "scratch" fields are needed for interoperability with CAM-SIMA, but they are not finalized by
+        ! `mpas_atm_dynamics_finalize`. Finalize them below.
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_uzonal', field_2d_real, timelevel=1)
+        call mpas_deallocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
+        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
+        call mpas_deallocate_scratch_field(field_2d_real)
+        nullify(field_2d_real)
+
+        ! Opposite to `mpas_atm_dynamics_init`.
+        call mpas_atm_dynamics_finalize(self % domain_ptr)
+
+        ! Opposite to `atm_build_halo_groups`.
+        call atm_destroy_halo_groups(self % domain_ptr, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to destroy halo exchange groups', subname, __LINE__)
+        end if
+
+        nullify(exchange_halo_group)
+
+        ! Opposite to `mpas_atm_threading_init`.
+        call mpas_atm_threading_finalize(self % domain_ptr % blocklist, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to clean up OpenMP threading', subname, __LINE__)
+        end if
+
+        ! Opposite to `mpas_create_clock`, which was called by `atm_simulation_clock_init`, then `atm_setup_clock`.
+        call mpas_destroy_clock(self % domain_ptr % clock, ierr=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to clean up clock', subname, __LINE__)
+        end if
+
+        ! Opposite to `mpas_decomp_create_decomp_list`, which was called by `atm_setup_decompositions`.
+        call mpas_decomp_destroy_decomp_list(self % domain_ptr % decompositions)
+
+        deallocate(self % domain_ptr % streaminfo)
+
+        ! Write timing information to log.
+        call mpas_timer_write_header()
+        call mpas_timer_write()
+
+        ! Opposite to `mpas_timer_init`, which was called by `mpas_framework_init_phase2`.
+        call mpas_timer_finalize(self % domain_ptr)
+
+        ! Opposite to `mpas_log_init`, which was called by `atm_setup_log`.
+        call mpas_log_finalize(ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to clean up log', subname, __LINE__)
+        end if
+
+        ! Opposite to `mpas_framework_init_phase1` and `mpas_framework_init_phase2`.
+        call mpas_framework_finalize(self % domain_ptr % dminfo, self % domain_ptr)
+
+        call self % debug_print(subname // ' completed')
+
+        call self % debug_print('Successful finalization of MPAS dynamical core')
+
+        ! Second, clean up this MPAS dynamical core instance.
+
+        ! Initialized by `dyn_mpas_init_phase4`.
+        self % coupling_time_interval = 0
+        self % number_of_time_steps = 0
+
+        ! Initialized by `dyn_mpas_define_scalar`.
+        deallocate(self % constituent_name)
+        deallocate(self % index_constituent_to_mpas_scalar)
+        deallocate(self % index_mpas_scalar_to_constituent)
+        deallocate(self % is_water_species)
+
+        ! Initialized by `dyn_mpas_init_phase3`.
+        self % number_of_constituents = 0
+
+        ! Initialized by `dyn_mpas_init_phase1`.
+        self % log_unit = output_unit
+        self % mpi_comm = mpi_comm_null
+        self % mpi_rank = 0
+        self % mpi_rank_root = .false.
+
+        nullify(self % model_error)
+
+        deallocate(self % corelist % domainlist)
+        deallocate(self % corelist)
+
+        nullify(self % corelist)
+        nullify(self % domain_ptr)
+
+        self % debug_output = .false.
+    end subroutine dyn_mpas_final
 
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_get_constituent_name
@@ -3231,6 +3433,9 @@ contains
     subroutine dyn_mpas_get_global_mesh_dimension(self, &
             ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
             sphere_radius)
+        ! Module(s) from MPAS.
+        use mpas_dmpar, only: mpas_dmpar_max_int, mpas_dmpar_sum_int
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(out) :: ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max
         real(rkind), intent(out) :: sphere_radius
@@ -3278,6 +3483,10 @@ contains
     !> It is used by the `dyn_mpas_get_variable_{pointer,value}_*` subroutines to draw a variable from a pool.
     !> (KCW, 2024-03-21)
     subroutine dyn_mpas_get_pool_pointer(self, pool_pointer, pool_name)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_subpool
+
         class(mpas_dynamical_core_type), intent(in) :: self
         type(mpas_pool_type), pointer, intent(out) :: pool_pointer
         character(*), intent(in) :: pool_name
@@ -3323,6 +3532,10 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_variable_pointer_c0(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array, mpas_pool_get_config
+
         class(mpas_dynamical_core_type), intent(in) :: self
         character(strkind), pointer, intent(out) :: variable_pointer
         character(*), intent(in) :: pool_name
@@ -3351,6 +3564,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_c0
 
     subroutine dyn_mpas_get_variable_pointer_c1(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         character(strkind), pointer, intent(out) :: variable_pointer(:)
         character(*), intent(in) :: pool_name
@@ -3373,6 +3590,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_c1
 
     subroutine dyn_mpas_get_variable_pointer_i0(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array, mpas_pool_get_config, mpas_pool_get_dimension
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, pointer, intent(out) :: variable_pointer
         character(*), intent(in) :: pool_name
@@ -3404,6 +3625,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_i0
 
     subroutine dyn_mpas_get_variable_pointer_i1(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array, mpas_pool_get_dimension
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, pointer, intent(out) :: variable_pointer(:)
         character(*), intent(in) :: pool_name
@@ -3432,6 +3657,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_i1
 
     subroutine dyn_mpas_get_variable_pointer_i2(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, pointer, intent(out) :: variable_pointer(:, :)
         character(*), intent(in) :: pool_name
@@ -3454,6 +3683,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_i2
 
     subroutine dyn_mpas_get_variable_pointer_i3(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, pointer, intent(out) :: variable_pointer(:, :, :)
         character(*), intent(in) :: pool_name
@@ -3476,6 +3709,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_i3
 
     subroutine dyn_mpas_get_variable_pointer_l0(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_config
+
         class(mpas_dynamical_core_type), intent(in) :: self
         logical, pointer, intent(out) :: variable_pointer
         character(*), intent(in) :: pool_name
@@ -3502,6 +3739,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_l0
 
     subroutine dyn_mpas_get_variable_pointer_r0(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array, mpas_pool_get_config
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), pointer, intent(out) :: variable_pointer
         character(*), intent(in) :: pool_name
@@ -3530,6 +3771,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_r0
 
     subroutine dyn_mpas_get_variable_pointer_r1(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), pointer, intent(out) :: variable_pointer(:)
         character(*), intent(in) :: pool_name
@@ -3552,6 +3797,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_r1
 
     subroutine dyn_mpas_get_variable_pointer_r2(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), pointer, intent(out) :: variable_pointer(:, :)
         character(*), intent(in) :: pool_name
@@ -3574,6 +3823,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_r2
 
     subroutine dyn_mpas_get_variable_pointer_r3(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), pointer, intent(out) :: variable_pointer(:, :, :)
         character(*), intent(in) :: pool_name
@@ -3596,6 +3849,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_r3
 
     subroutine dyn_mpas_get_variable_pointer_r4(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), pointer, intent(out) :: variable_pointer(:, :, :, :)
         character(*), intent(in) :: pool_name
@@ -3618,6 +3875,10 @@ contains
     end subroutine dyn_mpas_get_variable_pointer_r4
 
     subroutine dyn_mpas_get_variable_pointer_r5(self, variable_pointer, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_get_array
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), pointer, intent(out) :: variable_pointer(:, :, :, :, :)
         character(*), intent(in) :: pool_name

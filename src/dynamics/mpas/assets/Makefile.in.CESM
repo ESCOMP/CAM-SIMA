@@ -49,6 +49,10 @@ export CPPFLAGS       := -D_MPI \
 ifneq ($(strip $(PIODEF)),)
     export CPPFLAGS   += $(strip $(PIODEF))
 endif
+# Uncomment below for MPI Fortran 2008 interface support. There is currently no corresponding option in CIME to enable this.
+# export CPPFLAGS       += -DMPAS_USE_MPI_F08
+# Uncomment below for single precision mode support. There is currently no corresponding option in CIME to enable this.
+# export CPPFLAGS       += -DSINGLE_PRECISION
 export LINKER         := $(strip $(FC))
 export SCC            := $(strip $(CC))
 export SCXX           := $(strip $(CXX))
@@ -71,7 +75,17 @@ all:
 	@echo '    `make libmpas-clean ESM="CESM" LIBROOT="..." SRCROOT="..."`'
 
 .PHONY: libmpas-prepare
-libmpas-prepare: libmpas-archiver-script.txt libmpas-no-physics libmpas-prefix-namelist-groups libmpas-preview
+libmpas-prepare: libmpas-apply-patch libmpas-archiver-script.txt libmpas-preview
+
+# Apply patches.
+.PHONY: libmpas-apply-patch
+libmpas-apply-patch:
+	@for file in *.patch; do \
+		if git apply --check -p2 "$${file}"; then \
+			echo "Applying $${file}"; \
+			git apply -p2 "$${file}"; \
+		fi; \
+	done
 
 # Combine multiple static libraries into `libmpas.a` via archiver/MRI script. This requires GNU or GNU-like archiver (`ar`) program.
 libmpas-archiver-script.txt:
@@ -83,19 +97,8 @@ libmpas-archiver-script.txt:
 	@echo "save"                        >> $(@)
 	@echo "end"                         >> $(@)
 
-# Do not use built-in MPAS/WRF physics.
-.PHONY: libmpas-no-physics
-libmpas-no-physics:
-	@sed -E -i -e "s/^ *PHYSICS=.+$$/PHYSICS=/g" core_atmosphere/Makefile
-
-# Prefix `mpas_` to MPAS namelist groups to avoid naming collisions.
-.PHONY: libmpas-prefix-namelist-groups
-libmpas-prefix-namelist-groups:
-	@sed -E -i -e "s/(^ *< *nml_record.+name=)\"(mpas_)?(\w+)\"/\1\"mpas_\3\"/g" core_atmosphere/Registry.xml
-	@sed -E -i -e "s/(^ *< *nml_record.+name=)\"(mpas_)?(\w+)\"/\1\"mpas_\3\"/g" core_atmosphere/diagnostics/Registry_*.xml
-
 .PHONY: libmpas-preview
-libmpas-preview:
+libmpas-preview: libmpas-apply-patch libmpas-archiver-script.txt
 	@echo "Previewing build options for $(LIBROOT)/libmpas.a:"
 	@echo "AR = $(AR)"
 	@echo "ARFLAGS = $(ARFLAGS)"

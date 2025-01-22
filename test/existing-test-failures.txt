@@ -1,3 +1,1 @@
-SMS_Ln2.mpasa480_mpasa480.FKESSLER.derecho_intel.cam-outfrq_kessler_mpas_derecho (Overall: FAIL)
-SMS_Ln2.mpasa480_mpasa480.FKESSLER.derecho_gnu.cam-outfrq_kessler_mpas_derecho (Overall: FAIL)
- - will fail until MPAS is fully integrated
+All clear!

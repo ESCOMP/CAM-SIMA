@@ -1,46 +1,6 @@
 module dyn_comp
-    use dyn_mpas_subdriver, only: mpas_dynamical_core_type
-
-    ! Modules from CAM-SIMA.
-    use air_composition, only: thermodynamic_active_species_num, &
-                               thermodynamic_active_species_liq_num, &
-                               thermodynamic_active_species_ice_num, &
-                               thermodynamic_active_species_idx, thermodynamic_active_species_idx_dycore, &
-                               thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
-                               thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
-    use cam_abortutils, only: check_allocate, endrun
-    use cam_constituents, only: const_name, const_is_dry, const_is_water_species, num_advected, readtrace
-    use cam_control_mod, only: initial_run
-    use cam_field_read, only: cam_read_field
-    use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
-    use cam_initfiles, only: initial_file_get_id, topo_file_get_id
-    use cam_instance, only: atm_id
-    use cam_logfile, only: debug_output, debugout_none, iulog
-    use cam_pio_utils, only: clean_iodesc_list
-    use dyn_tests_utils, only: vc_height
-    use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, constant_pi => pi, &
-                        constant_rd => rair, constant_rv => rh2o, &
-                        deg_to_rad
-    use inic_analytic, only: analytic_ic_active, dyn_set_inic_col
-    use runtime_obj, only: runtime_options
-    use spmd_utils, only: iam, masterproc, mpicom
-    use string_utils, only: stringify
-    use time_manager, only: get_start_date, get_stop_date, get_step_size, get_run_duration, timemgr_get_calendar_cf
-    use vert_coord, only: pver, pverp
-
-    ! Modules from CCPP.
-    use cam_ccpp_cap, only: cam_constituents_array
-    use ccpp_kinds, only: kind_phys
-    use phys_vars_init_check, only: mark_as_initialized, std_name_len
-    use physics_types, only: phys_state
-
-    ! Modules from CESM Share.
-    use shr_file_mod, only: shr_file_getunit
-    use shr_kind_mod, only: kind_cs => shr_kind_cs, kind_r8 => shr_kind_r8
-    use shr_pio_mod, only: shr_pio_getiosys
-
-    ! Modules from external libraries.
-    use pio, only: file_desc_t, iosystem_desc_t, pio_file_is_open
+    ! Module(s) from MPAS.
+    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type
 
     implicit none
 
@@ -51,10 +11,11 @@ module dyn_comp
     public :: dyn_readnl
     public :: dyn_init
     public :: dyn_run
-    ! public :: dyn_final
+    public :: dyn_final
 
     public :: dyn_debug_print
-    public :: dyn_exchange_constituent_state
+    public :: dyn_exchange_constituent_states
+    public :: dyn_inquire_mesh_dimensions
     public :: reverse
     public :: mpas_dynamical_core
     public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
@@ -79,14 +40,19 @@ module dyn_comp
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
 
     ! Local and global mesh dimensions of MPAS dynamical core.
-    integer :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
-    integer :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    real(kind_r8) :: sphere_radius
+    integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+    integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
+    real(kind_dyn_mpas), protected :: sphere_radius
 contains
     !> Print a debug message with optionally the value(s) of a variable.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
     subroutine dyn_debug_print(message, variable, printer)
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debug_output, debugout_none, iulog
+        use spmd_utils, only: iam, masterproc
+        use string_utils, only: stringify
+
         character(*), intent(in) :: message
         class(*), optional, intent(in) :: variable(:)
         integer, optional, intent(in) :: printer
@@ -121,10 +87,24 @@ contains
     !
     ! Called by `read_namelist` in `src/control/runtime_opts.F90`.
     subroutine dyn_readnl(namelist_path)
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: endrun
+        use cam_control_mod, only: initial_run
+        use cam_instance, only: atm_id
+        use cam_logfile, only: debug_output, debugout_none, iulog
+        use spmd_utils, only: mpicom
+        use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
+        ! Module(s) from CESM Share.
+        use shr_file_mod, only: shr_file_getunit
+        use shr_kind_mod, only: len_cs => shr_kind_cs
+        use shr_pio_mod, only: shr_pio_getiosys
+        ! Module(s) from external libraries.
+        use pio, only: iosystem_desc_t
+
         character(*), intent(in) :: namelist_path
 
         character(*), parameter :: subname = 'dyn_comp::dyn_readnl'
-        character(kind_cs) :: cam_calendar
+        character(len_cs) :: cam_calendar
         integer :: log_unit(2)
         integer :: start_date_time(6), & ! YYYY, MM, DD, hh, mm, ss.
                    stop_date_time(6),  & ! YYYY, MM, DD, hh, mm, ss.
@@ -187,9 +167,27 @@ contains
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-        use cam_thermo_formula,   only: energy_formula_dycore, ENERGY_FORMULA_DYCORE_MPAS
-        use phys_vars_init_check, only: mark_as_initialized
-        use physics_types,        only: dycore_energy_consistency_adjust
+        ! Module(s) from CAM-SIMA.
+        use air_composition, only: thermodynamic_active_species_num, &
+                                   thermodynamic_active_species_liq_num, &
+                                   thermodynamic_active_species_ice_num, &
+                                   thermodynamic_active_species_idx, thermodynamic_active_species_idx_dycore, &
+                                   thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
+                                   thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
+        use cam_abortutils, only: check_allocate
+        use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
+        use cam_control_mod, only: initial_run
+        use cam_initfiles, only: initial_file_get_id, topo_file_get_id
+        use cam_pio_utils, only: clean_iodesc_list
+        use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
+        use inic_analytic, only: analytic_ic_active
+        use physics_types, only: dycore_energy_consistency_adjust
+        use runtime_obj, only: runtime_options
+        use time_manager, only: get_step_size
+        ! Module(s) from CCPP.
+        use phys_vars_init_check, only: std_name_len
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t
 
         type(runtime_options), intent(in) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
@@ -207,14 +205,13 @@ contains
         nullify(pio_init_file)
         nullify(pio_topo_file)
 
-        ! Set dynamical core energy formula for use in cam_thermo.
-        energy_formula_dycore = ENERGY_FORMULA_DYCORE_MPAS
-        call mark_as_initialized('total_energy_formula_for_dycore')
+        ! Set the energy formula of dynamical core to MPAS for use in `cam_thermo`.
+        energy_formula_dycore = energy_formula_dycore_mpas
 
-        ! Dynamical core energy is not consistent with CAM physics and requires
-        ! temperature and temperature tendency adjustment at end of physics.
+        ! The total energy of dynamical core, which uses "MPAS formula" as set above, is not consistent with
+        ! that of CAM physics, which uses "FV formula". Therefore, temperature and temperature tendency adjustments
+        ! are needed at the end of each physics time step.
         dycore_energy_consistency_adjust = .true.
-        call mark_as_initialized('flag_for_dycore_energy_consistency_adjustment')
 
         allocate(constituent_name(num_advected), stat=ierr)
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
@@ -267,9 +264,9 @@ contains
                 ! Perform default initialization for all constituents.
                 ! Subsequently, they can be overridden depending on the namelist option (below) and
                 ! the actual availability (checked and handled by MPAS).
-                call dyn_debug_print('Calling dyn_exchange_constituent_state')
+                call dyn_debug_print('Calling dyn_exchange_constituent_states')
 
-                call dyn_exchange_constituent_state(direction='e', exchange=.true., conversion=.false.)
+                call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
                 ! Namelist option that controls if constituents are to be read from the file.
                 if (readtrace) then
@@ -288,7 +285,7 @@ contains
         end if
 
         call clean_iodesc_list()
-        call mark_variable_as_initialized()
+        call mark_variables_as_initialized()
 
         nullify(pio_init_file)
         nullify(pio_topo_file)
@@ -308,6 +305,16 @@ contains
     !> Otherwise, if topography file is not used, check that the surface geometric height in MPAS is zero.
     !> (KCW, 2024-05-10)
     subroutine check_topography_data(pio_file)
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate, endrun
+        use cam_field_read, only: cam_read_field
+        use cam_logfile, only: debug_output, debugout_none
+        use dynconst, only: constant_g => gravit
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, pio_file_is_open
+
         type(file_desc_t), pointer, intent(in) :: pio_file
 
         character(*), parameter :: subname = 'dyn_comp::check_topography_data'
@@ -316,7 +323,7 @@ contains
         real(kind_r8), parameter :: error_tolerance = 1.0E-3_kind_r8 ! Error tolerance for consistency check.
         real(kind_r8), allocatable :: surface_geometric_height(:)    ! Computed from topography file.
         real(kind_r8), allocatable :: surface_geopotential(:)        ! Read from topography file.
-        real(kind_r8), pointer :: zgrid(:, :)                        ! From MPAS. Geometric height (meters) at layer interfaces.
+        real(kind_dyn_mpas), pointer :: zgrid(:, :)                  ! From MPAS. Geometric height (meters) at layer interfaces.
 
         nullify(zgrid)
 
@@ -348,7 +355,7 @@ contains
             surface_geometric_height(:) = surface_geopotential(:) / constant_g
 
             ! Surface geometric height in MPAS should match the values in topography file.
-            if (any(abs(zgrid(1, 1:ncells_solve) - surface_geometric_height) > error_tolerance)) then
+            if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8) - surface_geometric_height(:)) > error_tolerance)) then
                 call endrun('Surface geometric height in MPAS is not consistent with topography data', subname, __LINE__)
             end if
 
@@ -358,7 +365,7 @@ contains
             call dyn_debug_print('Topography file is not used')
 
             ! Surface geometric height in MPAS should be zero.
-            if (any(abs(zgrid(1, 1:ncells_solve)) > error_tolerance)) then
+            if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8)) > error_tolerance)) then
                 call endrun('Surface geometric height in MPAS is not zero', subname, __LINE__)
             end if
         end if
@@ -369,14 +376,17 @@ contains
     !> Set analytic initial condition for MPAS.
     !> (KCW, 2024-05-22)
     subroutine set_analytic_initial_condition()
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+
         character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition'
         integer, allocatable :: global_grid_index(:)
         real(kind_r8), allocatable :: buffer_2d_real(:, :), buffer_3d_real(:, :, :)
         real(kind_r8), allocatable :: lat_rad(:), lon_rad(:)
-        real(kind_r8), allocatable :: z_int(:, :) ! Geometric height (meters) at layer interfaces.
-                                                  ! Dimension and vertical index orders follow CAM-SIMA convention.
-        real(kind_r8), pointer :: zgrid(:, :)     ! Geometric height (meters) at layer interfaces.
-                                                  ! Dimension and vertical index orders follow MPAS convention.
+        real(kind_r8), allocatable :: z_int(:, :)   ! Geometric height (meters) at layer interfaces.
+                                                    ! Dimension and vertical index orders follow CAM-SIMA convention.
+        real(kind_dyn_mpas), pointer :: zgrid(:, :) ! Geometric height (meters) at layer interfaces.
+                                                    ! Dimension and vertical index orders follow MPAS convention.
 
         call init_shared_variables()
 
@@ -391,9 +401,15 @@ contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
         subroutine init_shared_variables()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate, endrun
+            use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
+            use dynconst, only: deg_to_rad
+            use vert_coord, only: pverp
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variables'
-            integer :: ierr
             integer :: i
+            integer :: ierr
             integer, pointer :: indextocellid(:)
             real(kind_r8), pointer :: lat_deg(:), lon_deg(:)
 
@@ -442,7 +458,7 @@ contains
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             do i = 1, ncells_solve
-                z_int(i, :) = reverse(zgrid(:, i))
+                z_int(i, :) = reverse(real(zgrid(:, i), kind_r8))
             end do
         end subroutine init_shared_variables
 
@@ -461,10 +477,16 @@ contains
         !> Set MPAS state `u` (i.e., horizontal velocity at edge interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_u()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dyn_tests_utils, only: vc_height
+            use inic_analytic, only: dyn_set_inic_col
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_u'
-            integer :: ierr
             integer :: i
-            real(kind_r8), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
+            integer :: ierr
+            real(kind_dyn_mpas), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
 
             call dyn_debug_print('Setting MPAS state "u"')
 
@@ -482,7 +504,7 @@ contains
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             do i = 1, ncells_solve
-                ucellzonal(:, i) = reverse(buffer_2d_real(i, :))
+                ucellzonal(:, i) = real(reverse(buffer_2d_real(i, :)), kind_dyn_mpas)
             end do
 
             buffer_2d_real(:, :) = 0.0_kind_r8
@@ -491,21 +513,21 @@ contains
 
             ! Vertical index order is reversed between CAM-SIMA and MPAS.
             do i = 1, ncells_solve
-                ucellmeridional(:, i) = reverse(buffer_2d_real(i, :))
+                ucellmeridional(:, i) = real(reverse(buffer_2d_real(i, :)), kind_dyn_mpas)
             end do
 
             deallocate(buffer_2d_real)
 
             nullify(ucellzonal, ucellmeridional)
 
-            call mpas_dynamical_core % compute_edge_wind(.false.)
+            call mpas_dynamical_core % compute_edge_wind(wind_tendency=.false.)
         end subroutine set_mpas_state_u
 
         !> Set MPAS state `w` (i.e., vertical velocity at cell interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_w()
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_w'
-            real(kind_r8), pointer :: w(:, :)
+            real(kind_dyn_mpas), pointer :: w(:, :)
 
             call dyn_debug_print('Setting MPAS state "w"')
 
@@ -513,7 +535,7 @@ contains
 
             call mpas_dynamical_core % get_variable_pointer(w, 'state', 'w', time_level=1)
 
-            w(:, 1:ncells_solve) = 0.0_kind_r8
+            w(:, 1:ncells_solve) = 0.0_kind_dyn_mpas
 
             nullify(w)
 
@@ -524,6 +546,13 @@ contains
         !> Set MPAS state `scalars` (i.e., constituents).
         !> (KCW, 2024-05-17)
         subroutine set_mpas_state_scalars()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use cam_constituents, only: num_advected
+            use dyn_tests_utils, only: vc_height
+            use inic_analytic, only: dyn_set_inic_col
+            use vert_coord, only: pver
+
             ! CCPP standard name of `qv`, which denotes water vapor mixing ratio.
             character(*), parameter :: constituent_qv_standard_name = &
                 'water_vapor_mixing_ratio_wrt_dry_air'
@@ -533,7 +562,7 @@ contains
             integer :: ierr
             integer, allocatable :: constituent_index(:)
             integer, pointer :: index_qv
-            real(kind_r8), pointer :: scalars(:, :, :)
+            real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
             call dyn_debug_print('Setting MPAS state "scalars"')
 
@@ -560,7 +589,7 @@ contains
                 do j = 1, num_advected
                     ! Vertical index order is reversed between CAM-SIMA and MPAS.
                     scalars(j, :, i) = &
-                        reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j)))
+                        real(reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
                 end do
             end do
 
@@ -574,7 +603,7 @@ contains
 
                 ! Convert specific humidity to water vapor mixing ratio.
                 scalars(index_qv, :, 1:ncells_solve) = &
-                    scalars(index_qv, :, 1:ncells_solve) / (1.0_kind_r8 - scalars(index_qv, :, 1:ncells_solve))
+                    scalars(index_qv, :, 1:ncells_solve) / (1.0_kind_dyn_mpas - scalars(index_qv, :, 1:ncells_solve))
             end if
 
             deallocate(buffer_3d_real)
@@ -590,6 +619,13 @@ contains
         !> Set MPAS state `rho` (i.e., dry air density) and `theta` (i.e., potential temperature).
         !> (KCW, 2024-05-19)
         subroutine set_mpas_state_rho_theta()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dyn_tests_utils, only: vc_height
+            use dynconst, only: constant_p0 => pref, constant_rd => rair, constant_rv => rh2o
+            use inic_analytic, only: dyn_set_inic_col
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_theta'
             integer :: i, k
             integer :: ierr
@@ -603,9 +639,9 @@ contains
             real(kind_r8), allocatable :: tm_mid_col(:) ! Modified "moist" temperature (K) at layer midpoints of each column.
                                                         ! Be advised that it is not virtual temperature.
                                                         ! See doi:10.5065/1DFH-6P97 and doi:10.1175/MWR-D-11-00215.1 for details.
-            real(kind_r8), pointer :: rho(:, :)
-            real(kind_r8), pointer :: theta(:, :)
-            real(kind_r8), pointer :: scalars(:, :, :)
+            real(kind_dyn_mpas), pointer :: rho(:, :)
+            real(kind_dyn_mpas), pointer :: theta(:, :)
+            real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
             call dyn_debug_print('Setting MPAS state "rho" and "theta"')
 
@@ -654,16 +690,16 @@ contains
 
             ! Set `rho` and `theta` column by column. This way, peak memory usage can be reduced.
             do i = 1, ncells_solve
-                qv_mid_col(:) = scalars(index_qv, :, i)
+                qv_mid_col(:) = real(scalars(index_qv, :, i), kind_r8)
                 tm_mid_col(:) = t_mid(:, i) * (1.0_kind_r8 + constant_rv / constant_rd * qv_mid_col(:))
 
                 ! Piecewise integrate hypsometric equation to derive `p_mid_col(1)`.
                 ! The formulation used here is exact.
                 p_mid_col(1) = p_by_hypsometric_equation( &
                     p_sfc(i), &
-                    zgrid(1, i), &
+                    real(zgrid(1, i), kind_r8), &
                     tm_mid_col(1) / (1.0_kind_r8 + qv_mid_col(1)), &
-                    0.5_kind_r8 * (zgrid(2, i) + zgrid(1, i)))
+                    0.5_kind_r8 * real(zgrid(2, i) + zgrid(1, i), kind_r8))
 
                 ! Piecewise integrate hypsometric equation to derive subsequent `p_mid_col(k)`.
                 ! The formulation used here is exact.
@@ -671,16 +707,16 @@ contains
                     p_mid_col(k) = p_by_hypsometric_equation( &
                         p_by_hypsometric_equation( &
                             p_mid_col(k - 1), &
-                            0.5_kind_r8 * (zgrid(k, i) + zgrid(k - 1, i)), &
+                            0.5_kind_r8 * real(zgrid(k, i) + zgrid(k - 1, i), kind_r8), &
                             tm_mid_col(k - 1) / (1.0_kind_r8 + qv_mid_col(k - 1)), &
-                            zgrid(k, i)), &
-                        zgrid(k, i), &
+                            real(zgrid(k, i), kind_r8)), &
+                        real(zgrid(k, i), kind_r8), &
                         tm_mid_col(k) / (1.0_kind_r8 + qv_mid_col(k)), &
-                        0.5_kind_r8 * (zgrid(k + 1, i) + zgrid(k, i)))
+                        0.5_kind_r8 * real(zgrid(k + 1, i) + zgrid(k, i), kind_r8))
                 end do
 
-                rho(:, i) = p_mid_col(:) / (constant_rd * tm_mid_col(:))
-                theta(:, i) = theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0)
+                rho(:, i) = real(p_mid_col(:) / (constant_rd * tm_mid_col(:)), kind_dyn_mpas)
+                theta(:, i) = real(theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0), kind_dyn_mpas)
             end do
 
             deallocate(p_mid_col)
@@ -702,15 +738,20 @@ contains
         !> Set MPAS state `rho_base` (i.e., base state dry air density) and `theta_base` (i.e., base state potential temperature).
         !> (KCW, 2024-05-21)
         subroutine set_mpas_state_rho_base_theta_base()
+            ! Module(s) from CAM-SIMA.
+            use cam_abortutils, only: check_allocate
+            use dynconst, only: constant_p0 => pref, constant_rd => rair
+            use vert_coord, only: pver
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_base_theta_base'
             integer :: i, k
             integer :: ierr
             real(kind_r8), parameter :: t_base = 250.0_kind_r8 ! Base state temperature (K) of dry isothermal atmosphere.
                                                                ! The value used here is identical to MPAS.
             real(kind_r8), allocatable :: p_base(:)            ! Base state pressure (Pa) at layer midpoints of each column.
-            real(kind_r8), pointer :: rho_base(:, :)
-            real(kind_r8), pointer :: theta_base(:, :)
-            real(kind_r8), pointer :: zz(:, :)
+            real(kind_dyn_mpas), pointer :: rho_base(:, :)
+            real(kind_dyn_mpas), pointer :: theta_base(:, :)
+            real(kind_dyn_mpas), pointer :: zz(:, :)
 
             call dyn_debug_print('Setting MPAS state "rho_base" and "theta_base"')
 
@@ -734,11 +775,11 @@ contains
                         constant_p0, &
                         0.0_kind_r8, &
                         t_base, &
-                        0.5_kind_r8 * (zgrid(k + 1, i) + zgrid(k, i)))
+                        0.5_kind_r8 * real(zgrid(k + 1, i) + zgrid(k, i), kind_r8))
                 end do
 
-                rho_base(:, i) = p_base(:) / (constant_rd * t_base * zz(:, i))
-                theta_base(:, i) = theta_by_poisson_equation(p_base, t_base, constant_p0)
+                rho_base(:, i) = real(p_base(:) / (constant_rd * t_base * real(zz(:, i), kind_r8)), kind_dyn_mpas)
+                theta_base(:, i) = real(theta_by_poisson_equation(p_base, t_base, constant_p0), kind_dyn_mpas)
             end do
 
             deallocate(p_base)
@@ -760,6 +801,9 @@ contains
         !> `t_v` is the mean virtual temperature between `z_1` and `z_2`.
         !> (KCW, 2024-07-02)
         pure elemental function p_by_hypsometric_equation(p_1, z_1, t_v, z_2) result(p_2)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_g => gravit, constant_rd => rair
+
             real(kind_r8), intent(in) :: p_1, z_1, t_v, z_2
             real(kind_r8) :: p_2
 
@@ -774,6 +818,9 @@ contains
         !> Poisson equation.
         !> (KCW, 2024-07-02)
         pure elemental function theta_by_poisson_equation(p_1, t_1, p_0) result(t_0)
+            ! Module(s) from CAM-SIMA.
+            use dynconst, only: constant_cpd => cpair, constant_rd => rair
+
             real(kind_r8), intent(in) :: p_1, t_1, p_0
             real(kind_r8) :: t_0
 
@@ -786,18 +833,29 @@ contains
     !> If `exchange` is `.true.` and `direction` is "i" or "import", set physics state `constituents` from MPAS state `scalars`.
     !> Think of it as "exporting/importing constituent states in CAM-SIMA to/from MPAS".
     !> Otherwise, if `exchange` is `.false.`, no exchange is performed at all.
-    !> If `conversion` is `.true.`, appropriate conversion is performed for constituent mixing ratio that has different
+    !> If `conversion` is `.true.`, appropriate conversion is performed for constituent mixing ratios that have different
     !> definitions between CAM-SIMA and MPAS (i.e., dry/moist).
     !> Otherwise, if `conversion` is `.false.`, no conversion is performed at all.
     !> This subroutine is intentionally designed to have these elaborate controls due to complications in CAM-SIMA.
     !> Some procedures in CAM-SIMA expect constituent states to be dry, while the others expect them to be moist.
     !> (KCW, 2024-09-26)
-    subroutine dyn_exchange_constituent_state(direction, exchange, conversion)
+    subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate, endrun
+        use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
+        use physics_types, only: phys_state
+        use vert_coord, only: pver
+        ! Module(s) from CCPP.
+        use cam_ccpp_cap, only: cam_constituents_array
+        use ccpp_kinds, only: kind_phys
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+
         character(*), intent(in) :: direction
         logical, intent(in) :: exchange
         logical, intent(in) :: conversion
 
-        character(*), parameter :: subname = 'dyn_comp::dyn_exchange_constituent_state'
+        character(*), parameter :: subname = 'dyn_comp::dyn_exchange_constituent_states'
         integer :: i, j
         integer :: ierr
         integer, allocatable :: is_water_species_index(:)
@@ -805,7 +863,7 @@ contains
         logical, allocatable :: is_water_species(:)
         real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
         real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water species mixing ratios.
-        real(kind_r8), pointer :: scalars(:, :, :)        ! This points to MPAS memory.
+        real(kind_dyn_mpas), pointer :: scalars(:, :, :)  ! This points to MPAS memory.
 
         select case (trim(adjustl(direction)))
             case ('e', 'export')
@@ -880,13 +938,13 @@ contains
                     if (exchange) then
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         scalars(j, :, i) = &
-                            reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)))
+                            real(reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
                     end if
 
                     if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
                         ! Equation 8 in doi:10.1029/2017MS001257.
                         scalars(j, :, i) = &
-                            scalars(j, :, i) * sigma_all_q(:)
+                            real(real(scalars(j, :, i), kind_r8) * sigma_all_q(:), kind_dyn_mpas)
                     end if
                 end do
             end do
@@ -897,7 +955,7 @@ contains
             do i = 1, ncells_solve
                 if (conversion .and. any(is_conversion_needed)) then
                     ! The summation term of equation 8 in doi:10.1029/2017MS001257.
-                    sigma_all_q(:) = reverse(1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1))
+                    sigma_all_q(:) = reverse(1.0_kind_r8 + sum(real(scalars(is_water_species_index, :, i), kind_r8), 1))
                 end if
 
                 ! `j` is indexing into `constituents`, so it is regarded as constituent index.
@@ -905,7 +963,7 @@ contains
                     if (exchange) then
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         constituents(i, :, j) = &
-                            reverse(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i))
+                            reverse(real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8))
                     end if
 
                     if (conversion .and. is_conversion_needed(j)) then
@@ -929,17 +987,54 @@ contains
             ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
             call mpas_dynamical_core % exchange_halo('scalars')
         end if
-    end subroutine dyn_exchange_constituent_state
+    end subroutine dyn_exchange_constituent_states
 
-    !> Mark everything in the `physics_{state,tend}` derived types along with constituents as initialized
-    !> to prevent physics from attempting to read them from a file. These variables are to be exchanged later
-    !> during dynamics-physics coupling.
+    !> Inquire local and global mesh dimensions. Save them as protected module variables.
+    !> (KCW, 2024-11-21)
+    subroutine dyn_inquire_mesh_dimensions()
+        ! Module(s) from CAM-SIMA.
+        use string_utils, only: stringify
+
+        character(*), parameter :: subname = 'dyn_comp::dyn_inquire_mesh_dimensions'
+
+        call dyn_debug_print('Inquiring local and global mesh dimensions')
+
+        call mpas_dynamical_core % get_local_mesh_dimension( &
+            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
+
+        call mpas_dynamical_core % get_global_mesh_dimension( &
+            ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
+            sphere_radius)
+
+        call dyn_debug_print('ncells_global    = ' // stringify([ncells_global]))
+        call dyn_debug_print('nedges_global    = ' // stringify([nedges_global]))
+        call dyn_debug_print('nvertices_global = ' // stringify([nvertices_global]))
+        call dyn_debug_print('nvertlevels      = ' // stringify([nvertlevels]))
+        call dyn_debug_print('ncells_max       = ' // stringify([ncells_max]))
+        call dyn_debug_print('nedges_max       = ' // stringify([nedges_max]))
+        call dyn_debug_print('sphere_radius    = ' // stringify([sphere_radius]))
+    end subroutine dyn_inquire_mesh_dimensions
+
+    !> Mark everything in the `physics_types` module along with constituents as initialized
+    !> to prevent physics from attempting to read them from a file.
     !> (KCW, 2024-05-23)
-    subroutine mark_variable_as_initialized()
-        character(*), parameter :: subname = 'dyn_comp::mark_variable_as_initialized'
+    subroutine mark_variables_as_initialized()
+        ! Module(s) from CAM-SIMA.
+        use cam_constituents, only: const_name, num_advected
+        ! Module(s) from CCPP.
+        use phys_vars_init_check, only: mark_as_initialized
+
+        character(*), parameter :: subname = 'dyn_comp::mark_variables_as_initialized'
         integer :: i
 
-        ! CCPP standard names of physical quantities in the `physics_{state,tend}` derived types.
+        ! The variables below are managed by dynamics interface.
+        ! We are responsible for initializing and updating them.
+
+        ! These variables are to be set during dynamics initialization.
+        call mark_as_initialized('flag_for_dycore_energy_consistency_adjustment')
+        call mark_as_initialized('total_energy_formula_for_dycore')
+
+        ! These variables are to be set during dynamics-physics coupling.
         call mark_as_initialized('air_pressure')
         call mark_as_initialized('air_pressure_at_interface')
         call mark_as_initialized('air_pressure_of_dry_air')
@@ -960,6 +1055,7 @@ contains
         call mark_as_initialized('reciprocal_of_air_pressure_thickness')
         call mark_as_initialized('reciprocal_of_air_pressure_thickness_of_dry_air')
         call mark_as_initialized('reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure')
+        call mark_as_initialized('specific_heat_of_air_used_in_dycore')
         call mark_as_initialized('surface_air_pressure')
         call mark_as_initialized('surface_geopotential')
         call mark_as_initialized('surface_pressure_of_dry_air')
@@ -972,10 +1068,10 @@ contains
             call mark_as_initialized(trim(adjustl(const_name(i))))
         end do
 
-        call mark_as_initialized('specific_heat_of_air_used_in_dycore')
+        ! The variables below are not managed by dynamics interface. They are used by external CCPP physics schemes.
+        ! While we are not responsible for initializing or updating them, we still need to help mark them as initialized.
 
-        ! These energy variables are calculated by check_energy_timestep_init
-        ! but need to be marked here
+        ! These variables are to be set externally by the `check_energy_chng` CCPP physics scheme.
         call mark_as_initialized('vertically_integrated_total_energy_at_end_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula')
         call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep')
@@ -983,7 +1079,7 @@ contains
         call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_water')
         call mark_as_initialized('vertically_integrated_total_water_at_start_of_physics_timestep')
-    end subroutine mark_variable_as_initialized
+    end subroutine mark_variables_as_initialized
 
     !> Run MPAS dynamical core to integrate the dynamical states with time.
     !> (KCW, 2024-07-11)
@@ -994,13 +1090,80 @@ contains
         call mpas_dynamical_core % run()
     end subroutine dyn_run
 
-    ! Not used for now. Intended to be called by `stepon_final` in `src/dynamics/mpas/stepon.F90`.
-    ! subroutine dyn_final()
-    ! end subroutine dyn_final
+    !> Finalize MPAS dynamical core as well as its framework.
+    !> (KCW, 2024-10-04)
+    subroutine dyn_final()
+        character(*), parameter :: subname = 'dyn_comp::dyn_final'
+
+        ! Quick hack for dumping variables from MPAS dynamical core.
+        ! Remove it once history and restart are wired up in CAM-SIMA.
+        call dyn_variable_dump()
+
+        ! After this point, do not access anything under MPAS dynamical core or runtime errors will ensue.
+        call mpas_dynamical_core % final()
+    end subroutine dyn_final
+
+    subroutine dyn_variable_dump()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate, endrun
+        use cam_instance, only: atm_id
+        use physics_types, only: phys_state
+        ! Module(s) from CESM Share.
+        use shr_pio_mod, only: shr_pio_getioformat, shr_pio_getiosys, shr_pio_getiotype
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, iosystem_desc_t, pio_createfile, pio_closefile, pio_clobber, pio_noerr
+
+        character(*), parameter :: subname = 'dyn_comp::dyn_variable_dump'
+        integer :: ierr
+        integer :: pio_ioformat, pio_iotype
+        real(kind_dyn_mpas), pointer :: surface_pressure(:)
+        type(file_desc_t), pointer :: pio_file
+        type(iosystem_desc_t), pointer :: pio_iosystem
+
+        nullify(pio_file)
+        nullify(pio_iosystem)
+        nullify(surface_pressure)
+
+        call mpas_dynamical_core % get_variable_pointer(surface_pressure, 'diag', 'surface_pressure')
+
+        surface_pressure(1:ncells_solve) = real(phys_state % ps(:), kind_dyn_mpas)
+
+        nullify(surface_pressure)
+
+        call mpas_dynamical_core % exchange_halo('surface_pressure')
+
+        allocate(pio_file, stat=ierr)
+        call check_allocate(ierr, subname, 'pio_file', 'dyn_comp', __LINE__)
+
+        pio_iosystem => shr_pio_getiosys(atm_id)
+
+        pio_ioformat = shr_pio_getioformat(atm_id)
+        pio_ioformat = ior(pio_ioformat, pio_clobber)
+
+        pio_iotype = shr_pio_getiotype(atm_id)
+
+        ierr = pio_createfile(pio_iosystem, pio_file, pio_iotype, 'dyn_variable_dump.nc', pio_ioformat)
+
+        if (ierr /= pio_noerr) then
+            call endrun('Failed to create file for variable dumping', subname, __LINE__)
+        end if
+
+        call mpas_dynamical_core % read_write_stream(pio_file, 'w', 'invariant+input+restart+output')
+
+        call pio_closefile(pio_file)
+
+        deallocate(pio_file)
+
+        nullify(pio_file)
+        nullify(pio_iosystem)
+    end subroutine dyn_variable_dump
 
     !> Helper function for reversing the order of elements in `array`.
     !> (KCW, 2024-07-17)
     pure function reverse(array)
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+
         real(kind_r8), intent(in) :: array(:)
         real(kind_r8) :: reverse(size(array))
 
