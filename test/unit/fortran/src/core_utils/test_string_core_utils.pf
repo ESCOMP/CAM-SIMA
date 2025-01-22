@@ -91,7 +91,7 @@ subroutine test_stringify_empty_arrays()
 
 end subroutine test_stringify_empty_arrays
 
-! Ignoring this test due to a bug in the GNU compiler.
+! Ignoring this test due to a bug in the GNU compiler >= v12.
 ! https://github.com/ESCOMP/CAM-SIMA/pull/326#discussion_r1909520600
 @test(#ifndef= __GNUC__)
 subroutine test_stringify_character_array
