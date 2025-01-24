@@ -1,6 +1,7 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
 # esmf is am image you are expected to have built. Read the README file for instructions
-FROM --platform=linux/amd64 esmf:latest
+# FROM --platform=linux/amd64 esmf:latest
+FROM esmf:latest
 
 ###################################################
 ## Install necessary packages
@@ -19,7 +20,8 @@ RUN dnf -y update \
       vim \
     && dnf clean all
 
-RUN ln -s $(which python3) /usr/bin/python && \
+RUN rm -f /usr/bin/python && \
+    ln -s $(which python3) /usr/bin/python && \
     pip install --upgrade pip && \
     pip install --upgrade setuptools
 
@@ -85,6 +87,6 @@ RUN chmod +x /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 RUN /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 
 # add the snapshot file
-RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
-
-RUN ./case.build
+# RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
+# RUN sed -i '5191s/^/\/\//g' /home/cam_sima_user/CAM-SIMA/cime/CIME/non_py/src/timing/gptl.c
+# RUN ./case.build

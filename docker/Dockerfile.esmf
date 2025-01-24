@@ -1,5 +1,6 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
-FROM --platform=linux/amd64 fedora:latest
+# FROM --platform=linux/amd64 fedora:latest
+FROM fedora:latest
 
 ###################################################
 ## Install necessary packages

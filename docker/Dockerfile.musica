@@ -1,6 +1,10 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
 # esmf is am image you are expected to have built. Read the README file for instructions
-FROM --platform=linux/amd64 esmf:latest
+# FROM --platform=linux/amd64 esmf:latest
+FROM esmf:latest
+
+ARG MUSICA_GIT_TAG=326b5119768d5be9654baf96ae3bd6a1b757fdc8
+ARG BUILD_TYPE=Debug
 
 ###################################################
 ## Install necessary packages
@@ -19,7 +23,8 @@ RUN dnf -y update \
       vim \
     && dnf clean all
 
-RUN ln -s $(which python3) /usr/bin/python && \
+RUN rm -f /usr/bin/python && \
+    ln -s $(which python3) /usr/bin/python && \
     pip install --upgrade pip && \
     pip install --upgrade setuptools
 
@@ -39,23 +44,24 @@ RUN cd pnetcdf-1.12.3 && \
      make -j 8 install && \
      ldconfig
 
-ENV FC=gfortran
-
 ###################################################
 ## Build and install MUSICA
 ###################################################
 
 RUN git clone https://github.com/NCAR/musica.git \
     && cd musica \
-    && git checkout 2a5eeaac982a3eb80b96d1e2087b91b301d1e748
-
-RUN mkdir /musica/build \
-    && cd /musica/build \
-    && cmake \
-             -D ENABLE_TESTS=OFF \
+    && git checkout ${MUSICA_GIT_TAG} \
+    && cmake -S . -B build \
+             -D CMAKE_BUILD_TYPE=${BUILD_TYPE} \
+             -D MUSICA_ENABLE_TESTS=OFF \
              -D MUSICA_BUILD_FORTRAN_INTERFACE=ON \
-             .. \
-    && make install -j 8
+             -D MUSICA_ENABLE_MICM=ON \
+             -D MUSICA_ENABLE_TUVX=ON \
+             -D CMAKE_Fortran_COMPILER=mpif90 \
+             -D CMAKE_C_COMPILER=mpicc \
+             -D CMAKE_CXX_COMPILER=mpicxx \
+    && cd build \
+    && make install  -j 8
 
 ###################################################
 ## Build CAM-SIMA
@@ -98,6 +104,7 @@ RUN ./xmlchange CAM_LINKED_LIBS="-lmusica-fortran -lmusica -lyaml-cpp"
 RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5
+# RUN ./xmlchange PIO_CONFIG_OPTS="--enable-timing=no"
 
 # Copy in the grid files and a snapshot file
 RUN chmod +x /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
@@ -106,4 +113,6 @@ RUN /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
 # # add the snapshot file
 RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
 
-RUN ./case.build
+# RUN sed -i '5191s/^/\/\//g' /home/cam_sima_user/CAM-SIMA/cime/CIME/non_py/src/timing/gptl.c
+
+# RUN ./case.build

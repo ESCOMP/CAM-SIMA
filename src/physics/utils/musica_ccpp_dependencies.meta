@@ -30,7 +30,7 @@
   protected = True
 [ surface_albedo ]
   standard_name = surface_albedo_due_to_UV_and_VIS_direct
-  units = none
+  units = fraction
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
