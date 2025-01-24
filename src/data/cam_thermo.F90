@@ -182,6 +182,7 @@ CONTAINS
 
    subroutine cam_thermo_init(pcols, pver, pverp)
       use shr_infnan_mod,  only: assignment(=), shr_infnan_qnan
+      use shr_kind_mod,    only: shr_kind_cl
       use physconst,       only: cpair, rair, mwdry
 
       integer, intent(in) :: pcols
@@ -190,16 +191,19 @@ CONTAINS
 
       integer                     :: ierr
       character(len=*), parameter :: subname = "cam_thermo_init"
+      character(len=shr_kind_cl)  :: errmsg
+
+      errmsg = ''
 
       !------------------------------------------------------------------------
       !  Allocate constituent dependent properties
       !------------------------------------------------------------------------
-      allocate(kmvis(pcols,pverp), stat=ierr)
+      allocate(kmvis(pcols,pverp), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'kmvis(pcols,pverp)', &
-                                file=__FILE__, line=__LINE__)
-      allocate(kmcnd(pcols,pverp), stat=ierr)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(kmcnd(pcols,pverp), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'kmcnd(pcols,pverp)', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       !------------------------------------------------------------------------
       !  Initialize constituent dependent properties

@@ -84,25 +84,27 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,        only: cam_initfiles_open
-      use dyn_grid,             only: model_grid_init
-      use phys_comp,            only: phys_init
-      use phys_comp,            only: phys_register
-      use dyn_comp,             only: dyn_init
-!      use cam_restart,          only: cam_read_restart
-      use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-      use cam_history,          only: history_init_files
-!      use history_scam,         only: scm_intht
-      use cam_pio_utils,        only: init_pio_subsystem
-      use cam_instance,         only: inst_suffix
-!      use history_defaults,     only: initialize_iop_history
-      use stepon,               only: stepon_init
-      use air_composition,      only: air_composition_init
-      use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
-      use physics_grid,         only: columns_on_task
-      use vert_coord,           only: pver
-      use phys_vars_init_check, only: mark_as_initialized
-      use tropopause_climo_read, only: tropopause_climo_read_file
+      use cam_initfiles,            only: cam_initfiles_open
+      use dyn_grid,                 only: model_grid_init
+      use phys_comp,                only: phys_init
+      use phys_comp,                only: phys_register
+      use dyn_comp,                 only: dyn_init
+!      use cam_restart,              only: cam_read_restart
+      use camsrfexch,               only: hub2atm_alloc, atm2hub_alloc
+      use cam_history,              only: history_init_files
+!      use history_scam,             only: scm_intht
+      use cam_pio_utils,            only: init_pio_subsystem
+      use cam_instance,             only: inst_suffix
+!      use history_defaults,         only: initialize_iop_history
+      use stepon,                   only: stepon_init
+      use air_composition,          only: air_composition_init
+      use cam_ccpp_cap,             only: cam_ccpp_initialize_constituents
+      use physics_grid,             only: columns_on_task
+      use vert_coord,               only: pver
+      use phys_vars_init_check,     only: mark_as_initialized
+      use tropopause_climo_read,    only: tropopause_climo_read_file
+      use musica_ccpp_dependencies, only: musica_ccpp_dependencies_init
+      use orbital_data,             only: orbital_data_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -259,6 +261,16 @@ CONTAINS
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
 
+      ! Temporary:  Prescribe realistic but inaccurate physical quantities
+      ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
+      !
+      ! Remove this when MUSICA input data are available from CAM-SIMA or
+      ! other physics schemes.
+      call musica_ccpp_dependencies_init(columns_on_task, pver, iulog)
+
+      ! Initialize orbital data
+      call orbital_data_init(columns_on_task)
+
    end subroutine cam_init
 
    !
@@ -271,8 +283,16 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp, only: phys_timestep_init
-      use stepon,    only: stepon_timestep_init
+      use phys_comp,    only: phys_timestep_init
+      use physics_grid, only: lat_rad, lon_rad
+      use orbital_data, only: orbital_data_advance
+      use stepon,       only: stepon_timestep_init
+
+      ! Update current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+
+      ! Update the orbital data
+      call orbital_data_advance(calday, lat_rad, lon_rad)
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()
@@ -293,9 +313,6 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
-
-      ! Update current fractional calendar day. Needs to be updated at every timestep.
-      calday = get_curr_calday()
 
    end subroutine cam_timestep_init
    !
@@ -603,9 +620,9 @@ CONTAINS
       if (.not. is_constituent) then
 
          ! Allocate host_constituents object:
-         allocate(host_constituents(1), stat=errflg)
+         allocate(host_constituents(1), stat=errflg, errmsg=errmsg)
          call check_allocate(errflg, subname, 'host_constituents(1)',                   &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
@@ -623,9 +640,9 @@ CONTAINS
       else
          ! Allocate zero-size object so nothing is added
          ! to main constituents object:
-         allocate(host_constituents(0), stat=errflg)
+         allocate(host_constituents(0), stat=errflg, errmsg=errmsg)
          call check_allocate(errflg, subname, 'host_constituents(0)',                   &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
       end if
       !-------------------------------------------
 

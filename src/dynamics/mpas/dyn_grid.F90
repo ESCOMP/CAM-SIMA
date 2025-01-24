@@ -1,31 +1,6 @@
 module dyn_grid
-    ! Modules from CAM-SIMA.
-    use cam_abortutils, only: check_allocate, endrun
-    use cam_constituents, only: num_advected
-    use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register, &
-                                horiz_coord_t, horiz_coord_create, &
-                                max_hcoordname_len
-    use cam_history_support, only: add_vert_coord
-    use cam_initfiles, only: initial_file_get_id
-    use cam_map_utils, only: kind_imap => imap
-    use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
-        ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels, &
-        ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max, &
-        sphere_radius
-    use dynconst, only: constant_p0 => pref, constant_pi => pi, rad_to_deg, dynconst_init
-    use physics_column_type, only: kind_pcol, physics_column_t
-    use physics_grid, only: phys_decomp, phys_grid_init
-    use ref_pres, only: ref_pres_init
-    use spmd_utils, only: iam
-    use std_atm_profile, only: std_atm_pres
-    use string_utils, only: stringify
-    use vert_coord, only: pver, pverp, vert_coord_init
-
-    ! Modules from CESM Share.
-    use shr_kind_mod, only: kind_r8 => shr_kind_r8
-
-    ! Modules from external libraries.
-    use pio, only: file_desc_t
+    ! Module(s) from CAM-SIMA.
+    use cam_grid_support, only: max_hcoordname_len
 
     implicit none
 
@@ -52,6 +27,17 @@ contains
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     subroutine model_grid_init()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: endrun
+        use cam_constituents, only: num_advected
+        use cam_initfiles, only: initial_file_get_id
+        use dyn_comp, only: dyn_debug_print, dyn_inquire_mesh_dimensions, mpas_dynamical_core, nvertlevels
+        use dynconst, only: dynconst_init
+        use string_utils, only: stringify
+        use vert_coord, only: pver, vert_coord_init
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t
+
         character(*), parameter :: subname = 'dyn_grid::model_grid_init'
         type(file_desc_t), pointer :: pio_file
 
@@ -79,26 +65,13 @@ contains
         ! Read time-invariant (e.g., grid/mesh) variables.
         call mpas_dynamical_core % read_write_stream(pio_file, 'r', 'invariant')
 
+        nullify(pio_file)
+
         ! Compute local east, north and edge-normal unit vectors whenever time-invariant (e.g., grid/mesh) variables are read.
         call mpas_dynamical_core % compute_unit_vector()
 
-        ! Inquire local and global mesh dimensions and save them as module variables.
-        call dyn_debug_print('Inquiring local and global mesh dimensions')
-
-        call mpas_dynamical_core % get_local_mesh_dimension( &
-            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
-
-        call mpas_dynamical_core % get_global_mesh_dimension( &
-            ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
-            sphere_radius)
-
-        call dyn_debug_print('ncells_global    = ' // stringify([ncells_global]))
-        call dyn_debug_print('nedges_global    = ' // stringify([nedges_global]))
-        call dyn_debug_print('nvertices_global = ' // stringify([nvertices_global]))
-        call dyn_debug_print('nvertlevels      = ' // stringify([nvertlevels]))
-        call dyn_debug_print('ncells_max       = ' // stringify([ncells_max]))
-        call dyn_debug_print('nedges_max       = ' // stringify([nedges_max]))
-        call dyn_debug_print('sphere_radius    = ' // stringify([sphere_radius]))
+        ! Inquire local and global mesh dimensions.
+        call dyn_inquire_mesh_dimensions()
 
         ! Check for consistency in numbers of vertical layers.
         if (nvertlevels /= pver) then
@@ -127,6 +100,20 @@ contains
     !> Initialize reference pressure for use by physics.
     !> (KCW, 2024-03-25)
     subroutine init_reference_pressure()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use cam_history_support, only: add_vert_coord
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
+        use dynconst, only: constant_p0 => pref
+        use ref_pres, only: ref_pres_init
+        use std_atm_profile, only: std_atm_pres
+        use string_utils, only: stringify
+        use vert_coord, only: pver, pverp
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
+
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
         ! Number of pure pressure levels at model top.
         integer, parameter :: num_pure_p_lev = 0
@@ -141,7 +128,7 @@ contains
         ! `dzw` denotes the delta/difference between `zw`.
         ! `rdzw` denotes the reciprocal of `dzw`.
         real(kind_r8), allocatable :: dzw(:)
-        real(kind_r8), pointer :: rdzw(:)
+        real(kind_dyn_mpas), pointer :: rdzw(:)
         real(kind_r8), pointer :: zu(:) ! CANNOT be safely deallocated because `add_vert_coord`
                                         ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: zw(:) ! CANNOT be safely deallocated because `add_vert_coord`
@@ -157,7 +144,7 @@ contains
         allocate(dzw(pver), stat=ierr)
         call check_allocate(ierr, subname, 'dzw(pver)', 'dyn_grid', __LINE__)
 
-        dzw(:) = 1.0_kind_r8 / rdzw
+        dzw(:) = 1.0_kind_r8 / real(rdzw(:), kind_r8)
 
         nullify(rdzw)
 
@@ -228,15 +215,28 @@ contains
     !> Provide grid and mapping information between global and local indexes to physics by calling `phys_grid_init`.
     !> (KCW, 2024-03-27)
     subroutine init_physics_grid()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use dyn_comp, only: mpas_dynamical_core, ncells_global, ncells_solve, sphere_radius
+        use dynconst, only: constant_pi => pi, rad_to_deg
+        use physics_column_type, only: kind_pcol, physics_column_t
+        use physics_grid, only: phys_grid_init
+        use spmd_utils, only: iam
+        use string_utils, only: stringify
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
+
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
         integer :: hdim1_d, hdim2_d ! First and second horizontal dimensions of physics grid.
         integer :: i
         integer :: ierr
-        integer, pointer :: indextocellid(:)  ! Global indexes of cell centers.
-        real(kind_r8), pointer :: areacell(:) ! Cell areas (square meters).
-        real(kind_r8), pointer :: latcell(:)  ! Cell center latitudes (radians).
-        real(kind_r8), pointer :: loncell(:)  ! Cell center longitudes (radians).
+        integer, pointer :: indextocellid(:)        ! Global indexes of cell centers.
+        real(kind_dyn_mpas), pointer :: areacell(:) ! Cell areas (square meters).
+        real(kind_dyn_mpas), pointer :: latcell(:)  ! Cell center latitudes (radians).
+        real(kind_dyn_mpas), pointer :: loncell(:)  ! Cell center longitudes (radians).
         type(physics_column_t), allocatable :: dyn_column(:) ! Grid and mapping information between global and local indexes.
 
         nullify(areacell)
@@ -261,12 +261,13 @@ contains
             ! Column information.
             dyn_column(i) % lat_rad = real(latcell(i), kind_pcol)
             dyn_column(i) % lon_rad = real(loncell(i), kind_pcol)
-            dyn_column(i) % lat_deg = real(latcell(i) * rad_to_deg, kind_pcol)
-            dyn_column(i) % lon_deg = real(loncell(i) * rad_to_deg, kind_pcol)
+            dyn_column(i) % lat_deg = real(real(latcell(i), kind_r8) * rad_to_deg, kind_pcol)
+            dyn_column(i) % lon_deg = real(real(loncell(i), kind_r8) * rad_to_deg, kind_pcol)
             ! Cell areas normalized to unit sphere.
             dyn_column(i) % area    = real(areacell(i) / (sphere_radius ** 2), kind_pcol)
             ! Cell weights normalized to unity.
-            dyn_column(i) % weight  = real(areacell(i) / (4.0_kind_r8 * constant_pi * sphere_radius ** 2), kind_pcol)
+            dyn_column(i) % weight  = &
+                real(real(areacell(i), kind_r8) / (4.0_kind_r8 * constant_pi * real(sphere_radius, kind_r8) ** 2), kind_pcol)
 
             ! File decomposition.
             ! For unstructured grid, `coord_indices` is not used by `phys_grid_init`.
@@ -308,19 +309,35 @@ contains
     !> * "mpas_vertex": Grid that is centered at MPAS "vertex" points.
     !> (KCW, 2024-03-28)
     subroutine define_cam_grid()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use cam_grid_support, only: cam_grid_attribute_register, cam_grid_register, &
+                                    horiz_coord_create, horiz_coord_t
+        use cam_map_utils, only: kind_imap => imap
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
+                            ncells_global, nedges_global, nvertices_global, &
+                            ncells_solve, nedges_solve, nvertices_solve, &
+                            sphere_radius
+        use dynconst, only: constant_pi => pi, rad_to_deg
+        use string_utils, only: stringify
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        ! Module(s) from MPAS.
+        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
+
         character(*), parameter :: subname = 'dyn_grid::define_cam_grid'
         integer :: i
         integer :: ierr
         integer, pointer :: indextocellid(:)   ! Global indexes of cell centers.
         integer, pointer :: indextoedgeid(:)   ! Global indexes of edge nodes.
         integer, pointer :: indextovertexid(:) ! Global indexes of vertex nodes.
-        real(kind_r8), pointer :: areacell(:)  ! Cell areas (square meters).
-        real(kind_r8), pointer :: latcell(:)   ! Cell center latitudes (radians).
-        real(kind_r8), pointer :: latedge(:)   ! Edge node latitudes (radians).
-        real(kind_r8), pointer :: latvertex(:) ! Vertex node latitudes (radians).
-        real(kind_r8), pointer :: loncell(:)   ! Cell center longitudes (radians).
-        real(kind_r8), pointer :: lonedge(:)   ! Edge node longitudes (radians).
-        real(kind_r8), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
+        real(kind_dyn_mpas), pointer :: areacell(:)  ! Cell areas (square meters).
+        real(kind_dyn_mpas), pointer :: latcell(:)   ! Cell center latitudes (radians).
+        real(kind_dyn_mpas), pointer :: latedge(:)   ! Edge node latitudes (radians).
+        real(kind_dyn_mpas), pointer :: latvertex(:) ! Vertex node latitudes (radians).
+        real(kind_dyn_mpas), pointer :: loncell(:)   ! Cell center longitudes (radians).
+        real(kind_dyn_mpas), pointer :: lonedge(:)   ! Edge node longitudes (radians).
+        real(kind_dyn_mpas), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
 
         ! Global grid indexes. CAN be safely deallocated because its values are copied internally by
         ! `cam_grid_attribute_register` and `horiz_coord_create`.
@@ -367,9 +384,9 @@ contains
         global_grid_index(:) = int(indextocellid(1:ncells_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latCell', 'nCells', ncells_global, 'latitude', 'degrees_north', &
-            1, ncells_solve, latcell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(latcell, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lonCell', 'nCells', ncells_global, 'longitude', 'degrees_east', &
-            1, ncells_solve, loncell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(loncell, kind_r8) * rad_to_deg, map=global_grid_index)
 
         allocate(cell_area(ncells_solve), stat=ierr)
         call check_allocate(ierr, subname, 'cell_area(ncells_solve)', 'dyn_grid', __LINE__)
@@ -379,8 +396,8 @@ contains
         call check_allocate(ierr, subname, 'global_grid_map(3, ncells_solve)', 'dyn_grid', __LINE__)
 
         do i = 1, ncells_solve
-            cell_area(i)   = areacell(i)
-            cell_weight(i) = areacell(i) / (4.0_kind_r8 * constant_pi * sphere_radius ** 2)
+            cell_area(i)   = real(areacell(i), kind_r8)
+            cell_weight(i) = real(areacell(i), kind_r8) / (4.0_kind_r8 * constant_pi * real(sphere_radius, kind_r8) ** 2)
 
             global_grid_map(1, i) = int(i, kind_imap)
             global_grid_map(2, i) = int(1, kind_imap)
@@ -396,6 +413,7 @@ contains
         call cam_grid_attribute_register('mpas_cell', 'cell_weight', 'MPAS cell weight', 'nCells', cell_weight, &
             map=global_grid_index)
 
+        nullify(areacell)
         nullify(cell_area, cell_weight)
         nullify(lat_coord, lon_coord)
 
@@ -403,16 +421,15 @@ contains
         ! Standard CAM-SIMA coordinate and dimension names are used.
 
         lat_coord => horiz_coord_create('lat', 'ncol', ncells_global, 'latitude', 'degrees_north', &
-            1, ncells_solve, latcell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(latcell, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lon', 'ncol', ncells_global, 'longitude', 'degrees_east', &
-            1, ncells_solve, loncell * rad_to_deg, map=global_grid_index)
+            1, ncells_solve, real(loncell, kind_r8) * rad_to_deg, map=global_grid_index)
 
         call dyn_debug_print('Registering grid "cam_cell" with id ' // stringify([dyn_grid_id('cam_cell')]))
 
         call cam_grid_register('cam_cell', dyn_grid_id('cam_cell'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
 
-        nullify(areacell)
         nullify(indextocellid)
         nullify(latcell, loncell)
 
@@ -433,9 +450,9 @@ contains
         global_grid_index(:) = int(indextoedgeid(1:nedges_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latEdge', 'nEdges', nedges_global, 'latitude', 'degrees_north', &
-            1, nedges_solve, latedge * rad_to_deg, map=global_grid_index)
+            1, nedges_solve, real(latedge, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lonEdge', 'nEdges', nedges_global, 'longitude', 'degrees_east', &
-            1, nedges_solve, lonedge * rad_to_deg, map=global_grid_index)
+            1, nedges_solve, real(lonedge, kind_r8) * rad_to_deg, map=global_grid_index)
 
         allocate(global_grid_map(3, nedges_solve), stat=ierr)
         call check_allocate(ierr, subname, 'global_grid_map(3, nedges_solve)', 'dyn_grid', __LINE__)
@@ -471,9 +488,9 @@ contains
         global_grid_index(:) = int(indextovertexid(1:nvertices_solve), kind_imap)
 
         lat_coord => horiz_coord_create('latVertex', 'nVertices', nvertices_global, 'latitude', 'degrees_north', &
-            1, nvertices_solve, latvertex * rad_to_deg, map=global_grid_index)
+            1, nvertices_solve, real(latvertex, kind_r8) * rad_to_deg, map=global_grid_index)
         lon_coord => horiz_coord_create('lonVertex', 'nVertices', nvertices_global, 'longitude', 'degrees_east', &
-            1, nvertices_solve, lonvertex * rad_to_deg, map=global_grid_index)
+            1, nvertices_solve, real(lonvertex, kind_r8) * rad_to_deg, map=global_grid_index)
 
         allocate(global_grid_map(3, nvertices_solve), stat=ierr)
         call check_allocate(ierr, subname, 'global_grid_map(3, nvertices_solve)', 'dyn_grid', __LINE__)
@@ -500,6 +517,9 @@ contains
     !> Helper function for returning grid id given its name.
     !> (KCW, 2024-03-27)
     pure function dyn_grid_id(name)
+        ! Module(s) from CAM-SIMA.
+        use physics_grid, only: phys_decomp
+
         character(*), intent(in) :: name
         integer :: dyn_grid_id
 

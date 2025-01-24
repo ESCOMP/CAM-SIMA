@@ -189,9 +189,9 @@ def _setup_mpas(case: Case) -> None:
 
     shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
     shutil.move(os.path.join(mpas_dycore_bld_root, "Makefile"), os.path.join(mpas_dycore_bld_root, "Makefile.CESM"))
-    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "driver", "dyn_mpas_subdriver.F90")), os.path.join(mpas_dycore_bld_root, "driver"))
-    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile")), mpas_dycore_bld_root)
-    _copy2_as_needed(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "Makefile.in.CESM")), mpas_dycore_bld_root)
+
+    shutil.copytree(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "assets")), mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
+    shutil.copytree(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "driver")), os.path.join(mpas_dycore_bld_root, "driver"), copy_function=_copy2_as_needed, dirs_exist_ok=True)
 
 def _copy2_as_needed(src: str, dst: str) -> None:
     """

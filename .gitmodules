@@ -1,7 +1,7 @@
 [submodule "ccpp-framework"]
         path          = ccpp_framework
         url           = https://github.com/NCAR/ccpp-framework
-        fxtag         = 2024-11-07-dev
+        fxtag         = 2025-01-06-dev
         fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/NCAR/ccpp-framework
 [submodule "history"]
@@ -20,7 +20,7 @@
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
 	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = 491e56247815ef23bfd8dba65d1e3c3b78ba164a
+	fxtag         = 74e905b7a0ee5b2d2bfc3e3dd942eb9963398373
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "ccs_config"]
