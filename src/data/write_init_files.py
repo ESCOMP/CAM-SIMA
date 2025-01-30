@@ -388,6 +388,11 @@ def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
     else:
         max_slen = 0
     # end if
+    # Extend max_slen if any constituent names are longer
+    if registry_constituents:
+        max_slen = max(max_slen, max(len(x) for x in registry_constituents))
+    # end if
+
     outfile.write(f"integer, public, parameter :: std_name_len = {max_slen}", 1)
 
     outfile.blank_line()
