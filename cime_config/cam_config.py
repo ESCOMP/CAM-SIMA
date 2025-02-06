@@ -503,6 +503,10 @@ class ConfigCAM:
                      "To specify the Kessler and Held-Suarez suites as ",
                      "run time options, use '--physics-suites kessler;held_suarez_1994'."]
 
+        #--------------------------
+        # Set physics_suites string
+        #--------------------------
+
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites)
 
@@ -618,16 +622,16 @@ class ConfigCAM:
                             type=str, required=False, default="",
                             help="""Name of dycore""")
 
-        parser.add_argument("--analytic_ic", "-analytic_ic",
+        parser.add_argument("--analytic-ic", "-analytic-ic",
                             action='store_true', required=False,
                             help="""Flag to turn on Analytic Initial
                                  Conditions (ICs).""")
 
-        parser.add_argument("--dyn_kind", "-dyn_kind",
+        parser.add_argument("--dyn-kind", "-dyn-kind",
                             type=str, required=False, default="REAL64",
                             help="""Fortran kind used in dycore for type real.""")
 
-        parser.add_argument("--phys_kind", "-phys_kind",
+        parser.add_argument("--phys-kind", "-phys-kind",
                             type=str, required=False, default="REAL64",
                             help="""Fortran kind used in physics for type real.""")
 
