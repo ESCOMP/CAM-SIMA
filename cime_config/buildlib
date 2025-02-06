@@ -8,9 +8,12 @@ import sys
 import os
 import filecmp
 import shutil
+import subprocess
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
+from musica_config import musica_repo_url, musica_tag
+from musica_config import chemistry_data_repo_url, chemistry_data_tag
 
 # Check for the CIME library, and add it
 # to the python path:
@@ -22,7 +25,7 @@ sys.path.append(os.path.join(__CIMEROOT, "CIME", "Tools"))
 #pylint: disable=wrong-import-position
 # CIME imports
 from CIME.case import Case
-from CIME.utils import run_cmd, expect
+from CIME.utils import run_cmd, expect, symlink_force
 from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
@@ -76,6 +79,7 @@ def _build_cam():
         config.generate_cam_src(gen_indent)
 
         dycore = config.get_value('dyn')
+        physics_suites = config.get_value('physics_suites')
         reg_dir = config.get_value('reg_dir')
         init_dir = config.get_value('init_dir')
         phys_dirs_str = config.get_value('phys_dirs')
@@ -150,6 +154,10 @@ def _build_cam():
         if dycore == "mpas":
             _setup_mpas(case)
 
+        if physics_suites == "musica":
+            _build_musica_library(case)
+            _download_musica_configuration(case)
+
         complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
 
@@ -212,6 +220,112 @@ def _copy2_as_needed(src: str, dst: str) -> None:
                 # `src` is a new file that does not exist at `dst`.
                 # Example scenario: User added some new source code files.
                 shutil.copy2(src, dst)
+
+def _build_musica_library(case: Case) -> None:
+
+    install_dir_name = "install"
+    build_type = "Release"
+
+    clone_dest = os.path.normpath(case.get_value("CASEROOT"))
+    _clone_and_checkout(musica_repo_url, musica_tag, clone_dest)
+
+    bld_path = os.path.normpath(os.path.join(clone_dest, "musica", "build"))
+    # Ensure the build directory is clean
+    if os.path.exists(bld_path):
+        print(f"Removing existing build directory: {bld_path}")
+        shutil.rmtree(bld_path)
+
+    os.makedirs(bld_path)
+    os.chdir(bld_path)
+
+    # Run cmake to configure the project
+    print("Configuring the project with CMake...")
+    command = [
+        "cmake",
+        f"-DCMAKE_INSTALL_PREFIX={install_dir_name}",
+        f"-DCMAKE_BUILD_TYPE={build_type}",
+        f"-DMUSICA_ENABLE_TESTS=OFF",
+        f"-DMUSICA_BUILD_FORTRAN_INTERFACE=ON",
+        ".."
+    ]
+    print(f"Running command: {' '.join(command)}")
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        raise Exception(f"Unable to configure the MUSICA CMake project. Error: {result.stderr}")
+
+    # Build the project
+    print("Building the project...")
+    command = ["cmake", "--build", ".", "--target", "install"]
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        raise Exception(f"Unable to build the MUSICA library. Error: {result.stderr}")
+    
+    print(f"MUSICA installed to {install_dir_name}")
+
+    atm_bld_root = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj"))
+    musica_lib_root = os.path.join(atm_bld_root, "musica")
+    os.makedirs(musica_lib_root, exist_ok=True)
+    musica_install_path = os.path.join(bld_path, install_dir_name, "lib64")
+
+    root, _, files = next(os.walk(musica_install_path, topdown=True))
+    for f in files:
+        symlink_force(os.path.join(root, f), os.path.join(musica_lib_root, f))
+
+def _download_musica_configuration(case: Case) -> None:
+    """_summary_
+
+    """
+    case_root = os.path.normpath(case.get_value("CASEROOT"))
+    musica_config_dir_name = "musica_configurations"
+    _clone_and_checkout(chemistry_data_repo_url, chemistry_data_tag, case_root)
+
+    original_config_dir = os.path.join(case_root, "cam-sima-chemistry-data", "mechanisms")
+    renamed_config_dir = os.path.join(case_root, "cam-sima-chemistry-data", musica_config_dir_name)
+    try:
+        os.rename(original_config_dir, renamed_config_dir)
+    except FileNotFoundError:
+        raise Exception(f"The directory {original_config_dir} was not found.")
+    except Exception as e:
+        raise Exception(f"An error occurred while renaming: {e}")
+
+    musica_config_path = os.path.join(case_root, musica_config_dir_name)
+    if os.path.exists(musica_config_path):
+        shutil.rmtree(musica_config_path)
+
+    shutil.move(renamed_config_dir, case_root)
+
+
+def _clone_and_checkout(repo_url, tag_name, clone_dest):
+    """
+    Clones a Git repository from the provided URL and checks out a specific branch.
+
+    Args:
+        repo_url (str): The URL of the Git repository to clone
+        tag_name (str): The tag name to check out
+        clone_dest (str): destination where the repository will be cloned
+
+    Raises:
+        Exception: If the `git clone` or `git checkout` commands fail,
+            an exception is raised with the error message.
+    """
+    repo_name = repo_url.split("/")[-1].replace(".git", "")
+    repo_path = os.path.normpath(os.path.join(clone_dest, repo_name))
+
+    # Run the git clone command
+    os.chdir(os.path.normpath(clone_dest))
+    if os.path.exists(repo_path):
+        shutil.rmtree(repo_path)
+
+    result = subprocess.run(["git", "clone", repo_url], stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        raise Exception(f"Unable to clone the repository: {repo_url}. Error: {result.stderr}")
+
+    # Run the git checkout command
+    os.chdir(repo_path)
+    result = subprocess.run(["git", "checkout", tag_name], stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        raise Exception(f"Unable to checkout the branch: {tag_name}. Error: {result.stderr}")
+
 
 ###############################################################################
 
