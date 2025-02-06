@@ -589,7 +589,7 @@ class ConfigCAM:
         [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         5.  Check that parse_config_opts works as expected when given both a string and logical argument:
-        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic-ic")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
