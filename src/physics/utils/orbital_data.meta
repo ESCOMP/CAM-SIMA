@@ -9,13 +9,16 @@
   units = rad
   type = real | kind = kind_phys
   dimensions = ()
+  protected = True
 [earth_sun_distance]
   standard_name = earth_sun_distance
   units = AU
   type = real | kind = kind_phys
   dimensions = ()
+  protected = True
 [solar_zenith_angle]
   standard_name = solar_zenith_angle
   units = rad
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
+  protected = True
