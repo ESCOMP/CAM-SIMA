@@ -613,26 +613,38 @@ class ConfigCAM:
                                          epilog="Allowed values of "+cco_str)
 
         #Add argument options:
-        parser.add_argument("--physics-suites", "-physics-suites", type=str,
-                            required=True, metavar='<CCPP_SDFs>',
+        parser.add_argument("--physics-suites",
+                            type=str,
+                            required=True,
+                            metavar='<CCPP_SDFs>',
                             help="""Semicolon-separated list of Physics Suite
                                  Definition Files (SDFs)""")
 
-        parser.add_argument("--dyn", "-dyn", metavar='<dycore>',
-                            type=str, required=False, default="",
+        parser.add_argument("--dyn",
+                            type=str,
+                            required=False,
+                            metavar='<dycore>',
+                            default="",
                             help="""Name of dycore""")
 
-        parser.add_argument("--analytic-ic", "-analytic-ic",
-                            action='store_true', required=False,
+        parser.add_argument("--analytic-ic",
+                            action='store_true',
+                            required=False,
                             help="""Flag to turn on Analytic Initial
                                  Conditions (ICs).""")
 
-        parser.add_argument("--dyn-kind", "-dyn-kind",
-                            type=str, required=False, default="REAL64",
+        parser.add_argument("--dyn-kind",
+                            type=str,
+                            required=False,
+                            metavar='<kind string>',
+                            default="REAL64",
                             help="""Fortran kind used in dycore for type real.""")
 
-        parser.add_argument("--phys-kind", "-phys-kind",
-                            type=str, required=False, default="REAL64",
+        parser.add_argument("--phys-kind",
+                            type=str,
+                            required=False,
+                            metavar='<kind string>',
+                            default="REAL64",
                             help="""Fortran kind used in physics for type real.""")
 
         popts = [opt for opt in config_opts.split(" ") if opt]
