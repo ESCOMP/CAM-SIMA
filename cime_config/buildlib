@@ -12,8 +12,8 @@ import subprocess
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
-from musica_config import musica_repo_url, musica_tag
-from musica_config import chemistry_data_repo_url, chemistry_data_tag
+from atm_musica_config import musica_repo_url, musica_tag
+from atm_musica_config import chemistry_data_repo_url, chemistry_data_tag
 
 # Check for the CIME library, and add it
 # to the python path:
@@ -157,6 +157,9 @@ def _build_cam():
         if physics_suites == "musica":
             _build_musica_library(case)
             _download_musica_configuration(case)
+            # clone_dest = os.path.normpath(case.get_value("CASEROOT"))
+            # bld_path = os.path.normpath(os.path.join(clone_dest, "musica", "build", "install", "include"))
+            # paths.append(bld_path)
 
         complib = os.path.join(libroot, "libatm.a")
         makefile = os.path.join(casetools, "Makefile")
@@ -172,6 +175,24 @@ def _build_cam():
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
+        
+
+        # JIWON
+        if physics_suites == "musica":
+            clone_dest = os.path.normpath(case.get_value("CASEROOT"))
+            # bld_path = os.path.normpath(os.path.join(clone_dest, "musica", "build", "install", "include"))
+            bld_path = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj", "musica", "include"))
+            cmd = f"{gmake} complib -j {gmake_j} MODEL=cam USER_INCLDIR={bld_path}"
+            cmd += f" -f {makefile} {get_standard_makefile_args(case)} "
+
+            # Add C Pre-Processor (CPP) definitions, if present:
+            if config.cpp_defs:
+                ccpp_defs_str = ' '.join(config.cpp_defs)
+                cmd += f" USER_CPPDEFS='{ccpp_defs_str}'"
+
+            retcode, out, err = run_cmd(cmd)
+            _LOGGER.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n", cmd, out, err)
+            expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
 def _setup_mpas(case: Case) -> None:
     """
@@ -263,7 +284,7 @@ def _build_musica_library(case: Case) -> None:
     print(f"MUSICA installed to {install_dir_name}")
 
     atm_bld_root = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj"))
-    musica_lib_root = os.path.join(atm_bld_root, "musica")
+    musica_lib_root = os.path.join(atm_bld_root, "musica", "lib")
     os.makedirs(musica_lib_root, exist_ok=True)
     musica_install_path = os.path.join(bld_path, install_dir_name, "lib64")
 
@@ -271,12 +292,43 @@ def _build_musica_library(case: Case) -> None:
     for f in files:
         symlink_force(os.path.join(root, f), os.path.join(musica_lib_root, f))
 
+    src_dir = os.path.join(bld_path, install_dir_name, "include")
+    dest_dir = os.path.join(atm_bld_root, "musica", "include")
+    # os.makedirs(dest_dir, exist_ok=True)
+        # Walk through the source directory
+    # for root, dirs, files in os.walk(src_dir):
+    #     # Calculate the relative path from the source directory
+    #     rel_path = os.path.relpath(root, src_dir)
+    #     # Define the corresponding path in the destination
+    #     dest_root = os.path.join(dest_dir, rel_path)
+        
+    #     # Create the destination directory structure if it doesn't exist
+    #     os.makedirs(dest_root, exist_ok=True)
+
+    #     # Create symlinks for all files in the current directory
+    #     for file in files:
+    #         src_file = os.path.join(root, file)
+    #         dest_file = os.path.join(dest_root, file)
+
+    #         # Create a symlink if it doesn't already exist
+    #         if not os.path.exists(dest_file):
+    #             os.symlink(src_file, dest_file)
+    #             try:
+    #                 os.symlink(src_file, dest_file)
+    #                 print(f"Created symlink: {dest_file} -> {src_file}")
+    #             except OSError as e:
+    #                 print(f"Error creating symlink for {src_file}: {e}")
+    #         else:
+    #             print(f"Symlink already exists: {dest_file}")
+                
+
 def _download_musica_configuration(case: Case) -> None:
     """_summary_
 
     """
-    case_root = os.path.normpath(case.get_value("CASEROOT"))
     musica_config_dir_name = "musica_configurations"
+
+    case_root = os.path.normpath(case.get_value("CASEROOT"))
     _clone_and_checkout(chemistry_data_repo_url, chemistry_data_tag, case_root)
 
     original_config_dir = os.path.join(case_root, "cam-sima-chemistry-data", "mechanisms")
@@ -302,30 +354,25 @@ def _clone_and_checkout(repo_url, tag_name, clone_dest):
     Args:
         repo_url (str): The URL of the Git repository to clone
         tag_name (str): The tag name to check out
-        clone_dest (str): destination where the repository will be cloned
+        clone_dest (str): destination where the repository will be cloned. (absolute path)
 
     Raises:
         Exception: If the `git clone` or `git checkout` commands fail,
             an exception is raised with the error message.
     """
     repo_name = repo_url.split("/")[-1].replace(".git", "")
-    repo_path = os.path.normpath(os.path.join(clone_dest, repo_name))
+    repo_path = os.path.join(clone_dest, repo_name)
 
-    # Run the git clone command
-    os.chdir(os.path.normpath(clone_dest))
     if os.path.exists(repo_path):
         shutil.rmtree(repo_path)
 
-    result = subprocess.run(["git", "clone", repo_url], stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(["git", "clone", repo_url, repo_path], stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise Exception(f"Unable to clone the repository: {repo_url}. Error: {result.stderr}")
 
-    # Run the git checkout command
-    os.chdir(repo_path)
-    result = subprocess.run(["git", "checkout", tag_name], stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(["git", "-C", repo_path, "checkout", tag_name], stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise Exception(f"Unable to checkout the branch: {tag_name}. Error: {result.stderr}")
-
 
 ###############################################################################
 

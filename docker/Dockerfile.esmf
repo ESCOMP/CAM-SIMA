@@ -1,6 +1,5 @@
 # parts of CAM require x86 architecture (gptl, which relies on the rdtsc x86 assembly instruction)
-# FROM --platform=linux/amd64 fedora:latest
-FROM fedora:latest
+FROM --platform=linux/amd64 fedora:latest
 
 ###################################################
 ## Install necessary packages
@@ -30,7 +29,7 @@ ENV OMP_NUM_THREADS=5
 ## Build and install ESMF
 ###################################################
 
-ENV ESMF_TAG="8.4.2"
+ENV ESMF_TAG="8.6.0"
 
 # set necessary environment variables
 ENV ESMF_DIR=/esmf-${ESMF_TAG}
