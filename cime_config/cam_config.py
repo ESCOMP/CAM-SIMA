@@ -503,6 +503,10 @@ class ConfigCAM:
                      "To specify the Kessler and Held-Suarez suites as ",
                      "run time options, use '--physics-suites kessler;held_suarez_1994'."]
 
+        #--------------------------
+        # Set physics_suites string
+        #--------------------------
+
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites)
 
@@ -585,7 +589,7 @@ class ConfigCAM:
         [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         5.  Check that parse_config_opts works as expected when given both a string and logical argument:
-        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic-ic")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
         [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
@@ -609,26 +613,38 @@ class ConfigCAM:
                                          epilog="Allowed values of "+cco_str)
 
         #Add argument options:
-        parser.add_argument("--physics-suites", "-physics-suites", type=str,
-                            required=True, metavar='<CCPP_SDFs>',
+        parser.add_argument("--physics-suites",
+                            type=str,
+                            required=True,
+                            metavar='<CCPP_SDFs>',
                             help="""Semicolon-separated list of Physics Suite
                                  Definition Files (SDFs)""")
 
-        parser.add_argument("--dyn", "-dyn", metavar='<dycore>',
-                            type=str, required=False, default="",
+        parser.add_argument("--dyn",
+                            type=str,
+                            required=False,
+                            metavar='<dycore>',
+                            default="",
                             help="""Name of dycore""")
 
-        parser.add_argument("--analytic_ic", "-analytic_ic",
-                            action='store_true', required=False,
+        parser.add_argument("--analytic-ic",
+                            action='store_true',
+                            required=False,
                             help="""Flag to turn on Analytic Initial
                                  Conditions (ICs).""")
 
-        parser.add_argument("--dyn_kind", "-dyn_kind",
-                            type=str, required=False, default="REAL64",
+        parser.add_argument("--dyn-kind",
+                            type=str,
+                            required=False,
+                            metavar='<kind string>',
+                            default="REAL64",
                             help="""Fortran kind used in dycore for type real.""")
 
-        parser.add_argument("--phys_kind", "-phys_kind",
-                            type=str, required=False, default="REAL64",
+        parser.add_argument("--phys-kind",
+                            type=str,
+                            required=False,
+                            metavar='<kind string>',
+                            default="REAL64",
                             help="""Fortran kind used in physics for type real.""")
 
         popts = [opt for opt in config_opts.split(" ") if opt]
