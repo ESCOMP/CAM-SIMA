@@ -988,7 +988,7 @@ contains
         ! Create index mapping between MPAS scalars and constituent names. For example,
         ! MPAS scalar index `i` corresponds to constituent index `index_mpas_scalar_to_constituent(i)`.
 
-        call self % debug_print(log_level_info, 'Creating index mapping between MPAS scalars and constituents')
+        call self % debug_print(log_level_info, 'Creating index mapping between MPAS scalars and CAM-SIMA constituents')
 
         allocate(self % index_mpas_scalar_to_constituent(self % number_of_constituents), stat=ierr)
 
@@ -1021,7 +1021,7 @@ contains
         ! Create inverse index mapping between MPAS scalars and constituent names. For example,
         ! Constituent index `i` corresponds to MPAS scalar index `index_constituent_to_mpas_scalar(i)`.
 
-        call self % debug_print(log_level_info, 'Creating inverse index mapping between MPAS scalars and constituents')
+        call self % debug_print(log_level_info, 'Creating inverse index mapping between MPAS scalars and CAM-SIMA constituents')
 
         allocate(self % index_constituent_to_mpas_scalar(self % number_of_constituents), stat=ierr)
 
