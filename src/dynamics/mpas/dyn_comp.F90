@@ -284,14 +284,14 @@ contains
 
                 call set_analytic_initial_condition()
             else
-                call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by reading initial condition')
+                call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by reading initial condition from a file')
 
                 ! Perform default initialization for all constituents.
                 ! Subsequently, they can be overridden depending on the namelist option (below) and
                 ! the actual availability (checked and handled by MPAS).
                 call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
-                ! Namelist option that controls if constituents are to be read from the file.
+                ! Namelist option that controls if constituents are to be read from a file.
                 if (readtrace) then
                     ! Read variables that belong to the "input" stream in MPAS.
                     call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
@@ -303,7 +303,7 @@ contains
         else
             ! Run type is branch or restart run.
 
-            call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by restarting')
+            call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by restarting from a file')
 
             ! Read variables that belong to the "input" and "restart" streams in MPAS.
             call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input+restart')
