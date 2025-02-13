@@ -615,7 +615,7 @@ contains
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_calendar_type')
 
         config_pointer_c = trim(adjustl(mpas_calendar))
-        call self % debug_print(log_level_debug, 'config_calendar_type = ' // stringify([config_pointer_c]))
+        call self % debug_print(log_level_debug, 'config_calendar_type = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         ! MPAS represents date and time in ISO 8601 format. However, the separator between date and time is `_`
@@ -624,20 +624,20 @@ contains
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_start_time')
 
         config_pointer_c = stringify(start_date_time(1:3), '-') // '_' // stringify(start_date_time(4:6), ':')
-        call self % debug_print(log_level_debug, 'config_start_time = ' // stringify([config_pointer_c]))
+        call self % debug_print(log_level_debug, 'config_start_time = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_stop_time')
 
         config_pointer_c = stringify(stop_date_time(1:3), '-') // '_' // stringify(stop_date_time(4:6), ':')
-        call self % debug_print(log_level_debug, 'config_stop_time = ' // stringify([config_pointer_c]))
+        call self % debug_print(log_level_debug, 'config_stop_time = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         ! Format in `DD_hh:mm:ss` is acceptable.
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_run_duration')
 
         config_pointer_c = stringify([run_duration(1)]) // '_' // stringify(run_duration(2:4), ':')
-        call self % debug_print(log_level_debug, 'config_run_duration = ' // stringify([config_pointer_c]))
+        call self % debug_print(log_level_debug, 'config_run_duration = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         ! Reflect current run type to MPAS.
@@ -1077,7 +1077,7 @@ contains
                 if (i == 1) then
                     call self % debug_print(log_level_info, 'MPAS scalar index ' // stringify([j]))
                     call self % debug_print(log_level_info, '    MPAS scalar name: ' // &
-                        stringify([field_3d_real % constituentnames(j)]))
+                        trim(field_3d_real % constituentnames(j)))
                     call self % debug_print(log_level_info, '    Is water species: ' // &
                         stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
                     call self % debug_print(log_level_info, '    Index mapping from MPAS scalar to constituent: ' // &
@@ -1118,7 +1118,7 @@ contains
                 if (i == 1) then
                     call self % debug_print(log_level_info, 'MPAS scalar tendency index ' // stringify([j]))
                     call self % debug_print(log_level_info, '    MPAS scalar tendency name: ' // &
-                        stringify([field_3d_real % constituentnames(j)]))
+                        trim(field_3d_real % constituentnames(j)))
                     call self % debug_print(log_level_info, '    Is water species: ' // &
                         stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
                     call self % debug_print(log_level_info, '    Index mapping from MPAS scalar tendency to constituent: ' // &
