@@ -31,7 +31,7 @@ contains
         use cam_abortutils, only: endrun
         use cam_constituents, only: num_advected
         use cam_initfiles, only: initial_file_get_id
-        use cam_logfile, only: debugout_debug, debugout_info
+        use cam_logfile, only: debugout_debug, debugout_info, debugout_verbose
         use dyn_comp, only: dyn_debug_print, dyn_inquire_mesh_dimensions, mpas_dynamical_core, nvertlevels
         use dynconst, only: dynconst_init
         use string_utils, only: stringify
@@ -80,9 +80,9 @@ contains
 
         ! Check for consistency in numbers of vertical layers.
         if (nvertlevels /= pver) then
-            call dyn_debug_print(debugout_debug, 'Number of vertical layers in CAM-SIMA namelist, pver = ' // &
+            call dyn_debug_print(debugout_verbose, 'Number of vertical layers in CAM-SIMA namelist, pver = ' // &
                 stringify([pver]))
-            call dyn_debug_print(debugout_debug, 'Number of vertical layers in initial file, nvertlevels = ' // &
+            call dyn_debug_print(debugout_verbose, 'Number of vertical layers in initial file, nvertlevels = ' // &
                 stringify([nvertlevels]))
 
             call endrun('Numbers of vertical layers mismatch', subname, __LINE__)
