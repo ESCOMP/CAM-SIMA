@@ -1040,12 +1040,12 @@ contains
 
         ! Print information about constituents.
         do i = 1, self % number_of_constituents
-            call self % debug_print(log_level_info, 'Constituent index ' // stringify([i]))
-            call self % debug_print(log_level_info, '    Constituent name: ' // &
+            call self % debug_print(log_level_verbose, 'Constituent index ' // stringify([i]))
+            call self % debug_print(log_level_verbose, '    Constituent name: ' // &
                 stringify([self % constituent_name(i)]))
-            call self % debug_print(log_level_info, '    Is water species: ' // &
+            call self % debug_print(log_level_verbose, '    Is water species: ' // &
                 stringify([self % is_water_species(i)]))
-            call self % debug_print(log_level_info, '    Index mapping from constituent to MPAS scalar: ' // &
+            call self % debug_print(log_level_verbose, '    Index mapping from constituent to MPAS scalar: ' // &
                 stringify([i]) // ' -> ' // stringify([self % index_constituent_to_mpas_scalar(i)]))
         end do
 
@@ -1075,12 +1075,12 @@ contains
 
                 ! Print information about MPAS scalars. Only do it once.
                 if (i == 1) then
-                    call self % debug_print(log_level_info, 'MPAS scalar index ' // stringify([j]))
-                    call self % debug_print(log_level_info, '    MPAS scalar name: ' // &
+                    call self % debug_print(log_level_verbose, 'MPAS scalar index ' // stringify([j]))
+                    call self % debug_print(log_level_verbose, '    MPAS scalar name: ' // &
                         trim(field_3d_real % constituentnames(j)))
-                    call self % debug_print(log_level_info, '    Is water species: ' // &
+                    call self % debug_print(log_level_verbose, '    Is water species: ' // &
                         stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
-                    call self % debug_print(log_level_info, '    Index mapping from MPAS scalar to constituent: ' // &
+                    call self % debug_print(log_level_verbose, '    Index mapping from MPAS scalar to constituent: ' // &
                         stringify([j]) // ' -> ' // stringify([self % index_mpas_scalar_to_constituent(j)]))
                 end if
             end do
@@ -1116,12 +1116,12 @@ contains
 
                 ! Print information about MPAS scalar tendencies. Only do it once.
                 if (i == 1) then
-                    call self % debug_print(log_level_info, 'MPAS scalar tendency index ' // stringify([j]))
-                    call self % debug_print(log_level_info, '    MPAS scalar tendency name: ' // &
+                    call self % debug_print(log_level_verbose, 'MPAS scalar tendency index ' // stringify([j]))
+                    call self % debug_print(log_level_verbose, '    MPAS scalar tendency name: ' // &
                         trim(field_3d_real % constituentnames(j)))
-                    call self % debug_print(log_level_info, '    Is water species: ' // &
+                    call self % debug_print(log_level_verbose, '    Is water species: ' // &
                         stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
-                    call self % debug_print(log_level_info, '    Index mapping from MPAS scalar tendency to constituent: ' // &
+                    call self % debug_print(log_level_verbose, '    Index mapping from MPAS scalar tendency to constituent: ' // &
                         stringify([j]) // ' -> ' // stringify([self % index_mpas_scalar_to_constituent(j)]))
                 end if
             end do
