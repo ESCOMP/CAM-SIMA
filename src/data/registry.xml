@@ -491,5 +491,71 @@
       <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
     </variable>
+
+    <!-- cam_in Variables -->
+    <variable local_name="landfrac"
+              standard_name="land_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
+    </variable>
+
+    <!-- Zhang McFarlane (ZM) Variables -->
+    <variable local_name="pblh"
+              standard_name="atmosphere_boundary_layer_thickness"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>pblh pbuf_pblh</ic_file_input_names>
+    </variable>
+    <variable local_name="tpert"
+              standard_name="convective_temperature_perturbation_due_to_pbl_eddies"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
+    </variable>
+    <variable local_name="ql"
+              standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>ICWMRDP pbuf_ICWMRDP</ic_file_input_names>
+    </variable>
+    <variable local_name="cldfrc"
+              standard_name="cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.7_kind_phys</initial_value>
+      <ic_file_input_names>CLD pbuf_CLD</ic_file_input_names>
+    </variable>
+    <variable local_name="domomtran"
+              standard_name="flag_for_momentum_transport_by_zhang_mcfarlane_deep_convection_scheme"
+              units="flag" type="logical"
+              access="protected" >
+      <initial_value>.true.</initial_value>
+    </variable>
+    <variable local_name="il1g"
+              standard_name="index_of_first_column_of_gathered_deep_convection_arrays"
+              units="index" type="integer"
+              access="protected" >
+      <initial_value>1</initial_value>
+    </variable>
+    <variable local_name="dpdry"
+              standard_name="air_pressure_thickness_of_dry_air_for_deep_convection_for_gathered_convective_columns"
+              units="hPa" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
+    <variable local_name="fracis"
+              standard_name="fraction_of_water_insoluble_convectively_transported_species"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable"
+              access="protected" >
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>1</initial_value>
+    </variable>
   </file>
 </registry>

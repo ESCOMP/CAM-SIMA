@@ -29,7 +29,6 @@ module musica_ccpp_dependencies
   real(kind_phys), allocatable, public, protected :: extraterrestrial_radiation_flux(:)
   real(kind_phys), allocatable, public, protected :: surface_albedo(:)
   real(kind_phys), allocatable, public, protected :: blackbody_temperature_at_surface(:)
-  real(kind_phys), allocatable, public, protected :: cloud_area_fraction(:,:)
 
   ! local parameters
   character(len=*), parameter :: module_name = '(musica_ccpp_dependencies)'
@@ -77,14 +76,9 @@ contains
     call check_allocate(error_code, subroutine_name, &
                         'blackbody_temperature_at_surface(horizontal_dimension)', &
                         file=__FILE__, line=__LINE__)
-    allocate(cloud_area_fraction(horizontal_dimension, vertical_layer_dimension), stat=error_code)
-    call check_allocate(error_code, subroutine_name, &
-                        'cloud_area_fraction(horizontal_dimension, vertical_layer_dimension)', &
-                        file=__FILE__, line=__LINE__)
 
     surface_albedo(:) = 0.1_kind_phys
     blackbody_temperature_at_surface(:) = 292.3_kind_phys
-    cloud_area_fraction(:,:) = 0.7_kind_phys
     extraterrestrial_radiation_flux(:) = 1.0e14_kind_phys
     photolysis_wavelength_grid_interfaces = (/ &
       120.0e-9_kind_phys, &

@@ -32,7 +32,7 @@ import unittest
 #Add directory to python path:
 _CWD = os.getcwd()
 _CURRDIR = os.path.abspath(os.path.dirname(__file__))
-_CAM_ROOT_DIR = os.path.join(_CURRDIR, os.pardir, os.pardir)
+_CAM_ROOT_DIR = os.path.join(_CURRDIR, os.pardir, os.pardir, os.pardir)
 _CAM_CONF_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "cime_config"))
 _PRE_TMP_DIR = os.path.join(_CURRDIR, "tmp")
 _TMP_DIR = os.path.join(_PRE_TMP_DIR, "cam_build_cache")

@@ -30,7 +30,7 @@ import unittest
 
 #Add directory to python path:
 CURRDIR = os.path.abspath(os.path.dirname(__file__))
-CAM_ROOT_DIR = os.path.join(CURRDIR, os.pardir, os.pardir)
+CAM_ROOT_DIR = os.path.join(CURRDIR, os.pardir, os.pardir, os.pardir)
 CAM_CONF_DIR = os.path.abspath(os.path.join(CAM_ROOT_DIR, "cime_config"))
 
 #Add "cime_config" directory to python path:
@@ -67,7 +67,7 @@ class FakeCase:
             "COMP_ATM" : "cam",
             "EXEROOT"  : "/some/made-up/path",
             "CASEROOT" : "/another/made-up/path",
-            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites mango;papaya",
+            "CAM_CONFIG_OPTS" : "--dyn none --physics-suites mango;papaya",
             "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,

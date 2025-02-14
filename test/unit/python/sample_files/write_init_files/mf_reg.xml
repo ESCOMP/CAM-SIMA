@@ -14,5 +14,5 @@
       <ic_file_input_names>eddy_len</ic_file_input_names>
     </variable>
   </file>
-  <metadata_file>$SRCROOT/test/unit/sample_files/write_init_files/ref_theta.meta</metadata_file>
+  <metadata_file>$SRCROOT/test/unit/python/sample_files/write_init_files/ref_theta.meta</metadata_file>
 </registry>

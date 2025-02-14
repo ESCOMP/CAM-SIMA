@@ -1,0 +1,16 @@
+ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_ZM_snapshot_derecho_gnu_before_c20250116.nc'
+ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_ZM_snapshot_derecho_gnu_after_c20250116.nc'
+debug_output=0
+pver=32
+zmconv_momcd=.7D0
+zmconv_momcu=.7D0
+zmconv_num_cin=1
+hist_add_inst_fields;h1: ZMDT, ZMDQ, CAPE, FREQZM, CMFMC_DP, ZMMU, ZMMD, DLFZM, PCONVT, PCONVB, ZMFLXPRC, ZMFLXSNW
+hist_add_inst_fields;h1: ZMNTPRPD, ZMNTSNPD, ZMEIHEAT, PRECCDZM, PRECZ
+hist_add_inst_fields;h1: ZMUPGU, ZMUPGD, ZMVPGU, ZMVPGD, ZMICUU, ZMICUD, ZMICVU, ZMICVD
+hist_add_inst_fields;h1: EVAPTZM, FZSNTZM, EVSNTZM, EVAPQZM
+hist_add_inst_fields;h1: ZMMTU, ZMMTV, ZMMTT
+hist_add_inst_fields;h1: ZMDLIQ, ZMDICE
+hist_output_frequency;h1: 1*nstep
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
