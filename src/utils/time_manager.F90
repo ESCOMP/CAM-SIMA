@@ -84,6 +84,8 @@ subroutine timemgr_init( &
    ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,      &
    perpetual_run, perpetual_ymd, initial_run)
 
+   use phys_vars_init_check, only: mark_as_initialized
+
    ! Initialize the time manager.
 
    ! Arguments
@@ -151,6 +153,8 @@ subroutine timemgr_init( &
    if (masterproc) then
       call timemgr_print()
    end if
+
+   call mark_as_initialized('current_timestep_number')
 
 end subroutine timemgr_init
 

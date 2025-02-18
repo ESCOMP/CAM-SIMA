@@ -22,7 +22,7 @@ import unittest
 import xml.etree.ElementTree as ET
 
 _TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-_CAM_ROOT = os.path.abspath(os.path.join(_TEST_DIR, os.pardir, os.pardir))
+_CAM_ROOT = os.path.abspath(os.path.join(_TEST_DIR, os.pardir, os.pardir, os.pardir))
 _CCPP_DIR = os.path.join(_CAM_ROOT, "ccpp_framework", "scripts")
 _CIME_CONFIG_DIR = os.path.join(_CAM_ROOT, "cime_config")
 _XML_SAMPLES_DIR = os.path.join(_TEST_DIR, "sample_files")
@@ -409,18 +409,18 @@ class CreateReadnlFilesTest(unittest.TestCase):
         # Check logger
         lmsgs = [("INFO:test_double_namelist_def:Reading CAM physics "      \
                   "namelist definition file, ",
-                  "test/unit/sample_files/banana_namelist.xml'"),
+                  "test/unit/python/sample_files/banana_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
-                  "unit/tmp/namelist_files/banana_namelist.meta"),
+                  "unit/python/tmp/namelist_files/banana_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
-                  "unit/tmp/namelist_files/banana_namelist.F90"),
+                  "unit/python/tmp/namelist_files/banana_namelist.F90"),
                  ("INFO:test_double_namelist_def:Reading CAM physics "     \
                   "namelist definition file, ",
-                  "test/unit/sample_files/kumquat_namelist.xml'"),
+                  "test/unit/python/sample_files/kumquat_namelist.xml'"),
                  ("INFO:test_double_namelist_def:Writing metadata file, ",
-                  "test/unit/tmp/namelist_files/kumquat_namelist.meta"),
+                  "test/unit/python/tmp/namelist_files/kumquat_namelist.meta"),
                  ("INFO:test_double_namelist_def:Writing Fortran module, ",
-                  "test/unit/tmp/namelist_files/kumquat_namelist.F90")]
+                  "test/unit/python/tmp/namelist_files/kumquat_namelist.F90")]
         comp_lmsgs = cmp_log.output
         amsg = "Test failure: Number of log output messages, " \
                f"{len(comp_lmsgs)} does not match what is expected, " \

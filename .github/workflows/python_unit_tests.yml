@@ -1,6 +1,7 @@
 name: Python Unit Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
@@ -16,12 +17,12 @@ jobs:
   #a PR is either opened or synced (i.e. additional commits are pushed
   #to branch involved in PR).
   python_unit_tests:
-    if: github.event_name == 'pull_request' || github.repository == 'ESCOMP/CAM-SIMA'
+    if: github.event_name == 'pull_request' || github.repository == 'ESCOMP/CAM-SIMA' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       matrix:
         #All of these python versions will be used to run tests:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
       fail-fast: false
     steps:
     # Acquire github action routines:
@@ -56,4 +57,4 @@ jobs:
         pytest src/data --doctest-modules
 
         # Run all python unit tests:
-        pytest test/unit
+        pytest test/unit/python

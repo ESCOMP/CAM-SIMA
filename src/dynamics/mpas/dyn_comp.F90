@@ -1072,8 +1072,8 @@ contains
         ! While we are not responsible for initializing or updating them, we still need to help mark them as initialized.
 
         ! These variables are to be set externally by the `check_energy_chng` CCPP physics scheme.
-        call mark_as_initialized('vertically_integrated_total_energy_at_end_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula')
+        call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula_at_end_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula')
         call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep')

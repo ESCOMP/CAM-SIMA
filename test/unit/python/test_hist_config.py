@@ -20,7 +20,7 @@ import sys
 import unittest
 
 __TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-_CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir))
+_CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir, os.pardir))
 __CIME_CONFIG_DIR = os.path.join(_CAM_ROOT, "cime_config")
 _SAMPLE_FILES_DIR = os.path.join(__TEST_DIR,
                                  "sample_files", "hist_config_files")

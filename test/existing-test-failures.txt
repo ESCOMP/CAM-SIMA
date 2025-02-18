@@ -1,1 +1,4 @@
-All clear!
+SMS_Ln9.ne5pg3_ne5pg3_mg37.FCAM7.derecho_intel.cam-outfrq_se_cslam_analy_ic (Overall: FAIL) details:
+SMS_Ln9.ne5pg3_ne5pg3_mg37.FCAM7.derecho_gnu.cam-outfrq_se_cslam_analy_ic (Overall: FAIL) details:
+- CAM7 suite will not work without a PBL scheme
+- CAM7 suite will not work with snapshot fields in registry.xml even if initial_value is defined (CAM-SIMA#359)
