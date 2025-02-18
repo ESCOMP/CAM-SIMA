@@ -29,7 +29,7 @@
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer" access="protected">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>lat</ic_file_input_names>
+      <ic_file_input_name>lat</ic_file_input_name>
     </variable>
     <variable local_name="longitude" standard_name="longitude"
               units="radians" type="real" kind="kind_phys"
@@ -106,5 +106,5 @@
       <long_name>Physics state variables updated by dynamical core</long_name>
     </variable>
   </file>
-  <metadata_file>$SRCROOT/test/unit/sample_files/ref_pres.meta</metadata_file>
+  <metadata_file>$SRCROOT/test/unit/python/sample_files/ref_pres.meta</metadata_file>
 </registry>

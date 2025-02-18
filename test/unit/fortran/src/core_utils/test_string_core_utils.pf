@@ -1,0 +1,287 @@
+@test
+subroutine test_integer_one_to_str()
+    use funit
+    use string_core_utils, only : core_to_str
+
+    integer :: to_convert
+
+    to_convert = 1
+
+    @assertEqual("1", core_to_str(to_convert))
+end subroutine test_integer_one_to_str
+
+@test
+subroutine test_integer_with_leading_zeros_to_str()
+    use funit
+    use string_core_utils, only : core_to_str
+
+    integer :: to_convert
+    character(len=10) :: actual
+
+    to_convert = 001
+    actual = core_to_str(to_convert)
+
+    @assertEqual("1", actual)
+end subroutine test_integer_with_leading_zeros_to_str
+
+@test
+subroutine test_integer_with_trailing_zeros_to_str()
+    use funit
+    use string_core_utils, only : core_to_str
+
+    integer :: to_convert
+    character(len=10) :: actual
+
+    to_convert = 100
+    actual = core_to_str(to_convert)
+
+    @assertEqual("100", actual)
+end subroutine test_integer_with_trailing_zeros_to_str
+
+@test
+subroutine test_one_int_date_to_yyyymmdd()
+    use funit
+    use string_core_utils, only : core_int_date_to_yyyymmdd
+
+    integer :: to_convert
+    character(len=10) :: actual
+
+    to_convert = 1
+    actual = core_int_date_to_yyyymmdd(to_convert)
+
+    @assertEqual("0000-00-01", actual)
+end subroutine test_one_int_date_to_yyyymmdd
+
+@test
+subroutine test_zero_int_seconds_to_hhmmss()
+    use funit
+    use string_core_utils, only : core_int_seconds_to_hhmmss
+
+    integer :: to_convert
+    character(len=8) :: actual
+
+    to_convert = 0
+    actual = core_int_seconds_to_hhmmss(to_convert)
+
+    @assertEqual("00:00:00", actual)
+end subroutine test_zero_int_seconds_to_hhmmss
+
+@test
+subroutine test_stringify_empty_arrays()
+    use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
+    use funit
+    use string_core_utils, only: core_stringify
+
+    character(128), allocatable :: carr(:)
+    integer(int32), allocatable :: i32arr(:)
+    integer(int64), allocatable :: i64arr(:)
+    logical, allocatable :: larr(:)
+    real(real32), allocatable :: r32arr(:)
+    real(real64), allocatable :: r64arr(:)
+
+
+    allocate(carr(0), i32arr(0), i64arr(0), larr(0), r32arr(0), r64arr(0))
+
+    @assertEqual("", core_stringify(carr))
+    @assertEqual("", core_stringify(i32arr))
+    @assertEqual("", core_stringify(i64arr))
+    @assertEqual("", core_stringify(larr))
+    @assertEqual("", core_stringify(r32arr))
+    @assertEqual("", core_stringify(r64arr))
+
+end subroutine test_stringify_empty_arrays
+
+! Ignoring this test due to a bug in the GNU compiler >= v12.
+! https://github.com/ESCOMP/CAM-SIMA/pull/326#discussion_r1909520600
+@test(#ifndef= __GNUC__)
+subroutine test_stringify_character_array
+    use funit
+    use string_core_utils, only: core_stringify
+
+    character(128), allocatable :: carr(:)
+    allocate(carr(10))
+
+    carr(:) = [ character(len(carr)) :: &
+        '      Talc', 'Gypsum', 'Calcite', 'Fluorite', 'Apatite', &
+        'Orthoclase', 'Quartz', '  Topaz', 'Corundum', 'Diamond' ]
+
+    @assertEqual('Talc, Gypsum, Calcite, Fluorite, Apatite, Orthoclase, Quartz, Topaz, Corundum, Diamond', core_stringify(carr))
+    @assertEqual('Talc<Gypsum<Calcite<Fluorite<Apatite<Orthoclase<Quartz<Topaz<Corundum<Diamond', core_stringify(carr, separator='<'))
+    @assertEqual('Talc < Gypsum < Calcite < Fluorite < Apatite < Orthoclase < Quartz < Topaz < Corundum < Diamond', core_stringify(carr, separator=' < '))
+
+end subroutine test_stringify_character_array
+
+@test
+subroutine test_stringify_integer_array
+    use, intrinsic :: iso_fortran_env, only: int32, int64
+    use funit
+    use string_core_utils, only: core_stringify
+
+    integer(int32), allocatable :: i32arr(:)
+    integer(int64), allocatable :: i64arr(:)
+    character(len=*), parameter :: separator = "<"
+    character(len=*), parameter :: separator_with_space = " < "
+    character(len=*), parameter :: no_separator_expected = '-10000, -1000, -100, -10, -1, 1, 10, 100, 1000, 10000'
+    character(len=*), parameter :: separator_expected    = '-10000<-1000<-100<-10<-1<1<10<100<1000<10000'
+    character(len=*), parameter :: separator_with_space_expected = '-10000 < -1000 < -100 < -10 < -1 < 1 < 10 < 100 < 1000 < 10000'
+
+    allocate(i32arr(10), i64arr(10))
+
+    i32arr(:) = [-10000, -1000, -100, -10, -1, 1, 10, 100, 1000, 10000]
+    i64arr(:) = int(i32arr, int64)
+
+    @assertEqual(no_separator_expected, core_stringify(i32arr))
+    @assertEqual(no_separator_expected, core_stringify(i64arr))
+
+    @assertEqual(separator_expected, core_stringify(i32arr, separator=separator))
+    @assertEqual(separator_expected, core_stringify(i64arr, separator=separator))
+
+    @assertEqual(separator_with_space_expected, core_stringify(i32arr, separator=separator_with_space))
+    @assertEqual(separator_with_space_expected, core_stringify(i64arr, separator=separator_with_space))
+
+end subroutine test_stringify_integer_array
+
+@test
+subroutine test_stringify_integer_extreme_values
+    use, intrinsic :: iso_fortran_env, only: int32, int64
+    use funit
+    use string_core_utils, only: core_stringify
+
+    integer(int32), allocatable :: i32arr(:)
+    integer(int64), allocatable :: i64arr(:)
+    character(len=*), parameter :: separator_with_space = " < "
+    character(len=*), parameter :: int32_no_separator_expected = '-2147483647, -1000, -100, -10, -1, 1, 10, 100, 1000, 2147483647'
+    character(len=*), parameter :: int32_separator_with_space_expected = '-2147483647 < -1000 < -100 < -10 < -1 < 1 < 10 < 100 < 1000 < 2147483647'
+    character(len=*), parameter :: int64_no_separator_expected =  '-9223372036854775807, -1000, -100, -10, -1, 1, 10, 100, 1000, 9223372036854775807'
+    character(len=*), parameter :: int64_separator_with_space_expected = '-9223372036854775807 < -1000 < -100 < -10 < -1 < 1 < 10 < 100 < 1000 < 9223372036854775807'
+
+    allocate(i32arr(10), i64arr(10))
+
+    i32arr(:) = [-huge(i32arr), -1000, -100, -10, -1, 1, 10, 100, 1000, huge(i32arr)]
+    i64arr(:) = int(i32arr, int64)
+    i64arr(1) = -huge(i64arr)
+    i64arr(10) = huge(i64arr)
+
+    @assertEqual(int32_no_separator_expected, core_stringify(i32arr))
+    @assertEqual(int64_no_separator_expected, core_stringify(i64arr))
+    @assertEqual(int32_separator_with_space_expected, core_stringify(i32arr, separator=separator_with_space))
+    @assertEqual(int64_separator_with_space_expected, core_stringify(i64arr, separator=separator_with_space))
+
+end subroutine test_stringify_integer_extreme_values
+
+@test
+subroutine test_stringify_floating_point_values
+    use, intrinsic :: iso_fortran_env, only: real32, real64
+    use funit
+    use string_core_utils, only: core_stringify
+
+    real(real32), allocatable :: r32arr(:)
+    real(real64), allocatable :: r64arr(:)
+    character(len=*), parameter :: expected_no_separator = &
+    '-10000.000000,  -1000.000000,   -100.000000,    -10.000000,     -1.000000, ' // &
+    '     1.000000,     10.000000,    100.000000,   1000.000000,  10000.000000'
+    character(len=*), parameter :: expected_with_separator = &
+    '-10000.000000< -1000.000000<  -100.000000<   -10.000000<    -1.000000<' // &
+    '     1.000000<    10.000000<   100.000000<  1000.000000< 10000.000000'
+    character(len=*), parameter :: expected_with_separator_space = &
+    '-10000.000000 <  -1000.000000 <   -100.000000 <    -10.000000 <     -1.000000 < ' // &
+    '     1.000000 <     10.000000 <    100.000000 <   1000.000000 <  10000.000000'
+
+    allocate(r32arr(10), r64arr(10))
+
+    r32arr(:) = [-10000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+    r64arr(:) = real(r32arr, real64)
+
+    @assertEqual(expected_no_separator, core_stringify(r32arr))
+    @assertEqual(expected_no_separator, core_stringify(r64arr))
+    @assertEqual(expected_with_separator, core_stringify(r32arr, separator='<'))
+    @assertEqual(expected_with_separator, core_stringify(r64arr, separator='<'))
+    @assertEqual(expected_with_separator_space, core_stringify(r32arr, separator=' < '))
+    @assertEqual(expected_with_separator_space, core_stringify(r64arr, separator=' < '))
+
+end subroutine test_stringify_floating_point_values
+
+@test
+subroutine test_stringify_floating_point_scientific_notation
+    use, intrinsic :: iso_fortran_env, only: real32, real64
+    use funit
+    use string_core_utils, only: core_stringify
+
+    real(real32), allocatable :: r32arr(:)
+    real(real64), allocatable :: r64arr(:)
+    character(len=*), parameter :: expected_no_separator = &
+        '-1.000000E+05, -1.000000E+03, -1.000000E+02, -1.000000E+01, -1.000000E+00, ' // &
+        ' 1.000000E+00,  1.000000E+01,  1.000000E+02,  1.000000E+03,  1.000000E+05'
+    character(len=*), parameter :: expected_with_separator = &
+        '-1.000000E+05 < -1.000000E+03 < -1.000000E+02 < -1.000000E+01 < -1.000000E+00 < ' // &
+        ' 1.000000E+00 <  1.000000E+01 <  1.000000E+02 <  1.000000E+03 <  1.000000E+05'
+
+    allocate(r32arr(10), r64arr(10))
+
+    r32arr(:) = [-10000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+    r64arr(:) = real(r32arr, real64)
+
+    r32arr(1) = -1.0E+5_real32
+    r32arr(10) = 1.0E+5_real32
+    r64arr(1) = -1.0E+5_real64
+    r64arr(10) = 1.0E+5_real64
+
+    @assertEqual(expected_no_separator, core_stringify(r32arr))
+    @assertEqual(expected_no_separator, core_stringify(r64arr))
+    @assertEqual(expected_with_separator, core_stringify(r32arr, separator=' < '))
+    @assertEqual(expected_with_separator, core_stringify(r64arr, separator=' < '))
+
+end subroutine test_stringify_floating_point_scientific_notation
+
+@test
+subroutine test_stringify_floating_point_extreme_values
+    use, intrinsic :: iso_fortran_env, only: real32, real64
+    use funit
+    use string_core_utils, only: core_stringify
+
+    real(real32), allocatable :: r32arr(:)
+    real(real64), allocatable :: r64arr(:)
+    character(len=*), parameter :: real32_expected_no_separator = &
+        '-3.402823E+38, -1.000000E+03, -1.000000E+02, -1.000000E+01, -1.000000E+00, ' // &
+        ' 1.000000E+00,  1.000000E+01,  1.000000E+02,  1.000000E+03,  3.402823E+38'
+    character(len=*), parameter :: real64_expected_no_separator = &
+        '-9.999999E+99, -1.000000E+03, -1.000000E+02, -1.000000E+01, -1.000000E+00, ' // &
+        ' 1.000000E+00,  1.000000E+01,  1.000000E+02,  1.000000E+03,  9.999999E+99'
+    character(len=*), parameter :: real32_expected_with_separator = &
+        '-3.402823E+38 < -1.000000E+03 < -1.000000E+02 < -1.000000E+01 < -1.000000E+00 < ' // &
+        ' 1.000000E+00 <  1.000000E+01 <  1.000000E+02 <  1.000000E+03 <  3.402823E+38'
+    character(len=*), parameter :: real64_expected_with_separator = &
+        '-9.999999E+99 < -1.000000E+03 < -1.000000E+02 < -1.000000E+01 < -1.000000E+00 < ' // &
+        ' 1.000000E+00 <  1.000000E+01 <  1.000000E+02 <  1.000000E+03 <  9.999999E+99'
+
+    allocate(r32arr(10), r64arr(10))
+
+    r32arr(:) = [-huge(r32arr), -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, huge(r32arr)]
+    r64arr(:) = real(r32arr, real64)
+    r64arr(1) = -9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
+    r64arr(10) = 9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
+
+    @assertEqual(real32_expected_no_separator, core_stringify(r32arr))
+    @assertEqual(real64_expected_no_separator, core_stringify(r64arr))
+    @assertEqual(real32_expected_with_separator, core_stringify(r32arr, separator=' < '))
+    @assertEqual(real64_expected_with_separator, core_stringify(r64arr, separator=' < '))
+
+end subroutine test_stringify_floating_point_extreme_values
+
+@test
+subroutine test_stringify_logical_values
+    use funit
+    use string_core_utils, only: core_stringify
+
+    logical, allocatable :: larr(:)
+    allocate(larr(10))
+
+    larr(:) = .true.
+    larr(2:10:2) = .false.
+
+    @assertEqual('T, F, T, F, T, F, T, F, T, F', core_stringify(larr))
+    @assertEqual('T.or.F.or.T.or.F.or.T.or.F.or.T.or.F.or.T.or.F', core_stringify(larr, separator=".or."))
+    @assertEqual('T .or. F .or. T .or. F .or. T .or. F .or. T .or. F .or. T .or. F', core_stringify(larr, separator=" .or. "))
+
+end subroutine test_stringify_logical_values
+
