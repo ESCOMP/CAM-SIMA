@@ -1042,7 +1042,7 @@ contains
         do i = 1, self % number_of_constituents
             call self % debug_print(log_level_verbose, 'Constituent index ' // stringify([i]))
             call self % debug_print(log_level_verbose, '    Constituent name: ' // &
-                stringify([self % constituent_name(i)]))
+                trim(self % constituent_name(i)))
             call self % debug_print(log_level_verbose, '    Is water species: ' // &
                 stringify([self % is_water_species(i)]))
             call self % debug_print(log_level_verbose, '    Index mapping from constituent to MPAS scalar: ' // &
