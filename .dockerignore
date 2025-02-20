@@ -1,4 +1,7 @@
 .github/
+.gitignore
+LICENSE
+README.md
 
 # Ignore editor temporaries and backups
 *.swp
@@ -6,4 +9,3 @@
 .#*
 \#*#
 **/.vscode/
-
