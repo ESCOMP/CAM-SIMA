@@ -335,13 +335,13 @@ def _download_musica_configuration(download_dest: str) -> None:
     try:
         os.rename(original_dir, renamed_dir)
     except FileNotFoundError:
-        raise Exception(f"The directory '{original_dir}' was not found.")
+        raise FileNotFoundError(f"The directory '{original_dir}' was not found.")
     except FileExistsError:
-        raise Exception(f"The destination directory '{renamed_dir}' already exists.")
+        raise FileExistsError(f"The destination directory '{renamed_dir}' already exists.")
     except PermissionError:
-        raise Exception(f"Permission denied to rename '{original_dir}'.")
+        raise PermissionError(f"Permission denied to rename '{original_dir}'.")
     except OSError as e:
-        raise Exception(f"An error occurred while renaming: {e}")
+        raise OSError(f"An error occurred while renaming: {e}")
 
     musica_config_path = os.path.join(download_dest, musica_config_dir_name)
     if os.path.exists(musica_config_path):
