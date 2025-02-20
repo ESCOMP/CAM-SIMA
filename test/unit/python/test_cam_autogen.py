@@ -162,6 +162,10 @@ class FakeBuildCache:
         """Fake version of 'constituents' property."""
         return []
 
+    def vars_init_value(self):
+        """Fake version of 'vars_init_value' property."""
+        return []
+
     # pylint: enable=no-self-use
     # pylint: enable=unused-argument
 
@@ -519,7 +523,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         test_data_search = [os.path.join(_CAM_ROOT_DIR, "src", "data")]
 
         #Set expected output tuple:
-        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, [])
+        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, [], [])
 
         #Run registry generation function:
         gen_results = generate_registry(test_data_search, self.test_cache, _CAM_ROOT_DIR,
@@ -674,7 +678,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
 
         #Run init routines generation function:
         gen_path = generate_init_routines(self.test_cache, self.test_bldroot, False, False,
-                                          self.test_src_mods_dir, self.fort_indent, None, {}, [])
+                                          self.test_src_mods_dir, self.fort_indent, None, {}, [], [])
 
         #Check that the output path matches what is expected:
         self.assertEqual(gen_path, expected_path)
