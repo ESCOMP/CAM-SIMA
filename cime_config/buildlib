@@ -126,12 +126,6 @@ def _build_cam():
             paths.append(os.path.join(atm_root, "src", "dynamics", "tests",
                                       "initial_conditions"))
 
-        # If using the CMEPS/NUOPC coupler, then add additional path:
-        if case.get_value("COMP_INTERFACE") == "nuopc":
-            paths.append(os.path.join(__CIMEROOT, "src", "drivers",
-                                      "nuopc", "nuopc_cap_share"))
-        # End if
-
         # Write Filepath text file
         with open(filepath_src, "w", encoding='utf-8') as filepath:
             filepath.write("\n".join(paths))
@@ -273,12 +267,12 @@ def _build_musica_library(case: Case) -> None:
         "-DMUSICA_BUILD_FORTRAN_INTERFACE=ON",
         ".."
     ]
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
     if result.returncode != 0:
         raise Exception(f"Unable to configure the MUSICA CMake project. Error: {result.stderr}")
 
     command = ["cmake", "--build", ".", "--target", "install"]
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
     if result.returncode != 0:
         raise Exception(f"Unable to build the MUSICA library. Error: {result.stderr}")
 
@@ -331,8 +325,12 @@ def _download_musica_configuration(download_dest: str) -> None:
     try:
         os.rename(original_dir, renamed_dir)
     except FileNotFoundError:
-        raise Exception(f"The directory {original_dir} was not found.")
-    except Exception as e:
+        raise Exception(f"The directory '{original_dir}' was not found.")
+    except FileExistsError:
+        raise Exception(f"The destination directory '{renamed_dir}' already exists.")
+    except PermissionError:
+        raise Exception(f"Permission denied to rename '{original_dir}'.")
+    except OSError as e:
         raise Exception(f"An error occurred while renaming: {e}")
 
     musica_config_path = os.path.join(download_dest, musica_config_dir_name)
@@ -363,13 +361,13 @@ def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str):
         shutil.rmtree(repo_path)
 
     result = subprocess.run(["git", "clone", repo_url, repo_path],
-                            stderr=subprocess.PIPE, text=True)
+                            stderr=subprocess.PIPE, text=True, check=False)
     if result.returncode != 0:
         raise Exception(f"Unable to clone the repository: {repo_url}. \
                         Error: {result.stderr}")
 
     result = subprocess.run(["git", "-C", repo_path, "checkout", tag_name],
-                            stderr=subprocess.PIPE, text=True)
+                            stderr=subprocess.PIPE, text=True, check=False)
     if result.returncode != 0:
         raise Exception(f"Unable to checkout the branch: {tag_name}. \
                         Error: {result.stderr}")
