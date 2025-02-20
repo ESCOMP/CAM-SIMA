@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_simple" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="theta" standard_name="potential_temperature"
+              units="K" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>theta pot_temp</ic_file_input_names>
+    </variable>
+    <variable local_name="slp" standard_name="air_pressure_at_sea_level"
+              units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <!-- a sample initial value for testing -->
+      <initial_value>101325.0_kind_phys</initial_value>
+      <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
+    </variable>
+    <variable local_name="eddy_len" standard_name="eddy_length_scale"
+              units="m" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>eddy_len</ic_file_input_names>
+    </variable>
+    <!-- Constituent variable, should not show up in generated registry files -->
+    <variable local_name="cool_cat_const" standard_name="super_cool_cat_const"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>The coolest constituent imaginable</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>COOL_CAT cnst_COOL_CAT</ic_file_input_names>
+    </variable>
+  </file>
+</registry>
