@@ -1873,7 +1873,7 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula")
    call mark_as_initialized("vertically_integrated_total_water_at_start_of_physics_timestep")
    call mark_as_initialized("vertically_integrated_total_water")
-   call mark_as_initialized("vertically_integrated_total_energy_at_end_of_physics_timestep")
+   call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula_at_end_of_physics_timestep")
 
 end subroutine read_inidat
 

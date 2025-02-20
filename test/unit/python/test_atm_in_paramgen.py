@@ -11,7 +11,7 @@ or (for more verbose output):
 
 python test_atm_in_paramgen.py -v
 
-which will currently run 23 tests, all of which should pass.
+which will currently run 24 tests, all of which should pass.
 """
 
 #----------------------------------------
@@ -30,7 +30,7 @@ import unittest
 
 #Add directory to python path:
 _TEST_DIR = os.path.abspath(os.path.dirname(__file__))
-_CAM_ROOT_DIR = os.path.join(_TEST_DIR, os.pardir, os.pardir)
+_CAM_ROOT_DIR = os.path.join(_TEST_DIR, os.pardir, os.pardir, os.pardir)
 _CIME_CONF_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "cime_config"))
 
 _SAMPLES_DIR = os.path.join(os.path.join(_TEST_DIR, "sample_files"), "atm_in_files")
@@ -276,6 +276,76 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         amsg = f"{test_output} does not match {atm_in_output}"
         self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
                         msg=amsg)
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def test_namelist_xml_bad_value_entry(self):
+
+        """
+        Check that AtmInParamGen throws the correct
+        error message when an XML namelist file
+        has an entry with a non-valid value.
+        """
+
+        # Create fake CIME case:
+        fcase = FakeCase()
+
+        # Create namelist attribute dictionary:
+        nml_attr_dict = {"bird" : "goose", "never_read" : "0"}
+
+        # Get XML file path to original sample file:
+        xml_base_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
+
+        # Open base XML file:
+        base_tree = ET.parse(xml_base_fil)
+        base_root = base_tree.getroot()
+
+        # Write new namelist entry with "bad" value:
+        bad_namelist_string = \
+        """
+        <entry id="bad_default_entry">
+          <type>integer</type>
+          <category>more_testing</category>
+          <group>please_fail</group>
+          <desc>
+            Let's make sure we don't have
+            a good default value
+            Default: None!
+          </desc>
+          <values>
+            <value never_read="1">3</value>
+            <value never_read="1" feel_lucky="1">5</value>
+          </values>
+        </entry>
+        """
+
+        bad_xml_entry = ET.fromstring(bad_namelist_string)
+
+        # Add new namelist entry back to original namelist XML tree:
+        base_root.append(bad_xml_entry)
+
+        # Write out new, temporary XML namelist file for testing:
+        xml_test_fil = os.path.join(_TMP_DIR, "test_bad_value_nml_def.xml")
+        base_tree.write(xml_test_fil, encoding="utf-8", xml_declaration=True)
+
+        # Create ParamGen object:
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+
+        # Set all ParamGen namelist values:
+        pg_test.reduce_atm_in(fcase, nml_attr_dict)
+
+        # Set atm_in filename to write to (should never get to this point):
+        test_output = os.path.join(_TMP_DIR, "test_bad_xml_value_entry_in")
+
+        # Attempt to write namelist using ParamGen:
+        with self.assertRaises(AtmInParamGenError) as cerr:
+            pg_test.write(test_output)
+
+        # Check exception message
+        emsg =  "Namelist entry 'bad_default_entry' is missing"
+        emsg += " a valid/default 'value' element."
+
+        self.assertEqual(emsg, str(cerr.exception))
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
 

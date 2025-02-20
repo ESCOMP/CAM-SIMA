@@ -69,21 +69,21 @@ run_doctest cime_config/atm_in_paramgen.py
 # CAM history config doctests:
 run_doctest cime_config/hist_config.py
 # CAM config unit tests:
-run_unittest test/unit/test_cam_config.py
+run_unittest test/unit/python/test_cam_config.py
 # CAM autogen unit tests:
-run_unittest test/unit/test_cam_autogen.py
+run_unittest test/unit/python/test_cam_autogen.py
 # CAM build cache unit tests:
-run_unittest test/unit/test_build_cache.py
+run_unittest test/unit/python/test_build_cache.py
 # Registry generator unit tests:
-run_unittest test/unit/test_registry.py
+run_unittest test/unit/python/test_registry.py
 # Namelist reader autogeneration unit tests
-run_unittest test/unit/test_create_readnl_files.py
+run_unittest test/unit/python/test_create_readnl_files.py
 # Physics variable init (phys_init) generator unit tests:
-run_unittest test/unit/test_write_init_files.py
+run_unittest test/unit/python/test_write_init_files.py
 # ParamGen atm_in namelist writer unit tests:
-run_unittest test/unit/test_atm_in_paramgen.py
+run_unittest test/unit/python/test_atm_in_paramgen.py
 # CAM history config unit tests
-run_unittest test/unit/test_hist_config.py
+run_unittest test/unit/python/test_hist_config.py
 
 # Report
 if [ ${NUMERRORS} -gt 0 ]; then

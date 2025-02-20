@@ -20,7 +20,7 @@ import filecmp
 import logging
 
 __TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-_CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir))
+_CAM_ROOT = os.path.abspath(os.path.join(__TEST_DIR, os.pardir, os.pardir, os.pardir))
 __CCPP_DIR = os.path.join(_CAM_ROOT, "ccpp_framework", "scripts")
 __REGISTRY_DIR = os.path.join(_CAM_ROOT, "src", "data")
 _REG_SAMPLES_DIR = os.path.join(__TEST_DIR, "sample_files")

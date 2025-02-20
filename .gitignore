@@ -5,7 +5,7 @@ buildnmlc
 # Ignore test output
 test/include/*.mod
 test/include/*.o
-test/unit/tmp
+test/unit/python/tmp
 test/system/*.log
 test/system/cime-tests.o*
 test_driver_*.sh

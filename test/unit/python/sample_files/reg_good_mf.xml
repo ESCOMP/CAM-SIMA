@@ -41,5 +41,5 @@
       <long_name>Physics state variables updated by dynamical core</long_name>
     </variable>
   </file>
-  <metadata_file>$SRCROOT/test/unit/sample_files/ref_pres.meta</metadata_file>
+  <metadata_file>$SRCROOT/test/unit/python/sample_files/ref_pres.meta</metadata_file>
 </registry>
