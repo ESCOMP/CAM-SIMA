@@ -335,7 +335,7 @@ contains
     !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
     !> If `value` contains exactly one element, the element will be stringified without using `separator`.
     !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
-    !> If `separator` is not supplied, it defaults to `, ` (i.e., a comma and a space).
+    !> If `separator` is not supplied, it defaults to ", " (i.e., a comma and a space).
     !> (KCW, 2024-02-04)
     pure function stringify(value, separator)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
@@ -347,6 +347,7 @@ contains
         integer, parameter :: sizelimit = 1024
 
         character(:), allocatable :: buffer, delimiter, format
+        character(:), allocatable :: value_c(:)
         integer :: i, n, offset
 
         if (present(separator)) then
@@ -370,17 +371,26 @@ contains
                 buffer(:) = ''
                 offset = 0
 
+                ! Workaround for a bug in GNU Fortran >= 12. This is perhaps the manifestation of GCC Bugzilla Bug 100819.
+                ! When a character string array is passed as the actual argument to an unlimited polymorphic dummy argument,
+                ! its array index and length parameter are mishandled.
+                allocate(character(len(value)) :: value_c(size(value)))
+
+                value_c(:) = value(:)
+
                 do i = 1, n
                     if (len(delimiter) > 0 .and. i > 1) then
                         buffer(offset + 1:offset + len(delimiter)) = delimiter
                         offset = offset + len(delimiter)
                     end if
 
-                    if (len_trim(adjustl(value(i))) > 0) then
-                        buffer(offset + 1:offset + len_trim(adjustl(value(i)))) = trim(adjustl(value(i)))
-                        offset = offset + len_trim(adjustl(value(i)))
+                    if (len_trim(adjustl(value_c(i))) > 0) then
+                        buffer(offset + 1:offset + len_trim(adjustl(value_c(i)))) = trim(adjustl(value_c(i)))
+                        offset = offset + len_trim(adjustl(value_c(i)))
                     end if
                 end do
+
+                deallocate(value_c)
             type is (integer(int32))
                 allocate(character(11 * n + len(delimiter) * (n - 1)) :: buffer)
                 allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
