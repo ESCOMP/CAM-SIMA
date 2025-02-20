@@ -44,21 +44,21 @@ module dyn_comp
     integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     real(kind_dyn_mpas), protected :: sphere_radius
 contains
-    !> Print a debug message with optionally the value(s) of a variable.
+    !> Print a debug message at a debug level.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
-    subroutine dyn_debug_print(message, variable, printer)
+    subroutine dyn_debug_print(level, message, printer)
         ! Module(s) from CAM-SIMA.
-        use cam_logfile, only: debug_output, debugout_none, iulog
+        use cam_logfile, only: debug_output, iulog
         use spmd_utils, only: iam, masterproc
         use string_utils, only: stringify
 
+        integer, intent(in) :: level
         character(*), intent(in) :: message
-        class(*), optional, intent(in) :: variable(:)
         integer, optional, intent(in) :: printer
 
-        ! Bail out early if debug output is not requested.
-        if (.not. (debug_output > debugout_none)) then
+        ! Bail out early if the log level is less verbose than the debug level.
+        if (debug_output < level) then
             return
         end if
 
@@ -72,16 +72,10 @@ contains
             end if
         end if
 
-        if (present(variable)) then
-            write(iulog, '(a)') 'dyn_debug_print (' // stringify([iam]) // '): ' // &
-                message // stringify(variable)
-        else
-            write(iulog, '(a)') 'dyn_debug_print (' // stringify([iam]) // '): ' // &
-                message
-        end if
+        write(iulog, '(a)') 'MPAS Interface (' // stringify([iam]) // '): ' // message
     end subroutine dyn_debug_print
 
-    !> Read MPAS namelist from supplied path.
+    !> Read MPAS namelist from the supplied path.
     !> Additionally, perform early initialization of MPAS dynamical core.
     !> (KCW, 2024-02-09)
     !
@@ -91,8 +85,9 @@ contains
         use cam_abortutils, only: endrun
         use cam_control_mod, only: initial_run
         use cam_instance, only: atm_id
-        use cam_logfile, only: debug_output, debugout_none, iulog
+        use cam_logfile, only: debug_output, debugout_debug, debugout_info, iulog
         use spmd_utils, only: mpicom
+        use string_utils, only: stringify
         use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
         ! Module(s) from CESM Share.
         use shr_file_mod, only: shr_file_getunit
@@ -112,17 +107,19 @@ contains
                    sec_since_midnight    ! Second(s) since midnight.
         type(iosystem_desc_t), pointer :: pio_iosystem
 
-        nullify(pio_iosystem)
+        call dyn_debug_print(debugout_debug, subname // ' entered')
 
-        ! Enable/disable the debug output of MPAS dynamical core according to the debug verbosity level of CAM-SIMA.
-        mpas_dynamical_core % debug_output = (debug_output > debugout_none)
+        nullify(pio_iosystem)
 
         ! Get free units for MPAS so it can write its own log files, e.g., `log.atmosphere.0000.{out,err}`.
         log_unit(1) = shr_file_getunit()
         log_unit(2) = shr_file_getunit()
 
-        ! Initialize MPAS framework with supplied MPI communicator group and log units.
-        call mpas_dynamical_core % init_phase1(mpicom, endrun, iulog, log_unit)
+        call dyn_debug_print(debugout_info, 'Initializing MPAS dynamical core (Phase 1/4)')
+
+        ! Initialize MPAS framework with the supplied MPI communicator group, procedure pointer to terminate the model,
+        ! log level, and units.
+        call mpas_dynamical_core % init_phase1(mpicom, endrun, debug_output, iulog, log_unit)
 
         cam_calendar = timemgr_get_calendar_cf()
 
@@ -135,16 +132,22 @@ contains
         call get_run_duration(run_duration(1), sec_since_midnight)
         run_duration(2:4) = sec_to_hour_min_sec(sec_since_midnight)
 
+        call dyn_debug_print(debugout_info, 'Reading namelist')
+
         ! Read MPAS-related namelist variables from `namelist_path`, e.g., `atm_in`.
         call mpas_dynamical_core % read_namelist(namelist_path, &
             cam_calendar, start_date_time, stop_date_time, run_duration, initial_run)
 
         pio_iosystem => shr_pio_getiosys(atm_id)
 
-        ! Initialize MPAS framework with supplied PIO system descriptor.
+        call dyn_debug_print(debugout_info, 'Initializing MPAS dynamical core (Phase 2/4)')
+
+        ! Initialize MPAS framework with the supplied PIO system descriptor.
         call mpas_dynamical_core % init_phase2(pio_iosystem)
 
         nullify(pio_iosystem)
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     contains
         !> Convert second(s) to hour(s), minute(s), and second(s).
         !> (KCW, 2024-02-07)
@@ -178,11 +181,13 @@ contains
         use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
         use cam_control_mod, only: initial_run
         use cam_initfiles, only: initial_file_get_id, topo_file_get_id
+        use cam_logfile, only: debugout_debug, debugout_info
         use cam_pio_utils, only: clean_iodesc_list
         use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
         use inic_analytic, only: analytic_ic_active
         use physics_types, only: dycore_energy_consistency_adjust
         use runtime_obj, only: runtime_options
+        use string_utils, only: stringify
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: std_name_len
@@ -201,6 +206,8 @@ contains
         logical, allocatable :: is_water_species(:)
         type(file_desc_t), pointer :: pio_init_file
         type(file_desc_t), pointer :: pio_topo_file
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
 
         nullify(pio_init_file)
         nullify(pio_topo_file)
@@ -224,6 +231,8 @@ contains
             is_water_species(i) = const_is_water_species(i)
         end do
 
+        call dyn_debug_print(debugout_info, 'Defining MPAS scalars and scalar tendencies')
+
         ! Inform MPAS about constituent names and their corresponding waterness.
         call mpas_dynamical_core % define_scalar(constituent_name, is_water_species)
 
@@ -246,29 +255,43 @@ contains
                 mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_ice_idx(i))
         end do
 
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_num = ' // &
+            stringify([thermodynamic_active_species_num]))
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_liq_num = ' // &
+            stringify([thermodynamic_active_species_liq_num]))
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_ice_num = ' // &
+            stringify([thermodynamic_active_species_ice_num]))
+
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_idx_dycore = [' // &
+            stringify(thermodynamic_active_species_idx_dycore) // ']')
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_liq_idx_dycore = [' // &
+            stringify(thermodynamic_active_species_liq_idx_dycore) // ']')
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_ice_idx_dycore = [' // &
+            stringify(thermodynamic_active_species_ice_idx_dycore) // ']')
+
         pio_init_file => initial_file_get_id()
         pio_topo_file => topo_file_get_id()
 
         if (initial_run) then
             ! Run type is initial run.
 
-            call dyn_debug_print('Calling check_topography_data')
+            call dyn_debug_print(debugout_info, 'Checking for consistency in topography data')
 
             call check_topography_data(pio_topo_file)
 
             if (analytic_ic_active()) then
-                call dyn_debug_print('Calling set_analytic_initial_condition')
+                call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by setting analytic initial condition')
 
                 call set_analytic_initial_condition()
             else
+                call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by reading initial condition from a file')
+
                 ! Perform default initialization for all constituents.
                 ! Subsequently, they can be overridden depending on the namelist option (below) and
                 ! the actual availability (checked and handled by MPAS).
-                call dyn_debug_print('Calling dyn_exchange_constituent_states')
-
                 call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
-                ! Namelist option that controls if constituents are to be read from the file.
+                ! Namelist option that controls if constituents are to be read from a file.
                 if (readtrace) then
                     ! Read variables that belong to the "input" stream in MPAS.
                     call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
@@ -279,6 +302,8 @@ contains
             end if
         else
             ! Run type is branch or restart run.
+
+            call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by restarting from a file')
 
             ! Read variables that belong to the "input" and "restart" streams in MPAS.
             call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input+restart')
@@ -295,8 +320,12 @@ contains
         ! then yield control back to the caller.
         coupling_time_interval = get_step_size()
 
+        call dyn_debug_print(debugout_info, 'Initializing MPAS dynamical core (Phase 4/4)')
+
         ! Finish MPAS dynamical core initialization. After this point, MPAS dynamical core is ready for time integration.
         call mpas_dynamical_core % init_phase4(coupling_time_interval)
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_init
 
     !> Check for consistency in topography data. The presence of topography file is inferred from the `pio_file` pointer.
@@ -308,7 +337,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
         use cam_field_read, only: cam_read_field
-        use cam_logfile, only: debug_output, debugout_none
+        use cam_logfile, only: debug_output, debugout_debug, debugout_none, debugout_verbose
         use dynconst, only: constant_g => gravit
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
@@ -325,12 +354,14 @@ contains
         real(kind_r8), allocatable :: surface_geopotential(:)        ! Read from topography file.
         real(kind_dyn_mpas), pointer :: zgrid(:, :)                  ! From MPAS. Geometric height (meters) at layer interfaces.
 
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
         nullify(zgrid)
 
         call mpas_dynamical_core % get_variable_pointer(zgrid, 'mesh', 'zgrid')
 
         if (associated(pio_file)) then
-            call dyn_debug_print('Topography file is used')
+            call dyn_debug_print(debugout_verbose, 'Topography file is used for consistency check')
 
             if (.not. pio_file_is_open(pio_file)) then
                 call endrun('Invalid PIO file descriptor', subname, __LINE__)
@@ -362,7 +393,7 @@ contains
             deallocate(surface_geopotential)
             deallocate(surface_geometric_height)
         else
-            call dyn_debug_print('Topography file is not used')
+            call dyn_debug_print(debugout_verbose, 'Topography file is not used for consistency check')
 
             ! Surface geometric height in MPAS should be zero.
             if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8)) > error_tolerance)) then
@@ -371,11 +402,15 @@ contains
         end if
 
         nullify(zgrid)
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine check_topography_data
 
     !> Set analytic initial condition for MPAS.
     !> (KCW, 2024-05-22)
     subroutine set_analytic_initial_condition()
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
 
@@ -388,6 +423,8 @@ contains
         real(kind_dyn_mpas), pointer :: zgrid(:, :) ! Geometric height (meters) at layer interfaces.
                                                     ! Dimension and vertical index orders follow MPAS convention.
 
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
         call init_shared_variables()
 
         call set_mpas_state_u()
@@ -397,6 +434,8 @@ contains
         call set_mpas_state_rho_base_theta_base()
 
         call final_shared_variables()
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_state_*` internal subroutines.
         !> (KCW, 2024-05-13)
@@ -404,6 +443,7 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate, endrun
             use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
+            use cam_logfile, only: debugout_verbose
             use dynconst, only: deg_to_rad
             use vert_coord, only: pverp
 
@@ -413,7 +453,7 @@ contains
             integer, pointer :: indextocellid(:)
             real(kind_r8), pointer :: lat_deg(:), lon_deg(:)
 
-            call dyn_debug_print('Preparing to set analytic initial condition')
+            call dyn_debug_print(debugout_verbose, 'Preparing to set analytic initial condition')
 
             nullify(zgrid)
             nullify(indextocellid)
@@ -479,6 +519,7 @@ contains
         subroutine set_mpas_state_u()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
+            use cam_logfile, only: debugout_verbose
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -488,7 +529,7 @@ contains
             integer :: ierr
             real(kind_dyn_mpas), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
 
-            call dyn_debug_print('Setting MPAS state "u"')
+            call dyn_debug_print(debugout_verbose, 'Setting MPAS state "u"')
 
             nullify(ucellzonal, ucellmeridional)
 
@@ -526,10 +567,13 @@ contains
         !> Set MPAS state `w` (i.e., vertical velocity at cell interfaces).
         !> (KCW, 2024-05-13)
         subroutine set_mpas_state_w()
+            ! Module(s) from CAM-SIMA.
+            use cam_logfile, only: debugout_verbose
+
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_w'
             real(kind_dyn_mpas), pointer :: w(:, :)
 
-            call dyn_debug_print('Setting MPAS state "w"')
+            call dyn_debug_print(debugout_verbose, 'Setting MPAS state "w"')
 
             nullify(w)
 
@@ -549,6 +593,7 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
             use cam_constituents, only: num_advected
+            use cam_logfile, only: debugout_verbose
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -564,7 +609,7 @@ contains
             integer, pointer :: index_qv
             real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
-            call dyn_debug_print('Setting MPAS state "scalars"')
+            call dyn_debug_print(debugout_verbose, 'Setting MPAS state "scalars"')
 
             nullify(index_qv)
             nullify(scalars)
@@ -596,10 +641,10 @@ contains
             if (mpas_dynamical_core % get_constituent_name(mpas_dynamical_core % map_constituent_index(index_qv)) == &
                 constituent_qv_standard_name) then
                 ! The definition of `qv` matches exactly what MPAS wants. No conversion is needed.
-                call dyn_debug_print('No conversion is needed for water vapor mixing ratio')
+                call dyn_debug_print(debugout_verbose, 'No conversion is needed for water vapor mixing ratio')
             else
                 ! The definition of `qv` actually represents specific humidity. Conversion is needed.
-                call dyn_debug_print('Conversion is needed and applied for water vapor mixing ratio')
+                call dyn_debug_print(debugout_verbose, 'Conversion is needed and applied for water vapor mixing ratio')
 
                 ! Convert specific humidity to water vapor mixing ratio.
                 scalars(index_qv, :, 1:ncells_solve) = &
@@ -621,6 +666,7 @@ contains
         subroutine set_mpas_state_rho_theta()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
+            use cam_logfile, only: debugout_verbose
             use dyn_tests_utils, only: vc_height
             use dynconst, only: constant_p0 => pref, constant_rd => rair, constant_rv => rh2o
             use inic_analytic, only: dyn_set_inic_col
@@ -643,7 +689,7 @@ contains
             real(kind_dyn_mpas), pointer :: theta(:, :)
             real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
-            call dyn_debug_print('Setting MPAS state "rho" and "theta"')
+            call dyn_debug_print(debugout_verbose, 'Setting MPAS state "rho" and "theta"')
 
             nullify(index_qv)
             nullify(rho)
@@ -740,6 +786,7 @@ contains
         subroutine set_mpas_state_rho_base_theta_base()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
+            use cam_logfile, only: debugout_verbose
             use dynconst, only: constant_p0 => pref, constant_rd => rair
             use vert_coord, only: pver
 
@@ -753,7 +800,7 @@ contains
             real(kind_dyn_mpas), pointer :: theta_base(:, :)
             real(kind_dyn_mpas), pointer :: zz(:, :)
 
-            call dyn_debug_print('Setting MPAS state "rho_base" and "theta_base"')
+            call dyn_debug_print(debugout_verbose, 'Setting MPAS state "rho_base" and "theta_base"')
 
             nullify(rho_base)
             nullify(theta_base)
@@ -843,6 +890,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
         use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
+        use cam_logfile, only: debugout_debug, debugout_info
         use physics_types, only: phys_state
         use vert_coord, only: pver
         ! Module(s) from CCPP.
@@ -865,22 +913,24 @@ contains
         real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water species mixing ratios.
         real(kind_dyn_mpas), pointer :: scalars(:, :, :)  ! This points to MPAS memory.
 
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
         select case (trim(adjustl(direction)))
             case ('e', 'export')
                 if (exchange) then
-                    call dyn_debug_print('Setting MPAS state "scalars" from physics state "constituents"')
+                    call dyn_debug_print(debugout_info, 'Setting MPAS state "scalars" from physics state "constituents"')
                 end if
 
                 if (conversion) then
-                    call dyn_debug_print('Converting MPAS state "scalars"')
+                    call dyn_debug_print(debugout_info, 'Converting MPAS state "scalars"')
                 end if
             case ('i', 'import')
                 if (exchange) then
-                    call dyn_debug_print('Setting physics state "constituents" from MPAS state "scalars"')
+                    call dyn_debug_print(debugout_info, 'Setting physics state "constituents" from MPAS state "scalars"')
                 end if
 
                 if (conversion) then
-                    call dyn_debug_print('Converting physics state "constituents"')
+                    call dyn_debug_print(debugout_info, 'Converting physics state "constituents"')
                 end if
             case default
                 call endrun('Unsupported exchange direction "' // trim(adjustl(direction)) // '"', subname, __LINE__)
@@ -987,17 +1037,22 @@ contains
             ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
             call mpas_dynamical_core % exchange_halo('scalars')
         end if
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_exchange_constituent_states
 
     !> Inquire local and global mesh dimensions. Save them as protected module variables.
     !> (KCW, 2024-11-21)
     subroutine dyn_inquire_mesh_dimensions()
         ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug, debugout_info
         use string_utils, only: stringify
 
         character(*), parameter :: subname = 'dyn_comp::dyn_inquire_mesh_dimensions'
 
-        call dyn_debug_print('Inquiring local and global mesh dimensions')
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        call dyn_debug_print(debugout_info, 'Inquiring local and global mesh dimensions')
 
         call mpas_dynamical_core % get_local_mesh_dimension( &
             ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
@@ -1006,13 +1061,15 @@ contains
             ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
             sphere_radius)
 
-        call dyn_debug_print('ncells_global    = ' // stringify([ncells_global]))
-        call dyn_debug_print('nedges_global    = ' // stringify([nedges_global]))
-        call dyn_debug_print('nvertices_global = ' // stringify([nvertices_global]))
-        call dyn_debug_print('nvertlevels      = ' // stringify([nvertlevels]))
-        call dyn_debug_print('ncells_max       = ' // stringify([ncells_max]))
-        call dyn_debug_print('nedges_max       = ' // stringify([nedges_max]))
-        call dyn_debug_print('sphere_radius    = ' // stringify([sphere_radius]))
+        call dyn_debug_print(debugout_debug, 'ncells_global    = ' // stringify([ncells_global]))
+        call dyn_debug_print(debugout_debug, 'nedges_global    = ' // stringify([nedges_global]))
+        call dyn_debug_print(debugout_debug, 'nvertices_global = ' // stringify([nvertices_global]))
+        call dyn_debug_print(debugout_debug, 'nvertlevels      = ' // stringify([nvertlevels]))
+        call dyn_debug_print(debugout_debug, 'ncells_max       = ' // stringify([ncells_max]))
+        call dyn_debug_print(debugout_debug, 'nedges_max       = ' // stringify([nedges_max]))
+        call dyn_debug_print(debugout_debug, 'sphere_radius    = ' // stringify([sphere_radius]))
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_inquire_mesh_dimensions
 
     !> Mark everything in the `physics_types` module along with constituents as initialized
@@ -1021,11 +1078,14 @@ contains
     subroutine mark_variables_as_initialized()
         ! Module(s) from CAM-SIMA.
         use cam_constituents, only: const_name, num_advected
+        use cam_logfile, only: debugout_debug
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: mark_as_initialized
 
         character(*), parameter :: subname = 'dyn_comp::mark_variables_as_initialized'
         integer :: i
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
 
         ! The variables below are managed by dynamics interface.
         ! We are responsible for initializing and updating them.
@@ -1079,21 +1139,39 @@ contains
         call mark_as_initialized('vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep')
         call mark_as_initialized('vertically_integrated_total_water')
         call mark_as_initialized('vertically_integrated_total_water_at_start_of_physics_timestep')
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine mark_variables_as_initialized
 
     !> Run MPAS dynamical core to integrate the dynamical states with time.
     !> (KCW, 2024-07-11)
     subroutine dyn_run()
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug, debugout_info
+
         character(*), parameter :: subname = 'dyn_comp::dyn_run'
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        call dyn_debug_print(debugout_info, 'Running MPAS dynamical core')
 
         ! MPAS dynamical core will run until the coupling time interval is reached.
         call mpas_dynamical_core % run()
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_run
 
     !> Finalize MPAS dynamical core as well as its framework.
     !> (KCW, 2024-10-04)
     subroutine dyn_final()
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug, debugout_info
+
         character(*), parameter :: subname = 'dyn_comp::dyn_final'
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        call dyn_debug_print(debugout_info, 'Finalizing MPAS dynamical core')
 
         ! Quick hack for dumping variables from MPAS dynamical core.
         ! Remove it once history and restart are wired up in CAM-SIMA.
@@ -1101,6 +1179,8 @@ contains
 
         ! After this point, do not access anything under MPAS dynamical core or runtime errors will ensue.
         call mpas_dynamical_core % final()
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_final
 
     subroutine dyn_variable_dump()

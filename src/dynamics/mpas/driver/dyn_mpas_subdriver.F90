@@ -34,6 +34,19 @@ module dyn_mpas_subdriver
         end subroutine model_error_if
     end interface
 
+    ! The supported log levels of MPAS dynamical core.
+
+    !> Log nothing.
+    integer, parameter :: log_level_quiet = 0
+    !> Log plain and user-friendly information about the status of MPAS dynamical core.
+    !> Public procedures should start with this log level.
+    integer, parameter :: log_level_info = 1
+    !> Same as the above, but for private procedures.
+    integer, parameter :: log_level_verbose = 2
+    !> Log elaborate information about the inner workings of MPAS dynamical core, which may be useful for diagnosing issues.
+    !> However, the log volume may be very large.
+    integer, parameter :: log_level_debug = 3
+
     !> The native floating-point precision of MPAS dynamical core.
     integer, parameter :: mpas_dynamical_core_real_kind = rkind
 
@@ -43,9 +56,8 @@ module dyn_mpas_subdriver
     type :: mpas_dynamical_core_type
         private
 
-        logical, public :: debug_output = .false.
-
         ! Initialized by `dyn_mpas_init_phase1`.
+        integer :: log_level = log_level_quiet
         integer :: log_unit = output_unit
 #ifdef MPAS_USE_MPI_F08
         type(mpi_comm_type) :: mpi_comm = mpi_comm_null
@@ -292,17 +304,17 @@ module dyn_mpas_subdriver
         var_info_type('vorticity'                       , 'real'      , 2)  &
     ]
 contains
-    !> Print a debug message with optionally the value(s) of a variable.
+    !> Print a debug message at a debug level.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
-    subroutine dyn_mpas_debug_print(self, message, variable, printer)
+    subroutine dyn_mpas_debug_print(self, level, message, printer)
         class(mpas_dynamical_core_type), intent(in) :: self
+        integer, intent(in) :: level
         character(*), intent(in) :: message
-        class(*), optional, intent(in) :: variable(:)
         integer, optional, intent(in) :: printer
 
-        ! Bail out early if debug output is not requested.
-        if (.not. self % debug_output) then
+        ! Bail out early if the log level is less verbose than the debug level.
+        if (self % log_level < level) then
             return
         end if
 
@@ -316,13 +328,7 @@ contains
             end if
         end if
 
-        if (present(variable)) then
-            write(self % log_unit, '(a)') 'dyn_mpas_debug_print (' // stringify([self % mpi_rank]) // '): ' // &
-                message // stringify(variable)
-        else
-            write(self % log_unit, '(a)') 'dyn_mpas_debug_print (' // stringify([self % mpi_rank]) // '): ' // &
-                message
-        end if
+        write(self % log_unit, '(a)') 'MPAS Subdriver (' // stringify([self % mpi_rank]) // '): ' // message
     end subroutine dyn_mpas_debug_print
 
     !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
@@ -439,7 +445,7 @@ contains
     !>  Ported and refactored for CAM-SIMA. (KCW, 2024-02-02)
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_unit, mpas_log_unit)
+    subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_level, log_unit, mpas_log_unit)
         ! Module(s) from MPAS.
         use atm_core_interface, only: atm_setup_core, atm_setup_domain
         use mpas_domain_routines, only: mpas_allocate_domain
@@ -452,6 +458,7 @@ contains
         integer, intent(in) :: mpi_comm
 #endif
         procedure(model_error_if) :: model_error_impl
+        integer, intent(in) :: log_level
         integer, intent(in) :: log_unit
         integer, intent(in) :: mpas_log_unit(2)
 
@@ -472,11 +479,12 @@ contains
         end if
 
         self % mpi_rank_root = (self % mpi_rank == 0)
+        self % log_level = max(min(log_level, log_level_debug), log_level_quiet)
         self % log_unit = log_unit
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
-        call self % debug_print('Allocating core')
+        call self % debug_print(log_level_info, 'Allocating core')
 
         allocate(self % corelist, stat=ierr)
 
@@ -486,7 +494,7 @@ contains
 
         nullify(self % corelist % next)
 
-        call self % debug_print('Allocating domain')
+        call self % debug_print(log_level_info, 'Allocating domain')
 
         allocate(self % corelist % domainlist, stat=ierr)
 
@@ -503,20 +511,20 @@ contains
 
         self % domain_ptr % domainid = 0
 
-        call self % debug_print('Calling mpas_framework_init_phase1')
+        call self % debug_print(log_level_info, 'Initializing MPAS framework (Phase 1/2)')
 
-        ! Initialize MPAS framework with supplied MPI communicator group.
+        ! Initialize MPAS framework with the supplied MPI communicator group.
         call mpas_framework_init_phase1(self % domain_ptr % dminfo, external_comm=self % mpi_comm)
 
-        call self % debug_print('Setting up core')
+        call self % debug_print(log_level_info, 'Setting up core')
 
         call atm_setup_core(self % corelist)
 
-        call self % debug_print('Setting up domain')
+        call self % debug_print(log_level_info, 'Setting up domain')
 
         call atm_setup_domain(self % domain_ptr)
 
-        call self % debug_print('Setting up log')
+        call self % debug_print(log_level_info, 'Setting up log')
 
         ! Set up the log manager as early as possible so we can use it for any errors/messages during subsequent
         ! initialization steps.
@@ -528,11 +536,12 @@ contains
         ierr = self % domain_ptr % core % setup_log(self % domain_ptr % loginfo, self % domain_ptr, unitnumbers=mpas_log_unit)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to setup log for MPAS', subname, __LINE__)
+            call self % model_error('Log setup failed for core ' // trim(self % domain_ptr % core % corename), &
+                subname, __LINE__)
         end if
 
         ! At this point, we should be ready to read namelist in `dyn_comp::dyn_readnl`.
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_init_phase1
 
     !-------------------------------------------------------------------------------
@@ -562,12 +571,12 @@ contains
         integer :: ierr
         logical, pointer :: config_pointer_l
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(config_pointer_c)
         nullify(config_pointer_l)
 
-        call self % debug_print('Reading namelist at ', [namelist_path])
+        call self % debug_print(log_level_info, 'Reading namelist at "' // trim(adjustl(namelist_path)) // '"')
 
         ! Override namelist filename so that we can rely on upstream MPAS functionality for reading its own namelist.
         ! The case of missing namelist groups (i.e., `iostat == iostat_end` or `iostat == iostat_eor`) will be handled gracefully.
@@ -585,7 +594,7 @@ contains
         ! Override designated namelist variables according to information provided from CAM-SIMA.
         ! These include runtime settings that cannot be determined beforehand.
 
-        call self % debug_print('Overriding designated namelist variables')
+        call self % debug_print(log_level_info, 'Overriding designated namelist variables')
 
         ! CAM-SIMA seems to follow "NetCDF Climate and Forecast (CF) Metadata Conventions" for calendar names. See
         ! CF-1.11, section "4.4.1. Calendar".
@@ -606,7 +615,7 @@ contains
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_calendar_type')
 
         config_pointer_c = trim(adjustl(mpas_calendar))
-        call self % debug_print('config_calendar_type = ', [config_pointer_c])
+        call self % debug_print(log_level_debug, 'config_calendar_type = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         ! MPAS represents date and time in ISO 8601 format. However, the separator between date and time is `_`
@@ -615,20 +624,20 @@ contains
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_start_time')
 
         config_pointer_c = stringify(start_date_time(1:3), '-') // '_' // stringify(start_date_time(4:6), ':')
-        call self % debug_print('config_start_time = ', [config_pointer_c])
+        call self % debug_print(log_level_debug, 'config_start_time = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_stop_time')
 
         config_pointer_c = stringify(stop_date_time(1:3), '-') // '_' // stringify(stop_date_time(4:6), ':')
-        call self % debug_print('config_stop_time = ', [config_pointer_c])
+        call self % debug_print(log_level_debug, 'config_stop_time = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         ! Format in `DD_hh:mm:ss` is acceptable.
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_run_duration')
 
         config_pointer_c = stringify([run_duration(1)]) // '_' // stringify(run_duration(2:4), ':')
-        call self % debug_print('config_run_duration = ', [config_pointer_c])
+        call self % debug_print(log_level_debug, 'config_run_duration = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
         ! Reflect current run type to MPAS.
@@ -642,10 +651,10 @@ contains
             config_pointer_l = .true.
         end if
 
-        call self % debug_print('config_do_restart = ', [config_pointer_l])
+        call self % debug_print(log_level_debug, 'config_do_restart = ' // stringify([config_pointer_l]))
         nullify(config_pointer_l)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_read_namelist
 
     !-------------------------------------------------------------------------------
@@ -676,9 +685,9 @@ contains
         integer :: ierr
         logical :: pio_iosystem_active
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
-        call self % debug_print('Checking PIO system descriptor')
+        call self % debug_print(log_level_info, 'Checking PIO system descriptor')
 
         if (.not. associated(pio_iosystem)) then
             call self % model_error('Invalid PIO system descriptor', subname, __LINE__)
@@ -690,9 +699,9 @@ contains
             call self % model_error('Invalid PIO system descriptor', subname, __LINE__)
         end if
 
-        call self % debug_print('Calling mpas_framework_init_phase2')
+        call self % debug_print(log_level_info, 'Initializing MPAS framework (Phase 2/2)')
 
-        ! Initialize MPAS framework with supplied PIO system descriptor.
+        ! Initialize MPAS framework with the supplied PIO system descriptor.
         call mpas_framework_init_phase2(self % domain_ptr, io_system=pio_iosystem)
 
         ! Instantiate `streaminfo` but do not actually initialize it. Any queries made to it will always return `.false.`.
@@ -704,12 +713,16 @@ contains
                 subname, __LINE__)
         end if
 
+        call self % debug_print(log_level_info, 'Defining packages')
+
         ierr = self % domain_ptr % core % define_packages(self % domain_ptr % packages)
 
         if (ierr /= 0) then
             call self % model_error('Package definition failed for core ' // trim(self % domain_ptr % core % corename), &
                 subname, __LINE__)
         end if
+
+        call self % debug_print(log_level_info, 'Setting up packages')
 
         ierr = self % domain_ptr % core % setup_packages( &
             self % domain_ptr % configs, self % domain_ptr % streaminfo, &
@@ -720,12 +733,16 @@ contains
                 subname, __LINE__)
         end if
 
+        call self % debug_print(log_level_info, 'Setting up decompositions')
+
         ierr = self % domain_ptr % core % setup_decompositions(self % domain_ptr % decompositions)
 
         if (ierr /= 0) then
             call self % model_error('Decomposition setup failed for core ' // trim(self % domain_ptr % core % corename), &
                 subname, __LINE__)
         end if
+
+        call self % debug_print(log_level_info, 'Setting up clock')
 
         ierr = self % domain_ptr % core % setup_clock(self % domain_ptr % clock, self % domain_ptr % configs)
 
@@ -736,7 +753,7 @@ contains
 
         ! At this point, we should be ready to set up decompositions, build halos, allocate blocks, etc.
         ! in `dyn_grid::model_grid_init`.
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_init_phase2
 
     !-------------------------------------------------------------------------------
@@ -775,7 +792,7 @@ contains
         integer, pointer :: num_scalars
         type(mpas_pool_type), pointer :: mpas_pool
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(mpas_pool)
         nullify(num_scalars)
@@ -785,7 +802,7 @@ contains
         ! (i.e., segmentation fault due to invalid memory access) if `qv` is not allocated.
         self % number_of_constituents = max(1, number_of_constituents)
 
-        call self % debug_print('Number of constituents is ', [self % number_of_constituents])
+        call self % debug_print(log_level_info, 'Number of constituents is ' // stringify([self % number_of_constituents]))
 
         ! Adding a config named `cam_pcnst` with the number of constituents will indicate to MPAS that
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
@@ -797,7 +814,7 @@ contains
         mesh_filename = 'external mesh'
         mesh_format = mpas_io_pnetcdf
 
-        call self % debug_print('Checking PIO file descriptor')
+        call self % debug_print(log_level_info, 'Checking PIO file descriptor')
 
         if (.not. associated(pio_file)) then
             call self % model_error('Invalid PIO file descriptor', subname, __LINE__)
@@ -807,12 +824,12 @@ contains
             call self % model_error('Invalid PIO file descriptor', subname, __LINE__)
         end if
 
-        call self % debug_print('Calling mpas_bootstrap_framework_phase1')
+        call self % debug_print(log_level_info, 'Bootstrapping MPAS framework (Phase 1/2)')
 
         ! Finish setting up blocks.
         call mpas_bootstrap_framework_phase1(self % domain_ptr, mesh_filename, mesh_format, pio_file_desc=pio_file)
 
-        call self % debug_print('Calling mpas_bootstrap_framework_phase2')
+        call self % debug_print(log_level_info, 'Bootstrapping MPAS framework (Phase 2/2)')
 
         ! Finish setting up fields.
         call mpas_bootstrap_framework_phase2(self % domain_ptr, pio_file_desc=pio_file)
@@ -837,7 +854,7 @@ contains
         nullify(mpas_pool)
         nullify(num_scalars)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_init_phase3
 
     !-------------------------------------------------------------------------------
@@ -885,7 +902,7 @@ contains
         type(field3dreal), pointer :: field_3d_real
         type(mpas_pool_type), pointer :: mpas_pool
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(field_3d_real)
         nullify(mpas_pool)
@@ -971,6 +988,8 @@ contains
         ! Create index mapping between MPAS scalars and constituent names. For example,
         ! MPAS scalar index `i` corresponds to constituent index `index_mpas_scalar_to_constituent(i)`.
 
+        call self % debug_print(log_level_info, 'Creating index mapping between MPAS scalars and CAM-SIMA constituents')
+
         allocate(self % index_mpas_scalar_to_constituent(self % number_of_constituents), stat=ierr)
 
         if (ierr /= 0) then
@@ -1002,6 +1021,8 @@ contains
         ! Create inverse index mapping between MPAS scalars and constituent names. For example,
         ! Constituent index `i` corresponds to MPAS scalar index `index_constituent_to_mpas_scalar(i)`.
 
+        call self % debug_print(log_level_info, 'Creating inverse index mapping between MPAS scalars and CAM-SIMA constituents')
+
         allocate(self % index_constituent_to_mpas_scalar(self % number_of_constituents), stat=ierr)
 
         if (ierr /= 0) then
@@ -1019,16 +1040,18 @@ contains
 
         ! Print information about constituents.
         do i = 1, self % number_of_constituents
-            call self % debug_print('Constituent index ' // stringify([i]))
-            call self % debug_print('    Constituent name: ' // &
-                stringify([self % constituent_name(i)]))
-            call self % debug_print('    Is water species: ' // &
+            call self % debug_print(log_level_verbose, 'Constituent index ' // stringify([i]))
+            call self % debug_print(log_level_verbose, '    Constituent name: ' // &
+                trim(self % constituent_name(i)))
+            call self % debug_print(log_level_verbose, '    Is water species: ' // &
                 stringify([self % is_water_species(i)]))
-            call self % debug_print('    Index mapping from constituent to MPAS scalar: ' // &
+            call self % debug_print(log_level_verbose, '    Index mapping from constituent to MPAS scalar: ' // &
                 stringify([i]) // ' -> ' // stringify([self % index_constituent_to_mpas_scalar(i)]))
         end do
 
         ! Define "scalars" for MPAS.
+
+        call self % debug_print(log_level_info, 'Defining MPAS scalars')
 
         call self % get_pool_pointer(mpas_pool, 'state')
 
@@ -1052,12 +1075,12 @@ contains
 
                 ! Print information about MPAS scalars. Only do it once.
                 if (i == 1) then
-                    call self % debug_print('MPAS scalar index ' // stringify([j]))
-                    call self % debug_print('    MPAS scalar name: ' // &
-                        stringify([field_3d_real % constituentnames(j)]))
-                    call self % debug_print('    Is water species: ' // &
+                    call self % debug_print(log_level_verbose, 'MPAS scalar index ' // stringify([j]))
+                    call self % debug_print(log_level_verbose, '    MPAS scalar name: ' // &
+                        trim(field_3d_real % constituentnames(j)))
+                    call self % debug_print(log_level_verbose, '    Is water species: ' // &
                         stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
-                    call self % debug_print('    Index mapping from MPAS scalar to constituent: ' // &
+                    call self % debug_print(log_level_verbose, '    Index mapping from MPAS scalar to constituent: ' // &
                         stringify([j]) // ' -> ' // stringify([self % index_mpas_scalar_to_constituent(j)]))
                 end if
             end do
@@ -1068,6 +1091,8 @@ contains
         nullify(mpas_pool)
 
         ! Define "scalars_tend" for MPAS.
+
+        call self % debug_print(log_level_info, 'Defining MPAS scalar tendencies')
 
         call self % get_pool_pointer(mpas_pool, 'tend')
 
@@ -1088,6 +1113,17 @@ contains
             do j = 1, self % number_of_constituents
                 field_3d_real % constituentnames(j) = &
                     'tendency_of_' // trim(adjustl(self % constituent_name(self % index_mpas_scalar_to_constituent(j))))
+
+                ! Print information about MPAS scalar tendencies. Only do it once.
+                if (i == 1) then
+                    call self % debug_print(log_level_verbose, 'MPAS scalar tendency index ' // stringify([j]))
+                    call self % debug_print(log_level_verbose, '    MPAS scalar tendency name: ' // &
+                        trim(field_3d_real % constituentnames(j)))
+                    call self % debug_print(log_level_verbose, '    Is water species: ' // &
+                        stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
+                    call self % debug_print(log_level_verbose, '    Index mapping from MPAS scalar tendency to constituent: ' // &
+                        stringify([j]) // ' -> ' // stringify([self % index_mpas_scalar_to_constituent(j)]))
+                end if
             end do
 
             nullify(field_3d_real)
@@ -1101,11 +1137,11 @@ contains
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_start', index_water_start)
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_end', index_water_end)
 
-        call self % debug_print('index_qv = ' // stringify([index_qv]))
-        call self % debug_print('moist_start = ' // stringify([index_water_start]))
-        call self % debug_print('moist_end = ' // stringify([index_water_end]))
+        call self % debug_print(log_level_debug, 'index_qv = ' // stringify([index_qv]))
+        call self % debug_print(log_level_debug, 'moist_start = ' // stringify([index_water_start]))
+        call self % debug_print(log_level_debug, 'moist_end = ' // stringify([index_water_end]))
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_define_scalar
 
     !-------------------------------------------------------------------------------
@@ -1142,12 +1178,12 @@ contains
         type(mpas_stream_type), pointer :: mpas_stream
         type(var_info_type), allocatable :: var_info_list(:)
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(mpas_pool)
         nullify(mpas_stream)
 
-        call self % debug_print('Initializing stream "' // trim(adjustl(stream_name)) // '"')
+        call self % debug_print(log_level_info, 'Initializing stream "' // trim(adjustl(stream_name)) // '"')
 
         call self % init_stream_with_pool(mpas_pool, mpas_stream, pio_file, stream_mode, stream_name)
 
@@ -1161,7 +1197,7 @@ contains
 
         select case (trim(adjustl(stream_mode)))
             case ('r', 'read')
-                call self % debug_print('Reading stream "' // trim(adjustl(stream_name)) // '"')
+                call self % debug_print(log_level_info, 'Reading stream "' // trim(adjustl(stream_name)) // '"')
 
                 call mpas_readstream(mpas_stream, 1, ierr=ierr)
 
@@ -1180,7 +1216,7 @@ contains
                 call postread_reindex(self % domain_ptr % blocklist % allfields, self % domain_ptr % packages, &
                     mpas_pool, mpas_pool)
             case ('w', 'write')
-                call self % debug_print('Writing stream "' // trim(adjustl(stream_name)) // '"')
+                call self % debug_print(log_level_info, 'Writing stream "' // trim(adjustl(stream_name)) // '"')
 
                 ! WARNING:
                 ! The `{pre,post}write_reindex` subroutines are STATEFUL because they store information inside their module
@@ -1202,7 +1238,7 @@ contains
                 call self % model_error('Unsupported stream mode "' // trim(adjustl(stream_mode)) // '"', subname, __LINE__)
         end select
 
-        call self % debug_print('Closing stream "' // trim(adjustl(stream_name)) // '"')
+        call self % debug_print(log_level_info, 'Closing stream "' // trim(adjustl(stream_name)) // '"')
 
         call mpas_closestream(mpas_stream, ierr=ierr)
 
@@ -1217,7 +1253,7 @@ contains
         deallocate(mpas_stream)
         nullify(mpas_stream)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_read_write_stream
 
     !-------------------------------------------------------------------------------
@@ -1281,7 +1317,7 @@ contains
         type(field5dreal), pointer :: field_5d_real
         type(var_info_type), allocatable :: var_info_list(:)
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(field_0d_char)
         nullify(field_1d_char)
@@ -1308,7 +1344,7 @@ contains
         stream_filename = 'external stream'
         stream_format = mpas_io_pnetcdf
 
-        call self % debug_print('Checking PIO file descriptor')
+        call self % debug_print(log_level_verbose, 'Checking PIO file descriptor')
 
         if (.not. associated(pio_file)) then
             call self % model_error('Invalid PIO file descriptor', subname, __LINE__)
@@ -1320,14 +1356,14 @@ contains
 
         select case (trim(adjustl(stream_mode)))
             case ('r', 'read')
-                call self % debug_print('Creating "' // trim(adjustl(stream_name)) // '" stream for reading')
+                call self % debug_print(log_level_verbose, 'Creating stream "' // trim(adjustl(stream_name)) // '" for reading')
 
                 call mpas_createstream( &
                     mpas_stream, self % domain_ptr % iocontext, stream_filename, stream_format, mpas_io_read,  &
                     clobberrecords=.false., clobberfiles=.false., truncatefiles=.false., &
                     precision=mpas_io_native_precision, pio_file_desc=pio_file, ierr=ierr)
             case ('w', 'write')
-                call self % debug_print('Creating "' // trim(adjustl(stream_name)) // '" stream for writing')
+                call self % debug_print(log_level_verbose, 'Creating stream "' // trim(adjustl(stream_name)) // '" for writing')
 
                 call mpas_createstream( &
                     mpas_stream, self % domain_ptr % iocontext, stream_filename, stream_format, mpas_io_write, &
@@ -1343,15 +1379,13 @@ contains
 
         var_info_list = parse_stream_name(stream_name)
 
-        ! Add variables to stream.
-        call self % debug_print('Adding variables to stream')
-
+        ! Add variables contained in `var_info_list` to stream.
         do i = 1, size(var_info_list)
-            call self % debug_print('var_info_list(' // stringify([i]) // ') % name = ' // &
+            call self % debug_print(log_level_debug, 'var_info_list(' // stringify([i]) // ') % name = ' // &
                 stringify([var_info_list(i) % name]))
-            call self % debug_print('var_info_list(' // stringify([i]) // ') % type = ' // &
+            call self % debug_print(log_level_debug, 'var_info_list(' // stringify([i]) // ') % type = ' // &
                 stringify([var_info_list(i) % type]))
-            call self % debug_print('var_info_list(' // stringify([i]) // ') % rank = ' // &
+            call self % debug_print(log_level_debug, 'var_info_list(' // stringify([i]) // ') % rank = ' // &
                 stringify([var_info_list(i) % rank]))
 
             if (trim(adjustl(stream_mode)) == 'r' .or. trim(adjustl(stream_mode)) == 'read') then
@@ -1361,14 +1395,14 @@ contains
                 ! This can happen if users attempt to initialize/restart the model with data generated by
                 ! older versions of MPAS. Print a debug message to let users decide if this is acceptable.
                 if (.not. any(var_is_present)) then
-                    call self % debug_print('Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
+                    call self % debug_print(log_level_verbose, 'Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
                         '" due to not present')
 
                     cycle
                 end if
 
                 if (any(var_is_present .and. .not. var_is_tkr_compatible)) then
-                    call self % debug_print('Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
+                    call self % debug_print(log_level_verbose, 'Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
                         '" due to not TKR compatible')
 
                     cycle
@@ -1383,6 +1417,9 @@ contains
             call mpas_pool_add_config(mpas_pool, trim(adjustl(var_info_list(i) % name) // ':packages'), '')
 
             ! Add "<variable name>" to stream.
+            call self % debug_print(log_level_verbose, 'Adding variable "' // trim(adjustl(var_info_list(i) % name)) // &
+                '" to stream "' // trim(adjustl(stream_name)) // '"')
+
             select case (trim(adjustl(var_info_list(i) % type)))
                 case ('character')
                     select case (var_info_list(i) % rank)
@@ -1559,7 +1596,6 @@ contains
 
         if (trim(adjustl(stream_mode)) == 'w' .or. trim(adjustl(stream_mode)) == 'write') then
             ! Add MPAS-specific attributes to stream.
-            call self % debug_print('Adding attributes to stream')
 
             ! Attributes related to MPAS core (i.e., `core_type`).
             call add_stream_attribute('conventions', self % domain_ptr % core % conventions)
@@ -1578,7 +1614,7 @@ contains
             call add_stream_attribute('y_period', self % domain_ptr % y_period)
         end if
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     contains
         !> Helper subroutine for adding a 0-d stream attribute by calling `mpas_writestreamatt` with error checking.
         !> (KCW, 2024-03-14)
@@ -1588,6 +1624,9 @@ contains
 
             character(*), intent(in) :: attribute_name
             class(*), intent(in) :: attribute_value
+
+            call self % debug_print(log_level_verbose, 'Adding attribute "' // trim(adjustl(attribute_name)) // &
+                '" to stream "' // trim(adjustl(stream_name)) // '"')
 
             select type (attribute_value)
                 type is (character(*))
@@ -1628,6 +1667,9 @@ contains
 
             character(*), intent(in) :: attribute_name
             class(*), intent(in) :: attribute_value(:)
+
+            call self % debug_print(log_level_verbose, 'Adding attribute "' // trim(adjustl(attribute_name)) // &
+                '" to stream "' // trim(adjustl(stream_name)) // '"')
 
             select type (attribute_value)
                 type is (integer)
@@ -1922,7 +1964,7 @@ contains
         type(field4dreal), pointer :: field_4d_real
         type(field5dreal), pointer :: field_5d_real
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(field_0d_char)
         nullify(field_1d_char)
@@ -2238,6 +2280,9 @@ contains
             return
         end if
 
+        call self % debug_print(log_level_verbose, 'Checking variable "' // trim(adjustl(var_info % name)) // &
+            '" for presence and TKR compatibility')
+
         do i = 1, size(var_name_list)
             ! Check if the variable is present on the file.
             ierr = pio_inq_varid(pio_file, trim(adjustl(var_name_list(i))), varid)
@@ -2294,11 +2339,11 @@ contains
             var_is_tkr_compatible(i) = .true.
         end do
 
-        call self % debug_print('var_name_list = ' // stringify(var_name_list))
-        call self % debug_print('var_is_present = ' // stringify(var_is_present))
-        call self % debug_print('var_is_tkr_compatible = ' // stringify(var_is_tkr_compatible))
+        call self % debug_print(log_level_debug, 'var_name_list = ' // stringify(var_name_list))
+        call self % debug_print(log_level_debug, 'var_is_present = ' // stringify(var_is_present))
+        call self % debug_print(log_level_debug, 'var_is_tkr_compatible = ' // stringify(var_is_tkr_compatible))
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_check_variable_status
 
     !-------------------------------------------------------------------------------
@@ -2336,7 +2381,7 @@ contains
         type(field5dreal), pointer :: field_5d_real
         type(mpas_pool_field_info_type) :: mpas_pool_field_info
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(field_1d_integer)
         nullify(field_2d_integer)
@@ -2347,7 +2392,7 @@ contains
         nullify(field_4d_real)
         nullify(field_5d_real)
 
-        call self % debug_print('Inquiring field information for "' // trim(adjustl(field_name)) // '"')
+        call self % debug_print(log_level_info, 'Inquiring field information for "' // trim(adjustl(field_name)) // '"')
 
         call mpas_pool_get_field_info(self % domain_ptr % blocklist % allfields, &
             trim(adjustl(field_name)), mpas_pool_field_info)
@@ -2360,12 +2405,13 @@ contains
 
         ! No halo layers to exchange. This field is not decomposed.
         if (mpas_pool_field_info % nhalolayers == 0) then
-            call self % debug_print('Skipping field "' // trim(adjustl(field_name)) // '"')
+            call self % debug_print(log_level_info, 'Skipping field "' // trim(adjustl(field_name)) // &
+                '" due to not decomposed')
 
             return
         end if
 
-        call self % debug_print('Exchanging halo layers for "' // trim(adjustl(field_name)) // '"')
+        call self % debug_print(log_level_info, 'Exchanging halo layers for "' // trim(adjustl(field_name)) // '"')
 
         select case (mpas_pool_field_info % fieldtype)
             case (mpas_pool_integer)
@@ -2480,7 +2526,7 @@ contains
                 call self % model_error('Unsupported field type (Must be one of: integer, real)', subname, __LINE__)
         end select
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_exchange_halo
 
     !-------------------------------------------------------------------------------
@@ -2518,7 +2564,7 @@ contains
         real(rkind), pointer :: east(:, :), north(:, :)
         type(mpas_pool_type), pointer :: mpas_pool
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(ncells)
         nullify(latcell, loncell)
@@ -2535,6 +2581,8 @@ contains
         ! Output.
         call self % get_variable_pointer(east, 'mesh', 'east')
         call self % get_variable_pointer(north, 'mesh', 'north')
+
+        call self % debug_print(log_level_info, 'Computing unit vectors')
 
         do i = 1, ncells
             east(1, i) = -sin(loncell(i))
@@ -2560,7 +2608,7 @@ contains
 
         nullify(mpas_pool)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_compute_unit_vector
 
     !-------------------------------------------------------------------------------
@@ -2596,7 +2644,7 @@ contains
         real(rkind), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
         real(rkind), pointer :: uedge(:, :)
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(nedges)
 
@@ -2640,6 +2688,12 @@ contains
             call self % get_variable_pointer(uedge, 'state', 'u', time_level=1)
         end if
 
+        if (wind_tendency) then
+            call self % debug_print(log_level_info, 'Computing edge-normal wind tendency vectors')
+        else
+            call self % debug_print(log_level_info, 'Computing edge-normal wind vectors')
+        end if
+
         do i = 1, nedges
             cell1 = cellsonedge(1, i)
             cell2 = cellsonedge(2, i)
@@ -2675,7 +2729,7 @@ contains
             call self % exchange_halo('u')
         end if
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_compute_edge_wind
 
     !-------------------------------------------------------------------------------
@@ -2725,7 +2779,7 @@ contains
         type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_time_type) :: mpas_time
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(initial_time_1, initial_time_2)
         nullify(xtime)
@@ -2758,9 +2812,10 @@ contains
         self % coupling_time_interval = coupling_time_interval
         self % number_of_time_steps = 0
 
-        call self % debug_print('Coupling time interval is ' // stringify([real(self % coupling_time_interval, rkind)]) // &
-            ' seconds')
-        call self % debug_print('Time step is ' // stringify([config_dt]) // ' seconds')
+        call self % debug_print(log_level_info, 'Coupling time interval is ' // &
+            stringify([real(self % coupling_time_interval, rkind)]) // ' seconds')
+        call self % debug_print(log_level_info, 'Time step is ' // &
+            stringify([config_dt]) // ' seconds')
 
         nullify(config_dt)
 
@@ -2768,7 +2823,7 @@ contains
         call mpas_constants_compute_derived()
 
         ! Set up OpenMP threading.
-        call self % debug_print('Setting up OpenMP threading')
+        call self % debug_print(log_level_info, 'Setting up OpenMP threading')
 
         call mpas_atm_threading_init(self % domain_ptr % blocklist, ierr=ierr)
 
@@ -2778,7 +2833,7 @@ contains
         end if
 
         ! Set up inner dimensions used by arrays in optimized dynamics subroutines.
-        call self % debug_print('Setting up dimensions')
+        call self % debug_print(log_level_info, 'Setting up dimensions')
 
         call self % get_variable_pointer(nvertlevels, 'dim', 'nVertLevels')
         call self % get_variable_pointer(maxedges, 'dim', 'maxEdges')
@@ -2809,7 +2864,7 @@ contains
 
         if (.not. config_do_restart) then
             ! Run type is initial run.
-            call self % debug_print('Initializing time levels')
+            call self % debug_print(log_level_info, 'Initializing time levels')
 
             call self % get_pool_pointer(mpas_pool, 'state')
 
@@ -2829,7 +2884,7 @@ contains
         ! Initialize atmospheric variables (e.g., momentum, thermodynamic... variables in governing equations)
         ! as well as various aspects of time in MPAS.
 
-        call self % debug_print('Initializing atmospheric variables')
+        call self % debug_print(log_level_info, 'Initializing atmospheric variables')
 
         ! Controlled by `config_start_time` in namelist.
         mpas_time = mpas_get_clock_time(self % domain_ptr % clock, mpas_start_time, ierr=ierr)
@@ -2893,7 +2948,7 @@ contains
             call self % model_error('Failed to exchange halo layers for group "initialization:pv_edge,ru,rw"', subname, __LINE__)
         end if
 
-        call self % debug_print('Initializing dynamics')
+        call self % debug_print(log_level_info, 'Initializing dynamics')
 
         ! Prepare dynamics for time integration.
         call mpas_atm_dynamics_init(self % domain_ptr)
@@ -2908,9 +2963,9 @@ contains
         call mpas_allocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
 
-        call self % debug_print('Successful initialization of MPAS dynamical core')
+        call self % debug_print(log_level_info, 'Successful initialization of MPAS dynamical core')
     contains
         !> Test if `a` is divisible by `b`, where `a` and `b` are both reals.
         !> (KCW, 2024-05-25)
@@ -2997,7 +3052,7 @@ contains
         type(mpas_time_type) :: mpas_time_end, mpas_time_now ! This derived type is analogous to `ESMF_Time`.
         type(mpas_timeinterval_type) :: mpas_time_interval   ! This derived type is analogous to `ESMF_TimeInterval`.
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(config_dt)
         nullify(mpas_pool_diag, mpas_pool_mesh, mpas_pool_state)
@@ -3019,7 +3074,7 @@ contains
             call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
         end if
 
-        call self % debug_print('Time integration of MPAS dynamical core begins at ' // trim(adjustl(date_time)))
+        call self % debug_print(log_level_info, 'Time integration of MPAS dynamical core begins at ' // trim(adjustl(date_time)))
 
         call mpas_set_timeinterval(mpas_time_interval, s=self % coupling_time_interval, ierr=ierr)
 
@@ -3056,7 +3111,7 @@ contains
                 call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
             end if
 
-            call self % debug_print('Time step ' // stringify([self % number_of_time_steps]) // ' completed')
+            call self % debug_print(log_level_info, 'Time step ' // stringify([self % number_of_time_steps]) // ' completed')
         end do
 
         call mpas_get_time(mpas_time_now, datetimestring=date_time, ierr=ierr)
@@ -3065,7 +3120,7 @@ contains
             call self % model_error('Failed to get time for "mpas_now"', subname, __LINE__)
         end if
 
-        call self % debug_print('Time integration of MPAS dynamical core ends at ' // trim(adjustl(date_time)))
+        call self % debug_print(log_level_info, 'Time integration of MPAS dynamical core ends at ' // trim(adjustl(date_time)))
 
         ! Compute diagnostic variables like `pressure`, `rho` and `theta` from time level 1 of MPAS `state` pool
         ! by calling upstream MPAS functionality.
@@ -3074,7 +3129,7 @@ contains
         nullify(config_dt)
         nullify(mpas_pool_diag, mpas_pool_mesh, mpas_pool_state)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_run
 
     !-------------------------------------------------------------------------------
@@ -3114,7 +3169,7 @@ contains
         integer :: ierr
         type(field2dreal), pointer :: field_2d_real
 
-        call self % debug_print(subname // ' entered')
+        call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(field_2d_real)
 
@@ -3130,6 +3185,8 @@ contains
         call mpas_deallocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
 
+        call self % debug_print(log_level_info, 'Finalizing dynamics')
+
         ! Opposite to `mpas_atm_dynamics_init`.
         call mpas_atm_dynamics_finalize(self % domain_ptr)
 
@@ -3142,6 +3199,8 @@ contains
 
         nullify(exchange_halo_group)
 
+        call self % debug_print(log_level_info, 'Cleaning up OpenMP threading')
+
         ! Opposite to `mpas_atm_threading_init`.
         call mpas_atm_threading_finalize(self % domain_ptr % blocklist, ierr=ierr)
 
@@ -3149,12 +3208,16 @@ contains
             call self % model_error('Failed to clean up OpenMP threading', subname, __LINE__)
         end if
 
+        call self % debug_print(log_level_info, 'Cleaning up clock')
+
         ! Opposite to `mpas_create_clock`, which was called by `atm_simulation_clock_init`, then `atm_setup_clock`.
         call mpas_destroy_clock(self % domain_ptr % clock, ierr=ierr)
 
         if (ierr /= 0) then
             call self % model_error('Failed to clean up clock', subname, __LINE__)
         end if
+
+        call self % debug_print(log_level_info, 'Cleaning up decompositions')
 
         ! Opposite to `mpas_decomp_create_decomp_list`, which was called by `atm_setup_decompositions`.
         call mpas_decomp_destroy_decomp_list(self % domain_ptr % decompositions)
@@ -3168,6 +3231,8 @@ contains
         ! Opposite to `mpas_timer_init`, which was called by `mpas_framework_init_phase2`.
         call mpas_timer_finalize(self % domain_ptr)
 
+        call self % debug_print(log_level_info, 'Cleaning up log')
+
         ! Opposite to `mpas_log_init`, which was called by `atm_setup_log`.
         call mpas_log_finalize(ierr)
 
@@ -3175,12 +3240,14 @@ contains
             call self % model_error('Failed to clean up log', subname, __LINE__)
         end if
 
+        call self % debug_print(log_level_info, 'Finalizing MPAS framework')
+
         ! Opposite to `mpas_framework_init_phase1` and `mpas_framework_init_phase2`.
         call mpas_framework_finalize(self % domain_ptr % dminfo, self % domain_ptr)
 
-        call self % debug_print(subname // ' completed')
+        call self % debug_print(log_level_debug, subname // ' completed')
 
-        call self % debug_print('Successful finalization of MPAS dynamical core')
+        call self % debug_print(log_level_info, 'Successful finalization of MPAS dynamical core')
 
         ! Second, clean up this MPAS dynamical core instance.
 
@@ -3198,6 +3265,7 @@ contains
         self % number_of_constituents = 0
 
         ! Initialized by `dyn_mpas_init_phase1`.
+        self % log_level = log_level_quiet
         self % log_unit = output_unit
         self % mpi_comm = mpi_comm_null
         self % mpi_rank = 0
@@ -3210,8 +3278,6 @@ contains
 
         nullify(self % corelist)
         nullify(self % domain_ptr)
-
-        self % debug_output = .false.
     end subroutine dyn_mpas_final
 
     !-------------------------------------------------------------------------------
@@ -3378,6 +3444,8 @@ contains
         integer, pointer :: nverticessolve_pointer
         integer, pointer :: nvertlevels_pointer
 
+        call self % debug_print(log_level_debug, subname // ' entered')
+
         nullify(ncells_pointer)
         nullify(ncellssolve_pointer)
         nullify(nedges_pointer)
@@ -3385,6 +3453,8 @@ contains
         nullify(nvertices_pointer)
         nullify(nverticessolve_pointer)
         nullify(nvertlevels_pointer)
+
+        call self % debug_print(log_level_info, 'Inquiring local mesh dimensions')
 
         call self % get_variable_pointer(ncells_pointer, 'dim', 'nCells')
         call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
@@ -3412,6 +3482,8 @@ contains
         nullify(nvertices_pointer)
         nullify(nverticessolve_pointer)
         nullify(nvertlevels_pointer)
+
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_get_local_mesh_dimension
 
     !-------------------------------------------------------------------------------
@@ -3447,11 +3519,15 @@ contains
         integer, pointer :: nverticessolve_pointer
         integer, pointer :: nvertlevels_pointer
 
+        call self % debug_print(log_level_debug, subname // ' entered')
+
         nullify(maxedges_pointer)
         nullify(ncellssolve_pointer)
         nullify(nedgessolve_pointer)
         nullify(nverticessolve_pointer)
         nullify(nvertlevels_pointer)
+
+        call self % debug_print(log_level_info, 'Inquiring global mesh dimensions')
 
         call self % get_variable_pointer(maxedges_pointer, 'dim', 'maxEdges')
         call self % get_variable_pointer(ncellssolve_pointer, 'dim', 'nCellsSolve')
@@ -3477,6 +3553,8 @@ contains
         nullify(nedgessolve_pointer)
         nullify(nverticessolve_pointer)
         nullify(nvertlevels_pointer)
+
+        call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_get_global_mesh_dimension
 
     !> Helper subroutine for returning a pointer of `mpas_pool_type` to the named pool.
