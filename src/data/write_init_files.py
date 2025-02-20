@@ -878,7 +878,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         else:
             # if initial value is assigned, then it can be ignored
             if var_stdname in vars_init_value:
-                call_str = f"write(iulog,*) '{var_locname} already has an initial_value; it also cannot be read from file: {reason}'" # debug
+                call_str = f"if(masterproc) write(iulog,*) '{var_locname} already has an initial_value, using it now. It also cannot be read from file: {reason}'"
             else:
                 call_str = f"call endrun('Cannot read {var_locname} from file'" + \
                 f"//', {reason}')"
@@ -1059,7 +1059,6 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Generate "read_field" calls:
     outfile.comment("Read variable from IC file:", 6)
-    outfile.comment("Variables with initial_value defined: " + ";".join(vars_init_value), 6)
     outfile.blank_line()
     outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 6)
     for case_call, read_call in call_string_dict.items():

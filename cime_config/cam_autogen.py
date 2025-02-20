@@ -386,7 +386,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         os.makedirs(genreg_dir)
         do_gen_registry = True
     # End if
-    if do_gen_registry or True:
+    if do_gen_registry:
         for reg_file in registry_files:
             retvals = gen_registry(reg_file, dycore, genreg_dir,
                                    gen_fort_indent, source_mods_dir, atm_root,

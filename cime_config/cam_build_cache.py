@@ -258,6 +258,9 @@ class BuildCacheCAM:
                             stdname = item.get('standard_name')
                             itext = clean_xml_text(item)
                             self.__constituents.append(itext)
+                        elif item.tag == 'vars_init_value_entry':
+                            itext = clean_xml_text(item)
+                            self.__vars_init_value.append(itext)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -412,6 +415,9 @@ class BuildCacheCAM:
             const_entry = ET.SubElement(registry, 'constituent_entry')
             const_entry.text = stdname
         # end for
+        for stdname in self.__vars_init_value:
+            var_entry = ET.SubElement(registry, 'vars_init_value_entry')
+            var_entry.text = stdname
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')
         for sfile in self.__sdfs.values():
