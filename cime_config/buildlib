@@ -130,13 +130,13 @@ def _build_cam():
         if case.get_value("COMP_INTERFACE") == "nuopc":
             paths.append(os.path.join(__CIMEROOT, "src", "drivers",
                                       "nuopc", "nuopc_cap_share"))
-        # End with
+        # End if
 
         # Write Filepath text file
         with open(filepath_src, "w", encoding='utf-8') as filepath:
             filepath.write("\n".join(paths))
             filepath.write("\n")
-        # End if
+        # End with
 
         # Move Filepath to the bld directory unless it has not changed
         if os.path.isfile(filepath_dst):
