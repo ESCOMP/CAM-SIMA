@@ -12,8 +12,8 @@ import subprocess
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
-from atm_musica_config import musica_repo_url, musica_tag
-from atm_musica_config import chemistry_data_repo_url, chemistry_data_tag
+from atm_musica_config import MUSICA_REPO_URL, MUSICA_TAG
+from atm_musica_config import CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG
 
 # Check for the CIME library, and add it
 # to the python path:
@@ -254,7 +254,7 @@ def _build_musica_library(case: Case) -> None:
     install_dir_name = "install"
     build_type = "Release"
     caseroot = os.path.normpath(case.get_value("CASEROOT"))
-    _clone_and_checkout(musica_repo_url, musica_tag, caseroot)
+    _clone_and_checkout(MUSICA_REPO_URL, MUSICA_TAG, caseroot)
 
     bld_path = os.path.join(caseroot, "musica", "build")
     if os.path.exists(bld_path):
@@ -269,8 +269,8 @@ def _build_musica_library(case: Case) -> None:
         "cmake",
         f"-DCMAKE_INSTALL_PREFIX={install_dir_name}",
         f"-DCMAKE_BUILD_TYPE={build_type}",
-        f"-DMUSICA_ENABLE_TESTS=OFF",
-        f"-DMUSICA_BUILD_FORTRAN_INTERFACE=ON",
+        "-DMUSICA_ENABLE_TESTS=OFF",
+        "-DMUSICA_BUILD_FORTRAN_INTERFACE=ON",
         ".."
     ]
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -324,7 +324,7 @@ def _download_musica_configuration(download_dest: str) -> None:
     """
     musica_config_dir_name = "musica_configurations"
 
-    _clone_and_checkout(chemistry_data_repo_url, chemistry_data_tag, download_dest)
+    _clone_and_checkout(CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG, download_dest)
 
     original_dir = os.path.join(download_dest, "cam-sima-chemistry-data", "mechanisms")
     renamed_dir = os.path.join(download_dest, "cam-sima-chemistry-data", musica_config_dir_name)
