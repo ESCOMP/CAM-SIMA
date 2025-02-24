@@ -341,7 +341,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, [], ["air_pressure_at_sea_level"], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, ic_names, [], vars_init_value, _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,

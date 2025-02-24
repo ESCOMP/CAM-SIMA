@@ -48,8 +48,7 @@ _MAX_LINE_LEN = 200
 ##############
 
 def write_init_files(cap_database, ic_names, registry_constituents, vars_init_value,
-                     outdir,
-                     file_find_func, source_paths, indent, logger,
+                     outdir, file_find_func, source_paths, indent, logger,
                      phys_check_filename=None, phys_input_filename=None):
 
     """
