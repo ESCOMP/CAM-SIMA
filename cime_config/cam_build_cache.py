@@ -227,6 +227,7 @@ class BuildCacheCAM:
         self.__reg_gen_files = []
         self.__ic_names = {}
         self.__constituents = []
+        self.__vars_init_value = []
         if os.path.exists(build_cache):
             # Initialize build cache state
             _, cache = read_xml_file(build_cache)
@@ -257,6 +258,9 @@ class BuildCacheCAM:
                             stdname = item.get('standard_name')
                             itext = clean_xml_text(item)
                             self.__constituents.append(itext)
+                        elif item.tag == 'vars_init_value_entry':
+                            itext = clean_xml_text(item)
+                            self.__vars_init_value.append(itext)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
@@ -318,7 +322,7 @@ class BuildCacheCAM:
         # end if
 
     def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, reg_file_list, ic_names, constituents):
+                        dycore, reg_file_list, ic_names, constituents, vars_init_value):
         """Replace the registry cache data with input data
         """
         self.__dycore = dycore
@@ -334,6 +338,7 @@ class BuildCacheCAM:
         # and should already be of type dict:
         self.__ic_names = ic_names
         self.__constituents = constituents
+        self.__vars_init_value = vars_init_value
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
                     xml_files, namelist_meta_files, namelist_groups,
@@ -410,6 +415,9 @@ class BuildCacheCAM:
             const_entry = ET.SubElement(registry, 'constituent_entry')
             const_entry.text = stdname
         # end for
+        for stdname in self.__vars_init_value:
+            var_entry = ET.SubElement(registry, 'vars_init_value_entry')
+            var_entry.text = stdname
         # CCPP
         ccpp = ET.SubElement(new_cache, 'CCPP')
         for sfile in self.__sdfs.values():
@@ -616,6 +624,10 @@ class BuildCacheCAM:
     def constituents(self):
         """Return a copy of the registry constituents list"""
         return list(self.__constituents)
+
+    def vars_init_value(self):
+        """Return a copy of the list of variables with initial_value"""
+        return list(self.__vars_init_value)
 
 #############
 # End of file

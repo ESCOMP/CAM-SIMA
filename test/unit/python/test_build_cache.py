@@ -427,9 +427,12 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
 
         constituents = ['cnst_1', 'cnst_2']
 
+        vars_init_value = ["Only_had_a_brain"]
+
         #Update registry fields:
         test_cache.update_registry(tmp_test_reg, [tmp_test_reg],
-                                   dycore, [tmp_test_reg], ic_names, constituents)
+                                   dycore, [tmp_test_reg], ic_names, constituents,
+                                   vars_init_value)
 
         #Write updated fields to build cache file:
         test_cache.write()

@@ -392,7 +392,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
                                    gen_fort_indent, source_mods_dir, atm_root,
                                    logger=_LOGGER, schema_paths=data_search,
                                    error_on_no_validate=True)
-            retcode, reg_file_list, ic_names, registry_constituents = retvals
+            retcode, reg_file_list, ic_names, registry_constituents, vars_init_value = retvals
             # Raise error if gen_registry failed:
             if retcode != 0:
                 emsg = "ERROR:Unable to generate CAM data structures from {}, err = {}"
@@ -406,15 +406,16 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         # Save build details in the build cache
         reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
-                                    reg_file_paths, ic_names, registry_constituents)
+                                    reg_file_paths, ic_names, registry_constituents, vars_init_value)
     else:
         # If we did not run the registry generator, retrieve info from cache
         reg_file_paths = build_cache.reg_file_list()
         ic_names = build_cache.ic_names()
         registry_constituents = build_cache.constituents()
+        vars_init_value = build_cache.vars_init_value()
     # End if
 
-    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents
+    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents, vars_init_value
 
 ###############################################################################
 def generate_physics_suites(build_cache, preproc_defs, host_name,
@@ -659,7 +660,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
                            source_mods_dir, gen_fort_indent,
-                           cap_database, ic_names, registry_constituents):
+                           cap_database, ic_names, registry_constituents,
+                           vars_init_value):
 ###############################################################################
     """
     Generate the host model initialization source code files
@@ -697,7 +699,7 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
         #   within write_init_files (so that write_init_files can be the place
         #   where the source include files are stored).
         source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_init_files(cap_database, ic_names, registry_constituents,
+        retmsg = write_init_files(cap_database, ic_names, registry_constituents, vars_init_value,
                                   init_dir, _find_file, source_paths,
                                   gen_fort_indent, _LOGGER)
 

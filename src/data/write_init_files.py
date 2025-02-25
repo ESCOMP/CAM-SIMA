@@ -47,8 +47,8 @@ _MAX_LINE_LEN = 200
 #Main function
 ##############
 
-def write_init_files(cap_database, ic_names, registry_constituents, outdir,
-                     file_find_func, source_paths, indent, logger,
+def write_init_files(cap_database, ic_names, registry_constituents, vars_init_value,
+                     outdir, file_find_func, source_paths, indent, logger,
                      phys_check_filename=None, phys_input_filename=None):
 
     """
@@ -239,7 +239,8 @@ def write_init_files(cap_database, ic_names, registry_constituents, outdir,
 
         # Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
-                                   phys_check_fname_str, constituent_set)
+                                   phys_check_fname_str, constituent_set,
+                                   vars_init_value)
 
         outfile.blank_line()
 
@@ -810,7 +811,8 @@ def get_dimension_info(hvar):
     return vdim_name, legal_dims, fail_reason
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
-                               phys_check_fname_str, constituent_set):
+                               phys_check_fname_str, constituent_set,
+                               vars_init_value):
 
     """
     Write the "physics_read_data" subroutine, which
@@ -866,10 +868,20 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
             if levnm is not None:
                 call_str += f"'{levnm}', "
             # end if
-            call_str += f"timestep, {var_locname})"
+            err_on_not_found_string = ""
+            if var_stdname in vars_init_value:
+                # if initial value is available, do not throw error when not found in initial condition file.
+                err_on_not_found_string = ", error_on_not_found=.false."
+            # end if
+            call_str += f"timestep, {var_locname}{err_on_not_found_string})"
         else:
-            call_str = f"call endrun('Cannot read {var_locname} from file'" + \
+            # if initial value is assigned, then it can be ignored
+            if var_stdname in vars_init_value:
+                call_str = f"if(masterproc) write(iulog,*) '{var_locname} already has an initial_value, using it now. It also cannot be read from file: {reason}'"
+            else:
+                call_str = f"call endrun('Cannot read {var_locname} from file'" + \
                 f"//', {reason}')"
+            # end if
         # end if
 
         # Add string to dictionary:

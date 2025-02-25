@@ -1758,6 +1758,30 @@ def _create_constituent_list(registry):
     # end for
     return constituent_list
 
+###############################################################################
+def _create_variables_with_initial_value_list(registry):
+###############################################################################
+    """
+    Create a list of all variables with initial_value defined in the registry.
+    To be used by write_init_files.py to allow these variables to
+    not error when not found in the initial conditions file.
+    """
+    vars_init_value_list = []
+    for section in registry:
+        if section.tag == 'file':
+            for obj in section:
+                if obj.tag == 'variable':
+                    for subobj in obj:
+                        if subobj.tag == 'initial_value':
+                            stdname = obj.get('standard_name')
+                            vars_init_value_list.append(stdname)
+                        # end if (only if initial_value node is found)
+                    # end for
+                # end if (ignore other node types)
+            # end for
+        # end if (ignore other node types)
+    # end for
+    return vars_init_value_list
 
 ###############################################################################
 def gen_registry(registry_file, dycore, outdir, indent,
@@ -1767,7 +1791,7 @@ def gen_registry(registry_file, dycore, outdir, indent,
     """Parse a registry XML file and generate source code and metadata.
     <dycore> is the name of the dycore for DP coupling specialization.
     <config> is a dictionary containing other configuration items for
-       souce code customization.
+       source code customization.
     Source code and metadata is output to <outdir>.
     <src_mod> is the location of the builds SourceMods/src.cam directory
     <src_root> is the top of the component tree
@@ -1819,7 +1843,8 @@ def gen_registry(registry_file, dycore, outdir, indent,
         retcode = 1
         files = None
         ic_names = None
-        constituents = None
+        registry_constituents = None
+        vars_init_value = None
     else:
         library_name = registry.get('name')
         emsg = f"Parsing registry, {library_name}"
@@ -1830,9 +1855,10 @@ def gen_registry(registry_file, dycore, outdir, indent,
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
         registry_constituents = _create_constituent_list(registry)
+        vars_init_value = _create_variables_with_initial_value_list(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, registry_constituents
+    return retcode, files, ic_names, registry_constituents, vars_init_value
 
 def main():
     """Function to execute when module called as a script"""
