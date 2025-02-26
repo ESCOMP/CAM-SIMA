@@ -4,6 +4,6 @@ and install the MUSICA library, as well as to download the MUSICA configuration.
 """
 
 MUSICA_REPO_URL = "https://github.com/NCAR/musica.git"
-MUSICA_TAG = "802bc9041f964a7edd5ec896bec8cdc0c90de50b"
+MUSICA_TAG = "cc39bb00d2220fc81c85b22d3ceea4a39bd2bacf"
 CHEMISTRY_DATA_REPO_URL = "https://github.com/NCAR/cam-sima-chemistry-data.git"
 CHEMISTRY_DATA_TAG = "b81cbc2e61c41ecd2d09167d6736daf1bf1be149"
