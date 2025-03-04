@@ -1,3 +1,5 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
 module stepon
     implicit none
 

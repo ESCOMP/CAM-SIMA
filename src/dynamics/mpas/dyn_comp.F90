@@ -1,3 +1,5 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
 module dyn_comp
     ! Module(s) from MPAS.
     use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type
