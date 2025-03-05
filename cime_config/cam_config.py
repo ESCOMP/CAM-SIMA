@@ -868,7 +868,7 @@ class ConfigCAM:
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
                                           force_ccpp)
-        phys_dirs, force_init, _, nml_fils, capgen_db = retvals
+        phys_dirs, force_init, _, nml_fils, capgen_db, scheme_names = retvals
 
         # Add namelist definition files to dictionary:
         for nml_fil in nml_fils:
@@ -898,6 +898,9 @@ class ConfigCAM:
         # write out the cache here as we have completed pre-processing
         #--------------------------------------------------------------
         build_cache.write()
+
+        #Return the set of all scheme names present in the SDFs:
+        return scheme_names
 
     #++++++++++++++++++++++++
 

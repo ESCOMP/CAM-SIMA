@@ -166,7 +166,7 @@ def buildnml(case, caseroot, compname):
     gen_indent = 3
 
     #Generate model code and meta-data:
-    config.generate_cam_src(gen_indent)
+    _ = config.generate_cam_src(gen_indent)
 
     #----------------------------------------------------------------
     # Create namelist attribute dictionary (to set namelist defaults):

@@ -12,6 +12,7 @@ import subprocess
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
+from atm_musica_config import MUSICA_CCPP_SCHEME_NAME
 from atm_musica_config import MUSICA_REPO_URL, MUSICA_TAG
 from atm_musica_config import CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG
 
@@ -76,7 +77,7 @@ def _build_cam():
         # Re-run source generator in case registry, CCPP suites, or
         # generator scripts have been modified, and
         # to extract required source code paths:
-        config.generate_cam_src(gen_indent)
+        scheme_names = config.generate_cam_src(gen_indent)
 
         dycore = config.get_value('dyn')
         phys_suites = config.get_value('physics_suites')
@@ -173,7 +174,7 @@ def _build_cam():
                 cmd += " OPTIONAL_MPAS_FEATURES=\"" + " ".join(optional_mpas_features) + "\""
 
         # If the physics suite is MUSICA, build the MUSICA library and get configuration
-        if phys_suites == "musica":
+        if MUSICA_CCPP_SCHEME_NAME in scheme_names:
             _build_musica_library(case)
             _download_musica_configuration(caseroot)
 

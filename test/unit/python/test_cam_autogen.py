@@ -580,7 +580,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         expected_results = ([f'{self.test_bldroot}'+os.sep+'ccpp_physics',
                              f'{self.test_bldroot}'+os.sep+'ccpp'], False,
                              f'{self.test_bldroot}'+os.sep+'ccpp'+os.sep+'ccpp_datatable.xml',
-                             [], None)
+                             [], None, {"temp_adjust"})
 
         #Run physics suite generation function:
         gen_results = generate_physics_suites(self.test_cache, "UNSET", "cam", "simple",

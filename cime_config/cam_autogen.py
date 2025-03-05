@@ -452,6 +452,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # Find the SDFs specified for this model build
     sdfs = []
     scheme_files = []
+    scheme_names = set()
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
         sdf_path = _find_file(f"suite_{sdf}.xml", suite_search)
@@ -467,6 +468,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         # Given an SDF, find all the schemes it calls
         _, suite = read_xml_file(sdf_path)
         sdf_schemes = _find_schemes_in_sdf(suite)
+        #Add schemes to set of all scheme names:
+        scheme_names.update(sdf_schemes)
         # For each scheme, find its metadata file
         for scheme in sdf_schemes:
             if scheme in all_scheme_files:
@@ -655,7 +658,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # End if
 
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file,       \
-        xml_files.values(), capgen_db
+        xml_files.values(), capgen_db, scheme_names
 
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
