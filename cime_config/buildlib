@@ -80,7 +80,6 @@ def _build_cam():
         scheme_names = config.generate_cam_src(gen_indent)
 
         dycore = config.get_value('dyn')
-        phys_suites = config.get_value('physics_suites')
         reg_dir = config.get_value('reg_dir')
         init_dir = config.get_value('init_dir')
         phys_dirs_str = config.get_value('phys_dirs')
@@ -173,17 +172,18 @@ def _build_cam():
             if len(optional_mpas_features) > 0:
                 cmd += " OPTIONAL_MPAS_FEATURES=\"" + " ".join(optional_mpas_features) + "\""
 
-        # If the physics suite is MUSICA, build the MUSICA library and get configuration
+        # If MUSICA-CCPP scheme is used in a suite, download
+        # the MUSICA configuration and build the MUSICA library
         if MUSICA_CCPP_SCHEME_NAME in scheme_names:
-            _build_musica_library(case)
             _download_musica_configuration(caseroot)
+            musica_install_path = _build_musica_library(caseroot)
 
             cmd += ' USER_INCLDIR="'\
-                    f'-I{os.path.join(bldroot, "musica", "include", "micm")} '\
-                    f'-I{os.path.join(bldroot, "musica", "include", "musica")} '\
-                    f'-I{os.path.join(bldroot, "musica", "include", "musica", "micm")} '\
-                    f'-I{os.path.join(bldroot, "musica", "include", "musica", "tuvx")} '\
-                    f'-I{os.path.join(bldroot, "musica", "include", "musica", "fortran")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "micm")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "micm")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "tuvx")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "fortran")} '\
                     '"'
 
         retcode, out, err = run_cmd(cmd)
@@ -243,39 +243,39 @@ def _copy2_as_needed(src: str, dst: str) -> None:
                 shutil.copy2(src, dst)
 
 ###############################################################################
-def _build_musica_library(case: Case) -> None:
+def _build_musica_library(clone_dest: str) -> str:
 ###############################################################################
     """
     Builds and installs the MUSICA library.
 
     Args:
-        case (Case)
+        clone_dest: destination where the repository will be cloned
 
     Raises:
         Exception: If configuring the CMake MUSICA project fails or
             the MUSICA library build fails, an exception is raised.
 
+    Returns:
+        str: path to the MUSICA installation directory
     """
-    install_dir_name = "install"
-    build_type = "Release"
-    caseroot = os.path.normpath(case.get_value("CASEROOT"))
-    _clone_and_checkout(MUSICA_REPO_URL, MUSICA_TAG, caseroot)
+    _clone_and_checkout(MUSICA_REPO_URL, MUSICA_TAG, clone_dest)
 
-    bld_path = os.path.join(caseroot, "musica", "build")
+    bld_path = os.path.join(clone_dest, "musica", "build")
     if os.path.exists(bld_path):
         shutil.rmtree(bld_path)
     os.makedirs(bld_path)
 
-    # To install the target, the working directory must be the build directory.
+    # To install the target, the working directory must be the build (CMake binary) directory.
     current_dir = os.getcwd()
     os.chdir(bld_path)
 
+    install_dir = "install"
     command = [
         "cmake",
-        f"-DCMAKE_INSTALL_PREFIX={install_dir_name}",
-        f"-DCMAKE_BUILD_TYPE={build_type}",
-        "-DMUSICA_ENABLE_TESTS=OFF",
-        "-DMUSICA_BUILD_FORTRAN_INTERFACE=ON",
+        f"-D CMAKE_INSTALL_PREFIX={install_dir}",
+        "-D CMAKE_BUILD_TYPE=Release",
+        "-D MUSICA_ENABLE_TESTS=OFF",
+        "-D MUSICA_BUILD_FORTRAN_INTERFACE=ON",
         ".."
     ]
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
@@ -287,30 +287,11 @@ def _build_musica_library(case: Case) -> None:
     if result.returncode != 0:
         raise Exception(f"Unable to build the MUSICA library. Error: {result.stderr}")
 
-    # Create symlinks pointing to the MUSICA libraries in the ATM build directory
-    atm_bld_root = os.path.join(case.get_value("EXEROOT"), "atm", "obj")
-    musica_lib_root = os.path.join(atm_bld_root, "musica", "lib")
-    os.makedirs(musica_lib_root, exist_ok=True)
-
-    installed_lib_path = os.path.join(bld_path, install_dir_name, "lib64")
-    root, _, files = next(os.walk(installed_lib_path, topdown=True))
-    for file in files:
-        symlink_force(os.path.join(root, file), os.path.join(musica_lib_root, file))
-
-    # Create symlinks pointing to the MUSICA include files in the ATM build directory
-    musica_include_root = os.path.join(atm_bld_root, "musica", "include")
-    os.makedirs(musica_include_root, exist_ok=True)
-
-    installed_include_path = os.path.join(bld_path, install_dir_name, "include")
-    for root, _, files in os.walk(installed_include_path):
-        rel_path = os.path.relpath(root, installed_include_path)
-        dest_dir = os.path.join(musica_include_root, rel_path)
-
-        os.makedirs(dest_dir, exist_ok=True)
-        for file in files:
-            symlink_force(os.path.join(root, file), os.path.join(dest_dir, file))
-
     os.chdir(current_dir)
+
+    musica_install_path = os.path.join(bld_path, install_dir)
+
+    return musica_install_path
 
 ###############################################################################
 def _download_musica_configuration(download_dest: str) -> None:
@@ -320,7 +301,7 @@ def _download_musica_configuration(download_dest: str) -> None:
     directory to match the name in the MUSICA-CCPP configuration.
 
     Args:
-        download_dest: destination where configuration will be downloaded.
+        download_dest: destination where configuration will be downloaded
 
     Raises:
         Exception: If the directory to be renamed is not found or
@@ -351,7 +332,7 @@ def _download_musica_configuration(download_dest: str) -> None:
     shutil.move(renamed_dir, download_dest)
 
 ###############################################################################
-def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str):
+def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
 ###############################################################################
     """
     Clones a Git repository from the URL and checks out a specific branch.
@@ -359,7 +340,7 @@ def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str):
     Args:
         repo_url: The URL of the Git repository to clone
         tag_name: The tag name to check out
-        clone_dest: destination where the repository will be cloned.
+        clone_dest: destination where the repository will be cloned
 
     Raises:
         Exception: If the `git clone` or `git checkout` commands fail,

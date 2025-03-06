@@ -75,12 +75,12 @@ ENV ESMFMKFILE=/usr/local/lib/esmf.mk
 RUN /home/cam_sima_user/CAM-SIMA/cime/scripts/create_newcase --case $CASE_NAME \
     --compset FPHYStest --res ne5_ne5_mg37 --run-unsupported
 
-WORKDIR $CASE_NAME 
+WORKDIR $CASE_NAME
 
 RUN ./case.setup
 
 RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites musica"
-RUN ./xmlchange CAM_LINKED_LIBS="-L/home/cam_sima_user/scratch/test-case/bld/atm/obj/musica/lib -lmusica-fortran -lmusica -lyaml-cpp"
+RUN ./xmlchange CAM_LINKED_LIBS="-L/home/cam_sima_user/case_name/test-case/musica/build/install/lib64 -lmusica-fortran -lmusica -lyaml-cpp"
 RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5
