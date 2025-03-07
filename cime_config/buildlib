@@ -271,10 +271,6 @@ def _build_musica(clone_dest: str) -> str:
         shutil.rmtree(bld_path)
     os.makedirs(bld_path)
 
-    # To install the target, the working directory must be the build (CMake binary) directory.
-    current_dir = os.getcwd()
-    os.chdir(bld_path)
-
     install_dir = "install"
     command = [
         "cmake",
@@ -285,8 +281,8 @@ def _build_musica(clone_dest: str) -> str:
         ".."
     ]
     try:
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                       text=True, check=False)
+        subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
             for cmake to configure the MUSICA CMake project failed.") from e
@@ -297,8 +293,8 @@ def _build_musica(clone_dest: str) -> str:
 
     command = ["cmake", "--build", ".", "--target", "install"]
     try:
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                       text=True, check=False)
+        subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
             for cmake to build the MUSICA library failed.") from e
@@ -307,7 +303,6 @@ def _build_musica(clone_dest: str) -> str:
     except OSError as e:
         raise OSError("An error occurred while executing the 'cmake' command.") from e
 
-    os.chdir(current_dir)
     musica_install_path = os.path.join(bld_path, install_dir)
 
     return musica_install_path
@@ -366,9 +361,6 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
             an exception is raised with the error message.
     """
 
-    current_dir = os.getcwd()
-    os.chdir(caseroot)
-
     unlock_file("env_build.xml", caseroot)
 
     command = [
@@ -379,8 +371,8 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
         f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} -lmusica-fortran -lmusica -lyaml-cpp"
     ]
     try:
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                       text=True, check=False)
+        subprocess.run(command, cwd=caseroot, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
             for xmlchange to set the MUSICA library path failed.") from e
@@ -388,8 +380,6 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
         raise FileNotFoundError("The 'xmlchange' command was not found.") from e
     except OSError as e:
         raise OSError("An error occurred while executing the 'xmlchange' command.") from e
-
-    os.chdir(current_dir)
 
     lock_file("env_build.xml", caseroot)
 
