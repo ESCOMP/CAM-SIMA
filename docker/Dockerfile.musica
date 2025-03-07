@@ -80,7 +80,6 @@ WORKDIR $CASE_NAME
 RUN ./case.setup
 
 RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites musica"
-RUN ./xmlchange CAM_LINKED_LIBS="-L/home/cam_sima_user/case_name/test-case/musica/build/install/lib64 -lmusica-fortran -lmusica -lyaml-cpp"
 RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5

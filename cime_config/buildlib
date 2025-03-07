@@ -26,7 +26,7 @@ sys.path.append(os.path.join(__CIMEROOT, "CIME", "Tools"))
 #pylint: disable=wrong-import-position
 # CIME imports
 from CIME.case import Case
-from CIME.utils import run_cmd, expect, symlink_force
+from CIME.utils import run_cmd, expect
 from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
@@ -176,7 +176,12 @@ def _build_cam():
         # the MUSICA configuration and build the MUSICA library
         if MUSICA_CCPP_SCHEME_NAME in scheme_names:
             _download_musica_configuration(caseroot)
-            musica_install_path = _build_musica_library(caseroot)
+            musica_install_path = _build_musica(caseroot)
+
+            cam_linked_libs = case.get_value("CAM_LINKED_LIBS")
+            musica_libs = "-lmusica-fortran -lmusica -lyaml-cpp"
+            if not musica_libs in cam_linked_libs:
+                _set_musica_lib_path(musica_install_path, caseroot)
 
             cmd += ' USER_INCLDIR="'\
                     f'-I{os.path.join(musica_install_path, "include", "micm")} '\
@@ -243,7 +248,7 @@ def _copy2_as_needed(src: str, dst: str) -> None:
                 shutil.copy2(src, dst)
 
 ###############################################################################
-def _build_musica_library(clone_dest: str) -> str:
+def _build_musica(clone_dest: str) -> str:
 ###############################################################################
     """
     Builds and installs the MUSICA library.
@@ -256,7 +261,7 @@ def _build_musica_library(clone_dest: str) -> str:
             the MUSICA library build fails, an exception is raised.
 
     Returns:
-        str: path to the MUSICA installation directory
+        musica_install_path: path to the MUSICA installation directory
     """
     _clone_and_checkout(MUSICA_REPO_URL, MUSICA_TAG, clone_dest)
 
@@ -288,7 +293,6 @@ def _build_musica_library(clone_dest: str) -> str:
         raise Exception(f"Unable to build the MUSICA library. Error: {result.stderr}")
 
     os.chdir(current_dir)
-
     musica_install_path = os.path.join(bld_path, install_dir)
 
     return musica_install_path
@@ -316,12 +320,12 @@ def _download_musica_configuration(download_dest: str) -> None:
     renamed_dir = os.path.join(download_dest, "cam-sima-chemistry-data", musica_config_dir_name)
     try:
         os.rename(original_dir, renamed_dir)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"The directory '{original_dir}' was not found.")
-    except FileExistsError:
-        raise FileExistsError(f"The destination directory '{renamed_dir}' already exists.")
-    except PermissionError:
-        raise PermissionError(f"Permission denied to rename '{original_dir}'.")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"The directory '{original_dir}' was not found. Error: {e}")
+    except FileExistsError as e:
+        raise FileExistsError(f"The destination directory '{renamed_dir}' already exists. Error: {e}")
+    except PermissionError as e:
+        raise PermissionError(f"Permission denied to rename '{original_dir}'. Error: {e}")
     except OSError as e:
         raise OSError(f"An error occurred while renaming: {e}")
 
@@ -332,14 +336,53 @@ def _download_musica_configuration(download_dest: str) -> None:
     shutil.move(renamed_dir, download_dest)
 
 ###############################################################################
+def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
+###############################################################################
+    """
+    Sets the MUSICA libraries path to CAM_LINKED_LIBS, allowing the libraries
+    to be linked during the CESM build process.
+
+    Args:
+        musica_install_path: path to the MUSICA installation directory
+        caseroot: CASEROOT where the xmlchange command is located
+
+    Raises:
+        Exception: If the subprocess for the xmlchange command fails,
+            an exception is raised with the error message.
+    """
+
+    current_dir = os.getcwd()
+    os.chdir(caseroot)
+
+    command = [
+        "./xmlchange",
+        "--append",
+        # The libraries must be on the same line because CIME flags an
+        # error for multi-character arguments preceded by a single dash
+        f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} -lmusica-fortran -lmusica -lyaml-cpp"
+    ]
+    try:
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, check=False)
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(f"The subprocess for xmlchange \
+            to set the MUSICA library path failed with an error.: {e}")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"The 'xmlchange' command was not found: {e}")
+    except OSError as e:
+        raise OSError(f"An error occurred while running 'xmlchange' command: {e}")
+
+    os.chdir(current_dir)
+
+###############################################################################
 def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
 ###############################################################################
     """
     Clones a Git repository from the URL and checks out a specific branch.
 
     Args:
-        repo_url: The URL of the Git repository to clone
-        tag_name: The tag name to check out
+        repo_url: URL of the Git repository to clone
+        tag_name: tag name to check out
         clone_dest: destination where the repository will be cloned
 
     Raises:
