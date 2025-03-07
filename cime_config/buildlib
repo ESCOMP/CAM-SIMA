@@ -31,6 +31,7 @@ from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
 from CIME.Tools.standard_script_setup import check_minimum_python_version
+from CIME.locked_files import lock_file, unlock_file
 #pylint: enable=wrong-import-position
 
 check_minimum_python_version(3, 7) #CAM requires version 3.7 or greater
@@ -368,6 +369,8 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
     current_dir = os.getcwd()
     os.chdir(caseroot)
 
+    unlock_file("env_build.xml", caseroot)
+
     command = [
         "./xmlchange",
         "--append",
@@ -387,6 +390,8 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
         raise OSError("An error occurred while executing the 'xmlchange' command.") from e
 
     os.chdir(current_dir)
+
+    lock_file("env_build.xml", caseroot)
 
 ###############################################################################
 def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
