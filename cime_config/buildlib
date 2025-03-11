@@ -291,6 +291,11 @@ def _build_musica(clone_dest: str) -> str:
     except OSError as e:
         raise OSError("An error occurred while executing the 'cmake' command.") from e
 
+    # The installation requires the current working directory to be the build (CMake binary) directory.
+    # Using the cwd option in subprocess.run does not work.
+    current_dir = os.getcwd()
+    os.chdir(bld_path)
+
     command = ["cmake", "--build", ".", "--target", "install"]
     try:
         subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
@@ -302,6 +307,8 @@ def _build_musica(clone_dest: str) -> str:
         raise FileNotFoundError("The 'cmake' command was not found.") from e
     except OSError as e:
         raise OSError("An error occurred while executing the 'cmake' command.") from e
+
+    os.chdir(current_dir)
 
     musica_install_path = os.path.join(bld_path, install_dir)
 
