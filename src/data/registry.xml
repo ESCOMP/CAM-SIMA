@@ -137,6 +137,87 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>frontga pbuf_frontga</ic_file_input_names>
     </variable>
+    <!-- State quantities for shallow/deep convection -->
+    <variable local_name="qpert"
+              standard_name="convective_water_vapor_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>qpert pbuf_qpert</ic_file_input_names>
+    </variable>
+    <variable local_name="cmfmc"
+              standard_name="atmosphere_convective_mass_flux_due_to_all_convection"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cmfmc tphysbc_cmfmc</ic_file_input_names>
+    </variable>
+    <variable local_name="cmfmc_dp"
+              standard_name="atmosphere_convective_mass_flux_due_to_deep_convection"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cmfmc_dp pbuf_CMFMC_DP</ic_file_input_names>
+    </variable>
+    <variable local_name="cmfmc_sh"
+              standard_name="atmosphere_convective_mass_flux_due_to_shallow_convection"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cmfmc_sh pbuf_CMFMC_SH</ic_file_input_names>
+    </variable>
+    <variable local_name="dlfzm"
+              standard_name="detrainment_of_cloud_liquid_water_wrt_moist_air_and_condensed_water_due_to_deep_convection"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dlfzm pbuf_DLFZM</ic_file_input_names>
+    </variable>
+    <variable local_name="dlf"
+              standard_name="detrainment_of_cloud_liquid_water_wrt_moist_air_and_condensed_water_due_to_all_convection"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dlf tphysbc_dlf</ic_file_input_names>
+    </variable>
+    <variable local_name="dlf2"
+              standard_name="detrainment_of_cloud_liquid_water_wrt_moist_air_and_condensed_water_due_to_shallow_convection"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dlf2 tphysbc_dlf2</ic_file_input_names>
+    </variable>
+    <variable local_name="rprddp"
+              standard_name="tendency_of_precipitation_wrt_moist_air_and_condensed_water_due_to_deep_convection_excluding_subcloud_evaporation"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_RPRDDP</ic_file_input_names>
+    </variable>
+    <variable local_name="rliq"
+              standard_name="vertically_integrated_cloud_liquid_water_tendency_due_to_all_convection_to_be_applied_later_in_time_loop"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>rliq tphysbc_rliq</ic_file_input_names>
+    </variable>
+    <variable local_name="rliq2"
+              standard_name="vertically_integrated_cloud_liquid_water_tendency_due_to_shallow_convection_to_be_applied_later_in_time_loop"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>rliq2 tphysbc_rliq2</ic_file_input_names>
+    </variable>
     <!-- State helper values -->
     <variable local_name="lnpmid" standard_name="ln_air_pressure"
               units="1" type="real" kind="kind_phys"
@@ -498,15 +579,46 @@
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
     </variable>
+    <variable local_name="icefrac"
+              standard_name="sea_ice_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>icefrac cam_in_icefrac</ic_file_input_names>
+    </variable>
+    <variable local_name="snowhland"
+              standard_name="lwe_surface_snow_depth_over_land"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>snowhland cam_in_snowhland</ic_file_input_names>
+    </variable>
+    <variable local_name="sst"
+              standard_name="sea_surface_temperature"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <!-- FIXME: this is a temporary initialization to allow CAM4/CAM7 suites to run standalone,
+           while SSTs are not being provided from another Earth system component. -->
+      <initial_value>273.15_kind_phys</initial_value>
+      <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
+    </variable>
 
-    <!-- Zhang McFarlane (ZM) Variables -->
+    <!-- Temporary initializations from snapshot -->
+    <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
     <variable local_name="pblh"
               standard_name="atmosphere_boundary_layer_thickness"
               units="m" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
+      <!-- FIXME: this is a temporary initialization to allow CAM4/CAM7 suites to run standalone,
+           while a PBL scheme is unavailable. -->
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pblh pbuf_pblh</ic_file_input_names>
     </variable>
     <variable local_name="tpert"
@@ -514,8 +626,36 @@
               units="K" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
+
+    <!-- Cloud fraction variables - need to be kept in the CAM registry -->
+    <variable local_name="top_lev_cloudphys"
+              standard_name="vertical_layer_index_of_cloud_fraction_top"
+              units="index" type="integer">
+      <long_name>vertical layer index for top of cloud area fraction schemes</long_name>
+      <initial_value>1</initial_value>
+    </variable>
+
+    <!-- Shallow convection variables - need to be kept in the CAM registry -->
+    <variable local_name="convect_shallow_use_shfrc"
+              standard_name="flag_for_cloud_area_fraction_to_use_shallow_convection_calculated_cloud_area_fraction"
+              units="flag" type="logical">
+      <long_name>should cloud fraction use shallow convection calculated convective cloud area fraction</long_name>
+      <!-- only true for UW and UNICON shallow schemes. set by scheme init. -->
+      <initial_value>.false.</initial_value>
+    </variable>
+    <variable local_name="shfrc"
+              standard_name="shallow_convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- only used if use_shfrc is .true. -->
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+
+    <!-- Zhang McFarlane (ZM) Variables -->
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1" type="real" kind="kind_phys"

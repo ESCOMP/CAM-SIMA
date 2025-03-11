@@ -1,0 +1,33 @@
+! these are QPC4 snapshots and require custom physical constant definitions.
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne5np4_hack_convect_shallow_snapshot_derecho_gnu_before_c20250220.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne5np4_hack_convect_shallow_snapshot_derecho_gnu_after_c20250220.nc'
+
+pver = 26
+user_defined_cpwv       = 1.846e3
+user_defined_gravit     = 9.79764
+user_defined_mwdry      = 28.96623324623746
+user_defined_mwh2o      = 18.01618112892741
+user_defined_rearth     = 6.37100e6
+user_defined_sday       = 86164.10063718943
+
+zmconv_c0_lnd          =  0.0035D0
+zmconv_c0_ocn          =  0.0035D0
+zmconv_capelmt         =  70.0
+zmconv_dmpdz           =  -1.0E-3
+zmconv_ke              =  5.0E-6
+zmconv_ke_lnd          =  3.0E-6
+zmconv_momcd           =  0.4000D0
+zmconv_momcu           =  0.4000D0
+zmconv_num_cin         =  5
+zmconv_parcel_pbl              = .false.
+zmconv_tau             =  3600.0
+zmconv_tiedke_add              =  0.5
+
+! snapshot is sourced from SE dycore
+hkconv_c0 = 1.0e-4
+
+! history fields for CAM4 Hack shallow convection
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1: CMFDT,CMFDQ,CMFDLIQ,CMFDICE,CMFDQR,DQP,ICWMRSH,CMFSL,CMFLQ,FREQSH,EVAPTCM,FZSNTCM,EVSNTCM,HKNTPRPD,HKNTSNPD,HKFLXPRC,HKFLXSNW,HKEIHEAT,EVAPQCM,PRECSH,CMFMCSH,CMFMC,CLDTOP,CLDBOT,PCLDTOP,PCLDBOT,ZMDLF,SHDLF
+hist_precision;h1: REAL64

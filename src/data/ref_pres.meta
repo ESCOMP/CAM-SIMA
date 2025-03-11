@@ -35,7 +35,7 @@
   dimensions = ()
   protected = True
 [ trop_cloud_top_lev ]
-  standard_name = vertical_layer_index_of_troposphere_cloud_top
+  standard_name = vertical_layer_index_of_troposphere_cloud_physics_top
   units = index
   type = integer
   dimensions = ()
