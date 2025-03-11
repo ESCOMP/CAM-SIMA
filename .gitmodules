@@ -19,10 +19,10 @@
         fxDONOTUSEurl = https://github.com/MPAS-Dev/MPAS-Model.git
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
-	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = 37224423f62d9a71922cb6fe9beca1516d9403a4
+	url           = https://github.com/boulderdaze/atmospheric_physics
+	fxtag         = fix_musica_bug
         fxrequired    = AlwaysRequired
-        fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
+        fxDONOTUSEurl = https://github.com/boulderdaze/atmospheric_physics
 [submodule "ccs_config"]
         path          = ccs_config
         url           = https://github.com/ESMCI/ccs_config_cesm.git
