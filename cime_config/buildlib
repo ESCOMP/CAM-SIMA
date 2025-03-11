@@ -298,8 +298,8 @@ def _build_musica(clone_dest: str) -> str:
 
     command = ["cmake", "--build", ".", "--target", "install"]
     try:
-        subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE, text=True, check=False)
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, check=False)
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
             for cmake to build the MUSICA library failed.") from e
