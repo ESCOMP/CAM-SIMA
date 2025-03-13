@@ -248,6 +248,16 @@ CONTAINS
       ! Read tropopause climatology
       call tropopause_climo_read_file()
 
+      ! Temporary:  Prescribe realistic but inaccurate physical quantities
+      ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
+      !
+      ! Remove this when MUSICA input data are available from CAM-SIMA or
+      ! other physics schemes.
+      call musica_ccpp_dependencies_init(columns_on_task, pver, iulog)
+
+      ! Initialize orbital data
+      call orbital_data_init(columns_on_task)
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -260,16 +270,6 @@ CONTAINS
       !    call scm_intht()
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
-
-      ! Temporary:  Prescribe realistic but inaccurate physical quantities
-      ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
-      !
-      ! Remove this when MUSICA input data are available from CAM-SIMA or
-      ! other physics schemes.
-      call musica_ccpp_dependencies_init(columns_on_task, pver, iulog)
-
-      ! Initialize orbital data
-      call orbital_data_init(columns_on_task)
 
    end subroutine cam_init
 
