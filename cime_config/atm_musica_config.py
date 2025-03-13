@@ -7,4 +7,4 @@ MUSICA_CCPP_SCHEME_NAME = "musica_ccpp"
 MUSICA_REPO_URL = "https://github.com/NCAR/musica.git"
 MUSICA_TAG = "cc39bb00d2220fc81c85b22d3ceea4a39bd2bacf"
 CHEMISTRY_DATA_REPO_URL = "https://github.com/NCAR/cam-sima-chemistry-data.git"
-CHEMISTRY_DATA_TAG = "2b58f2410ec7a565bcf80dee16ec20f6bc35d78b"
+CHEMISTRY_DATA_TAG = "b575c8232b85ab99e810274e5e1e9fce97d84bc2" # temp
