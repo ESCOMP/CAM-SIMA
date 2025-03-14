@@ -118,7 +118,8 @@ contains
      character(len=*),  intent(in)    :: varname         !variable name
 
      !Output variables:
-     real(kind_phys), intent(out)     :: var(:)          !Variable that file data will be read to.
+     real(kind_phys), intent(out)     :: var(..)         !Variable that file data will be read to.
+                                                         !Note that it is assumed-rank variable
      integer,  intent(out)            :: errcode         !Error code
      character(len=*), intent(out)    :: errmsg          !Error message
 
@@ -127,26 +128,47 @@ contains
      integer :: var_id         ! NetCDF variable ID
      !----------------------
 
+     !Initialize output variable to "bad" value:
+     select rank (var)
+        rank (0)
+           var      = huge(1._kind_phys)
+        rank (1)
+           var(:)   = huge(1._kind_phys)
+        rank (2)
+           var(:,:) = huge(1._kind_phys)
+        rank default
+           errcode  = 3
+           errmsg   = "Unsupported rank for variable '"//varname//"'"
+           return
+     end select
+
      !Force PIO to send an error code instead of dying:
      call pio_seterrorhandling(pio_file_handle, PIO_BCAST_ERROR, oldmethod=err_handling)
 
      !Look for variable on file:
      errcode = pio_inq_varid(pio_file_handle, varname, var_id)
      if (errcode /= PIO_NOERR) then
-        errcode = 3 !Make sure error code is non-zero
+        errcode = 4 !Make sure error code is non-zero
         errmsg  = "Failed to find '"//varname//"' in "//file_path
-        var(:)  = huge(1._kind_phys)
         !Reset PIO back to original error handling method:
         call pio_seterrorhandling(pio_file_handle, err_handling)
         return
      end if
 
-     !If found, then attempt to read-in the NetCDF data:
-     errcode = pio_get_var(pio_file_handle, var_id, var)
+     !Now attempt to read-in the NetCDF data:
+     select rank (var)
+        rank (0)
+           errcode = pio_get_var(pio_file_handle, var_id, var)
+        rank (1)
+           errcode = pio_get_var(pio_file_handle, var_id, var(:))
+        rank (2)
+           errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+        !No default needed as it was already checked above.
+     end select
+
      if (errcode /= PIO_NOERR) then
-        errcode = 4 !Make sure error code is non-zero
+        errcode = 5 !Make sure error code is non-zero
         errmsg  = "Failed to read '"//varname//"' from "//file_path
-        var(:)  = huge(1._kind_phys)
         !Reset PIO back to original error handling method:
         call pio_seterrorhandling(pio_file_handle, err_handling)
         return
