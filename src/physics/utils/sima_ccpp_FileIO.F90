@@ -12,13 +12,93 @@ module sima_ccpp_FileIO
   private
   save
 
+  public :: sima_get_netcdf_dim
   public :: sima_get_netcdf_var
 
 !==============================================================================
 contains
 !==============================================================================
 
-   subroutine sima_get_netcdf_var(pio_file_handle, varname, var, errcode, errmsg)
+   subroutine sima_get_netcdf_dim(pio_file_handle, file_path, dimname, errcode, errmsg, dimlen)
+
+     !Check for and then read a NetCDF dimension length
+     !into the provided output variable using SIMA's
+     !I/O system (PIO).
+
+     use pio, only: file_desc_t
+     use pio, only: pio_inq_dimid
+     use pio, only: pio_seterrorhandling
+     use pio, only: pio_inq_dimlen
+     use pio, only: PIO_NOERR
+     use pio, only: PIO_BCAST_ERROR
+
+     !----------------------
+     !Input variables:
+     type(file_desc_t), intent(inout) :: pio_file_handle !File ID type used by PIO
+     character(len=*),  intent(in)    :: file_path       !Path to NetCDF file
+     character(len=*),  intent(in)    :: dimname         !variable name
+
+     !Output variables:
+     integer, intent(out), optional   :: dimlen          !Dimension length
+     integer, intent(out)             :: errcode         !Error code
+     character(len=*), intent(out)    :: errmsg          !Error message
+
+     !Local variables:
+     integer :: err_handling   ! PIO error handling code
+     integer :: dim_id         ! NetCDF dimension ID
+     !----------------------
+
+     !Check if output vaiable was requested,
+     !if not then just return with passing
+     !error code.
+     if(.not.present(dimlen)) then
+       errcode = 0
+       errmsg  = ''
+       return
+     end if
+
+     !Force PIO to send an error code instead of dying:
+     call pio_seterrorhandling(pio_file_handle, PIO_BCAST_ERROR, oldmethod=err_handling)
+
+     !Look for dimension on file:
+     errcode = pio_inq_dimid(pio_file_handle, dimname, dim_id)
+     if(errcode /= PIO_NOERR) then
+        errcode = 1 !Make sure error code is non-zero
+        errmsg = "Failed to find '"//dimname//"' in "//file_path
+        if(present(dimlen)) then
+          dimlen = -1
+        end if
+        !Reset PIO back to original error handling method:
+        call pio_seterrorhandling(pio_file_handle, err_handling)
+        return
+     end if
+
+     !Find dimension size/length if requested:
+     if(present(dimlen)) then
+        errcode = pio_inq_dimlen(pio_file_handle, dim_id, dimlen)
+        if (errcode /= PIO_NOERR) then
+           errcode = 2 !Make sure error code is non-zero
+           errmsg  = "Failed to failed '"//dimname//"' length in "//file_path
+           dimlen  = -1
+           !Reset PIO back to original error handling method:
+           call pio_seterrorhandling(pio_file_handle, err_handling)
+           return
+        end if
+     end if
+
+     !Reset PIO back to original error handling method:
+     call pio_seterrorhandling(pio_file_handle, err_handling)
+
+     !Variable was successfully read, so properly set the error
+     !code and message:
+     errcode = 0
+     errmsg  = ''
+
+   end subroutine sima_get_netcdf_dim
+
+   !+++++++++++++++++++++++++++++++++++++
+
+   subroutine sima_get_netcdf_var(pio_file_handle, file_path, varname, var, errcode, errmsg)
 
      !Check for and then read a NetCDF variable into the provided
      !output variable using SIMA's I/O system (PIO).
@@ -34,6 +114,7 @@ contains
      !----------------------
      !Input variables:
      type(file_desc_t), intent(inout) :: pio_file_handle !File ID type used by PIO
+     character(len=*),  intent(in)    :: file_path       !Path to NetCDF file
      character(len=*),  intent(in)    :: varname         !variable name
 
      !Output variables:
@@ -52,8 +133,8 @@ contains
      !Look for variable on file:
      errcode = pio_inq_varid(pio_file_handle, varname, var_id)
      if (errcode /= PIO_NOERR) then
-        errcode = 1 !Make sure error code is non-zero
-        errmsg  = "Failed to find '"//varname//"' in NetCDF file."
+        errcode = 3 !Make sure error code is non-zero
+        errmsg  = "Failed to find '"//varname//"' in "//file_path
         var(:)  = huge(1._kind_phys)
         !Reset PIO back to original error handling method:
         call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -63,8 +144,8 @@ contains
      !If found, then attempt to read-in the NetCDF data:
      errcode = pio_get_var(pio_file_handle, var_id, var)
      if (errcode /= PIO_NOERR) then
-        errcode = 2 !Make sure error code is non-zero
-        errmsg  = "Failed to read '"//varname//"' from NetCDF file."
+        errcode = 4 !Make sure error code is non-zero
+        errmsg  = "Failed to read '"//varname//"' from "//file_path
         var(:)  = huge(1._kind_phys)
         !Reset PIO back to original error handling method:
         call pio_seterrorhandling(pio_file_handle, err_handling)
