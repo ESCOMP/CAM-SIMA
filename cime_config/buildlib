@@ -10,6 +10,7 @@ import filecmp
 import shutil
 import subprocess
 import logging
+import json
 
 from cam_config import ConfigCAM # CAM's configure structure
 from atm_musica_config import MUSICA_CCPP_SCHEME_NAME
@@ -176,7 +177,9 @@ def _build_cam():
         # If MUSICA-CCPP scheme is used in a suite, download
         # the MUSICA configuration and build the MUSICA library
         if MUSICA_CCPP_SCHEME_NAME in scheme_names:
-            _download_musica_configuration(caseroot)
+            musica_config_path = _download_musica_configuration(caseroot)
+            _prepend_caseroot_to_config(musica_config_path, caseroot)
+
             musica_install_path = _build_musica(caseroot)
 
             cam_linked_libs = case.get_value("CAM_LINKED_LIBS")
@@ -308,7 +311,7 @@ def _build_musica(clone_dest: str) -> str:
     return musica_install_path
 
 ###############################################################################
-def _download_musica_configuration(download_dest: str) -> None:
+def _download_musica_configuration(download_dest: str) -> str:
 ###############################################################################
     """
     Downloads the MUSICA configuration and renames the configuration
@@ -321,6 +324,8 @@ def _download_musica_configuration(download_dest: str) -> None:
         Exception: If the directory to be renamed is not found or
             any other exceptions occur during the renaming process,
             an exception is raised with the error message.
+    Returns:
+        musica_config_path: path to the MUSICA configuration directory
     """
     musica_config_dir_name = "musica_configurations"
 
@@ -344,6 +349,8 @@ def _download_musica_configuration(download_dest: str) -> None:
         shutil.rmtree(musica_config_path)
 
     shutil.move(renamed_dir, download_dest)
+
+    return musica_config_path
 
 ###############################################################################
 def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
@@ -425,6 +432,60 @@ def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
         raise FileNotFoundError("The 'git' command was not found.") from e
     except OSError as e:
         raise OSError("An error occurred while executing the 'git' command.") from e
+
+###############################################################################
+def _prepend_caseroot_to_config(musica_config_path: str, caseroot: str) -> None:
+###############################################################################
+    """
+    Prepends the $CASEROOT path to the TUV-x data file path to make it an absolute path
+
+    Args:
+        musica_config_path: path to the MUSICA configuration directory
+        caseroot: $CASEROOT path
+    """
+    entries = os.listdir(musica_config_path)
+    directories = [entry for entry in entries if os.path.isdir(os.path.join(musica_config_path, entry))]
+
+    for directory in directories:
+        tuvx_config =  os.path.join(musica_config_path, directory, "tuvx/config.json")
+        tuvx_config_original = os.path.join(musica_config_path, directory, "tuvx/config_original.json")
+
+        with open(tuvx_config, 'r') as infile:
+            data = json.load(infile)
+
+        modified_data = _modify_json_values(data, caseroot)
+
+        shutil.move(tuvx_config, tuvx_config_original)
+
+        with open(tuvx_config, 'w') as outfile:
+            json.dump(modified_data, outfile, indent=4)
+
+###############################################################################
+def _modify_json_values(data, caseroot: str):
+###############################################################################
+    """
+    Recursively traverses the JSON data to update the value by prepending the
+    $CASEROOT path to the file path
+
+    Args:
+        data: Python dictionary, list or string
+        caseroot: $CASEROOT path
+
+    Returns:
+        data: the modified value if "musica_configurations" is found,
+            otherwise, the value remains unchanged
+    """
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = _modify_json_values(value, caseroot)
+    elif isinstance(data, list):
+        for i in range(len(data)):
+            data[i] = _modify_json_values(data[i], caseroot)
+    elif isinstance(data, str):
+        if "musica_configurations" in data:
+            return os.path.join(caseroot, data)
+
+    return data
 
 ###############################################################################
 
