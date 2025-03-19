@@ -1,4 +1,4 @@
-! Copyright (C) 2024 National Science Foundation-National Center for Atmospheric Research
+! Copyright (C) 2024-2025 National Science Foundation-National Center for Atmospheric Research
 ! SPDX-License-Identifier: Apache-2.0
 module musica_ccpp_dependencies
   !--------------------------------------------------------------------------
@@ -14,7 +14,6 @@ module musica_ccpp_dependencies
   !--------------------------------------------------------------------------
   
     use ccpp_kinds,  only: kind_phys
-    use cam_logfile, only: iulog
   
     implicit none
     private
@@ -34,10 +33,11 @@ module musica_ccpp_dependencies
     ! local parameters
     character(len=*), parameter :: module_name = '(musica_ccpp_dependencies)'
   
-      !> Definition of musica species object
+    !> Definition of temporary MUSICA species object
+    !! Use the CAM-SIMA unit (kg kg-1) to avoid unit converison
     type, private :: temp_musica_species_t
       character(len=:), allocatable :: name
-      real(kind_phys)               :: constituent_value = 0.0_kind_phys
+      real(kind_phys)               :: constituent_value = 0.0_kind_phys ! kg kg-1
     end type temp_musica_species_t
   
     interface temp_musica_species_t
@@ -48,7 +48,7 @@ module musica_ccpp_dependencies
   contains
   !==============================================================================
   
-    !> Constructor for temporary musica species object
+    !> Constructor for temporary MUSICA species object
     function species_constructor(name, value) result( this )
       character(len=*), intent(in) :: name
       real(kind_phys),  intent(in)  :: value
@@ -59,51 +59,49 @@ module musica_ccpp_dependencies
   
     end function species_constructor
   
-    !> Constructor for temporary musica species object
-    subroutine initialize_musica_species_constituents(&
-        constituents_properties, constituents_array)
+    !> Initialize MUSICA species constituents
+    subroutine initialize_musica_species_constituents(constituents_properties, &
+                                                      constituents_array)
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use ccpp_const_utils,          only: ccpp_const_get_idx
+      use cam_logfile,               only: iulog
       use musica_ccpp_namelist,      only: filename_of_micm_configuration
-      ! use phys_vars_init_check, only: mark_as_initialized
-      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
 
-      type(ccpp_constituent_prop_ptr_t), pointer     :: constituents_properties(:)
-      real(kind_phys),                   pointer     :: constituents_array(:,:,:)
-  
-      character(len=*), parameter :: chapman_config = 'chapman'
-      character(len=*), parameter :: terminator_config = 'terminator'
-      logical                     :: is_chapman = .false.
-      logical                     :: is_terminator = .false.
-      integer                     :: num_micm_species = 0
-      integer                     :: num_tuvx_constituents = 1
-      integer                     :: num_tuvx_only_gas_species = 0
-      integer                     :: position
-      integer                     :: constituent_index
-      integer                     :: errcode
-      character(len=512)          :: errmsg
-      integer                     :: i_elem
-  
-      type(temp_musica_species_t),       allocatable :: species_group(:)
+      type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
+      real(kind_phys),                   pointer :: constituents_array(:,:,:)
+
+      ! local variables
+      type(temp_musica_species_t), allocatable :: species_group(:)
+      character(len=*), parameter              :: chapman_config = 'chapman'
+      character(len=*), parameter              :: terminator_config = 'terminator'
+      logical                                  :: is_chapman = .false.
+      logical                                  :: is_terminator = .false.
+      integer                                  :: num_micm_species = 0
+      integer                                  :: num_tuvx_constituents = 1
+      integer                                  :: num_tuvx_only_gas_species = 0
+      integer                                  :: errcode
+      character(len=512)                       :: errmsg
+      integer                                  :: position
+      integer                                  :: constituent_index
+      integer                                  :: i_elem
 
       if (.not. associated(constituents_properties)) then
-        write(iulog,*) "   [JW] .not. associated(constituent_properties) "
+        write(iulog,*) "Error: constituents_properties is not associated."
         return
       end if
 
       ! Check if the substring exists
       position = index(filename_of_micm_configuration, chapman_config)
-  
       if (position > 0) then
         is_chapman = .true.
-        write(iulog,*) "   [JW] Config is Chapman "
+        write(iulog,*) "Using the Chapman configuriation for MUSICA."
       else
         position = index(filename_of_micm_configuration, terminator_config)
         if (position > 0) then
           is_terminator = .true.
-          write(iulog,*) "   [JW] Config is Terminator "
+          write(iulog,*) "Using the Terminator configuriation for MUSICA."
         else
-          write(iulog,*) "   [JW] Config is not found"
+          write(iulog,*) "Error: the MUSICA configuration is not found."
           return
         end if
       end if
@@ -117,57 +115,49 @@ module musica_ccpp_dependencies
       end if
 
       allocate (species_group(num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species))
-      ! TODO(jiwon) have to conver to cam-sima unit [mol m-3]
-      species_group(1) = species_constructor("cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water", &
-                          1.0e-3_kind_phys)
+
+      species_group(1) = species_constructor(&
+          "cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water", 1.0e-3_kind_phys)
+
       if (is_chapman) then   
         species_group(2) = species_constructor("O2", 0.21_kind_phys)
-        species_group(3) = species_constructor("O", 1.0e-9_kind_phys)
-        species_group(4) = species_constructor("O1D", 1.0e-9_kind_phys)
-        species_group(5) = species_constructor("O3", 1.0e-4_kind_phys)
+        species_group(3) = species_constructor("O", 0.42_kind_phys)
+        species_group(4) = species_constructor("O1D", 1.0e-12_kind_phys)
+        species_group(5) = species_constructor("O3", 4.0e-6_kind_phys)
         species_group(6) = species_constructor("N2", 0.79_kind_phys)
         species_group(7) = species_constructor("air", 1.0e-3_kind_phys)
   
       else if (is_terminator) then
-        species_group(2) = species_constructor("Cl", 1.05e-4_kind_phys)
-        species_group(3) = species_constructor("Cl2", 1.05e-4_kind_phys)
+        species_group(2) = species_constructor("Cl", 1.0e-12_kind_phys)
+        species_group(3) = species_constructor("Cl2", 1.0e-12_kind_phys)
         species_group(4) = species_constructor("air", 1.0e-3_kind_phys)
         species_group(5) = species_constructor("O2", 0.21_kind_phys)
-        species_group(6) = species_constructor("O3", 1.0e-4_kind_phys)
+        species_group(6) = species_constructor("O3", 4.0e-6_kind_phys)
       end if
 
       do i_elem = 1, num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species
-        write(iulog,*) "   [JW] Calling ccpp_const_get_idx "
         call ccpp_const_get_idx(constituents_properties, trim(species_group(i_elem)%name), &
                                 constituent_index, errmsg, errcode)
 
         constituents_array(:,:,constituent_index) = species_group(i_elem)%constituent_value
-        ! call mark_as_initialized(trim(species_group(i_elem)%name))
-        ! call mark_as_initialized("Cl")
-        ! call mark_as_initialized("Cl2")
-        ! call mark_as_initialized("air")
-        ! call mark_as_initialized("O2")
-        ! call mark_as_initialized("O3")
 
-        write(iulog,*) "   [JW] species_group(i_elem)%name ", trim(species_group(i_elem)%name)
-        write(iulog,*) "   [JW] constituent_index ", constituent_index
-        write(iulog,*) "   [JW] constituent value ", species_group(i_elem)%constituent_value
         if (errcode /= 0) then 
-          write(iulog,*) "   [JW] ccpp_const_get_idx error occurs: ", errmsg
+          write(iulog,*) "Error in finding the index for the speices ", trim(species_group(i_elem)%name)
+          write(iulog,*) "Error: ", errmsg
           return
         end if
-  
       end do
 
       deallocate (species_group)
+
     end subroutine initialize_musica_species_constituents
   
     !> Constructor for temporary musica species object
     subroutine musica_ccpp_dependencies_init(horizontal_dimension, &
         vertical_layer_dimension, log_file_unit, &
-        cam_model_const_properties, cam_constituents_array)
+        constituents_properties, constituents_array)
   
-      use cam_abortutils,       only: check_allocate
+      use cam_abortutils,            only: check_allocate
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
 
       !-----------------------------------------------------------------------
@@ -176,27 +166,22 @@ module musica_ccpp_dependencies
       !
       !-----------------------------------------------------------------------
   
-      integer, intent(in) :: horizontal_dimension
-      integer, intent(in) :: vertical_layer_dimension
-      integer, intent(in) :: log_file_unit
+      integer, intent(in)                        :: horizontal_dimension
+      integer, intent(in)                        :: vertical_layer_dimension
+      integer, intent(in)                        :: log_file_unit
+      type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
+      real(kind_phys),                   pointer :: constituents_array(:,:,:)
 
-      type(ccpp_constituent_prop_ptr_t), pointer :: cam_model_const_properties(:)
-      real(kind_phys),                   pointer :: cam_constituents_array(:,:,:)
-
-      integer :: error_code
+      ! local variables
+      integer                     :: error_code
       character(len=*), parameter :: subroutine_name = &
           trim(module_name)//':(musica_ccpp_dependencies_init)'
 
-  
-      write(log_file_unit,*) '   [JG] Calling initialize_musica_species_constituents.'
-      call initialize_musica_species_constituents(&
-          cam_model_const_properties, cam_constituents_array)
-  
-      write(log_file_unit,*) '   [JG] Read O2, 7 indices - cam_constituents_array.'
-      write(log_file_unit,*) '   [JG] ', cam_constituents_array(1,1,7)
-
       write(log_file_unit,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
-  
+
+      call initialize_musica_species_constituents(constituents_properties, &
+                                                  constituents_array)
+
       allocate(photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension), &
                stat=error_code)
       call check_allocate(error_code, subroutine_name, &

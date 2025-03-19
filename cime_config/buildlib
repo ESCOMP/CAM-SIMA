@@ -455,7 +455,7 @@ def _prepend_caseroot_to_config(musica_config_path: str, caseroot: str) -> None:
 
         modified_data = _modify_json_values(data, caseroot)
 
-        shutil.move(tuvx_config, tuvx_config_original)
+        os.remove(tuvx_config)
 
         with open(tuvx_config, 'w') as outfile:
             json.dump(modified_data, outfile, indent=4)
