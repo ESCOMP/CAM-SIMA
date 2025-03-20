@@ -99,6 +99,8 @@ CONTAINS
       use stepon,                    only: stepon_init
       use air_composition,           only: air_composition_init
       use cam_ccpp_cap,              only: cam_ccpp_initialize_constituents
+      use cam_ccpp_cap,              only: cam_model_const_properties
+      use cam_ccpp_cap,              only: cam_constituents_array
       use physics_grid,              only: columns_on_task
       use vert_coord,                only: pver
       use phys_vars_init_check,      only: mark_as_initialized
