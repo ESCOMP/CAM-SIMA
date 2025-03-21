@@ -35,8 +35,10 @@ from cam_config import ConfigCAM
 # HistoryConfig allows translation from user_nl_cam into Fortran namelists
 from hist_config import HistoryConfig
 
-#Import CAM's ParamGen class:
+# Import CAM's ParamGen class:
 from atm_in_paramgen import AtmInParamGen
+# Import specific names associated with the MUSICA scheme
+from atm_musica_config import MUSICA_CCPP_SCHEME_NAME, MUSICA_CONFIG_DIR_NAME
 
 # Open CIME case log:
 _LOGGER = logging.getLogger(__name__)
@@ -166,7 +168,7 @@ def buildnml(case, caseroot, compname):
     gen_indent = 3
 
     #Generate model code and meta-data:
-    _ = config.generate_cam_src(gen_indent)
+    scheme_names = config.generate_cam_src(gen_indent)
 
     #----------------------------------------------------------------
     # Create namelist attribute dictionary (to set namelist defaults):
@@ -376,6 +378,19 @@ def buildnml(case, caseroot, compname):
             # end for
         # end with
 
+        # If MUSICA-CCPP scheme is used in a suite, copy the MUSICA
+        # configuration data to the run directory
+        if MUSICA_CCPP_SCHEME_NAME in scheme_names:
+            musica_config_src_dir = os.path.join(caseroot, MUSICA_CONFIG_DIR_NAME)
+            musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
+
+            if not os.path.exists(musica_config_src_dir):
+                emsg = f"The directory '{MUSICA_CONFIG_DIR_NAME}' doesn't exit. The directory \
+                        must be located in the caseroot if the ATM library build is successful."
+                raise CamBuildnmlError(emsg)
+
+            shutil.copytree(musica_config_src_dir, musica_config_dest_dir,
+                            dirs_exist_ok=False)
 
 ###############################################################################
 def _main_func():
