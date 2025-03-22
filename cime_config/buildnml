@@ -22,7 +22,7 @@ from CIME.Tools.standard_script_setup import *
 from CIME.XML.standard_module_setup   import *
 from CIME.buildnml                    import create_namelist_infile, parse_input
 from CIME.case                        import Case
-from CIME.utils                       import expect
+from CIME.utils                       import expect, symlink_force
 
 # Save local (cime_config) directory path:
 _CIME_CONFIG_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -378,8 +378,8 @@ def buildnml(case, caseroot, compname):
             # end for
         # end with
 
-        # If MUSICA-CCPP scheme is used in a suite, copy the MUSICA
-        # configuration data to the run directory
+        # If MUSICA-CCPP scheme is used in a suite, create symlinks in the run
+        # directory pointing to the MUSICA configuration data in the caseroot
         if MUSICA_CCPP_SCHEME_NAME in scheme_names:
             musica_config_src_dir = os.path.join(caseroot, MUSICA_CONFIG_DIR_NAME)
             musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
@@ -389,8 +389,14 @@ def buildnml(case, caseroot, compname):
                         must be located in the caseroot if the ATM library build is successful."
                 raise CamBuildnmlError(emsg)
 
-            shutil.copytree(musica_config_src_dir, musica_config_dest_dir,
-                            dirs_exist_ok=False)
+            os.makedirs(musica_config_dest_dir, exist_ok=True)
+            for root, _, files in os.walk(musica_config_src_dir):
+                rel_path = os.path.relpath(root, musica_config_src_dir)
+                dest_dir = os.path.join(musica_config_dest_dir, rel_path)
+
+                os.makedirs(dest_dir, exist_ok=True)
+                for file in files:
+                    symlink_force(os.path.join(root, file), os.path.join(dest_dir, file))
 
 ###############################################################################
 def _main_func():
