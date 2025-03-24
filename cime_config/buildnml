@@ -379,7 +379,7 @@ def buildnml(case, caseroot, compname):
         # end with
 
         # If MUSICA-CCPP scheme is used in a suite, create symlinks in the run
-        # directory pointing to the MUSICA configuration data in the caseroot
+        # directory pointing to the MUSICA configuration data located in the caseroot
         if MUSICA_CCPP_SCHEME_NAME in scheme_names:
             musica_config_src_dir = os.path.join(caseroot, MUSICA_CONFIG_DIR_NAME)
             musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
@@ -389,15 +389,15 @@ def buildnml(case, caseroot, compname):
                         must be located in the caseroot if the ATM library build is successful."
                 raise CamBuildnmlError(emsg)
 
-            # TODO(JIWON) Check with Jesse if we want to check directory exists
-            os.makedirs(musica_config_dest_dir, exist_ok=True)
-            for root, _, files in os.walk(musica_config_src_dir):
-                rel_path = os.path.relpath(root, musica_config_src_dir)
-                dest_dir = os.path.join(musica_config_dest_dir, rel_path)
+            if not os.path.exists(musica_config_dest_dir):
+                os.makedirs(musica_config_dest_dir, exist_ok=False)
+                for root, _, files in os.walk(musica_config_src_dir):
+                    rel_path = os.path.relpath(root, musica_config_src_dir)
+                    dest_dir = os.path.join(musica_config_dest_dir, rel_path)
 
-                os.makedirs(dest_dir, exist_ok=True)
-                for file in files:
-                    symlink_force(os.path.join(root, file), os.path.join(dest_dir, file))
+                    os.makedirs(dest_dir, exist_ok=False)
+                    for file in files:
+                        symlink_force(os.path.join(root, file), os.path.join(dest_dir, file))
 
 ###############################################################################
 def _main_func():

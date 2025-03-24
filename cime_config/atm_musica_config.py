@@ -8,4 +8,4 @@ MUSICA_CONFIG_DIR_NAME = "musica_configurations"
 MUSICA_REPO_URL = "https://github.com/NCAR/musica.git"
 MUSICA_TAG = "cc39bb00d2220fc81c85b22d3ceea4a39bd2bacf"
 CHEMISTRY_DATA_REPO_URL = "https://github.com/NCAR/cam-sima-chemistry-data.git"
-CHEMISTRY_DATA_TAG = "cb57c11dd72de2b116157123e4f8d76ffeae21af" # temp
+CHEMISTRY_DATA_TAG = "71ed143c54b0d5d6e3e70f3d05d413fddcf8d59e" # temp
