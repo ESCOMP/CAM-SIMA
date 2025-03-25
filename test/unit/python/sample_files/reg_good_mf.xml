@@ -31,9 +31,9 @@
       <initial_value>rair/cpair</initial_value>
     </variable>
     <ddt type="physics_state">
-      <data dycore="FV,EUL,SE">horizontal_dimension</data>
-      <data dycore="SE">latitude</data>
-      <data dycore="FV">longitude</data>
+      <data dyn="FV,EUL,SE">horizontal_dimension</data>
+      <data dyn="SE">latitude</data>
+      <data dyn="FV">longitude</data>
     </ddt>
     <variable local_name="phys_state"
               standard_name="physics_state_due_to_dynamics"

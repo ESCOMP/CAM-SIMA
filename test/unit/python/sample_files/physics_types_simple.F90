@@ -26,7 +26,7 @@ module physics_types_simple
 !> \section arg_table_physics_types_simple  Argument Table
 !! \htmlinclude physics_types_simple.html
   ! ncol: Number of horizontal columns
-  integer,         public,          protected :: ncol = 0
+  integer,         public,          protected :: ncol = 1
   ! latitude: Latitude
   real(kind_phys), public, pointer, protected :: latitude(:) => NULL()
   ! longitude: Longitude
@@ -65,7 +65,7 @@ CONTAINS
     end if
 
     if (set_init_val) then
-      ncol = 0
+      ncol = 1
     end if
     if (associated(latitude)) then
       if (reallocate) then

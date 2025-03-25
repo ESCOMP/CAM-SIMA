@@ -1,3 +1,11 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It reads and uses the information from MPAS mesh to initialize various model grids
+!> (e.g., dynamics, physics) for CAM-SIMA in terms of dynamics decomposition.
 module dyn_grid
     ! Module(s) from CAM-SIMA.
     use cam_grid_support, only: max_hcoordname_len
@@ -31,6 +39,7 @@ contains
         use cam_abortutils, only: endrun
         use cam_constituents, only: num_advected
         use cam_initfiles, only: initial_file_get_id
+        use cam_logfile, only: debugout_debug, debugout_info, debugout_verbose
         use dyn_comp, only: dyn_debug_print, dyn_inquire_mesh_dimensions, mpas_dynamical_core, nvertlevels
         use dynconst, only: dynconst_init
         use string_utils, only: stringify
@@ -41,26 +50,30 @@ contains
         character(*), parameter :: subname = 'dyn_grid::model_grid_init'
         type(file_desc_t), pointer :: pio_file
 
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
         nullify(pio_file)
 
         ! Initialize mathematical and physical constants for dynamics.
-        call dyn_debug_print('Calling dynconst_init')
-
         call dynconst_init()
 
-        ! Initialize vertical coordinates.
+        call dyn_debug_print(debugout_info, 'Initializing vertical coordinate indexes')
+
+        ! Initialize vertical coordinate indexes.
         ! `pver` comes from CAM-SIMA namelist.
         ! `pverp` is set only after this call. Call it as soon as possible.
-        call dyn_debug_print('Calling vert_coord_init')
-
         call vert_coord_init(1, pver)
 
         ! Get PIO file descriptor for initial file.
         pio_file => initial_file_get_id()
 
+        call dyn_debug_print(debugout_info, 'Initializing MPAS dynamical core (Phase 3/4)')
+
         ! Finish MPAS framework initialization, including
         ! the allocation of all blocks and fields managed by MPAS.
         call mpas_dynamical_core % init_phase3(num_advected, pio_file)
+
+        call dyn_debug_print(debugout_info, 'Initializing MPAS mesh variables')
 
         ! Read time-invariant (e.g., grid/mesh) variables.
         call mpas_dynamical_core % read_write_stream(pio_file, 'r', 'invariant')
@@ -75,26 +88,30 @@ contains
 
         ! Check for consistency in numbers of vertical layers.
         if (nvertlevels /= pver) then
-            call dyn_debug_print('Number of vertical layers in CAM-SIMA namelist, pver = ' // stringify([pver]))
-            call dyn_debug_print('Number of vertical layers in initial file, nvertlevels = ' // stringify([nvertlevels]))
+            call dyn_debug_print(debugout_verbose, 'Number of vertical layers in CAM-SIMA namelist, pver = ' // &
+                stringify([pver]))
+            call dyn_debug_print(debugout_verbose, 'Number of vertical layers in initial file, nvertlevels = ' // &
+                stringify([nvertlevels]))
 
             call endrun('Numbers of vertical layers mismatch', subname, __LINE__)
         end if
 
-        ! Initialize reference pressure for use by physics.
-        call dyn_debug_print('Calling init_reference_pressure')
+        call dyn_debug_print(debugout_info, 'Initializing reference pressure')
 
+        ! Initialize reference pressure for use by physics.
         call init_reference_pressure()
 
-        ! Initialize physics grid.
-        call dyn_debug_print('Calling init_physics_grid')
+        call dyn_debug_print(debugout_info, 'Initializing physics grid')
 
+        ! Initialize physics grid.
         call init_physics_grid()
 
-        ! Initialize CAM-SIMA grid.
-        call dyn_debug_print('Calling define_cam_grid')
+        call dyn_debug_print(debugout_info, 'Registering dynamics grid with CAM-SIMA')
 
+        ! Register dynamics grid with CAM-SIMA.
         call define_cam_grid()
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine model_grid_init
 
     !> Initialize reference pressure for use by physics.
@@ -103,6 +120,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
         use cam_history_support, only: add_vert_coord
+        use cam_logfile, only: debugout_debug, debugout_verbose
         use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
         use dynconst, only: constant_p0 => pref
         use ref_pres, only: ref_pres_init
@@ -133,6 +151,8 @@ contains
                                         ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: zw(:) ! CANNOT be safely deallocated because `add_vert_coord`
                                         ! just uses pointers to point at it internally.
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
 
         nullify(rdzw)
         nullify(zu)
@@ -183,23 +203,23 @@ contains
         p_ref_mid(:) = 0.5_kind_r8 * (p_ref_int(1:pver) + p_ref_int(2:pverp))
 
         ! Print a nice table of reference height and pressure.
-        call dyn_debug_print('Reference layer information:')
-        call dyn_debug_print('----- | -------------- | --------------')
-        call dyn_debug_print('Index |     Height (m) | Pressure (hPa)')
+        call dyn_debug_print(debugout_verbose, 'Reference layer information:')
+        call dyn_debug_print(debugout_verbose, '----- | -------------- | --------------')
+        call dyn_debug_print(debugout_verbose, 'Index |     Height (m) | Pressure (hPa)')
 
         do k = 1, pver
-            call dyn_debug_print(repeat('-', 5) // ' |  ' // stringify([zw(k)]) // &
+            call dyn_debug_print(debugout_verbose, repeat('-', 5) // ' |  ' // stringify([zw(k)]) // &
                 ' |  ' // stringify([p_ref_int(k) / 100.0_kind_r8]))
 
             l = len(stringify([k]))
 
-            call dyn_debug_print(repeat(' ', 5 - l) // stringify([k]) // ' |  ' // stringify([zu(k)]) // &
+            call dyn_debug_print(debugout_verbose, repeat(' ', 5 - l) // stringify([k]) // ' |  ' // stringify([zu(k)]) // &
                 ' |  ' // stringify([p_ref_mid(k) / 100.0_kind_r8]))
         end do
 
         k = pverp
 
-        call dyn_debug_print(repeat('-', 5) // ' |  ' // stringify([zw(k)]) // &
+        call dyn_debug_print(debugout_verbose, repeat('-', 5) // ' |  ' // stringify([zw(k)]) // &
             ' |  ' // stringify([p_ref_int(k) / 100.0_kind_r8]))
 
         call ref_pres_init(p_ref_int, p_ref_mid, num_pure_p_lev)
@@ -209,6 +229,8 @@ contains
 
         nullify(zu)
         nullify(zw)
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine init_reference_pressure
 
     !> Initialize physics grid in terms of dynamics decomposition.
@@ -217,7 +239,8 @@ contains
     subroutine init_physics_grid()
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
-        use dyn_comp, only: mpas_dynamical_core, ncells_global, ncells_solve, sphere_radius
+        use cam_logfile, only: debugout_debug
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_global, ncells_solve, sphere_radius
         use dynconst, only: constant_pi => pi, rad_to_deg
         use physics_column_type, only: kind_pcol, physics_column_t
         use physics_grid, only: phys_grid_init
@@ -234,10 +257,12 @@ contains
         integer :: i
         integer :: ierr
         integer, pointer :: indextocellid(:)        ! Global indexes of cell centers.
-        real(kind_dyn_mpas), pointer :: areacell(:) ! Cell areas (square meters).
-        real(kind_dyn_mpas), pointer :: latcell(:)  ! Cell center latitudes (radians).
-        real(kind_dyn_mpas), pointer :: loncell(:)  ! Cell center longitudes (radians).
+        real(kind_dyn_mpas), pointer :: areacell(:) ! Cell areas (m2).
+        real(kind_dyn_mpas), pointer :: latcell(:)  ! Cell center latitudes (rad).
+        real(kind_dyn_mpas), pointer :: loncell(:)  ! Cell center longitudes (rad).
         type(physics_column_t), allocatable :: dyn_column(:) ! Grid and mapping information between global and local indexes.
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
 
         nullify(areacell)
         nullify(indextocellid)
@@ -299,6 +324,8 @@ contains
 
         deallocate(dyn_column)
         deallocate(dyn_attribute_name)
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine init_physics_grid
 
     !> This subroutine defines and registers four variants of dynamics grids in terms of dynamics decomposition.
@@ -313,6 +340,7 @@ contains
         use cam_abortutils, only: check_allocate
         use cam_grid_support, only: cam_grid_attribute_register, cam_grid_register, &
                                     horiz_coord_create, horiz_coord_t
+        use cam_logfile, only: debugout_debug, debugout_verbose
         use cam_map_utils, only: kind_imap => imap
         use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
                             ncells_global, nedges_global, nvertices_global, &
@@ -331,13 +359,13 @@ contains
         integer, pointer :: indextocellid(:)   ! Global indexes of cell centers.
         integer, pointer :: indextoedgeid(:)   ! Global indexes of edge nodes.
         integer, pointer :: indextovertexid(:) ! Global indexes of vertex nodes.
-        real(kind_dyn_mpas), pointer :: areacell(:)  ! Cell areas (square meters).
-        real(kind_dyn_mpas), pointer :: latcell(:)   ! Cell center latitudes (radians).
-        real(kind_dyn_mpas), pointer :: latedge(:)   ! Edge node latitudes (radians).
-        real(kind_dyn_mpas), pointer :: latvertex(:) ! Vertex node latitudes (radians).
-        real(kind_dyn_mpas), pointer :: loncell(:)   ! Cell center longitudes (radians).
-        real(kind_dyn_mpas), pointer :: lonedge(:)   ! Edge node longitudes (radians).
-        real(kind_dyn_mpas), pointer :: lonvertex(:) ! Vertex node longitudes (radians).
+        real(kind_dyn_mpas), pointer :: areacell(:)  ! Cell areas (m2).
+        real(kind_dyn_mpas), pointer :: latcell(:)   ! Cell center latitudes (rad).
+        real(kind_dyn_mpas), pointer :: latedge(:)   ! Edge node latitudes (rad).
+        real(kind_dyn_mpas), pointer :: latvertex(:) ! Vertex node latitudes (rad).
+        real(kind_dyn_mpas), pointer :: loncell(:)   ! Cell center longitudes (rad).
+        real(kind_dyn_mpas), pointer :: lonedge(:)   ! Edge node longitudes (rad).
+        real(kind_dyn_mpas), pointer :: lonvertex(:) ! Vertex node longitudes (rad).
 
         ! Global grid indexes. CAN be safely deallocated because its values are copied internally by
         ! `cam_grid_attribute_register` and `horiz_coord_create`.
@@ -347,7 +375,7 @@ contains
         ! just uses pointers to point at it internally.
         ! `kind_imap` is an integer kind of `PIO_OFFSET_KIND`.
         integer(kind_imap), pointer :: global_grid_map(:, :)
-        ! Cell areas (square meters). CANNOT be safely deallocated because `cam_grid_attribute_register`
+        ! Cell areas (m2). CANNOT be safely deallocated because `cam_grid_attribute_register`
         ! just uses pointers to point at it internally.
         real(kind_r8), pointer :: cell_area(:)
         ! Cell weights normalized to unity. CANNOT be safely deallocated because `cam_grid_attribute_register`
@@ -359,6 +387,8 @@ contains
         ! Longitude coordinates. CANNOT be safely deallocated because `cam_grid_register`
         ! just uses pointers to point at it internally.
         type(horiz_coord_t), pointer :: lon_coord
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
 
         nullify(indextocellid, indextoedgeid, indextovertexid)
         nullify(areacell)
@@ -404,7 +434,8 @@ contains
             global_grid_map(3, i) = global_grid_index(i)
         end do
 
-        call dyn_debug_print('Registering grid "mpas_cell" with id ' // stringify([dyn_grid_id('mpas_cell')]))
+        call dyn_debug_print(debugout_verbose, 'Registering dynamics grid "mpas_cell" with id ' // &
+            stringify([dyn_grid_id('mpas_cell')]))
 
         call cam_grid_register('mpas_cell', dyn_grid_id('mpas_cell'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
@@ -425,7 +456,8 @@ contains
         lon_coord => horiz_coord_create('lon', 'ncol', ncells_global, 'longitude', 'degrees_east', &
             1, ncells_solve, real(loncell, kind_r8) * rad_to_deg, map=global_grid_index)
 
-        call dyn_debug_print('Registering grid "cam_cell" with id ' // stringify([dyn_grid_id('cam_cell')]))
+        call dyn_debug_print(debugout_verbose, 'Registering dynamics grid "cam_cell" with id ' // &
+            stringify([dyn_grid_id('cam_cell')]))
 
         call cam_grid_register('cam_cell', dyn_grid_id('cam_cell'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
@@ -463,7 +495,8 @@ contains
             global_grid_map(3, i) = global_grid_index(i)
         end do
 
-        call dyn_debug_print('Registering grid "mpas_edge" with id ' // stringify([dyn_grid_id('mpas_edge')]))
+        call dyn_debug_print(debugout_verbose, 'Registering dynamics grid "mpas_edge" with id ' // &
+            stringify([dyn_grid_id('mpas_edge')]))
 
         call cam_grid_register('mpas_edge', dyn_grid_id('mpas_edge'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
@@ -501,7 +534,8 @@ contains
            global_grid_map(3, i) = global_grid_index(i)
         end do
 
-        call dyn_debug_print('Registering grid "mpas_vertex" with id ' // stringify([dyn_grid_id('mpas_vertex')]))
+        call dyn_debug_print(debugout_verbose, 'Registering dynamics grid "mpas_vertex" with id ' // &
+            stringify([dyn_grid_id('mpas_vertex')]))
 
         call cam_grid_register('mpas_vertex', dyn_grid_id('mpas_vertex'), lat_coord, lon_coord, global_grid_map, &
             unstruct=.true., block_indexed=.false.)
@@ -512,6 +546,8 @@ contains
         deallocate(global_grid_index)
         nullify(global_grid_index, global_grid_map)
         nullify(lat_coord, lon_coord)
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine define_cam_grid
 
     !> Helper function for returning grid id given its name.

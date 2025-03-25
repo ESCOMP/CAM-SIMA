@@ -10,6 +10,7 @@
       <ic_name_entry standard_name="Only_had_a">brain</ic_name_entry>
       <constituent_entry>cnst_1</constituent_entry>
       <constituent_entry>cnst_2</constituent_entry>
+      <vars_init_value_entry>Only_had_a_brain</vars_init_value_entry>
    </registry>
    <CCPP>
       <SDF file_path="/behind/curtain/suite_wizard.xml" hash="ade45dea32a6f279957735596a147efddd061f9c"/>

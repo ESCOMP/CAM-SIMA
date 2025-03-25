@@ -2,6 +2,8 @@
 # esmf is am image you are expected to have built. Read the README file for instructions
 FROM --platform=linux/amd64 esmf:latest
 
+ARG BUILD_TYPE=Debug
+
 ###################################################
 ## Install necessary packages
 ###################################################
@@ -19,7 +21,8 @@ RUN dnf -y update \
       vim \
     && dnf clean all
 
-RUN ln -s $(which python3) /usr/bin/python && \
+RUN rm -f /usr/bin/python && \
+    ln -s $(which python3) /usr/bin/python && \
     pip install --upgrade pip && \
     pip install --upgrade setuptools
 
@@ -39,40 +42,22 @@ RUN cd pnetcdf-1.12.3 && \
      make -j 8 install && \
      ldconfig
 
-ENV FC=gfortran
-
-###################################################
-## Build and install MUSICA
-###################################################
-
-RUN git clone https://github.com/NCAR/musica.git \
-    && cd musica \
-    && git checkout 2a5eeaac982a3eb80b96d1e2087b91b301d1e748
-
-RUN mkdir /musica/build \
-    && cd /musica/build \
-    && cmake \
-             -D ENABLE_TESTS=OFF \
-             -D MUSICA_BUILD_FORTRAN_INTERFACE=ON \
-             .. \
-    && make install -j 8
-
 ###################################################
 ## Build CAM-SIMA
 ###################################################
 
-# create a user to run the case
+# Create a user to run the case
 RUN adduser cam_sima_user \
     && echo "cam_sima_user ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/cam_sima_user \
     && chmod 0440 /etc/sudoers.d/cam_sima_user
 
-# copy in the CAM-SIMA code and give the proper user permissions
+# Copy in the CAM-SIMA code and give the proper user permissions
 COPY --chown=cam_sima_user . /home/cam_sima_user/CAM-SIMA
 
 USER cam_sima_user
 WORKDIR /home/cam_sima_user/CAM-SIMA
 
-# pull the dependencies
+# Pull the dependencies
 RUN ./bin/git-fleximod update
 
 # Copy in the machine information for the container
@@ -80,30 +65,23 @@ RUN cp /home/cam_sima_user/CAM-SIMA/docker/config_machines.xml /home/cam_sima_us
 
 # Set environment variables needed to create and build the case
 ENV USER=$(whoami)
-ENV CASE_NAME=/home/cam_sima_user/case_name
+ENV CASE_NAME=/home/cam_sima_user/case_name/test-case
 ENV CESMDATAROOT=/home/cam_sima_user/cesm_data
 ENV CIME_MACHINE=container
 ENV CIME_MODEL=cesm
 ENV ESMFMKFILE=/usr/local/lib/esmf.mk
 
 # Create a case
-RUN ./cime/scripts/create_newcase --case $CASE_NAME  --compset FPHYStest --res ne5_ne5_mg37 --run-unsupported
+RUN /home/cam_sima_user/CAM-SIMA/cime/scripts/create_newcase --case $CASE_NAME \
+    --compset FPHYStest --res ne5_ne5_mg37 --run-unsupported
 
-WORKDIR $CASE_NAME 
+WORKDIR $CASE_NAME
 
 RUN ./case.setup
 
 RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites musica"
-RUN ./xmlchange CAM_LINKED_LIBS="-lmusica-fortran -lmusica -lyaml-cpp"
 RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5
-
-# Copy in the grid files and a snapshot file
-RUN chmod +x /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
-RUN /home/cam_sima_user/CAM-SIMA/docker/ftp_download.sh
-
-# # add the snapshot file
-RUN echo "ncdata='/home/cam_sima_user/run_heldsuarez_cam6_nt2_bigg_try005.cam.h5.0001-01-01-00000.nc'" >> user_nl_cam
 
 RUN ./case.build

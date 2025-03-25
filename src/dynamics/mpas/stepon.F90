@@ -1,3 +1,11 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It serves as a thin wrapper layer for plugging MPAS dynamical core into CAM-SIMA. Therefore,
+!> most of the actual implementations are found elsewhere.
 module stepon
     implicit none
 

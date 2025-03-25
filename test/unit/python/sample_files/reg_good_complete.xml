@@ -9,6 +9,8 @@
               units="count" type="integer" access="protected">
       <long_name>Number of horizontal columns</long_name>
       <initial_value>0</initial_value>
+      <initial_value dyn='SE'>1</initial_value>
+      <initial_value dyn='FV,MPAS'>2</initial_value>
     </variable>
     <variable local_name="pver" standard_name="vertical_layer_dimension"
               units="count" type="integer" access="protected">

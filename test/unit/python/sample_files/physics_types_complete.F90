@@ -29,7 +29,7 @@ module physics_types_complete
 !! \htmlinclude physics_base.html
   type, bind(C) :: physics_base
     ! ncol: Number of horizontal columns
-    integer                    :: ncol = 0
+    integer                    :: ncol = 1
     ! pver: Number of vertical layers
     integer                    :: pver = 0
   end type physics_base
@@ -197,7 +197,7 @@ CONTAINS
       phys_state%q(:,:,ix_cld_liq) = nan
     end if
     if (set_init_val) then
-      phys_state%ncol = 0
+      phys_state%ncol = 1
     end if
     if (set_init_val) then
       phys_state%pver = 0

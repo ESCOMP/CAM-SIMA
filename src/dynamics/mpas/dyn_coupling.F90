@@ -1,3 +1,10 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It implements the bidirectional coupling between dynamics and physics states.
 module dyn_coupling
     implicit none
 
@@ -11,6 +18,7 @@ contains
     !> (KCW, 2024-07-31)
     subroutine dynamics_to_physics_coupling()
         ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug, debugout_info
         use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_states, ncells_solve
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
@@ -51,11 +59,13 @@ contains
         real(kind_dyn_mpas), pointer :: zgrid(:, :)
         real(kind_dyn_mpas), pointer :: zz(:, :)
 
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
         call init_shared_variables()
 
         call dyn_exchange_constituent_states(direction='i', exchange=.true., conversion=.false.)
 
-        call dyn_debug_print('Setting physics state variables column by column')
+        call dyn_debug_print(debugout_info, 'Setting physics state variables column by column')
 
         ! Set variables in the `physics_state` derived type column by column.
         ! This way, peak memory usage can be reduced.
@@ -67,6 +77,8 @@ contains
         call set_physics_state_external()
 
         call final_shared_variables()
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     contains
         !> Initialize variables that are shared and repeatedly used by the `update_shared_variables` and
         !> `set_physics_state_column` internal subroutines.
@@ -83,7 +95,7 @@ contains
             integer :: ierr
             logical, allocatable :: is_water_species(:)
 
-            call dyn_debug_print('Preparing for dynamics-physics coupling')
+            call dyn_debug_print(debugout_info, 'Preparing for dynamics-physics coupling')
 
             nullify(index_qv)
             nullify(exner)
@@ -317,7 +329,7 @@ contains
             real(kind_phys), pointer :: constituents(:, :, :)
             type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
 
-            call dyn_debug_print('Setting physics state variables externally')
+            call dyn_debug_print(debugout_info, 'Setting physics state variables externally')
 
             nullify(constituents)
             nullify(constituent_properties)
@@ -410,7 +422,8 @@ contains
     !> (KCW, 2024-09-20)
     subroutine physics_to_dynamics_coupling()
         ! Module(s) from CAM-SIMA.
-        use dyn_comp, only: dyn_exchange_constituent_states
+        use cam_logfile, only: debugout_debug
+        use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_states
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
         ! Module(s) from MPAS.
@@ -424,6 +437,8 @@ contains
         real(kind_dyn_mpas), pointer :: scalars(:, :, :)
         real(kind_dyn_mpas), pointer :: zz(:, :)
 
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
         call init_shared_variables()
 
         call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.true.)
@@ -433,19 +448,22 @@ contains
         call set_mpas_physics_tendency_rtheta()
 
         call final_shared_variables()
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
     contains
         !> Initialize variables that are shared and repeatedly used by the `set_mpas_physics_tendency_*` internal subroutines.
         !> (KCW, 2024-09-13)
         subroutine init_shared_variables()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
-            use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_solve
+            use cam_logfile, only: debugout_info
+            use dyn_comp, only: mpas_dynamical_core, ncells_solve
             use vert_coord, only: pver
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::init_shared_variables'
             integer :: ierr
 
-            call dyn_debug_print('Preparing for physics-dynamics coupling')
+            call dyn_debug_print(debugout_info, 'Preparing for physics-dynamics coupling')
 
             nullify(index_qv)
             nullify(rho_zz)
@@ -485,14 +503,15 @@ contains
         !> (KCW, 2024-09-11)
         subroutine set_mpas_physics_tendency_ru()
             ! Module(s) from CAM-SIMA.
-            use dyn_comp, only: dyn_debug_print, reverse, mpas_dynamical_core, ncells_solve
+            use cam_logfile, only: debugout_info
+            use dyn_comp, only: reverse, mpas_dynamical_core, ncells_solve
             use physics_types, only: phys_tend
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_ru'
             integer :: i
             real(kind_dyn_mpas), pointer :: u_tendency(:, :), v_tendency(:, :)
 
-            call dyn_debug_print('Setting MPAS physics tendency "tend_ru_physics"')
+            call dyn_debug_print(debugout_info, 'Setting MPAS physics tendency "tend_ru_physics"')
 
             nullify(u_tendency, v_tendency)
 
@@ -516,12 +535,13 @@ contains
         !> (KCW, 2024-09-11)
         subroutine set_mpas_physics_tendency_rho()
             ! Module(s) from CAM-SIMA.
-            use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_solve
+            use cam_logfile, only: debugout_info
+            use dyn_comp, only: mpas_dynamical_core, ncells_solve
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_rho'
             real(kind_dyn_mpas), pointer :: rho_tendency(:, :)
 
-            call dyn_debug_print('Setting MPAS physics tendency "tend_rho_physics"')
+            call dyn_debug_print(debugout_info, 'Setting MPAS physics tendency "tend_rho_physics"')
 
             nullify(rho_tendency)
 
@@ -542,7 +562,8 @@ contains
         subroutine set_mpas_physics_tendency_rtheta()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
-            use dyn_comp, only: dyn_debug_print, reverse, mpas_dynamical_core, ncells_solve
+            use cam_logfile, only: debugout_info
+            use dyn_comp, only: reverse, mpas_dynamical_core, ncells_solve
             use dynconst, only: constant_rd => rair, constant_rv => rh2o
             use physics_types, only: dtime_phys, phys_tend
             use vert_coord, only: pver
@@ -562,7 +583,7 @@ contains
             real(kind_dyn_mpas), pointer :: theta_m(:, :)
             real(kind_dyn_mpas), pointer :: theta_m_tendency(:, :)
 
-            call dyn_debug_print('Setting MPAS physics tendency "tend_rtheta_physics"')
+            call dyn_debug_print(debugout_info, 'Setting MPAS physics tendency "tend_rtheta_physics"')
 
             nullify(theta_m)
             nullify(theta_m_tendency)
@@ -629,7 +650,9 @@ contains
         end subroutine set_mpas_physics_tendency_rtheta
 
         !> Compute temperature `t` as a function of potential temperature `theta`, dry air density `rhod` and water vapor
-        !> mixing ratio `qv`. The formulation comes from Poisson equation with equation of state plugged in and arranging
+        !> mixing ratio `qv`. Essentially,
+        !> \( T = \theta^{\frac{C_p}{C_v}} [\frac{\rho_d R_d (1 + \frac{R_v}{R_d} q_v)}{P_0}]^{\frac{R_d}{C_v}} \).
+        !> The formulation comes from Poisson equation with equation of state plugged in and arranging
         !> for temperature. This function is the exact inverse of `theta_of_t_rhod_qv`, which means that:
         !> `t == t_of_theta_rhod_qv(theta_of_t_rhod_qv(t, rhod, qv), rhod, qv)`.
         !> (KCW, 2024-09-13)
@@ -653,7 +676,7 @@ contains
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
             !
-            ! In short, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
+            ! In all, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
             ! \begin{equation*}
             !     \begin{cases}
             !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
@@ -667,7 +690,9 @@ contains
         end function t_of_theta_rhod_qv
 
         !> Compute potential temperature `theta` as a function of temperature `t`, dry air density `rhod` and water vapor
-        !> mixing ratio `qv`. The formulation comes from Poisson equation with equation of state plugged in and arranging
+        !> mixing ratio `qv`. Essentially,
+        !> \( \theta = T^{\frac{C_v}{C_p}} [\frac{P_0}{\rho_d R_d (1 + \frac{R_v}{R_d} q_v)}]^{\frac{R_d}{C_p}} \).
+        !> The formulation comes from Poisson equation with equation of state plugged in and arranging
         !> for potential temperature. This function is the exact inverse of `t_of_theta_rhod_qv`, which means that:
         !> `theta == theta_of_t_rhod_qv(t_of_theta_rhod_qv(theta, rhod, qv), rhod, qv)`.
         !> (KCW, 2024-09-13)
@@ -691,7 +716,7 @@ contains
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
             !
-            ! In short, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
+            ! In all, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
             ! \begin{equation*}
             !     \begin{cases}
             !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
