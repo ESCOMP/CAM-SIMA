@@ -1,12 +1,20 @@
-module dyn_mpas_subdriver
-    !-------------------------------------------------------------------------------
-    ! module dyn_mpas_subdriver
-    !
-    ! This module manages the life cycle (i.e., initialization, running, and
-    ! finalization) of MPAS as a dynamical core within CAM-SIMA.
-    !
-    !-------------------------------------------------------------------------------
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
 
+!> This module, the MPAS subdriver, manages the life cycle (i.e., initialization, running, and
+!> finalization) of MPAS as a dynamical core within CAM-SIMA as well as potentially other
+!> host models.
+!>
+!> It is a ground-up implementation that not only adheres to the Fortran 2018 standard, but also
+!> incorporates a modern object-oriented design. As such, the implementation details of MPAS are
+!> abstracted away from CAM-SIMA, which enables a more stable interface between the two.
+!>
+!> Users should begin by creating an "instance" of MPAS dynamical core from the `mpas_dynamical_core_type`
+!> derived type. Then, interaction with the instance is done through its public type-bound procedures.
+!> Developers wishing to integrate MPAS dynamical core into other host models could take advantage of
+!> the object-oriented design to add new functionalities or modify existing ones simply by extending
+!> the `mpas_dynamical_core_type` derived type.
+module dyn_mpas_subdriver
     use, intrinsic :: iso_fortran_env, only: output_unit
     ! Module(s) from external libraries.
 #ifdef MPAS_USE_MPI_F08
@@ -26,7 +34,8 @@ module dyn_mpas_subdriver
     public :: mpas_dynamical_core_type
 
     abstract interface
-        ! This interface is compatible with `endrun` from CAM-SIMA.
+        !> This procedure interface is modeled after the `endrun` subroutine from CAM-SIMA.
+        !> It will be called whenever MPAS dynamical core encounters a fatal error and cannot continue.
         subroutine model_error_if(message, file, line)
             character(*),           intent(in) :: message
             character(*), optional, intent(in) :: file
@@ -51,8 +60,9 @@ module dyn_mpas_subdriver
     integer, parameter :: mpas_dynamical_core_real_kind = rkind
 
     !> The "class" of MPAS dynamical core.
-    !> Important data structures like states of MPAS dynamical core are encapsulated inside this derived type to prevent misuse.
-    !> Type-bound procedures provide well-defined APIs for CAM-SIMA to interact with MPAS dynamical core.
+    !> Important data structures like the internal states of MPAS dynamical core are encapsulated inside this derived type
+    !> to prevent misuse. Type-bound procedures provide stable and well-defined APIs for CAM-SIMA to interact with
+    !> MPAS dynamical core.
     type :: mpas_dynamical_core_type
         private
 
@@ -67,7 +77,7 @@ module dyn_mpas_subdriver
         integer :: mpi_rank = 0
         logical :: mpi_rank_root = .false.
 
-        ! Actual implementation is supplied at runtime.
+        ! Actual implementation is supplied at run-time.
         procedure(model_error_if), nopass, pointer :: model_error => null()
 
         type(core_type), pointer :: corelist => null()
@@ -104,7 +114,7 @@ module dyn_mpas_subdriver
         procedure, pass, public :: run => dyn_mpas_run
         procedure, pass, public :: final => dyn_mpas_final
 
-        ! Accessor subroutines for users to access internal states of MPAS dynamical core.
+        ! Accessor procedures for users to access the internal states of MPAS dynamical core.
 
         procedure, pass, public :: get_constituent_name => dyn_mpas_get_constituent_name
         procedure, pass, public :: get_constituent_index => dyn_mpas_get_constituent_index
@@ -161,9 +171,13 @@ module dyn_mpas_subdriver
 
     !> This derived type conveys information similar to the `var` and `var_array` elements in MPAS registry.
     !> For example, in MPAS registry, the "xCell" variable is described as:
-    !>     <var name="xCell" type="real" dimensions="nCells" units="m" description="Cartesian x-coordinate of cells" />
+    !> ```
+    !> <var name="xCell" type="real" dimensions="nCells" units="m" description="Cartesian x-coordinate of cells" />
+    !> ```
     !> Here, it is described as:
-    !>     var_info_type(name="xCell", type="real", rank=1)
+    !> ```
+    !> var_info_type(name="xCell", type="real", rank=1)
+    !> ```
     !> However, note that MPAS treats the "Time" dimension specially. It is implemented as 1-d pointer arrays of
     !> custom derived types. For a variable with the "Time" dimension, its rank needs to be subtracted by one.
     type :: var_info_type
@@ -304,9 +318,20 @@ module dyn_mpas_subdriver
         var_info_type('vorticity'                       , 'real'      , 2)  &
     ]
 contains
-    !> Print a debug message at a debug level.
-    !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
-    !> (KCW, 2024-02-03)
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_debug_print
+    !
+    !> summary: Print a debug message at a debug level.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-02-03
+    !>
+    !> This subroutine prints a debug message at a debug level. The debug message
+    !> will be prefixed by "MPAS Subdriver (N): ", where `N` is the MPI rank. The
+    !> debug level is one of the `log_level_*` constants.
+    !> If `printer` is not supplied, the MPI root rank will print. Otherwise,
+    !> the designated MPI rank will print instead.
+    !
+    !-------------------------------------------------------------------------------
     subroutine dyn_mpas_debug_print(self, level, message, printer)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: level
@@ -445,14 +470,13 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase1
     !
-    !> \brief  Tracks `mpas_init` up to the point of reading namelist
-    !> \author Michael Duda
-    !> \date   19 April 2019
-    !> \details
-    !>  This subroutine follows the stand-alone MPAS subdriver up to, but not
-    !>  including, the point where namelist is read.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-02-02)
+    !> summary: Track `mpas_init` up to the point of reading namelist.
+    !> author: Michael Duda
+    !> date: 19 April 2019
+    !>
+    !> This subroutine follows the stand-alone MPAS subdriver up to, but not
+    !> including, the point where namelist is read.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-02-02)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_level, log_unit, mpas_log_unit)
@@ -540,9 +564,9 @@ contains
         ! initialization steps.
         !
         ! We need:
-        ! 1) `domain_ptr` to be allocated;
-        ! 2) `dmpar_init` to be completed for accessing `dminfo`;
-        ! 3) `*_setup_core` to assign the `setup_log` procedure pointer.
+        ! 1. `domain_ptr` to be allocated;
+        ! 2. `dmpar_init` to be completed for accessing `dminfo`;
+        ! 3. `*_setup_core` to assign the `setup_log` procedure pointer.
         ierr = self % domain_ptr % core % setup_log(self % domain_ptr % loginfo, self % domain_ptr, unitnumbers=mpas_log_unit)
 
         if (ierr /= 0) then
@@ -550,20 +574,20 @@ contains
                 subname, __LINE__)
         end if
 
-        ! At this point, we should be ready to read namelist in `dyn_comp::dyn_readnl`.
+        ! At this point, we should be ready to read namelist in `dyn_mpas_read_namelist`.
         call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_init_phase1
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_read_namelist
     !
-    !> \brief  Tracks `mpas_init` where namelist is being read
-    !> \author Kuan-Chih Wang
-    !> \date   2024-02-09
-    !> \details
-    !>  This subroutine calls upstream MPAS functionality for reading its own
-    !>  namelist. After that, override designated namelist variables according to
-    !>  information provided from CAM-SIMA.
+    !> summary: Track `mpas_init` where namelist is being read.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-02-09
+    !>
+    !> This subroutine calls upstream MPAS functionality for reading its own
+    !> namelist. After that, override designated namelist variables according to
+    !> the information provided from CAM-SIMA.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_read_namelist(self, namelist_path, &
@@ -601,13 +625,13 @@ contains
                 subname, __LINE__)
         end if
 
-        ! Override designated namelist variables according to information provided from CAM-SIMA.
-        ! These include runtime settings that cannot be determined beforehand.
+        ! Override designated namelist variables according to the information provided from CAM-SIMA.
+        ! These include run-time settings that cannot be determined beforehand.
 
         call self % debug_print(log_level_info, 'Overriding designated namelist variables')
 
         ! CAM-SIMA seems to follow "NetCDF Climate and Forecast (CF) Metadata Conventions" for calendar names. See
-        ! CF-1.11, section "4.4.1. Calendar".
+        ! CF-1.12, section "4.4.2. Calendar", in doi:10.5281/zenodo.14275599.
         ! However, this is not the case for MPAS. Translate calendar names between CF and MPAS.
         select case (trim(adjustl(cf_calendar)))
             case ('360_day')
@@ -615,7 +639,7 @@ contains
             case ('365_day', 'noleap')
                 mpas_calendar = 'gregorian_noleap'
             case ('gregorian', 'standard')
-                ! `gregorian` is a deprecated alternative name for `standard`.
+                ! "gregorian" is a deprecated alternative name for "standard".
                 mpas_calendar = 'gregorian'
             case default
                 call self % model_error('Unsupported calendar type "' // trim(adjustl(cf_calendar)) // '"', &
@@ -628,9 +652,9 @@ contains
         call self % debug_print(log_level_debug, 'config_calendar_type = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
-        ! MPAS represents date and time in ISO 8601 format. However, the separator between date and time is `_`
-        ! instead of standard `T`.
-        ! Format in `YYYY-MM-DD_hh:mm:ss` is acceptable.
+        ! MPAS represents date and time in ISO 8601 format. However, the separator between date and time is "_"
+        ! instead of standard "T".
+        ! Format in "YYYY-MM-DD_hh:mm:ss" is acceptable.
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_start_time')
 
         config_pointer_c = stringify(start_date_time(1:3), '-') // '_' // stringify(start_date_time(4:6), ':')
@@ -643,7 +667,7 @@ contains
         call self % debug_print(log_level_debug, 'config_stop_time = ' // trim(config_pointer_c))
         nullify(config_pointer_c)
 
-        ! Format in `DD_hh:mm:ss` is acceptable.
+        ! Format in "DD_hh:mm:ss" is acceptable.
         call self % get_variable_pointer(config_pointer_c, 'cfg', 'config_run_duration')
 
         config_pointer_c = stringify([run_duration(1)]) // '_' // stringify(run_duration(2:4), ':')
@@ -664,21 +688,22 @@ contains
         call self % debug_print(log_level_debug, 'config_do_restart = ' // stringify([config_pointer_l]))
         nullify(config_pointer_l)
 
+        ! At this point, we should be ready to follow up with the rest of MPAS framework initialization
+        ! in `dyn_mpas_init_phase2`.
         call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_read_namelist
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase2
     !
-    !> \brief  Tracks `mpas_init` after namelist has been read
-    !> \author Michael Duda
-    !> \date   19 April 2019
-    !> \details
-    !>  This subroutine follows the stand-alone MPAS subdriver from the point
-    !>  where we call the second phase of MPAS framework initialization up
-    !>  to the check on the existence of the `streams.<core>` file.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-02-07)
+    !> summary: Track `mpas_init` after namelist has been read.
+    !> author: Michael Duda
+    !> date: 19 April 2019
+    !>
+    !> This subroutine follows the stand-alone MPAS subdriver from the point
+    !> where we call the second phase of MPAS framework initialization up
+    !> to the check on the existence of the "streams.<core>" file.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-02-07)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase2(self, pio_iosystem)
@@ -714,7 +739,7 @@ contains
         ! Initialize MPAS framework with the supplied PIO system descriptor.
         call mpas_framework_init_phase2(self % domain_ptr, io_system=pio_iosystem)
 
-        ! Instantiate `streaminfo` but do not actually initialize it. Any queries made to it will always return `.false.`.
+        ! Instantiate `streaminfo`, but do not actually initialize it. Any queries made to it will always return `.false.`.
         ! This is the intended behavior because MPAS as a dynamical core is not responsible for managing IO.
         self % domain_ptr % streaminfo => mpas_stream_inquiry_new_streaminfo()
 
@@ -762,26 +787,25 @@ contains
         end if
 
         ! At this point, we should be ready to set up decompositions, build halos, allocate blocks, etc.
-        ! in `dyn_grid::model_grid_init`.
+        ! in `dyn_mpas_init_phase3`.
         call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_init_phase2
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase3
     !
-    !> \brief  Tracks `mpas_init` up to the point of calling `atm_core_init`
-    !> \author Michael Duda
-    !> \date   19 April 2019
-    !> \details
-    !>  This subroutine follows the stand-alone MPAS subdriver after the check on
-    !>  the existence of the `streams.<core>` file up to, but not including,
-    !>  the point where `atm_core_init` is called. It completes MPAS framework
-    !>  initialization, including the allocation of all blocks and fields managed
-    !>  by MPAS. However, scalars are allocated but not yet defined.
-    !>  `dyn_mpas_define_scalar` must be called afterwards. Also note that MPAS uses
-    !>  the term "scalar", but CAM-SIMA calls it "constituent".
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-03-06)
+    !> summary: Track `mpas_init` up to the point of calling `atm_core_init`.
+    !> author: Michael Duda
+    !> date: 19 April 2019
+    !>
+    !> This subroutine follows the stand-alone MPAS subdriver after the check on
+    !> the existence of the "streams.<core>" file up to, but not including,
+    !> the point where `atm_core_init` is called. It completes MPAS framework
+    !> initialization, including the allocation of all blocks and fields managed
+    !> by MPAS. However, note that scalars are allocated, but not yet defined.
+    !> `dyn_mpas_define_scalar` must be called afterwards. Also note that MPAS uses
+    !> the term "scalar", but CAM-SIMA calls it "constituent".
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-03-06)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase3(self, number_of_constituents, pio_file)
@@ -814,7 +838,7 @@ contains
 
         call self % debug_print(log_level_info, 'Number of constituents is ' // stringify([self % number_of_constituents]))
 
-        ! Adding a config named `cam_pcnst` with the number of constituents will indicate to MPAS that
+        ! Adding a config named "cam_pcnst" with the number of constituents will indicate to MPAS that
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
         ! from other Registry-defined fields. The special logic is located in `atm_setup_block`.
         ! This must be done before calling `mpas_bootstrap_framework_phase1`.
@@ -844,8 +868,8 @@ contains
         ! Finish setting up fields.
         call mpas_bootstrap_framework_phase2(self % domain_ptr, pio_file_desc=pio_file)
 
-        ! `num_scalars` is a dimension variable, but it only exists in MPAS `state` pool.
-        ! Fix this inconsistency by also adding it to MPAS `dimension` pool.
+        ! "num_scalars" is a dimension variable, but it only exists in MPAS "state" pool.
+        ! Fix this inconsistency by also adding it to MPAS "dimension" pool.
         call self % get_pool_pointer(mpas_pool, 'state')
 
         call mpas_pool_get_dimension(mpas_pool, 'num_scalars', num_scalars)
@@ -864,27 +888,35 @@ contains
         nullify(mpas_pool)
         nullify(num_scalars)
 
+        ! At this point, what follows next depends on the specific use case. In no particular order:
+        ! * Use `dyn_mpas_define_scalar` to define the names of constituents at run-time.
+        ! * Use `dyn_mpas_read_write_stream` to read mesh variables.
+        !   * Follow up with a call to `dyn_mpas_compute_unit_vector` immediately. This is by design.
+        ! * For setting analytic initial condition, use `get_variable_pointer` to inject data directly into MPAS memory.
+        !   * Use `dyn_mpas_compute_edge_wind` where appropriate.
+        !   * Use `dyn_mpas_exchange_halo` where appropriate.
+        ! * Use `dyn_mpas_read_write_stream` to read initial condition or restart.
+        ! * Finally, use `dyn_mpas_init_phase4` to conclude the initialization of MPAS dynamical core.
         call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_init_phase3
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_define_scalar
     !
-    !> \brief  Defines the names of constituents at run-time
-    !> \author Michael Duda
-    !> \date   21 May 2020
-    !> \details
-    !>  Given arrays of constituent names and their corresponding waterness, which
-    !>  must have sizes equal to the number of constituents used to call
-    !>  `dyn_mpas_init_phase3`, this subroutine defines the scalars inside MPAS.
-    !>  Note that MPAS uses the term "scalar", but CAM-SIMA calls it "constituent".
-    !>  Furthermore, because MPAS expects all water scalars to appear in a
-    !>  contiguous index range, this subroutine may reorder the scalars to satisfy
-    !>  this constrain. Index mapping between MPAS scalars and constituent names
-    !>  can be looked up through `index_constituent_to_mpas_scalar` and
-    !>  `index_mpas_scalar_to_constituent`.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-19)
+    !> summary: Define the names of constituents at run-time.
+    !> author: Michael Duda
+    !> date: 21 May 2020
+    !>
+    !> Given arrays of constituent names and their corresponding waterness, which
+    !> must have sizes equal to the number of constituents used to call
+    !> `dyn_mpas_init_phase3`, this subroutine defines the scalars inside MPAS.
+    !> Note that MPAS uses the term "scalar", but CAM-SIMA calls it "constituent".
+    !> Furthermore, because MPAS expects all water scalars to appear in a
+    !> contiguous index range, this subroutine may reorder the scalars to satisfy
+    !> this constrain. Index mapping between MPAS scalars and constituent names
+    !> can be looked up through `index_constituent_to_mpas_scalar` and
+    !> `index_mpas_scalar_to_constituent`.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-05-19)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_define_scalar(self, constituent_name, is_water_species)
@@ -896,9 +928,9 @@ contains
         character(*), intent(in) :: constituent_name(:)
         logical, intent(in) :: is_water_species(:)
 
-        ! Possible CCPP standard names of `qv`, which denotes water vapor mixing ratio.
-        ! They are hard-coded here because MPAS needs to know where `qv` is.
-        ! Index 1 is exactly what MPAS wants. Others also work, but need to be converted.
+        !> Possible CCPP standard names of `qv`, which denotes water vapor mixing ratio.
+        !> They are hard-coded here because MPAS needs to know where `qv` is.
+        !> Index 1 is exactly what MPAS wants. Others also work, but need to be converted.
         character(*), parameter :: mpas_scalar_qv_standard_name(*) = [ character(strkind) :: &
             'water_vapor_mixing_ratio_wrt_dry_air', &
             'water_vapor_mixing_ratio_wrt_moist_air', &
@@ -991,7 +1023,7 @@ contains
 
             if (index_qv == 0) then
                 call self % model_error('Constituent names must contain one of: ' // &
-                    stringify(mpas_scalar_qv_standard_name) // ' and it must be a water species', subname, __LINE__)
+                    stringify(mpas_scalar_qv_standard_name) // ', and it must be a water species', subname, __LINE__)
             end if
         end if
 
@@ -1069,7 +1101,7 @@ contains
         call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
         call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
 
-        ! MPAS `state` pool has two time levels.
+        ! MPAS "state" pool has two time levels.
         time_level = 2
 
         do i = 1, time_level
@@ -1110,7 +1142,7 @@ contains
         call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
         call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
 
-        ! MPAS `tend` pool only has one time level.
+        ! MPAS "tend" pool only has one time level.
         time_level = 1
 
         do i = 1, time_level
@@ -1141,7 +1173,7 @@ contains
 
         nullify(mpas_pool)
 
-        ! For consistency, also add dimension variables to MPAS `dimension` pool.
+        ! For consistency, also add dimension variables to MPAS "dimension" pool.
 
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_qv', index_qv)
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_start', index_water_start)
@@ -1157,15 +1189,15 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_read_write_stream
     !
-    !> \brief  Read or write an MPAS stream
-    !> \author Kuan-Chih Wang
-    !> \date   2024-03-15
-    !> \details
-    !>  In the context of MPAS, the concept of a "pool" resembles a group of
-    !>  (related) variables, while the concept of a "stream" resembles a file.
-    !>  This subroutine reads or writes an MPAS stream. It provides the mechanism
-    !>  for CAM-SIMA to input/output data to/from MPAS dynamical core.
-    !>  Analogous to the `{read,write}_stream` subroutines in MPAS stream manager.
+    !> summary: Read or write an MPAS stream.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-03-15
+    !>
+    !> In the context of MPAS, the concept of a "pool" resembles a group of
+    !> (related) variables, while the concept of a "stream" resembles a file.
+    !> This subroutine reads or writes an MPAS stream. It provides the mechanism
+    !> for CAM-SIMA to input/output data to/from MPAS dynamical core.
+    !> Analogous to the `{read,write}_stream` subroutines in MPAS stream manager.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_read_write_stream(self, pio_file, stream_mode, stream_name)
@@ -1269,17 +1301,17 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_stream_with_pool
     !
-    !> \brief  Initialize an MPAS stream with an accompanying MPAS pool
-    !> \author Kuan-Chih Wang
-    !> \date   2024-03-14
-    !> \details
-    !>  In the context of MPAS, the concept of a "pool" resembles a group of
-    !>  (related) variables, while the concept of a "stream" resembles a file.
-    !>  This subroutine initializes an MPAS stream with an accompanying MPAS pool by
-    !>  adding variable and attribute information to them. After that, MPAS is ready
-    !>  to perform IO on them.
-    !>  Analogous to the `build_stream` and `mpas_stream_mgr_add_field`
-    !>  subroutines in MPAS stream manager.
+    !> summary: Initialize an MPAS stream with an accompanying MPAS pool.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-03-14
+    !>
+    !> In the context of MPAS, the concept of a "pool" resembles a group of
+    !> (related) variables, while the concept of a "stream" resembles a file.
+    !> This subroutine initializes an MPAS stream with an accompanying MPAS pool by
+    !> adding variable and attribute information to them. After that, MPAS is ready
+    !> to perform IO on them.
+    !> Analogous to the `build_stream` and `mpas_stream_mgr_add_field`
+    !> subroutines in MPAS stream manager.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_stream_with_pool(self, mpas_pool, mpas_stream, pio_file, stream_mode, stream_name)
@@ -1309,9 +1341,9 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_stream_with_pool'
         character(strkind) :: stream_filename
         integer :: i, ierr, stream_format
-        ! Whether a variable is present on the file (i.e., `pio_file`).
+        !> Whether a variable is present on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_present(:)
-        ! Whether a variable is type, kind and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
+        !> Whether a variable is type, kind, and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_tkr_compatible(:)
         type(field0dchar), pointer :: field_0d_char
         type(field1dchar), pointer :: field_1d_char
@@ -1647,11 +1679,11 @@ contains
                         trim(adjustl(attribute_name)), attribute_value, syncval=.false., ierr=ierr)
                 type is (logical)
                     if (attribute_value) then
-                        ! Logical `.true.` becomes character string `YES`.
+                        ! Logical `.true.` becomes character string "YES".
                         call mpas_writestreamatt(mpas_stream, &
                             trim(adjustl(attribute_name)), 'YES', syncval=.false., ierr=ierr)
                     else
-                        ! Logical `.false.` becomes character string `NO`.
+                        ! Logical `.false.` becomes character string "NO".
                         call mpas_writestreamatt(mpas_stream, &
                             trim(adjustl(attribute_name)), 'NO', syncval=.false., ierr=ierr)
                     end if
@@ -1701,10 +1733,12 @@ contains
     end subroutine dyn_mpas_init_stream_with_pool
 
     !> Parse a stream name, which consists of one or more stream name fragments, and return the corresponding variable information
-    !> as a list of `var_info_type`. Multiple stream name fragments should be separated by `+` (i.e., a plus, meaning "addition"
-    !> operation) or `-` (i.e., a minus, meaning "subtraction" operation).
-    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", "restart") or a single variable name.
-    !> Duplicate variable names in the resulting list are discarded.
+    !> as a list of `var_info_type`. Multiple stream name fragments should be separated by "+" (i.e., a plus, meaning "addition"
+    !> operation) or "-" (i.e., a minus, meaning "subtraction" operation).
+    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", etc.) or a single variable name.
+    !> For example, a stream name of "invariant+input+restart" means the union of variables in the "invariant", "input", and
+    !> "restart" streams.
+    !> Duplicate variable information in the resulting list is discarded.
     !> (KCW, 2024-06-01)
     pure function parse_stream_name(stream_name) result(var_info_list)
         character(*), intent(in) :: stream_name
@@ -1792,7 +1826,7 @@ contains
     end function parse_stream_name
 
     !> Parse a stream name fragment and return the corresponding variable information as a list of `var_info_type`.
-    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", "restart") or a single variable name.
+    !> A stream name fragment can be a predefined stream name (e.g., "invariant", "input", etc.) or a single variable name.
     !> (KCW, 2024-06-01)
     pure function parse_stream_name_fragment(stream_name_fragment) result(var_info_list)
         character(*), intent(in) :: stream_name_fragment
@@ -1847,6 +1881,7 @@ contains
 
     !> Return the index of unique elements in `array`, which can be any intrinsic data types, as an integer array.
     !> If `array` contains zero element or is of unsupported data types, an empty integer array is produced.
+    !> For example, `index_unique([1, 2, 3, 1, 2, 3, 4, 5])` returns `[1, 2, 3, 7, 8]`.
     !> (KCW, 2024-03-22)
     pure function index_unique(array)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
@@ -1870,9 +1905,9 @@ contains
 
         select type (array)
             type is (character(*))
-                ! Workaround for a bug in Cray wrapper compiler for GNU Fortran.
-                ! When a character string array is passed as the actual argument to the unlimited polymorphic dummy argument,
-                ! its array indexing is mishandled.
+                ! Workaround for a bug in GNU Fortran >= 12. This is perhaps the manifestation of GCC Bugzilla Bug 100819.
+                ! When a character string array is passed as the actual argument to an unlimited polymorphic dummy argument,
+                ! its array index and length parameter are mishandled.
                 allocate(character(len(array)) :: array_c(size(array)))
 
                 array_c(:) = array(:)
@@ -1926,18 +1961,18 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_check_variable_status
     !
-    !> \brief  Check and return variable status on the given file
-    !> \author Kuan-Chih Wang
-    !> \date   2024-06-04
-    !> \details
-    !>  On the given file (i.e., `pio_file`), this subroutine checks whether the
-    !>  given variable (i.e., `var_info`) is present, and whether it is "TKR"
-    !>  compatible with what MPAS expects. "TKR" means type, kind and rank.
-    !>  This subroutine can handle both ordinary variables and variable arrays.
-    !>  They are indicated by the `var` and `var_array` elements, respectively,
-    !>  in MPAS registry. For an ordinary variable, the checks are performed on
-    !>  itself. Otherwise, for a variable array, the checks are performed on its
-    !>  constituent parts instead.
+    !> summary: Check and return variable status on the given file.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-06-04
+    !>
+    !> On the given file (i.e., `pio_file`), this subroutine checks whether the
+    !> given variable (i.e., `var_info`) is present, and whether it is "TKR"
+    !> compatible with what MPAS expects. "TKR" means type, kind, and rank.
+    !> This subroutine can handle both ordinary variables and variable arrays.
+    !> They are indicated by the `var` and `var_array` elements, respectively,
+    !> in MPAS registry. For an ordinary variable, the checks are performed on
+    !> itself. Otherwise, for a variable array, the checks are performed on its
+    !> constituent parts instead.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_check_variable_status(self, var_is_present, var_is_tkr_compatible, pio_file, var_info)
@@ -2359,14 +2394,13 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_exchange_halo
     !
-    !> \brief  Updates the halo layers of the named field
-    !> \author Michael Duda
-    !> \date   16 January 2020
-    !> \details
-    !>  Given a field name that is defined in MPAS registry, this subroutine updates
-    !>  the halo layers for that field.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-03-18)
+    !> summary: Update the halo layers of the named field.
+    !> author: Michael Duda
+    !> date: 16 January 2020
+    !>
+    !> Given a field name that is defined in MPAS registry, this subroutine updates
+    !> the halo layers for that field.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-03-18)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_exchange_halo(self, field_name)
@@ -2542,22 +2576,22 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_compute_unit_vector
     !
-    !> \brief  Computes local east, north and edge-normal unit vectors
-    !> \author Michael Duda
-    !> \date   15 January 2020
-    !> \details
-    !>  This subroutine computes the local east and north unit vectors at all cells,
-    !>  storing the results in MPAS `mesh` pool as `east` and `north`, respectively.
-    !>  It also computes the edge-normal unit vectors at all edges by calling
-    !>  `mpas_initialize_vectors`. Before calling this subroutine, MPAS `mesh` pool
-    !>  must contain `latCell` and `lonCell` that are valid for all cells (not just
-    !>  solve cells), plus any additional variables that are required by
-    !>  `mpas_initialize_vectors`.
-    !>  For stand-alone MPAS, the whole deal is handled by `init_dirs_forphys`
-    !>  during physics initialization. However, MPAS as a dynamical core does
-    !>  not have physics, hence this subroutine.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-04-23)
+    !> summary: Compute local east, north, and edge-normal unit vectors.
+    !> author: Michael Duda
+    !> date: 15 January 2020
+    !>
+    !> This subroutine computes the local east and north unit vectors at all cells,
+    !> storing the results in MPAS "mesh" pool as the "east" and "north" variables,
+    !> respectively. It also computes the edge-normal unit vectors at all edges by
+    !> calling `mpas_initialize_vectors`.
+    !> Before calling this subroutine, MPAS "mesh" pool must contain the "latCell"
+    !> and "lonCell" variables that are valid for all cells (not just solve cells),
+    !> plus any additional variables that are required by
+    !> `mpas_initialize_vectors`.
+    !> For stand-alone MPAS, the whole deal is handled by `init_dirs_forphys`
+    !> during physics initialization. However, MPAS as a dynamical core does
+    !> not have physics, hence the existence of this subroutine.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-04-23)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_compute_unit_vector(self)
@@ -2624,21 +2658,21 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_compute_edge_wind
     !
-    !> \brief  Computes the edge-normal wind vectors at edge points
-    !> \author Michael Duda
-    !> \date   16 January 2020
-    !> \details
-    !>  This subroutine computes the edge-normal wind vectors at edge points
-    !>  (i.e., `u` in MPAS `state` pool) from the wind components at cell points
-    !>  (i.e., `uReconstruct{Zonal,Meridional}` in MPAS `diag` pool). In MPAS, the
-    !>  former are PROGNOSTIC variables, while the latter are DIAGNOSTIC variables
-    !>  that are "reconstructed" from the former. This subroutine is essentially the
-    !>  inverse function of that reconstruction. The purpose is to provide an
-    !>  alternative way for MPAS to initialize from zonal and meridional wind
-    !>  components at cell points. If `wind_tendency` is `.true.`, this subroutine
-    !>  operates on the wind tendency due to physics instead.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-08)
+    !> summary: Compute the edge-normal wind (tendency) vectors at edge points.
+    !> author: Michael Duda
+    !> date: 16 January 2020
+    !>
+    !> This subroutine computes the edge-normal wind vectors at edge points (i.e.,
+    !> the "u" variable in MPAS "state" pool) from the wind components at cell
+    !> points (i.e., the "uReconstruct{Zonal,Meridional}" variables in MPAS "diag"
+    !> pool). In MPAS, the former are PROGNOSTIC variables, while the latter are
+    !> DIAGNOSTIC variables that are "reconstructed" from the former.
+    !> This subroutine is essentially the inverse function of that reconstruction.
+    !> The purpose is to provide an alternative way for MPAS to initialize from
+    !> zonal and meridional wind components at cell points.
+    !> If `wind_tendency` is `.true.`, this subroutine operates on the wind
+    !> tendency due to physics instead.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-05-08)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_compute_edge_wind(self, wind_tendency)
@@ -2745,15 +2779,14 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase4
     !
-    !> \brief  Tracks `atm_core_init` to finish MPAS dynamical core initialization
-    !> \author Michael Duda
-    !> \date   29 February 2020
-    !> \details
-    !>  This subroutine completes MPAS dynamical core initialization.
-    !>  Essentially, it closely follows what is done in `atm_core_init`, but without
-    !>  any calls to MPAS diagnostics manager or MPAS stream manager.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-05-25)
+    !> summary: Track `atm_core_init` to finish MPAS dynamical core initialization.
+    !> author: Michael Duda
+    !> date: 29 February 2020
+    !>
+    !> This subroutine completes MPAS dynamical core initialization.
+    !> Essentially, it closely follows what is done in `atm_core_init`, but without
+    !> any calls to MPAS diagnostics manager or MPAS stream manager.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-05-25)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_init_phase4(self, coupling_time_interval)
@@ -2868,7 +2901,7 @@ contains
             call self % model_error('Failed to build halo exchange groups', subname, __LINE__)
         end if
 
-        ! Variables in MPAS `state` pool have more than one time level. Copy the values from the first time level of
+        ! Variables in MPAS "state" pool have more than one time level. Copy the values from the first time level of
         ! such variables into all subsequent time levels to initialize them.
         call self % get_variable_pointer(config_do_restart, 'cfg', 'config_do_restart')
 
@@ -3029,17 +3062,16 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_run
     !
-    !> \brief  Integrates the dynamical states with time
-    !> \author Michael Duda
-    !> \date   29 February 2020
-    !> \details
-    !>  This subroutine calls MPAS dynamical solver in a loop, with each iteration
-    !>  of the loop advancing the dynamical states forward by one time step, until
-    !>  the coupling time interval is reached.
-    !>  Essentially, it closely follows what is done in `atm_core_run`, but without
-    !>  any calls to MPAS diagnostics manager or MPAS stream manager.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-06-21)
+    !> summary: Integrate the dynamical states with time.
+    !> author: Michael Duda
+    !> date: 29 February 2020
+    !>
+    !> This subroutine calls MPAS dynamical solver in a loop, with each iteration
+    !> of the loop advancing the dynamical states forward by one time step, until
+    !> the coupling time interval is reached.
+    !> Essentially, it closely follows what is done in `atm_core_run`, but without
+    !> any calls to MPAS diagnostics manager or MPAS stream manager.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-06-21)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_run(self)
@@ -3105,7 +3137,7 @@ contains
             ! Current states are in time level 1. Upon exit, time level 2 will contain updated states.
             call atm_do_timestep(self % domain_ptr, config_dt, self % number_of_time_steps)
 
-            ! MPAS `state` pool has two time levels.
+            ! MPAS "state" pool has two time levels.
             ! Swap them after advancing a time step.
             call mpas_pool_shift_time_levels(mpas_pool_state)
 
@@ -3132,7 +3164,7 @@ contains
 
         call self % debug_print(log_level_info, 'Time integration of MPAS dynamical core ends at ' // trim(adjustl(date_time)))
 
-        ! Compute diagnostic variables like `pressure`, `rho` and `theta` from time level 1 of MPAS `state` pool
+        ! Compute diagnostic variables like "pressure", "rho", and "theta" from time level 1 of MPAS "state" pool
         ! by calling upstream MPAS functionality.
         call atm_compute_output_diagnostics(mpas_pool_state, 1, mpas_pool_diag, mpas_pool_mesh)
 
@@ -3145,18 +3177,17 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_final
     !
-    !> \brief  Finalizes MPAS dynamical core as well as its framework
-    !> \author Michael Duda
-    !> \date   29 February 2020
-    !> \details
-    !>  This subroutine finalizes and cleans up MPAS dynamical core as well as its
-    !>  framework that was set up during initialization. Finalization happens in
-    !>  reverse chronological order.
-    !>  Essentially, it closely follows what is done in `atm_core_finalize` and
-    !>  `mpas_finalize`, except that here, there is no need to call MPAS diagnostics
-    !>  manager or MPAS stream manager.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-10-10)
+    !> summary: Finalize MPAS dynamical core as well as its framework.
+    !> author: Michael Duda
+    !> date: 29 February 2020
+    !>
+    !> This subroutine finalizes and cleans up MPAS dynamical core as well as its
+    !> framework that was set up during initialization. Finalization happens in
+    !> reverse chronological order.
+    !> Essentially, it closely follows what is done in `atm_core_finalize` and
+    !> `mpas_finalize`, except that here, there is no need to call MPAS diagnostics
+    !> manager or MPAS stream manager.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-10-10)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_final(self)
@@ -3293,12 +3324,12 @@ contains
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_get_constituent_name
     !
-    !> \brief  Query constituent name by its index
-    !> \author Kuan-Chih Wang
-    !> \date   2024-05-16
-    !> \details
-    !>  This function returns the constituent name that corresponds to the given
-    !>  constituent index. In case of errors, an empty character string is produced.
+    !> summary: Query constituent name by its index.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-05-16
+    !>
+    !> This function returns the constituent name that corresponds to the given
+    !> constituent index. In case of errors, an empty character string is produced.
     !
     !-------------------------------------------------------------------------------
     pure function dyn_mpas_get_constituent_name(self, constituent_index) result(constituent_name)
@@ -3327,12 +3358,12 @@ contains
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_get_constituent_index
     !
-    !> \brief  Query constituent index by its name
-    !> \author Kuan-Chih Wang
-    !> \date   2024-05-16
-    !> \details
-    !>  This function returns the constituent index that corresponds to the given
-    !>  constituent name. In case of errors, zero is produced.
+    !> summary: Query constituent index by its name.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-05-16
+    !>
+    !> This function returns the constituent index that corresponds to the given
+    !> constituent name. In case of errors, zero is produced.
     !
     !-------------------------------------------------------------------------------
     pure function dyn_mpas_get_constituent_index(self, constituent_name) result(constituent_index)
@@ -3363,12 +3394,12 @@ contains
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_map_mpas_scalar_index
     !
-    !> \brief  Map MPAS scalar index from constituent index
-    !> \author Kuan-Chih Wang
-    !> \date   2024-05-16
-    !> \details
-    !>  This function returns the MPAS scalar index that corresponds to the given
-    !>  constituent index. In case of errors, zero is produced.
+    !> summary: Map MPAS scalar index from constituent index.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-05-16
+    !>
+    !> This function returns the MPAS scalar index that corresponds to the given
+    !> constituent index. In case of errors, zero is produced.
     !
     !-------------------------------------------------------------------------------
     pure function dyn_mpas_map_mpas_scalar_index(self, constituent_index) result(mpas_scalar_index)
@@ -3397,12 +3428,12 @@ contains
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_map_constituent_index
     !
-    !> \brief  Map constituent index from MPAS scalar index
-    !> \author Kuan-Chih Wang
-    !> \date   2024-05-16
-    !> \details
-    !>  This function returns the constituent index that corresponds to the given
-    !>  MPAS scalar index. In case of errors, zero is produced.
+    !> summary: Map constituent index from MPAS scalar index.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-05-16
+    !>
+    !> This function returns the constituent index that corresponds to the given
+    !> MPAS scalar index. In case of errors, zero is produced.
     !
     !-------------------------------------------------------------------------------
     pure function dyn_mpas_map_constituent_index(self, mpas_scalar_index) result(constituent_index)
@@ -3431,13 +3462,13 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_get_local_mesh_dimension
     !
-    !> \brief  Returns local mesh dimensions
-    !> \author Kuan-Chih Wang
-    !> \date   2024-05-09
-    !> \details
-    !>  This subroutine returns local mesh dimensions, including:
-    !>  * Numbers of local mesh cells, edges, vertices and vertical levels
-    !>    on each individual task, both with/without halo points.
+    !> summary: Return local mesh dimensions.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-05-09
+    !>
+    !> This subroutine returns local mesh dimensions, including:
+    !> * Numbers of local mesh cells, edges, vertices, and vertical levels
+    !>   on each individual task, both with/without halo points.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_local_mesh_dimension(self, &
@@ -3499,17 +3530,16 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_get_global_mesh_dimension
     !
-    !> \brief  Returns global mesh dimensions
-    !> \author Michael Duda
-    !> \date   22 August 2019
-    !> \details
-    !>  This subroutine returns global mesh dimensions, including:
-    !>  * Numbers of global mesh cells, edges, vertices and vertical levels
-    !>    across all tasks.
-    !>  * Maximum numbers of mesh cells and edges/vertices among all tasks.
-    !>  * Sphere radius.
-    !> \addenda
-    !>  Ported and refactored for CAM-SIMA. (KCW, 2024-03-25)
+    !> summary: Return global mesh dimensions.
+    !> author: Michael Duda
+    !> date: 22 August 2019
+    !>
+    !> This subroutine returns global mesh dimensions, including:
+    !> * Numbers of global mesh cells, edges, vertices, and vertical levels
+    !>   across all tasks.
+    !> * Maximum numbers of mesh cells and edges/vertices among all tasks.
+    !> * Sphere radius.
+    !> Ported and refactored for CAM-SIMA. (KCW, 2024-03-25)
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_global_mesh_dimension(self, &
@@ -3567,9 +3597,20 @@ contains
         call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_get_global_mesh_dimension
 
-    !> Helper subroutine for returning a pointer of `mpas_pool_type` to the named pool.
-    !> It is used by the `dyn_mpas_get_variable_{pointer,value}_*` subroutines to draw a variable from a pool.
-    !> (KCW, 2024-03-21)
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_get_pool_pointer
+    !
+    !> summary: Return a pointer of `mpas_pool_type` to the named pool.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-03-21
+    !>
+    !> This subroutine returns a pointer of `mpas_pool_type` to the named pool.
+    !> Supported pool names include: "all", "cfg", "dim", and a subset of the
+    !> `var_struct` elements in MPAS registry.
+    !> It is mostly used by the `dyn_mpas_get_variable_{pointer,value}_*`
+    !> subroutines to draw a variable from a pool.
+    !
+    !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_pool_pointer(self, pool_pointer, pool_name)
         ! Module(s) from MPAS.
         use mpas_derived_types, only: mpas_pool_type
@@ -3604,19 +3645,19 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_get_variable_pointer_*
     !
-    !> \brief  A family of accessor subroutines for MPAS dynamical core instance
-    !> \author Kuan-Chih Wang
-    !> \date   2024-03-21
-    !> \details
-    !>  The `dyn_mpas_get_variable_pointer_*` subroutines are a family of accessor
-    !>  subroutines for drawing the REFERENCE of an internal variable from
-    !>  MPAS dynamical core instance. The `get_variable_pointer` generic interface
-    !>  should be used instead of the specific ones.
-    !>  WARNING:
-    !>  USE OF THIS SUBROUTINE FAMILY IS HIGHLY DISCOURAGED BECAUSE INTERNAL
-    !>  STATES OF MPAS DYNAMICAL CORE INSTANCE COULD BE MODIFIED THROUGH THE
-    !>  RETURNED POINTER. THESE ARE UNCHARTED WATERS SO BE SURE WHAT YOU ARE
-    !>  DOING.
+    !> summary: A family of accessor subroutines for MPAS dynamical core instance.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-03-21
+    !>
+    !> The `dyn_mpas_get_variable_pointer_*` subroutines are a family of accessor
+    !> subroutines for drawing the REFERENCE of an internal variable from
+    !> MPAS dynamical core instance. The `get_variable_pointer` generic interface
+    !> should be used instead of the specific ones.
+    !> WARNING:
+    !> USE OF THIS SUBROUTINE FAMILY IS HIGHLY DISCOURAGED BECAUSE THE INTERNAL
+    !> STATES OF MPAS DYNAMICAL CORE INSTANCE COULD BE MODIFIED THROUGH THE
+    !> RETURNED POINTER. THESE ARE UNCHARTED WATERS SO BE SURE WHAT YOU ARE
+    !> DOING.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_variable_pointer_c0(self, variable_pointer, pool_name, variable_name, time_level)
@@ -3991,14 +4032,14 @@ contains
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_get_variable_value_*
     !
-    !> \brief  A family of accessor subroutines for MPAS dynamical core instance
-    !> \author Kuan-Chih Wang
-    !> \date   2024-03-21
-    !> \details
-    !>  The `dyn_mpas_get_variable_value_*` subroutines are a family of accessor
-    !>  subroutines for drawing the VALUE of an internal variable from
-    !>  MPAS dynamical core instance. The `get_variable_value` generic interface
-    !>  should be used instead of the specific ones.
+    !> summary: A family of accessor subroutines for MPAS dynamical core instance.
+    !> author: Kuan-Chih Wang
+    !> date: 2024-03-21
+    !>
+    !> The `dyn_mpas_get_variable_value_*` subroutines are a family of accessor
+    !> subroutines for drawing the VALUE of an internal variable from
+    !> MPAS dynamical core instance. The `get_variable_value` generic interface
+    !> should be used instead of the specific ones.
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_variable_value_c0(self, variable_value, pool_name, variable_name, time_level)

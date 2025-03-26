@@ -207,16 +207,7 @@ CONTAINS
             if (constituent_errflg /= 0) then
                call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
             end if
-            if (constituent_has_default) then
-               call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
-               if (constituent_errflg /= 0) then
-                  call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-               end if
-               field_data_ptr(:,:,constituent_idx) = constituent_default_value
-               if (masterproc) then
-                  write(iulog,*) 'Constituent ', trim(std_name), ' initialized to default value: ', constituent_default_value
-               end if
-            else
+            if (.not. constituent_has_default) then
                ! Intialize to constituent's configured minimum value
                call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
                field_data_ptr(:,:,constituent_idx) = constituent_min_value

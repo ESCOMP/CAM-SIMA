@@ -1,3 +1,10 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It implements the bidirectional coupling between dynamics and physics states.
 module dyn_coupling
     implicit none
 
@@ -643,7 +650,9 @@ contains
         end subroutine set_mpas_physics_tendency_rtheta
 
         !> Compute temperature `t` as a function of potential temperature `theta`, dry air density `rhod` and water vapor
-        !> mixing ratio `qv`. The formulation comes from Poisson equation with equation of state plugged in and arranging
+        !> mixing ratio `qv`. Essentially,
+        !> \( T = \theta^{\frac{C_p}{C_v}} [\frac{\rho_d R_d (1 + \frac{R_v}{R_d} q_v)}{P_0}]^{\frac{R_d}{C_v}} \).
+        !> The formulation comes from Poisson equation with equation of state plugged in and arranging
         !> for temperature. This function is the exact inverse of `theta_of_t_rhod_qv`, which means that:
         !> `t == t_of_theta_rhod_qv(theta_of_t_rhod_qv(t, rhod, qv), rhod, qv)`.
         !> (KCW, 2024-09-13)
@@ -667,7 +676,7 @@ contains
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
             !
-            ! In short, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
+            ! In all, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
             ! \begin{equation*}
             !     \begin{cases}
             !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
@@ -681,7 +690,9 @@ contains
         end function t_of_theta_rhod_qv
 
         !> Compute potential temperature `theta` as a function of temperature `t`, dry air density `rhod` and water vapor
-        !> mixing ratio `qv`. The formulation comes from Poisson equation with equation of state plugged in and arranging
+        !> mixing ratio `qv`. Essentially,
+        !> \( \theta = T^{\frac{C_v}{C_p}} [\frac{P_0}{\rho_d R_d (1 + \frac{R_v}{R_d} q_v)}]^{\frac{R_d}{C_p}} \).
+        !> The formulation comes from Poisson equation with equation of state plugged in and arranging
         !> for potential temperature. This function is the exact inverse of `t_of_theta_rhod_qv`, which means that:
         !> `theta == theta_of_t_rhod_qv(t_of_theta_rhod_qv(theta, rhod, qv), rhod, qv)`.
         !> (KCW, 2024-09-13)
@@ -705,7 +716,7 @@ contains
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
             !
-            ! In short, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
+            ! In all, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
             ! \begin{equation*}
             !     \begin{cases}
             !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
