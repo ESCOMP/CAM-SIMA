@@ -51,7 +51,7 @@ contains
 
     !-----------------------------------------------------------------------
     !
-    ! Constructor for temporary MUSICA species object.
+    ! Constructor for temporary MUSICA species object
     !
     !-----------------------------------------------------------------------
 

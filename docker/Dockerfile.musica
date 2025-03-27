@@ -92,7 +92,8 @@ RUN ./xmlchange REST_N=100
 
 RUN ./case.setup
 
-# Add this to the end of 'user_nl_cam' file
+# You can run the model with the snapshot file by adding this line to the end of 'user_nl_cam' file on Derecho.
+# Note that this snapshot contains only ten time slices.
 # ncdata=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_kessler_snapshot_derecho_gnu_before_c20240412.nc
 
-# RUN ./case.build
+RUN ./case.build
