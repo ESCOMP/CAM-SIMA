@@ -385,8 +385,10 @@ def buildnml(case, caseroot, compname):
             musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
 
             if not os.path.exists(musica_config_src_dir):
-                emsg = f"The directory '{MUSICA_CONFIG_DIR_NAME}' doesn't exit. The directory \
-                        must be located in the caseroot if the ATM library build is successful."
+                emsg = (
+                    f"The directory '{MUSICA_CONFIG_DIR_NAME}' doesn't exit. "
+                    "The directory must be located in the caseroot if the ATM library build is successful."
+                )
                 raise CamBuildnmlError(emsg)
 
             if not os.path.exists(musica_config_dest_dir):
