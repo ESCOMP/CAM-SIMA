@@ -105,10 +105,10 @@ CONTAINS
       use vert_coord,                only: pver
       use phys_vars_init_check,      only: mark_as_initialized
       use tropopause_climo_read,     only: tropopause_climo_read_file
-      use musica_ccpp_dependencies,  only: musica_ccpp_dependencies_init
       use orbital_data,              only: orbital_data_init
-      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use ccpp_kinds,                only: kind_phys
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use musica_ccpp_dependencies,  only: musica_ccpp_dependencies_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -257,13 +257,15 @@ CONTAINS
 
       ! Temporary:  Prescribe realistic but inaccurate physical quantities
       ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
+      ! It also initializes the MUSICA constituent values until the file
+      ! I/O object is implemented.
       !
       ! Remove this when MUSICA input data are available from CAM-SIMA or
       ! other physics schemes.
       constituent_properties => cam_model_const_properties()
       constituents_array => cam_constituents_array()
-      call musica_ccpp_dependencies_init(columns_on_task, pver, iulog, &
-                              constituent_properties, constituents_array)
+      call musica_ccpp_dependencies_init(columns_on_task, pver, &
+           constituent_properties, constituents_array)
 
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)

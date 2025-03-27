@@ -17,7 +17,7 @@ module musica_ccpp_dependencies
   
     implicit none
     private
-  
+
     public :: musica_ccpp_dependencies_init
   
     !> \section arg_table_musica_ccpp_dependencies Argument Table
@@ -34,7 +34,6 @@ module musica_ccpp_dependencies
     character(len=*), parameter :: module_name = '(musica_ccpp_dependencies)'
   
     !> Definition of temporary MUSICA species object
-    !! Use the CAM-SIMA unit (kg kg-1) to avoid unit converison
     type, private :: temp_musica_species_t
       character(len=:), allocatable :: name
       real(kind_phys)               :: constituent_value = 0.0_kind_phys ! kg kg-1
@@ -48,20 +47,32 @@ module musica_ccpp_dependencies
   contains
   !==============================================================================
   
-    !> Constructor for temporary MUSICA species object
     function species_constructor(name, value) result( this )
+
+      !-----------------------------------------------------------------------
+      !
+      ! Constructor for temporary MUSICA species object.
+      !
+      !-----------------------------------------------------------------------
+
       character(len=*), intent(in) :: name
-      real(kind_phys),  intent(in)  :: value
-      type(temp_musica_species_t)   :: this
+      real(kind_phys),  intent(in) :: value
+      type(temp_musica_species_t)  :: this
   
       this%name = name
       this%constituent_value = value
   
     end function species_constructor
   
-    !> Initialize MUSICA species constituents
     subroutine initialize_musica_species_constituents(constituents_properties, &
-                                                      constituents_array)
+               constituents_array, errmsg, errcode)
+
+      !-----------------------------------------------------------------------
+      !
+      ! Initialize temporary MUSICA species constituents.
+      !
+      !-----------------------------------------------------------------------
+
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use ccpp_const_utils,          only: ccpp_const_get_idx
       use cam_logfile,               only: iulog
@@ -69,6 +80,8 @@ module musica_ccpp_dependencies
 
       type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
       real(kind_phys),                   pointer :: constituents_array(:,:,:)
+      character(len=512),            intent(out) :: errmsg
+      integer,                       intent(out) :: errcode
 
       ! local variables
       type(temp_musica_species_t), allocatable :: species_group(:)
@@ -79,29 +92,31 @@ module musica_ccpp_dependencies
       integer                                  :: num_micm_species = 0
       integer                                  :: num_tuvx_constituents = 1
       integer                                  :: num_tuvx_only_gas_species = 0
-      integer                                  :: errcode
-      character(len=512)                       :: errmsg
       integer                                  :: position
       integer                                  :: constituent_index
-      integer                                  :: i_elem
+      integer                                  :: i_species
 
       if (.not. associated(constituents_properties)) then
-        write(iulog,*) "Error: constituents_properties is not associated."
+        errcode = 1
+        errmsg = "[MUSICA Error] The pointer to the constituents properties object is not associated."
         return
       end if
 
-      ! Check if the substring exists
-      position = index(filename_of_micm_configuration, chapman_config)
+      ! Currently, we only support two types of MUSICA configurations: Chapman and Terminator,
+      ! until the file I/O object is implemented. If the configuration is neither of these,
+      ! an error will be thrown.
+      position = index(filename_of_micm_configuration, chapman_config) ! Check if the substring exists
       if (position > 0) then
         is_chapman = .true.
-        write(iulog,*) "Using the Chapman configuriation for MUSICA."
+        write(iulog,*) "[MUSICA Info] Using the Chapman configuriation."
       else
         position = index(filename_of_micm_configuration, terminator_config)
         if (position > 0) then
           is_terminator = .true.
-          write(iulog,*) "Using the Terminator configuriation for MUSICA."
+          write(iulog,*) "[MUSICA Info] Using the Terminator configuriation."
         else
-          write(iulog,*) "Error: the MUSICA configuration is not found."
+          errcode = 1
+          errmsg = "[MUSICA Error] MUSICA configuration is not found."
           return
         end if
       end if
@@ -126,7 +141,6 @@ module musica_ccpp_dependencies
         species_group(5) = species_constructor("O3", 4.0e-6_kind_phys)
         species_group(6) = species_constructor("N2", 0.79_kind_phys)
         species_group(7) = species_constructor("air", 1.0e-3_kind_phys)
-  
       else if (is_terminator) then
         species_group(2) = species_constructor("Cl", 1.0e-12_kind_phys)
         species_group(3) = species_constructor("Cl2", 1.0e-12_kind_phys)
@@ -135,29 +149,27 @@ module musica_ccpp_dependencies
         species_group(6) = species_constructor("O3", 4.0e-6_kind_phys)
       end if
 
-      do i_elem = 1, num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species
-        call ccpp_const_get_idx(constituents_properties, trim(species_group(i_elem)%name), &
+      do i_species = 1, num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species
+        call ccpp_const_get_idx(constituents_properties, trim(species_group(i_species)%name), &
                                 constituent_index, errmsg, errcode)
-
-        constituents_array(:,:,constituent_index) = species_group(i_elem)%constituent_value
-
-        if (errcode /= 0) then 
-          write(iulog,*) "Error in finding the index for the speices ", trim(species_group(i_elem)%name)
-          write(iulog,*) "Error: ", errmsg
+        if (errcode /= 0) then
+          deallocate (species_group)
           return
         end if
+
+        constituents_array(:,:,constituent_index) = species_group(i_species)%constituent_value
       end do
 
       deallocate (species_group)
 
     end subroutine initialize_musica_species_constituents
-  
-    !> Constructor for temporary musica species object
-    subroutine musica_ccpp_dependencies_init(horizontal_dimension, &
-        vertical_layer_dimension, log_file_unit, &
-        constituents_properties, constituents_array)
-  
-      use cam_abortutils,            only: check_allocate
+
+    subroutine musica_ccpp_dependencies_init( &
+               horizontal_dimension, vertical_layer_dimension, &
+               constituents_properties, constituents_array)
+
+      use cam_abortutils,            only: check_allocate, endrun
+      use cam_logfile,               only: iulog
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
 
       !-----------------------------------------------------------------------
@@ -166,38 +178,41 @@ module musica_ccpp_dependencies
       !
       !-----------------------------------------------------------------------
   
-      integer, intent(in)                        :: horizontal_dimension
-      integer, intent(in)                        :: vertical_layer_dimension
-      integer, intent(in)                        :: log_file_unit
+      integer,                        intent(in) :: horizontal_dimension
+      integer,                        intent(in) :: vertical_layer_dimension
       type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
       real(kind_phys),                   pointer :: constituents_array(:,:,:)
 
       ! local variables
-      integer                     :: error_code
+      character(len=512),         :: errmsg
+      integer,                    :: errcode
       character(len=*), parameter :: subroutine_name = &
           trim(module_name)//':(musica_ccpp_dependencies_init)'
 
-      write(log_file_unit,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
+      write(iulog,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
 
       call initialize_musica_species_constituents(constituents_properties, &
-                                                  constituents_array)
+                                  constituents_array, errmsg, errcode)
+      if (errcode /= 0) then
+        call endrun(errmsg, file=__FILE__, line=__LINE__)
+      end if
 
       allocate(photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension), &
-               stat=error_code)
-      call check_allocate(error_code, subroutine_name, &
+               stat=errcode)
+      call check_allocate(errcode, subroutine_name, &
                           'photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension)', &
                           file=__FILE__, line=__LINE__)
       allocate(extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension), &
-               stat=error_code)
-      call check_allocate(error_code, subroutine_name, &
+               stat=errcode)
+      call check_allocate(errcode, subroutine_name, &
                           'extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension)', &
                           file=__FILE__, line=__LINE__)
-      allocate(surface_albedo(horizontal_dimension), stat=error_code)
-      call check_allocate(error_code, subroutine_name, &
+      allocate(surface_albedo(horizontal_dimension), stat=errcode)
+      call check_allocate(errcode, subroutine_name, &
                           'surface_albedo(horizontal_dimension)', &
                           file=__FILE__, line=__LINE__)
-      allocate(blackbody_temperature_at_surface(horizontal_dimension), stat=error_code)
-      call check_allocate(error_code, subroutine_name, &
+      allocate(blackbody_temperature_at_surface(horizontal_dimension), stat=errcode)
+      call check_allocate(errcode, subroutine_name, &
                           'blackbody_temperature_at_surface(horizontal_dimension)', &
                           file=__FILE__, line=__LINE__)
   
