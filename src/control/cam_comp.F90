@@ -150,7 +150,7 @@ CONTAINS
       type(cam_out_t), pointer :: cam_out       ! Output from CAM to surface
       type(cam_in_t),  pointer :: cam_in        ! Merged input state to CAM
 
-                                                ! Local variables
+      ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
       integer                  :: errflg
       character(len=cx)        :: errmsg
