@@ -384,12 +384,11 @@ def buildnml(case, caseroot, compname):
             musica_config_src_dir = os.path.join(caseroot, MUSICA_CONFIG_DIR_NAME)
             musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
 
+            # buildnml runs before buildlib, but the MUSICA configuration becomes
+            # available only after buildlib is executed. Therefore, if the configuration
+            # is not found, skip the creation of symlinks
             if not os.path.exists(musica_config_src_dir):
-                emsg = (
-                    f"The directory '{MUSICA_CONFIG_DIR_NAME}' doesn't exit. "
-                    "The directory must be located in the caseroot if the ATM library build is successful."
-                )
-                raise CamBuildnmlError(emsg)
+                return
 
             if not os.path.exists(musica_config_dest_dir):
                 os.makedirs(musica_config_dest_dir, exist_ok=False)
