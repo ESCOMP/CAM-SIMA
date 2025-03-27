@@ -384,19 +384,13 @@ def buildnml(case, caseroot, compname):
             musica_config_src_dir = os.path.join(caseroot, MUSICA_CONFIG_DIR_NAME)
             musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
 
-            # buildnml runs before buildlib, but the MUSICA configuration becomes
-            # available only after buildlib is executed. Therefore, if the configuration
-            # is not found, skip the creation of symlinks
-            if not os.path.exists(musica_config_src_dir):
-                return
-
-            if not os.path.exists(musica_config_dest_dir):
-                os.makedirs(musica_config_dest_dir, exist_ok=False)
+            if os.path.exists(musica_config_src_dir):
+                os.makedirs(musica_config_dest_dir, exist_ok=True)
                 for root, _, files in os.walk(musica_config_src_dir):
                     rel_path = os.path.relpath(root, musica_config_src_dir)
                     dest_dir = os.path.join(musica_config_dest_dir, rel_path)
 
-                    os.makedirs(dest_dir, exist_ok=False)
+                    os.makedirs(dest_dir, exist_ok=True)
                     for file in files:
                         symlink_force(os.path.join(root, file), os.path.join(dest_dir, file))
 

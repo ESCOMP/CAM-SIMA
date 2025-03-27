@@ -184,10 +184,10 @@ contains
     real(kind_phys),                   pointer :: constituents_array(:,:,:)
 
     ! local variables
-    character(len=512),         :: errmsg
-    integer,                    :: errcode
     character(len=*), parameter :: subroutine_name = &
         trim(module_name)//':(musica_ccpp_dependencies_init)'
+    character(len=512)          :: errmsg
+    integer                     :: errcode
 
     write(iulog,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
 
