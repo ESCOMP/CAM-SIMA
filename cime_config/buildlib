@@ -10,7 +10,6 @@ import filecmp
 import shutil
 import subprocess
 import logging
-import json
 
 from cam_config import ConfigCAM # CAM's configure structure
 from atm_musica_config import MUSICA_CCPP_SCHEME_NAME, MUSICA_CONFIG_DIR_NAME
