@@ -724,7 +724,7 @@
               standard_name="is_moist_basis_dycore"
               units="flag" type="logical" access="protected">
       <initial_value>.true.</initial_value>
-      <initial_value dycore="SE,MPAS"> .false. </initial_value>
+      <initial_value dyn="SE,MPAS"> .false. </initial_value>
     </variable>
   </file>
 </registry>
