@@ -32,6 +32,16 @@ module sima_ccpp_FileIO
    !Structure used to store/access open file handles:
    type(sima_pio_fh_type) :: sima_pio_fh_data(max_open_netcdf_files)
 
+   !Error code parameters
+   integer, parameter :: too_many_open_files_err = 1
+   integer, parameter :: pio_inq_dim_id_err      = 2
+   integer, parameter :: pio_inq_dim_len_err     = 3
+   integer, parameter :: pio_inq_var_id_err      = 4
+   integer, parameter :: pio_inq_var_info_err    = 5
+   integer, parameter :: bad_var_rank_err        = 6
+   integer, parameter :: too_high_rank_err       = 7
+   integer, parameter :: pio_get_var_err         = 8
+   integer, parameter :: not_char_type_err       = 9
    !--------------
 
    !Define type-polymorphic module
@@ -88,7 +98,7 @@ contains
       !If no remaining array indices are available then
       !error out:
       if(file_id == -1) then
-         errcode = 1
+         errcode = too_many_open_files_err
          errmsg  = "Too many files currently open in SIMA, please close a file or increase 'max_open_netcdf_files'."
       end if
 
@@ -200,7 +210,7 @@ contains
       !Look for dimension on file:
       errcode = pio_inq_dimid(pio_file_handle, dimname, dim_id)
       if(errcode /= PIO_NOERR) then
-         errcode = 2 !Make sure error code is non-zero
+         errcode = pio_inq_dim_id_err !Make sure error code is non-zero
          errmsg = "Failed to find '"//dimname//"' in "//file_path
          if(present(dimlen)) then
             dimlen = -1
@@ -214,7 +224,7 @@ contains
       if(present(dimlen)) then
          errcode = pio_inq_dimlen(pio_file_handle, dim_id, dimlen)
          if (errcode /= PIO_NOERR) then
-            errcode = 3 !Make sure error code is non-zero
+            errcode = pio_inq_dim_len_err !Make sure error code is non-zero
             errmsg  = "Failed to failed '"//dimname//"' length in "//file_path
             dimlen  = -1
             !Reset PIO back to original error handling method:
@@ -282,7 +292,7 @@ contains
       !Look for variable on file:
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
-         errcode = 4 !Make sure error code is non-zero
+         errcode = pio_inq_var_id_err !Make sure error code is non-zero
          errmsg  = "Failed to find '"//varname//"' in "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -292,7 +302,7 @@ contains
       !Get number of variable dimensions on file:
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
-         errcode = 5 !Make sure error code is non-zero
+         errcode = pio_inq_var_info_err !Make sure error code is non-zero
          errmsg  = "Failed to find number of dimensions for '"//varname//"' in "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -304,25 +314,25 @@ contains
       errcode = 0
       select rank(var)
          rank(0)
-            if(ndims /= 0) errcode = 6
+            if(ndims /= 0) errcode = bad_var_rank_err
          rank(1)
-            if(ndims /= 1) errcode = 6
+            if(ndims /= 1) errcode = bad_var_rank_err
          rank(2)
-            if(ndims /= 2) errcode = 6
+            if(ndims /= 2) errcode = bad_var_rank_err
          rank(3)
-            if(ndims /= 3) errcode = 6
+            if(ndims /= 3) errcode = bad_var_rank_err
          rank(4)
-            if(ndims /= 4) errcode = 6
+            if(ndims /= 4) errcode = bad_var_rank_err
          rank(5)
-            if(ndims /= 5) errcode = 6
+            if(ndims /= 5) errcode = bad_var_rank_err
          rank default
             !PIO can only handle up to 5 dimensions,
             !so error out if array rank is greater than that.
-            errcode = 7
+            errcode = too_high_rank_err
             errmsg  = "Unsupported rank for variable '"//varname//"'"
             return
       end select
-      if(errcode == 6) then
+      if(errcode == bad_var_rank_err) then
          errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -341,6 +351,13 @@ contains
 
          !Get variable dimension IDs:
          errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
+         if(errcode /= PIO_NOERR) then
+            errcode = pio_inq_var_info_err !Make sure error code is non-zero
+            errmsg  = "Failed to find dimensions IDs for '"//varname//"' in "//file_path
+            !Reset PIO back to original error handling method:
+            call pio_seterrorhandling(pio_file_handle, err_handling)
+            return
+         end if
 
          !Allocate NetCDF variable dimension sizes array:
          allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
@@ -354,6 +371,7 @@ contains
          do i = 1, ndims
             errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
             if(errcode /= PIO_NOERR) then
+               errcode = pio_inq_dim_len_err !Make sure error code is non-zero
                errmsg  = "Failed to find dimension sizes for '"//varname//"' in "//file_path
                !Reset PIO back to original error handling method:
                call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -430,7 +448,7 @@ contains
       end select
 
       if (errcode /= PIO_NOERR) then
-         errcode = 8 !Make sure error code is non-zero
+         errcode = pio_get_var_err !Make sure error code is non-zero
          errmsg  = "Failed to read '"//varname//"' from "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -496,7 +514,7 @@ contains
       !Look for variable on file:
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
-         errcode = 5 !Make sure error code is non-zero
+         errcode = pio_inq_var_id_err !Make sure error code is non-zero
          errmsg  = "Failed to find '"//varname//"' in "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -506,7 +524,7 @@ contains
       !Get number of variable dimensions on file:
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
-         errcode = 5 !Make sure error code is non-zero
+         errcode = pio_inq_var_info_err !Make sure error code is non-zero
          errmsg  = "Failed to find number of dimensions for '"//varname//"' in "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -518,25 +536,25 @@ contains
       errcode = 0
       select rank(var)
          rank(0)
-            if(ndims /= 0) errcode = 6
+            if(ndims /= 0) errcode = bad_var_rank_err
          rank(1)
-            if(ndims /= 1) errcode = 6
+            if(ndims /= 1) errcode = bad_var_rank_err
          rank(2)
-            if(ndims /= 2) errcode = 6
+            if(ndims /= 2) errcode = bad_var_rank_err
          rank(3)
-            if(ndims /= 3) errcode = 6
+            if(ndims /= 3) errcode = bad_var_rank_err
          rank(4)
-            if(ndims /= 4) errcode = 6
+            if(ndims /= 4) errcode = bad_var_rank_err
          rank(5)
-            if(ndims /= 5) errcode = 6
+            if(ndims /= 5) errcode = bad_var_rank_err
          rank default
             !PIO can only handle up to 5 dimensions,
             !so error out if array rank is greater than that.
-            errcode = 7
+            errcode = too_high_rank_err
             errmsg  = "Unsupported rank for variable '"//varname//"'"
             return
       end select
-      if(errcode == 6) then
+      if(errcode == bad_var_rank_err) then
          errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -555,6 +573,13 @@ contains
 
          !Get variable dimension IDs:
          errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
+         if(errcode /= PIO_NOERR) then
+            errcode = pio_inq_var_info_err !Make sure error code is non-zero
+            errmsg  = "Failed to find dimensions IDs for '"//varname//"' in "//file_path
+            !Reset PIO back to original error handling method:
+            call pio_seterrorhandling(pio_file_handle, err_handling)
+            return
+         end if
 
          !Allocate NetCDF variable dimension sizes array:
          allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
@@ -568,6 +593,7 @@ contains
          do i = 1, ndims
             errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
             if(errcode /= PIO_NOERR) then
+               errcode = pio_inq_dim_len_err !Make sure error code is non-zero
                errmsg  = "Failed to find dimension sizes for '"//varname//"' in "//file_path
                !Reset PIO back to original error handling method:
                call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -645,7 +671,7 @@ contains
       end select
 
       if (errcode /= PIO_NOERR) then
-         errcode = 8 !Make sure error code is non-zero
+         errcode = pio_get_var_err !Make sure error code is non-zero
          errmsg  = "Failed to read '"//varname//"' from "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -713,7 +739,7 @@ contains
       !Look for variable on file:
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
-         errcode = 5 !Make sure error code is non-zero
+         errcode = pio_inq_var_id_err !Make sure error code is non-zero
          errmsg  = "Failed to find '"//varname//"' in "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -723,7 +749,7 @@ contains
       !Get variable type and number of variable dimensions on file:
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
-         errcode = 6 !Make sure error code is non-zero
+         errcode = pio_inq_var_info_err !Make sure error code is non-zero
          errmsg  = "Failed to find number of dimensions for '"//varname//"' in "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -733,7 +759,7 @@ contains
       !Check that variable is a character array
       !(as we cannot currently handle string-type variables):
       if(nc_type /= NF90_CHAR) then
-         errcode = 7
+         errcode = not_char_type_err
          errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -753,25 +779,25 @@ contains
       errcode = 0
       select rank(var)
          rank(0)
-            if(ndims /= 1) errcode = 8
+            if(ndims /= 1) errcode = bad_var_rank_err
          rank(1)
-            if(ndims /= 2) errcode = 8
+            if(ndims /= 2) errcode = bad_var_rank_err
          rank(2)
-            if(ndims /= 3) errcode = 8
+            if(ndims /= 3) errcode = bad_var_rank_err
          rank(3)
-            if(ndims /= 4) errcode = 8
+            if(ndims /= 4) errcode = bad_var_rank_err
          rank(4)
-            if(ndims /= 5) errcode = 8
+            if(ndims /= 5) errcode = bad_var_rank_err
          rank(5)
-            if(ndims /= 6) errcode = 8
+            if(ndims /= 6) errcode = bad_var_rank_err
          rank default
             !PIO can only handle up to 5 dimensions,
             !so error out if array rank is greater than that.
-            errcode = 9
+            errcode = too_high_rank_err
             errmsg  = "Unsupported rank for variable '"//varname//"'"
             return
       end select
-      if(errcode == 8) then
+      if(errcode == bad_var_rank_err) then
          errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -790,6 +816,13 @@ contains
 
          !Get variable dimension IDs:
          errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
+         if(errcode /= PIO_NOERR) then
+            errcode = pio_inq_var_info_err !Make sure error code is non-zero
+            errmsg  = "Failed to find dimensions IDs for '"//varname//"' in "//file_path
+            !Reset PIO back to original error handling method:
+            call pio_seterrorhandling(pio_file_handle, err_handling)
+            return
+         end if
 
          !Allocate NetCDF variable dimension sizes array:
          allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
@@ -803,6 +836,7 @@ contains
          do i = 1, ndims
             errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
             if(errcode /= PIO_NOERR) then
+               errcode = pio_inq_dim_len_err !Make sure error code is non-zero
                errmsg  = "Failed to find dimension sizes for '"//varname//"' in "//file_path
                !Reset PIO back to original error handling method:
                call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -889,7 +923,7 @@ contains
       end select
 
       if (errcode /= PIO_NOERR) then
-         errcode = 10 !Make sure error code is non-zero
+         errcode = pio_get_var_err !Make sure error code is non-zero
          errmsg  = "Failed to read '"//varname//"' from "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
