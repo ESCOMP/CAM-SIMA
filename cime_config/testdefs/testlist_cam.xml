@@ -61,6 +61,16 @@
       <option name="comment">Test for Hack shallow convection scheme</option>
     </options>
   </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_dme_adjust_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for dme_adjust scheme</option>
+    </options>
+  </test>
+
 
   <!-- Derecho dycore tests -->
   <test compset="FKESSLER" grid="mpasa480_mpasa480" name="SMS_Ln9" testmods="cam/outfrq_kessler_mpas_derecho">
