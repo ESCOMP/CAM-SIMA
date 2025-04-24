@@ -141,7 +141,7 @@ class VarBase:
     __pointer_type_str = "pointer"
 
     def __init__(self, elem_node, local_name, dimensions, known_types,
-                 type_default, units_default="", kind_default='',
+                 type_default, units_default="", kind_default='', dycore='',
                  protected=False, index_name='', local_index_name='',
                  local_index_name_str='', alloc_default='none',
                  tstep_init_default=False):
@@ -154,6 +154,7 @@ class VarBase:
         self.__standard_name = elem_node.get('standard_name')
         self.__long_name = ''
         self.__initial_value = ''
+        self.__initial_value_match = 0
         self.__initial_val_vars = set()
         self.__ic_names = None
         self.__elements = []
@@ -183,7 +184,30 @@ class VarBase:
             if attrib.tag == 'long_name':
                 self.__long_name = attrib.text
             elif attrib.tag == 'initial_value':
-                self.__initial_value = attrib.text
+                # Figure out if we should use this initial_value
+                #  If the number of matching attributes is greater than the
+                #  default or a previous match, pick this one
+                matches = 0
+                if not attrib.keys():
+                    self.__initial_value = attrib.text
+                # end if (no attributes, this is the default)
+                for att in attrib.keys():
+                    # Check each attribute (for now, this is only the dycore)
+                    if att == 'dyn':
+                        dycore_list = attrib.get('dyn').lower().split(',')
+                        if dycore in dycore_list:
+                            matches += 1
+                        # end if (dycore matches)
+                    # end if (check the dycore)
+                # end for
+                if matches == self.__initial_value_match and matches != 0:
+                    emsg = f"Unclear which initial_value to use for {local_name}. There are at least two configurations with {matches} matching attributes"
+                    raise CCPPError(emsg)
+                elif matches > self.__initial_value_match:
+                    # Use this initial_value (for now)
+                    self.__initial_value_match = matches
+                    self.__initial_value = attrib.text
+                # end if (number of matches)
             elif attrib.tag == 'ic_file_input_names':
                 #Separate out string into list:
                 self.__ic_names = [x.strip() for x in attrib.text.split(' ') if x]
@@ -488,16 +512,16 @@ class Variable(VarBase):
 ###############################################################################
     # pylint: disable=too-many-instance-attributes
     """Registry variable
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dimensions>ccpp_constant_one:horizontal_dimension:two</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dimensions>ccpp_constant_one:horizontal_dimension:two</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Illegal dimension string, ccpp_constant_one:horizontal_dimension:two, in u, step not allowed.
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Unknown Variable content, dims
-    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Bad variable attribute, 'kkind', for 'u'
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Dimension, 'vertical_dimension', not found for 'u'
     """
@@ -511,7 +535,7 @@ class Variable(VarBase):
                         "phys_timestep_init_zero", "standard_name",
                         "type", "units", "version"]
 
-    def __init__(self, var_node, known_types, vdict, logger):
+    def __init__(self, var_node, known_types, vdict, dycore, logger):
         # pylint: disable=too-many-locals
         """Initialize a Variable from registry XML"""
         local_name = var_node.get('local_name')
@@ -588,7 +612,7 @@ class Variable(VarBase):
         # Initialize the base class
         super().__init__(var_node, local_name,
                                        my_dimensions, known_types, ttype,
-                                       protected=protected)
+                                       dycore=dycore, protected=protected)
 
         for attrib in var_node:
             # Second pass, only process array elements
@@ -1090,7 +1114,7 @@ class DDT:
                 varname = attrib.text
                 include_var = True
                 attrib_dycores = [x.strip().lower() for x in
-                                  attrib.get('dycore', default="").split(',')
+                                  attrib.get('dyn', default="").split(',')
                                   if x]
                 if attrib_dycores and (dycore not in attrib_dycores):
                     include_var = False
@@ -1226,6 +1250,7 @@ class File:
         self.__use_statements = []
         self.__generate_code = gen_code
         self.__file_path = file_path
+        self.__dycore = dycore
         for obj in file_node:
             if obj.tag in ['variable', 'array']:
                 self.add_variable(obj, logger)
@@ -1252,7 +1277,7 @@ class File:
         """Create a Variable from <var_node> and add to this File's
         variable dictionary"""
         newvar = Variable(var_node, self.__known_types, self.__var_dict,
-                          logger)
+                          self.__dycore, logger)
         self.__var_dict.add_variable(newvar)
 
     def add_ddt(self, newddt, logger=None):

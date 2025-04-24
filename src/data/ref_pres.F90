@@ -94,13 +94,11 @@ contains
          end if
       end if
 
-      if (npes > 1) then
-         ! Broadcast namelist variables
-         call mpi_bcast(trop_cloud_top_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(clim_modal_aero_top_press, 1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(do_molec_press,            1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(molec_diff_bot_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
-      endif
+      ! Broadcast namelist variables
+      call mpi_bcast(trop_cloud_top_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(clim_modal_aero_top_press, 1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(do_molec_press,            1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(molec_diff_bot_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
 
    end subroutine ref_pres_readnl
 

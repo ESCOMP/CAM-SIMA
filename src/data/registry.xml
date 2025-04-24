@@ -349,7 +349,7 @@
               units="flag" type="logical">
       <long_name>flag indicating if dynamical core energy is not consistent with CAM physics and to perform adjustment of temperature and temperature tendency</long_name>
       <initial_value>.false.</initial_value>
-      <initial_value dycore="SE,MPAS">.true.</initial_value>
+      <initial_value dyn="SE,MPAS">.true.</initial_value>
     </variable>
     <!-- Timestep properties -->
     <variable local_name="is_first_timestep"
@@ -392,7 +392,7 @@
               standard_name="dycore_calculates_geopotential_using_logarithms"
               units="flag" type="logical" access="protected">
       <initial_value>.false.</initial_value>
-      <initial_value dycore="SE,FV">.true.</initial_value>
+      <initial_value dyn="SE,FV">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data>air_temperature</data>
@@ -696,6 +696,35 @@
               access="protected" >
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
       <initial_value>1</initial_value>
+    </variable>
+
+    <!-- dme_adjust Variables -->
+    <variable local_name="qini"
+              standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_before_physics"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>QINI pbuf_QINI</ic_file_input_names>
+    </variable>
+    <variable local_name="liqini"
+              standard_name="total_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water_before_physics"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>TOTLIQINI pbuf_TOTLIQINI</ic_file_input_names>
+    </variable>
+    <variable local_name="iceini"
+              standard_name="total_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water_before_physics"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>TOTICEINI pbuf_TOTICEINI</ic_file_input_names>
+    </variable>
+    <variable local_name="is_moist_dycore"
+              standard_name="is_moist_basis_dycore"
+              units="flag" type="logical" access="protected">
+      <initial_value>.true.</initial_value>
+      <initial_value dyn="SE,MPAS"> .false. </initial_value>
     </variable>
   </file>
 </registry>
