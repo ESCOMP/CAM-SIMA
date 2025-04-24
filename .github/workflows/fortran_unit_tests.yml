@@ -37,13 +37,13 @@ jobs:
       - name: Build cam-sima
         run: |
           cmake \
-            -DCMAKE_PREFIX_PATH=/home/runner/work/CAM-SIMA/CAM-SIMA/pFUnit/build/installed \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/pFUnit/build/installed \
             -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
             -B./build \
             -S./test/unit/fortran
           cd build
           make
-      
+
       - name: Run fortran unit tests
         run: |
           cd build && ctest -V --output-on-failure --output-junit test_results.xml
@@ -54,7 +54,7 @@ jobs:
           name: unit-test-results-${{ env.FC }}
           path: build/test_results.xml
 
-      - name: Setup GCov
+      - name: Setup Gcov
         run: |
           python3 -m venv venv
           source venv/bin/activate

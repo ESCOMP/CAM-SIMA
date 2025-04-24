@@ -94,13 +94,11 @@ contains
          end if
       end if
 
-      if (npes > 1) then
-         ! Broadcast namelist variables
-         call mpi_bcast(trop_cloud_top_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(clim_modal_aero_top_press, 1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(do_molec_press,            1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(molec_diff_bot_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
-      endif
+      ! Broadcast namelist variables
+      call mpi_bcast(trop_cloud_top_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(clim_modal_aero_top_press, 1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(do_molec_press,            1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(molec_diff_bot_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
 
    end subroutine ref_pres_readnl
 
@@ -179,7 +177,7 @@ contains
       ! num_pr_lev
       call mark_as_initialized("number_of_pure_pressure_levels_at_top")
       ! trop_cloud_top_lev
-      call mark_as_initialized("index_of_pressure_at_troposhere_cloud_top")
+      call mark_as_initialized("vertical_layer_index_of_troposphere_cloud_physics_top")
       ! clim_modal_aero_top_lev
       call mark_as_initialized("index_of_air_pressure_at_top_of_aerosol_model")
       ! do_molec_press

@@ -96,7 +96,7 @@
 
   <xs:attribute name="access"                  type="access_type"/>
   <xs:attribute name="allocatable"             type="allocation_type"/>
-  <xs:attribute name="dycore"                  type="dycore_type"/>
+  <xs:attribute name="dyn"                     type="dycore_type"/>
   <xs:attribute name="extends"                 type="fortran_id_type"/>
   <xs:attribute name="kind"                    type="fortran_id_type"/>
   <xs:attribute name="local_name"              type="fortran_id_type"/>
@@ -130,7 +130,10 @@
   <xs:complexType name="initial_value">
     <xs:simpleContent>
       <xs:extension base="xs:string">
-        <xs:attribute ref="dycore" use="optional" default=""/>
+	<!--- If adding a new attribute, also modify generate_registry_data.py
+		to check the attribute
+	-->
+        <xs:attribute ref="dyn" use="optional" default=""/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
@@ -192,7 +195,7 @@
   <xs:complexType name="data_type">
     <xs:simpleContent>
       <xs:extension base="standard_name_type">
-        <xs:attribute ref="dycore" use="optional" default=""/>
+        <xs:attribute ref="dyn" use="optional" default=""/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

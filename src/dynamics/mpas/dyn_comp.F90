@@ -1,3 +1,13 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module, part of the MPAS interface, integrates MPAS dynamical core with CAM-SIMA by
+!> implementing the necessary APIs and managing their interaction.
+!>
+!> It contains the instance of MPAS dynamical core, which is used extensively throughout CAM-SIMA.
+!> It provides core functionalities such as the initialization, running, and finalization of MPAS
+!> dynamical core. Various utility procedures for debug printing, exchanging constituent states,
+!> inquiring mesh dimensions, etc. are also provided here.
 module dyn_comp
     ! Module(s) from MPAS.
     use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type
@@ -22,14 +32,14 @@ module dyn_comp
     public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     public :: sphere_radius
 
-    !> NOTE:
+    ! NOTE:
     !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
     !> Developers/Maintainers/Users who wish to interact with MPAS dynamical core may do so by using the "instance/object"
     !> below.
     type :: dyn_import_t
     end type dyn_import_t
 
-    !> NOTE:
+    ! NOTE:
     !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
     !> Developers/Maintainers/Users who wish to interact with MPAS dynamical core may do so by using the "instance/object"
     !> below.
@@ -40,11 +50,13 @@ module dyn_comp
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
 
     ! Local and global mesh dimensions of MPAS dynamical core.
+    ! Protected module variables that can only be initialized by `dyn_inquire_mesh_dimensions`.
     integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     real(kind_dyn_mpas), protected :: sphere_radius
 contains
-    !> Print a debug message at a debug level.
+    !> Print a debug message at a debug level. The debug message will be prefixed by "MPAS Interface (N): ", where `N`
+    !> is the MPI rank. The debug level is one of the `debugout_*` constants from the `cam_logfile` module.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
     subroutine dyn_debug_print(level, message, printer)
@@ -111,7 +123,7 @@ contains
 
         nullify(pio_iosystem)
 
-        ! Get free units for MPAS so it can write its own log files, e.g., `log.atmosphere.0000.{out,err}`.
+        ! Get free units for MPAS so it can write its own log files, e.g., "log.atmosphere.0000.{out,err}".
         log_unit(1) = shr_file_getunit()
         log_unit(2) = shr_file_getunit()
 
@@ -134,7 +146,7 @@ contains
 
         call dyn_debug_print(debugout_info, 'Reading namelist')
 
-        ! Read MPAS-related namelist variables from `namelist_path`, e.g., `atm_in`.
+        ! Read MPAS-related namelist variables from `namelist_path`, e.g., "atm_in".
         call mpas_dynamical_core % read_namelist(namelist_path, &
             cam_calendar, start_date_time, stop_date_time, run_duration, initial_run)
 
@@ -329,7 +341,7 @@ contains
     end subroutine dyn_init
 
     !> Check for consistency in topography data. The presence of topography file is inferred from the `pio_file` pointer.
-    !> If topography file is used, check that the `PHIS` variable, which denotes surface geopotential,
+    !> If topography file is used, check that the "PHIS" variable, which denotes surface geopotential,
     !> is consistent with the surface geometric height in MPAS.
     !> Otherwise, if topography file is not used, check that the surface geometric height in MPAS is zero.
     !> (KCW, 2024-05-10)
@@ -352,7 +364,7 @@ contains
         real(kind_r8), parameter :: error_tolerance = 1.0E-3_kind_r8 ! Error tolerance for consistency check.
         real(kind_r8), allocatable :: surface_geometric_height(:)    ! Computed from topography file.
         real(kind_r8), allocatable :: surface_geopotential(:)        ! Read from topography file.
-        real(kind_dyn_mpas), pointer :: zgrid(:, :)                  ! From MPAS. Geometric height (meters) at layer interfaces.
+        real(kind_dyn_mpas), pointer :: zgrid(:, :)                  ! From MPAS. Geometric height (m) at layer interfaces.
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
 
@@ -418,9 +430,9 @@ contains
         integer, allocatable :: global_grid_index(:)
         real(kind_r8), allocatable :: buffer_2d_real(:, :), buffer_3d_real(:, :, :)
         real(kind_r8), allocatable :: lat_rad(:), lon_rad(:)
-        real(kind_r8), allocatable :: z_int(:, :)   ! Geometric height (meters) at layer interfaces.
+        real(kind_r8), allocatable :: z_int(:, :)   ! Geometric height (m) at layer interfaces.
                                                     ! Dimension and vertical index orders follow CAM-SIMA convention.
-        real(kind_dyn_mpas), pointer :: zgrid(:, :) ! Geometric height (meters) at layer interfaces.
+        real(kind_dyn_mpas), pointer :: zgrid(:, :) ! Geometric height (m) at layer interfaces.
                                                     ! Dimension and vertical index orders follow MPAS convention.
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
@@ -845,7 +857,8 @@ contains
         ! ----- p_1, z_1 ----- (Layer 1)
         !
         !> Compute the pressure `p_2` at height `z_2` from the pressure `p_1` at height `z_1` by hypsometric equation.
-        !> `t_v` is the mean virtual temperature between `z_1` and `z_2`.
+        !> `t_v` is the mean virtual temperature between `z_1` and `z_2`. Essentially,
+        !> \( P_2 = P_1 e^{\frac{-(z_2 - z_1) g}{R_d T_v}} \).
         !> (KCW, 2024-07-02)
         pure elemental function p_by_hypsometric_equation(p_1, z_1, t_v, z_2) result(p_2)
             ! Module(s) from CAM-SIMA.
@@ -862,7 +875,8 @@ contains
         ! ----- p_0, t_0 ----- (Reference layer)
         !
         !> Compute the potential temperature `t_0` at reference pressure `p_0` from the temperature `t_1` at pressure `p_1` by
-        !> Poisson equation.
+        !> Poisson equation. Essentially,
+        !> \( \theta = T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \).
         !> (KCW, 2024-07-02)
         pure elemental function theta_by_poisson_equation(p_1, t_1, p_0) result(t_0)
             ! Module(s) from CAM-SIMA.

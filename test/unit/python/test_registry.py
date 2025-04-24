@@ -85,7 +85,9 @@ class RegistryTest(unittest.TestCase):
     def test_good_simple_registry(self):
         """Test that a good registry with only variables validates.
         Check that generate_registry_data.py generates good
-        Fortran and metadata files"""
+        Fortran and metadata files. Expectation is that the initial
+        value for ncol will be set to the default of 0 because there is no
+        dycore match"""
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         out_source_name = "physics_types_simple"
@@ -95,10 +97,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
         remove_files([out_source, out_meta])
         # Run test
-        retcode, files, _, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -156,10 +158,10 @@ class RegistryTest(unittest.TestCase):
             out_meta = os.path.join(_TMP_DIR, out_meta_name)
             remove_files([out_source, out_meta])
             # Run dycore
-            retcode, files, _, _ = gen_registry(filename, dycore, _TMP_DIR, 2,
-                                             _SRC_MOD_DIR, _CAM_ROOT,
-                                             loglevel=logging.ERROR,
-                                             error_on_no_validate=True)
+            retcode, files, _, _, _ = gen_registry(filename, dycore, _TMP_DIR, 2,
+                                                   _SRC_MOD_DIR, _CAM_ROOT,
+                                                   loglevel=logging.ERROR,
+                                                   error_on_no_validate=True)
             # Check return code
             amsg = f"Test failure for dycore = {dycore}, retcode={retcode}"
             self.assertEqual(retcode, 0, msg=amsg)
@@ -203,10 +205,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -243,10 +245,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -281,10 +283,10 @@ class RegistryTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
         # generate registry
-        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                              _SRC_MOD_DIR, _CAM_ROOT,
+                                              loglevel=logging.ERROR,
+                                              error_on_no_validate=True)
         # Check return code
         amsg = f"Test failure for SE dycore, retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -335,10 +337,10 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, tmp_src_dir)
 
         # Generate registry
-        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _TMP_DIR,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _TMP_DIR,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
         # Check return code
         amsg = f"Test failure for SE dycore, retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -392,10 +394,10 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, source_mod_file)
 
         # Generate registry
-        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                         tmp_src_dir, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                               tmp_src_dir, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
 
         # Check return code
         amsg = f"Test failure for SE dycore, retcode={retcode}"
@@ -443,10 +445,10 @@ class RegistryTest(unittest.TestCase):
         remove_files([out_source, out_meta])
 
         # Run test
-        retcode, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
 
                 # Check return code
         amsg = f"Test failure: retcode={retcode}"
@@ -550,10 +552,10 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        retcode, files, _, _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -606,6 +608,56 @@ class RegistryTest(unittest.TestCase):
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
+
+    def test_registry_no_clear_initial_value(self):
+        """
+        Check that generate_registry_data.py throws the correct
+        error message when there is no clear "winner"
+        between the initial_value entries
+        """
+
+        # Setup test
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
+        tree, root = read_xml_file(infilename)
+
+        # Open base XML file:
+        base_tree = ET.parse(infilename)
+        base_root = base_tree.getroot()
+
+        # Write new namelist entry with "bad" value:
+        initial_value_tie_string = \
+        """
+        <variable local_name="myvar" standard_name="variable_with_unclear_initial_value"
+                  units="count" type="integer" access="protected">
+           <long_name>Number of horizontal columns</long_name>
+           <initial_value>2</initial_value>
+           <initial_value dyn="SE">0</initial_value>
+           <initial_value dyn="SE">1</initial_value>
+        </variable>
+        """
+
+        initial_value_tie_entry = ET.fromstring(initial_value_tie_string)
+
+        # Add new namelist entry back to original namelist XML tree:
+        base_root[0].append(initial_value_tie_entry)
+
+        # Write out new, temporary XML namelist file for testing:
+        xml_test_fil = os.path.join(_TMP_DIR, "test_registry_initial_value_tie.xml")
+        base_tree.write(xml_test_fil, encoding="utf-8", xml_declaration=True)
+        filename = os.path.join(_TMP_DIR, "test_registry_initial_value_tie.xml")
+
+        # Attempt to generate registry:
+        with self.assertRaises(CCPPError) as cerr:
+            retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
+                                             _SRC_MOD_DIR, _CAM_ROOT,
+                                             loglevel=logging.ERROR,
+                                             error_on_no_validate=True)
+
+        # Check exception message
+        emsg = "Unclear which initial_value to use for myvar. "
+        emsg += "There are at least two configurations with 1 matching attributes"
+
+        self.assertEqual(emsg, str(cerr.exception))
 
     def test_missing_standard_name(self):
         """Test a registry with a missing standard name.
@@ -812,10 +864,10 @@ class RegistryTest(unittest.TestCase):
                         new_ddt = ET.SubElement(obj, "ddt")
                         new_ddt.set("type", dtype)
                         data_elem = ET.SubElement(new_ddt, "data")
-                        data_elem.set("dycore", "EUL")
+                        data_elem.set("dyn", "EUL")
                         data_elem.text = 'latitude'
                         data_elem = ET.SubElement(new_ddt, "data")
-                        data_elem.set("dycore", "EUL")
+                        data_elem.set("dyn", "EUL")
                         data_elem.text = 'longitude'
                         break
                     # End if

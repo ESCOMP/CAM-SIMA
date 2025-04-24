@@ -8,9 +8,13 @@ import sys
 import os
 import filecmp
 import shutil
+import subprocess
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
+from atm_musica_config import MUSICA_CCPP_SCHEME_NAME
+from atm_musica_config import MUSICA_REPO_URL, MUSICA_TAG
+from atm_musica_config import CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG
 
 # Check for the CIME library, and add it
 # to the python path:
@@ -27,6 +31,7 @@ from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
 from CIME.Tools.standard_script_setup import check_minimum_python_version
+from CIME.locked_files import lock_file, unlock_file
 #pylint: enable=wrong-import-position
 
 check_minimum_python_version(3, 7) #CAM requires version 3.7 or greater
@@ -73,7 +78,7 @@ def _build_cam():
         # Re-run source generator in case registry, CCPP suites, or
         # generator scripts have been modified, and
         # to extract required source code paths:
-        config.generate_cam_src(gen_indent)
+        scheme_names = config.generate_cam_src(gen_indent)
 
         dycore = config.get_value('dyn')
         reg_dir = config.get_value('reg_dir')
@@ -122,12 +127,6 @@ def _build_cam():
             paths.append(os.path.join(atm_root, "src", "dynamics", "tests",
                                       "initial_conditions"))
 
-        # If using the CMEPS/NUOPC coupler, then add additional path:
-        if case.get_value("COMP_INTERFACE") == "nuopc":
-            paths.append(os.path.join(__CIMEROOT, "src", "drivers",
-                                      "nuopc", "nuopc_cap_share"))
-        # End if
-
         # Write Filepath text file
         with open(filepath_src, "w", encoding='utf-8') as filepath:
             filepath.write("\n".join(paths))
@@ -174,11 +173,32 @@ def _build_cam():
             if len(optional_mpas_features) > 0:
                 cmd += " OPTIONAL_MPAS_FEATURES=\"" + " ".join(optional_mpas_features) + "\""
 
+        # If MUSICA-CCPP scheme is used in a suite, download
+        # the MUSICA configuration and build the MUSICA library
+        if MUSICA_CCPP_SCHEME_NAME in scheme_names:
+            _download_musica_configuration(caseroot)
+            musica_install_path = _build_musica(caseroot)
+
+            cam_linked_libs = case.get_value("CAM_LINKED_LIBS")
+            musica_libs = "-lmusica-fortran -lmusica -lyaml-cpp"
+            if not musica_libs in cam_linked_libs:
+                _set_musica_lib_path(musica_install_path, caseroot)
+
+            cmd += ' USER_INCLDIR="'\
+                    f'-I{os.path.join(musica_install_path, "include", "micm")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "micm")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "tuvx")} '\
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "fortran")} '\
+                    '"'
+
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("Command %s:\n\nstdout:\n%s\n\nstderr:\n%s\n", cmd, out, err)
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
+###############################################################################
 def _prepare_mpas(case: Case) -> None:
+###############################################################################
     """
     Prepare MPAS build infrastructure.
     """
@@ -206,7 +226,9 @@ def _prepare_mpas(case: Case) -> None:
     shutil.copytree(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "assets")), mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
     shutil.copytree(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "driver")), os.path.join(mpas_dycore_bld_root, "driver"), copy_function=_copy2_as_needed, dirs_exist_ok=True)
 
+###############################################################################
 def _copy2_as_needed(src: str, dst: str) -> None:
+###############################################################################
     """
     Wrapper around `shutil.copy2`. Copy the file `src` to the file or directory `dst` as needed.
     """
@@ -225,6 +247,184 @@ def _copy2_as_needed(src: str, dst: str) -> None:
                 # `src` is a new file that does not exist at `dst`.
                 # Example scenario: User added some new source code files.
                 shutil.copy2(src, dst)
+
+###############################################################################
+def _build_musica(clone_dest: str) -> str:
+###############################################################################
+    """
+    Builds and installs the MUSICA library.
+
+    Args:
+        clone_dest: destination where the repository will be cloned
+
+    Raises:
+        Exception: If configuring the CMake MUSICA project fails or
+            the MUSICA library build fails, an exception is raised.
+
+    Returns:
+        musica_install_path: path to the MUSICA installation directory
+    """
+    _clone_and_checkout(MUSICA_REPO_URL, MUSICA_TAG, clone_dest)
+
+    bld_path = os.path.join(clone_dest, "musica", "build")
+    if os.path.exists(bld_path):
+        shutil.rmtree(bld_path)
+    os.makedirs(bld_path)
+
+    install_dir = "install"
+    command = [
+        "cmake",
+        f"-D CMAKE_INSTALL_PREFIX={install_dir}",
+        "-D CMAKE_BUILD_TYPE=Release",
+        "-D MUSICA_ENABLE_TESTS=OFF",
+        "-D MUSICA_BUILD_FORTRAN_INTERFACE=ON",
+        ".."
+    ]
+    try:
+        subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, text=True, check=False)
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
+            for cmake to configure the MUSICA CMake project failed.") from e
+    except FileNotFoundError as e:
+        raise FileNotFoundError("The 'cmake' command was not found.") from e
+    except OSError as e:
+        raise OSError("An error occurred while executing the 'cmake' command.") from e
+
+    command = ["cmake", "--build", ".", "--target", "install"]
+    try:
+        subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, text=True, check=False)
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
+            for cmake to build the MUSICA library failed.") from e
+    except FileNotFoundError as e:
+        raise FileNotFoundError("The 'cmake' command was not found.") from e
+    except OSError as e:
+        raise OSError("An error occurred while executing the 'cmake' command.") from e
+
+    musica_install_path = os.path.join(bld_path, install_dir)
+
+    return musica_install_path
+
+###############################################################################
+def _download_musica_configuration(download_dest: str) -> None:
+###############################################################################
+    """
+    Downloads the MUSICA configuration and renames the configuration
+    directory to match the name in the MUSICA-CCPP configuration.
+
+    Args:
+        download_dest: destination where configuration will be downloaded
+
+    Raises:
+        Exception: If the directory to be renamed is not found or
+            any other exceptions occur during the renaming process,
+            an exception is raised with the error message.
+    """
+    musica_config_dir_name = "musica_configurations"
+
+    _clone_and_checkout(CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG, download_dest)
+
+    original_dir = os.path.join(download_dest, "cam-sima-chemistry-data", "mechanisms")
+    renamed_dir = os.path.join(download_dest, "cam-sima-chemistry-data", musica_config_dir_name)
+    try:
+        os.rename(original_dir, renamed_dir)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"The directory '{original_dir}' was not found.") from e
+    except FileExistsError as e:
+        raise FileExistsError(f"The destination directory '{renamed_dir}' already exists.") from e
+    except PermissionError as e:
+        raise PermissionError(f"Permission denied to rename '{original_dir}'.") from e
+    except OSError as e:
+        raise OSError("An error occurred while renaming.") from e
+
+    musica_config_path = os.path.join(download_dest, musica_config_dir_name)
+    if os.path.exists(musica_config_path):
+        shutil.rmtree(musica_config_path)
+
+    shutil.move(renamed_dir, download_dest)
+
+###############################################################################
+def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
+###############################################################################
+    """
+    Sets the MUSICA libraries path to CAM_LINKED_LIBS, allowing the libraries
+    to be linked during the CESM build process.
+
+    Args:
+        musica_install_path: path to the MUSICA installation directory
+        caseroot: CASEROOT where the xmlchange command is located
+
+    Raises:
+        Exception: If the subprocess for the xmlchange command fails,
+            an exception is raised with the error message.
+    """
+
+    unlock_file("env_build.xml", caseroot)
+
+    command = [
+        "./xmlchange",
+        "--append",
+        # The libraries must be on the same line because CIME flags an
+        # error for multi-character arguments preceded by a single dash
+        f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} -lmusica-fortran -lmusica -lyaml-cpp"
+    ]
+    try:
+        subprocess.run(command, cwd=caseroot, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, text=True, check=False)
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
+            for xmlchange to set the MUSICA library path failed.") from e
+    except FileNotFoundError as e:
+        raise FileNotFoundError("The 'xmlchange' command was not found.") from e
+    except OSError as e:
+        raise OSError("An error occurred while executing the 'xmlchange' command.") from e
+
+    lock_file("env_build.xml", caseroot)
+
+###############################################################################
+def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
+###############################################################################
+    """
+    Clones a Git repository from the URL and checks out a specific branch.
+
+    Args:
+        repo_url: URL of the Git repository to clone
+        tag_name: tag name to check out
+        clone_dest: destination where the repository will be cloned
+
+    Raises:
+        Exception: If the `git clone` or `git checkout` commands fail,
+            an exception is raised with the error message.
+    """
+    repo_name = repo_url.split("/")[-1].replace(".git", "")
+    repo_path = os.path.join(clone_dest, repo_name)
+
+    if os.path.exists(repo_path):
+        shutil.rmtree(repo_path)
+
+    try:
+        subprocess.run(["git", "clone", repo_url, repo_path],
+           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(e.returncode, e.cmd, f"The subprocess \
+            for git to clone the repository {repo_url} failed.") from e
+    except FileNotFoundError as e:
+        raise FileNotFoundError("The 'git' command was not found.") from e
+    except OSError as e:
+        raise OSError("An error occurred while executing the 'git' command.") from e
+
+    try:
+        subprocess.run(["git", "-C", repo_path, "checkout", tag_name],
+           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(e.returncode, e.cmd, f"The subprocess \
+            for git to checkout the branch {tag_name} failed.") from e
+    except FileNotFoundError as e:
+        raise FileNotFoundError("The 'git' command was not found.") from e
+    except OSError as e:
+        raise OSError("An error occurred while executing the 'git' command.") from e
 
 ###############################################################################
 

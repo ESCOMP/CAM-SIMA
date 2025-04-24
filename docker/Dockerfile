@@ -19,7 +19,8 @@ RUN dnf -y update \
       vim \
     && dnf clean all
 
-RUN ln -s $(which python3) /usr/bin/python && \
+RUN rm -f /usr/bin/python && \
+    ln -s $(which python3) /usr/bin/python && \
     pip install --upgrade pip && \
     pip install --upgrade setuptools
 

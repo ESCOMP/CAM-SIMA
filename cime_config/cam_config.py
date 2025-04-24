@@ -854,7 +854,7 @@ class ConfigCAM:
         retvals = generate_registry(data_search, build_cache, self.__atm_root,
                                     self.__bldroot, source_mods_dir,
                                     dyn, gen_fort_indent)
-        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents = retvals
+        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents, vars_init_value = retvals
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -868,7 +868,7 @@ class ConfigCAM:
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
                                           force_ccpp)
-        phys_dirs, force_init, _, nml_fils, capgen_db = retvals
+        phys_dirs, force_init, _, nml_fils, capgen_db, scheme_names = retvals
 
         # Add namelist definition files to dictionary:
         for nml_fil in nml_fils:
@@ -887,7 +887,8 @@ class ConfigCAM:
         init_dir = generate_init_routines(build_cache, self.__bldroot,
                                           force_ccpp, force_init,
                                           source_mods_dir, gen_fort_indent,
-                                          capgen_db, ic_names, registry_constituents)
+                                          capgen_db, ic_names, registry_constituents,
+                                          vars_init_value)
 
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initialization code."
@@ -897,6 +898,9 @@ class ConfigCAM:
         # write out the cache here as we have completed pre-processing
         #--------------------------------------------------------------
         build_cache.write()
+
+        #Return the set of all scheme names present in the SDFs:
+        return scheme_names
 
     #++++++++++++++++++++++++
 

@@ -110,6 +110,11 @@
   </compset>
 
   <compset>
+    <alias>FCAM4</alias>
+    <lname>2000_CAM40_SLND_SICE_SOCN_SROF_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
     <alias>F2010climo</alias>
     <lname>2010_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_CISM2%NOEVOLVE_SWAV</lname>
   </compset>

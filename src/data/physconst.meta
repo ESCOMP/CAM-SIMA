@@ -274,7 +274,7 @@
   dimensions = ()
   protected = True
 [ zvir ]
-  standard_name = ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
+  standard_name = ratio_of_water_vapor_to_dry_air_gas_constants_minus_one
   units = 1
   type = real | kind = kind_phys
   dimensions = ()

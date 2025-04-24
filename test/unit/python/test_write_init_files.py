@@ -175,7 +175,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -238,10 +238,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, constituents = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                      _SRC_MOD_DIR, _CAM_ROOT,
-                                      loglevel=logging.ERROR,
-                                      error_on_no_validate=True)
+        _, _, ic_names, constituents, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+                                          _SRC_MOD_DIR, _CAM_ROOT,
+                                          loglevel=logging.ERROR,
+                                          error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types = ['kind_phys=REAL64']
@@ -258,7 +258,90 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, constituents, _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, ic_names, constituents, [], _TMP_DIR,
+                                             find_file, _INC_SEARCH_DIRS,
+                                             3, logger,
+                                             phys_check_filename=vic_name,
+                                             phys_input_filename=pi_name)
+
+        # Check return message:
+        amsg = f"Test failure: retmsg={retmsg}"
+        self.assertEqual(retmsg, '', msg=amsg)
+
+        # Make sure each output file was created:
+        amsg = f"{check_init_out} does not exist"
+        self.assertTrue(os.path.exists(check_init_out), msg=amsg)
+        amsg = f"{phys_input_out} does not exist"
+        self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
+
+        # For each output file, make sure it matches input file
+        amsg = f"{check_init_out} does not match {check_init_in}"
+        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
+                                    shallow=False), msg=amsg)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
+        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
+                                    shallow=False), msg=amsg)
+
+    def test_simple_initial_value_write_init(self):
+        """
+        Test that the 'write_init_files' function
+        generates the correct Fortran code given
+        a simple registry and CCPP physics suite with
+        only regular variables with one having an initial_value set.
+        """
+
+        # Setup registry inputs:
+        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg_initial_value.xml")
+        out_source_name = "physics_types_simple"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+
+        # Setup capgen inputs:
+        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
+
+        host_files = [model_host, out_meta]
+
+        # Setup write_init_files inputs:
+        vic_name = "phys_vars_init_check_initial_value.F90"
+        pi_name = "physics_inputs_initial_value.F90"
+        check_init_out = os.path.join(_TMP_DIR, vic_name)
+        phys_input_out = os.path.join(_TMP_DIR, pi_name)
+        # Setup comparison files
+        check_init_in = os.path.join(_INIT_SAMPLES_DIR, vic_name)
+        phys_input_in = os.path.join(_INIT_SAMPLES_DIR, pi_name)
+
+        # Create local logger:
+        logger = logging.getLogger("write_init_files_initial_value")
+
+        # Clear all temporary output files:
+        remove_files([out_source, out_meta, cap_datafile,
+                      check_init_out, phys_input_out])
+
+        # Generate registry files:
+        _, _, ic_names, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
+                                                          _SRC_MOD_DIR, _CAM_ROOT,
+                                                          loglevel=logging.ERROR,
+                                                          error_on_no_validate=True)
+
+        # Generate CCPP capgen files:
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+
+        cap_database = capgen(run_env, return_db=True)
+
+        # Generate physics initialization files:
+        retmsg = write_init.write_init_files(cap_database, ic_names, [], vars_init_value, _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -340,7 +423,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -403,10 +486,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types = ['kind_phys=REAL64']
@@ -423,7 +506,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -507,7 +590,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [],  _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -572,7 +655,7 @@ class WriteInitTest(unittest.TestCase):
         remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -592,7 +675,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        _ = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        _ = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                         find_file, _INC_SEARCH_DIRS,
                                         3, logger,
                                         phys_check_filename=vic_name,
@@ -647,10 +730,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types = ["kind_phys={REAL64}"]
@@ -667,7 +750,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        _ = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        _ = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                         find_file, _INC_SEARCH_DIRS,
                                         3, logger,
                                         phys_check_filename=vic_name,
@@ -722,7 +805,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -741,7 +824,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -815,7 +898,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -878,10 +961,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+                                         _SRC_MOD_DIR, _CAM_ROOT,
+                                         loglevel=logging.ERROR,
+                                         error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -897,7 +980,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [],  _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -959,10 +1042,10 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _, _, ic_names, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+                                            _SRC_MOD_DIR, _CAM_ROOT,
+                                            loglevel=logging.ERROR,
+                                            error_on_no_validate=True)
 
         # Generate CCPP capgen files:
         kind_types=['kind_phys=REAL64']
@@ -978,7 +1061,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, ic_names, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -1059,7 +1142,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -1140,7 +1223,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,
@@ -1224,7 +1307,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        retmsg = write_init.write_init_files(cap_database, {}, [], _TMP_DIR,
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
                                              find_file, _INC_SEARCH_DIRS,
                                              3, logger,
                                              phys_check_filename=vic_name,

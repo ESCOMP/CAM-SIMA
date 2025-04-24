@@ -1,14 +1,11 @@
-# ignore all
-*
+.github/
+.gitignore
+LICENSE
+README.md
 
-# include things to copy
-!Externals*
-!src/
-!cime_config/
-!manage_externals/
-!test/
-!.config_files.xml
-!docker
-!bin/
-!.lib/
-!.gitmodules
+# Ignore editor temporaries and backups
+*.swp
+*~
+.#*
+\#*#
+**/.vscode/

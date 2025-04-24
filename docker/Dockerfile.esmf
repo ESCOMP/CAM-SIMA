@@ -29,7 +29,7 @@ ENV OMP_NUM_THREADS=5
 ## Build and install ESMF
 ###################################################
 
-ENV ESMF_TAG="8.4.2"
+ENV ESMF_TAG="8.6.0"
 
 # set necessary environment variables
 ENV ESMF_DIR=/esmf-${ESMF_TAG}

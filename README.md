@@ -16,7 +16,7 @@ cd CAM-SIMA
 ## NOTE: This is **unsupported** development code and is subject to the [CESM developer's agreement](http://www.cgd.ucar.edu/cseg/development-code.html).
 ```
 git checkout development
-./manage_externals/checkout_externals
+./bin/git-fleximod update
 ```
 
 Good luck, and have a great day!
