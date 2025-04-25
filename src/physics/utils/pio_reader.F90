@@ -22,7 +22,7 @@ module pio_reader
     type :: file_handle_t
         logical            :: is_file_open = .false.  !Is NetCDF file currently open?
         type(file_desc_t)  :: pio_fh                  !PIO File handle type
-        character(len=cl)  :: file_path              !Local path to NetCDF file
+        character(len=cl)  :: file_path = ''          !Local path to NetCDF file
     end type
 
     type, extends(abstract_netcdf_reader_t) :: pio_reader_t
@@ -53,11 +53,13 @@ contains
         if(this%sima_pio_fh%is_file_open) then
           errcode = 1
           errmsg = "Trying to reuse pio_reader already used for: '"//this%sima_pio_fh%file_path
+          return
         end if
 
-        if(file_path .eq. 'UNSET_PATH') then
+        if(file_path == 'UNSET_PATH') then
          errcode = 1
          errmsg = "Found UNSET_PATH trying to open file"
+         return
         end if
 
         call cam_get_file(file_path, local_file_path)
@@ -100,7 +102,6 @@ contains
     end subroutine close_netcdf_file
 
     subroutine get_netcdf_var_int(this, varname, var, errmsg, errcode)
-        use ccpp_kinds, only: kind_phys
         use pio,        only: pio_inq_varid
         use pio,        only: pio_inq_dimlen
         use pio,        only: pio_inquire_variable
@@ -536,7 +537,6 @@ contains
     end subroutine get_netcdf_var_real
 
     subroutine get_netcdf_var_char(this, varname, var, errmsg, errcode)
-        use ccpp_kinds, only: kind_phys
         use pio,        only: pio_inq_varid
         use pio,        only: pio_inq_dimlen
         use pio,        only: pio_inquire_variable
@@ -545,7 +545,7 @@ contains
         use pio,        only: PIO_NOERR
         use pio,        only: PIO_BCAST_ERROR
 
-        use netcdf,     only: NF90_CHAR
+        use pio_types,     only: PIO_char
 
         class(pio_reader_t),       intent(in)  :: this
         character(len=*),          intent(in)  :: varname
@@ -601,7 +601,7 @@ contains
 
         !Check that variable is a character array
         !(as we cannot currently handle string-type variables):
-        if(nc_type /= NF90_CHAR) then
+        if(nc_type /= PIO_char) then
            errcode = not_char_type_err
            errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
            !Reset PIO back to original error handling method:

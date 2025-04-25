@@ -5,4 +5,4 @@ contains
   module procedure create_netcdf_reader_t
     allocate(pio_reader_t :: r)
   end procedure create_netcdf_reader_t
-end submodule
+end submodule pio_submodule
