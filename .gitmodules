@@ -22,7 +22,7 @@
 	url           = https://github.com/boulderdaze/atmospheric_physics
 	fxtag         = fix_musica_bug
         fxrequired    = AlwaysRequired
-        fxDONOTUSEurl = https://github.com/boulderdaze/atmospheric_physics
+        fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "ccs_config"]
         path          = ccs_config
         url           = https://github.com/ESMCI/ccs_config_cesm.git
