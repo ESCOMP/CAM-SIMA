@@ -140,12 +140,12 @@ contains
       species_group(4) = species_constructor("O1D", 5.3509e-10_kind_phys)
       species_group(5) = species_constructor("O3", 0.00016_kind_phys)
       species_group(6) = species_constructor("N2", 0.74015_kind_phys)
-      species_group(7) = species_constructor("air", 0.00060_kind_phys)
+      species_group(7) = species_constructor("air", 1.0_kind_phys)
 
     else if (is_terminator) then
       species_group(2) = species_constructor("Cl", 1.0e-12_kind_phys)
       species_group(3) = species_constructor("Cl2", 1.0e-12_kind_phys)
-      species_group(4) = species_constructor("air", 1.0e-3_kind_phys)
+      species_group(4) = species_constructor("air", 1.0_kind_phys)
       species_group(5) = species_constructor("O2", 0.21_kind_phys)
       species_group(6) = species_constructor("O3", 4.0e-6_kind_phys)
     end if
