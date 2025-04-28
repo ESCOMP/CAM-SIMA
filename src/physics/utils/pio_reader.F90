@@ -18,6 +18,7 @@ module pio_reader
     integer, parameter :: pio_get_var_err         = 7
     integer, parameter :: not_char_type_err       = 8
     integer, parameter :: file_not_open_err       = 9
+    integer, parameter :: pio_get_msg_err         = 10
 
     type :: file_handle_t
         logical            :: is_file_open = .false.  !Is NetCDF file currently open?
@@ -146,8 +147,9 @@ contains
         !Look for variable on file:
         errcode = pio_inq_varid(pio_file_handle, varname, var_id)
         if(errcode /= PIO_NOERR) then
-           errcode = pio_inq_var_id_err !Make sure error code is non-zero
-           errmsg  = "Failed to find '"//varname//"' in "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -156,8 +158,9 @@ contains
         !Get number of variable dimensions on file:
         errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
         if(errcode /= PIO_NOERR) then
-           errcode = pio_inq_var_info_err !Make sure error code is non-zero
-           errmsg  = "Failed to find number of dimensions for '"//varname//"' in "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -206,8 +209,9 @@ contains
            !Get variable dimension IDs:
            errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
            if(errcode /= PIO_NOERR) then
-              errcode = pio_inq_var_info_err !Make sure error code is non-zero
-              errmsg  = "Failed to find dimensions IDs for '"//varname//"' in "//file_path
+              !Extract error message from PIO:
+              call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+
               !Reset PIO back to original error handling method:
               call pio_seterrorhandling(pio_file_handle, err_handling)
               return
@@ -225,8 +229,9 @@ contains
            do i = 1, ndims
               errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
               if(errcode /= PIO_NOERR) then
-                 errcode = pio_inq_dim_len_err !Make sure error code is non-zero
-                 errmsg  = "Failed to find dimension sizes for '"//varname//"' in "//file_path
+                 !Extract error message from PIO:
+                 call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+
                  !Reset PIO back to original error handling method:
                  call pio_seterrorhandling(pio_file_handle, err_handling)
                  return
@@ -302,8 +307,9 @@ contains
         end select
 
         if (errcode /= PIO_NOERR) then
-           errcode = pio_get_var_err !Make sure error code is non-zero
-           errmsg  = "Failed to read '"//varname//"' from "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -363,8 +369,9 @@ contains
         !Look for variable on file:
         errcode = pio_inq_varid(pio_file_handle, varname, var_id)
         if (errcode /= PIO_NOERR) then
-           errcode = pio_inq_var_id_err !Make sure error code is non-zero
-           errmsg  = "Failed to find '"//varname//"' in "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -373,8 +380,9 @@ contains
         !Get number of variable dimensions on file:
         errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
         if(errcode /= PIO_NOERR) then
-           errcode = pio_inq_var_info_err !Make sure error code is non-zero
-           errmsg  = "Failed to find number of dimensions for '"//varname//"' in "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -423,8 +431,9 @@ contains
            !Get variable dimension IDs:
            errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
            if(errcode /= PIO_NOERR) then
-              errcode = pio_inq_var_info_err !Make sure error code is non-zero
-              errmsg  = "Failed to find dimensions IDs for '"//varname//"' in "//file_path
+              !Extract error message from PIO:
+              call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+
               !Reset PIO back to original error handling method:
               call pio_seterrorhandling(pio_file_handle, err_handling)
               return
@@ -442,8 +451,9 @@ contains
            do i = 1, ndims
               errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
               if(errcode /= PIO_NOERR) then
-                 errcode = pio_inq_dim_len_err !Make sure error code is non-zero
-                 errmsg  = "Failed to find dimension sizes for '"//varname//"' in "//file_path
+                 !Extract error message from PIO:
+                 call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+
                  !Reset PIO back to original error handling method:
                  call pio_seterrorhandling(pio_file_handle, err_handling)
                  return
@@ -520,8 +530,9 @@ contains
         end select
 
         if (errcode /= PIO_NOERR) then
-           errcode = pio_get_var_err !Make sure error code is non-zero
-           errmsg  = "Failed to read '"//varname//"' from "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -544,8 +555,7 @@ contains
         use pio,        only: pio_get_var
         use pio,        only: PIO_NOERR
         use pio,        only: PIO_BCAST_ERROR
-
-        use pio_types,     only: PIO_char
+        use pio_types,  only: PIO_CHAR
 
         class(pio_reader_t),       intent(in)  :: this
         character(len=*),          intent(in)  :: varname
@@ -582,8 +592,9 @@ contains
         !Look for variable on file:
         errcode = pio_inq_varid(pio_file_handle, varname, var_id)
         if (errcode /= PIO_NOERR) then
-           errcode = pio_inq_var_id_err !Make sure error code is non-zero
-           errmsg  = "Failed to find '"//varname//"' in "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -592,8 +603,9 @@ contains
         !Get variable type and number of variable dimensions on file:
         errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
         if(errcode /= PIO_NOERR) then
-           errcode = pio_inq_var_info_err !Make sure error code is non-zero
-           errmsg  = "Failed to find number of dimensions for '"//varname//"' in "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -601,7 +613,7 @@ contains
 
         !Check that variable is a character array
         !(as we cannot currently handle string-type variables):
-        if(nc_type /= PIO_char) then
+        if(nc_type /= PIO_CHAR) then
            errcode = not_char_type_err
            errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
            !Reset PIO back to original error handling method:
@@ -660,8 +672,9 @@ contains
            !Get variable dimension IDs:
            errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
            if(errcode /= PIO_NOERR) then
-              errcode = pio_inq_var_info_err !Make sure error code is non-zero
-              errmsg  = "Failed to find dimensions IDs for '"//varname//"' in "//file_path
+              !Extract error message from PIO:
+              call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+
               !Reset PIO back to original error handling method:
               call pio_seterrorhandling(pio_file_handle, err_handling)
               return
@@ -679,8 +692,9 @@ contains
            do i = 1, ndims
               errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
               if(errcode /= PIO_NOERR) then
-                 errcode = pio_inq_dim_len_err !Make sure error code is non-zero
-                 errmsg  = "Failed to find dimension sizes for '"//varname//"' in "//file_path
+                 !Extract error message from PIO:
+                 call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+
                  !Reset PIO back to original error handling method:
                  call pio_seterrorhandling(pio_file_handle, err_handling)
                  return
@@ -766,8 +780,9 @@ contains
         end select
 
         if (errcode /= PIO_NOERR) then
-           errcode = pio_get_var_err !Make sure error code is non-zero
-           errmsg  = "Failed to read '"//varname//"' from "//file_path
+           !Extract error message from PIO:
+           call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+
            !Reset PIO back to original error handling method:
            call pio_seterrorhandling(pio_file_handle, err_handling)
            return
@@ -781,4 +796,35 @@ contains
         errcode = 0
         errmsg = ''
     end subroutine get_netcdf_var_char
+
+    subroutine get_pio_errmsg(caller_errcode, errcode, errmsg)
+       !Set error message based off PIO error code,
+       !and then reset PIO error code to caller-specified
+       !error code.
+
+       !Note that if an internal error occurs when
+       !attempting to grab the error message both
+       !the error code and error message will be
+       !updated.
+
+       use pio, only: pio_strerror
+       use pio, only: PIO_NOERR
+
+       !Input/output arguments:
+       integer,          intent(in)    :: caller_errcode !New error code caller wants.
+       integer,          intent(inout) :: errcode        !Error code
+       character(len=*), intent(inout) :: errmsg         !Error message
+
+       !Local variables:
+       integer :: strerr !Error code returned if pio_strerror fails
+
+       strerr = pio_strerror(errcode, errmsg)
+       if(strerr /= PIO_NOERR) then
+          write(errmsg, *) "Failed to get error message for PIO code: ", errcode
+          errcode = pio_get_msg_err
+       else
+          errcode = caller_errcode
+       end if
+    end subroutine get_pio_errmsg
+
 end module pio_reader
