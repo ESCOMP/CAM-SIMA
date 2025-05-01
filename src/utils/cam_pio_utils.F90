@@ -940,6 +940,7 @@ CONTAINS
             strt = 1     ! cnt set by cam_pio_var_info
             exists = use_scam_limits(File, strt, cnt,filedims)
          end if
+         ! Internal PIO error handling is in effect, so no need to check return codes
          if (ndims == 3) then
             ierr = pio_inq_dimname(File, dimids(3), tmpname)
             if (trim(tmpname) /= 'time') then
