@@ -12,7 +12,7 @@ import subprocess
 import logging
 
 from cam_config import ConfigCAM # CAM's configure structure
-from atm_musica_config import MUSICA_CCPP_SCHEME_NAME
+from atm_musica_config import MUSICA_CCPP_SCHEME_NAME, MUSICA_CONFIG_DIR_NAME
 from atm_musica_config import MUSICA_REPO_URL, MUSICA_TAG
 from atm_musica_config import CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG
 
@@ -176,7 +176,7 @@ def _build_cam():
         # If MUSICA-CCPP scheme is used in a suite, download
         # the MUSICA configuration and build the MUSICA library
         if MUSICA_CCPP_SCHEME_NAME in scheme_names:
-            _download_musica_configuration(caseroot)
+            _ = _download_musica_configuration(caseroot)
             musica_install_path = _build_musica(caseroot)
 
             cam_linked_libs = case.get_value("CAM_LINKED_LIBS")
@@ -184,13 +184,14 @@ def _build_cam():
             if not musica_libs in cam_linked_libs:
                 _set_musica_lib_path(musica_install_path, caseroot)
 
-            cmd += ' USER_INCLDIR="'\
-                    f'-I{os.path.join(musica_install_path, "include", "micm")} '\
-                    f'-I{os.path.join(musica_install_path, "include", "musica")} '\
-                    f'-I{os.path.join(musica_install_path, "include", "musica", "micm")} '\
-                    f'-I{os.path.join(musica_install_path, "include", "musica", "tuvx")} '\
-                    f'-I{os.path.join(musica_install_path, "include", "musica", "fortran")} '\
+            cmd += (' USER_INCLDIR="'
+                    f'-I{os.path.join(musica_install_path, "include", "micm")} '
+                    f'-I{os.path.join(musica_install_path, "include", "musica")} '
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "micm")} '
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "tuvx")} '
+                    f'-I{os.path.join(musica_install_path, "include", "musica", "fortran")} '
                     '"'
+                    )
 
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("Command %s:\n\nstdout:\n%s\n\nstderr:\n%s\n", cmd, out, err)
@@ -284,8 +285,8 @@ def _build_musica(clone_dest: str) -> str:
         subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
-        raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
-            for cmake to configure the MUSICA CMake project failed.") from e
+        raise subprocess.CalledProcessError(e.returncode, e.cmd,
+            "The subprocess for cmake to configure the MUSICA CMake project failed.") from e
     except FileNotFoundError as e:
         raise FileNotFoundError("The 'cmake' command was not found.") from e
     except OSError as e:
@@ -294,10 +295,10 @@ def _build_musica(clone_dest: str) -> str:
     command = ["cmake", "--build", ".", "--target", "install"]
     try:
         subprocess.run(command, cwd=bld_path, stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE, text=True, check=False)
+                       text=True, check=False)
     except subprocess.CalledProcessError as e:
-        raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
-            for cmake to build the MUSICA library failed.") from e
+        raise subprocess.CalledProcessError(e.returncode, e.cmd,
+            "The subprocess for cmake to build the MUSICA library failed.") from e
     except FileNotFoundError as e:
         raise FileNotFoundError("The 'cmake' command was not found.") from e
     except OSError as e:
@@ -308,7 +309,7 @@ def _build_musica(clone_dest: str) -> str:
     return musica_install_path
 
 ###############################################################################
-def _download_musica_configuration(download_dest: str) -> None:
+def _download_musica_configuration(download_dest: str) -> str:
 ###############################################################################
     """
     Downloads the MUSICA configuration and renames the configuration
@@ -321,13 +322,14 @@ def _download_musica_configuration(download_dest: str) -> None:
         Exception: If the directory to be renamed is not found or
             any other exceptions occur during the renaming process,
             an exception is raised with the error message.
+    Returns:
+        musica_config_path: path to the MUSICA configuration directory
     """
-    musica_config_dir_name = "musica_configurations"
 
     _clone_and_checkout(CHEMISTRY_DATA_REPO_URL, CHEMISTRY_DATA_TAG, download_dest)
 
     original_dir = os.path.join(download_dest, "cam-sima-chemistry-data", "mechanisms")
-    renamed_dir = os.path.join(download_dest, "cam-sima-chemistry-data", musica_config_dir_name)
+    renamed_dir = os.path.join(download_dest, "cam-sima-chemistry-data", MUSICA_CONFIG_DIR_NAME)
     try:
         os.rename(original_dir, renamed_dir)
     except FileNotFoundError as e:
@@ -339,11 +341,13 @@ def _download_musica_configuration(download_dest: str) -> None:
     except OSError as e:
         raise OSError("An error occurred while renaming.") from e
 
-    musica_config_path = os.path.join(download_dest, musica_config_dir_name)
+    musica_config_path = os.path.join(download_dest, MUSICA_CONFIG_DIR_NAME)
     if os.path.exists(musica_config_path):
         shutil.rmtree(musica_config_path)
 
     shutil.move(renamed_dir, download_dest)
+
+    return musica_config_path
 
 ###############################################################################
 def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
@@ -374,8 +378,8 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
         subprocess.run(command, cwd=caseroot, stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
-        raise subprocess.CalledProcessError(e.returncode, e.cmd, "The subprocess \
-            for xmlchange to set the MUSICA library path failed.") from e
+        raise subprocess.CalledProcessError(e.returncode, e.cmd,
+            "The subprocess for xmlchange to set the MUSICA library path failed.") from e
     except FileNotFoundError as e:
         raise FileNotFoundError("The 'xmlchange' command was not found.") from e
     except OSError as e:
@@ -408,8 +412,8 @@ def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
         subprocess.run(["git", "clone", repo_url, repo_path],
            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
-        raise subprocess.CalledProcessError(e.returncode, e.cmd, f"The subprocess \
-            for git to clone the repository {repo_url} failed.") from e
+        raise subprocess.CalledProcessError(e.returncode, e.cmd,
+            f"The subprocess for git to clone the repository {repo_url} failed.") from e
     except FileNotFoundError as e:
         raise FileNotFoundError("The 'git' command was not found.") from e
     except OSError as e:
@@ -419,8 +423,8 @@ def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
         subprocess.run(["git", "-C", repo_path, "checkout", tag_name],
            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
     except subprocess.CalledProcessError as e:
-        raise subprocess.CalledProcessError(e.returncode, e.cmd, f"The subprocess \
-            for git to checkout the branch {tag_name} failed.") from e
+        raise subprocess.CalledProcessError(e.returncode, e.cmd,
+            f"The subprocess for git to checkout the branch {tag_name} failed.") from e
     except FileNotFoundError as e:
         raise FileNotFoundError("The 'git' command was not found.") from e
     except OSError as e:
