@@ -129,7 +129,9 @@ contains
       num_tuvx_only_gas_species = 3
     end if
 
-    allocate (species_group(num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species))
+    allocate (species_group(num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species), &
+      stat=errcode, errmsg=errmsg)
+    if (errcode /= 0) return
 
     species_group(1) = species_constructor(&
         "cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water", 0.00060_kind_phys)
@@ -199,20 +201,20 @@ contains
     end if
 
     allocate(photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension), &
-              stat=errcode)
+              stat=errcode, errmsg=errmsg)
     call check_allocate(errcode, subroutine_name, &
                         'photolysis_wavelength_grid_interfaces(photolysis_wavelength_grid_interface_dimension)', &
                         file=__FILE__, line=__LINE__)
     allocate(extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension), &
-              stat=errcode)
+              stat=errcode, errmsg=errmsg)
     call check_allocate(errcode, subroutine_name, &
                         'extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension)', &
                         file=__FILE__, line=__LINE__)
-    allocate(surface_albedo(horizontal_dimension), stat=errcode)
+    allocate(surface_albedo(horizontal_dimension), stat=errcode, errmsg=errmsg)
     call check_allocate(errcode, subroutine_name, &
                         'surface_albedo(horizontal_dimension)', &
                         file=__FILE__, line=__LINE__)
-    allocate(blackbody_temperature_at_surface(horizontal_dimension), stat=errcode)
+    allocate(blackbody_temperature_at_surface(horizontal_dimension), stat=errcode, errmsg=errmsg)
     call check_allocate(errcode, subroutine_name, &
                         'blackbody_temperature_at_surface(horizontal_dimension)', &
                         file=__FILE__, line=__LINE__)
