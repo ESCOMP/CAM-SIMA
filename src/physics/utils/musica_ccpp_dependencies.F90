@@ -13,7 +13,7 @@ module musica_ccpp_dependencies
 !
 !--------------------------------------------------------------------------
 
-  use ccpp_kinds, only: kind_phys
+  use ccpp_kinds,   only: kind_phys
 
   implicit none
   private
@@ -76,7 +76,7 @@ contains
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
     use ccpp_const_utils,          only: ccpp_const_get_idx
     use cam_logfile,               only: iulog
-    use musica_ccpp_namelist,      only: filename_of_micm_configuration
+    use musica_sima_namelist,      only: musica_config_str
 
     type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
     real(kind_phys),                   pointer :: constituents_array(:,:,:)
@@ -105,20 +105,16 @@ contains
     ! Currently, we only support two types of MUSICA configurations: Chapman and Terminator,
     ! until the file I/O object is implemented. If the configuration is neither of these,
     ! an error will be thrown.
-    position = index(filename_of_micm_configuration, chapman_config) ! Check if the substring exists
-    if (position > 0) then
+    if (trim(musica_config_str) == "chapman") then
       is_chapman = .true.
       write(iulog,*) "[MUSICA Info] Using the Chapman configuriation."
+    else if (trim(musica_config_str) == "terminator") then
+      is_terminator = .true.
+      write(iulog,*) "[MUSICA Info] Using the Terminator configuriation."
     else
-      position = index(filename_of_micm_configuration, terminator_config)
-      if (position > 0) then
-        is_terminator = .true.
-        write(iulog,*) "[MUSICA Info] Using the Terminator configuriation."
-      else
-        errcode = 1
-        errmsg = "[MUSICA Error] MUSICA configuration is not found."
-        return
-      end if
+      errcode = 1
+      errmsg = "[MUSICA Error] MUSICA configuration is not found."
+      return
     end if
 
     if (is_chapman) then
@@ -136,7 +132,7 @@ contains
     species_group(1) = species_constructor(&
         "cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water", 0.00060_kind_phys)
 
-    if (is_chapman) then   
+    if (is_chapman) then
       species_group(2) = species_constructor("O2", 0.22474_kind_phys)
       species_group(3) = species_constructor("O", 5.3509e-10_kind_phys)
       species_group(4) = species_constructor("O1D", 5.3509e-10_kind_phys)
@@ -174,6 +170,7 @@ contains
     use cam_abortutils,            only: check_allocate, endrun
     use cam_logfile,               only: iulog
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+    use musica_sima_namelist,      only: musica_config_str
 
     !-----------------------------------------------------------------------
     !
@@ -191,6 +188,9 @@ contains
         trim(module_name)//':(musica_ccpp_dependencies_init)'
     character(len=512)          :: errmsg
     integer                     :: errcode
+
+    ! Check if a MUSICA configuration is being used.  If not then just exit.
+    if (trim(musica_config_str) == "none") return
 
     write(iulog,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
 

@@ -15,6 +15,8 @@ module string_utils
    public :: date2yyyymmdd    ! Convert encoded date integer to "yyyy-mm-dd" format
    public :: sec2hms          ! Convert integer seconds past midnight to "hh:mm:ss" format
    public :: to_str           ! Convert integer to left justified string
+   public :: to_upper         ! Convert all characters in string to upper case.
+   public :: to_lower         ! Convert all characters in string to lower case.
    public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
 CONTAINS
@@ -61,7 +63,7 @@ CONTAINS
    character(len=10) function date2yyyymmdd (date)
 
       integer, intent(in) :: date
-       
+
       if (date < 0) then
          write(iulog,*)'DATE2YYYYMMDD: negative date not allowed'
          call endrun ('DATE2YYYYMMDD: negative date not allowed')

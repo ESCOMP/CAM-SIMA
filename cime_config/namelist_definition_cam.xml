@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<entry_id_pg version="0.1">
+<entry_id_pg version="2.0">
 
 <!-- Initial Conditions -->
 
@@ -361,6 +361,23 @@
     </desc>
     <values>
       <value>UNSET</value>
+    </values>
+  </entry>
+
+<!-- Host model chemistry settings -->
+
+  <entry id="musica_config">
+    <type>char*256</type>
+    <category>chemistry</category>
+    <group>chemistry_nl</group>
+    <desc>
+      Configuration option for the
+      MUSICA chemistry package.
+
+      Default: none
+    </desc>
+    <values>
+      <value>none</value>
     </values>
   </entry>
 
