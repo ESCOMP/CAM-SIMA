@@ -9,6 +9,7 @@ test/unit/python/tmp
 test/system/*.log
 test/system/cime-tests.o*
 test_driver_*.sh
+build/
 
 # Ignore editor temporaries and backups
 *.swp
