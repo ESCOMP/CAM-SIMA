@@ -55,7 +55,6 @@ module pio_reader
 contains
 
    subroutine open_netcdf_file(this, file_path, errmsg, errcode)
-      use ioFileMod,        only: cam_get_file
       use cam_pio_utils,    only: cam_pio_openfile
       use pio,              only: PIO_NOWRITE
 
@@ -63,8 +62,6 @@ contains
       character(len=*),    intent(in)  :: file_path
       integer,             intent(out) :: errcode
       character(len=*),    intent(out) :: errmsg
-
-      character(len=cl)  :: local_file_path  !NetCDF file path on local file system
 
       if(this%sima_pio_fh%is_file_open) then
          errcode = 1
@@ -78,11 +75,12 @@ contains
          return
       end if
 
-      call cam_get_file(file_path, local_file_path)
-      call cam_pio_openfile(this%sima_pio_fh%pio_fh, local_file_path, PIO_NOWRITE)
+      !Open provided file with PIO:
+      call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE)
 
       !Set file handle metadata
-      this%sima_pio_fh%file_path    = local_file_path
+      !this%sima_pio_fh%file_path    = local_file_path
+      this%sima_pio_fh%file_path    = file_path
       this%sima_pio_fh%is_file_open = .true.
 
       !File was successfully opened
