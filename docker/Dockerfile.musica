@@ -77,11 +77,29 @@ RUN /home/cam_sima_user/CAM-SIMA/cime/scripts/create_newcase --case $CASE_NAME \
 
 WORKDIR $CASE_NAME
 
-RUN ./case.setup
-
+RUN ./xmlchange COMPILER=gnu
+RUN ./xmlchange DEBUG=true
 RUN ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites musica"
-RUN ./xmlchange ROF_NCPL=48
 RUN ./xmlchange STOP_OPTION=nsteps
 RUN ./xmlchange STOP_N=5
+
+# Match the GLC timestep to atmosphere timestep
+RUN ./xmlchange ATM_NCPL=48
+RUN ./xmlchange GLC_NCPL=48
+
+# Avoid writing restart files
+RUN ./xmlchange REST_N=100
+
+RUN ./case.setup
+
+# Specify the path to the MUSICA configuraiton files by adding the following lines to the `user_nl_cam` file.
+# For example, to configure the Chapman mechanisms, include these lines. 
+# filename_of_micm_configuration=/home/cam_sima_user/case_name/test-case/musica_configurations/chapman/micm/config.json
+# filename_of_tuvx_configuration=/home/cam_sima_user/case_name/test-case/musica_configurations/chapman/tuvx/config.json
+# filename_of_tuvx_micm_mapping_configuration=/home/cam_sima_user/case_name/test-case/musica_configurations/chapman/tuvx_micm_mapping.json
+
+# You can run the model with the snapshot file by adding this line to the end of 'user_nl_cam' file on Derecho.
+# Note that this snapshot contains only ten time slices.
+# ncdata=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_kessler_snapshot_derecho_gnu_before_c20240412.nc
 
 RUN ./case.build

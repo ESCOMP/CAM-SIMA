@@ -1,0 +1,7 @@
+ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_dme_adjust_snapshot_derecho_gnu_before_c20250416.nc'
+ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_dme_adjust_snapshot_derecho_gnu_after_c20250416.nc'
+debug_output=0
+pver=32
+hist_add_inst_fields;h2: Q,PS
+hist_output_frequency;h2: nsteps
+hist_write_nstep0;h2: .true.

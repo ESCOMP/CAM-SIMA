@@ -20,9 +20,15 @@
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
 	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = atmos_phys0_10_001
+	fxtag         = 0af2e2b80bc2f8597b685bf08b0917233ce84afa
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
+[submodule "rrtmgp-data"]
+	path = src/physics/utils/rrtmgp-data
+	url = https://github.com/earth-system-radiation/rrtmgp-data.git
+        fxrequired    = AlwaysRequired
+        fxtag         = v1.8
+        fxDONOTUSEurl = https://github.com/earth-system-radiation/rrtmgp-data.git
 [submodule "ccs_config"]
         path          = ccs_config
         url           = https://github.com/ESMCI/ccs_config_cesm.git

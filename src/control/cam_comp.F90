@@ -84,27 +84,31 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,            only: cam_initfiles_open
-      use dyn_grid,                 only: model_grid_init
-      use phys_comp,                only: phys_init
-      use phys_comp,                only: phys_register
-      use dyn_comp,                 only: dyn_init
-!      use cam_restart,              only: cam_read_restart
-      use camsrfexch,               only: hub2atm_alloc, atm2hub_alloc
-      use cam_history,              only: history_init_files
-!      use history_scam,             only: scm_intht
-      use cam_pio_utils,            only: init_pio_subsystem
-      use cam_instance,             only: inst_suffix
-!      use history_defaults,         only: initialize_iop_history
-      use stepon,                   only: stepon_init
-      use air_composition,          only: air_composition_init
-      use cam_ccpp_cap,             only: cam_ccpp_initialize_constituents
-      use physics_grid,             only: columns_on_task
-      use vert_coord,               only: pver
-      use phys_vars_init_check,     only: mark_as_initialized
-      use tropopause_climo_read,    only: tropopause_climo_read_file
-      use musica_ccpp_dependencies, only: musica_ccpp_dependencies_init
-      use orbital_data,             only: orbital_data_init
+      use cam_initfiles,             only: cam_initfiles_open
+      use dyn_grid,                  only: model_grid_init
+      use phys_comp,                 only: phys_init
+      use phys_comp,                 only: phys_register
+      use dyn_comp,                  only: dyn_init
+!      use cam_restart,               only: cam_read_restart
+      use camsrfexch,                only: hub2atm_alloc, atm2hub_alloc
+      use cam_history,               only: history_init_files
+!      use history_scam,              only: scm_intht
+      use cam_pio_utils,             only: init_pio_subsystem
+      use cam_instance,              only: inst_suffix
+!      use history_defaults,          only: initialize_iop_history
+      use stepon,                    only: stepon_init
+      use air_composition,           only: air_composition_init
+      use cam_ccpp_cap,              only: cam_ccpp_initialize_constituents
+      use cam_ccpp_cap,              only: cam_model_const_properties
+      use cam_ccpp_cap,              only: cam_constituents_array
+      use physics_grid,              only: columns_on_task
+      use vert_coord,                only: pver
+      use phys_vars_init_check,      only: mark_as_initialized
+      use tropopause_climo_read,     only: tropopause_climo_read_file
+      use orbital_data,              only: orbital_data_init
+      use ccpp_kinds,                only: kind_phys
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use musica_ccpp_dependencies,  only: musica_ccpp_dependencies_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -146,10 +150,13 @@ CONTAINS
       type(cam_out_t), pointer :: cam_out       ! Output from CAM to surface
       type(cam_in_t),  pointer :: cam_in        ! Merged input state to CAM
 
-                                                ! Local variables
+      ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
       integer                  :: errflg
       character(len=cx)        :: errmsg
+
+      type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
+      real(kind_phys),                   pointer :: constituents_array(:,:,:)
       !-----------------------------------------------------------------------
 
       call init_pio_subsystem()
@@ -248,6 +255,21 @@ CONTAINS
       ! Read tropopause climatology
       call tropopause_climo_read_file()
 
+      ! Temporary:  Prescribe realistic but inaccurate physical quantities
+      ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
+      ! It also initializes the MUSICA constituent values until the file
+      ! I/O object is implemented.
+      !
+      ! Remove this when MUSICA input data are available from CAM-SIMA or
+      ! other physics schemes.
+      constituent_properties => cam_model_const_properties()
+      constituents_array => cam_constituents_array()
+      call musica_ccpp_dependencies_init(columns_on_task, pver, &
+           constituent_properties, constituents_array)
+
+      ! Initialize orbital data
+      call orbital_data_init(columns_on_task)
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -260,16 +282,6 @@ CONTAINS
       !    call scm_intht()
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
-
-      ! Temporary:  Prescribe realistic but inaccurate physical quantities
-      ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
-      !
-      ! Remove this when MUSICA input data are available from CAM-SIMA or
-      ! other physics schemes.
-      call musica_ccpp_dependencies_init(columns_on_task, pver, iulog)
-
-      ! Initialize orbital data
-      call orbital_data_init(columns_on_task)
 
    end subroutine cam_init
 

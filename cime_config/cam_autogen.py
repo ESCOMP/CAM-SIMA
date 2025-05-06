@@ -601,20 +601,20 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # So go-ahead and copy all of the source code from
     # there to the bld directory:
     if do_gen_ccpp:
-        # Set CCPP physics "utilities" path
-        atm_phys_util_dir = os.path.join(atm_schemes_path, "utilities")
+        # Set CCPP physics 'utilities' path
+        atm_phys_utilities_dir  = os.path.join(atm_schemes_path, "utilities")
 
-        # Check that directory exists
-        if not os.path.isdir(atm_phys_util_dir):
+        # Check that the directory exists
+        if not os.path.isdir(atm_phys_utilities_dir):
             # CAM-SIMA will likely not run without this, so raise an error
-            emsg = "ERROR: Unable to find CCPP physics utilities directory:\n"
-            emsg += f" {atm_phys_util_dir}\n Have you run 'git-fleximod'?"
+            emsg = "ERROR: Unable to find CCPP physics 'utilities' directory:\n"
+            emsg += f" {atm_phys_utilities_dir}\n Have you run 'git-fleximod'?"
             raise CamAutoGenError(emsg)
         # end if
 
-        # Copy all utility source files to the build directory
-        atm_phys_util_files = glob.glob(os.path.join(atm_phys_util_dir, "*.F90"))
-        for util_file in atm_phys_util_files:
+        # Copy all 'utilities' source files to the build directory
+        atm_phys_utilities_files = glob.glob(os.path.join(atm_phys_utilities_dir, "*.F90"))
+        for util_file in atm_phys_utilities_files:
             shutil.copy(util_file, physics_blddir)
         # end for
 
@@ -632,11 +632,32 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
             raise CamAutoGenError(emsg)
         # end if
 
+        # Copy all 'to_be_ccppized' source files to the build directory
         atm_phys_to_be_ccppized_files = glob.glob(os.path.join(atm_phys_to_be_ccppized_dir, "*.F90"))
         for to_be_ccppized_file in atm_phys_to_be_ccppized_files:
            shutil.copy(to_be_ccppized_file, physics_blddir)
         # end for
-    # end if
+
+        # Copy 'phys_utils' modules to the build directory,
+        # as SIMA's pio_reader module depends on them.
+        # Note: This requirement will likely disappear once
+        # the abstract File I/O interface has been moved to the
+        # CCPP-framework itself.
+        atm_phys_phys_utils_dir = os.path.join(atm_phys_top_dir, "phys_utils")
+
+        # Check that the directory exists
+        if not os.path.isdir(atm_phys_phys_utils_dir):
+            # CAM-SIMA will likely not run without this, so raise an error
+            emsg = "ERROR: Unable to find CCPP physics 'phys_utils' directory:\n"
+            emsg += f" {atm_phys_phys_utils_dir}\n Have you run 'git-fleximod'?"
+            raise CamAutoGenError(emsg)
+
+        # Copy all 'phys_utils' source files to the build directory
+        atm_phys_phys_utils_files = glob.glob(os.path.join(atm_phys_phys_utils_dir, "*.F90"))
+        for util_file in atm_phys_phys_utils_files:
+            shutil.copy(util_file, physics_blddir)
+
+    # end if (do_gen_ccpp)
 
     if do_gen_ccpp or do_gen_nl:
         # save build details in the build cache

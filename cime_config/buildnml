@@ -22,7 +22,7 @@ from CIME.Tools.standard_script_setup import *
 from CIME.XML.standard_module_setup   import *
 from CIME.buildnml                    import create_namelist_infile, parse_input
 from CIME.case                        import Case
-from CIME.utils                       import expect
+from CIME.utils                       import expect, symlink_force
 
 # Save local (cime_config) directory path:
 _CIME_CONFIG_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -35,8 +35,10 @@ from cam_config import ConfigCAM
 # HistoryConfig allows translation from user_nl_cam into Fortran namelists
 from hist_config import HistoryConfig
 
-#Import CAM's ParamGen class:
+# Import CAM's ParamGen class:
 from atm_in_paramgen import AtmInParamGen
+# Import specific names associated with the MUSICA scheme
+from atm_musica_config import MUSICA_CCPP_SCHEME_NAME, MUSICA_CONFIG_DIR_NAME
 
 # Open CIME case log:
 _LOGGER = logging.getLogger(__name__)
@@ -166,7 +168,7 @@ def buildnml(case, caseroot, compname):
     gen_indent = 3
 
     #Generate model code and meta-data:
-    _ = config.generate_cam_src(gen_indent)
+    scheme_names = config.generate_cam_src(gen_indent)
 
     #----------------------------------------------------------------
     # Create namelist attribute dictionary (to set namelist defaults):
@@ -376,6 +378,21 @@ def buildnml(case, caseroot, compname):
             # end for
         # end with
 
+        # If MUSICA-CCPP scheme is used in a suite, create symlinks in the run
+        # directory pointing to the MUSICA configuration data located in the caseroot
+        if MUSICA_CCPP_SCHEME_NAME in scheme_names:
+            musica_config_src_dir = os.path.join(caseroot, MUSICA_CONFIG_DIR_NAME)
+            musica_config_dest_dir = os.path.join(rundir, MUSICA_CONFIG_DIR_NAME)
+
+            if os.path.exists(musica_config_src_dir):
+                os.makedirs(musica_config_dest_dir, exist_ok=True)
+                for root, _, files in os.walk(musica_config_src_dir):
+                    rel_path = os.path.relpath(root, musica_config_src_dir)
+                    dest_dir = os.path.join(musica_config_dest_dir, rel_path)
+
+                    os.makedirs(dest_dir, exist_ok=True)
+                    for file in files:
+                        symlink_force(os.path.join(root, file), os.path.join(dest_dir, file))
 
 ###############################################################################
 def _main_func():

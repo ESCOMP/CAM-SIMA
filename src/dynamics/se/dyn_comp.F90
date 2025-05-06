@@ -1995,6 +1995,9 @@ subroutine set_phis(dyn_in)
          call endrun(subname//': dimension ncol not found in bnd_topo file')
       end if
       ierr = pio_inq_dimlen(fh_topo, ncol_did, ncol_size)
+      if (ierr /= PIO_NOERR) then
+         call endrun(subname//': dimension ncol does not have a value in bnd_topo file')
+      end if
       if (ncol_size /= dyn_cols) then
          if (masterproc) then
             write(iulog,*) subname//': ncol_size=', ncol_size, ' : dyn_cols=', dyn_cols
