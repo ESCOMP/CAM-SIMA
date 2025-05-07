@@ -574,13 +574,65 @@
     </variable>
 
     <!-- cam_in Variables -->
-    <variable local_name="landfrac"
-              standard_name="land_area_fraction"
+    <variable local_name="aldif"
+              standard_name="surface_albedo_due_to_near_IR_diffuse"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
+      <ic_file_input_names>aldif cam_in_aldif</ic_file_input_names>
+    </variable>
+    <variable local_name="aldir"
+              standard_name="surface_albedo_due_to_near_IR_direct"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>aldir cam_in_aldir</ic_file_input_names>
+    </variable>
+    <variable local_name="asdif"
+              standard_name="surface_albedo_due_to_UV_and_VIS_diffuse"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>asdif cam_in_asdif</ic_file_input_names>
+    </variable>
+    <variable local_name="asdir"
+              standard_name="surface_albedo_due_to_UV_and_VIS_direct"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>asdir cam_in_asdir</ic_file_input_names>
+    </variable>
+    <variable local_name="cflx"
+              standard_name="surface_upward_ccpp_constituent_fluxes"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cflx cam_in_cflx</ic_file_input_names>
+    </variable>
+
+    <!-- depvel is being intentionally ignored as one of the dimensions is problematic
+         and it was determined that it probably will not be used in CAM-SIMA for some time -->
+
+    <variable local_name="dstflx"
+              standard_name="surface_upward_dust_fluxes"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
+    </variable>
+    <variable local_name="fv"
+              standard_name="surface_friction_velocity"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>fv cam_in_fv</ic_file_input_names>
     </variable>
     <variable local_name="icefrac"
               standard_name="sea_ice_area_fraction"
@@ -589,6 +641,62 @@
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>icefrac cam_in_icefrac</ic_file_input_names>
+    </variable>
+    <variable local_name="landfrac"
+              standard_name="land_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
+    </variable>
+    <variable local_name="lhf"
+              standard_name="surface_upward_latent_heat_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>lhf cam_in_lhf</ic_file_input_names>
+    </variable>
+    <variable local_name="lwup"
+              standard_name="longwave_upward_radiative_flux_at_surface"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>lwup cam_in_lwup</ic_file_input_names>
+    </variable>
+    <variable local_name="ocnfrac"
+              standard_name="ocean_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocnfrac cam_in_ocnfrac</ic_file_input_names>
+    </variable>
+    <variable local_name="ram1"
+              standard_name="??????CAC??????????????????????????????????????"
+              units="s m-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ram1 cam_in_ram1</ic_file_input_names>
+    </variable>
+    <variable local_name="shf"
+              standard_name="surface_upward_sensible_heat_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>shf cam_in_shf</ic_file_input_names>
+    </variable>
+    <variable local_name="snowhice"
+              standard_name="lwe_surface_snow_depth_over_ice"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>snowhice cam_in_snowhice</ic_file_input_names>
     </variable>
     <variable local_name="snowhland"
               standard_name="lwe_surface_snow_depth_over_land"
@@ -607,6 +715,30 @@
            while SSTs are not being provided from another Earth system component. -->
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
+    </variable>
+    <variable local_name="ts"
+              standard_name="blackbody_temperature_at_surface "
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ts cam_in_ts</ic_file_input_names>
+    </variable>
+    <variable local_name="wsx"
+              standard_name="surface_eastward_wind_stress"
+              units="N m-2K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>wsx cam_in_wsx</ic_file_input_names>
+    </variable>
+    <variable local_name="wsy"
+              standard_name="surface_northward_wind_stress"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>wsy cam_in_wsy</ic_file_input_names>
     </variable>
 
     <!-- Temporary initializations from snapshot -->
