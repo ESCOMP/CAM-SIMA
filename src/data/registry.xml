@@ -675,7 +675,7 @@
       <ic_file_input_names>ocnfrac cam_in_ocnfrac</ic_file_input_names>
     </variable>
     <variable local_name="ram1"
-              standard_name="??????CAC??????????????????????????????????????"
+              standard_name="aerodynamical_resistance_tempcac"
               units="s m-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -740,6 +740,193 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>wsy cam_in_wsy</ic_file_input_names>
     </variable>
+
+    <!-- cam_out Variables -->
+    <variable local_name="bcphidry"
+              standard_name="dry_deposition_flux_of_hydrophilic_black_carbon_at_surface"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>bcphidry cam_out_bcphidry</ic_file_input_names>
+    </variable>
+    <variable local_name="bcphiwet"
+              standard_name="wet_deposition_flux_of_hydrophilic_black_carbon_at_surface"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>bcphiwet cam_out_bcphidwet</ic_file_input_names>
+    </variable>
+    <variable local_name="bcphodry"
+              standard_name="dry_deposition_flux_of_hydrophobic_black_carbon_at_surface"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry1"
+              standard_name="dry_deposition_of_dust_bin1_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry1 cam_out_dstdry1</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry2"
+              standard_name="dry_deposition_of_dust_bin2_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry2 cam_out_dstdry2</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry3"
+              standard_name="dry_deposition_of_dust_bin3_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry3 cam_out_dstdry3</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry4"
+              standard_name="dry_deposition_of_dust_bin4_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry4 cam_out_dstdry4</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet1"
+              standard_name="wet_deposition_of_dust_bin1_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet1 cam_out_dstwet1</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet2"
+              standard_name="wet_deposition_of_dust_bin2_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet2 cam_out_dstwet2</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet3"
+              standard_name="wet_deposition_of_dust_bin3_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet3 cam_out_dstwet3</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet4"
+              standard_name="wet_deposition_of_dust_bin4_tempcac"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet4 cam_out_dstwet4</ic_file_input_names>
+    </variable>
+    <variable local_name="netsw"
+              standard_name="net_shortwave_flux_at_surface"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>netsw cam_out_netsw</ic_file_input_names>
+    </variable>
+    <variable local_name="ocphidry"
+              standard_name="dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocphidry cam_out_ocphidry</ic_file_input_names>
+    </variable>
+    <variable local_name="ocphiwet"
+              standard_name="wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocphiwet cam_out_ocphiwet</ic_file_input_names>
+    </variable>
+    <variable local_name="ocphodry"
+              standard_name="dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocphodry cam_out_ocphodry</ic_file_input_names>
+    </variable>
+    <variable local_name="precc"
+              standard_name="lwe_convective_precipitation_rate_at_surface"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precc cam_out_precc</ic_file_input_names>
+    </variable>
+    <variable local_name="precl"
+              standard_name="lwe_large_scale_precipitation_rate_at_surface"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precl cam_out_precl</ic_file_input_names>
+    </variable>
+    <variable local_name="precsc"
+              standard_name="lwe_convective_snowfall_rate_at_surface"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precsc cam_out_precsc</ic_file_input_names>
+    </variable>
+    <variable local_name="precsl"
+              standard_name="lwe_large_scale_snowfall_rate_at_surface"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precsl cam_out_precsl</ic_file_input_names>
+    </variable>
+    <variable local_name="soll"
+              standard_name="direct_solar_rad_on_surface_ge_0.7_tempcac"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>soll cam_out_soll</ic_file_input_names>
+    </variable>
+    <variable local_name="solld"
+              standard_name="diffuse_solar_rad_on_surface_ge_0.7_tempcac"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>solld cam_out_solld</ic_file_input_names>
+    </variable>
+    <variable local_name="sols"
+              standard_name="direct_solar_rad_on_surface_lt_0.7_tempcac"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>sols cam_out_sols</ic_file_input_names>
+    </variable>
+    <variable local_name="solsd"
+              standard_name="direct_solar_rad_on_surface_lt_0.7_tempcac"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>solsd cam_out_solsd</ic_file_input_names>
+    </variable>
+
 
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
