@@ -180,7 +180,7 @@ def _build_cam():
             musica_install_path = _build_musica(caseroot)
 
             cam_linked_libs = case.get_value("CAM_LINKED_LIBS")
-            musica_libs = "-lmusica-fortran -lmusica -lyaml-cpp"
+            musica_libs = "-lmusica-fortran -lmusica -lmechanism_configuration -lyaml-cpp -lstdc++"
             if not musica_libs in cam_linked_libs:
                 _set_musica_lib_path(musica_install_path, caseroot)
 
@@ -372,7 +372,7 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
         "--append",
         # The libraries must be on the same line because CIME flags an
         # error for multi-character arguments preceded by a single dash
-        f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} -lmusica-fortran -lmusica -lyaml-cpp"
+        f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} -lmusica-fortran -lmusica -lmechanism_configuration -lyaml-cpp -lstdc++"
     ]
     try:
         subprocess.run(command, cwd=caseroot, stdout=subprocess.PIPE,
