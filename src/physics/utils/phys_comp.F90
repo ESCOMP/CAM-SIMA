@@ -178,12 +178,13 @@ CONTAINS
       use physics_types,        only: allocate_physics_types_fields
       use cam_ccpp_cap,         only: cam_ccpp_physics_initialize
       use cam_constituents,     only: num_advected
+      use physconst,            only: ccpp_constant_four
 
       call cam_thermo_init(columns_on_task, pver, pverp)
       call cam_thermo_formula_init()
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
-           num_advected, set_init_val_in=.true., reallocate_in=.false.)
+           ccpp_constant_four, num_advected, set_init_val_in=.true., reallocate_in=.false.)
       call cam_ccpp_physics_initialize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))

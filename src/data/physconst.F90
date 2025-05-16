@@ -88,6 +88,8 @@ module physconst
    real(kind_phys), public, protected :: rearth  = real(shr_const_rearth, kind_phys)       ! radius of earth (m)
    real(kind_phys), public, protected :: tmelt   = real(shr_const_tkfrz, kind_phys)        ! Freezing point of water (K)
 
+   integer, public, protected :: ccpp_constant_four = 4   ! constant four
+
    !-----  Variables below here are derived from those above -----------------
 
    real(kind_phys), public, protected :: rga          = 1._kind_phys/real(shr_const_g, kind_phys)         ! reciprocal of gravit (s2 m-1)

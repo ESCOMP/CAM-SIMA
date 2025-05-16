@@ -431,6 +431,7 @@
       <data>tendency_of_eastward_wind_due_to_model_physics</data>
       <data>tendency_of_northward_wind_due_to_model_physics</data>
     </ddt>
+
     <variable local_name="phys_state"
               standard_name="physics_state_due_to_dynamics"
               units="None" type="physics_state">
@@ -575,7 +576,7 @@
 
     <!-- cam_in Variables -->
     <variable local_name="aldif"
-              standard_name="surface_albedo_due_to_near_IR_diffuse"
+              standard_name="surface_albedo_due_to_near_ir_diffuse"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -583,7 +584,7 @@
       <ic_file_input_names>aldif cam_in_aldif</ic_file_input_names>
     </variable>
     <variable local_name="aldir"
-              standard_name="surface_albedo_due_to_near_IR_direct"
+              standard_name="surface_albedo_due_to_near_ir_direct"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -591,7 +592,7 @@
       <ic_file_input_names>aldir cam_in_aldir</ic_file_input_names>
     </variable>
     <variable local_name="asdif"
-              standard_name="surface_albedo_due_to_UV_and_VIS_diffuse"
+              standard_name="surface_albedo_due_to_uv_and_vis_diffuse"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -599,7 +600,7 @@
       <ic_file_input_names>asdif cam_in_asdif</ic_file_input_names>
     </variable>
     <variable local_name="asdir"
-              standard_name="surface_albedo_due_to_UV_and_VIS_direct"
+              standard_name="surface_albedo_due_to_uv_and_vis_direct"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -626,6 +627,7 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
     </variable>
+
     <variable local_name="fv"
               standard_name="surface_friction_velocity"
               units="m s-1" type="real" kind="kind_phys"
@@ -717,7 +719,7 @@
       <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
     </variable>
     <variable local_name="ts"
-              standard_name="blackbody_temperature_at_surface "
+              standard_name="blackbody_temperature_at_surface"
               units="K" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -726,7 +728,7 @@
     </variable>
     <variable local_name="wsx"
               standard_name="surface_eastward_wind_stress"
-              units="N m-2K" type="real" kind="kind_phys"
+              units="N m-2 K" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -895,7 +897,7 @@
       <ic_file_input_names>precsl cam_out_precsl</ic_file_input_names>
     </variable>
     <variable local_name="soll"
-              standard_name="direct_solar_rad_on_surface_ge_0.7_tempcac"
+              standard_name="direct_solar_rad_on_surface_ge_07_tempcac"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -903,7 +905,7 @@
       <ic_file_input_names>soll cam_out_soll</ic_file_input_names>
     </variable>
     <variable local_name="solld"
-              standard_name="diffuse_solar_rad_on_surface_ge_0.7_tempcac"
+              standard_name="diffuse_solar_rad_on_surface_ge_07_tempcac"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -911,7 +913,7 @@
       <ic_file_input_names>solld cam_out_solld</ic_file_input_names>
     </variable>
     <variable local_name="sols"
-              standard_name="direct_solar_rad_on_surface_lt_0.7_tempcac"
+              standard_name="direct_solar_rad_on_surface_lt_07_tempcac"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -919,7 +921,7 @@
       <ic_file_input_names>sols cam_out_sols</ic_file_input_names>
     </variable>
     <variable local_name="solsd"
-              standard_name="direct_solar_rad_on_surface_lt_0.7_tempcac"
+              standard_name="diffuse_solar_rad_on_surface_lt_07_tempcac"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -927,6 +929,53 @@
       <ic_file_input_names>solsd cam_out_solsd</ic_file_input_names>
     </variable>
 
+    <ddt type="cam_in">
+      <data>surface_albedo_due_to_near_ir_diffuse</data>
+      <data>surface_albedo_due_to_near_ir_direct</data>
+      <data>surface_albedo_due_to_uv_and_vis_diffuse</data>
+      <data>surface_albedo_due_to_uv_and_vis_direct</data>
+      <data>surface_upward_ccpp_constituent_fluxes</data>
+      <data>surface_upward_dust_fluxes</data>
+      <data>surface_friction_velocity</data>
+      <data>sea_ice_area_fraction</data>
+      <data>land_area_fraction</data>
+      <data>surface_upward_latent_heat_flux</data>
+      <data>longwave_upward_radiative_flux_at_surface</data>
+      <data>ocean_area_fraction</data>
+      <data>aerodynamical_resistance_tempcac</data>
+      <data>surface_upward_sensible_heat_flux</data>
+      <data>lwe_surface_snow_depth_over_ice</data>
+      <data>lwe_surface_snow_depth_over_land</data>
+      <data>sea_surface_temperature</data>
+      <data>blackbody_temperature_at_surface</data>
+      <data>surface_eastward_wind_stress</data>
+      <data>surface_northward_wind_stress</data>
+    </ddt>
+    <ddt type="cam_out">
+      <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface</data>
+      <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface</data>
+      <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface</data>
+      <data>dry_deposition_of_dust_bin1_tempcac</data>
+      <data>dry_deposition_of_dust_bin2_tempcac</data>
+      <data>dry_deposition_of_dust_bin3_tempcac</data>
+      <data>dry_deposition_of_dust_bin4_tempcac</data>
+      <data>wet_deposition_of_dust_bin1_tempcac</data>
+      <data>wet_deposition_of_dust_bin2_tempcac</data>
+      <data>wet_deposition_of_dust_bin3_tempcac</data>
+      <data>wet_deposition_of_dust_bin4_tempcac</data>
+      <data>net_shortwave_flux_at_surface</data>
+      <data>dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface</data>
+      <data>wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface</data>
+      <data>dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface</data>
+      <data>lwe_convective_precipitation_rate_at_surface</data>
+      <data>lwe_large_scale_precipitation_rate_at_surface</data>
+      <data>lwe_convective_snowfall_rate_at_surface</data>
+      <data>lwe_large_scale_snowfall_rate_at_surface</data>
+      <data>direct_solar_rad_on_surface_ge_07_tempcac</data>
+      <data>diffuse_solar_rad_on_surface_ge_07_tempcac</data>
+      <data>direct_solar_rad_on_surface_lt_07_tempcac</data>
+      <data>diffuse_solar_rad_on_surface_lt_07_tempcac</data>
+    </ddt>
 
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
