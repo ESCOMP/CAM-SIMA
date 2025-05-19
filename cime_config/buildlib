@@ -279,6 +279,7 @@ def _build_musica(clone_dest: str) -> str:
         "-D CMAKE_BUILD_TYPE=Release",
         "-D MUSICA_ENABLE_TESTS=OFF",
         "-D MUSICA_BUILD_FORTRAN_INTERFACE=ON",
+        "-D MICM_DEFAULT_VECTOR_SIZE=128",
         ".."
     ]
     try:

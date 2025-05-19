@@ -76,6 +76,7 @@ contains
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
     use ccpp_const_utils,          only: ccpp_const_get_idx
     use cam_logfile,               only: iulog
+    use spmd_utils,                only: primary_process => masterproc
     use musica_sima_namelist,      only: musica_config_str
 
     type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
@@ -107,10 +108,14 @@ contains
     ! an error will be thrown.
     if (trim(musica_config_str) == "chapman") then
       is_chapman = .true.
-      write(iulog,*) "[MUSICA Info] Using the Chapman configuriation."
+      if (primary_process) then
+          write(iulog,*) "[MUSICA Info] Using the Chapman configuriation with stubbed dependencies."
+      end if
     else if (trim(musica_config_str) == "terminator") then
       is_terminator = .true.
-      write(iulog,*) "[MUSICA Info] Using the Terminator configuriation."
+      if (primary_process) then
+          write(iulog,*) "[MUSICA Info] Using the Terminator configuriation with stubbed dependencies."
+      end if
     else
       errcode = 1
       errmsg = "[MUSICA Error] MUSICA configuration is not found."
@@ -165,10 +170,11 @@ contains
 
   subroutine musica_ccpp_dependencies_init( &
               horizontal_dimension, vertical_layer_dimension, &
-              constituents_properties, constituents_array)
+              constituents_properties, constituents_array, phys_suite_name)
 
     use cam_abortutils,            only: check_allocate, endrun
     use cam_logfile,               only: iulog
+    use spmd_utils,                only: primary_process => masterproc
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
     use musica_sima_namelist,      only: musica_config_str
 
@@ -182,6 +188,7 @@ contains
     integer,                        intent(in) :: vertical_layer_dimension
     type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
     real(kind_phys),                   pointer :: constituents_array(:,:,:)
+    character(len=*),               intent(in) :: phys_suite_name
 
     ! local variables
     character(len=*), parameter :: subroutine_name = &
@@ -190,9 +197,17 @@ contains
     integer                     :: errcode
 
     ! Check if a MUSICA configuration is being used.  If not then just exit.
-    if (trim(musica_config_str) == "none") return
+    if (trim(phys_suite_name) /= "musica") return
 
-    write(iulog,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
+    if (trim(musica_config_str) == "none") then
+      errmsg = "[MUSICA Error] MUSICA configuration is not found. Please set musica_config to 'chapman' or 'terminator'."
+      errcode = 1
+      call endrun(errmsg, file=__FILE__, line=__LINE__)
+    end if
+
+    if (primary_process) then
+        write(iulog,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
+    end if
 
     call initialize_musica_species_constituents(constituents_properties, &
                                 constituents_array, errmsg, errcode)

@@ -86,7 +86,7 @@ CONTAINS
 
       use cam_initfiles,             only: cam_initfiles_open
       use dyn_grid,                  only: model_grid_init
-      use phys_comp,                 only: phys_init
+      use phys_comp,                 only: phys_init, phys_suite_name
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
 !      use cam_restart,               only: cam_read_restart
@@ -265,7 +265,7 @@ CONTAINS
       constituent_properties => cam_model_const_properties()
       constituents_array => cam_constituents_array()
       call musica_ccpp_dependencies_init(columns_on_task, pver, &
-           constituent_properties, constituents_array)
+           constituent_properties, constituents_array, phys_suite_name)
 
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)

@@ -79,7 +79,7 @@ contains
     ! Print out namelist variables
     if (masterproc) then
       write(iulog,*) subname, ' options:'
-      write(iulog,*) '  MUSICA Configuration option: ', trim(musica_config_str)
+      write(iulog,*) '  MUSICA configuration: ', trim(musica_config_str)
     endif
 
   end subroutine musica_ccpp_dependencies_readnl
