@@ -263,33 +263,6 @@ contains
                 p_int_col(1:pver) + dp_col(:) * p_int_mid_proximity_limit), &
                 p_int_col(2:pverp) - dp_col(:) * p_int_mid_proximity_limit)
 
-            block
-                use string_utils, only: stringify
-
-                integer :: n
-                logical :: assertion(pver)
-
-                assertion(:) = ( &
-                    pd_mid_col(:) <= pd_int_col(1:pver) + dpd_col(:) * p_int_mid_proximity_limit .and. &
-                    pd_mid_col(:) >= pd_int_col(2:pverp) - dpd_col(:) * p_int_mid_proximity_limit .and. &
-                    p_mid_col(:) <= p_int_col(1:pver) + dp_col(:) * p_int_mid_proximity_limit .and. &
-                    p_mid_col(:) >= p_int_col(2:pverp) - dp_col(:) * p_int_mid_proximity_limit)
-
-                n = count(.not. assertion)
-
-                if (n > 0) then
-                    call dyn_debug_print(-1, 'Assertion failed: Column ' // stringify([i]) // ' has ' // stringify([n]) // &
-                        ' out-of-bound value(s)')
-
-                    call dyn_debug_print(-1, 'pd_int_col = ' // stringify(pd_int_col))
-                    call dyn_debug_print(-1, 'pd_mid_col =       ' // stringify(pd_mid_col))
-                    call dyn_debug_print(-1, 'dpd_col    =       ' // stringify(dpd_col))
-                    call dyn_debug_print(-1, 'p_int_col  = ' // stringify(p_int_col))
-                    call dyn_debug_print(-1, 'p_mid_col  =       ' // stringify(p_mid_col))
-                    call dyn_debug_print(-1, 'dp_col     =       ' // stringify(dp_col))
-                end if
-            end block
-
             ! Compute momentum variables.
 
             ! By definition.
