@@ -34,9 +34,9 @@ contains
         ! `*_int`: Variable is at layer interfaces.
         ! `*_mid`: Variable is at layer midpoints.
         real(kind_r8), allocatable :: pd_int_col(:), &       ! Dry hydrostatic air pressure (Pa).
-                                      pd_mid_col(:), &       ! Dry hydrostatic air pressure (Pa).
+                                      pd_mid_col(:), &       ! Dry non-hydrostatic air pressure (Pa).
                                       p_int_col(:), &        ! Full hydrostatic air pressure (Pa).
-                                      p_mid_col(:), &        ! Full hydrostatic air pressure (Pa).
+                                      p_mid_col(:), &        ! Full non-hydrostatic air pressure (Pa).
                                       z_int_col(:)           ! Geometric height (m).
         real(kind_r8), allocatable :: dpd_col(:), &          ! Dry air pressure difference (Pa) between layer interfaces.
                                       dp_col(:), &           ! Full air pressure difference (Pa) between layer interfaces.
