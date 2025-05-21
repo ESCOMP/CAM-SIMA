@@ -121,7 +121,7 @@ end subroutine stepon_run2
 
 subroutine stepon_run3(dtime, cam_runtime_opts, cam_out, phys_state, dyn_in, dyn_out)
 
-   use camsrfexch,     only: cam_out_t
+   use physics_types,     only: cam_out_t
 
    !SE/CAM interface:
    use dyn_comp,       only: dyn_run
