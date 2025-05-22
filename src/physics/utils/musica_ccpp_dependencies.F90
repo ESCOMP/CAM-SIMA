@@ -109,12 +109,12 @@ contains
     if (trim(musica_config_str) == "chapman") then
       is_chapman = .true.
       if (primary_process) then
-          write(iulog,*) "[MUSICA Info] Using the Chapman configuriation with stubbed dependencies."
+          write(iulog,*) "[MUSICA Info] Using the Chapman configuration with stubbed dependencies."
       end if
     else if (trim(musica_config_str) == "terminator") then
       is_terminator = .true.
       if (primary_process) then
-          write(iulog,*) "[MUSICA Info] Using the Terminator configuriation with stubbed dependencies."
+          write(iulog,*) "[MUSICA Info] Using the Terminator configuration with stubbed dependencies."
       end if
     else
       errcode = 1
@@ -188,7 +188,7 @@ contains
     integer,                        intent(in) :: vertical_layer_dimension
     type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
     real(kind_phys),                   pointer :: constituents_array(:,:,:)
-    character(len=*),               intent(in) :: phys_suite_name
+    character(len=*),               intent(in) :: phys_suite_name            ! name of the physics suite being run
 
     ! local variables
     character(len=*), parameter :: subroutine_name = &
