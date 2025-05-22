@@ -27,8 +27,6 @@ module musica_ccpp_dependencies
   integer, public, protected :: photolysis_wavelength_grid_interface_dimension = 103
   real(kind_phys), allocatable, public, protected :: photolysis_wavelength_grid_interfaces(:)
   real(kind_phys), allocatable, public, protected :: extraterrestrial_radiation_flux(:)
-  real(kind_phys), allocatable, public, protected :: surface_albedo(:)
-  real(kind_phys), allocatable, public, protected :: blackbody_temperature_at_surface(:)
 
   ! local parameters
   character(len=*), parameter :: module_name = '(musica_ccpp_dependencies)'
@@ -171,6 +169,7 @@ contains
     use cam_logfile,               only: iulog
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
     use musica_sima_namelist,      only: musica_config_str
+    use physics_types,             only: cam_in
 
     !-----------------------------------------------------------------------
     !
@@ -210,17 +209,9 @@ contains
     call check_allocate(errcode, subroutine_name, &
                         'extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension)', &
                         file=__FILE__, line=__LINE__)
-    allocate(surface_albedo(horizontal_dimension), stat=errcode, errmsg=errmsg)
-    call check_allocate(errcode, subroutine_name, &
-                        'surface_albedo(horizontal_dimension)', &
-                        file=__FILE__, line=__LINE__)
-    allocate(blackbody_temperature_at_surface(horizontal_dimension), stat=errcode, errmsg=errmsg)
-    call check_allocate(errcode, subroutine_name, &
-                        'blackbody_temperature_at_surface(horizontal_dimension)', &
-                        file=__FILE__, line=__LINE__)
 
-    surface_albedo(:) = 0.1_kind_phys
-    blackbody_temperature_at_surface(:) = 292.3_kind_phys
+    cam_in%asdir(:) = 0.1_kind_phys
+    cam_in%ts(:) = 292.3_kind_phys
     extraterrestrial_radiation_flux(:) = 1.0e14_kind_phys
     photolysis_wavelength_grid_interfaces = (/ &
       120.0e-9_kind_phys, &

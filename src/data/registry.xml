@@ -909,7 +909,7 @@
 
     <variable local_name="wsx"
               standard_name="surface_eastward_wind_stress"
-              units="N m-2 K" type="real" kind="kind_phys"
+              units="N m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1277,6 +1277,13 @@
       <data>surface_eastward_wind_stress</data>
       <data>surface_northward_wind_stress</data>
     </ddt>
+
+    <variable local_name="cam_in"
+              standard_name="cam_in_tempcac"
+              units="None" type="cam_in_t">
+      <long_name> </long_name>
+    </variable>
+
     <ddt type="cam_out_t">
       <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface</data>
       <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface</data>
@@ -1320,6 +1327,11 @@
       <data>zbot_tempcac</data>
     </ddt>
 
+    <variable local_name="cam_out"
+              standard_name="cam_out_tempcac"
+              units="None" type="cam_out_t">
+      <long_name> </long_name>
+    </variable>
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
     <variable local_name="pblh"
