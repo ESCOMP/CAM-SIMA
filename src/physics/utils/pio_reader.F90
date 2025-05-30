@@ -79,7 +79,6 @@ contains
       call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE)
 
       !Set file handle metadata
-      !this%sima_pio_fh%file_path    = local_file_path
       this%sima_pio_fh%file_path    = file_path
       this%sima_pio_fh%is_file_open = .true.
 
