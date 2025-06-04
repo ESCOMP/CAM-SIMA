@@ -27,8 +27,6 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt install -y libnetcdf-c++4-dev libnetcdff-dev libnetcdf-mpi-dev
-          nc-config --all
-          nf-config --all
 
       - name: Checkout cam-sima
         uses: actions/checkout@v4
@@ -47,7 +45,7 @@ jobs:
           cd ParallelIO
           # FC=$(which mpif90) \
           # CC=$(which mpicc) \
-          cmake -S./ -B./build \
+          cmake --debug-find -S./ -B./build \
             -DCMAKE_INSTALL_PREFIX=./install \
             -DPIO_ENABLE_TIMING=OFF \
             -DWITH_PNETCDF=OFF
