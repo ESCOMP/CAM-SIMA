@@ -42,7 +42,7 @@ jobs:
 
       - name: Build PIO
         run: |
-          git clone -b --depth 1 --branch pio2_6_6 https://github.com/NCAR/ParallelIO.git
+          git clone --depth 1 --branch pio2_6_6 https://github.com/NCAR/ParallelIO.git
           cd ParallelIO
           # FC=$(which mpif90) \
           # CC=$(which mpicc) \
