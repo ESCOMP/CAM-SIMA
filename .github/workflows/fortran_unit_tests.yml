@@ -26,11 +26,9 @@ jobs:
     steps:
       - name: install dependencies
         run: |
-          sudo apt install -y libnetcdf-c++4-dev libnetcdff-dev libopenmpi-dev 
-          echo ${NETCDF_PATH}
-          echo ${NETCDF_C_PATH}
-          echo $(which nc-config)
+          sudo apt install -y libnetcdf-c++4-dev libnetcdff-dev libnetcdf-mpi-dev
           nc-config --all
+          nf-config --all
 
       - name: Checkout cam-sima
         uses: actions/checkout@v4
@@ -51,7 +49,8 @@ jobs:
           # CC=$(which mpicc) \
           cmake -S./ -B./build \
             -DCMAKE_INSTALL_PREFIX=./install \
-            -DPIO_ENABLE_TIMING=OFF
+            -DPIO_ENABLE_TIMING=OFF \
+            -DWITH_PNETCDF=OFF
           cd build
           make
           make install
