@@ -4,6 +4,7 @@ project(CAM-SIMA-core-utils LANGUAGES Fortran)
 
 option(CAM_SIMA_ENABLE_TESTS "Run pFUnit unit tests" OFF)
 option(CAM_SIMA_ENABLE_CODE_COVERAGE "Run code coverage tool" OFF)
+option(CAM_SIMA_ENABLE_IO_TESTS "Run IO test integration" OFF)
 
 if(NOT CAM-SIMA-core-utils_IS_TOP_LEVEL)
   message(WARNING "CAM-SIMA-core-utils is not integrated into the CMake build of any top level "
@@ -24,9 +25,19 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../../../src/core_utils ${CMAKE_BINARY_DIR}/src)
 
-if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE)
-set(CMAKE_BUILD_TYPE Debug)
+if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE OR CAM_SIMA_ENABLE_IO_TESTS)
+  set(CMAKE_BUILD_TYPE Debug)
   find_package(PFUNIT REQUIRED)
   enable_testing()
-  add_subdirectory(src/core_utils)
+
+  if(CAM_SIMA_ENABLE_TESTS)
+    add_subdirectory(src/core_utils)
+  endif()
+  if(CAM_SIMA_ENABLE_IO_TESTS)
+    find_package(MPI REQUIRED COMPONENTS Fortran)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+    find_package(NetCDF REQUIRED COMPONENTS Fortran)
+    find_package(PIO REQUIRED COMPONENTS Fortran C)
+    add_subdirectory(src/mock_routines)
+  endif()
 endif()

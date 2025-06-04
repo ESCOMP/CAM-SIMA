@@ -23,6 +23,11 @@ jobs:
       CXX: g++-${{ matrix.version }}
       FC: gfortran-${{ matrix.version }}
     steps:
+      - name: install dependencies
+        run: |
+          apt install -y libnetcdff-dev libopenmpi-dev
+
+
       - name: Checkout cam-sima
         uses: actions/checkout@v4
 
@@ -34,15 +39,36 @@ jobs:
           cd build
           make install
 
+      - name: Build PIO
+        run: |
+          git clone -b --depth 1 --branch pio2_6_6 https://github.com/NCAR/ParallelIO.git
+          cd ParallelIO
+          # FC=$(which mpif90) \
+          # CC=$(which mpicc) \
+          cmake -S./ -B./build \
+            -DCMAKE_INSTALL_PREFIX=./install \
+            -DPIO_ENABLE_TIMING=OFF
+          cd build
+          make
+          make install
+
+
       - name: Build cam-sima
         run: |
+          PIO_ROOT=$GITHUB_WORKSPACE/ParallelIO/install/ \
           cmake \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/pFUnit/build/installed \
             -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
+            -DCAM_SIMA_ENABLE_IO_TESTS=ON \
+            -DCAM_SIMA_ENABLE_TESTS=ON \
             -B./build \
             -S./test/unit/fortran
           cd build
           make
+
+      - name: Checkout datafiles
+        run: |
+          git clone https://github.com/earth-system-radiation/rrtmgp-data.git
 
       - name: Run fortran unit tests
         run: |
