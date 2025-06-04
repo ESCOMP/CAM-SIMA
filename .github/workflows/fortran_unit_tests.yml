@@ -7,7 +7,7 @@ on:
       - main
       - pio_reader_tests
   pull_request:
-  workflow_dispatch:
+#  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
