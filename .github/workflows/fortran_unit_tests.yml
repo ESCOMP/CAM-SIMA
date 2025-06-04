@@ -27,7 +27,10 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt install -y libnetcdf-c++4-dev libnetcdff-dev libopenmpi-dev 
-
+          echo ${NETCDF_PATH}
+          echo ${NETCDF_C_PATH}
+          echo $(which nc-config)
+          nc-config --all
 
       - name: Checkout cam-sima
         uses: actions/checkout@v4
