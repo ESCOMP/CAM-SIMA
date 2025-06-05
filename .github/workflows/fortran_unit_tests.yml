@@ -56,6 +56,9 @@ jobs:
           make
           make install
 
+      - name: Checkout atmospheric_physics
+        run: |
+          bin/git-fleximod update ncar-physics
 
       - name: Build cam-sima
         run: |
