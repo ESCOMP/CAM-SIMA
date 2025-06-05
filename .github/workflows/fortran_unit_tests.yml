@@ -45,12 +45,12 @@ jobs:
           cd ParallelIO
           # FC=$(which mpif90) \
           # CC=$(which mpicc) \
+          CMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu" \
           cmake --debug-find -S./ -B./build \
             -DCMAKE_INSTALL_PREFIX=./install \
             -DPIO_ENABLE_TIMING=OFF \
             -DWITH_PNETCDF=OFF \
-            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF" \
-            -DCMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu"
+            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF"
           cd build
           make
           make install
