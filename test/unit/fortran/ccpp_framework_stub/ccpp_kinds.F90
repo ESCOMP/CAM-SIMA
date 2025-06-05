@@ -7,5 +7,5 @@ module ccpp_kinds
 
   public kind_phys
 
-  end module ccpp_kinds
+end module ccpp_kinds
   
