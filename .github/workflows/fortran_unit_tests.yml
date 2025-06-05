@@ -58,7 +58,7 @@ jobs:
 
       - name: Checkout atmospheric_physics
         run: |
-          bin/git-fleximod update ncar-physics
+          bin/git-fleximod update ncar-physics ccpp-framework
 
       - name: Build cam-sima
         run: |
