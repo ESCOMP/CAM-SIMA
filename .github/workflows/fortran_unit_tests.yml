@@ -27,6 +27,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt install -y libnetcdf-c++4-dev libnetcdff-dev libnetcdf-mpi-dev libnetcdf19t64
+          cmake --version
 
       - name: Checkout cam-sima
         uses: actions/checkout@v4
