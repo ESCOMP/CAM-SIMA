@@ -45,7 +45,7 @@ jobs:
           cd ParallelIO
           FC=$(which mpif90) \
           CC=$(which mpicc) \
-          cmake --debug-find -S./ -B./build \
+          cmake -S./ -B./build \
             -DCMAKE_INSTALL_PREFIX=./install \
             -DPIO_ENABLE_TIMING=OFF \
             -DWITH_PNETCDF=OFF \
