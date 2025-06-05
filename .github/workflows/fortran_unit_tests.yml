@@ -50,7 +50,7 @@ jobs:
             -DPIO_ENABLE_TIMING=OFF \
             -DWITH_PNETCDF=OFF \
             -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF" \
-            -DNetCDF_PATH="/usr/lib/x86_64-linux-gnu" \
+            -DNetCDF_Fortran_PATH="/usr/lib/x86_64-linux-gnu" \
             -DNetCDF_C_PATH="/usr/lib/x86_64-linux-gnu"
           cd build
           make
