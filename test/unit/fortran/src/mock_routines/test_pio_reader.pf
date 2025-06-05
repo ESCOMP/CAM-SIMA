@@ -1,5 +1,6 @@
 @test
 subroutine test_pio_reader_open_file()
+    use funit
 
     @assertTrue(.True.)
     
