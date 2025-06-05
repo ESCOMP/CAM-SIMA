@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: install dependencies
         run: |
-          sudo apt install -y libnetcdff-dev libnetcdf-mpi-dev cmake-extras
+          sudo apt install -y libnetcdff-dev libnetcdf-mpi-dev libopenmpi-dev
 
       - name: Checkout cam-sima
         uses: actions/checkout@v4
