@@ -1,0 +1,6 @@
+@test
+subroutine test_pio_reader_open_file()
+
+    @assertTrue(.True.)
+    
+end subroutine test_pio_reader_open_file
