@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(CAM-SIMA-core-utils LANGUAGES Fortran C)
+#project(CAM-SIMA-core-utils LANGUAGES Fortran C)
+project(CAM-SIMA-core-utils LANGUAGES Fortran)
 
 option(CAM_SIMA_ENABLE_TESTS "Run pFUnit unit tests" OFF)
 option(CAM_SIMA_ENABLE_CODE_COVERAGE "Run code coverage tool" OFF)
@@ -34,9 +35,11 @@ if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE OR CAM_SIMA_ENABLE_IO_
     add_subdirectory(src/core_utils)
   endif()
   if(CAM_SIMA_ENABLE_IO_TESTS)
-    find_package(MPI REQUIRED COMPONENTS Fortran C)
+    #find_package(MPI REQUIRED COMPONENTS Fortran C)
+    find_package(MPI REQUIRED COMPONENTS Fortran)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-    find_package(NetCDF REQUIRED COMPONENTS Fortran C)
+    #find_package(NetCDF REQUIRED COMPONENTS Fortran C)
+    find_package(NetCDF REQUIRED COMPONENTS Fortran)
     find_package(PIO REQUIRED COMPONENTS Fortran C)
 
     add_subdirectory(ccpp_framework_stub)

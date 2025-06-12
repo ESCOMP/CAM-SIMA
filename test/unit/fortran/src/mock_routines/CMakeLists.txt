@@ -3,7 +3,7 @@ add_pfunit_ctest(pio_tests
                  LINK_LIBRARIES io_reader
                                 cam_pio_utils
                                 MPI::MPI_Fortran
-                                MPI::MPI_C
+				#MPI::MPI_C
                                 PIO::PIO_Fortran
                                 PIO::PIO_C
                                 NetCDF::NetCDF_C

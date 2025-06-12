@@ -52,7 +52,7 @@ jobs:
             -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF" \
             -DNetCDF_Fortran_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdff.a" \
             -DNetCDF_C_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdf.so" \
-            -DCMAKE_EXE_LINKER_FLAGS="-lmpi"
+            #-DCMAKE_EXE_LINKER_FLAGS="-lmpi"
           cd build
           make
           make install
