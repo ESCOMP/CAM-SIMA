@@ -16,6 +16,7 @@ subroutine test_pio_reader_open_file()
     integer            :: mpi_ierr
 
     ! File name for testing:
+    ! NOTE:  This specific file is added during the Github Actions workflow.
     character(len=*), parameter :: fname = &
     '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
 
