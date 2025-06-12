@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(CAM-SIMA-core-utils LANGUAGES Fortran)
+project(CAM-SIMA-core-utils LANGUAGES Fortran C)
 
 option(CAM_SIMA_ENABLE_TESTS "Run pFUnit unit tests" OFF)
 option(CAM_SIMA_ENABLE_CODE_COVERAGE "Run code coverage tool" OFF)
