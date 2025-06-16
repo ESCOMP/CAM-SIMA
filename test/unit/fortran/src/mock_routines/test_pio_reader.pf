@@ -31,15 +31,13 @@ subroutine test_pio_reader_open_file()
     @assertTrue(allocated(reader))
 
     ! Attempt to open file:
-    !call reader%open_file(fname, errmsg, errcode)
+    call reader%open_file(fname, errmsg, errcode)
 
     ! Check that file was opened successfully:
-    !@assertTrue(errcode == 0)
-    !@assertTrue(errmsg == '')
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
 
     ! Shutdown MPI:
     call mpi_finalize(mpi_ierr)
-
-    !@assertTrue(.true.)
 
 end subroutine test_pio_reader_open_file
