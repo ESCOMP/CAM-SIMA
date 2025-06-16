@@ -5,10 +5,10 @@ subroutine test_pio_reader_open_file()
     use mpi,           only: mpi_init
     use mpi,           only: mpi_finalize
 
-    !use ccpp_io_reader, only: abstract_netcdf_reader_t
-    !use ccpp_io_reader, only: create_netcdf_reader_t
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
 
-    !class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), allocatable :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -17,18 +17,18 @@ subroutine test_pio_reader_open_file()
 
     ! File name for testing:
     ! NOTE:  This specific file is added during the Github Actions workflow.
-    !character(len=*), parameter :: fname = &
-    !'../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
+    character(len=*), parameter :: fname = &
+    '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
 
     ! Initialize MPI:
     call mpi_init(mpi_ierr)
 
     ! Begin test:
 
-    !reader = create_netcdf_reader_t()
+    reader = create_netcdf_reader_t()
 
     ! Check that reader was allocated successfully:
-    !@assertTrue(allocated(reader))
+    @assertTrue(allocated(reader))
 
     ! Attempt to open file:
     !call reader%open_file(fname, errmsg, errcode)
@@ -40,6 +40,6 @@ subroutine test_pio_reader_open_file()
     ! Shutdown MPI:
     call mpi_finalize(mpi_ierr)
 
-    @assertTrue(.true.)
+    !@assertTrue(.true.)
 
 end subroutine test_pio_reader_open_file
