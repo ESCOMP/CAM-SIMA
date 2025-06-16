@@ -38,8 +38,8 @@ if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE OR CAM_SIMA_ENABLE_IO_
     find_package(MPI REQUIRED COMPONENTS Fortran C)
     #find_package(MPI REQUIRED COMPONENTS Fortran)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-    #find_package(NetCDF REQUIRED COMPONENTS Fortran C)
-    find_package(NetCDF REQUIRED COMPONENTS Fortran)
+    find_package(NetCDF REQUIRED COMPONENTS Fortran C)
+    #find_package(NetCDF REQUIRED COMPONENTS Fortran)
     find_package(PIO REQUIRED COMPONENTS Fortran C)
 
     add_subdirectory(ccpp_framework_stub)
