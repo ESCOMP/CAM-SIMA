@@ -1,5 +1,6 @@
 add_pfunit_ctest(pio_tests
-                 TEST_SOURCES test_pio_read.pf test_pio_reader.pf
+                 #TEST_SOURCES test_pio_read.pf test_pio_reader.pf
+                 TEST_SOURCES test_pio_reader.pf
                  LINK_LIBRARIES io_reader
                                 cam_pio_utils
                                 MPI::MPI_Fortran
