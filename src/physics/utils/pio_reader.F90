@@ -65,7 +65,7 @@ contains
 
       if(this%sima_pio_fh%is_file_open) then
          errcode = 1
-         errmsg = "Trying to reuse pio_reader already used for: '"//this%sima_pio_fh%file_path//"'"
+         errmsg = "Trying to reuse pio_reader already used for: '"//trim(this%sima_pio_fh%file_path)//"'"
          return
       end if
 
