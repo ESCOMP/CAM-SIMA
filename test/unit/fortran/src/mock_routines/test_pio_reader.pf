@@ -104,7 +104,7 @@ subroutine test_pio_reader_already_opened_file_err()
     ! Check that the correct error was raised:
     @assertTrue(errcode /= 0)
     write(*,*) " ''' "//trim(errmsg)//" ''' "
-    write(*,*) " ''' "//expected_err_msg/" ''' "
+    write(*,*) " ''' "//expected_err_msg//" ''' "
     write(*,*) trim(errmsg) == expected_err_msg
     @assertTrue(trim(errmsg) == expected_err_msg)
 
