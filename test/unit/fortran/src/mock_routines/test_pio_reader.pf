@@ -59,7 +59,7 @@ subroutine test_pio_reader_open_close_file()
     ! Deallocate reader object:
     deallocate(reader)
 
-end subroutine test_pio_reader_open_file
+end subroutine test_pio_reader_open_close_file
 
 !----------------------------------------
 
