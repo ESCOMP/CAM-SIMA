@@ -1,51 +1,38 @@
-module test_pio_reader
-! Test suite for the PIO implemention of the
-! CCPP FileIO reader class used by CAM-SIMA.
-
-  use mpi
-  use pFUnit
-
-  use ccpp_io_reader, only: abstract_netcdf_reader_t
-  use ccpp_io_reader, only: create_netcdf_reader_t
-
-contains
-
 !--------------------------------------------
 !Pre- and post-conditions for the test suite.
 !--------------------------------------------
 
-!@BeforeClass
-!subroutine init_mpi()
+@BeforeClass
+subroutine init_mpi()
     !Initialize MPI before running tests.
-!    use mpi, only: mpi_init
+    use mpi, only: mpi_init
 
-!    integer :: mpi_ierr
+    integer :: mpi_ierr
 
     ! Initialize MPI:
-!    call mpi_init(mpi_ierr)
+    call mpi_init(mpi_ierr)
 
-!end subroutine init_mpi
+end subroutine init_mpi
 
-!@AfterClass
-!subroutine finalize_mpi()
+@AfterClass
+subroutine finalize_mpi()
     !Finalize MPI after running tests.
-!    use mpi, only: mpi_finalize
+    use mpi, only: mpi_finalize
 
-!    integer :: mpi_ierr
+    integer :: mpi_ierr
 
     ! Shutdown MPI:
-!    call mpi_finalize(mpi_ierr)
+    call mpi_finalize(mpi_ierr)
 
-!end subroutine finalize_mpi
+end subroutine finalize_mpi
 
 !---------------------
 !Begin test suite list
 !---------------------
 
-@test(npes=[1])
-subroutine test_pio_reader_open_file(this)
-    class(MpiTestMethod), intent(inout) :: this
-    !use funit
+@test
+subroutine test_pio_reader_open_file()
+    use funit
 
     !use mpi,           only: mpi_init
     !use mpi,           only: mpi_finalize
@@ -86,5 +73,3 @@ subroutine test_pio_reader_open_file(this)
     !call mpi_finalize(mpi_ierr)
 
 end subroutine test_pio_reader_open_file
-
-end module test_pio_reader
