@@ -50,8 +50,8 @@ subroutine test_pio_reader_open_file(this)
     !use mpi,           only: mpi_init
     !use mpi,           only: mpi_finalize
 
-    use ccpp_io_reader, only: abstract_netcdf_reader_t
-    use ccpp_io_reader, only: create_netcdf_reader_t
+    !use ccpp_io_reader, only: abstract_netcdf_reader_t
+    !use ccpp_io_reader, only: create_netcdf_reader_t
 
     class(abstract_netcdf_reader_t), allocatable :: reader
 
