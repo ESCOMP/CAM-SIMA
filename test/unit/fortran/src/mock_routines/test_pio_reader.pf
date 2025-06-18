@@ -87,6 +87,10 @@ subroutine test_pio_reader_already_opened_file_err()
     character(len=*), parameter :: fname = &
     '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
 
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Trying to reuse pio_reader already used for: '"//fname//"'"
+
     ! Begin test:
 
     reader = create_netcdf_reader_t()
@@ -99,8 +103,7 @@ subroutine test_pio_reader_already_opened_file_err()
 
     ! Check that the correct error was raised:
     @assertTrue(errcode /= 0)
-
-    write(*,*) trim(errmsg)
+    @assertTrue(errmsg == expected_err_msg)
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
