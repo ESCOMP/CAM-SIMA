@@ -1,41 +1,9 @@
-!--------------------------------------------
-!Pre- and post-conditions for the test suite.
-!--------------------------------------------
-
-@BeforeClass
-subroutine init_mpi()
-    !Initialize MPI before running tests.
-    use mpi, only: mpi_init
-
-    integer :: mpi_ierr
-
-    ! Initialize MPI:
-    call mpi_init(mpi_ierr)
-
-end subroutine init_mpi
-
-@AfterClass
-subroutine finalize_mpi()
-    !Finalize MPI after running tests.
-    use mpi, only: mpi_finalize
-
-    integer :: mpi_ierr
-
-    ! Shutdown MPI:
-    call mpi_finalize(mpi_ierr)
-
-end subroutine finalize_mpi
-
-!---------------------
-!Begin test suite list
-!---------------------
-
 @test
 subroutine test_pio_reader_open_file()
     use funit
 
-    !use mpi,           only: mpi_init
-    !use mpi,           only: mpi_finalize
+    use mpi,           only: mpi_init
+    use mpi,           only: mpi_finalize
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
@@ -45,7 +13,7 @@ subroutine test_pio_reader_open_file()
     integer            :: errcode
     character(len=256) :: errmsg
 
-    !integer            :: mpi_ierr
+    integer            :: mpi_ierr
 
     ! File name for testing:
     ! NOTE:  This specific file is added during the Github Actions workflow.
@@ -53,7 +21,7 @@ subroutine test_pio_reader_open_file()
     '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
 
     ! Initialize MPI:
-    !call mpi_init(mpi_ierr)
+    call mpi_init(mpi_ierr)
 
     ! Begin test:
 
@@ -70,6 +38,6 @@ subroutine test_pio_reader_open_file()
     @assertTrue(errmsg == '')
 
     ! Shutdown MPI:
-    !call mpi_finalize(mpi_ierr)
+    call mpi_finalize(mpi_ierr)
 
 end subroutine test_pio_reader_open_file
