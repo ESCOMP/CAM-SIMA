@@ -8,6 +8,8 @@ module test_pio_reader
   use ccpp_io_reader, only: abstract_netcdf_reader_t
   use ccpp_io_reader, only: create_netcdf_reader_t
 
+  implicit none
+
 contains
 
 !--------------------------------------------
