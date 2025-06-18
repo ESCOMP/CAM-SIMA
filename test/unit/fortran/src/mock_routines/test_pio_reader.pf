@@ -56,6 +56,9 @@ subroutine test_pio_reader_open_close_file()
     @assertTrue(errcode == 0)
     @assertTrue(errmsg == '')
 
+    ! Deallocate reader object:
+    deallocate(reader)
+
 end subroutine test_pio_reader_open_file
 
 !----------------------------------------
