@@ -1645,6 +1645,7 @@ contains
             call add_stream_attribute('git_version', self % domain_ptr % core % git_version)
             call add_stream_attribute('model_name', self % domain_ptr % core % modelname)
             call add_stream_attribute('source', self % domain_ptr % core % source)
+            call add_stream_attribute('version', self % domain_ptr % core % modelversion)
 
             ! Attributes related to MPAS domain (i.e., `domain_type`).
             call add_stream_attribute('is_periodic', self % domain_ptr % is_periodic)
