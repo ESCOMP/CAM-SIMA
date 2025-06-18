@@ -1,9 +1,13 @@
+!This file contains tests for the PIO version of the CCPP NetCDF reader
+!object (pio_reader.F90) as implemented in CAM-SIMA.
+
 @test
 subroutine test_pio_reader_open_file()
+    !Check that the PIO reader can open a file successfully.
     use funit
 
     use mpi,           only: mpi_init
-    use mpi,           only: mpi_finalize
+    !use mpi,           only: mpi_finalize
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
@@ -21,6 +25,7 @@ subroutine test_pio_reader_open_file()
     '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
 
     ! Initialize MPI:
+    ! NOTE: This must be done for the first test in the test suite.
     call mpi_init(mpi_ierr)
 
     ! Begin test:
@@ -38,6 +43,24 @@ subroutine test_pio_reader_open_file()
     @assertTrue(errmsg == '')
 
     ! Shutdown MPI:
-    call mpi_finalize(mpi_ierr)
+    !call mpi_finalize(mpi_ierr)
 
 end subroutine test_pio_reader_open_file
+
+!----------------------------------------
+
+@test
+subroutine final_test()
+    use funit
+
+    use mpi, only: mpi_finalize
+
+    integer :: mpi_ierr
+
+    ! Shutdown MPI:
+    ! NOTE: This must be done for the last test in the test suite.
+    call mpi_finalize(mpi_ierr)
+
+    @assertTrue(.true.)
+
+end subroutine final_test
