@@ -64,6 +64,53 @@ end subroutine test_pio_reader_open_close_file
 !----------------------------------------
 
 @test
+subroutine test_pio_reader_already_opened_file_err()
+    !Check that the PIO reader raised the correct error
+    !when attempting to open a file that is already opened.
+
+    use funit
+
+    use mpi,           only: mpi_init
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    integer            :: mpi_ierr
+
+    ! File name for testing:
+    ! NOTE:  This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Attempt to open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to open file again:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+
+    write(*,*) trim(errmsg)
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_already_opened_file_err
+
+!----------------------------------------
+
+@test
 subroutine final_test()
     use funit
 
