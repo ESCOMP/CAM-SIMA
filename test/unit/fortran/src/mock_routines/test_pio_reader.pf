@@ -147,10 +147,6 @@ subroutine test_pio_reader_no_file_err()
     ! Attempt to open non-existent file:
     call reader%open_file(fname, errmsg, errcode)
 
-    !Debug output:
-    write(*,*) "Error code: ", errcode
-    write(*,*) "Error message: ", trim(errmsg)
-
     ! Check that the correct error was raised:
     @assertTrue(errcode /= 0)
     @assertTrue(trim(errmsg) == expected_err_msg)
