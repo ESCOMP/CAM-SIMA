@@ -1284,7 +1284,7 @@ CONTAINS
       ! If an error code is present, make sure PIO returns an error
       ! instead of aborting:
       if (present(errcode)) then
-         call pio_seterrorhandling(file, PIO_BCAST_ERROR,
+         call pio_seterrorhandling(file, PIO_BCAST_ERROR, &
          oldmethod=err_handling)
       end if
 
