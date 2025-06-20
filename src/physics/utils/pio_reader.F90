@@ -2809,7 +2809,7 @@ contains
       character(len=256) :: pio_error
 
       strerr = pio_strerror(errcode, pio_error)
-      write(errmsg, '(a,a,a,a)') 'Error for variable "', varname, '" - message: ', pio_error
+      write(errmsg, '(a,a,a,a)') 'Error for variable "', varname, '" - message: ', trim(pio_error)
       if(strerr /= PIO_NOERR) then
          write(errmsg, *) "Failed to get error message for PIO code: ", errcode
          errcode = pio_get_msg_err
