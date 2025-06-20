@@ -81,7 +81,7 @@ contains
 
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO and return:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, file_path, errcode, errmsg)
          return
       end if
 
