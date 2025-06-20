@@ -70,18 +70,14 @@ contains
          return
       end if
 
-      !if(file_path == 'UNSET_PATH') then
-      !   errcode = 1
-      !   errmsg = "Found UNSET_PATH trying to open file"
-      !   return
-      !end if
-
       !Open provided file with PIO:
-      call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE, errcode=errcode)
+      call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE, &
+      errcode=errcode)
 
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO and return:
-         call get_pio_errmsg(pio_inq_var_info_err, file_path, errcode, errmsg)
+         call get_pio_errmsg(1, file_path, errcode, errmsg, &
+         file_msg=.true.)
          return
       end if
 
@@ -2785,7 +2781,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_5d
 
-   subroutine get_pio_errmsg(caller_errcode, varname, errcode, errmsg)
+   subroutine get_pio_errmsg(caller_errcode, varname, errcode, errmsg, file_msg)
       !Set error message based off PIO error code,
       !and then reset PIO error code to caller-specified
       !error code.
@@ -2799,21 +2795,36 @@ contains
       use pio, only: PIO_NOERR
 
       !Input/output arguments:
-      integer,          intent(in)    :: caller_errcode !New error code caller wants.
-      character(len=*), intent(in)    :: varname
-      integer,          intent(inout) :: errcode        !Error code
-      character(len=*), intent(inout) :: errmsg         !Error message
+      integer,           intent(in)    :: caller_errcode !New error code caller wants.
+      character(len=*),  intent(in)    :: varname
+      integer,           intent(inout) :: errcode        !Error code
+      character(len=*),  intent(inout) :: errmsg         !Error message
+      logical, optional, intent(in)    :: file_msg       !If true then error is for file.
 
       !Local variables:
       integer :: strerr !Error code returned if pio_strerror fails
       character(len=256) :: pio_error
+      logical :: file_msg_flag
 
+      !Check if error is for a file instead of a variable:
+      if (present(file_msg)) then
+         file_msg_flag = file_msg
+      else
+         file_msg_flag = .false.
+      end if
+
+      !Get error message from PIO:
       strerr = pio_strerror(errcode, pio_error)
-      write(errmsg, '(a,a,a,a)') 'Error for variable "', varname, '" - message: ', trim(pio_error)
       if(strerr /= PIO_NOERR) then
          write(errmsg, *) "Failed to get error message for PIO code: ", errcode
          errcode = pio_get_msg_err
       else
+         if (file_msg_flag) then
+            write(errmsg, '(a,a,a,a)') "Error for file '", varname, "' - message: ", trim(pio_error)
+         else
+            !Variable error message
+            write(errmsg, '(a,a,a,a)') "Error for variable '", varname, "' - message: ", trim(pio_error)
+         end if
          errcode = caller_errcode
       end if
    end subroutine get_pio_errmsg

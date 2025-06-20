@@ -83,7 +83,7 @@ subroutine test_pio_reader_already_opened_file_err()
     ! File name for testing:
     ! NOTE:  This specific file is added during the Github Actions workflow.
     character(len=*), parameter :: fname = &
-    '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
@@ -134,11 +134,11 @@ subroutine test_pio_reader_no_file_err()
     ! File name for testing
     ! NOTE: This file does not actually exist.
     character(len=*), parameter :: fname = &
-    'glinda_the_good.nc'
+    "glinda_the_good.nc"
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-    "Error opening file '"//fname//"': No such file or directory"
+    "Error for file '"//fname//"' - message: No such file or directory"
 
     ! Begin test:
 
@@ -152,8 +152,8 @@ subroutine test_pio_reader_no_file_err()
     write(*,*) "Error message: ", trim(errmsg)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= PIO_NOERR)
-    !@assertTrue(trim(errmsg) == expected_err_msg)
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
 
     ! Perform test cleanup:
     deallocate(reader)

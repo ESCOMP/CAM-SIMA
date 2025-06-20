@@ -1284,7 +1284,7 @@ CONTAINS
       ! If an error code is present, make sure PIO returns an error
       ! instead of aborting:
       if (present(errcode)) then
-         call pio_seterrorhandling(file, PIO_BCAST_ERROR, &
+         call pio_seterrorhandling(pio_subsystem, PIO_BCAST_ERROR, &
          oldmethod=err_handling)
       end if
 
@@ -1309,7 +1309,7 @@ CONTAINS
       ! the error handling back to whatever was
       ! running before this routine:
       if (present(errcode)) then
-         call pio_seterrorhandling(file, err_handling)
+         call pio_seterrorhandling(pio_subsystem, err_handling)
       end if
 
    end subroutine cam_pio_openfile

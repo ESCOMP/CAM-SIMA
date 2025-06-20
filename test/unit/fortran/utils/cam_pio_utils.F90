@@ -58,7 +58,8 @@ contains
       ! If an error code is present, make sure PIO returns an error
       ! instead of aborting:
       if (present(errcode)) then
-         call pio_seterrorhandling(pio_system, PIO_BCAST_ERROR) !, oldmethod=err_handling)
+         call pio_seterrorhandling(pio_system, PIO_BCAST_ERROR, &
+         oldmethod=err_handling)
       end if
 
       ierr = pio_openfile(pio_system, file, pio_iotype_netcdf, fname, mode)
@@ -80,9 +81,9 @@ contains
       ! If an error code is requested, then set
       ! the error handling back to whatever was
       ! running before this routine:
-      !if (present(errcode)) then
-         !call pio_seterrorhandling(file, err_handling)
-      !end if
+      if (present(errcode)) then
+         call pio_seterrorhandling(pio_system, err_handling)
+      end if
 
    end subroutine cam_pio_openfile
    !===========================================================================
