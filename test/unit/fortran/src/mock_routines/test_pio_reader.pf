@@ -65,12 +65,10 @@ end subroutine test_pio_reader_open_close_file
 
 @test
 subroutine test_pio_reader_already_opened_file_err()
-    !Check that the PIO reader raised the correct error
+    !Check that the PIO reader raises the correct error
     !when attempting to open a file that is already opened.
 
     use funit
-
-    use mpi,           only: mpi_init
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
@@ -110,6 +108,57 @@ subroutine test_pio_reader_already_opened_file_err()
     deallocate(reader)
 
 end subroutine test_pio_reader_already_opened_file_err
+
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_no_file_err()
+
+    !Check that the PIO reader raises the correct error
+    !when attempting to open a file that does not exist.
+
+    use funit
+
+    use pio,            only: PIO_NOERR
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    integer            :: mpi_ierr
+
+    ! File name for testing
+    ! NOTE: This file does not actually exist.
+    character(len=*), parameter :: fname = &
+    'glinda_the_good.nc'
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Error opening file '"//fname//"': No such file or directory"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Attempt to open non-existent file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    !Debug output:
+    write(*,*) "Error code: ", errcode
+    write(*,*) "Error message: ", trim(errmsg)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= PIO_NOERR)
+    !@assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    deallocate(reader)
+
+end subroutine test_pio_reader_no_file_err
 
 !----------------------------------------
 

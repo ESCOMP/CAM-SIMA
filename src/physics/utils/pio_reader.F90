@@ -55,8 +55,9 @@ module pio_reader
 contains
 
    subroutine open_netcdf_file(this, file_path, errmsg, errcode)
-      use cam_pio_utils,    only: cam_pio_openfile
-      use pio,              only: PIO_NOWRITE
+      use cam_pio_utils,  only: cam_pio_openfile
+      use pio,            only: PIO_NOWRITE
+      use pio,            only: PIO_NOERR
 
       class(pio_reader_t), intent(inout)  :: this
       character(len=*),    intent(in)  :: file_path
@@ -69,14 +70,20 @@ contains
          return
       end if
 
-      if(file_path == 'UNSET_PATH') then
-         errcode = 1
-         errmsg = "Found UNSET_PATH trying to open file"
-         return
-      end if
+      !if(file_path == 'UNSET_PATH') then
+      !   errcode = 1
+      !   errmsg = "Found UNSET_PATH trying to open file"
+      !   return
+      !end if
 
       !Open provided file with PIO:
-      call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE)
+      call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE, errcode=errcode)
+
+      if(errcode /= PIO_NOERR) then
+         !Extract error message from PIO and return:
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
+         return
+      end if
 
       !Set file handle metadata
       this%sima_pio_fh%file_path    = file_path

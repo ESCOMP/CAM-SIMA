@@ -1258,7 +1258,7 @@ CONTAINS
    end subroutine cam_pio_createfile
 
    !===========================================================================
-   subroutine cam_pio_openfile(file, fname, mode, log_info)
+   subroutine cam_pio_openfile(file, fname, mode, log_info, errcode)
       use pio,           only: pio_openfile, file_desc_t, pio_nowrite
       use pio,           only: pio_noerr, pio_iotask_rank
       use cam_abortutils, only: endrun, cam_register_open_file
@@ -1266,7 +1266,8 @@ CONTAINS
       type(file_desc_t), intent(inout), target :: file
       character(len=*), intent(in) :: fname
       integer, intent(in) :: mode
-      logical, optional, intent(in) :: log_info ! if .false. suppress informational logging
+      logical, optional, intent(in) :: log_info ! If .false. suppress informational logging
+      integer, optional, intent(out) :: errcode ! If present, returen error code instead of ending model run.
 
       integer :: ierr
       logical :: log_information
@@ -1279,7 +1280,14 @@ CONTAINS
 
       ierr = pio_openfile(pio_subsystem, file, pio_iotype, fname, mode)
 
-      if(ierr /= PIO_NOERR) then
+      ! If error code is present, set it to the PIO error code:
+      if (present(errcode)) then
+         errcode = ierr
+      end if
+
+      if((ierr /= PIO_NOERR) .and. (.not.present(errcode))) then
+         !If error occurred and errcode is not present,
+         !then end the model run:
          call endrun('Failed to open '//trim(fname)//' to read')
       else if(pio_iotask_rank(pio_subsystem) == 0 .and. log_information &
               .and. mode /= pio_nowrite) then
