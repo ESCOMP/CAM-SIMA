@@ -256,20 +256,19 @@ def _cmake_default_args(caseroot):
 # Returns a dictionary of CMake variables based on the Macros.cmake file for
 # the build.
 
-    unlock_file("env_build.xml", caseroot)
     build = EnvBuild(case_root=caseroot)
     with Case(caseroot) as case:
         macro_path = os.path.abspath(os.path.join(caseroot, "cmake_macros", ""))
         args = "-DCONVERT_TO_MAKE=ON "
-        args += "-DCASEROOT={} ".format(caseroot)
-        args += "-DCOMPILER={} ".format(build.get_value("COMPILER"))
-        args += "-DOS={} ".format(build.get_value("OS"))
-        args += "-DMACH={} ".format(case.get_value("MACH"))
+        args += f"-DCASEROOT={caseroot} "
+        args += f"-DCOMPILER={build.get_value('COMPILER')} "
+        args += f"-DOS={build.get_value('OS')} "
+        args += f"-DMACH={case.get_value('MACH')} "
         args += "-DCMAKE_C_COMPILER_WORKS=1 "
         args += "-DCMAKE_Fortran_COMPILER_WORKS=1 "
         args += "-DCMAKE_CXX_COMPILER_WORKS=1 "
-        args += "-DDEBUG={} ".format(build.get_value("DEBUG"))
-        cmd = "cmake {} .".format(args)
+        args += f"-DDEBUG={build.get_value('DEBUG')} "
+        cmd = f"cmake {args} ."
         rc, out, err = run_cmd(cmd, combine_output=True, from_dir=macro_path)
         expect(rc == 0, "Command {} failed with rc={} out={} err={}".format(cmd, rc, out, err))
 
@@ -279,7 +278,6 @@ def _cmake_default_args(caseroot):
                 key, val = line.split(":=")
                 arg_dict[key.replace('CIME_SET_MAKEFILE_VAR','').strip()] = val.strip()
 
-    unlock_file("env_build.xml", caseroot)
     return arg_dict
 
 ###############################################################################
@@ -298,13 +296,11 @@ def _get_musica_libs(caseroot: str) -> str:
     Returns:
         musica_libs: MUSICA libraries to be linked to CAM
     """
-    unlock_file("env_build.xml", caseroot)
     build = EnvBuild(case_root=caseroot)
     if build.get_value("DEBUG"):
         musica_libs = "-lmusica-fortran -lmusica -lmechanism_configuration -lyaml-cppd -lstdc++"
     else:
         musica_libs = "-lmusica-fortran -lmusica -lmechanism_configuration -lyaml-cpp -lstdc++"
-    lock_file("env_build.xml", caseroot)
 
     return musica_libs
 
