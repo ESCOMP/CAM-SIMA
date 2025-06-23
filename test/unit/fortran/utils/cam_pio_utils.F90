@@ -12,7 +12,8 @@ module cam_pio_utils
 
    !Publicly-available routines:
 
-   public :: cam_pio_openfile ! Open an existing NetCDF file
+   public :: cam_pio_openfile  !Open a NetCDF file with PIO
+   public :: cam_pio_closefile !Close a NetCDF file with PIO
 
    !Private variables:
    type(iosystem_desc_t):: pio_system
@@ -86,7 +87,17 @@ contains
       end if
 
    end subroutine cam_pio_openfile
+
    !===========================================================================
+   subroutine cam_pio_closefile(file)
+
+      use pio, only: pio_closefile, file_desc_t
+
+      type(file_desc_t), intent(inout), target :: file
+
+      call pio_closefile(file)
+
+   end subroutine cam_pio_closefile
 
    !===========================================================================
    subroutine cam_pio_system_init()

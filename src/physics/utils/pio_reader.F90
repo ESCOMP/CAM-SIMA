@@ -91,7 +91,7 @@ contains
    end subroutine open_netcdf_file
 
    subroutine close_netcdf_file(this, errmsg, errcode)
-      use pio, only: pio_closefile
+      use cam_pio_utils, only: cam_pio_closefile
 
       class(pio_reader_t), intent(inout)  :: this
       integer,             intent(out) :: errcode
@@ -106,7 +106,7 @@ contains
       end if
 
       !Close NetCDF File:
-      call pio_closefile(this%sima_pio_fh%pio_fh)
+      call cam_pio_closefile(this%sima_pio_fh%pio_fh)
 
       !Inidcate that file handle array id is no longer in use:
       this%sima_pio_fh%is_file_open = .false.
