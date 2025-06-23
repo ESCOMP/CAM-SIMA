@@ -151,17 +151,17 @@ contains
       pref_mid_norm = pref_mid/psurf_ref
 
       ! Find level corresponding to the top of troposphere clouds.
-      trop_cloud_top_lev = press_lim_idx(pver, trop_cloud_top_press, &
+      trop_cloud_top_lev = press_lim_idx(trop_cloud_top_press, &
          top=.true.)
 
       ! Find level corresponding to the top for MAM processes.
-      clim_modal_aero_top_lev = press_lim_idx(pver, clim_modal_aero_top_press, &
+      clim_modal_aero_top_lev = press_lim_idx(clim_modal_aero_top_press, &
          top=.true.)
 
       ! Find level corresponding to the molecular diffusion bottom.
       do_molec_diff = (ptop_ref < do_molec_press)
       if (do_molec_diff) then
-         nbot_molec = press_lim_idx(pver, molec_diff_bot_press, &
+         nbot_molec = press_lim_idx(molec_diff_bot_press, &
             top=.false.)
       end if
 
@@ -194,12 +194,11 @@ contains
 !====================================================================================
 
    ! Convert pressure limiters to the appropriate level.
-   pure function press_lim_idx(pver, pres, top) result(lev_idx_lim)
+   pure function press_lim_idx(pres, top) result(lev_idx_lim)
 
       use vert_coord, only: index_top_layer, index_bottom_layer
 
       ! Input arguments:
-      integer, intent(in)         :: pver ! Number of vertical levels
       real(kind_phys), intent(in) :: pres ! Air pressure (Pa)
       logical,  intent(in)        :: top  ! Is this a top or bottom limit?
 
