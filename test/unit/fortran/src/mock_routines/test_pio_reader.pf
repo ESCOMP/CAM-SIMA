@@ -268,6 +268,78 @@ end subroutine test_pio_reader_2d_int_read
 !----------------------------------------
 
 @test
+subroutine test_pio_reader_1d_char_read()
+    !Check that the PIO reader can read a 1D character variable
+    !from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    character(len=:), pointer :: gas_names(:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 1D character variable:
+    call reader%get_var("gas_names", gas_names, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(gas_names))
+    @assertTrue(len(gas_names) == 32)
+    @assertTrue(size(gas_names) == 19)
+
+    ! Check that the variable's values are correct:
+    @assertTrue(trim(gas_names(1)) == "h2o")
+    @assertTrue(trim(gas_names(2)) == "co2")
+    @assertTrue(trim(gas_names(3)) == "o3")
+    @assertTrue(trim(gas_names(4)) == "n2o")
+    @assertTrue(trim(gas_names(5)) == "co")
+    @assertTrue(trim(gas_names(6)) == "ch4")
+    @assertTrue(trim(gas_names(7)) == "o2")
+    @assertTrue(trim(gas_names(8)) == "n2")
+    @assertTrue(trim(gas_names(9)) == "ccl4")
+    @assertTrue(trim(gas_names(10)) == "cfc11")
+    @assertTrue(trim(gas_names(11)) == "cfc12")
+    @assertTrue(trim(gas_names(12)) == "cfc22")
+    @assertTrue(trim(gas_names(13)) == "hfc143a")
+    @assertTrue(trim(gas_names(14)) == "hfc125")
+    @assertTrue(trim(gas_names(15)) == "hfc23")
+    @assertTrue(trim(gas_names(16)) == "hfc32")
+    @assertTrue(trim(gas_names(17)) == "hfc134a")
+    @assertTrue(trim(gas_names(18)) == "cf4")
+    @assertTrue(trim(gas_names(19)) == "no2")
+
+    ! Perform test cleanup:
+    deallocate(gas_names)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_1d_char_read
+
+!----------------------------------------
+
+@test
 subroutine final_test()
     use funit
 
