@@ -224,6 +224,10 @@ CONTAINS
       ! Open initial dataset
 
       if (initial_run) then
+         if (trim(ncdata) == 'ncdata' .or. trim(ncdata) == trim(unset_path_str)) then
+            call endrun(subname//': ERROR: Missing initial dataset. '// &
+                                 'Please set "ncdata" in the CAM namelist')
+         end if
          call cam_get_file(ncdata, ncdata_loc)
          allocate(fh_ini, stat=iret)
          if (iret /= 0) then

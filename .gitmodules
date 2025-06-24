@@ -14,13 +14,13 @@
         path          = src/dynamics/mpas/dycore
         url           = https://github.com/MPAS-Dev/MPAS-Model.git
         fxsparse      = ../.mpas_sparse_checkout
-        fxtag         = v8.2.1
+        fxtag         = v8.3.1
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/MPAS-Dev/MPAS-Model.git
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
 	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = e05850ede0571c5c950ed86e4d73e1bab46a348a
+	fxtag         = 2b66267fe263d9268effeaa1d47e3c03e6121d74
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "rrtmgp-data"]

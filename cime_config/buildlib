@@ -32,6 +32,7 @@ from CIME.buildlib import parse_input
 from CIME.build import get_standard_makefile_args
 from CIME.Tools.standard_script_setup import check_minimum_python_version
 from CIME.locked_files import lock_file, unlock_file
+from CIME.XML.env_build import EnvBuild
 #pylint: enable=wrong-import-position
 
 check_minimum_python_version(3, 7) #CAM requires version 3.7 or greater
@@ -180,7 +181,7 @@ def _build_cam():
             musica_install_path = _build_musica(caseroot)
 
             cam_linked_libs = case.get_value("CAM_LINKED_LIBS")
-            musica_libs = "-lmusica-fortran -lmusica -lyaml-cpp"
+            musica_libs = _get_musica_libs(caseroot)
             if not musica_libs in cam_linked_libs:
                 _set_musica_lib_path(musica_install_path, caseroot)
 
@@ -250,6 +251,60 @@ def _copy2_as_needed(src: str, dst: str) -> None:
                 shutil.copy2(src, dst)
 
 ###############################################################################
+def _cmake_default_args(caseroot):
+###############################################################################
+# Returns a dictionary of CMake variables based on the Macros.cmake file for
+# the build.
+
+    build = EnvBuild(case_root=caseroot)
+    with Case(caseroot) as case:
+        macro_path = os.path.abspath(os.path.join(caseroot, "cmake_macros", ""))
+        args = "-DCONVERT_TO_MAKE=ON "
+        args += f"-DCASEROOT={caseroot} "
+        args += f"-DCOMPILER={build.get_value('COMPILER')} "
+        args += f"-DOS={build.get_value('OS')} "
+        args += f"-DMACH={case.get_value('MACH')} "
+        args += "-DCMAKE_C_COMPILER_WORKS=1 "
+        args += "-DCMAKE_Fortran_COMPILER_WORKS=1 "
+        args += "-DCMAKE_CXX_COMPILER_WORKS=1 "
+        args += f"-DDEBUG={build.get_value('DEBUG')} "
+        cmd = f"cmake {args} ."
+        rc, out, err = run_cmd(cmd, combine_output=True, from_dir=macro_path)
+        expect(rc == 0, "Command {} failed with rc={} out={} err={}".format(cmd, rc, out, err))
+
+        arg_dict = {}
+        for line in out.splitlines():
+            if ":=" in line:
+                key, val = line.split(":=")
+                arg_dict[key.replace('CIME_SET_MAKEFILE_VAR','').strip()] = val.strip()
+
+    return arg_dict
+
+###############################################################################
+def _get_musica_libs(caseroot: str) -> str:
+###############################################################################
+    """
+    Returns the MUSICA libraries to be linked to CAM.
+
+    Args:
+        caseroot: CASEROOT where the xmlchange command is located
+
+    Raises:
+        Exception: If the subprocess for the xmlquery command fails,
+            an exception is raised with the error message.
+
+    Returns:
+        musica_libs: MUSICA libraries to be linked to CAM
+    """
+    build = EnvBuild(case_root=caseroot)
+    if build.get_value("DEBUG"):
+        musica_libs = "-lmusica-fortran -lmusica -lmechanism_configuration -lyaml-cppd -lstdc++"
+    else:
+        musica_libs = "-lmusica-fortran -lmusica -lmechanism_configuration -lyaml-cpp -lstdc++"
+
+    return musica_libs
+
+###############################################################################
 def _build_musica(clone_dest: str) -> str:
 ###############################################################################
     """
@@ -266,19 +321,29 @@ def _build_musica(clone_dest: str) -> str:
         musica_install_path: path to the MUSICA installation directory
     """
     _clone_and_checkout(MUSICA_REPO_URL, MUSICA_TAG, clone_dest)
+    build = EnvBuild(case_root=clone_dest)
+    arg_dict = _cmake_default_args(clone_dest)
 
     bld_path = os.path.join(clone_dest, "musica", "build")
     if os.path.exists(bld_path):
         shutil.rmtree(bld_path)
     os.makedirs(bld_path)
-
     install_dir = "install"
+
+    with Case(clone_dest) as case:
+        if build.get_value("DEBUG"):
+            cmake_build_type = "Debug"
+        else:
+            cmake_build_type = "Release"
+    
     command = [
         "cmake",
         f"-D CMAKE_INSTALL_PREFIX={install_dir}",
-        "-D CMAKE_BUILD_TYPE=Release",
+        f"-D CMAKE_BUILD_TYPE={cmake_build_type}",
+        f"-D CMAKE_Fotran_FLAGS={arg_dict['FFLAGS']}",
         "-D MUSICA_ENABLE_TESTS=OFF",
         "-D MUSICA_BUILD_FORTRAN_INTERFACE=ON",
+        "-D MUSICA_SET_MICM_DEFAULT_VECTOR_SIZE=128",
         ".."
     ]
     try:
@@ -365,14 +430,14 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
             an exception is raised with the error message.
     """
 
-    unlock_file("env_build.xml", caseroot)
+    musica_libs = _get_musica_libs(caseroot)
 
     command = [
         "./xmlchange",
         "--append",
         # The libraries must be on the same line because CIME flags an
         # error for multi-character arguments preceded by a single dash
-        f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} -lmusica-fortran -lmusica -lyaml-cpp"
+        f"CAM_LINKED_LIBS=-L{os.path.join(musica_install_path, 'lib64')} {musica_libs}"
     ]
     try:
         subprocess.run(command, cwd=caseroot, stdout=subprocess.PIPE,
@@ -384,8 +449,6 @@ def _set_musica_lib_path(musica_install_path: str, caseroot: str) -> None:
         raise FileNotFoundError("The 'xmlchange' command was not found.") from e
     except OSError as e:
         raise OSError("An error occurred while executing the 'xmlchange' command.") from e
-
-    lock_file("env_build.xml", caseroot)
 
 ###############################################################################
 def _clone_and_checkout(repo_url: str, tag_name: str, clone_dest: str) -> None:
