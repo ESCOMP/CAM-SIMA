@@ -199,7 +199,7 @@ subroutine test_pio_reader_1d_int_read()
     @assertTrue(errmsg == '')
 
     ! Check that the variable's properties are correct:
-    @assertTrue(allocated(pressure))
+    @assertTrue(associated(pressure))
     @assertTrue(size(pressure) == 59)
 
     ! Check that the variable's values are correct:
