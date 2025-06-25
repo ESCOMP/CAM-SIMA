@@ -86,7 +86,7 @@ CONTAINS
 
       use cam_initfiles,             only: cam_initfiles_open
       use dyn_grid,                  only: model_grid_init
-      use phys_comp,                 only: phys_init
+      use phys_comp,                 only: phys_init, phys_suite_name
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
 !      use cam_restart,               only: cam_read_restart
@@ -100,7 +100,6 @@ CONTAINS
       use air_composition,           only: air_composition_init
       use cam_ccpp_cap,              only: cam_ccpp_initialize_constituents
       use cam_ccpp_cap,              only: cam_model_const_properties
-      use cam_ccpp_cap,              only: cam_constituents_array
       use physics_grid,              only: columns_on_task
       use vert_coord,                only: pver
       use phys_vars_init_check,      only: mark_as_initialized
@@ -156,7 +155,6 @@ CONTAINS
       character(len=cx)        :: errmsg
 
       type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
-      real(kind_phys),                   pointer :: constituents_array(:,:,:)
       !-----------------------------------------------------------------------
 
       call init_pio_subsystem()
@@ -255,17 +253,14 @@ CONTAINS
       ! Read tropopause climatology
       call tropopause_climo_read_file()
 
-      ! Temporary:  Prescribe realistic but inaccurate physical quantities
+      ! TEMPORARY:  Prescribe realistic but inaccurate physical quantities
       ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
-      ! It also initializes the MUSICA constituent values until the file
-      ! I/O object is implemented.
       !
       ! Remove this when MUSICA input data are available from CAM-SIMA or
       ! other physics schemes.
       constituent_properties => cam_model_const_properties()
-      constituents_array => cam_constituents_array()
       call musica_ccpp_dependencies_init(columns_on_task, pver, &
-           constituent_properties, constituents_array)
+           constituent_properties, phys_suite_name)
 
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)
@@ -295,10 +290,15 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp,    only: phys_timestep_init
-      use physics_grid, only: lat_rad, lon_rad
-      use orbital_data, only: orbital_data_advance
-      use stepon,       only: stepon_timestep_init
+      use phys_comp,                only: phys_timestep_init
+      use physics_grid,             only: lat_rad, lon_rad
+      use orbital_data,             only: orbital_data_advance
+      use stepon,                   only: stepon_timestep_init
+      use cam_ccpp_cap,             only: cam_constituents_array
+      use ccpp_kinds,               only: kind_phys
+      use musica_ccpp_dependencies, only: set_initial_musica_concentrations
+
+      real(kind_phys), pointer :: constituents_array(:,:,:)
 
       ! Update current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
@@ -319,6 +319,21 @@ CONTAINS
       call stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
            dyn_in, dyn_out)
       call t_stopf('stepon_timestep_init')
+
+      !----------------------------------------------------------
+      ! TEMPORARY:  Set initial MUSICA constituent values
+      !
+      !            This is a temporary workaround to initialize
+      !            MUSICA constituent values until the file I/O
+      !            capability is implemented.
+      !            Remove this when MUSICA species are initialized
+      !            by CAM-SIMA.
+      !----------------------------------------------------------
+      if (is_first_timestep) then
+         constituents_array => cam_constituents_array()
+         call set_initial_musica_concentrations(constituents_array)
+      end if
+
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_INIT Call the Physics package
