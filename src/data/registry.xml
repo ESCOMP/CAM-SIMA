@@ -582,6 +582,14 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
     </variable>
+    <variable local_name="ocnfrac"
+              standard_name="ocean_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>1.0_kind_phys</initial_value>
+      <ic_file_input_names>ocnfrac cam_in_ocnfrac</ic_file_input_names>
+    </variable>
     <variable local_name="icefrac"
               standard_name="sea_ice_area_fraction"
               units="fraction" type="real" kind="kind_phys"
@@ -607,6 +615,15 @@
            while SSTs are not being provided from another Earth system component. -->
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
+    </variable>
+    <variable local_name="landm"
+              standard_name="smoothed_land_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <!-- Note: In CAM, landm is read from the topo dataset (or if disabled, set to zero) -->
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
     </variable>
 
     <!-- Temporary initializations from snapshot -->
@@ -647,12 +664,41 @@
       <initial_value>.false.</initial_value>
     </variable>
     <variable local_name="shfrc"
-              standard_name="shallow_convective_cloud_area_fraction"
+              standard_name="shallow_convective_cloud_area_fraction_from_shallow_convection"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- only used if use_shfrc is .true. -->
       <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+
+    <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in physics state -->
+    <variable local_name="qcwat"
+              standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- set to negative if not read from the snapshot. -->
+      <initial_value>-1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_QCWAT</ic_file_input_names>
+    </variable>
+    <variable local_name="tcwat"
+              standard_name="air_temperature_on_previous_timestep"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- set to negative if not read from the snapshot. -->
+      <initial_value>-1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_TCWAT</ic_file_input_names>
+    </variable>
+    <variable local_name="lcwat"
+              standard_name="cloud_water_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- set to negative if not read from the snapshot. -->
+      <initial_value>-1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_LCWAT</ic_file_input_names>
     </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->
