@@ -143,7 +143,7 @@ CONTAINS
 
                   select case (trim(phys_var_stdnames(name_idx)))
                      case ('potential_temperature')
-                        call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, phys_state%T(:, :, ix_theta))
+                        call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, phys_state%t(:, :, ix_theta))
 
                      case ('air_pressure_at_sea_level')
                         call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, phys_state%slp)
@@ -321,7 +321,7 @@ CONTAINS
 
                select case (trim(phys_var_stdnames(name_idx)))
                case ('potential_temperature')
-                  call check_field(file, input_var_names(:,name_idx), 'lev', timestep, phys_state%T(:, :, ix_theta), 'potential_temperature',          &
+                  call check_field(file, input_var_names(:,name_idx), 'lev', timestep, phys_state%t(:, :, ix_theta), 'potential_temperature',          &
                        min_difference, min_relative_value, is_first, diff_found)
 
                case ('air_pressure_at_sea_level')
