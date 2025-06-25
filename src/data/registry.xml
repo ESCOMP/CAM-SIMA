@@ -20,6 +20,10 @@
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/hycoef.meta</metadata_file>
+
+  <!-- temporary for Coords1D -->
+  <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
+
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
@@ -616,6 +620,38 @@
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
     </variable>
+    <variable local_name="cflx"
+              standard_name="surface_upward_ccpp_constituent_fluxes_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cflx cam_in_cflx</ic_file_input_names>
+    </variable>
+    <variable local_name="shf"
+              standard_name="surface_upward_sensible_heat_flux_from_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>shf cam_in_shf</ic_file_input_names>
+    </variable>
+    <variable local_name="wsx"
+              standard_name="surface_eastward_wind_stress_from_coupler"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>wsx cam_in_wsx</ic_file_input_names>
+    </variable>
+    <variable local_name="wsy"
+              standard_name="surface_northward_wind_stress_from_coupler"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>wsy cam_in_wsy</ic_file_input_names>
+    </variable>
     <variable local_name="landm"
               standard_name="smoothed_land_area_fraction"
               units="fraction" type="real" kind="kind_phys"
@@ -624,6 +660,14 @@
       <!-- Note: In CAM, landm is read from the topo dataset (or if disabled, set to zero) -->
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
+    </variable>
+    <variable local_name="ast"
+              standard_name="stratiform_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_AST</ic_file_input_names>
     </variable>
 
     <!-- Temporary initializations from snapshot -->
@@ -699,6 +743,24 @@
       <!-- set to negative if not read from the snapshot. -->
       <initial_value>-1.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_LCWAT</ic_file_input_names>
+    </variable>
+
+    <!-- vertical diffusion solver variables - need to be kept in physics state -->
+    <variable local_name="tauresx"
+              standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tauresx</ic_file_input_names>
+    </variable>
+    <variable local_name="tauresy"
+              standard_name="northward_reserved_stress_at_surface_on_previous_timestep"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tauresy</ic_file_input_names>
     </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->
