@@ -12,10 +12,10 @@
 
 
 !>
-!! @brief Auto-generated Initial conditions source file, physics_inputs_4D.F90
+!! @brief Auto-generated Initial conditions source file, physics_inputs_constituent_dim.F90
 !!
 !
-module physics_inputs_4D
+module physics_inputs_constituent_dim
 
 
    implicit none
@@ -29,18 +29,18 @@ module physics_inputs_4D
 CONTAINS
 
    subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
-      use pio,                       only: file_desc_t
-      use cam_abortutils,            only: endrun
-      use spmd_utils,                only: masterproc
-      use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,              only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use physics_data,              only: read_constituent_dimensioned_field
-      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
-      use ccpp_kinds,                only: kind_phys
-      use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
-      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-      use cam_logfile,               only: iulog
-      use physics_types_4D,          only: slp, theta
+      use pio,                                  only: file_desc_t
+      use cam_abortutils,                       only: endrun
+      use spmd_utils,                           only: masterproc
+      use shr_kind_mod,                         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,                         only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,                         only: read_constituent_dimensioned_field
+      use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
+      use ccpp_kinds,                           only: kind_phys
+      use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
+      use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
+      use cam_logfile,                          only: iulog
+      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -83,10 +83,7 @@ CONTAINS
       ! Logical to default optional argument to False:
       logical                    :: use_init_variables
 
-      ! Get constituent properties pointer:
-      const_props => cam_model_const_properties()
-
-      ! Initialize missing and non-initialized variables strings:
+      ! Initalize missing and non-initialized variables strings:
       missing_required_vars = ' '
       protected_non_init_vars = ' '
       sep = ''
@@ -150,7 +147,7 @@ CONTAINS
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call endrun('Cannot read slp from file'//', slp has unsupported dimension, timestep_for_physics.')
+                        call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, slp)
 
                   end select !read variables
                end select !special indices
@@ -176,6 +173,7 @@ CONTAINS
 
       ! Read in constituent variables if not using init variables
       field_data_ptr => cam_constituents_array()
+      const_props => cam_model_const_properties()
 
       ! Iterate over all registered constituents
       do constituent_idx = 1, size(const_props)
@@ -218,24 +216,37 @@ CONTAINS
          end if
       end do
 
+      ! Read in non-constituent variables with constituent dimensions
+      ! Handle variables like cam_in_cflx that are dimensioned by constituents
+      ! but are not constituents themselves
+      do req_idx = 1, size(ccpp_required_data, 1)
+         name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)
+         if (name_idx > 0 .and. name_idx <= phys_var_num) then
+            select case (trim(phys_var_stdnames(name_idx)))
+      call read_constituent_dimensioned_field(file, 'super_cool_cat_every_const',
+         timestep, cool_cat_for_each_const, const_props)
+
+            end select
+         end if
+      end do
    end subroutine physics_read_data
 
    subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value, err_on_fail)
-      use pio,                       only: file_desc_t, pio_nowrite
-      use cam_abortutils,            only: endrun
-      use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,              only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_advected_constituents_array, cam_model_const_properties
-      use cam_constituents,          only: const_get_index
-      use ccpp_kinds,                only: kind_phys
-      use cam_logfile,               only: iulog
-      use spmd_utils,                only: masterproc
-      use phys_vars_init_check,      only: is_read_from_file
-      use ioFileMod,                 only: cam_get_file
-      use cam_pio_utils,             only: cam_pio_openfile, cam_pio_closefile
-      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-      use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_4D,          only: slp, theta
+      use pio,                                  only: file_desc_t, pio_nowrite
+      use cam_abortutils,                       only: endrun
+      use shr_kind_mod,                         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,                         only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_advected_constituents_array, cam_model_const_properties
+      use cam_constituents,                     only: const_get_index
+      use ccpp_kinds,                           only: kind_phys
+      use cam_logfile,                          only: iulog
+      use spmd_utils,                           only: masterproc
+      use phys_vars_init_check,                 only: is_read_from_file
+      use ioFileMod,                            only: cam_get_file
+      use cam_pio_utils,                        only: cam_pio_openfile, cam_pio_closefile
+      use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
+      use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
+      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, slp, theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -328,7 +339,12 @@ CONTAINS
                        min_relative_value, is_first, diff_found)
 
                case ('air_pressure_at_sea_level')
-                  call endrun('Cannot check status of slp'//', slp has unsupported dimension, timestep_for_physics.')
+                  call check_field(file, input_var_names(:,name_idx), timestep, slp, 'air_pressure_at_sea_level', min_difference, min_relative_value,  &
+                       is_first, diff_found)
+
+               case ('super_cool_cat_every_const')
+                  call check_field(file, input_var_names(:,name_idx), timestep, cool_cat_for_each_const, 'super_cool_cat_every_const',                 &
+                       min_difference, min_relative_value, is_first, diff_found)
 
                end select !check variables
                if (diff_found) then
@@ -392,4 +408,4 @@ CONTAINS
       end if
    end subroutine physics_check_data
 
-end module physics_inputs_4D
+end module physics_inputs_constituent_dim

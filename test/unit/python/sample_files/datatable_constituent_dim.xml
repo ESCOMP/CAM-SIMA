@@ -1,0 +1,393 @@
+<ccpp_datatable version="1.0">
+  <ccpp_files>
+    <utilities>
+      <file>/Users/hplin/devel/CAM-SIMA/test/unit/python/tmp/write_init_files/ccpp_kinds.F90</file>
+      <file>/Users/hplin/devel/CAM-SIMA/ccpp_framework/src/ccpp_constituent_prop_mod.F90</file>
+      <file>/Users/hplin/devel/CAM-SIMA/ccpp_framework/src/ccpp_scheme_utils.F90</file>
+      <file>/Users/hplin/devel/CAM-SIMA/ccpp_framework/src/ccpp_hashable.F90</file>
+      <file>/Users/hplin/devel/CAM-SIMA/ccpp_framework/src/ccpp_hash_table.F90</file>
+    </utilities>
+    <host_files>
+      <file>/Users/hplin/devel/CAM-SIMA/test/unit/python/tmp/write_init_files/cam_ccpp_cap.F90</file>
+    </host_files>
+    <suite_files>
+      <file>/Users/hplin/devel/CAM-SIMA/test/unit/python/tmp/write_init_files/ccpp_simple_suite_cap.F90</file>
+    </suite_files>
+  </ccpp_files>
+  <schemes>
+    <scheme name="temp_adjust">
+      <initialize name="temp_adjust" subroutine_name="temp_adjust_init" filename="/Users/hplin/devel/CAM-SIMA/test/unit/python/sample_files/write_init_files/suite_simple.xml" module="temp_adjust_constituent_dim">
+        <call_list>
+          <var name="ccpp_error_message" intent="out" local_name="errmsg" />
+          <var name="ccpp_error_code" intent="out" local_name="errflg" />
+        </call_list>
+      </initialize>
+    </scheme>
+    <scheme name="temp_adjust">
+      <simple_suite_physics name="temp_adjust" subroutine_name="temp_adjust_run" filename="/Users/hplin/devel/CAM-SIMA/test/unit/python/sample_files/write_init_files/suite_simple.xml" module="temp_adjust_constituent_dim">
+        <call_list>
+          <var name="horizontal_loop_extent" intent="in" local_name="nbox" />
+          <var name="vertical_layer_dimension" intent="in" local_name="lev" />
+          <var name="potential_temperature" intent="inout" local_name="temp_layer" />
+          <var name="air_pressure_at_sea_level" intent="in" local_name="slp" />
+          <var name="super_cool_cat_every_const" intent="inout" local_name="cool_cat_for_each_const" />
+          <var name="timestep_for_physics" intent="in" local_name="timestep" />
+          <var name="ccpp_error_message" intent="out" local_name="errmsg" />
+          <var name="ccpp_error_code" intent="out" local_name="errflg" />
+        </call_list>
+      </simple_suite_physics>
+    </scheme>
+    <scheme name="temp_adjust">
+      <finalize name="temp_adjust" subroutine_name="temp_adjust_finalize" filename="/Users/hplin/devel/CAM-SIMA/test/unit/python/sample_files/write_init_files/suite_simple.xml" module="temp_adjust_constituent_dim">
+        <call_list>
+          <var name="ccpp_error_message" intent="out" local_name="errmsg" />
+          <var name="ccpp_error_code" intent="out" local_name="errflg" />
+        </call_list>
+      </finalize>
+    </scheme>
+  </schemes>
+  <api>
+    <suites>
+      <suite name="simple_suite" filename="/Users/hplin/devel/CAM-SIMA/test/unit/python/sample_files/write_init_files/suite_simple.xml">
+        <group name="simple_suite_initialize" phase="initialize">
+          <scheme name="temp_adjust" />
+        </group>
+        <group name="simple_suite_physics" phase="run">
+          <timesplit name="TimeSplit">
+            <scheme name="temp_adjust" />
+          </timesplit>
+        </group>
+        <group name="simple_suite_finalize" phase="finalize">
+          <scheme name="temp_adjust" />
+        </group>
+      </suite>
+    </suites>
+  </api>
+  <var_dictionaries>
+    <var_dictionary name="cam" type="host">
+      <sub_dictionaries>cam_ddt_vars ccpp_physics_api cam_constituents</sub_dictionaries>
+      <variables>
+        <var name="horizontal_dimension" local_name="pcols" active=".true." persistence="timestep" protected="True" type="integer" units="count">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="horizontal_loop_begin" local_name="col_start" active=".true." persistence="timestep" protected="True" type="integer" units="count">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="horizontal_loop_end" local_name="col_end" active=".true." persistence="timestep" protected="True" type="integer" units="count">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="timestep_for_physics" local_name="dtime_phys" active=".true." kind="kind_phys" persistence="timestep" protected="True" type="real" units="s">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="vertical_layer_dimension" local_name="pver" active=".true." persistence="timestep" protected="True" type="integer" units="count">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="ccpp_error_message" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="ccpp_error_code" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>host</source_type>
+          <source_name>simple_sub</source_name>
+        </var>
+        <var name="potential_temperature" local_name="theta" active=".true." kind="kind_phys" persistence="timestep" type="real" units="K">
+          <dimensions>ccpp_constant_one:horizontal_dimension ccpp_constant_one:vertical_layer_dimension</dimensions>
+          <source_type>module</source_type>
+          <source_name>physics_types_simple_constituent_dim</source_name>
+        </var>
+        <var name="air_pressure_at_sea_level" local_name="slp" active=".true." kind="kind_phys" persistence="timestep" type="real" units="Pa">
+          <dimensions>ccpp_constant_one:horizontal_dimension</dimensions>
+          <source_type>module</source_type>
+          <source_name>physics_types_simple_constituent_dim</source_name>
+        </var>
+        <var name="eddy_length_scale" local_name="eddy_len" active=".true." kind="kind_phys" persistence="timestep" type="real" units="m">
+          <dimensions>ccpp_constant_one:horizontal_dimension</dimensions>
+          <source_type>module</source_type>
+          <source_name>physics_types_simple_constituent_dim</source_name>
+        </var>
+        <var name="super_cool_cat_every_const" local_name="cool_cat_for_each_const" active=".true." kind="kind_phys" persistence="timestep" type="real" units="kg kg-1 s-1">
+          <dimensions>ccpp_constant_one:horizontal_dimension ccpp_constant_one:number_of_ccpp_constituents</dimensions>
+          <source_type>module</source_type>
+          <source_name>physics_types_simple_constituent_dim</source_name>
+        </var>
+        <var name="ccpp_model_constituents_object" local_name="cam_constituents_obj" active=".true." kind="ccpp_model_constituents_t" persistence="timestep" type="ccpp_model_constituents_t" units="None">
+          <source_type>module</source_type>
+          <source_name>cam_ccpp_cap</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="ccpp_physics_api" type="api" parent="cam">
+      <sub_dictionaries>suite_simple_constituents</sub_dictionaries>
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite" type="suite" parent="suite_simple_constituents">
+      <sub_dictionaries>simple_suite_register simple_suite_initialize simple_suite_finalize simple_suite_timestep_initial simple_suite_timestep_final simple_suite_physics</sub_dictionaries>
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite_register" type="group" parent="simple_suite">
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite_register_call_list" type="group_call_list" parent="simple_suite">
+      <variables>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>group</source_type>
+          <source_name>simple_suite_register</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>group</source_type>
+          <source_name>simple_suite_register</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="simple_suite_initialize" type="group" parent="simple_suite">
+      <sub_dictionaries>temp_adjust</sub_dictionaries>
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite_initialize_call_list" type="group_call_list" parent="simple_suite">
+      <variables>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>group</source_type>
+          <source_name>simple_suite_initialize</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>group</source_type>
+          <source_name>simple_suite_initialize</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="temp_adjust" type="scheme" parent="simple_suite_initialize">
+      <variables>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_init</source_name>
+        </var>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_init</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="temp_adjust_call_list" type="scheme_call_list" parent="simple_suite_initialize">
+      <variables>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_init</source_name>
+        </var>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_init</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="simple_suite_timestep_initial" type="group" parent="simple_suite">
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite_timestep_initial_call_list" type="group_call_list" parent="simple_suite">
+      <variables>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>group</source_type>
+          <source_name>simple_suite_timestep_initial</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>group</source_type>
+          <source_name>simple_suite_timestep_initial</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="simple_suite_physics" type="group" parent="simple_suite">
+      <sub_dictionaries>TimeSplit</sub_dictionaries>
+      <variables>
+        <var name="horizontal_loop_extent" local_name="ncol" active=".true." persistence="timestep" type="integer" units="count">
+          <source_type>local</source_type>
+          <source_name>ccpp_api</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="simple_suite_physics_call_list" type="group_call_list" parent="simple_suite">
+      <variables>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="horizontal_loop_begin" intent="in" local_name="col_start" active=".true." persistence="timestep" protected="True" type="integer" units="count">
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="horizontal_loop_end" intent="in" local_name="col_end" active=".true." persistence="timestep" protected="True" type="integer" units="count">
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="vertical_layer_dimension" intent="in" local_name="lev" active=".true." persistence="timestep" type="integer" units="count">
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="potential_temperature" intent="inout" local_name="temp_layer" active=".true." kind="kind_phys" persistence="timestep" type="real" units="K">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end ccpp_constant_one:vertical_layer_dimension</dimensions>
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="air_pressure_at_sea_level" intent="in" local_name="slp" active=".true." kind="kind_phys" persistence="timestep" type="real" units="Pa">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end</dimensions>
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="super_cool_cat_every_const" intent="inout" local_name="cool_cat_for_each_const" active=".true." kind="kind_phys" persistence="timestep" type="real" units="kg kg-1 s-1">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end ccpp_constant_one:number_of_ccpp_constituents</dimensions>
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+        <var name="timestep_for_physics" intent="in" local_name="timestep" active=".true." kind="kind_phys" persistence="timestep" type="real" units="s">
+          <source_type>group</source_type>
+          <source_name>simple_suite_physics</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="TimeSplit" type="timesplit" parent="simple_suite_physics">
+      <sub_dictionaries>temp_adjust</sub_dictionaries>
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="temp_adjust" type="scheme" parent="TimeSplit">
+      <variables>
+        <var name="horizontal_loop_extent" intent="in" local_name="nbox" active=".true." persistence="timestep" type="integer" units="count">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="vertical_layer_dimension" intent="in" local_name="lev" active=".true." persistence="timestep" type="integer" units="count">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="potential_temperature" intent="inout" local_name="temp_layer" active=".true." kind="kind_phys" persistence="timestep" type="real" units="K">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end ccpp_constant_one:vertical_layer_dimension</dimensions>
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="air_pressure_at_sea_level" intent="in" local_name="slp" active=".true." kind="kind_phys" persistence="timestep" type="real" units="Pa">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end</dimensions>
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="super_cool_cat_every_const" intent="inout" local_name="cool_cat_for_each_const" active=".true." kind="kind_phys" persistence="timestep" type="real" units="kg kg-1 s-1">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end ccpp_constant_one:number_of_ccpp_constituents</dimensions>
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="timestep_for_physics" intent="in" local_name="timestep" active=".true." kind="kind_phys" persistence="timestep" type="real" units="s">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="temp_adjust_call_list" type="scheme_call_list" parent="TimeSplit">
+      <variables>
+        <var name="horizontal_loop_extent" intent="in" local_name="nbox" active=".true." persistence="timestep" type="integer" units="count">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="vertical_layer_dimension" intent="in" local_name="lev" active=".true." persistence="timestep" type="integer" units="count">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="potential_temperature" intent="inout" local_name="temp_layer" active=".true." kind="kind_phys" persistence="timestep" type="real" units="K">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end ccpp_constant_one:vertical_layer_dimension</dimensions>
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="air_pressure_at_sea_level" intent="in" local_name="slp" active=".true." kind="kind_phys" persistence="timestep" type="real" units="Pa">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end</dimensions>
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="super_cool_cat_every_const" intent="inout" local_name="cool_cat_for_each_const" active=".true." kind="kind_phys" persistence="timestep" type="real" units="kg kg-1 s-1">
+          <dimensions>horizontal_loop_begin:horizontal_loop_end ccpp_constant_one:number_of_ccpp_constituents</dimensions>
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="timestep_for_physics" intent="in" local_name="timestep" active=".true." kind="kind_phys" persistence="timestep" type="real" units="s">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_run</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="simple_suite_timestep_final" type="group" parent="simple_suite">
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite_timestep_final_call_list" type="group_call_list" parent="simple_suite">
+      <variables>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>group</source_type>
+          <source_name>simple_suite_timestep_final</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>group</source_type>
+          <source_name>simple_suite_timestep_final</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="simple_suite_finalize" type="group" parent="simple_suite">
+      <sub_dictionaries>temp_adjust</sub_dictionaries>
+      <variables />
+    </var_dictionary>
+    <var_dictionary name="simple_suite_finalize_call_list" type="group_call_list" parent="simple_suite">
+      <variables>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>group</source_type>
+          <source_name>simple_suite_finalize</source_name>
+        </var>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>group</source_type>
+          <source_name>simple_suite_finalize</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="temp_adjust" type="scheme" parent="simple_suite_finalize">
+      <variables>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_finalize</source_name>
+        </var>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_finalize</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+    <var_dictionary name="temp_adjust_call_list" type="scheme_call_list" parent="simple_suite_finalize">
+      <variables>
+        <var name="ccpp_error_message" intent="out" local_name="errmsg" active=".true." kind="len=512" persistence="timestep" type="character" units="none">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_finalize</source_name>
+        </var>
+        <var name="ccpp_error_code" intent="out" local_name="errflg" active=".true." persistence="timestep" type="integer" units="1">
+          <source_type>scheme</source_type>
+          <source_name>temp_adjust_finalize</source_name>
+        </var>
+      </variables>
+    </var_dictionary>
+  </var_dictionaries>
+  <dependencies />
+</ccpp_datatable>
