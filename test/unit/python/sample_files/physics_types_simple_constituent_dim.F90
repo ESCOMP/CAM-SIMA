@@ -26,13 +26,16 @@ module physics_types_simple_constituent_dim
 !> \section arg_table_physics_types_simple_constituent_dim  Argument Table
 !! \htmlinclude physics_types_simple_constituent_dim.html
    ! theta: Potential temperature
-   real(kind_phys), public, pointer          :: theta(:, :) => NULL()
+   real(kind_phys), public, pointer              :: theta(:, :) => NULL()
    ! slp: Air pressure at sea level
-   real(kind_phys), public, pointer          :: slp(:) => NULL()
+   real(kind_phys), public, pointer              :: slp(:) => NULL()
    ! eddy_len: Eddy length scale
-   real(kind_phys), public, pointer          :: eddy_len(:) => NULL()
+   real(kind_phys), public, pointer              :: eddy_len(:) => NULL()
    ! cool_cat_for_each_const: The coolest imaginable tendency per constituent
-   real,            public                   :: cool_cat_for_each_const(:, :)
+   real,            public, allocatable          :: cool_cat_for_each_const(:, :)
+   ! cool_default_cat_for_each_const: The coolest imaginable tendency per constituent now with a
+   ! default
+   real,            public, allocatable          :: cool_default_cat_for_each_const(:, :)
 
 !! public interfaces
    public :: allocate_physics_types_simple_constituent_dim_fields
@@ -105,8 +108,32 @@ CONTAINS
       if (set_init_val) then
          eddy_len = nan
       end if
+      if (allocated(cool_cat_for_each_const)) then
+         if (reallocate) then
+            deallocate(cool_cat_for_each_const)
+         else
+            call                                                                                  &
+                 endrun(subname//                                                                 &
+                 ": cool_cat_for_each_const is already allocated, cannot allocate")
+         end if
+      end if
+      allocate(cool_cat_for_each_const(horizontal_dimension, number_of_ccpp_constituents))
       if (set_init_val) then
          cool_cat_for_each_const = nan
+      end if
+      if (allocated(cool_default_cat_for_each_const)) then
+         if (reallocate) then
+            deallocate(cool_default_cat_for_each_const)
+         else
+            call                                                                                  &
+                 endrun(subname//                                                                 &
+                 ": cool_default_cat_for_each_const is already allocated, cannot allocate")
+         end if
+      end if
+      allocate(cool_default_cat_for_each_const(horizontal_dimension,                              &
+           number_of_ccpp_constituents))
+      if (set_init_val) then
+         cool_default_cat_for_each_const = 2.33_kind_phys
       end if
    end subroutine allocate_physics_types_simple_constituent_dim_fields
 

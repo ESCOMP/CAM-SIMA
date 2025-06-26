@@ -8,6 +8,7 @@ module physics_data
 
    public :: find_input_name_idx
    public :: read_field
+   public :: read_constituent_dimensioned_field
    public :: check_field
 
    !Non-standard variable indices:
@@ -329,7 +330,7 @@ CONTAINS
       end if
    end subroutine read_field_3d
 
-   subroutine read_constituent_dimensioned_field_2d(const_props, file, std_name, base_var_names, timestep, field_array, initial_value)
+   subroutine read_constituent_dimensioned_field_2d(const_props, file, std_name, base_var_names, timestep, field_array, error_on_not_found)
       use shr_assert_mod,       only: shr_assert_in_domain
       use shr_sys_mod,          only: shr_sys_flush
       use pio,                  only: file_desc_t, var_desc_t
@@ -349,7 +350,7 @@ CONTAINS
       character(len=*),                      intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_constname)
       integer,                               intent(in)    :: timestep            ! Timestep to read [count]
       real(kind_phys),                       intent(inout) :: field_array(:,:)    ! Output field array (ncol, pcnst)
-      real(kind_phys), optional,             intent(in)    :: initial_value       ! Default value if not found
+      logical, optional,                     intent(in)    :: error_on_not_found  ! Flag to error and exit if not found
 
       ! Local variables
       logical                          :: var_found
@@ -361,8 +362,7 @@ CONTAINS
       real(kind_phys), allocatable     :: buffer(:)
       integer                          :: const_idx, base_idx
       integer                          :: ierr
-      real(kind_phys)                  :: default_value
-      logical                          :: has_initial_value
+      logical                          :: error_on_not_found_local
       logical                          :: any_missing
 
       ! For construction of constituent short name mapping
@@ -373,8 +373,11 @@ CONTAINS
 
       character(len=*), parameter      :: subname = 'read_constituent_dimensioned_field: '
 
-      ! Check if initial value was provided
-      has_initial_value = present(initial_value)
+      if (present(error_on_not_found)) then
+         error_on_not_found_local = error_on_not_found
+      else
+         error_on_not_found_local = .true.
+      end if
 
       ! Initialize tracking variables
       any_missing = .false.
@@ -408,7 +411,7 @@ CONTAINS
                const_input_idx = n
                exit phys_inputvar_loop
             end if
-         end do
+         end do phys_inputvar_loop
 
          if (const_input_idx > 0) then
             ! Use the first entry from the input_var_names -- assumed to be short name.
@@ -419,11 +422,6 @@ CONTAINS
          end if
       end do const_shortmap_loop
       !END REMOVECAM
-
-      ! Initialize field array to default value (only if initial_value provided)
-      if (has_initial_value) then
-         field_array(:,:) = initial_value
-      end if
 
       ! Loop through all possible base names to find correct base name.
       ! Note this assumes that the same base name is used for all constituents.
@@ -494,8 +492,8 @@ CONTAINS
                missing_vars = trim(file_var_name)
             end if
 
-            if (has_initial_value) then
-               ! Use default value (already set above)
+            if (.not. error_on_not_found_local) then
+               ! Use default value (already set at initialization)
 
                if (masterproc) then
                   write(iulog, *) 'Constituent-dimensioned field ', trim(file_var_name), &
@@ -507,7 +505,7 @@ CONTAINS
       end do const_read_loop
 
       ! Check if we should fail due to missing variables
-      if (any_missing .and. .not. has_initial_value) then
+      if (any_missing .and. error_on_not_found_local) then
          call endrun(subname//'Required constituent-dimensioned variables not found: ' // trim(missing_vars))
       end if
 

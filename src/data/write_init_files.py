@@ -892,14 +892,12 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                     call_str += f"'{levnm}', "
                 # end if
 
-                initial_value_string = ""
+                err_on_not_found_string = ""
                 if var_stdname in vars_init_value:
-                    # if initial value is available, pass it to the read routine
-                    # so it can be used for this variable when data for some
-                    # constituent cannot be found.
-                    initial_value_string = f", initial_value={vars_init_value[var_stdname]}_kind_phys"
+                    # if initial value is available, do not throw error when not found in initial condition file.
+                    err_on_not_found_string = ", error_on_not_found=.false."
                 # end if
-                call_str += f"timestep, {var_locname}{initial_value_string})"
+                call_str += f"timestep, {var_locname}{err_on_not_found_string})"
             else:
                 # Replace vertical dimension with local name
                 call_str = "call read_field(file, " +                             \
@@ -1237,6 +1235,11 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
         # Extract vertical level variable:
         levnm, call_check_field, reason, has_constituent_read = get_dimension_info(hvar)
+
+        # If this is a constituent-indexed field, do not check it for now.
+        if has_constituent_read:
+            continue
+        # end if
 
         # Set "check_field" call string:
         if call_check_field:

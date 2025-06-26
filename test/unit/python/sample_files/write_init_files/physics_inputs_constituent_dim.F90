@@ -40,7 +40,7 @@ CONTAINS
       use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                          only: iulog
-      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, slp, theta
+      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, cool_default_cat_for_each_const, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -156,6 +156,10 @@ CONTAINS
                         call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_every_const', input_var_names(:,name_idx),          &
                              timestep, cool_cat_for_each_const)
 
+                     case ('super_cool_cat_with_default_every_const')
+                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_with_default_every_const',                          &
+                             input_var_names(:,name_idx), timestep, cool_default_cat_for_each_const)
+
                   end select !read variables
                end select !special indices
 
@@ -239,7 +243,7 @@ CONTAINS
       use cam_pio_utils,                        only: cam_pio_openfile, cam_pio_closefile
       use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, slp, theta
+      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, cool_default_cat_for_each_const, slp, theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -334,10 +338,6 @@ CONTAINS
                case ('air_pressure_at_sea_level')
                   call check_field(file, input_var_names(:,name_idx), timestep, slp, 'air_pressure_at_sea_level', min_difference, min_relative_value,  &
                        is_first, diff_found)
-
-               case ('super_cool_cat_every_const')
-                  call check_field(file, input_var_names(:,name_idx), timestep, cool_cat_for_each_const, 'super_cool_cat_every_const',                 &
-                       min_difference, min_relative_value, is_first, diff_found)
 
                end select !check variables
                if (diff_found) then

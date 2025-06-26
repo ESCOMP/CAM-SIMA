@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry name="cam_registry" version="1.0">
-  <file name="physics_types_simple" type="module">
+  <file name="physics_types_simple_initial_value" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <variable local_name="theta" standard_name="potential_temperature"
               units="K" type="real" kind="kind_phys"  allocatable="pointer">
@@ -9,7 +9,7 @@
       <ic_file_input_names>theta pot_temp</ic_file_input_names>
     </variable>
     <variable local_name="slp" standard_name="air_pressure_at_sea_level"
-              units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
+              units="Pa" type="real" kind="kind_phys"  allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <!-- a sample initial value for testing -->
       <initial_value>101325.0_kind_phys</initial_value>

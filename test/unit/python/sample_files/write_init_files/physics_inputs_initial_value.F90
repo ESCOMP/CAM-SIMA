@@ -40,7 +40,7 @@ CONTAINS
       use phys_vars_init_check_initial_value, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod,          only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                        only: iulog
-      use physics_types_simple,               only: slp, theta
+      use physics_types_simple_initial_value, only: slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -235,7 +235,7 @@ CONTAINS
       use cam_pio_utils,                      only: cam_pio_openfile, cam_pio_closefile
       use ccpp_constituent_prop_mod,          only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check_initial_value, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_simple,               only: slp, theta
+      use physics_types_simple_initial_value, only: slp, theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name

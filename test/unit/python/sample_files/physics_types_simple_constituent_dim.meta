@@ -25,3 +25,9 @@
   units = kg kg-1 s-1
   type = real
   dimensions = (horizontal_dimension, number_of_ccpp_constituents)
+[ cool_default_cat_for_each_const ]
+  standard_name = super_cool_cat_with_default_every_const
+  long_name = The coolest imaginable tendency per constituent now with a default
+  units = kg kg-1 s-1
+  type = real
+  dimensions = (horizontal_dimension, number_of_ccpp_constituents)

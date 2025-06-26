@@ -1,0 +1,21 @@
+[ccpp-table-properties]
+  name = physics_types_simple_initial_value
+  type = module
+[ccpp-arg-table]
+  name = physics_types_simple_initial_value
+  type = module
+[ theta ]
+  standard_name = potential_temperature
+  units = K
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ slp ]
+  standard_name = air_pressure_at_sea_level
+  units = Pa
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ eddy_len ]
+  standard_name = eddy_length_scale
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)

@@ -20,10 +20,17 @@
     </variable>
     <!-- Value with a constituent dimension -->
     <variable local_name="cool_cat_for_each_const" standard_name="super_cool_cat_every_const"
-              units="kg kg-1 s-1" type="real">
+              units="kg kg-1 s-1" type="real" kind="kind_phys" allocatable="allocatable">
       <long_name>The coolest imaginable tendency per constituent</long_name>
       <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
       <ic_file_input_names>cool_cat_tend</ic_file_input_names>
+    </variable>
+    <variable local_name="cool_default_cat_for_each_const" standard_name="super_cool_cat_with_default_every_const"
+              units="kg kg-1 s-1" type="real" kind="kind_phys" allocatable="allocatable">
+      <long_name>The coolest imaginable tendency per constituent now with a default</long_name>
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>2.33_kind_phys</initial_value>
+      <ic_file_input_names>cool_cat_default_tend</ic_file_input_names>
     </variable>
   </file>
 </registry>

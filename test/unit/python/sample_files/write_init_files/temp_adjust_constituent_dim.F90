@@ -18,7 +18,8 @@ CONTAINS
 !! \htmlinclude arg_table_temp_adjust_run.html
 !!
   SUBROUTINE temp_adjust_run(nbox, lev, temp_layer,    &
-    slp, cool_cat_for_each_const, timestep, errmsg, errflg)
+    slp, cool_cat_for_each_const, cool_cat_default_for_each_const, &
+    timestep, errmsg, errflg)
 !----------------------------------------------------------------
    IMPLICIT NONE
 !----------------------------------------------------------------
@@ -27,6 +28,7 @@ CONTAINS
    REAL(kind_phys),    intent(inout) :: temp_layer(:, :)
    real(kind_phys),    intent(in)    :: slp(:)
    real(kind_phys),    intent(inout) :: cool_cat_for_each_const(:,:)
+   real(kind_phys),    intent(in)    :: cool_cat_default_for_each_const(:,:)
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg

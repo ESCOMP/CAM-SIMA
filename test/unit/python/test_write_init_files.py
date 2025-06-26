@@ -292,7 +292,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg_initial_value.xml")
-        out_source_name = "physics_types_simple"
+        out_source_name = "physics_types_simple_initial_value"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
