@@ -1,0 +1,55 @@
+! these are QPC4 snapshots and require custom physical constant definitions.
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_before_c20250328.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_after_c20250328.nc'
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+! qpc4
+pver = 26
+user_defined_cpwv       = 1.846e3
+user_defined_gravit     = 9.79764
+user_defined_mwdry      = 28.96623324623746
+user_defined_mwh2o      = 18.01618112892741
+user_defined_rearth     = 6.37100e6
+user_defined_sday       = 86164.10063718943
+
+! rk
+ cldfrc_dp1             =  0.10D0
+ cldfrc_dp2             =  500.0D0
+ cldfrc_freeze_dry              = .true.
+ cldfrc_ice             = .false.
+ cldfrc_icecrit         =  0.95D0
+ cldfrc_iceopt          =  1
+ cldfrc_premib          =  750.0D2
+ cldfrc_premit          =  75000.0D0
+ cldfrc_rhminh          =  0.800D0
+ cldfrc_rhminl          =  0.910D0
+ cldfrc_rhminl_adj_land         =  0.100D0
+ cldfrc_sh1             =  0.04D0
+ cldfrc_sh2             =  500.0D0
+
+! sima only:
+ cldfrc_inversion_cld_off = .false.
+
+ cldsed_ice_stokes_fac          =  1.0D0
+
+ rk_strat_conke         =   5.0e-6
+ rk_strat_icritc                =  18.0e-6
+ rk_strat_icritw                =   2.0e-4
+ rk_strat_r3lcrit               =   10.0e-6
+! sima only:
+ rk_strat_polstrat_dorhmin = .false.
+
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1:DQSED,DISED,DLSED,HSED,PRECSED,SNOWSED,RAINSED
+hist_add_inst_fields;h1:SH_CLD,DP_CLD,CONCLD,AST
+hist_add_inst_fields;h1:FICE,REPARTICE,REPARTLIQ,HREPART
+hist_add_inst_fields;h1:FWAUT,FSAUT,FRACW,FSACW,FSACI,PCSNOW,CME,CMEICE,CMELIQ
+hist_add_inst_fields;h1:ICE2PR,LIQ2PR,HPROGCLD,HEVAP,HMELT,HCME,HFREEZ
+hist_add_inst_fields;h1:PRODPREC,EVAPPREC,EVAPSNOW,LS_FLXPRC,LS_FLXSNW,PRACWO,PSACWO,PSACIO
+hist_add_inst_fields;h1:CLDLIQSTR,CLDICESTR,CLDLIQCON,CLDICECON
+hist_add_inst_fields;h1:IWC,LWC,ICIMR,ICWMR,REI,REL
+hist_precision;h1: REAL64

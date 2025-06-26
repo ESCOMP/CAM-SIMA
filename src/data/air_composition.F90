@@ -179,8 +179,6 @@ CONTAINS
 
       liq_num = 0
       ice_num = 0
-      has_liq = .false.
-      has_ice = .false.
       ix = -1
       ! standard dry air (constant composition)
       o2_mwi = 1._kind_phys / 32._kind_phys
@@ -239,9 +237,10 @@ CONTAINS
       icnst = 1
       water_species_num = 0
       dry_species_num = 0
-      has_ice = .false.
       do idx = 1, num_advected
          cnst_stdname = const_name(idx)
+         has_liq = .false.
+         has_ice = .false.
          select case (TRIM((cnst_stdname)))
             !
             ! O
@@ -437,6 +436,8 @@ CONTAINS
             !
             ! If support for more major species is to be included add code here
             !
+         case default
+            cycle ! skip thermodynamically inactive species
          end select
 
          if (masterproc) then
@@ -460,8 +461,6 @@ CONTAINS
             end if
             write(iulog, *) "  "
          end if
-         has_liq = .false.
-         has_ice = .false.
       end do
 
       !Set dry air thermodynamic properities if no dry air species provided:
@@ -565,12 +564,14 @@ CONTAINS
          ! SE
          ! Note: species index subset to 1: because SIMA currently uses index 0. See GitHub issue #334 in ESCOMP/CAM-SIMA.
          call get_cp(mmr(:ncol,:,:), .false., cp_or_cv_dycore(:ncol,:), &
-                     factor=to_dry_factor, active_species_idx_dycore=thermodynamic_active_species_idx(1:), &
+                     factor=to_dry_factor, &
+                     active_species_idx_dycore=thermodynamic_active_species_idx(1:thermodynamic_active_species_num), &
                      cpdry=cpairv(:ncol,:))
       else if (energy_formula == ENERGY_FORMULA_DYCORE_MPAS) then
          ! MPAS
          ! Note: species index subset to 1: because SIMA currently uses index 0. See GitHub issue #334 in ESCOMP/CAM-SIMA.
-         call get_R(mmr(:ncol,:,:), thermodynamic_active_species_idx(1:), &
+         call get_R(mmr(:ncol,:,:), &
+                    thermodynamic_active_species_idx(1:thermodynamic_active_species_num), &
                     cp_or_cv_dycore(:ncol,:), fact=to_dry_factor, Rdry=rairv(:ncol,:))
 
          ! internal energy coefficient for MPAS
