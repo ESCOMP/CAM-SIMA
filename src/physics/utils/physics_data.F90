@@ -445,6 +445,10 @@ CONTAINS
          end do const_idx_loop
       end do base_idx_loop
 
+      if(.not. var_found .and. error_on_not_found_local) then
+         call endrun(subname//'Required constituent-dimensioned variables not found: No match for ' // trim(std_name))
+      end if
+
       ! Once base_idx is identified, use it in the actual constituent loop:
       const_read_loop: do const_idx = 1, size(const_props)
          ! Get constituent short name
