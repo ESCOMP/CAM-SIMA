@@ -382,6 +382,7 @@ subroutine test_pio_reader_1d_real_read()
     @assertTrue(size(press_ref) == 59)
 
     ! Check that the variable's values are correct:
+    write(*,*) "Sum of press_ref: ", sum(press_ref)
     @assertTrue(sum(press_ref) == 604970.2016763, tolerance=1.0e-7)
 
     ! Perform test cleanup:
