@@ -936,7 +936,7 @@
 
     <!-- cam_out Variables -->
     <variable local_name="bcphidry"
-              standard_name="dry_deposition_flux_of_hydrophilic_black_carbon_at_surface"
+              standard_name="dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -944,7 +944,7 @@
       <ic_file_input_names>bcphidry cam_out_bcphidry</ic_file_input_names>
     </variable>
     <variable local_name="bcphiwet"
-              standard_name="wet_deposition_flux_of_hydrophilic_black_carbon_at_surface"
+              standard_name="wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -952,7 +952,7 @@
       <ic_file_input_names>bcphiwet cam_out_bcphidwet</ic_file_input_names>
     </variable>
     <variable local_name="bcphodry"
-              standard_name="dry_deposition_flux_of_hydrophobic_black_carbon_at_surface"
+              standard_name="dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -976,7 +976,7 @@
       <ic_file_input_names>co2prog cam_out_co2prog</ic_file_input_names>
     </variable>
     <variable local_name="dstdry1"
-              standard_name="dry_deposition_of_dust_bin1_tempcac"
+              standard_name="dry_deposition_of_dust_bin1_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -984,7 +984,7 @@
       <ic_file_input_names>dstdry1 cam_out_dstdry1</ic_file_input_names>
     </variable>
     <variable local_name="dstdry2"
-              standard_name="dry_deposition_of_dust_bin2_tempcac"
+              standard_name="dry_deposition_of_dust_bin2_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -992,7 +992,7 @@
       <ic_file_input_names>dstdry2 cam_out_dstdry2</ic_file_input_names>
     </variable>
     <variable local_name="dstdry3"
-              standard_name="dry_deposition_of_dust_bin3_tempcac"
+              standard_name="dry_deposition_of_dust_bin3_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1000,7 +1000,7 @@
       <ic_file_input_names>dstdry3 cam_out_dstdry3</ic_file_input_names>
     </variable>
     <variable local_name="dstdry4"
-              standard_name="dry_deposition_of_dust_bin4_tempcac"
+              standard_name="dry_deposition_of_dust_bin4_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1008,7 +1008,7 @@
       <ic_file_input_names>dstdry4 cam_out_dstdry4</ic_file_input_names>
     </variable>
     <variable local_name="dstwet1"
-              standard_name="wet_deposition_of_dust_bin1_tempcac"
+              standard_name="wet_deposition_of_dust_bin1_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1016,7 +1016,7 @@
       <ic_file_input_names>dstwet1 cam_out_dstwet1</ic_file_input_names>
     </variable>
     <variable local_name="dstwet2"
-              standard_name="wet_deposition_of_dust_bin2_tempcac"
+              standard_name="wet_deposition_of_dust_bin2_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1024,7 +1024,7 @@
       <ic_file_input_names>dstwet2 cam_out_dstwet2</ic_file_input_names>
     </variable>
     <variable local_name="dstwet3"
-              standard_name="wet_deposition_of_dust_bin3_tempcac"
+              standard_name="wet_deposition_of_dust_bin3_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1032,7 +1032,7 @@
       <ic_file_input_names>dstwet3 cam_out_dstwet3</ic_file_input_names>
     </variable>
     <variable local_name="dstwet4"
-              standard_name="wet_deposition_of_dust_bin4_tempcac"
+              standard_name="wet_deposition_of_dust_bin4_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1040,7 +1040,7 @@
       <ic_file_input_names>dstwet4 cam_out_dstwet4</ic_file_input_names>
     </variable>
     <variable local_name="flwds"
-              standard_name="flwds_tempcac"
+              standard_name="longwave_downward_radiative_flux_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1048,7 +1048,7 @@
       <ic_file_input_names>flwds cam_out_flwds</ic_file_input_names>
     </variable>
     <variable local_name="lightning_flash_freq"
-              standard_name="lightning_flash_freq_tempcac"
+              standard_name="cloud_to_ground_lightning_flash_frequency_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1056,7 +1056,7 @@
       <ic_file_input_names>lightning_flash_freq cam_out_lightning_flash_freq</ic_file_input_names>
     </variable>
     <variable local_name="netsw"
-              standard_name="net_shortwave_flux_at_surface"
+              standard_name="net_shortwave_flux_at_surface_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1064,7 +1064,7 @@
       <ic_file_input_names>netsw cam_out_netsw</ic_file_input_names>
     </variable>
     <variable local_name="nhx_nitrogen_flx"
-              standard_name="reduced_nitrogen_deposition_flux_tempcac"
+              standard_name="amine_deposition_flux_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1072,7 +1072,7 @@
       <ic_file_input_names>nhx_nitrogen_flx cam_out_nhx_nitrogen_flx</ic_file_input_names>
     </variable>
     <variable local_name="noy_nitrogen_flx"
-              standard_name="nitrogen_oxides_deposition_flux_tempcac"
+              standard_name="nitrogen_oxides_deposition_flux_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1080,7 +1080,7 @@
       <ic_file_input_names>noy_nitrogen_flx cam_out_noy_nitrogen_flx</ic_file_input_names>
     </variable>
     <variable local_name="ocphidry"
-              standard_name="dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface"
+              standard_name="dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1088,7 +1088,7 @@
       <ic_file_input_names>ocphidry cam_out_ocphidry</ic_file_input_names>
     </variable>
     <variable local_name="ocphiwet"
-              standard_name="wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface"
+              standard_name="wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1096,7 +1096,7 @@
       <ic_file_input_names>ocphiwet cam_out_ocphiwet</ic_file_input_names>
     </variable>
     <variable local_name="ocphodry"
-              standard_name="dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface"
+              standard_name="dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1104,7 +1104,7 @@
       <ic_file_input_names>ocphodry cam_out_ocphodry</ic_file_input_names>
     </variable>
     <variable local_name="ozone"
-              standard_name="ozone_tempcac"
+              standard_name="volumne_mixing_ratio_of_ozone_at_bottom_layer_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1112,7 +1112,7 @@
       <ic_file_input_names>ozone cam_out_ozone</ic_file_input_names>
     </variable>
     <variable local_name="pbot"
-              standard_name="pbot_tempcac"
+              standard_name="air_pressure_at_bottom_layer_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1120,7 +1120,7 @@
       <ic_file_input_names>pbot cam_out_pbot</ic_file_input_names>
     </variable>
     <variable local_name="precc"
-              standard_name="lwe_convective_precipitation_rate_at_surface"
+              standard_name="lwe_convective_precipitation_rate_at_surface_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1128,7 +1128,7 @@
       <ic_file_input_names>precc cam_out_precc</ic_file_input_names>
     </variable>
     <variable local_name="precl"
-              standard_name="lwe_large_scale_precipitation_rate_at_surface"
+              standard_name="lwe_large_scale_precipitation_rate_at_surface_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1136,7 +1136,7 @@
       <ic_file_input_names>precl cam_out_precl</ic_file_input_names>
     </variable>
     <variable local_name="precsc"
-              standard_name="lwe_convective_snowfall_rate_at_surface"
+              standard_name="lwe_convective_snowfall_rate_at_surface_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1144,7 +1144,7 @@
       <ic_file_input_names>precsc cam_out_precsc</ic_file_input_names>
     </variable>
     <variable local_name="precsl"
-              standard_name="lwe_large_scale_snowfall_rate_at_surface"
+              standard_name="lwe_large_scale_snowfall_rate_at_surface_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1152,7 +1152,7 @@
       <ic_file_input_names>precsl cam_out_precsl</ic_file_input_names>
     </variable>
     <variable local_name="psl"
-              standard_name="psl_tempcac"
+              standard_name="air_pressure_at_sea_level_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1160,7 +1160,7 @@
       <ic_file_input_names>psl cam_out_psl</ic_file_input_names>
     </variable>
     <variable local_name="qbot"
-              standard_name="qbot_tempcac"
+              standard_name="constituent_mixing_ratio_at_bottom_layer_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
@@ -1168,7 +1168,7 @@
       <ic_file_input_names>qbot cam_out_qbot</ic_file_input_names>
     </variable>
     <variable local_name="rho"
-              standard_name="rho_tempcac"
+              standard_name="air_density_to_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1208,7 +1208,7 @@
       <ic_file_input_names>solsd cam_out_solsd</ic_file_input_names>
     </variable>
     <variable local_name="thbot"
-              standard_name="thbot_tempcac"
+              standard_name="potential_temperature_wrt_surface_pressure_at_bottom_layer_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1216,7 +1216,7 @@
       <ic_file_input_names>thbot cam_out_thbot</ic_file_input_names>
     </variable>
     <variable local_name="tbot"
-              standard_name="tbot_tempcac"
+              standard_name="air_temperature_at_bottom_layer_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1224,7 +1224,7 @@
       <ic_file_input_names>tbot cam_out_tbot</ic_file_input_names>
     </variable>
     <variable local_name="topo"
-              standard_name="topo_tempcac"
+              standard_name="surface_topographic_height_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1232,7 +1232,7 @@
       <ic_file_input_names>topo cam_out_topo</ic_file_input_names>
     </variable>
     <variable local_name="ubot"
-              standard_name="ubot_tempcac"
+              standard_name="eastward_wind_at_bottom_layer_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1240,7 +1240,7 @@
       <ic_file_input_names>ubot cam_out_ubot</ic_file_input_names>
     </variable>
     <variable local_name="vbot"
-              standard_name="vbot_tempcac"
+              standard_name="northward_wind_at_bottom_layer_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1248,7 +1248,7 @@
       <ic_file_input_names>vbot cam_out_vbot</ic_file_input_names>
     </variable>
     <variable local_name="zbot"
-              standard_name="zbot_tempcac"
+              standard_name="geopotential_height_wrt_surface_at_bottom_layer_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1257,35 +1257,43 @@
     </variable>
 
     <ddt type="cam_in_t">
-      <data>surface_albedo_due_to_near_ir_diffuse</data>
-      <data>surface_albedo_due_to_near_ir_direct</data>
-      <data>surface_albedo_due_to_uv_and_vis_diffuse</data>
-      <data>surface_albedo_due_to_uv_and_vis_direct</data>
-      <data>surface_upward_ccpp_constituent_fluxes</data>
-      <!-- Commented out <data>surface_upward_dust_fluxes</data> -->
-      <!-- Commented out <data>fco2_lnd_tempcac</data> -->
-      <!-- Commented out <data>fco2_ocn_tempcac</data> -->
-      <!-- Commented out <data>fdms_tempcac</data> -->
-      <!-- Commented out <data>fireflx_tempcac</data> -->
-      <data>fireztop_tempcac</data>
-      <!-- Commented out <data>surface_friction_velocity</data> -->
-      <data>sea_ice_area_fraction</data>
-      <data>land_area_fraction</data>
-      <data>surface_upward_latent_heat_flux</data>
-      <data>longwave_upward_radiative_flux_at_surface</data>
-      <data>ocean_area_fraction</data>
-      <data>water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m</data>
-      <!-- Commented out <data>aerodynamical_resistance_tempcac</data> -->
-      <data>surface_upward_sensible_heat_flux</data>
-      <data>lwe_surface_snow_depth_over_ice</data>
-      <data>lwe_surface_snow_depth_over_land</data>
-      <!-- Commented out <data>volumetric_equilibrium_soil_moisture</data> -->
-      <data>sea_surface_temperature</data>
-      <data>air_temperature_at_2m</data>
-      <data>blackbody_temperature_at_surface</data>
-      <data>wind_speed_at_10m</data>
-      <data>surface_eastward_wind_stress</data>
-      <data>surface_northward_wind_stress</data>
+       <data>surface_albedo_due_to_near_ir_diffuse_from_coupler</data>
+       <data>surface_albedo_due_to_near_ir_direct_from_coupler</data>
+       <data>surface_albedo_due_to_uv_and_vis_diffuse_from_coupler</data>
+       <data>surface_albedo_due_to_uv_and_vis_direct_from_coupler</data>
+       <data>data_flux_fuel_tempcac</data>
+       <data>data_flux_ocn_tempcac</data>
+       <data>surface_upward_ccpp_constituent_fluxes_from_coupler</data>
+    <!-- Commented out <data>surface_upward_dust_fluxes_from_coupler</data> -->
+    <!-- Commented out <data>co2_flux_from_land_from_coupler</data> -->
+    <!-- Commented out   <data>co2_flux_from_ocean_from_coupler</data> -->
+    <!-- Commented out   <data>dms_flux_from_coupler</data> -->
+    <!-- Commented out   <data>surface_upward_fire_compound_fluxes_from_coupler</data> -->
+       <data>top_height_for_vertically_distributed_fire_emissions_from_coupler</data>
+    <!-- Commented out   <data>surface_friction_velocity_from_coupler</data> -->
+       <data>sea_ice_area_fraction_from_coupler</data>
+       <data>land_area_fraction_from_coupler</data>
+       <data>surface_upward_latent_heat_flux_from_coupler</data>
+       <data>longwave_upward_radiative_flux_at_surface_from_coupler</data>
+    <!--   <data>meganflx_tempcac</data> -->
+       <data>ocean_area_fraction_from_coupler</data>
+       <data>water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m_from_coupler</data>
+    <!-- Commented out   <data>aerodynamical_resistance_at_surface_from_coupler</data> -->
+    <!-- Commented out   <data>re_tempcac</data> -->
+       <data>surface_upward_sensible_heat_flux_from_coupler</data>
+       <data>lwe_surface_snow_depth_over_ice_from_coupler</data>
+       <data>lwe_surface_snow_depth_over_land_from_coupler</data>
+    <!-- Commented out   <data>volumetric_equilibrium_soil_moisture_from_coupler</data> -->
+    <!-- Commented out   <data>sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler</data> -->
+       <data>sea_surface_temperature_from_coupler</data>
+       <data>air_temperature_at_2m_from_coupler</data>
+       <data>blackbody_temperature_at_surface_from_coupler</data>
+       <data>wind_speed_at_10m_from_coupler</data>
+    <!-- Commented out   <data>wind_speed_plus_parameterized_wind_gusts_at_10m_from_coupler</data> -->
+    <!-- Commented out   <data>parameterized_wind_gust_at_10m_from_coupler</data> -->
+    <!-- Commented out   <data>surface_friction_velocity_from_coupler</data> -->
+       <data>surface_eastward_wind_stress_from_coupler</data>
+       <data>surface_northward_wind_stress_from_coupler</data>
     </ddt>
 
     <variable local_name="cam_in"
@@ -1295,46 +1303,46 @@
     </variable>
 
     <ddt type="cam_out_t">
-      <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface</data>
-      <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface</data>
-      <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface</data>
-      <data>co2diag_tempcac</data>
-      <data>co2prog_tempcac</data>
-      <data>dry_deposition_of_dust_bin1_tempcac</data>
-      <data>dry_deposition_of_dust_bin2_tempcac</data>
-      <data>dry_deposition_of_dust_bin3_tempcac</data>
-      <data>dry_deposition_of_dust_bin4_tempcac</data>
-      <data>wet_deposition_of_dust_bin1_tempcac</data>
-      <data>wet_deposition_of_dust_bin2_tempcac</data>
-      <data>wet_deposition_of_dust_bin3_tempcac</data>
-      <data>wet_deposition_of_dust_bin4_tempcac</data>
-      <data>flwds_tempcac</data>
-      <data>lightning_flash_freq_tempcac</data>
-      <data>net_shortwave_flux_at_surface</data>
-      <data>reduced_nitrogen_deposition_flux_tempcac</data>
-      <data>nitrogen_oxides_deposition_flux_tempcac</data>
-      <data>dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface</data>
-      <data>wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface</data>
-      <data>dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface</data>
-      <data>ozone_tempcac</data>
-      <data>pbot_tempcac</data>
-      <data>lwe_convective_precipitation_rate_at_surface</data>
-      <data>lwe_large_scale_precipitation_rate_at_surface</data>
-      <data>lwe_convective_snowfall_rate_at_surface</data>
-      <data>lwe_large_scale_snowfall_rate_at_surface</data>
-      <data>direct_solar_rad_on_surface_ge_07_tempcac</data>
-      <data>psl_tempcac</data>
-      <data>qbot_tempcac</data>
-      <data>rho_tempcac</data>
-      <data>diffuse_solar_rad_on_surface_ge_07_tempcac</data>
-      <data>direct_solar_rad_on_surface_lt_07_tempcac</data>
-      <data>diffuse_solar_rad_on_surface_lt_07_tempcac</data>
-      <data>thbot_tempcac</data>
-      <data>tbot_tempcac</data>
-      <data>topo_tempcac</data>
-      <data>ubot_tempcac</data>
-      <data>vbot_tempcac</data>
-      <data>zbot_tempcac</data>
+       <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
+       <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
+       <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
+       <data>co2diag_tempcac</data>
+       <data>co2prog_tempcac</data>
+       <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
+       <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
+       <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
+       <data>dry_deposition_of_dust_bin4_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin1_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin2_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin3_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin4_at_surface_to_coupler</data>
+       <data>longwave_downward_radiative_flux_at_surface_to_coupler</data>
+       <data>cloud_to_ground_lightning_flash_frequency_to_coupler</data>
+       <data>net_shortwave_flux_at_surface_to_coupler</data>
+       <data>amine_deposition_flux_at_surface_to_coupler</data>
+       <data>nitrogen_oxides_deposition_flux_at_surface_to_coupler</data>
+       <data>dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler</data>
+       <data>wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler</data>
+       <data>dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface_to_coupler</data>
+       <data>volumne_mixing_ratio_of_ozone_at_bottom_layer_to_coupler</data>
+       <data>air_pressure_at_bottom_layer_to_coupler</data>
+       <data>lwe_convective_precipitation_rate_at_surface_to_coupler</data>
+       <data>lwe_large_scale_precipitation_rate_at_surface_to_coupler</data>
+       <data>lwe_convective_snowfall_rate_at_surface_to_coupler</data>
+       <data>lwe_large_scale_snowfall_rate_at_surface_to_coupler</data>
+       <data>air_pressure_at_sea_level_to_coupler</data>
+       <data>constituent_mixing_ratio_at_bottom_layer_to_coupler</data>
+       <data>air_density_to_coupler</data>
+       <data>direct_solar_rad_on_surface_ge_07_tempcac</data>
+       <data>diffuse_solar_rad_on_surface_ge_07_tempcac</data>
+       <data>direct_solar_rad_on_surface_lt_07_tempcac</data>
+       <data>diffuse_solar_rad_on_surface_lt_07_tempcac</data>
+       <data>potential_temperature_wrt_surface_pressure_at_bottom_layer_to_coupler</data>
+       <data>air_temperature_at_bottom_layer_to_coupler</data>
+       <data>surface_topographic_height_to_coupler</data>
+       <data>eastward_wind_at_bottom_layer_to_coupler</data>
+       <data>northward_wind_at_bottom_layer_to_coupler</data>
+       <data>geopotential_height_wrt_surface_at_bottom_layer_to_coupler</data>
     </ddt>
 
     <variable local_name="cam_out"
