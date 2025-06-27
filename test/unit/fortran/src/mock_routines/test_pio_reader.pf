@@ -251,7 +251,6 @@ subroutine test_pio_reader_2d_int_read()
 
     ! Check that the variable's properties are correct:
     @assertTrue(associated(minor_limits_gpt_lower))
-    write(*,*) 'array shape', shape(minor_limits_gpt_lower)
     @assertTrue(size(minor_limits_gpt_lower, dim=1) == 2)
     @assertTrue(size(minor_limits_gpt_lower, dim=2) == 34)
 
@@ -336,6 +335,61 @@ subroutine test_pio_reader_1d_char_read()
     deallocate(reader)
 
 end subroutine test_pio_reader_1d_char_read
+
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_1d_real_read()
+    !Check that the PIO reader can read a 1D real variable
+    !from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    real(kind_phys), pointer :: press_ref(:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 1D real variable:
+    call reader%get_var("press_ref", press_ref, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(press_ref))
+    @assertTrue(size(press_ref) == 59)
+
+    ! Check that the variable's values are correct:
+    @assertTrue(sum(press_ref) == 604970.2016763, tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(press_ref)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_1d_real_read
 
 !----------------------------------------
 
