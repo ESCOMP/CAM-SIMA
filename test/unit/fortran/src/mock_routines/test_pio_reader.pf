@@ -268,8 +268,8 @@ end subroutine test_pio_reader_2d_int_read
 
 @test
 subroutine test_pio_reader_1d_char_read()
-    !Check that the PIO reader can read a 1D character variable
-    !from a file successfully.
+    ! Check that the PIO reader can read a 1D character variable
+    ! from a file successfully.
 
     use funit
 
@@ -281,7 +281,7 @@ subroutine test_pio_reader_1d_char_read()
     integer            :: errcode
     character(len=256) :: errmsg
 
-    !Variable to be read:
+    ! Variable to be read:
     character(len=:), pointer :: gas_names(:)
 
     ! File name for testing:
@@ -340,8 +340,8 @@ end subroutine test_pio_reader_1d_char_read
 
 @test
 subroutine test_pio_reader_1d_real_read()
-    !Check that the PIO reader can read a 1D real variable
-    !from a file successfully.
+    ! Check that the PIO reader can read a 1D real variable
+    ! from a file successfully.
 
     use funit
 
@@ -355,8 +355,11 @@ subroutine test_pio_reader_1d_real_read()
     integer            :: errcode
     character(len=256) :: errmsg
 
-    !Variable to be read:
+    ! Variable to be read:
     real(kind_phys), pointer :: press_ref(:)
+
+    ! Variable value to compare against:
+    real(kind_phys), parameter :: sum_press_ref = 604970.2016763_kind_phys
 
     ! File name for testing:
     ! NOTE: This specific file is added during the Github Actions workflow.
@@ -382,8 +385,8 @@ subroutine test_pio_reader_1d_real_read()
     @assertTrue(size(press_ref) == 59)
 
     ! Check that the variable's values are correct:
-    write(*,*) "Sum of press_ref: ", sum(press_ref)
-    @assertEqual(604970.2016763, sum(press_ref), tolerance=1.0e-7)
+    write(*,*) "Sum of press_ref: ", sum(press_ref), sum_press_ref
+    @assertEqual(sum_press_ref, sum(press_ref), tolerance=1.0e-6)
 
     ! Perform test cleanup:
     deallocate(press_ref)
