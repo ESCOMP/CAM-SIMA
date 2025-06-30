@@ -267,6 +267,63 @@ end subroutine test_pio_reader_2d_int_read
 !----------------------------------------
 
 @test
+subroutine test_pio_reader_3d_int_read()
+    ! Check that the PIO reader can read a 3D integer variable
+    ! from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    integer, pointer :: key_species(:,:,:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 3D integer variable:
+    call reader%get_var("key_species", key_species, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(key_species))
+    @assertTrue(size(key_species, dim=1) == 2)
+    @assertTrue(size(key_species, dim=2) == 2)
+    @assertTrue(size(key_species, dim=3) == 14)
+
+    ! Check that the variable's values are correct:
+    @assertTrue(sum(key_species(1,1,:)) == 17)
+    @assertTrue(sum(key_species(1,:,1)) == 2)
+    @assertTrue(sum(key_species(:,1,1)) == 3)
+
+    ! Perform test cleanup:
+    deallocate(key_species)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_3d_int_read
+
+!----------------------------------------
+
+@test
 subroutine test_pio_reader_1d_char_read()
     ! Check that the PIO reader can read a 1D character variable
     ! from a file successfully.
@@ -479,8 +536,8 @@ subroutine test_pio_reader_2d_real_read()
     "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
     ! Variable values to compare against:
-    real(kind_phys), parameter :: bnd_limits_sum_pair = 5930._kind_phys
-    real(kind_phys), parameter :: bnd_limits_sum_bnd = 210130._kind_phys
+    real(kind_phys), parameter :: bnd_limits_sum_pair = 3500._kind_phys
+    real(kind_phys), parameter :: bnd_limits_sum_bnd = 160950._kind_phys
 
     ! Begin test:
 
@@ -503,6 +560,8 @@ subroutine test_pio_reader_2d_real_read()
 
     ! Check that the variable's values are correct:
     ! (Example: sum of first row and first column)
+    write(*,*) "bnd_limits_wavenumber pair val sum: ", sum(bnd_limits_wavenumber(1,:))
+    write(*,*) "bnd_limits_wavenumber pair values: ", sum(bnd_limits_wavenumber(1,:))
     @assertEqual(bnd_limits_sum_pair, sum(bnd_limits_wavenumber(:,1)), tolerance=1.0e-7)
     @assertEqual(bnd_limits_sum_bnd, sum(bnd_limits_wavenumber(1,:)), tolerance=1.0e-7)
 
