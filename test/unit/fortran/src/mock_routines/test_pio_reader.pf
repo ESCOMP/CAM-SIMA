@@ -454,6 +454,67 @@ end subroutine test_pio_reader_1d_real_read
 !----------------------------------------
 
 @test
+subroutine test_pio_reader_2d_real_read()
+    ! Check that the PIO reader can read a 2D real variable
+    ! from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    real(kind_phys), pointer :: bnd_limits_wavenumber(:,:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Variable values to compare against:
+    real(kind_phys), parameter :: bnd_limits_sum_pair = 5930._kind_phys
+    real(kind_phys), parameter :: bnd_limits_sum_bnd = 210130._kind_phys
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 2D real variable:
+    call reader%get_var("bnd_limits_wavenumber", bnd_limits_wavenumber, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(bnd_limits_wavenumber))
+    @assertTrue(size(bnd_limits_wavenumber, dim=1) == 2)
+    @assertTrue(size(bnd_limits_wavenumber, dim=2) == 14)
+
+    ! Check that the variable's values are correct:
+    ! (Example: sum of first row and first column)
+    @assertEqual(bnd_limits_sum_pair, sum(bnd_limits_wavenumber(:,1)), tolerance=1.0e-7)
+    @assertEqual(bnd_limits_sum_bnd, sum(bnd_limits_wavenumber(1,:)), tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(bnd_limits_wavenumber)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_2d_real_read
+!----------------------------------------
+
+@test
 subroutine final_test()
     use funit
 
