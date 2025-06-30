@@ -339,6 +339,63 @@ end subroutine test_pio_reader_1d_char_read
 !----------------------------------------
 
 @test
+subroutine test_pio_reader_0d_real_read()
+    ! Check that the PIO reader can read a scalar real variable
+    ! from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    real(kind_phys), pointer :: press_ref_trop
+
+    ! Variable value to compare against:
+    real(kind_phys), parameter :: press_ref_trop_value = 9948.43156419_kind_phys
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 0D real variable:
+    call reader%get_var("press_ref_trop", press_ref_trop, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(press_ref_trop))
+
+    ! Check that the variable's value is correct:
+    @assertEqual(press_ref_trop_value, press_ref_trop, tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(press_ref_trop)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_0d_real_read
+
+!----------------------------------------
+
+@test
 subroutine test_pio_reader_1d_real_read()
     ! Check that the PIO reader can read a 1D real variable
     ! from a file successfully.
@@ -385,8 +442,7 @@ subroutine test_pio_reader_1d_real_read()
     @assertTrue(size(press_ref) == 59)
 
     ! Check that the variable's values are correct:
-    write(*,*) "Sum of press_ref: ", sum(press_ref), sum_press_ref
-    @assertEqual(sum_press_ref, sum(press_ref), tolerance=1.0e-6)
+    @assertEqual(sum_press_ref, sum(press_ref), tolerance=1.0e-7)
 
     ! Perform test cleanup:
     deallocate(press_ref)
