@@ -1,6 +1,10 @@
 !This file contains tests for the PIO version of the CCPP NetCDF reader
 !object (pio_reader.F90) as implemented in CAM-SIMA.
 
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
+!PIO reader object open/close file tests
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 @test
 subroutine test_pio_reader_open_close_file()
     !Check that the PIO reader can open and
@@ -155,7 +159,9 @@ subroutine test_pio_reader_no_file_err()
 
 end subroutine test_pio_reader_no_file_err
 
-!----------------------------------------
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
+!PIO reader object read variable tests
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 @test
 subroutine test_pio_reader_1d_int_read()
@@ -634,6 +640,74 @@ subroutine test_pio_reader_3d_real_read()
     deallocate(reader)
 
 end subroutine test_pio_reader_3d_real_read
+
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_4d_real_read_with_dims()
+    ! Check that the PIO reader can read a 4D real variable
+    ! from a file successfully, and that the dimensions are correct.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    real(kind_phys), pointer :: aero_salt_tbl(:,:,:,:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-aerosols-merra-sw.nc"
+
+    ! Variable values to compare against:
+    real(kind_phys), parameter :: aero_salt_nval = 5.47319616_kind_phys
+    real(kind_phys), parameter :: aero_salt_nrh  = 5321.2595172_kind_phys
+    real(kind_phys), parameter :: aero_salt_nbin = 2468.15620565_kind_phys
+    real(kind_phys), parameter :: aero_salt_nbnd = 17700.470763_kind_phys
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 4D real variable:
+    call reader%get_var("aero_salt_tbl", aero_salt_tbl, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(aero_salt_tbl))
+    @assertTrue(size(aero_salt_tbl, dim=1) == 3)
+    @assertTrue(size(aero_salt_tbl, dim=2) == 36)
+    @assertTrue(size(aero_salt_tbl, dim=3) == 5)
+    @assertTrue(size(aero_salt_tbl, dim=4) == 14)
+
+    ! Check that the variable's values are correct:
+    ! (Example: sum of first row and first column)
+    @assertEqual(aero_salt_nval, sum(aero_salt_tbl(:,1,1,1)), tolerance=1.0e-7)
+    @assertEqual(aero_salt_nrh, sum(aero_salt_tbl(1,:,1,1)), tolerance=1.0e-7)
+    @assertEqual(aero_salt_nbin, sum(aero_salt_tbl(1,1,:,1)), tolerance=1.0e-7)
+    @assertEqual(aero_salt_nbnd, sum(aero_salt_tbl(1,1,1,:)), tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(aero_salt_tbl)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_4d_real_read_with_dims
 
 !-----------------------------------------
 
