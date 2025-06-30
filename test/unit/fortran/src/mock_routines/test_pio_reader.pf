@@ -701,6 +701,7 @@ subroutine test_pio_reader_4d_real_read_with_dims()
                 sum(aero_salt_tbl(1,:,1,1)), &
                 sum(aero_salt_tbl(1,1,:,1)), &
                 sum(aero_salt_tbl(1,1,1,:))
+    write(*,*) "aero_salt_tbl bin values", aero_salt_tbl(1,1,:,1)
 
     @assertEqual(aero_salt_nval, sum(aero_salt_tbl(:,1,1,1)), tolerance=1.0e-7)
     !@assertEqual(aero_salt_nrh, sum(aero_salt_tbl(1,:,1,1)), tolerance=1.0e-7)
