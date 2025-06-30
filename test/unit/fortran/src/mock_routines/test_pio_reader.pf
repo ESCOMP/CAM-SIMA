@@ -560,8 +560,6 @@ subroutine test_pio_reader_2d_real_read()
 
     ! Check that the variable's values are correct:
     ! (Example: sum of first row and first column)
-    write(*,*) "bnd_limits_wavenumber pair val sum: ", sum(bnd_limits_wavenumber(1,:))
-    write(*,*) "bnd_limits_wavenumber pair values: ", sum(bnd_limits_wavenumber(1,:))
     @assertEqual(bnd_limits_sum_pair, sum(bnd_limits_wavenumber(:,1)), tolerance=1.0e-7)
     @assertEqual(bnd_limits_sum_bnd, sum(bnd_limits_wavenumber(1,:)), tolerance=1.0e-7)
 
@@ -572,6 +570,72 @@ subroutine test_pio_reader_2d_real_read()
 
 end subroutine test_pio_reader_2d_real_read
 !----------------------------------------
+
+subroutine test_pio_reader_3d_real_read()
+    ! Check that the PIO reader can read a 3D real variable
+    ! from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    real(kind_phys), pointer :: vmr_ref(:,:,:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Variable values to compare against:
+    real(kind_phys), parameter :: vmr_ref_temp = 2._kind_phys
+    real(kind_phys), parameter :: vmr_ref_absb = 1.99036093_kind_phys
+    real(kind_phys), parameter :: vmr_ref_alay = 14._kind_phys
+
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 3D real variable:
+    call reader%get_var("vmr_ref", vmr_ref, errmsg, errcode)
+
+    ! Check that the variable was read successfully:
+    @assertTrue(errcode == 0)
+    @assertTrue(errmsg == '')
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(associated(vmr_ref))
+    ! Change
+    @assertTrue(size(vmr_ref, dim=1) == 2)
+    @assertTrue(size(vmr_ref, dim=2) == 20)
+    @assertTrue(size(vmr_ref, dim=3) == 14)
+
+    ! Check that the variable's values are correct:
+    ! (Example: sum of first row and first column)
+    @assertEqual(vmr_ref_temp, sum(vmr_ref(:,1,1)), tolerance=1.0e-7)
+    @assertEqual(vmr_ref_absb, sum(vmr_ref(1,:,1)), tolerance=1.0e-7)
+    @assertEqual(vmr_ref_alay, sum(vmr_ref(1,1,:)), tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(vmr_ref)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_3d_real_read
+
+!-----------------------------------------
 
 @test
 subroutine final_test()
