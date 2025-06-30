@@ -617,7 +617,7 @@
       <ic_file_input_names>asdir cam_in_asdir</ic_file_input_names>
     </variable>
     <variable local_name="data_flux_fuel"
-              standard_name="data_flux_fuel_tempcac"
+              standard_name="data_flux_fuel_tbd"
               units="none" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
@@ -625,7 +625,7 @@
       <ic_file_input_names>data_flux_fuel cam_in_data_flux_fuel</ic_file_input_names>
     </variable>
     <variable local_name="data_flux_ocn"
-              standard_name="data_flux_ocn_tempcac"
+              standard_name="data_flux_ocn_tbd"
               units="none" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
@@ -754,7 +754,7 @@
 
     <!-- Commented out until dimension figured out
     <variable local_name="meganflx"
-              standard_name="meganflx_tempcac"
+              standard_name="meganflx_tbd"
               units="none" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
@@ -793,7 +793,7 @@
 
     <!-- Commented out until dimension figured out
     <variable local_name="re"
-              standard_name="re_tempcac"
+              standard_name="re_tbd"
               units="none" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
@@ -960,7 +960,7 @@
       <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
     </variable>
     <variable local_name="co2diag"
-              standard_name="co2diag_tempcac"
+              standard_name="co2diag_tbd"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -968,7 +968,7 @@
       <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
     </variable>
     <variable local_name="co2prog"
-              standard_name="co2prog_tempcac"
+              standard_name="co2prog_tbd"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1176,7 +1176,7 @@
       <ic_file_input_names>rho cam_out_rho</ic_file_input_names>
     </variable>
     <variable local_name="soll"
-              standard_name="direct_solar_rad_on_surface_ge_07_tempcac"
+              standard_name="direct_solar_rad_on_surface_ge_07_tbd"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1184,7 +1184,7 @@
       <ic_file_input_names>soll cam_out_soll</ic_file_input_names>
     </variable>
     <variable local_name="solld"
-              standard_name="diffuse_solar_rad_on_surface_ge_07_tempcac"
+              standard_name="diffuse_solar_rad_on_surface_ge_07_tbd"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1192,7 +1192,7 @@
       <ic_file_input_names>solld cam_out_solld</ic_file_input_names>
     </variable>
     <variable local_name="sols"
-              standard_name="direct_solar_rad_on_surface_lt_07_tempcac"
+              standard_name="direct_solar_rad_on_surface_lt_07_tbd"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1200,7 +1200,7 @@
       <ic_file_input_names>sols cam_out_sols</ic_file_input_names>
     </variable>
     <variable local_name="solsd"
-              standard_name="diffuse_solar_rad_on_surface_lt_07_tempcac"
+              standard_name="diffuse_solar_rad_on_surface_lt_07_tbd"
               units="W m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1261,8 +1261,8 @@
        <data>surface_albedo_due_to_near_ir_direct_from_coupler</data>
        <data>surface_albedo_due_to_uv_and_vis_diffuse_from_coupler</data>
        <data>surface_albedo_due_to_uv_and_vis_direct_from_coupler</data>
-       <data>data_flux_fuel_tempcac</data>
-       <data>data_flux_ocn_tempcac</data>
+       <data>data_flux_fuel_tbd</data>
+       <data>data_flux_ocn_tbd</data>
        <data>surface_upward_ccpp_constituent_fluxes_from_coupler</data>
     <!-- Commented out <data>surface_upward_dust_fluxes_from_coupler</data> -->
     <!-- Commented out <data>co2_flux_from_land_from_coupler</data> -->
@@ -1275,11 +1275,11 @@
        <data>land_area_fraction_from_coupler</data>
        <data>surface_upward_latent_heat_flux_from_coupler</data>
        <data>longwave_upward_radiative_flux_at_surface_from_coupler</data>
-    <!--   <data>meganflx_tempcac</data> -->
+    <!--   <data>meganflx_tbd</data> -->
        <data>ocean_area_fraction_from_coupler</data>
        <data>water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m_from_coupler</data>
     <!-- Commented out   <data>aerodynamical_resistance_at_surface_from_coupler</data> -->
-    <!-- Commented out   <data>re_tempcac</data> -->
+    <!-- Commented out   <data>re_tbd</data> -->
        <data>surface_upward_sensible_heat_flux_from_coupler</data>
        <data>lwe_surface_snow_depth_over_ice_from_coupler</data>
        <data>lwe_surface_snow_depth_over_land_from_coupler</data>
@@ -1297,7 +1297,7 @@
     </ddt>
 
     <variable local_name="cam_in"
-              standard_name="cam_in_tempcac"
+              standard_name="cam_in_tbd"
               units="None" type="cam_in_t">
       <long_name> </long_name>
     </variable>
@@ -1306,8 +1306,8 @@
        <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
-       <data>co2diag_tempcac</data>
-       <data>co2prog_tempcac</data>
+       <data>co2diag_tbd</data>
+       <data>co2prog_tbd</data>
        <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
@@ -1333,10 +1333,10 @@
        <data>air_pressure_at_sea_level_to_coupler</data>
        <data>constituent_mixing_ratio_at_bottom_layer_to_coupler</data>
        <data>air_density_to_coupler</data>
-       <data>direct_solar_rad_on_surface_ge_07_tempcac</data>
-       <data>diffuse_solar_rad_on_surface_ge_07_tempcac</data>
-       <data>direct_solar_rad_on_surface_lt_07_tempcac</data>
-       <data>diffuse_solar_rad_on_surface_lt_07_tempcac</data>
+       <data>direct_solar_rad_on_surface_ge_07_tbd</data>
+       <data>diffuse_solar_rad_on_surface_ge_07_tbd</data>
+       <data>direct_solar_rad_on_surface_lt_07_tbd</data>
+       <data>diffuse_solar_rad_on_surface_lt_07_tbd</data>
        <data>potential_temperature_wrt_surface_pressure_at_bottom_layer_to_coupler</data>
        <data>air_temperature_at_bottom_layer_to_coupler</data>
        <data>surface_topographic_height_to_coupler</data>
@@ -1346,7 +1346,7 @@
     </ddt>
 
     <variable local_name="cam_out"
-              standard_name="cam_out_tempcac"
+              standard_name="cam_out_tbd"
               units="None" type="cam_out_t">
       <long_name> </long_name>
     </variable>
