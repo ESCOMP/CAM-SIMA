@@ -661,18 +661,27 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     character(len=256) :: errmsg
 
     ! Variable to be read:
-    real(kind_phys), pointer :: aero_salt_tbl(:,:,:,:)
+    !real(kind_phys), pointer :: aero_salt_tbl(:,:,:,:)
+    real(kind_phys), pointer :: kmajor(:,:,:,:)
 
     ! File name for testing:
     ! NOTE: This specific file is added during the Github Actions workflow.
+    !character(len=*), parameter :: fname = &
+    !"../../../rrtmgp-data/rrtmgp-aerosols-merra-sw.nc"
+
     character(len=*), parameter :: fname = &
-    "../../../rrtmgp-data/rrtmgp-aerosols-merra-sw.nc"
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
     ! Variable values to compare against:
-    real(kind_phys), parameter :: aero_salt_nval = 5.47319616_kind_phys
-    real(kind_phys), parameter :: aero_salt_nrh  = 5321.2595172_kind_phys
-    real(kind_phys), parameter :: aero_salt_nbin = 2468.15620565_kind_phys
-    real(kind_phys), parameter :: aero_salt_nbnd = 17700.470763_kind_phys
+    !real(kind_phys), parameter :: aero_salt_nval = 5.47319616_kind_phys
+    !real(kind_phys), parameter :: aero_salt_nrh  = 5321.2595172_kind_phys
+    !real(kind_phys), parameter :: aero_salt_nbin = 2468.15620565_kind_phys
+    !real(kind_phys), parameter :: aero_salt_nbnd = 17700.470763_kind_phys
+
+    real(kind_phys), parameter :: kmajor_temp = 1.1852394e-21_kind_phys
+    real(kind_phys), parameter :: kmajor_pint = 3.82458752e-21_kind_phys
+    real(kind_phys), parameter :: kmajor_mixf = 2.32129131e-21_kind_phys
+    real(kind_phys), parameter :: kmajor_gpt = 2.62610317e-15_kind_phys
 
     ! Begin test:
 
@@ -682,34 +691,48 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Read 4D real variable:
-    call reader%get_var("aero_salt_tbl", aero_salt_tbl, errmsg, errcode)
+    !call reader%get_var("aero_salt_tbl", aero_salt_tbl, errmsg, errcode)
+    call reader%get_var("kmajor", kmajor, errmsg, errcode)
 
     ! Check that the variable was read successfully:
     @assertTrue(errcode == 0)
     @assertTrue(errmsg == '')
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(aero_salt_tbl))
-    @assertTrue(size(aero_salt_tbl, dim=1) == 3)
-    @assertTrue(size(aero_salt_tbl, dim=2) == 36)
-    @assertTrue(size(aero_salt_tbl, dim=3) == 5)
-    @assertTrue(size(aero_salt_tbl, dim=4) == 14)
+    !@assertTrue(associated(aero_salt_tbl))
+    !@assertTrue(size(aero_salt_tbl, dim=1) == 3)
+    !@assertTrue(size(aero_salt_tbl, dim=2) == 36)
+    !@assertTrue(size(aero_salt_tbl, dim=3) == 5)
+    !@assertTrue(size(aero_salt_tbl, dim=4) == 14)
+
+    @assertTrue(associated(kmajor))
+    @assertTrue(size(kmajor, dim=1) == 112)
+    @assertTrue(size(kmajor, dim=2) == 9)
+    @assertTrue(size(kmajor, dim=3) == 60)
+    @assertTrue(size(kmajor, dim=4) == 14)
+
 
     ! Check that the variable's values are correct:
     ! (Example: sum of first row and first column)
-    write(*,*) "aero_salt_tbl sum values = ", sum(aero_salt_tbl(:,1,1,1)), &
-                sum(aero_salt_tbl(1,:,1,1)), &
-                sum(aero_salt_tbl(1,1,:,1)), &
-                sum(aero_salt_tbl(1,1,1,:))
-    write(*,*) "aero_salt_tbl bin values", aero_salt_tbl(1,1,:,1)
+    !write(*,*) "aero_salt_tbl sum values = ", sum(aero_salt_tbl(:,1,1,1)), &
+    !            sum(aero_salt_tbl(1,:,1,1)), &
+    !            sum(aero_salt_tbl(1,1,:,1)), &
+    !            sum(aero_salt_tbl(1,1,1,:))
+    !write(*,*) "aero_salt_tbl bin values", aero_salt_tbl(1,1,:,1)
 
-    @assertEqual(aero_salt_nval, sum(aero_salt_tbl(:,1,1,1)), tolerance=1.0e-7)
+    !@assertEqual(aero_salt_nval, sum(aero_salt_tbl(:,1,1,1)), tolerance=1.0e-7)
     !@assertEqual(aero_salt_nrh, sum(aero_salt_tbl(1,:,1,1)), tolerance=1.0e-7)
-    @assertEqual(aero_salt_nbin, sum(aero_salt_tbl(1,1,:,1)), tolerance=1.0e-7)
-    @assertEqual(aero_salt_nbnd, sum(aero_salt_tbl(1,1,1,:)), tolerance=1.0e-7)
+    !@assertEqual(aero_salt_nbin, sum(aero_salt_tbl(1,1,:,1)), tolerance=1.0e-7)
+    !@assertEqual(aero_salt_nbnd, sum(aero_salt_tbl(1,1,1,:)), tolerance=1.0e-7)
+
+    @assertRelativelyEqual(kmajor_gpt, sum(kmajor(:,1,1,1)), tolerance=1.0e-7)
+    @assertRelativelyEqual(kmajor_mixf, sum(kmajor(1,:,1,1)), tolerance=1.0e-7)
+    @assertRelativelyEqual(kmajor_pint, sum(kmajor(1,1,:,1)), tolerance=1.0e-7)
+    @assertRelativelyEqual(kmajor_temp, sum(kmajor(1,1,1,:)), tolerance=1.0e-7)
 
     ! Perform test cleanup:
-    deallocate(aero_salt_tbl)
+    !deallocate(aero_salt_tbl)
+    deallocate(kmajor)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
