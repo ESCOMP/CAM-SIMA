@@ -845,6 +845,8 @@ subroutine test_pio_reader_real_get_var_file_not_opened_err()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
+    use ccpp_kinds,     only: kind_phys
+
     class(abstract_netcdf_reader_t), allocatable :: reader
 
     integer            :: errcode
