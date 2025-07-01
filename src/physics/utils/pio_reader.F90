@@ -23,7 +23,7 @@ module pio_reader
    type :: file_handle_t
       logical            :: is_file_open = .false.  !Is NetCDF file currently open?
       type(file_desc_t)  :: pio_fh                  !PIO File handle type
-      character(len=cl)  :: file_path = ''          !Local path to NetCDF file
+      character(len=cl)  :: file_path = 'UNSET'     !Local path to NetCDF file
    end type
 
    type, extends(abstract_netcdf_reader_t) :: pio_reader_t
@@ -152,7 +152,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -256,7 +256,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -401,7 +401,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -546,7 +546,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -691,7 +691,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -836,7 +836,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -986,7 +986,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1090,7 +1090,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1235,7 +1235,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1380,7 +1380,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1525,7 +1525,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1670,7 +1670,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1820,7 +1820,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1985,7 +1985,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2150,7 +2150,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2315,7 +2315,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2480,7 +2480,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2646,7 +2646,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
