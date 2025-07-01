@@ -792,6 +792,138 @@ subroutine test_pio_reader_int_get_var_file_not_opened_err()
 
 end subroutine test_pio_reader_int_get_var_file_not_opened_err
 
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_char_get_var_file_not_opened_err()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a character variable from
+    ! a file that is not opened.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    character(len=:), pointer :: gas_names(:)
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "File 'UNSET' is not open, need to call 'open_file' first."
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Attempt to read variable without opening file:
+    call reader%get_var("gas_names", gas_names, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    deallocate(reader)
+end subroutine test_pio_reader_char_get_var_file_not_opened_err
+
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_real_get_var_file_not_opened_err()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a character variable from
+    ! a file that is not opened.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    real(kind_phys), pointer :: press_ref(:)
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "File 'UNSET' is not open, need to call 'open_file' first."
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Attempt to read variable without opening file:
+    call reader%get_var("press_ref", press_ref, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    deallocate(reader)
+end subroutine test_pio_reader_real_get_var_file_not_opened_err
+
+!----------------------------------------
+
+subroutine test_pio_reader_get_var_open_close_err()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a variable from a file
+    ! that is opened and closed before attempting to read
+    ! the variable.
+
+    ! NOTE:  This behavior will be the same for all variable types,
+    ! so we only need to test it once.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    integer, pointer :: pressure(:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "File '"//fname//"' is not open, need to call 'open_file' first."
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Close file:
+    call reader%close_file(errmsg, errcode)
+
+    ! Attempt to read variable after closing file:
+    call reader%get_var("pressure", pressure, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    deallocate(reader)
+
+end subroutine test_pio_reader_get_var_open_close_err
 
 !-----------------------------------------
 
