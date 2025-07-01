@@ -577,6 +577,7 @@ subroutine test_pio_reader_2d_real_read()
 end subroutine test_pio_reader_2d_real_read
 !----------------------------------------
 
+@test
 subroutine test_pio_reader_3d_real_read()
     ! Check that the PIO reader can read a 3D real variable
     ! from a file successfully.
@@ -782,8 +783,6 @@ subroutine test_pio_reader_int_get_var_file_not_opened_err()
     call reader%get_var("pressure", pressure, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    write(*,*) 'expected error message', expected_err_msg
-    write(*,*) 'actual error message', trim(errmsg)
     @assertTrue(errcode /= 0)
     @assertTrue(trim(errmsg) == expected_err_msg)
 
@@ -876,6 +875,7 @@ end subroutine test_pio_reader_real_get_var_file_not_opened_err
 
 !----------------------------------------
 
+@test
 subroutine test_pio_reader_get_var_open_close_err()
     ! Check that the PIO reader raises the correct error
     ! when attempting to read a variable from a file
