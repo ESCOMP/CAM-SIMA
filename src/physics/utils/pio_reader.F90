@@ -108,9 +108,10 @@ contains
       !Close NetCDF File:
       call cam_pio_closefile(this%sima_pio_fh%pio_fh)
 
-      !Inidcate that file handle array id is no longer in use:
+      !Inidcate that file handle array id is no longer in use,
+      !but keep file path the same in case it is needed for
+      !related error messages in other routines:
       this%sima_pio_fh%is_file_open = .false.
-      this%sima_pio_fh%file_path = ''
 
       !File was successfully closed
       errcode = 0
