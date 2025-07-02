@@ -929,6 +929,7 @@ end subroutine test_pio_reader_get_var_open_close_err
 
 !-----------------------------------------
 
+@test
 subroutine test_pio_reader_int_get_var_missing_var()
     ! Check that the PIO reader raises the correct error
     ! when attempting to read an integer variable that does not exist.
