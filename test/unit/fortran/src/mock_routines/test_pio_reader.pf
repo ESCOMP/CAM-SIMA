@@ -964,9 +964,6 @@ subroutine test_pio_reader_int_get_var_missing_var()
     ! Attempt to read non-existent variable:
     call reader%get_var("missing_var", missing_var, errmsg, errcode)
 
-    ! DEBUG:
-    write(*,*) "errmsg = ", errmsg
-
     ! Check that the correct error was raised:
     @assertTrue(errcode /= 0)
     @assertTrue(trim(errmsg) == expected_err_msg)
@@ -1074,6 +1071,54 @@ subroutine test_pio_reader_real_get_var_missing_var()
     deallocate(reader)
 
 end subroutine test_pio_reader_real_get_var_missing_var
+
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_int_get_var_bad_rank()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read an integer variable with an
+    ! incorrectly declared number of dimensions.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    integer, pointer :: pressure(:,:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Variable 'pressure' isn't declared with the correct number of dimensions"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read variable with bad rank:
+    call reader%get_var("pressure", pressure, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_int_get_var_bad_rank
 
 !-----------------------------------------
 

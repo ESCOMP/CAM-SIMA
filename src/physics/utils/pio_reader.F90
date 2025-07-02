@@ -191,7 +191,7 @@ contains
       errcode = 0
       if(ndims /= 0) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -295,7 +295,7 @@ contains
       errcode = 0
       if(ndims /= 1) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -440,7 +440,7 @@ contains
       errcode = 0
       if(ndims /= 2) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -585,7 +585,7 @@ contains
       errcode = 0
       if(ndims /= 3) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -730,7 +730,7 @@ contains
       errcode = 0
       if(ndims /= 4) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -875,7 +875,7 @@ contains
       errcode = 0
       if(ndims /= 5) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1025,7 +1025,7 @@ contains
       errcode = 0
       if(ndims /= 0) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1129,7 +1129,7 @@ contains
       errcode = 0
       if(ndims /= 1) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1274,7 +1274,7 @@ contains
       errcode = 0
       if(ndims /= 2) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1419,7 +1419,7 @@ contains
       errcode = 0
       if(ndims /= 3) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1564,7 +1564,7 @@ contains
       errcode = 0
       if(ndims /= 4) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1709,7 +1709,7 @@ contains
       errcode = 0
       if(ndims /= 5) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1858,7 +1858,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1877,7 +1877,7 @@ contains
       errcode = 0
       if(ndims /= 1) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2023,7 +2023,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2042,7 +2042,7 @@ contains
       errcode = 0
       if(ndims /= 2) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2188,7 +2188,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2207,7 +2207,7 @@ contains
       errcode = 0
       if(ndims /= 3) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2353,7 +2353,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2372,7 +2372,7 @@ contains
       errcode = 0
       if(ndims /= 4) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2518,7 +2518,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2537,7 +2537,7 @@ contains
       errcode = 0
       if(ndims /= 5) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2684,7 +2684,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2703,7 +2703,7 @@ contains
       errcode = 0
       if(ndims /= 6) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
