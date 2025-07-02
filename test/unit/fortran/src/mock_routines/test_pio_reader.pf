@@ -17,7 +17,7 @@ subroutine starting_test()
 
     @assertTrue(.true.)
 
-end subroutine final_test
+end subroutine starting_test
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader object open/close file tests
