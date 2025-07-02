@@ -947,6 +947,9 @@ subroutine test_pio_reader_int_get_var_missing_var()
     !Variable to be read:
     integer, pointer :: missing_var(:)
 
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
     "Variable 'missing_var' not found in file 'UNSET'."
@@ -954,6 +957,9 @@ subroutine test_pio_reader_int_get_var_missing_var()
     ! Begin test:
 
     reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
 
     ! Attempt to read non-existent variable:
     call reader%get_var("missing_var", missing_var, errmsg, errcode)
@@ -966,6 +972,7 @@ subroutine test_pio_reader_int_get_var_missing_var()
    ! @assertTrue(trim(errmsg) == expected_err_msg)
 
     ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
 end subroutine test_pio_reader_int_get_var_missing_var
