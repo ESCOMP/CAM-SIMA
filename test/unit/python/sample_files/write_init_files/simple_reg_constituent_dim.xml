@@ -23,7 +23,7 @@
               units="kg kg-1 s-1" type="real" kind="kind_phys" allocatable="allocatable">
       <long_name>The coolest imaginable tendency per constituent</long_name>
       <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
-      <ic_file_input_names>cool_cat_tend</ic_file_input_names>
+      <ic_file_input_names>cool_cat_tend pbuf_COOL_CAT_TEND</ic_file_input_names>
     </variable>
     <variable local_name="cool_default_cat_for_each_const" standard_name="super_cool_cat_with_default_every_const"
               units="kg kg-1 s-1" type="real" kind="kind_phys" allocatable="allocatable">

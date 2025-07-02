@@ -70,7 +70,7 @@ module phys_vars_init_check_constituent_dim
    character(len=21), public, protected :: input_var_names(2, phys_var_num) = reshape((/ &
       'theta                ', 'pot_temp             ', &
       'slp                  ', 'sea_lev_pres         ', &
-      'cool_cat_tend        ', '                     ', &
+      'cool_cat_tend        ', 'pbuf_COOL_CAT_TEND   ', &
       'cool_cat_default_tend', '                     ' /), (/2, phys_var_num/))
 
    ! Array indicating whether or not variable is protected:

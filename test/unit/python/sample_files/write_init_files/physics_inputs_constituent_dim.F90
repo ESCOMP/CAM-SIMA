@@ -158,7 +158,7 @@ CONTAINS
 
                      case ('super_cool_cat_with_default_every_const')
                         call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_with_default_every_const',                          &
-                             input_var_names(:,name_idx), timestep, cool_default_cat_for_each_const)
+                             input_var_names(:,name_idx), timestep, cool_default_cat_for_each_const, error_on_not_found=.false.)
 
                   end select !read variables
                end select !special indices

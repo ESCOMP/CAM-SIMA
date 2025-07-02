@@ -746,7 +746,6 @@ def get_dimension_info(hvar):
     vdim_name = None
     legal_dims = False
     fail_reason = ""
-    has_constituent_read = False
 
     dims = hvar.get_dimensions()
     levnm = hvar.has_vertical_dimension()
@@ -800,7 +799,6 @@ def get_dimension_info(hvar):
     #
     # In this case, override legal_dims as this case will be handled separately
     if has_constituent_dim:
-        has_constituent_read = True
         legal_dims = True
         fail_reason = ""
     # end if
@@ -829,7 +827,7 @@ def get_dimension_info(hvar):
         # end if
     # end if
 
-    return vdim_name, legal_dims, fail_reason, has_constituent_read
+    return vdim_name, legal_dims, fail_reason, has_constituent_dim
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                phys_check_fname_str, constituent_set,
@@ -888,30 +886,22 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
             if has_constituent_read:
                 # Special case for constituent-dimension variables.
                 call_str = f"call read_constituent_dimensioned_field(const_props, file, '{var_stdname}', input_var_names(:,name_idx), "
-                if levnm is not None:
-                    call_str += f"'{levnm}', "
-                # end if
-
-                err_on_not_found_string = ""
-                if var_stdname in vars_init_value:
-                    # if initial value is available, do not throw error when not found in initial condition file.
-                    err_on_not_found_string = ", error_on_not_found=.false."
-                # end if
-                call_str += f"timestep, {var_locname}{err_on_not_found_string})"
             else:
                 # Replace vertical dimension with local name
                 call_str = "call read_field(file, " +                             \
                            f"'{var_stdname}', input_var_names(:,name_idx), "
-                if levnm is not None:
-                    call_str += f"'{levnm}', "
-                # end if
-                err_on_not_found_string = ""
-                if var_stdname in vars_init_value:
-                    # if initial value is available, do not throw error when not found in initial condition file.
-                    err_on_not_found_string = ", error_on_not_found=.false."
-                # end if
-                call_str += f"timestep, {var_locname}{err_on_not_found_string})"
             # end if
+
+            if levnm is not None:
+                call_str += f"'{levnm}', "
+            # end if
+
+            err_on_not_found_string = ""
+            if var_stdname in vars_init_value:
+                # if initial value is available, do not throw error when not found in initial condition file.
+                err_on_not_found_string = ", error_on_not_found=.false."
+            # end if
+            call_str += f"timestep, {var_locname}{err_on_not_found_string})"
         else:
             # if initial value is assigned, then it can be ignored
             if var_stdname in vars_init_value:

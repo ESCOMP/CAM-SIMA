@@ -336,7 +336,7 @@ CONTAINS
       use pio,                  only: file_desc_t, var_desc_t
       use spmd_utils,           only: masterproc
       use cam_pio_utils,        only: cam_pio_find_var
-      use cam_abortutils,       only: endrun
+      use cam_abortutils,       only: endrun, check_allocate
       use cam_logfile,          only: iulog
       use cam_field_read,       only: cam_read_field
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -385,9 +385,7 @@ CONTAINS
 
       ! Allocate temporary buffer
       allocate(buffer(size(field_array, 1)), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//'Failed to allocate buffer')
-      end if
+      call check_allocate(ierr, subname, 'buffer')
 
       !REMOVECAM:
       ! Because the constituent properties pointer contains standard names, and not input constituent names
@@ -395,16 +393,15 @@ CONTAINS
       ! we have to construct a mapping of the standard names to the short input IC file names
       ! When CAM is retired and only standard names are used for constituents, this mapping can be removed.
       allocate(constituent_short_names(size(const_props)), stat=ierr)
-      if (ierr /= 0) then
-         call endrun(subname//'Failed to allocate constituent_short_names')
-      end if
+      call check_allocate(ierr, subname, 'constituent_short_names')
 
       const_shortmap_loop: do const_idx = 1, size(const_props)
          ! Get constituent standard name.
          call const_props(const_idx)%standard_name(constituent_std_name)
 
          ! Check if constituent standard name is in the registry to look up its IC name
-         ! n.b. this assumes that the first IC name is the short name
+         ! n.b. this assumes that the first IC name specified in the registry for this constituent
+         ! is the short name
          const_input_idx = -1
          phys_inputvar_loop: do n = 1, phys_var_num
             if (trim(phys_var_stdnames(n)) == trim(constituent_std_name)) then
@@ -510,7 +507,8 @@ CONTAINS
 
       ! Check if we should fail due to missing variables
       if (any_missing .and. error_on_not_found_local) then
-         call endrun(subname//'Required constituent-dimensioned variables not found: ' // trim(missing_vars))
+         call endrun(subname//'Required constituent-dimensioned variables not found: ' // trim(missing_vars) // &
+                     'Make sure the constituent short name is the first in the <ic_file_input_names> list in the registry.')
       end if
 
       ! Mark the base variable as read from file (only if no errors)
