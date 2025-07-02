@@ -2,6 +2,24 @@
 !object (pio_reader.F90) as implemented in CAM-SIMA.
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+@test
+subroutine starting_test()
+    use funit
+
+    use mpi,           only: mpi_init
+
+    integer :: mpi_ierr
+
+    ! Initialize MPI:
+    ! NOTE: This must be done for the first test in the test suite.
+    call mpi_init(mpi_ierr)
+
+    @assertTrue(.true.)
+
+end subroutine final_test
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader object open/close file tests
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -11,7 +29,7 @@ subroutine test_pio_reader_open_close_file()
     !close a file successfully.
     use funit
 
-    use mpi,           only: mpi_init
+    !use mpi,           only: mpi_init
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
@@ -21,7 +39,7 @@ subroutine test_pio_reader_open_close_file()
     integer            :: errcode
     character(len=256) :: errmsg
 
-    integer            :: mpi_ierr
+    !integer            :: mpi_ierr
 
     ! File name for testing:
     ! NOTE:  This specific file is added during the Github Actions workflow.
@@ -30,7 +48,7 @@ subroutine test_pio_reader_open_close_file()
 
     ! Initialize MPI:
     ! NOTE: This must be done for the first test in the test suite.
-    call mpi_init(mpi_ierr)
+    !call mpi_init(mpi_ierr)
 
     ! Begin test:
 
@@ -1121,6 +1139,104 @@ subroutine test_pio_reader_int_get_var_bad_rank()
 end subroutine test_pio_reader_int_get_var_bad_rank
 
 !-----------------------------------------
+
+@test
+subroutine test_pio_reader_char_get_var_bad_rank()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a character variable with
+    ! an incorrectly declared number of dimensions.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    character(len=:), pointer :: gas_names(:,:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Variable 'gas_names' isn't declared with the correct number of dimensions"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read variable with bad rank:
+    call reader%get_var("gas_names", gas_names, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_char_get_var_bad_rank
+
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_real_get_var_bad_rank()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a real variable with
+    ! an incorrectly declared number of dimensions.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    real(kind_phys), pointer :: press_ref(:,:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Variable 'press_ref' isn't declared with the correct number of dimensions"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read variable with bad rank:
+    call reader%get_var("press_ref", press_ref, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_real_get_var_bad_rank
+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 @test
 subroutine final_test()
