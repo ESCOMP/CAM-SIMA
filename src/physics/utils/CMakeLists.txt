@@ -14,6 +14,5 @@ target_link_libraries(io_reader PUBLIC
                       PIO::PIO_C
                       cam_pio_utils
                       ccpp_framework)
-#target_link_libraries(io_reader PUBLIC PIO::PIO_Fortran cam_pio_utils ccpp_framework)
 target_include_directories(io_reader PRIVATE ${CMAKE_BINARY_DIR}/ccpp_framework_stub
-                                             ${CMAKE_BINARY_DIR}/utils)
+                                             ${CMAKE_BINARY_DIR}/mock_routines)

@@ -29,8 +29,6 @@ subroutine test_pio_reader_open_close_file()
     !close a file successfully.
     use funit
 
-    !use mpi,           only: mpi_init
-
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
@@ -39,16 +37,10 @@ subroutine test_pio_reader_open_close_file()
     integer            :: errcode
     character(len=256) :: errmsg
 
-    !integer            :: mpi_ierr
-
     ! File name for testing:
     ! NOTE:  This specific file is added during the Github Actions workflow.
     character(len=*), parameter :: fname = &
     '../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc'
-
-    ! Initialize MPI:
-    ! NOTE: This must be done for the first test in the test suite.
-    !call mpi_init(mpi_ierr)
 
     ! Begin test:
 
