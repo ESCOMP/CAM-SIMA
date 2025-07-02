@@ -952,7 +952,7 @@ subroutine test_pio_reader_int_get_var_missing_var()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-    "Variable 'missing_var' not found in file 'UNSET'."
+    "Error for variable 'missing_var' - message: NetCDF: Variable not found"
 
     ! Begin test:
 
@@ -969,13 +969,111 @@ subroutine test_pio_reader_int_get_var_missing_var()
 
     ! Check that the correct error was raised:
     @assertTrue(errcode /= 0)
-   ! @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertTrue(trim(errmsg) == expected_err_msg)
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
 end subroutine test_pio_reader_int_get_var_missing_var
+
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_char_get_var_missing_var()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read an character variable that
+    ! does not exist.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    character(len=:), pointer :: missing_var(:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Error for variable 'missing_var' - message: NetCDF: Variable not found"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read non-existent variable:
+    call reader%get_var("missing_var", missing_var, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_char_get_var_missing_var
+
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_real_get_var_missing_var()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a real variable that does
+    ! not exist.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    real(kind_phys), pointer :: missing_var(:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Error for variable 'missing_var' - message: NetCDF: Variable not found"
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read non-existent variable:
+    call reader%get_var("missing_var", missing_var, errmsg, errcode)
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+    @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+
+end subroutine test_pio_reader_real_get_var_missing_var
 
 !-----------------------------------------
 
