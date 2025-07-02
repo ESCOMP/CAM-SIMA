@@ -929,6 +929,48 @@ end subroutine test_pio_reader_get_var_open_close_err
 
 !-----------------------------------------
 
+subroutine test_pio_reader_int_get_var_missing_var()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read an integer variable that does not exist.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), allocatable :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    integer, pointer :: missing_var(:)
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "Variable 'missing_var' not found in file 'UNSET'."
+
+    ! Begin test:
+
+    reader = create_netcdf_reader_t()
+
+    ! Attempt to read non-existent variable:
+    call reader%get_var("missing_var", missing_var, errmsg, errcode)
+
+    ! DEBUG:
+    write(*,*) "errmsg = ", errmsg
+
+    ! Check that the correct error was raised:
+    @assertTrue(errcode /= 0)
+   ! @assertTrue(trim(errmsg) == expected_err_msg)
+
+    ! Perform test cleanup:
+    deallocate(reader)
+
+end subroutine test_pio_reader_int_get_var_missing_var
+
+!-----------------------------------------
+
 @test
 subroutine final_test()
     use funit
