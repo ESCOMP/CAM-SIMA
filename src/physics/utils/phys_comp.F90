@@ -183,8 +183,9 @@ CONTAINS
       call cam_thermo_init(columns_on_task, pver, pverp)
       call cam_thermo_formula_init()
 
+      ! to add new dimensions, also change generate_registry_data.py __dim_order:
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
-           ccpp_constant_four, num_advected, set_init_val_in=.true., reallocate_in=.false.)
+           num_advected, ccpp_constant_four, set_init_val_in=.true., reallocate_in=.false.)
       call cam_ccpp_physics_initialize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
