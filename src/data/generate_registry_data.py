@@ -1235,7 +1235,7 @@ class File:
     __dim_order = {'horizontal_dimension' : 1,
                    'vertical_layer_dimension' : 2,
                    'vertical_interface_dimension' : 3,
-                   'number_of_constituents' : 4}
+                   'number_of_ccpp_constituents' : 4}
     __min_dim_key = 5 # For sorting unknown dimensions
 
     def __init__(self, file_node, known_types, dycore,
