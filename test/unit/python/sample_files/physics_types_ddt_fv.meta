@@ -34,7 +34,7 @@
   long_name = Composition-dependent ratio of dry air gas constant to specific heat at constant pressure
   units = 1
   type = real | kind = kind_phys
-  dimensions = (horizontal_dimension, vertical_layer_dimension)
+  dimensions = (horizontal_dimension, reference_pressure)
 [ phys_state ]
   standard_name = physics_state_due_to_dynamics
   long_name = Physics state variables updated by dynamical core

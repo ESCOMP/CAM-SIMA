@@ -50,13 +50,12 @@ module physics_types_ddt
 
 CONTAINS
 
-  subroutine allocate_physics_types_ddt_fields(horizontal_dimension, vertical_layer_dimension,    &
-       set_init_val_in, reallocate_in)
+  subroutine allocate_physics_types_ddt_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
+
+
     !! Dummy arguments
-    integer,           intent(in) :: horizontal_dimension
-    integer,           intent(in) :: vertical_layer_dimension
     logical, optional, intent(in) :: set_init_val_in
     logical, optional, intent(in) :: reallocate_in
 
@@ -108,7 +107,7 @@ CONTAINS
         call endrun(subname//": cappav is already allocated, cannot allocate")
       end if
     end if
-    allocate(cappav(horizontal_dimension, vertical_layer_dimension))
+    allocate(cappav(horizontal_dimension, reference_pressure))
     if (set_init_val) then
       cappav = rair/cpair
       call                                                                                        &

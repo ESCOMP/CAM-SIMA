@@ -63,13 +63,12 @@ module physics_types_ddt2
 
 CONTAINS
 
-  subroutine allocate_physics_types_ddt2_fields(horizontal_dimension, vertical_layer_dimension,   &
-       set_init_val_in, reallocate_in)
+  subroutine allocate_physics_types_ddt2_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
+
+
     !! Dummy arguments
-    integer,           intent(in) :: horizontal_dimension
-    integer,           intent(in) :: vertical_layer_dimension
     logical, optional, intent(in) :: set_init_val_in
     logical, optional, intent(in) :: reallocate_in
 
