@@ -31,8 +31,8 @@ contains
 !PIO reader object open/close file tests
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-@test
-subroutine test_pio_reader_open_close_file()
+@test(npes=[1])
+subroutine test_pio_reader_open_close_file(this)
     !Check that the PIO reader can open and
     !close a file successfully.
     !use funit
@@ -41,6 +41,8 @@ subroutine test_pio_reader_open_close_file()
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class (MpiTestMethod), intent(inout) :: this
 
     class(abstract_netcdf_reader_t), allocatable :: reader
 
