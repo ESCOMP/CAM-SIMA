@@ -47,8 +47,8 @@ module musica_ccpp_dependencies
   !> Indicator of whether MUSICA suite is being used
   logical :: is_musica_suite = .false.
 
-  !> Set of species for the current MUSICA configuration
-  type(species_t), allocatable :: musica_species(:)
+  !> Set of species for TUV-x
+  type(species_t), allocatable :: tuvx_species(:)
 
 !==============================================================================
 contains
@@ -84,20 +84,13 @@ contains
     use ccpp_const_utils,          only: ccpp_const_get_idx
     use cam_logfile,               only: iulog
     use spmd_utils,                only: primary_process => masterproc
-    use musica_sima_namelist,      only: musica_config_str
 
     type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
     character(len=512),            intent(out) :: errmsg
     integer,                       intent(out) :: errcode
 
     ! local variables
-    character(len=*), parameter  :: chapman_config = 'chapman'
-    character(len=*), parameter  :: terminator_config = 'terminator'
-    logical                      :: is_chapman = .false.
-    logical                      :: is_terminator = .false.
-    integer                      :: num_micm_species = 0
-    integer                      :: num_tuvx_constituents = 1
-    integer                      :: num_tuvx_only_gas_species = 0
+    integer, parameter           :: num_tuvx_constituents = 4
     integer                      :: position
     integer                      :: constituent_index
     integer                      :: i_species
@@ -108,67 +101,28 @@ contains
       return
     end if
 
-    ! Currently, we only support two types of MUSICA configurations: Chapman and Terminator,
-    ! until the file I/O object is implemented. If the configuration is neither of these,
-    ! an error will be thrown.
-    if (trim(musica_config_str) == "chapman") then
-      is_chapman = .true.
-      if (primary_process) then
-          write(iulog,*) "[MUSICA Info] Using the Chapman configuration with stubbed dependencies."
-      end if
-    else if (trim(musica_config_str) == "terminator") then
-      is_terminator = .true.
-      if (primary_process) then
-          write(iulog,*) "[MUSICA Info] Using the Terminator configuration with stubbed dependencies."
-      end if
-    else
-      errcode = 1
-      errmsg = "[MUSICA Error] MUSICA configuration is not found."
-      return
-    end if
-
-    if (is_chapman) then
-      num_micm_species = 5
-      num_tuvx_only_gas_species = 1
-    else if (is_terminator) then
-      num_micm_species = 2
-      num_tuvx_only_gas_species = 3
-    end if
-
-    allocate (musica_species(num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species), &
-      stat=errcode, errmsg=errmsg)
+    allocate (tuvx_species(num_tuvx_constituents), stat=errcode, errmsg=errmsg)
     if (errcode /= 0) return
 
-    musica_species(1) = species_t(&
+    tuvx_species(1) = species_t(&
         "cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water", 0.0000060_kind_phys)
-
-    if (is_chapman) then
-      musica_species(2) = species_t("O2", 0.22474_kind_phys)
-      musica_species(3) = species_t("O", 5.3509e-10_kind_phys)
-      musica_species(4) = species_t("O1D", 5.3509e-10_kind_phys)
-      musica_species(5) = species_t("O3", 0.00016_kind_phys)
-      musica_species(6) = species_t("N2", 0.74015_kind_phys)
-      musica_species(7) = species_t("air", 1.0_kind_phys)
-
-    else if (is_terminator) then
-      musica_species(2) = species_t("Cl", 1.0e-12_kind_phys)
-      musica_species(3) = species_t("Cl2", 1.0e-12_kind_phys)
-      musica_species(4) = species_t("air", 1.0_kind_phys)
-      musica_species(5) = species_t("O2", 0.21_kind_phys)
-      musica_species(6) = species_t("O3", 4.0e-6_kind_phys)
-    end if
-
-    do i_species = 1, num_micm_species + num_tuvx_constituents + num_tuvx_only_gas_species
-      call ccpp_const_get_idx(constituents_properties, trim(musica_species(i_species)%name), &
-                              musica_species(i_species)%constituent_index, errmsg, errcode)
+    tuvx_species(2) = species_t("air", 1.0_kind_phys)
+    tuvx_species(3) = species_t("O2", 0.21_kind_phys)
+    tuvx_species(4) = species_t("O3", 4.0e-6_kind_phys)
+    
+    do i_species = 1, num_tuvx_constituents
+      call ccpp_const_get_idx(constituents_properties, trim(tuvx_species(i_species)%name), &
+                              tuvx_species(i_species)%constituent_index, errmsg, errcode)
       if (errcode /= 0) return
     end do
 
   end subroutine initialize_musica_species_constituents
 
-  subroutine set_initial_musica_concentrations(constituents_array)
+  subroutine set_initial_musica_concentrations(constituents_array, constituent_properties)
 
-    use cam_abortutils, only: endrun
+    use cam_abortutils,            only: endrun
+    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+    use musica_ccpp_species,       only: micm_species_set
   
     !-----------------------------------------------------------------------
     !
@@ -177,22 +131,35 @@ contains
     !-----------------------------------------------------------------------
 
     real(kind_phys), intent(inout) :: constituents_array(:,:,:)
+    type(ccpp_constituent_prop_ptr_t), pointer, intent(inout) :: constituent_properties(:)
 
     ! local variables
-    integer :: i_species
+    integer            :: i_species, i_constituent
     character(len=512) :: errmsg
+    integer            :: errcode
+    real(kind_phys)    :: default_value
     
     ! Don't do anything if MUSICA suite is not being used
     if (.not. is_musica_suite) return
 
-    if (.not. allocated(musica_species)) then
+    if (.not. allocated(tuvx_species)) then
       errmsg = "[MUSICA Error] MUSICA species are not initialized."
       call endrun(errmsg, file=__FILE__, line=__LINE__)
     end if
 
-    do i_species = 1, size(musica_species)
-      constituents_array(:,:,musica_species(i_species)%constituent_index) = &
-        musica_species(i_species)%initial_mixing_ratio
+    do i_species = 1, size(tuvx_species)
+      constituents_array(:,:,tuvx_species(i_species)%constituent_index) = &
+        tuvx_species(i_species)%initial_mixing_ratio
+    end do
+
+    do i_species = 1, size(micm_species_set)
+      i_constituent = micm_species_set(i_species)%index_constituent_props
+      call constituent_properties(i_constituent)%default_value( &
+            default_value, errcode, errmsg)
+      if (errcode /= 0) then
+        call endrun(errmsg, file=__FILE__, line=__LINE__)
+      end if
+      constituents_array(:,:,i_constituent) = default_value
     end do
 
   end subroutine set_initial_musica_concentrations
@@ -205,7 +172,6 @@ contains
     use cam_logfile,               only: iulog
     use spmd_utils,                only: primary_process => masterproc
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-    use musica_sima_namelist,      only: musica_config_str
 
     !-----------------------------------------------------------------------
     !
@@ -227,12 +193,6 @@ contains
     ! Check if a MUSICA configuration is being used.  If not then just exit.
     if (trim(phys_suite_name) /= "musica") return
     is_musica_suite = .true.
-
-    if (trim(musica_config_str) == "none") then
-      errmsg = "[MUSICA Error] MUSICA configuration is not found. Please set musica_config to 'chapman' or 'terminator'."
-      errcode = 1
-      call endrun(errmsg, file=__FILE__, line=__LINE__)
-    end if
 
     if (primary_process) then
         write(iulog,*) 'WARNING: Using placeholder data for MUSICA chemistry.'
