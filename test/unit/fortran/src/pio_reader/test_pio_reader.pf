@@ -58,7 +58,7 @@ subroutine test_pio_reader_open_close_file()
 
     integer :: mpi_ierr
     call mpi_init(mpi_ierr)
-    write(*,*) 'MPI error value', mpi_err, MPI_SUCCESS
+    write(*,*) 'MPI error value', mpi_ierr, MPI_SUCCESS
 
     reader = create_netcdf_reader_t()
 
