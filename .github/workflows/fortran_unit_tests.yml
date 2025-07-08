@@ -34,6 +34,8 @@ jobs:
         run: |
           git clone --depth 1 --branch v4.10.0 https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
           cd pFUnit
+          FC=$(which mpif90) \
+          CC=$(which mpicc) \
           cmake -B./build -S.
           cd build
           make install
@@ -44,7 +46,7 @@ jobs:
           cd ParallelIO
           FC=$(which mpif90) \
           CC=$(which mpicc) \
-          cmake -S./ -B./build \
+          cmake -B./build -S. \
             -DCMAKE_INSTALL_PREFIX=./install \
             -DPIO_ENABLE_TIMING=OFF \
             -DWITH_PNETCDF=OFF \
@@ -63,6 +65,8 @@ jobs:
       - name: Build cam-sima
         run: |
           PIO_ROOT=$GITHUB_WORKSPACE/ParallelIO/install/ \
+          FC=$(which mpif90) \
+          CC=$(which mpicc) \
           cmake \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/pFUnit/build/installed;/usr/lib/x86_64-linux-gnu/cmake/netCDF;/usr/lib/x86_64-linux-gnu/" \
             -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
