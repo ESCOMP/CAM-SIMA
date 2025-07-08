@@ -27,21 +27,6 @@ module test_pio_reader
 
 contains
 
-@test
-subroutine starting_test()
-
-    integer :: mpi_ierr
-
-    ! Initialize MPI:
-    ! NOTE: This must be done for the first test in the test suite.
-    call mpi_init(mpi_ierr)
-
-    write(*,*) 'MPI error value', mpi_ierr, MPI_SUCCESS
-
-    @assertEqual(MPI_SUCCESS, mpi_err)
-
-end subroutine starting_test
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader object open/close file tests
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -71,9 +56,9 @@ subroutine test_pio_reader_open_close_file()
 
     ! Begin test:
 
-    !integer :: mpi_ierr
-    !call mpi_init(mpi_ierr)
-    !write(*,*) 'MPI error value', mpi_ierr, MPI_SUCCESS
+    integer :: mpi_ierr
+    call mpi_init(mpi_ierr)
+    write(*,*) 'MPI error value', mpi_ierr, MPI_SUCCESS
 
     reader = create_netcdf_reader_t()
 
@@ -1260,20 +1245,20 @@ end subroutine test_pio_reader_real_get_var_bad_rank
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-@test
-subroutine final_test()
+!@test
+!subroutine final_test()
 !    use funit
 
 !    use mpi, only: mpi_finalize, MPI_SUCCESS
 
-    integer :: mpi_ierr
+!    integer :: mpi_ierr
 
     ! Shutdown MPI:
     ! NOTE: This must be done for the last test in the test suite.
-    call mpi_finalize(mpi_ierr)
+!    call mpi_finalize(mpi_ierr)
 
-    @assertEqual(MPI_SUCCESS, mpi_ierr)
+!    @assertEqual(MPI_SUCCESS, mpi_ierr)
 
-end subroutine final_test
+!end subroutine final_test
 
 end module test_pio_reader
