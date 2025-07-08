@@ -15,7 +15,7 @@ subroutine starting_test()
     ! NOTE: This must be done for the first test in the test suite.
     call mpi_init(mpi_ierr)
 
-    @assertEqual(MPI_SUCCESS, mpi_err)
+    @assertEqual(MPI_SUCCESS, mpi_ierr)
 
 end subroutine starting_test
 
