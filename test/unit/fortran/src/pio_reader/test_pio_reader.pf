@@ -1244,3 +1244,4 @@ subroutine final_test()
     @assertEqual(MPI_SUCCESS, mpi_ierr)
 
 end subroutine final_test
+
