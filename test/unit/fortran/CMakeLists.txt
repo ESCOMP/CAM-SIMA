@@ -15,7 +15,7 @@ endif()
 
 # Overwrite the init flags chosen by CMake
 if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU")
-  add_compile_options(-ffree-line-length-none -std=f2018)
+  add_compile_options(-ffree-line-length-none)
 endif()
 
 if(CAM_SIMA_ENABLE_CODE_COVERAGE)
@@ -34,15 +34,17 @@ if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE OR CAM_SIMA_ENABLE_IO_
     add_subdirectory(src/core_utils)
   endif()
   if(CAM_SIMA_ENABLE_IO_TESTS)
-    find_package(MPI REQUIRED COMPONENTS Fortran C)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+    find_package(MPI REQUIRED COMPONENTS Fortran C)
     find_package(NetCDF REQUIRED COMPONENTS Fortran C)
     find_package(PIO REQUIRED COMPONENTS Fortran C)
 
     add_subdirectory(ccpp_framework_stub)
     add_subdirectory(mock_routines)
 
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../src/physics/utils ${CMAKE_CURRENT_BINARY_DIR}/src/physics/utils)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../src/physics/utils
+	             ${CMAKE_CURRENT_BINARY_DIR}/src/physics/utils)
 
     add_subdirectory(src/pio_reader)
   endif()

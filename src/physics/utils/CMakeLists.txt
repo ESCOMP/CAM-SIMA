@@ -1,4 +1,7 @@
-set(IO_READER_SOURCE pio_reader.F90 pio_reader_sub.F90 ${CMAKE_CURRENT_SOURCE_DIR}/../ncar_ccpp/phys_utils/ccpp_io_reader.F90 ${CMAKE_CURRENT_SOURCE_DIR}/../../../share/src/shr_kind_mod.F90)
+set(IO_READER_SOURCE pio_reader.F90
+	             pio_reader_sub.F90
+		     ${CMAKE_CURRENT_SOURCE_DIR}/../ncar_ccpp/phys_utils/ccpp_io_reader.F90
+		     ${CMAKE_CURRENT_SOURCE_DIR}/../../../share/src/shr_kind_mod.F90)
 
 # io_reader is not integrated into the CMake build of any top level
 # project yet and this CMake is for testing purposes only.
