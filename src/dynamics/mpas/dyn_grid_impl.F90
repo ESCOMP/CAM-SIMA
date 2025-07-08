@@ -21,7 +21,7 @@ contains
         use cam_constituents, only: num_advected
         use cam_initfiles, only: initial_file_get_id
         use cam_logfile, only: debugout_debug, debugout_info, debugout_verbose
-        use dyn_comp, only: dyn_debug_print, dyn_inquire_mesh_dimensions, mpas_dynamical_core, nvertlevels
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
         use dynconst, only: dynconst_init
         use string_utils, only: stringify
         use vert_coord, only: pver, vert_coord_init
@@ -64,6 +64,8 @@ contains
         ! Compute local east, north and edge-normal unit vectors whenever time-invariant (e.g., grid/mesh) variables are read.
         call mpas_dynamical_core % compute_unit_vector()
 
+        call dyn_debug_print(debugout_info, 'Inquiring local and global mesh dimensions')
+
         ! Inquire local and global mesh dimensions.
         call dyn_inquire_mesh_dimensions()
 
@@ -95,6 +97,36 @@ contains
         call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine model_grid_init
 
+    !> Inquire local and global mesh dimensions. Save them as protected module variables.
+    !> (KCW, 2024-11-21)
+    module subroutine dyn_inquire_mesh_dimensions()
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
+        use string_utils, only: stringify
+
+        character(*), parameter :: subname = 'dyn_grid::dyn_inquire_mesh_dimensions'
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        call mpas_dynamical_core % get_local_mesh_dimension( &
+            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
+
+        call mpas_dynamical_core % get_global_mesh_dimension( &
+            ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
+            sphere_radius)
+
+        call dyn_debug_print(debugout_debug, 'ncells_global    = ' // stringify([ncells_global]))
+        call dyn_debug_print(debugout_debug, 'nedges_global    = ' // stringify([nedges_global]))
+        call dyn_debug_print(debugout_debug, 'nvertices_global = ' // stringify([nvertices_global]))
+        call dyn_debug_print(debugout_debug, 'nvertlevels      = ' // stringify([nvertlevels]))
+        call dyn_debug_print(debugout_debug, 'ncells_max       = ' // stringify([ncells_max]))
+        call dyn_debug_print(debugout_debug, 'nedges_max       = ' // stringify([nedges_max]))
+        call dyn_debug_print(debugout_debug, 'sphere_radius    = ' // stringify([sphere_radius]))
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
+    end subroutine dyn_inquire_mesh_dimensions
+
     !> Initialize reference pressure for use by physics.
     !> (KCW, 2024-03-25)
     subroutine init_reference_pressure()
@@ -110,8 +142,6 @@ contains
         use vert_coord, only: pver, pverp
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
-        ! Module(s) from MPAS.
-        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
         ! Number of pure pressure levels at model top.
@@ -221,7 +251,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
         use cam_logfile, only: debugout_debug
-        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, ncells_global, ncells_solve, sphere_radius
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
         use dynconst, only: constant_pi => pi, rad_to_deg
         use physics_column_type, only: kind_pcol, physics_column_t
         use physics_grid, only: phys_grid_init
@@ -229,8 +259,6 @@ contains
         use string_utils, only: stringify
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
-        ! Module(s) from MPAS.
-        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
@@ -323,16 +351,11 @@ contains
                                     horiz_coord_create, horiz_coord_t
         use cam_logfile, only: debugout_debug, debugout_verbose
         use cam_map_utils, only: kind_imap => imap
-        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core, &
-                            ncells_global, nedges_global, nvertices_global, &
-                            ncells_solve, nedges_solve, nvertices_solve, &
-                            sphere_radius
+        use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
         use dynconst, only: constant_pi => pi, rad_to_deg
         use string_utils, only: stringify
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
-        ! Module(s) from MPAS.
-        use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind
 
         character(*), parameter :: subname = 'dyn_grid::define_cam_grid'
         integer :: i

@@ -9,6 +9,7 @@
 module dyn_grid
     ! Module(s) from CAM-SIMA.
     use cam_grid_support, only: max_hcoordname_len
+    use dyn_comp, only: kind_dyn_mpas
 
     implicit none
 
@@ -18,10 +19,17 @@ module dyn_grid
 
     public :: dyn_grid_id
     public :: dyn_grid_name
+    public :: dyn_inquire_mesh_dimensions
+    public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+    public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
+    public :: sphere_radius
 
     interface
         module subroutine model_grid_init()
         end subroutine model_grid_init
+
+        module subroutine dyn_inquire_mesh_dimensions()
+        end subroutine dyn_inquire_mesh_dimensions
 
         module pure function dyn_grid_id(name)
             character(*), intent(in) :: name
@@ -37,5 +45,11 @@ module dyn_grid
         'mpas_edge',  &
         'mpas_vertex' &
     ]
+
+    ! Local and global mesh dimensions of MPAS dynamical core.
+    ! Protected module variables that can only be initialized by `dyn_inquire_mesh_dimensions`.
+    integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+    integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
+    real(kind_dyn_mpas), protected :: sphere_radius
 contains
 end module dyn_grid

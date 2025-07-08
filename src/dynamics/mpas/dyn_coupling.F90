@@ -10,10 +10,17 @@ module dyn_coupling
 
     private
     ! Provide APIs required by CAM-SIMA.
+    public :: dyn_exchange_constituent_states
     public :: dynamics_to_physics_coupling
     public :: physics_to_dynamics_coupling
 
     interface
+        module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
+            character(*), intent(in) :: direction
+            logical, intent(in) :: exchange
+            logical, intent(in) :: conversion
+        end subroutine dyn_exchange_constituent_states
+
         module subroutine dynamics_to_physics_coupling()
         end subroutine dynamics_to_physics_coupling
 

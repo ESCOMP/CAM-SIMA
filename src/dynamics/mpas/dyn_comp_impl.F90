@@ -152,6 +152,7 @@ contains
         use cam_logfile, only: debugout_debug, debugout_info
         use cam_pio_utils, only: clean_iodesc_list
         use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
+        use dyn_coupling, only: dyn_exchange_constituent_states
         use inic_analytic, only: analytic_ic_active
         use physics_types, only: dycore_energy_consistency_adjust
         use runtime_obj, only: runtime_options
@@ -306,6 +307,7 @@ contains
         use cam_abortutils, only: check_allocate, endrun
         use cam_field_read, only: cam_read_field
         use cam_logfile, only: debug_output, debugout_debug, debugout_none, debugout_verbose
+        use dyn_grid, only: ncells_solve
         use dynconst, only: constant_g => gravit
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
@@ -412,6 +414,7 @@ contains
             use cam_abortutils, only: check_allocate, endrun
             use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
             use cam_logfile, only: debugout_verbose
+            use dyn_grid, only: ncells_solve
             use dynconst, only: deg_to_rad
             use vert_coord, only: pverp
 
@@ -488,6 +491,7 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
+            use dyn_grid, only: ncells_solve
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -537,6 +541,7 @@ contains
         subroutine set_mpas_state_w()
             ! Module(s) from CAM-SIMA.
             use cam_logfile, only: debugout_verbose
+            use dyn_grid, only: ncells_solve
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_w'
             real(kind_dyn_mpas), pointer :: w(:, :)
@@ -562,6 +567,7 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_constituents, only: num_advected
             use cam_logfile, only: debugout_verbose
+            use dyn_grid, only: ncells_solve
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -635,6 +641,7 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
+            use dyn_grid, only: ncells_solve
             use dyn_tests_utils, only: vc_height
             use dynconst, only: constant_p0 => pref, constant_rd => rair, constant_rv => rh2o
             use inic_analytic, only: dyn_set_inic_col
@@ -755,6 +762,7 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
+            use dyn_grid, only: ncells_solve
             use dynconst, only: constant_p0 => pref, constant_rd => rair
             use vert_coord, only: pver
 
@@ -844,203 +852,6 @@ contains
             t_0 = t_1 * ((p_0 / p_1) ** (constant_rd / constant_cpd))
         end function theta_by_poisson_equation
     end subroutine set_analytic_initial_condition
-
-    !> Exchange and/or convert constituent states between CAM-SIMA and MPAS.
-    !> If `exchange` is `.true.` and `direction` is "e" or "export", set MPAS state `scalars` from physics state `constituents`.
-    !> If `exchange` is `.true.` and `direction` is "i" or "import", set physics state `constituents` from MPAS state `scalars`.
-    !> Think of it as "exporting/importing constituent states in CAM-SIMA to/from MPAS".
-    !> Otherwise, if `exchange` is `.false.`, no exchange is performed at all.
-    !> If `conversion` is `.true.`, appropriate conversion is performed for constituent mixing ratios that have different
-    !> definitions between CAM-SIMA and MPAS (i.e., dry/moist).
-    !> Otherwise, if `conversion` is `.false.`, no conversion is performed at all.
-    !> This subroutine is intentionally designed to have these elaborate controls due to complications in CAM-SIMA.
-    !> Some procedures in CAM-SIMA expect constituent states to be dry, while the others expect them to be moist.
-    !> (KCW, 2024-09-26)
-    module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
-        ! Module(s) from CAM-SIMA.
-        use cam_abortutils, only: check_allocate, endrun
-        use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
-        use cam_logfile, only: debugout_debug, debugout_info
-        use physics_types, only: phys_state
-        use vert_coord, only: pver
-        ! Module(s) from CCPP.
-        use cam_ccpp_cap, only: cam_constituents_array
-        use ccpp_kinds, only: kind_phys
-        ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
-
-        character(*), intent(in) :: direction
-        logical, intent(in) :: exchange
-        logical, intent(in) :: conversion
-
-        character(*), parameter :: subname = 'dyn_comp::dyn_exchange_constituent_states'
-        integer :: i, j
-        integer :: ierr
-        integer, allocatable :: is_water_species_index(:)
-        logical, allocatable :: is_conversion_needed(:)
-        logical, allocatable :: is_water_species(:)
-        real(kind_phys), pointer :: constituents(:, :, :) ! This points to CCPP memory.
-        real(kind_r8), allocatable :: sigma_all_q(:)      ! Summation of all water species mixing ratios.
-        real(kind_dyn_mpas), pointer :: scalars(:, :, :)  ! This points to MPAS memory.
-
-        call dyn_debug_print(debugout_debug, subname // ' entered')
-
-        select case (trim(adjustl(direction)))
-            case ('e', 'export')
-                if (exchange) then
-                    call dyn_debug_print(debugout_info, 'Setting MPAS state "scalars" from physics state "constituents"')
-                end if
-
-                if (conversion) then
-                    call dyn_debug_print(debugout_info, 'Converting MPAS state "scalars"')
-                end if
-            case ('i', 'import')
-                if (exchange) then
-                    call dyn_debug_print(debugout_info, 'Setting physics state "constituents" from MPAS state "scalars"')
-                end if
-
-                if (conversion) then
-                    call dyn_debug_print(debugout_info, 'Converting physics state "constituents"')
-                end if
-            case default
-                call endrun('Unsupported exchange direction "' // trim(adjustl(direction)) // '"', subname, __LINE__)
-        end select
-
-        nullify(constituents)
-        nullify(scalars)
-
-        allocate(is_conversion_needed(num_advected), stat=ierr)
-        call check_allocate(ierr, subname, &
-            'is_conversion_needed(num_advected)', &
-            'dyn_comp', __LINE__)
-
-        allocate(is_water_species(num_advected), stat=ierr)
-        call check_allocate(ierr, subname, &
-            'is_water_species(num_advected)', &
-            'dyn_comp', __LINE__)
-
-        do j = 1, num_advected
-            ! All constituent mixing ratios in MPAS are dry.
-            ! Therefore, conversion in between is needed for any constituent mixing ratios that are not dry in CAM-SIMA.
-            is_conversion_needed(j) = .not. const_is_dry(j)
-            is_water_species(j) = const_is_water_species(j)
-        end do
-
-        allocate(is_water_species_index(count(is_water_species)), stat=ierr)
-        call check_allocate(ierr, subname, &
-            'is_water_species_index(count(is_water_species))', &
-            'dyn_comp', __LINE__)
-
-        allocate(sigma_all_q(pver), stat=ierr)
-        call check_allocate(ierr, subname, &
-            'sigma_all_q(pver)', &
-            'dyn_comp', __LINE__)
-
-        constituents => cam_constituents_array()
-
-        if (.not. associated(constituents)) then
-            call endrun('Failed to find variable "constituents"', subname, __LINE__)
-        end if
-
-        call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
-
-        if (trim(adjustl(direction)) == 'e' .or. trim(adjustl(direction)) == 'export') then
-            do i = 1, ncells_solve
-                if (conversion .and. any(is_conversion_needed)) then
-                    ! The summation term of equation 8 in doi:10.1029/2017MS001257.
-                    ! Using equation 7 here is not possible because it requires all constituent mixing ratio to be moist
-                    ! on the RHS of it. There is no such guarantee in CAM-SIMA.
-                    sigma_all_q(:) = reverse(phys_state % pdel(i, :) / phys_state % pdeldry(i, :))
-                end if
-
-                ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
-                do j = 1, num_advected
-                    if (exchange) then
-                        ! Vertical index order is reversed between CAM-SIMA and MPAS.
-                        scalars(j, :, i) = &
-                            real(reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
-                    end if
-
-                    if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
-                        ! Equation 8 in doi:10.1029/2017MS001257.
-                        scalars(j, :, i) = &
-                            real(real(scalars(j, :, i), kind_r8) * sigma_all_q(:), kind_dyn_mpas)
-                    end if
-                end do
-            end do
-        else
-            is_water_species_index(:) = &
-                pack([(mpas_dynamical_core % map_mpas_scalar_index(i), i = 1, num_advected)], is_water_species)
-
-            do i = 1, ncells_solve
-                if (conversion .and. any(is_conversion_needed)) then
-                    ! The summation term of equation 8 in doi:10.1029/2017MS001257.
-                    sigma_all_q(:) = reverse(1.0_kind_r8 + sum(real(scalars(is_water_species_index, :, i), kind_r8), 1))
-                end if
-
-                ! `j` is indexing into `constituents`, so it is regarded as constituent index.
-                do j = 1, num_advected
-                    if (exchange) then
-                        ! Vertical index order is reversed between CAM-SIMA and MPAS.
-                        constituents(i, :, j) = &
-                            reverse(real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8))
-                    end if
-
-                    if (conversion .and. is_conversion_needed(j)) then
-                        ! Equation 8 in doi:10.1029/2017MS001257.
-                        constituents(i, :, j) = &
-                            constituents(i, :, j) / sigma_all_q(:)
-                    end if
-                end do
-            end do
-        end if
-
-        deallocate(is_conversion_needed)
-        deallocate(is_water_species)
-        deallocate(is_water_species_index)
-        deallocate(sigma_all_q)
-
-        nullify(constituents)
-        nullify(scalars)
-
-        if (trim(adjustl(direction)) == 'e' .or. trim(adjustl(direction)) == 'export') then
-            ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
-            call mpas_dynamical_core % exchange_halo('scalars')
-        end if
-
-        call dyn_debug_print(debugout_debug, subname // ' completed')
-    end subroutine dyn_exchange_constituent_states
-
-    !> Inquire local and global mesh dimensions. Save them as protected module variables.
-    !> (KCW, 2024-11-21)
-    module subroutine dyn_inquire_mesh_dimensions()
-        ! Module(s) from CAM-SIMA.
-        use cam_logfile, only: debugout_debug, debugout_info
-        use string_utils, only: stringify
-
-        character(*), parameter :: subname = 'dyn_comp::dyn_inquire_mesh_dimensions'
-
-        call dyn_debug_print(debugout_debug, subname // ' entered')
-
-        call dyn_debug_print(debugout_info, 'Inquiring local and global mesh dimensions')
-
-        call mpas_dynamical_core % get_local_mesh_dimension( &
-            ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
-
-        call mpas_dynamical_core % get_global_mesh_dimension( &
-            ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max, &
-            sphere_radius)
-
-        call dyn_debug_print(debugout_debug, 'ncells_global    = ' // stringify([ncells_global]))
-        call dyn_debug_print(debugout_debug, 'nedges_global    = ' // stringify([nedges_global]))
-        call dyn_debug_print(debugout_debug, 'nvertices_global = ' // stringify([nvertices_global]))
-        call dyn_debug_print(debugout_debug, 'nvertlevels      = ' // stringify([nvertlevels]))
-        call dyn_debug_print(debugout_debug, 'ncells_max       = ' // stringify([ncells_max]))
-        call dyn_debug_print(debugout_debug, 'nedges_max       = ' // stringify([nedges_max]))
-        call dyn_debug_print(debugout_debug, 'sphere_radius    = ' // stringify([sphere_radius]))
-
-        call dyn_debug_print(debugout_debug, subname // ' completed')
-    end subroutine dyn_inquire_mesh_dimensions
 
     !> Mark everything in the `physics_types` module along with constituents as initialized
     !> to prevent physics from attempting to read them from a file.
@@ -1157,6 +968,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
         use cam_instance, only: atm_id
+        use dyn_grid, only: ncells_solve
         use physics_types, only: phys_state
         ! Module(s) from CESM Share.
         use shr_pio_mod, only: shr_pio_getioformat, shr_pio_getiosys, shr_pio_getiotype

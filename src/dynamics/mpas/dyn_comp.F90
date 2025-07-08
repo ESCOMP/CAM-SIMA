@@ -24,13 +24,8 @@ module dyn_comp
     public :: dyn_final
 
     public :: dyn_debug_print
-    public :: dyn_exchange_constituent_states
-    public :: dyn_inquire_mesh_dimensions
     public :: reverse
-    public :: mpas_dynamical_core
-    public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
-    public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    public :: sphere_radius
+    public :: kind_dyn_mpas, mpas_dynamical_core
 
     ! NOTE:
     !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
@@ -71,15 +66,6 @@ module dyn_comp
             integer, optional, intent(in) :: printer
         end subroutine dyn_debug_print
 
-        module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
-            character(*), intent(in) :: direction
-            logical, intent(in) :: exchange
-            logical, intent(in) :: conversion
-        end subroutine dyn_exchange_constituent_states
-
-        module subroutine dyn_inquire_mesh_dimensions()
-        end subroutine dyn_inquire_mesh_dimensions
-
         module pure function reverse(array)
             use shr_kind_mod, only: kind_r8 => shr_kind_r8
 
@@ -90,11 +76,5 @@ module dyn_comp
 
     !> The "instance/object" of MPAS dynamical core.
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
-
-    ! Local and global mesh dimensions of MPAS dynamical core.
-    ! Protected module variables that can only be initialized by `dyn_inquire_mesh_dimensions`.
-    integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
-    integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    real(kind_dyn_mpas), protected :: sphere_radius
 contains
 end module dyn_comp
