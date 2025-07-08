@@ -3,21 +3,21 @@
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-!@test
-!subroutine starting_test()
-!    use funit
+@disable
+subroutine starting_test()
+    use funit
 
-!    use mpi, only: mpi_init, MPI_SUCCESS
+    use mpi, only: mpi_init, MPI_SUCCESS
 
-!    integer :: mpi_ierr
+    integer :: mpi_ierr
 
     ! Initialize MPI:
     ! NOTE: This must be done for the first test in the test suite.
-!    call mpi_init(mpi_ierr)
+    call mpi_init(mpi_ierr)
 
-!    @assertEqual(MPI_SUCCESS, mpi_err)
+    @assertEqual(MPI_SUCCESS, mpi_err)
 
-!end subroutine starting_test
+end subroutine starting_test
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader object open/close file tests
