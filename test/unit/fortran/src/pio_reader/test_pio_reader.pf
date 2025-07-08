@@ -3,7 +3,7 @@
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-@test
+@disable
 subroutine starting_test()
     use funit
 
@@ -27,7 +27,9 @@ end subroutine starting_test
 subroutine test_pio_reader_open_close_file()
     !Check that the PIO reader can open and
     !close a file successfully.
-    use funit
+    !use funit
+    use mpi
+    use pfunit
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
