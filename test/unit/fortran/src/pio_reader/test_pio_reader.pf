@@ -7,7 +7,7 @@
 subroutine starting_test()
     use funit
 
-    use mpi,           only: mpi_init
+    use mpi, only: mpi_init, MPI_SUCCESS
 
     integer :: mpi_ierr
 
@@ -15,7 +15,7 @@ subroutine starting_test()
     ! NOTE: This must be done for the first test in the test suite.
     call mpi_init(mpi_ierr)
 
-    @assertTrue(.true.)
+    @assertEqual(MPI_SUCCESS, mpi_err)
 
 end subroutine starting_test
 
@@ -53,22 +53,22 @@ subroutine test_pio_reader_open_close_file()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Check that file was opened successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Attempt to close file:
     call reader%close_file(errmsg, errcode)
 
     ! Check that file was closed successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Attempt to close the file again:
     call reader%close_file(errmsg, errcode)
 
     ! Check that closing an already-closed file does not cause an error:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Deallocate reader object:
     deallocate(reader)
@@ -114,8 +114,8 @@ subroutine test_pio_reader_already_opened_file_err()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -161,8 +161,8 @@ subroutine test_pio_reader_no_file_err()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     deallocate(reader)
@@ -209,15 +209,15 @@ subroutine test_pio_reader_1d_int_read()
     call reader%get_var("pressure", pressure, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(pressure))
-    @assertTrue(size(pressure) == 59)
+    @assertAssociated(pressure)
+    @assertEqual(59, size(pressure))
 
     ! Check that the variable's values are correct:
-    @assertTrue(sum(pressure) == 1711)
+    @assertEqual(1711, sum(pressure))
 
     ! Perform test cleanup:
     deallocate(pressure)
@@ -262,17 +262,17 @@ subroutine test_pio_reader_2d_int_read()
     call reader%get_var("minor_limits_gpt_lower", minor_limits_gpt_lower, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(minor_limits_gpt_lower))
-    @assertTrue(size(minor_limits_gpt_lower, dim=1) == 2)
-    @assertTrue(size(minor_limits_gpt_lower, dim=2) == 34)
+    @assertAssociated(minor_limits_gpt_lower)
+    @assertEqual(2, size(minor_limits_gpt_lower, dim=1))
+    @assertEqual(34, size(minor_limits_gpt_lower, dim=2))
 
     ! Check that the variable's values are correct:
-    @assertTrue(sum(minor_limits_gpt_lower(1,:)) == 1727)
-    @assertTrue(sum(minor_limits_gpt_lower(:,1)) == 11)
+    @assertEqual(1727, sum(minor_limits_gpt_lower(1,:)))
+    @assertEqual(11, sum(minor_limits_gpt_lower(:,1)))
 
     ! Perform test cleanup:
     deallocate(minor_limits_gpt_lower)
@@ -316,19 +316,19 @@ subroutine test_pio_reader_3d_int_read()
     call reader%get_var("key_species", key_species, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(key_species))
-    @assertTrue(size(key_species, dim=1) == 2)
-    @assertTrue(size(key_species, dim=2) == 2)
-    @assertTrue(size(key_species, dim=3) == 14)
+    @assertAssociated(key_species)
+    @assertEqual(2, size(key_species, dim=1))
+    @assertEqual(2, size(key_species, dim=2))
+    @assertEqual(14, size(key_species, dim=3))
 
     ! Check that the variable's values are correct:
-    @assertTrue(sum(key_species(1,1,:)) == 17)
-    @assertTrue(sum(key_species(1,:,1)) == 2)
-    @assertTrue(sum(key_species(:,1,1)) == 3)
+    @assertEqual(17, sum(key_species(1,1,:)))
+    @assertEqual(2, sum(key_species(1,:,1)))
+    @assertEqual(3, sum(key_species(:,1,1)))
 
     ! Perform test cleanup:
     deallocate(key_species)
@@ -373,34 +373,34 @@ subroutine test_pio_reader_1d_char_read()
     call reader%get_var("gas_names", gas_names, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(gas_names))
-    @assertTrue(len(gas_names) == 32)
-    @assertTrue(size(gas_names) == 19)
+    @assertAssociated(gas_names)
+    @assertEqual(32, len(gas_names))
+    @assertEqual(19, size(gas_names))
 
     ! Check that the variable's values are correct:
-    @assertTrue(trim(gas_names(1)) == "h2o")
-    @assertTrue(trim(gas_names(2)) == "co2")
-    @assertTrue(trim(gas_names(3)) == "o3")
-    @assertTrue(trim(gas_names(4)) == "n2o")
-    @assertTrue(trim(gas_names(5)) == "co")
-    @assertTrue(trim(gas_names(6)) == "ch4")
-    @assertTrue(trim(gas_names(7)) == "o2")
-    @assertTrue(trim(gas_names(8)) == "n2")
-    @assertTrue(trim(gas_names(9)) == "ccl4")
-    @assertTrue(trim(gas_names(10)) == "cfc11")
-    @assertTrue(trim(gas_names(11)) == "cfc12")
-    @assertTrue(trim(gas_names(12)) == "cfc22")
-    @assertTrue(trim(gas_names(13)) == "hfc143a")
-    @assertTrue(trim(gas_names(14)) == "hfc125")
-    @assertTrue(trim(gas_names(15)) == "hfc23")
-    @assertTrue(trim(gas_names(16)) == "hfc32")
-    @assertTrue(trim(gas_names(17)) == "hfc134a")
-    @assertTrue(trim(gas_names(18)) == "cf4")
-    @assertTrue(trim(gas_names(19)) == "no2")
+    @assertEqual("h2o", trim(gas_names(1)))
+    @assertEqual("co2", trim(gas_names(2)))
+    @assertEqual("o3", trim(gas_names(3)))
+    @assertEqual("n2o", trim(gas_names(4)))
+    @assertEqual("co", trim(gas_names(5)))
+    @assertEqual("ch4", trim(gas_names(6)))
+    @assertEqual("o2", trim(gas_names(7)))
+    @assertEqual("n2", trim(gas_names(8)))
+    @assertEqual("ccl4", trim(gas_names(9)))
+    @assertEqual("cfc11", trim(gas_names(10)))
+    @assertEqual("cfc12", trim(gas_names(11)))
+    @assertEqual("cfc22", trim(gas_names(12)))
+    @assertEqual("hfc143a", trim(gas_names(13)))
+    @assertEqual("hfc125", trim(gas_names(14)))
+    @assertEqual("hfc23", trim(gas_names(15)))
+    @assertEqual("hfc32", trim(gas_names(16)))
+    @assertEqual("hfc134a", trim(gas_names(17)))
+    @assertEqual("cf4", trim(gas_names(18)))
+    @assertEqual("no2", trim(gas_names(19)))
 
     ! Perform test cleanup:
     deallocate(gas_names)
@@ -450,11 +450,11 @@ subroutine test_pio_reader_0d_real_read()
     call reader%get_var("press_ref_trop", press_ref_trop, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(press_ref_trop))
+    @assertAssociated(press_ref_trop)
 
     ! Check that the variable's value is correct:
     @assertEqual(press_ref_trop_value, press_ref_trop, tolerance=1.0e-7)
@@ -507,12 +507,12 @@ subroutine test_pio_reader_1d_real_read()
     call reader%get_var("press_ref", press_ref, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(press_ref))
-    @assertTrue(size(press_ref) == 59)
+    @assertAssociated(press_ref)
+    @assertEqual(59, size(press_ref))
 
     ! Check that the variable's values are correct:
     @assertEqual(sum_press_ref, sum(press_ref), tolerance=1.0e-7)
@@ -566,13 +566,13 @@ subroutine test_pio_reader_2d_real_read()
     call reader%get_var("bnd_limits_wavenumber", bnd_limits_wavenumber, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(bnd_limits_wavenumber))
-    @assertTrue(size(bnd_limits_wavenumber, dim=1) == 2)
-    @assertTrue(size(bnd_limits_wavenumber, dim=2) == 14)
+    @assertAssociated(bnd_limits_wavenumber)
+    @assertEqual(2, size(bnd_limits_wavenumber, dim=1))
+    @assertEqual(14, size(bnd_limits_wavenumber, dim=2))
 
     ! Check that the variable's values are correct:
     ! (Example: sum of first row and first column)
@@ -629,15 +629,14 @@ subroutine test_pio_reader_3d_real_read()
     call reader%get_var("vmr_ref", vmr_ref, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assertTrue(associated(vmr_ref))
-    ! Change
-    @assertTrue(size(vmr_ref, dim=1) == 2)
-    @assertTrue(size(vmr_ref, dim=2) == 20)
-    @assertTrue(size(vmr_ref, dim=3) == 14)
+    @assertAssociated(vmr_ref)
+    @assertEqual(2, size(vmr_ref, dim=1))
+    @assertEqual(20, size(vmr_ref, dim=2))
+    @assertEqual(14, size(vmr_ref, dim=3))
 
     ! Check that the variable's values are correct:
     ! (Example: sum of first row and first column)
@@ -710,8 +709,8 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     call reader%get_var("kmajor", kmajor, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertTrue(errcode == 0)
-    @assertTrue(errmsg == '')
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
     !@assertTrue(associated(aero_salt_tbl))
@@ -720,11 +719,11 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     !@assertTrue(size(aero_salt_tbl, dim=3) == 5)
     !@assertTrue(size(aero_salt_tbl, dim=4) == 14)
 
-    @assertTrue(associated(kmajor))
-    @assertTrue(size(kmajor, dim=1) == 112)
-    @assertTrue(size(kmajor, dim=2) == 9)
-    @assertTrue(size(kmajor, dim=3) == 60)
-    @assertTrue(size(kmajor, dim=4) == 14)
+    @assertAssociated(kmajor)
+    @assertEqual(112, size(kmajor, dim=1))
+    @assertEqual(9, size(kmajor, dim=2))
+    @assertEqual(60, size(kmajor, dim=3))
+    @assertEqual(14, size(kmajor, dim=4))
 
 
     ! Check that the variable's values are correct:
@@ -793,8 +792,8 @@ subroutine test_pio_reader_int_get_var_file_not_opened_err()
     call reader%get_var("pressure", pressure, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     deallocate(reader)
@@ -834,8 +833,8 @@ subroutine test_pio_reader_char_get_var_file_not_opened_err()
     call reader%get_var("gas_names", gas_names, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     deallocate(reader)
@@ -876,8 +875,8 @@ subroutine test_pio_reader_real_get_var_file_not_opened_err()
     call reader%get_var("press_ref", press_ref, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     deallocate(reader)
@@ -929,8 +928,8 @@ subroutine test_pio_reader_get_var_open_close_err()
     call reader%get_var("pressure", pressure, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     deallocate(reader)
@@ -975,8 +974,8 @@ subroutine test_pio_reader_int_get_var_missing_var()
     call reader%get_var("missing_var", missing_var, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -1023,8 +1022,8 @@ subroutine test_pio_reader_char_get_var_missing_var()
     call reader%get_var("missing_var", missing_var, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -1073,8 +1072,8 @@ subroutine test_pio_reader_real_get_var_missing_var()
     call reader%get_var("missing_var", missing_var, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -1121,8 +1120,8 @@ subroutine test_pio_reader_int_get_var_bad_rank()
     call reader%get_var("pressure", pressure, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -1169,8 +1168,8 @@ subroutine test_pio_reader_char_get_var_bad_rank()
     call reader%get_var("gas_names", gas_names, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -1219,8 +1218,8 @@ subroutine test_pio_reader_real_get_var_bad_rank()
     call reader%get_var("press_ref", press_ref, errmsg, errcode)
 
     ! Check that the correct error was raised:
-    @assertTrue(errcode /= 0)
-    @assertTrue(trim(errmsg) == expected_err_msg)
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
@@ -1234,7 +1233,7 @@ end subroutine test_pio_reader_real_get_var_bad_rank
 subroutine final_test()
     use funit
 
-    use mpi, only: mpi_finalize
+    use mpi, only: mpi_finalize, MPI_SUCCESS
 
     integer :: mpi_ierr
 
@@ -1242,6 +1241,6 @@ subroutine final_test()
     ! NOTE: This must be done for the last test in the test suite.
     call mpi_finalize(mpi_ierr)
 
-    @assertTrue(.true.)
+    @assertEqual(MPI_SUCCESS, mpi_ierr)
 
 end subroutine final_test
