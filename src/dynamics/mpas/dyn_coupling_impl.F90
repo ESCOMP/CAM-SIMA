@@ -5,18 +5,13 @@
 !> implementing the necessary APIs and managing their interaction.
 !>
 !> It implements the bidirectional coupling between dynamics and physics states.
-module dyn_coupling
+submodule (dyn_coupling) dyn_coupling_impl
     implicit none
-
-    private
-    ! Provide APIs required by CAM-SIMA.
-    public :: dynamics_to_physics_coupling
-    public :: physics_to_dynamics_coupling
 contains
     !> Perform one-way coupling from the dynamics output states to the physics input states.
     !> The other coupling direction is implemented by its counterpart, `physics_to_dynamics_coupling`.
     !> (KCW, 2024-07-31)
-    subroutine dynamics_to_physics_coupling()
+    module subroutine dynamics_to_physics_coupling()
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debugout_debug, debugout_info
         use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_states, ncells_solve
@@ -435,7 +430,7 @@ contains
     !> Perform one-way coupling from the physics output states to the dynamics input states.
     !> The other coupling direction is implemented by its counterpart, `dynamics_to_physics_coupling`.
     !> (KCW, 2024-09-20)
-    subroutine physics_to_dynamics_coupling()
+    module subroutine physics_to_dynamics_coupling()
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debugout_debug
         use dyn_comp, only: dyn_debug_print, dyn_exchange_constituent_states
@@ -744,4 +739,4 @@ contains
                 (constant_rd / constant_cpd))
         end function theta_of_t_rhod_qv
     end subroutine physics_to_dynamics_coupling
-end module dyn_coupling
+end submodule dyn_coupling_impl

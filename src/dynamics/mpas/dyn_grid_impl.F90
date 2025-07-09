@@ -6,27 +6,8 @@
 !>
 !> It reads and uses the information from MPAS mesh to initialize various model grids
 !> (e.g., dynamics, physics) for CAM-SIMA in terms of dynamics decomposition.
-module dyn_grid
-    ! Module(s) from CAM-SIMA.
-    use cam_grid_support, only: max_hcoordname_len
-
+submodule (dyn_grid) dyn_grid_impl
     implicit none
-
-    private
-    ! Provide APIs required by CAM-SIMA.
-    public :: model_grid_init
-
-    public :: dyn_grid_id
-    public :: dyn_grid_name
-
-    ! Grid names that are to be registered with CAM-SIMA by calling `cam_grid_register`.
-    ! Grid ids can be determined by calling `dyn_grid_id`.
-    character(*), parameter :: dyn_grid_name(*) = [ character(max_hcoordname_len) :: &
-        'mpas_cell',  &
-        'cam_cell',   &
-        'mpas_edge',  &
-        'mpas_vertex' &
-    ]
 contains
     !> Initialize various model grids (e.g., dynamics, physics) in terms of dynamics decomposition.
     !> Additionally, MPAS framework initialization and reading time-invariant (e.g., grid/mesh) variables
@@ -34,7 +15,7 @@ contains
     !> (KCW, 2024-03-29)
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
-    subroutine model_grid_init()
+    module subroutine model_grid_init()
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: endrun
         use cam_constituents, only: num_advected
@@ -552,7 +533,7 @@ contains
 
     !> Helper function for returning grid id given its name.
     !> (KCW, 2024-03-27)
-    pure function dyn_grid_id(name)
+    module pure function dyn_grid_id(name)
         ! Module(s) from CAM-SIMA.
         use physics_grid, only: phys_decomp
 
@@ -573,4 +554,4 @@ contains
 
         dyn_grid_id = 0
     end function dyn_grid_id
-end module dyn_grid
+end submodule dyn_grid_impl

@@ -8,58 +8,14 @@
 !> It provides core functionalities such as the initialization, running, and finalization of MPAS
 !> dynamical core. Various utility procedures for debug printing, exchanging constituent states,
 !> inquiring mesh dimensions, etc. are also provided here.
-module dyn_comp
-    ! Module(s) from MPAS.
-    use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type
-
+submodule (dyn_comp) dyn_comp_impl
     implicit none
-
-    private
-    ! Provide APIs required by CAM-SIMA.
-    public :: dyn_import_t
-    public :: dyn_export_t
-    public :: dyn_readnl
-    public :: dyn_init
-    public :: dyn_run
-    public :: dyn_final
-
-    public :: dyn_debug_print
-    public :: dyn_exchange_constituent_states
-    public :: dyn_inquire_mesh_dimensions
-    public :: reverse
-    public :: mpas_dynamical_core
-    public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
-    public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    public :: sphere_radius
-
-    ! NOTE:
-    !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
-    !> Developers/Maintainers/Users who wish to interact with MPAS dynamical core may do so by using the "instance/object"
-    !> below.
-    type :: dyn_import_t
-    end type dyn_import_t
-
-    ! NOTE:
-    !> This derived type is not used by MPAS dynamical core. It exists only as a placeholder because CAM-SIMA requires it.
-    !> Developers/Maintainers/Users who wish to interact with MPAS dynamical core may do so by using the "instance/object"
-    !> below.
-    type :: dyn_export_t
-    end type dyn_export_t
-
-    !> The "instance/object" of MPAS dynamical core.
-    type(mpas_dynamical_core_type) :: mpas_dynamical_core
-
-    ! Local and global mesh dimensions of MPAS dynamical core.
-    ! Protected module variables that can only be initialized by `dyn_inquire_mesh_dimensions`.
-    integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
-    integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
-    real(kind_dyn_mpas), protected :: sphere_radius
 contains
     !> Print a debug message at a debug level. The debug message will be prefixed by "MPAS Interface (N): ", where `N`
     !> is the MPI rank. The debug level is one of the `debugout_*` constants from the `cam_logfile` module.
     !> If `printer` is not supplied, the MPI root rank will print. Otherwise, the designated MPI rank will print instead.
     !> (KCW, 2024-02-03)
-    subroutine dyn_debug_print(level, message, printer)
+    module subroutine dyn_debug_print(level, message, printer)
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debug_output, iulog
         use spmd_utils, only: iam, masterproc
@@ -92,7 +48,7 @@ contains
     !> (KCW, 2024-02-09)
     !
     ! Called by `read_namelist` in `src/control/runtime_opts.F90`.
-    subroutine dyn_readnl(namelist_path)
+    module subroutine dyn_readnl(namelist_path)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: endrun
         use cam_control_mod, only: initial_run
@@ -181,7 +137,7 @@ contains
     !> (KCW, 2024-05-28)
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
-    subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+    module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
         ! Module(s) from CAM-SIMA.
         use air_composition, only: thermodynamic_active_species_num, &
                                    thermodynamic_active_species_liq_num, &
@@ -900,7 +856,7 @@ contains
     !> This subroutine is intentionally designed to have these elaborate controls due to complications in CAM-SIMA.
     !> Some procedures in CAM-SIMA expect constituent states to be dry, while the others expect them to be moist.
     !> (KCW, 2024-09-26)
-    subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
+    module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
         use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
@@ -1057,7 +1013,7 @@ contains
 
     !> Inquire local and global mesh dimensions. Save them as protected module variables.
     !> (KCW, 2024-11-21)
-    subroutine dyn_inquire_mesh_dimensions()
+    module subroutine dyn_inquire_mesh_dimensions()
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debugout_debug, debugout_info
         use string_utils, only: stringify
@@ -1159,7 +1115,7 @@ contains
 
     !> Run MPAS dynamical core to integrate the dynamical states with time.
     !> (KCW, 2024-07-11)
-    subroutine dyn_run()
+    module subroutine dyn_run()
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debugout_debug, debugout_info
 
@@ -1177,7 +1133,7 @@ contains
 
     !> Finalize MPAS dynamical core as well as its framework.
     !> (KCW, 2024-10-04)
-    subroutine dyn_final()
+    module subroutine dyn_final()
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debugout_debug, debugout_info
 
@@ -1254,7 +1210,7 @@ contains
 
     !> Helper function for reversing the order of elements in `array`.
     !> (KCW, 2024-07-17)
-    pure function reverse(array)
+    module pure function reverse(array)
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
 
@@ -1272,4 +1228,4 @@ contains
 
         reverse(:) = array(n:1:-1)
     end function reverse
-end module dyn_comp
+end submodule dyn_comp_impl
