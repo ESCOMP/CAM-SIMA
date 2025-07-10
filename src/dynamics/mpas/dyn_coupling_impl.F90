@@ -31,8 +31,9 @@ contains
         use cam_abortutils, only: check_allocate, endrun
         use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
         use cam_logfile, only: debugout_debug, debugout_info
-        use dyn_comp, only: dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core, reverse
+        use dyn_comp, only: dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
         use dyn_grid, only: ncells_solve
+        use dyn_procedure, only: reverse
         use physics_types, only: phys_state
         use vert_coord, only: pver
         ! Module(s) from CCPP.
@@ -365,6 +366,8 @@ contains
         !> (KCW, 2024-07-30)
         subroutine update_shared_variables(i)
             ! Module(s) from CAM-SIMA.
+            use dyn_mpas_procedure, only: clamp
+            use dyn_procedure, only: dp_by_hydrostatic_equation, omega_of_w_rho, p_by_equation_of_state, t_of_tm_qv
             use dynconst, only: constant_g => gravit, constant_rd => rair, constant_rv => rh2o
             use vert_coord, only: pver, pverp
 
@@ -390,24 +393,25 @@ contains
             rho_mid_col(:) = rhod_mid_col(:) * sigma_all_q_mid_col(:)
 
             ! Hydrostatic equation.
-            dpd_col(:) = -rhod_mid_col(:) * constant_g * dz_col(:)
-            dp_col(:) = -rho_mid_col(:) * constant_g * dz_col(:)
+            dpd_col(:) = dp_by_hydrostatic_equation(constant_g, rhod_mid_col, dz_col)
+            dp_col(:) = dp_by_hydrostatic_equation(constant_g, rho_mid_col, dz_col)
 
             ! By definition of Exner function. Also see below.
             tm_mid_col(:) = real(theta_m(:, i) * exner(:, i), kind_r8)
 
             ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
             ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
-            t_mid_col(:) = tm_mid_col(:) / &
-                (1.0_kind_r8 + constant_rv / constant_rd * qv_mid_col(:))
+            t_mid_col(:) = t_of_tm_qv(constant_rd, constant_rv, tm_mid_col, qv_mid_col)
 
             ! Equation 16 in doi:10.1029/2017MS001257.
             ! The numerator terms are just `tm_mid_col` here (i.e., modified "moist" temperature).
             tv_mid_col(:) = tm_mid_col(:) / sigma_all_q_mid_col(:)
 
             ! Equation of state.
-            pd_mid_col(:) = rhod_mid_col(:) * constant_rd * t_mid_col(:)
-            p_mid_col(:) = rho_mid_col(:) * constant_rd * tv_mid_col(:)
+            ! Equation 11 in doi:10.1029/2017MS001257.
+            pd_mid_col(:) = p_by_equation_of_state(constant_rd, rhod_mid_col, t_mid_col)
+            ! Equation 17 in doi:10.1029/2017MS001257.
+            p_mid_col(:) = p_by_equation_of_state(constant_rd, rho_mid_col, tv_mid_col)
 
             ! By definition.
             pd_int_col(pverp) = pd_mid_col(pver) + 0.5_kind_r8 * dpd_col(pver)
@@ -423,21 +427,21 @@ contains
             ! while the latter is hydrostatic. In high-resolution simulations, the former could exceed the latter,
             ! leading to a model crash in physics.
             ! Impose range limits on `p{,d}_mid_col` so it is bounded by `p{,d}_int_col`.
-            pd_mid_col(:) = &
-                max(min(pd_mid_col, &
-                pd_int_col(1:pver) + dpd_col(:) * p_int_mid_proximity_limit), &
-                pd_int_col(2:pverp) - dpd_col(:) * p_int_mid_proximity_limit)
-            p_mid_col(:) = &
-                max(min(p_mid_col, &
-                p_int_col(1:pver) + dp_col(:) * p_int_mid_proximity_limit), &
-                p_int_col(2:pverp) - dp_col(:) * p_int_mid_proximity_limit)
+            pd_mid_col(:) = clamp( &
+                pd_mid_col, &
+                pd_int_col(2:pverp) - dpd_col(:) * p_int_mid_proximity_limit, &
+                pd_int_col(1:pver) + dpd_col(:) * p_int_mid_proximity_limit)
+            p_mid_col(:) = clamp( &
+                p_mid_col, &
+                p_int_col(2:pverp) - dp_col(:) * p_int_mid_proximity_limit, &
+                p_int_col(1:pver) + dp_col(:) * p_int_mid_proximity_limit)
 
             ! Compute momentum variables.
 
             ! By definition.
             u_mid_col(:) = real(ucellzonal(:, i), kind_r8)
             v_mid_col(:) = real(ucellmeridional(:, i), kind_r8)
-            omega_mid_col(:) = -rhod_mid_col(:) * constant_g * 0.5_kind_r8 * real(w(1:pver, i) + w(2:pverp, i), kind_r8)
+            omega_mid_col(:) = omega_of_w_rho(constant_g, 0.5_kind_r8 * real(w(1:pver, i) + w(2:pverp, i), kind_r8), rhod_mid_col)
         end subroutine update_shared_variables
 
         !> Set variables for the specific column, indicated by `i`, in the `physics_state` derived type.
@@ -445,7 +449,7 @@ contains
         !> (KCW, 2024-07-30)
         subroutine set_physics_state_column(i)
             ! Module(s) from CAM-SIMA.
-            use dyn_comp, only: reverse
+            use dyn_procedure, only: reverse
             use dynconst, only: constant_g => gravit
             use physics_types, only: phys_state
 
@@ -687,8 +691,9 @@ contains
         subroutine set_mpas_physics_tendency_ru()
             ! Module(s) from CAM-SIMA.
             use cam_logfile, only: debugout_info
-            use dyn_comp, only: mpas_dynamical_core, reverse
+            use dyn_comp, only: mpas_dynamical_core
             use dyn_grid, only: ncells_solve
+            use dyn_procedure, only: reverse
             use physics_types, only: phys_tend
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_ru'
@@ -748,9 +753,12 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_info
-            use dyn_comp, only: mpas_dynamical_core, reverse
+            use dyn_comp, only: mpas_dynamical_core
             use dyn_grid, only: ncells_solve
-            use dynconst, only: constant_rd => rair, constant_rv => rh2o
+            use dyn_procedure, only: t_of_theta_rhod_qv, t_of_tm_qv, theta_of_t_rhod_qv, tm_of_t_qv, &
+                                     reverse
+            use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
+                                constant_rd => rair, constant_rv => rh2o
             use physics_types, only: dtime_phys, phys_tend
             use vert_coord, only: pver
 
@@ -809,14 +817,16 @@ contains
                 rhod_col(:) = real(rho_zz(:, i) * zz(:, i), kind_r8)
 
                 thetam_col_prev(:) = real(theta_m(:, i), kind_r8)
-                theta_col_prev(:) = thetam_col_prev(:) / (1.0_kind_r8 + constant_rv / constant_rd * qv_col_prev(:))
-                t_col_prev(:) = t_of_theta_rhod_qv(theta_col_prev, rhod_col, qv_col_prev)
+                theta_col_prev(:) = t_of_tm_qv(constant_rd, constant_rv, thetam_col_prev, qv_col_prev)
+                t_col_prev(:) = t_of_theta_rhod_qv( &
+                    constant_cpd, constant_p0, constant_rd, constant_rv, theta_col_prev, rhod_col, qv_col_prev)
 
                 ! Vertical index order is reversed between CAM-SIMA and MPAS.
                 ! Always call `reverse` when assigning anything to/from the `physics_tend` derived type.
                 t_col_curr(:) = t_col_prev(:) + reverse(phys_tend % dtdt_total(i, :)) * dtime_phys
-                theta_col_curr(:) = theta_of_t_rhod_qv(t_col_curr, rhod_col, qv_col_curr)
-                thetam_col_curr(:) = theta_col_curr(:) * (1.0_kind_r8 + constant_rv / constant_rd * qv_col_curr(:))
+                theta_col_curr(:) = theta_of_t_rhod_qv( &
+                    constant_cpd, constant_p0, constant_rd, constant_rv, t_col_curr, rhod_col, qv_col_curr)
+                thetam_col_curr(:) = tm_of_t_qv(constant_rd, constant_rv, theta_col_curr, qv_col_curr)
 
                 theta_m_tendency(:, i) = &
                     real((thetam_col_curr(:) - thetam_col_prev(:)) * real(rho_zz(:, i), kind_r8) / dtime_phys, kind_dyn_mpas)
@@ -834,85 +844,5 @@ contains
             ! Because we are injecting data directly into MPAS memory, halo layers need to be updated manually.
             call mpas_dynamical_core % exchange_halo('tend_rtheta_physics')
         end subroutine set_mpas_physics_tendency_rtheta
-
-        !> Compute temperature `t` as a function of potential temperature `theta`, dry air density `rhod` and water vapor
-        !> mixing ratio `qv`. Essentially,
-        !> \( T = \theta^{\frac{C_p}{C_v}} [\frac{\rho_d R_d (1 + \frac{R_v}{R_d} q_v)}{P_0}]^{\frac{R_d}{C_v}} \).
-        !> The formulation comes from Poisson equation with equation of state plugged in and arranging
-        !> for temperature. This function is the exact inverse of `theta_of_t_rhod_qv`, which means that:
-        !> `t == t_of_theta_rhod_qv(theta_of_t_rhod_qv(t, rhod, qv), rhod, qv)`.
-        !> (KCW, 2024-09-13)
-        pure elemental function t_of_theta_rhod_qv(theta, rhod, qv) result(t)
-            ! Module(s) from CAM-SIMA.
-            use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
-                                constant_rd => rair, constant_rv => rh2o
-
-            real(kind_r8), intent(in) :: theta, rhod, qv
-            real(kind_r8) :: t
-
-            real(kind_r8) :: constant_cvd ! Specific heat of dry air at constant volume.
-
-            ! Mayer's relation.
-            constant_cvd = constant_cpd - constant_rd
-
-            ! Poisson equation with equation of state plugged in and arranging for temperature. For equation of state,
-            ! it can be shown that the effect of water vapor can be passed on to the temperature term entirely such that
-            ! dry air density and dry air gas constant can be used at all times. This modified "moist" temperature is
-            ! described herein:
-            ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
-            ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
-            !
-            ! In all, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
-            ! \begin{equation*}
-            !     \begin{cases}
-            !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
-            !         P &= \rho_d R_d T_m \\
-            !         T_m &= T (1 + \frac{R_v}{R_d} q_v)
-            !     \end{cases}
-            ! \end{equation*}
-            t = (theta ** (constant_cpd / constant_cvd)) * &
-                (((rhod * constant_rd * (1.0_kind_r8 + constant_rv / constant_rd * qv)) / constant_p0) ** &
-                (constant_rd / constant_cvd))
-        end function t_of_theta_rhod_qv
-
-        !> Compute potential temperature `theta` as a function of temperature `t`, dry air density `rhod` and water vapor
-        !> mixing ratio `qv`. Essentially,
-        !> \( \theta = T^{\frac{C_v}{C_p}} [\frac{P_0}{\rho_d R_d (1 + \frac{R_v}{R_d} q_v)}]^{\frac{R_d}{C_p}} \).
-        !> The formulation comes from Poisson equation with equation of state plugged in and arranging
-        !> for potential temperature. This function is the exact inverse of `t_of_theta_rhod_qv`, which means that:
-        !> `theta == theta_of_t_rhod_qv(t_of_theta_rhod_qv(theta, rhod, qv), rhod, qv)`.
-        !> (KCW, 2024-09-13)
-        pure elemental function theta_of_t_rhod_qv(t, rhod, qv) result(theta)
-            ! Module(s) from CAM-SIMA.
-            use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
-                                constant_rd => rair, constant_rv => rh2o
-
-            real(kind_r8), intent(in) :: t, rhod, qv
-            real(kind_r8) :: theta
-
-            real(kind_r8) :: constant_cvd ! Specific heat of dry air at constant volume.
-
-            ! Mayer's relation.
-            constant_cvd = constant_cpd - constant_rd
-
-            ! Poisson equation with equation of state plugged in and arranging for potential temperature. For equation of state,
-            ! it can be shown that the effect of water vapor can be passed on to the temperature term entirely such that
-            ! dry air density and dry air gas constant can be used at all times. This modified "moist" temperature is
-            ! described herein:
-            ! The paragraph below equation 2.7 in doi:10.5065/1DFH-6P97.
-            ! The paragraph below equation 2 in doi:10.1175/MWR-D-11-00215.1.
-            !
-            ! In all, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
-            ! \begin{equation*}
-            !     \begin{cases}
-            !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \\
-            !         P &= \rho_d R_d T_m \\
-            !         T_m &= T (1 + \frac{R_v}{R_d} q_v)
-            !     \end{cases}
-            ! \end{equation*}
-            theta = (t ** (constant_cvd / constant_cpd)) * &
-                ((constant_p0 / (rhod * constant_rd * (1.0_kind_r8 + constant_rv / constant_rd * qv))) ** &
-                (constant_rd / constant_cpd))
-        end function theta_of_t_rhod_qv
     end subroutine physics_to_dynamics_coupling
 end submodule dyn_coupling_impl

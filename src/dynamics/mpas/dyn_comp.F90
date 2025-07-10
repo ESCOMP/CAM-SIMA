@@ -23,7 +23,6 @@ module dyn_comp
     public :: dyn_final
 
     public :: dyn_debug_print
-    public :: reverse
     public :: kind_dyn_mpas, mpas_dynamical_core
 
     ! NOTE:
@@ -64,13 +63,6 @@ module dyn_comp
             character(*), intent(in) :: message
             integer, optional, intent(in) :: printer
         end subroutine dyn_debug_print
-
-        module pure function reverse(array)
-            use shr_kind_mod, only: kind_r8 => shr_kind_r8
-
-            real(kind_r8), intent(in) :: array(:)
-            real(kind_r8) :: reverse(size(array))
-        end function reverse
     end interface
 
     !> The "instance/object" of MPAS dynamical core.

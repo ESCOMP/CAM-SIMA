@@ -58,6 +58,7 @@ contains
         use cam_control_mod, only: initial_run
         use cam_instance, only: atm_id
         use cam_logfile, only: debug_output, debugout_debug, debugout_info, iulog
+        use dyn_procedure, only: sec_to_hour_min_sec
         use spmd_utils, only: mpicom
         use string_utils, only: stringify
         use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
@@ -120,18 +121,6 @@ contains
         nullify(pio_iosystem)
 
         call dyn_debug_print(debugout_debug, subname // ' completed')
-    contains
-        !> Convert second(s) to hour(s), minute(s), and second(s).
-        !> (KCW, 2024-02-07)
-        pure function sec_to_hour_min_sec(sec) result(hour_min_sec)
-            integer, intent(in) :: sec
-            integer :: hour_min_sec(3)
-
-            ! These are all intended to be integer arithmetics.
-            hour_min_sec(1) = sec / 3600
-            hour_min_sec(2) = sec / 60 - hour_min_sec(1) * 60
-            hour_min_sec(3) = sec - hour_min_sec(1) * 3600 - hour_min_sec(2) * 60
-        end function sec_to_hour_min_sec
     end subroutine dyn_readnl
 
     !> Initialize MPAS dynamical core by one of the following:
@@ -419,6 +408,7 @@ contains
             use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
+            use dyn_procedure, only: reverse
             use dynconst, only: deg_to_rad
             use vert_coord, only: pverp
 
@@ -496,6 +486,7 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
+            use dyn_procedure, only: reverse
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -572,6 +563,7 @@ contains
             use cam_constituents, only: num_advected
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
+            use dyn_procedure, only: reverse
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -646,8 +638,11 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
+            use dyn_procedure, only: p_by_hypsometric_equation, rho_by_equation_of_state, theta_by_poisson_equation, &
+                                     tm_of_t_qv, tv_of_tm_qv, reverse
             use dyn_tests_utils, only: vc_height
-            use dynconst, only: constant_p0 => pref, constant_rd => rair, constant_rv => rh2o
+            use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
+                                constant_rd => rair, constant_rv => rh2o
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
 
@@ -664,6 +659,7 @@ contains
             real(kind_r8), allocatable :: tm_mid_col(:) ! Modified "moist" temperature (K) at layer midpoints of each column.
                                                         ! Be advised that it is not virtual temperature.
                                                         ! See doi:10.5065/1DFH-6P97 and doi:10.1175/MWR-D-11-00215.1 for details.
+            real(kind_r8), allocatable :: tv_mid_col(:) ! Virtual temperature (K) at layer midpoints of each column.
             real(kind_dyn_mpas), pointer :: rho(:, :)
             real(kind_dyn_mpas), pointer :: theta(:, :)
             real(kind_dyn_mpas), pointer :: scalars(:, :, :)
@@ -708,6 +704,9 @@ contains
             allocate(tm_mid_col(pver), stat=ierr)
             call check_allocate(ierr, subname, 'tm_mid_col(pver)', 'dyn_comp', __LINE__)
 
+            allocate(tv_mid_col(pver), stat=ierr)
+            call check_allocate(ierr, subname, 'tv_mid_col(pver)', 'dyn_comp', __LINE__)
+
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(rho, 'diag', 'rho')
             call mpas_dynamical_core % get_variable_pointer(theta, 'diag', 'theta')
@@ -716,32 +715,41 @@ contains
             ! Set `rho` and `theta` column by column. This way, peak memory usage can be reduced.
             do i = 1, ncells_solve
                 qv_mid_col(:) = real(scalars(index_qv, :, i), kind_r8)
-                tm_mid_col(:) = t_mid(:, i) * (1.0_kind_r8 + constant_rv / constant_rd * qv_mid_col(:))
+                tm_mid_col(:) = tm_of_t_qv(constant_rd, constant_rv, t_mid(:, i), qv_mid_col)
+                tv_mid_col(:) = tv_of_tm_qv(tm_mid_col, qv_mid_col)
 
                 ! Piecewise integrate hypsometric equation to derive `p_mid_col(1)`.
                 ! The formulation used here is exact.
                 p_mid_col(1) = p_by_hypsometric_equation( &
+                    constant_g, &
+                    constant_rd, &
                     p_sfc(i), &
                     real(zgrid(1, i), kind_r8), &
-                    tm_mid_col(1) / (1.0_kind_r8 + qv_mid_col(1)), &
+                    tv_mid_col(1), &
                     0.5_kind_r8 * real(zgrid(2, i) + zgrid(1, i), kind_r8))
 
                 ! Piecewise integrate hypsometric equation to derive subsequent `p_mid_col(k)`.
                 ! The formulation used here is exact.
                 do k = 2, pver
                     p_mid_col(k) = p_by_hypsometric_equation( &
+                        constant_g, &
+                        constant_rd, &
                         p_by_hypsometric_equation( &
+                            constant_g, &
+                            constant_rd, &
                             p_mid_col(k - 1), &
                             0.5_kind_r8 * real(zgrid(k, i) + zgrid(k - 1, i), kind_r8), &
-                            tm_mid_col(k - 1) / (1.0_kind_r8 + qv_mid_col(k - 1)), &
+                            tv_mid_col(k - 1), &
                             real(zgrid(k, i), kind_r8)), &
                         real(zgrid(k, i), kind_r8), &
-                        tm_mid_col(k) / (1.0_kind_r8 + qv_mid_col(k)), &
+                        tv_mid_col(k), &
                         0.5_kind_r8 * real(zgrid(k + 1, i) + zgrid(k, i), kind_r8))
                 end do
 
-                rho(:, i) = real(p_mid_col(:) / (constant_rd * tm_mid_col(:)), kind_dyn_mpas)
-                theta(:, i) = real(theta_by_poisson_equation(p_mid_col, t_mid(:, i), constant_p0), kind_dyn_mpas)
+                rho(:, i) = real(rho_by_equation_of_state( &
+                    constant_rd, p_mid_col, tm_mid_col), kind_dyn_mpas)
+                theta(:, i) = real(theta_by_poisson_equation( &
+                    constant_cpd, constant_p0, constant_rd, t_mid(:, i), p_mid_col), kind_dyn_mpas)
             end do
 
             deallocate(p_mid_col)
@@ -749,6 +757,7 @@ contains
             deallocate(qv_mid_col)
             deallocate(t_mid)
             deallocate(tm_mid_col)
+            deallocate(tv_mid_col)
 
             nullify(index_qv)
             nullify(rho)
@@ -767,7 +776,9 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dynconst, only: constant_p0 => pref, constant_rd => rair
+            use dyn_procedure, only: p_by_hypsometric_equation, rho_by_equation_of_state, theta_by_poisson_equation
+            use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
+                                constant_rd => rair
             use vert_coord, only: pver
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_base_theta_base'
@@ -799,14 +810,18 @@ contains
                     ! Derive `p_base` by hypsometric equation.
                     ! The formulation used here is exact and identical to MPAS.
                     p_base(k) = p_by_hypsometric_equation( &
+                        constant_g, &
+                        constant_rd, &
                         constant_p0, &
                         0.0_kind_r8, &
                         t_base, &
                         0.5_kind_r8 * real(zgrid(k + 1, i) + zgrid(k, i), kind_r8))
                 end do
 
-                rho_base(:, i) = real(p_base(:) / (constant_rd * t_base * real(zz(:, i), kind_r8)), kind_dyn_mpas)
-                theta_base(:, i) = real(theta_by_poisson_equation(p_base, t_base, constant_p0), kind_dyn_mpas)
+                rho_base(:, i) = real(rho_by_equation_of_state( &
+                    constant_rd, p_base, t_base) / real(zz(:, i), kind_r8), kind_dyn_mpas)
+                theta_base(:, i) = real(theta_by_poisson_equation( &
+                    constant_cpd, constant_p0, constant_rd, t_base, p_base), kind_dyn_mpas)
             end do
 
             deallocate(p_base)
@@ -819,42 +834,6 @@ contains
             call mpas_dynamical_core % exchange_halo('rho_base')
             call mpas_dynamical_core % exchange_halo('theta_base')
         end subroutine set_mpas_state_rho_base_theta_base
-
-        ! ----- p_2, z_2 ----- (Layer 2)
-        !       t_v
-        ! ----- p_1, z_1 ----- (Layer 1)
-        !
-        !> Compute the pressure `p_2` at height `z_2` from the pressure `p_1` at height `z_1` by hypsometric equation.
-        !> `t_v` is the mean virtual temperature between `z_1` and `z_2`. Essentially,
-        !> \( P_2 = P_1 e^{\frac{-(z_2 - z_1) g}{R_d T_v}} \).
-        !> (KCW, 2024-07-02)
-        pure elemental function p_by_hypsometric_equation(p_1, z_1, t_v, z_2) result(p_2)
-            ! Module(s) from CAM-SIMA.
-            use dynconst, only: constant_g => gravit, constant_rd => rair
-
-            real(kind_r8), intent(in) :: p_1, z_1, t_v, z_2
-            real(kind_r8) :: p_2
-
-            p_2 = p_1 * exp(-(z_2 - z_1) * constant_g / (constant_rd * t_v))
-        end function p_by_hypsometric_equation
-
-        ! ----- p_1, t_1 ----- (Arbitrary layer)
-        !
-        ! ----- p_0, t_0 ----- (Reference layer)
-        !
-        !> Compute the potential temperature `t_0` at reference pressure `p_0` from the temperature `t_1` at pressure `p_1` by
-        !> Poisson equation. Essentially,
-        !> \( \theta = T (\frac{P_0}{P})^{\frac{R_d}{C_p}} \).
-        !> (KCW, 2024-07-02)
-        pure elemental function theta_by_poisson_equation(p_1, t_1, p_0) result(t_0)
-            ! Module(s) from CAM-SIMA.
-            use dynconst, only: constant_cpd => cpair, constant_rd => rair
-
-            real(kind_r8), intent(in) :: p_1, t_1, p_0
-            real(kind_r8) :: t_0
-
-            t_0 = t_1 * ((p_0 / p_1) ** (constant_rd / constant_cpd))
-        end function theta_by_poisson_equation
     end subroutine set_analytic_initial_condition
 
     !> Mark everything in the `physics_types` module along with constituents as initialized
@@ -1023,25 +1002,4 @@ contains
         nullify(pio_file)
         nullify(pio_iosystem)
     end subroutine dyn_variable_dump
-
-    !> Helper function for reversing the order of elements in `array`.
-    !> (KCW, 2024-07-17)
-    module pure function reverse(array)
-        ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
-
-        real(kind_r8), intent(in) :: array(:)
-        real(kind_r8) :: reverse(size(array))
-
-        integer :: n
-
-        n = size(array)
-
-        ! There is nothing to reverse.
-        if (n == 0) then
-            return
-        end if
-
-        reverse(:) = array(n:1:-1)
-    end function reverse
 end submodule dyn_comp_impl
