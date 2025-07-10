@@ -34,9 +34,9 @@ contains
         ! `*_int`: Variable is at layer interfaces.
         ! `*_mid`: Variable is at layer midpoints.
         real(kind_r8), allocatable :: pd_int_col(:), &       ! Dry hydrostatic air pressure (Pa).
-                                      pd_mid_col(:), &       ! Dry hydrostatic air pressure (Pa).
+                                      pd_mid_col(:), &       ! Dry non-hydrostatic air pressure (Pa).
                                       p_int_col(:), &        ! Full hydrostatic air pressure (Pa).
-                                      p_mid_col(:), &        ! Full hydrostatic air pressure (Pa).
+                                      p_mid_col(:), &        ! Full non-hydrostatic air pressure (Pa).
                                       z_int_col(:)           ! Geometric height (m).
         real(kind_r8), allocatable :: dpd_col(:), &          ! Dry air pressure difference (Pa) between layer interfaces.
                                       dp_col(:), &           ! Full air pressure difference (Pa) between layer interfaces.
@@ -203,6 +203,8 @@ contains
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::update_shared_variables'
             integer :: k
+            ! Proximity limit, in fraction, on how close `p{,d}_mid_col` is allowed to be around its surrounding `p{,d}_int_col`.
+            real(kind_r8), parameter :: p_int_mid_proximity_limit = 0.05_kind_r8
 
             ! The summation term of equation 5 in doi:10.1029/2017MS001257.
             sigma_all_q_mid_col(:) = 1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1)
@@ -247,6 +249,19 @@ contains
                 pd_int_col(k) = pd_int_col(k + 1) - dpd_col(k)
                 p_int_col(k) = p_int_col(k + 1) - dp_col(k)
             end do
+
+            ! `p{,d}_mid_col` is not guaranteed to be bounded by `p{,d}_int_col` because the former is non-hydrostatic
+            ! while the latter is hydrostatic. In high-resolution simulations, the former could exceed the latter,
+            ! leading to a model crash in physics.
+            ! Impose range limits on `p{,d}_mid_col` so it is bounded by `p{,d}_int_col`.
+            pd_mid_col(:) = &
+                max(min(pd_mid_col, &
+                pd_int_col(1:pver) + dpd_col(:) * p_int_mid_proximity_limit), &
+                pd_int_col(2:pverp) - dpd_col(:) * p_int_mid_proximity_limit)
+            p_mid_col(:) = &
+                max(min(p_mid_col, &
+                p_int_col(1:pver) + dp_col(:) * p_int_mid_proximity_limit), &
+                p_int_col(2:pverp) - dp_col(:) * p_int_mid_proximity_limit)
 
             ! Compute momentum variables.
 
