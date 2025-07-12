@@ -6,8 +6,7 @@
 !>
 !> It contains the instance of MPAS dynamical core, which is used extensively throughout CAM-SIMA.
 !> It provides core functionalities such as the initialization, running, and finalization of MPAS
-!> dynamical core. Various utility procedures for debug printing, exchanging constituent states,
-!> inquiring mesh dimensions, etc. are also provided here.
+!> dynamical core.
 submodule (dyn_comp) dyn_comp_impl
     implicit none
 contains

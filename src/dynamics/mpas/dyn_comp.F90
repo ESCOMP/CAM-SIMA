@@ -6,8 +6,7 @@
 !>
 !> It contains the instance of MPAS dynamical core, which is used extensively throughout CAM-SIMA.
 !> It provides core functionalities such as the initialization, running, and finalization of MPAS
-!> dynamical core. Various utility procedures for debug printing, exchanging constituent states,
-!> inquiring mesh dimensions, etc. are also provided here.
+!> dynamical core.
 module dyn_comp
     ! Module(s) from MPAS.
     use dyn_mpas_subdriver, only: kind_dyn_mpas => mpas_dynamical_core_real_kind, mpas_dynamical_core_type

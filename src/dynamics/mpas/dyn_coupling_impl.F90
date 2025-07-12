@@ -5,6 +5,8 @@
 !> implementing the necessary APIs and managing their interaction.
 !>
 !> It implements the bidirectional coupling between dynamics and physics states.
+!> For constituent states, their coupling is handled separately as a special case due to
+!> complications in CAM-SIMA.
 submodule (dyn_coupling) dyn_coupling_impl
     implicit none
 contains
@@ -212,7 +214,7 @@ contains
                                       tv_mid_col(:)          ! Virtual temperature (K).
         real(kind_r8), allocatable :: u_mid_col(:), &        ! Eastward wind velocity (m s-1).
                                       v_mid_col(:), &        ! Northward wind velocity (m s-1).
-                                      omega_mid_col(:)       ! Vertical wind velocity (Pa s-1).
+                                      omega_mid_col(:)       ! Vertical pressure velocity (Pa s-1).
         real(kind_dyn_mpas), pointer :: exner(:, :)
         real(kind_dyn_mpas), pointer :: rho_zz(:, :)
         real(kind_dyn_mpas), pointer :: scalars(:, :, :)

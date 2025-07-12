@@ -5,6 +5,8 @@
 !> implementing the necessary APIs and managing their interaction.
 !>
 !> It implements the bidirectional coupling between dynamics and physics states.
+!> For constituent states, their coupling is handled separately as a special case due to
+!> complications in CAM-SIMA.
 module dyn_coupling
     implicit none
 
