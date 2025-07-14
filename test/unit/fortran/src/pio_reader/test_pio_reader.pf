@@ -217,6 +217,7 @@ subroutine test_pio_reader_1d_int_read()
 
     ! Perform test cleanup:
     deallocate(pressure)
+    nullify(pressure)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -272,6 +273,7 @@ subroutine test_pio_reader_2d_int_read()
 
     ! Perform test cleanup:
     deallocate(minor_limits_gpt_lower)
+    nullify(minor_limits_gpt_lower)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -328,6 +330,7 @@ subroutine test_pio_reader_3d_int_read()
 
     ! Perform test cleanup:
     deallocate(key_species)
+    nullify(key_species)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -400,6 +403,7 @@ subroutine test_pio_reader_1d_char_read()
 
     ! Perform test cleanup:
     deallocate(gas_names)
+    nullify(gas_names)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -457,6 +461,7 @@ subroutine test_pio_reader_0d_real_read()
 
     ! Perform test cleanup:
     deallocate(press_ref_trop)
+    nullify(press_ref_trop)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -515,6 +520,7 @@ subroutine test_pio_reader_1d_real_read()
 
     ! Perform test cleanup:
     deallocate(press_ref)
+    nullify(press_ref)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -577,6 +583,7 @@ subroutine test_pio_reader_2d_real_read()
 
     ! Perform test cleanup:
     deallocate(bnd_limits_wavenumber)
+    nullify(bnd_limits_wavenumber)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -642,6 +649,7 @@ subroutine test_pio_reader_3d_real_read()
 
     ! Perform test cleanup:
     deallocate(vmr_ref)
+    nullify(vmr_ref)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
@@ -743,6 +751,7 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     ! Perform test cleanup:
     !deallocate(aero_salt_tbl)
     deallocate(kmajor)
+    nullify(kmajor)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
