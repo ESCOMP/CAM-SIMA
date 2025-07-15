@@ -8,6 +8,11 @@
 !> It provides core functionalities such as the initialization, running, and finalization of MPAS
 !> dynamical core.
 submodule (dyn_comp) dyn_comp_impl
+#if 0
+#error "Workaround to help the mkDepends tool in CIME find build dependencies until ESMCI/CIME#4818 is merged."
+#error "Compilers should never reach here."
+    use dyn_comp
+#endif
     implicit none
 contains
     !> Print a debug message at a debug level. The debug message will be prefixed by "MPAS Interface (N): ", where `N`

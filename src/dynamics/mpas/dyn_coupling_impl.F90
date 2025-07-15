@@ -8,6 +8,11 @@
 !> For constituent states, their coupling is handled separately as a special case due to
 !> complications in CAM-SIMA.
 submodule (dyn_coupling) dyn_coupling_impl
+#if 0
+#error "Workaround to help the mkDepends tool in CIME find build dependencies until ESMCI/CIME#4818 is merged."
+#error "Compilers should never reach here."
+    use dyn_coupling
+#endif
     implicit none
 contains
     !> Exchange and/or convert constituent states between CAM-SIMA and MPAS.
