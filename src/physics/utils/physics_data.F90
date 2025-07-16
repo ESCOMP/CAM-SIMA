@@ -371,6 +371,8 @@ CONTAINS
       integer                          :: n
       integer                          :: const_input_idx
 
+      character(len=256)               :: errmsg
+
       character(len=*), parameter      :: subname = 'read_constituent_dimensioned_field: '
 
       if (present(error_on_not_found)) then
@@ -384,16 +386,16 @@ CONTAINS
       missing_vars = ''
 
       ! Allocate temporary buffer
-      allocate(buffer(size(field_array, 1)), stat=ierr)
-      call check_allocate(ierr, subname, 'buffer')
+      allocate(buffer(size(field_array, 1)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
 
       !REMOVECAM:
       ! Because the constituent properties pointer contains standard names, and not input constituent names
       ! (e.g., Q, CLDLIQ, ...) which are used in the input file names,
       ! we have to construct a mapping of the standard names to the short input IC file names
       ! When CAM is retired and only standard names are used for constituents, this mapping can be removed.
-      allocate(constituent_short_names(size(const_props)), stat=ierr)
-      call check_allocate(ierr, subname, 'constituent_short_names')
+      allocate(constituent_short_names(size(const_props)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'constituent_short_names', errmsg=errmsg)
 
       const_shortmap_loop: do const_idx = 1, size(const_props)
          ! Get constituent standard name.

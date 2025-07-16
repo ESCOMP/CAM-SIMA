@@ -752,7 +752,8 @@ def get_dimension_info(hvar):
     has_constituent_dim = any('number_of_ccpp_constituents' in dim for dim in dims)
 
     # <hvar> is only 'legal' for 2 or 3 dimensional fields (i.e., 1 or 2
-    #    dimensional variables). The second dimension must be vertical.
+    #    dimensional variables).
+    # The second dimension must either be vertical or number of constituents.
     # XXgoldyXX: If we ever need to read scalars, it would have to be
     #            done using global attributes, not 'infld'.
     ldims = len(dims)
@@ -764,7 +765,17 @@ def get_dimension_info(hvar):
         fail_reason += f"{suff}{lname} has no horizontal dimension"
         suff = "; "
     # end if
-    if (ldims > 2) or ((ldims > 1) and (not levnm)):
+
+    if has_constituent_dim:
+        # A special case where any dimensions include number_of_ccpp_constituents,
+        # in this case the variable needs to be suffixed by an underscore plus the constituent name
+        # and read and reassembled separately into host model constituent indices
+        # based on constituent name.
+        # This case will be handled separately.
+        legal_dims = True
+    elif (ldims > 2) or ((ldims > 1) and (not levnm)):
+        # The regular case where the second dimension must be vertical,
+        # and higher dimensions are unsupported.
         legal_dims = False
         unsupp = []
         for dim in dims:
@@ -790,17 +801,6 @@ def get_dimension_info(hvar):
             fail_reason += f"{suff}{lname} has unsupported dimension, {udims}."
         # end if
         suff = "; "
-    # end if
-
-    # A special case where any dimensions include number_of_ccpp_constituents,
-    # in this case the variable needs to be suffixed by an underscore plus the constituent name
-    # and read and reassembled separately into host model constituent indices
-    # based on constituent name.
-    #
-    # In this case, override legal_dims as this case will be handled separately
-    if has_constituent_dim:
-        legal_dims = True
-        fail_reason = ""
     # end if
 
     if legal_dims and levnm:
