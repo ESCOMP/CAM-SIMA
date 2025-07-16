@@ -1253,7 +1253,7 @@ class WriteInitTest(unittest.TestCase):
         correctly determines that a variable that
         could be called from "read_field" has two dimensions
         but the second is not a vertical dimension (which read_field can't
-        handle) that is not the number of constituents,
+        handle) and is not the number of constituents,
         and exits with both the correct return
         message, and with no Fortran files generated.
         """
