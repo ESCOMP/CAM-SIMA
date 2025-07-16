@@ -193,6 +193,15 @@ def _build_cam():
                     f'-I{os.path.join(musica_install_path, "include", "musica", "fortran")} '
                     '"'
                     )
+        else:
+            # If MUSICA scheme is not used, then copy over MUSICA
+            # source code file into a build directory, as it is needed
+            # by the temporary "musica_ccpp_dependencies.F90"
+            # CAM-SIMA file:
+            musica_species_src_path = os.path.join(atm_root, "src", "physics", "ncar_ccpp",
+                                                   "schemes", "musica", "util",
+                                                   "musica_ccpp_species.F90")
+            _copy2_as_needed(musica_species_src_path, phys_dirs[0])
 
         retcode, out, err = run_cmd(cmd)
         _LOGGER.info("Command %s:\n\nstdout:\n%s\n\nstderr:\n%s\n", cmd, out, err)
@@ -335,7 +344,7 @@ def _build_musica(clone_dest: str) -> str:
             cmake_build_type = "Debug"
         else:
             cmake_build_type = "Release"
-    
+
     command = [
         "cmake",
         f"-D CMAKE_INSTALL_PREFIX={install_dir}",
