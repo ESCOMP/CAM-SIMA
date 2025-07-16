@@ -212,7 +212,7 @@ CONTAINS
                call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
                field_data_ptr(:,:,constituent_idx) = constituent_min_value
                if (masterproc) then
-                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'
+                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', constituent_min_value
                end if
             end if
          end if

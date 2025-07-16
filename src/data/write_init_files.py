@@ -1171,7 +1171,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)", 5)
     outfile.write("field_data_ptr(:,:,constituent_idx) = constituent_min_value", 5)
     outfile.write("if (masterproc) then", 5)
-    outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'", 6)
+    outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', constituent_min_value", 6)
     outfile.write("end if", 5)
     outfile.write("end if", 4)
     outfile.write("end if", 3)
