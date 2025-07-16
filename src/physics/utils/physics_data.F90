@@ -345,7 +345,7 @@ CONTAINS
 
       ! Dummy arguments
       type(ccpp_constituent_prop_ptr_t),     intent(in)    :: const_props(:)      ! Constituent properties
-      type(file_desc_t),                     intent(inout) :: file
+      type(file_desc_t),                     intent(inout) :: file   !Parallel I/O (PIO) file type.
       character(len=*),  intent(in)                        :: std_name            ! Standard name of base variable.
       character(len=*),                      intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_constname)
       integer,                               intent(in)    :: timestep            ! Timestep to read [count]
