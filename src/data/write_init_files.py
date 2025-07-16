@@ -793,7 +793,7 @@ def get_dimension_info(hvar):
     # end if
 
     # A special case where any dimensions include number_of_ccpp_constituents,
-    # in this case the variable needs to be suffixed by _ + constituent name
+    # in this case the variable needs to be suffixed by an underscore plus the constituent name
     # and read and reassembled separately into host model constituent indices
     # based on constituent name.
     #
