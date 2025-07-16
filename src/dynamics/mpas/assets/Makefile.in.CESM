@@ -113,6 +113,7 @@ libmpas-archiver-script.txt:
 	@echo "addlib libdycore.a"          >> $(@)
 	@echo "addlib libframework.a"       >> $(@)
 	@echo "addlib libops.a"             >> $(@)
+	@echo "addmod dyn_mpas_procedure.o" >> $(@)
 	@echo "addmod dyn_mpas_subdriver.o" >> $(@)
 	@echo "save"                        >> $(@)
 	@echo "end"                         >> $(@)
@@ -161,7 +162,9 @@ endif
 	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" ezxml-lib )
 
 .PHONY: subdrv
-subdrv: driver/dyn_mpas_subdriver.o
+subdrv: driver/dyn_mpas_procedure.o driver/dyn_mpas_subdriver.o
+
+driver/dyn_mpas_subdriver.o: driver/dyn_mpas_procedure.o
 
 %.o: %.F90 dycore frame ops
 	( cd $(<D); $(FC) $(CPPFLAGS) $(FFLAGS) -c $(<F) $(CPPINCLUDES) $(FCINCLUDES) -I../framework -I../operators -I../core_$(CORE) -I../core_$(CORE)/dynamics )
