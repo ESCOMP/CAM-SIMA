@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_simple_constituent_dim" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="theta" standard_name="potential_temperature"
+              units="K" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>theta pot_temp</ic_file_input_names>
+    </variable>
+    <variable local_name="slp" standard_name="air_pressure_at_sea_level"
+              units="Pa" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
+    </variable>
+    <variable local_name="eddy_len" standard_name="eddy_length_scale"
+              units="m" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>eddy_len</ic_file_input_names>
+    </variable>
+    <!-- Value with a constituent dimension -->
+    <variable local_name="cool_cat_for_each_const" standard_name="super_cool_cat_every_const"
+              units="kg kg-1 s-1" type="real" kind="kind_phys" allocatable="allocatable">
+      <long_name>The coolest imaginable tendency per constituent</long_name>
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <ic_file_input_names>cool_cat_tend pbuf_COOL_CAT_TEND</ic_file_input_names>
+    </variable>
+    <variable local_name="cool_default_cat_for_each_const" standard_name="super_cool_cat_with_default_every_const"
+              units="kg kg-1 s-1" type="real" kind="kind_phys" allocatable="allocatable">
+      <long_name>The coolest imaginable tendency per constituent now with a default</long_name>
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>2.33_kind_phys</initial_value>
+      <ic_file_input_names>cool_cat_default_tend</ic_file_input_names>
+    </variable>
+  </file>
+</registry>

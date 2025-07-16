@@ -1,0 +1,105 @@
+[ccpp-table-properties]
+  name = temp_adjust
+  type = scheme
+[ccpp-arg-table]
+  name = temp_adjust_run
+  type = scheme
+[ nbox ]
+  standard_name = horizontal_loop_extent
+  type = integer
+  units = count
+  dimensions = ()
+  intent = in
+[ lev ]
+  standard_name = vertical_layer_dimension
+  type = integer
+  units = count
+  dimensions = ()
+  intent = in
+[ temp_layer ]
+  standard_name = potential_temperature
+  units = K
+  dimensions = (horizontal_loop_extent, vertical_layer_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+[ slp ]
+  standard_name = air_pressure_at_sea_level
+  units = Pa
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+[ cool_cat_for_each_const ]
+  standard_name = super_cool_cat_every_const
+  units = kg kg-1 s-1
+  dimensions = (horizontal_loop_extent, number_of_ccpp_constituents)
+  type = real
+  kind = kind_phys
+  intent = inout
+[ cool_cat_default_for_each_const ]
+  standard_name = super_cool_cat_with_default_every_const
+  units = kg kg-1 s-1
+  dimensions = (horizontal_loop_extent, number_of_ccpp_constituents)
+  type = real
+  kind = kind_phys
+  intent = in
+[ timestep ]
+  standard_name = timestep_for_physics
+  long_name = time step
+  units = s
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+[ errmsg ]
+  standard_name = ccpp_error_message
+  long_name = Error message for error handling in CCPP
+  units = none
+  dimensions = ()
+  type = character
+  kind = len=512
+  intent = out
+[ errflg ]
+  standard_name = ccpp_error_code
+  long_name = Error flag for error handling in CCPP
+  units = 1
+  dimensions = ()
+  type = integer
+  intent = out
+[ccpp-arg-table]
+  name = temp_adjust_init
+  type = scheme
+[ errmsg ]
+  standard_name = ccpp_error_message
+  long_name = Error message for error handling in CCPP
+  units = none
+  dimensions = ()
+  type = character
+  kind = len=512
+  intent = out
+[ errflg ]
+  standard_name = ccpp_error_code
+  long_name = Error flag for error handling in CCPP
+  units = 1
+  dimensions = ()
+  type = integer
+  intent = out
+[ccpp-arg-table]
+  name = temp_adjust_finalize
+  type = scheme
+[ errmsg ]
+  standard_name = ccpp_error_message
+  long_name = Error message for error handling in CCPP
+  units = none
+  dimensions = ()
+  type = character
+  kind = len=512
+  intent = out
+[ errflg ]
+  standard_name = ccpp_error_code
+  long_name = Error flag for error handling in CCPP
+  units = 1
+  dimensions = ()
+  type = integer
+  intent = out

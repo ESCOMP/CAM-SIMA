@@ -23,6 +23,10 @@ jobs:
       CXX: g++-${{ matrix.version }}
       FC: gfortran-${{ matrix.version }}
     steps:
+      - name: install dependencies
+        run: |
+          sudo apt install -y libnetcdff-dev libnetcdf-mpi-dev libopenmpi-dev openmpi-bin doxygen
+
       - name: Checkout cam-sima
         uses: actions/checkout@v4
 
@@ -34,15 +38,44 @@ jobs:
           cd build
           make install
 
+      - name: Build PIO
+        run: |
+          git clone --depth 1 --branch pio2_6_6 https://github.com/NCAR/ParallelIO.git
+          cd ParallelIO
+          FC=$(which mpif90) \
+          CC=$(which mpicc) \
+          cmake -S./ -B./build \
+            -DCMAKE_INSTALL_PREFIX=./install \
+            -DPIO_ENABLE_TIMING=OFF \
+            -DWITH_PNETCDF=OFF \
+            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF" \
+            -DNetCDF_Fortran_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdff.a" \
+            -DNetCDF_C_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdf.so" \
+            -DCMAKE_EXE_LINKER_FLAGS="-lmpi -Wl,--no-as-needed"
+          cd build
+          make
+          make install
+
+      - name: Checkout atmospheric_physics
+        run: |
+          bin/git-fleximod update ncar-physics ccpp-framework share
+
       - name: Build cam-sima
         run: |
+          PIO_ROOT=$GITHUB_WORKSPACE/ParallelIO/install/ \
           cmake \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/pFUnit/build/installed \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/pFUnit/build/installed;/usr/lib/x86_64-linux-gnu/cmake/netCDF;/usr/lib/x86_64-linux-gnu/" \
             -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
+            -DCAM_SIMA_ENABLE_IO_TESTS=ON \
+            -DCAM_SIMA_ENABLE_TESTS=ON \
             -B./build \
             -S./test/unit/fortran
           cd build
           make
+
+      - name: Checkout datafiles for file IO reader tests
+        run: |
+          git clone https://github.com/earth-system-radiation/rrtmgp-data.git
 
       - name: Run fortran unit tests
         run: |

@@ -364,23 +364,6 @@
     </values>
   </entry>
 
-<!-- Host model chemistry settings -->
-
-  <entry id="musica_config">
-    <type>char*256</type>
-    <category>chemistry</category>
-    <group>chemistry_nl</group>
-    <desc>
-      Configuration option for the
-      MUSICA chemistry package.
-
-      Default: none
-    </desc>
-    <values>
-      <value>none</value>
-    </values>
-  </entry>
-
 <!-- Tropopause -->
   <entry id="tropopause_climo_file">
     <type>char*256</type>

@@ -290,15 +290,18 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp,                only: phys_timestep_init
-      use physics_grid,             only: lat_rad, lon_rad
-      use orbital_data,             only: orbital_data_advance
-      use stepon,                   only: stepon_timestep_init
-      use cam_ccpp_cap,             only: cam_constituents_array
-      use ccpp_kinds,               only: kind_phys
-      use musica_ccpp_dependencies, only: set_initial_musica_concentrations
+      use phys_comp,                 only: phys_timestep_init
+      use physics_grid,              only: lat_rad, lon_rad
+      use orbital_data,              only: orbital_data_advance
+      use stepon,                    only: stepon_timestep_init
+      use cam_ccpp_cap,              only: cam_constituents_array
+      use cam_ccpp_cap,              only: cam_model_const_properties
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use ccpp_kinds,                only: kind_phys
+      use musica_ccpp_dependencies,  only: set_initial_musica_concentrations
 
       real(kind_phys), pointer :: constituents_array(:,:,:)
+      type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
 
       ! Update current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
@@ -331,7 +334,9 @@ CONTAINS
       !----------------------------------------------------------
       if (is_first_timestep) then
          constituents_array => cam_constituents_array()
-         call set_initial_musica_concentrations(constituents_array)
+         constituent_properties => cam_model_const_properties()
+         call set_initial_musica_concentrations(constituents_array, &
+              constituent_properties)
       end if
 
       !

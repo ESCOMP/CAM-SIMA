@@ -18,7 +18,7 @@
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>eddy_len</ic_file_input_names>
     </variable>
-    <!-- Constituene variable, should not show up in generated registry files -->
+    <!-- Constituent variable, should not show up in generated registry files -->
     <variable local_name="cool_cat_const" standard_name="super_cool_cat_const"
               units="kg kg-1" type="real" constituent="true">
       <long_name>The coolest constituent imaginable</long_name>

@@ -110,6 +110,7 @@ module dyn_mpas_subdriver
         procedure, pass, public :: exchange_halo => dyn_mpas_exchange_halo
         procedure, pass, public :: compute_unit_vector => dyn_mpas_compute_unit_vector
         procedure, pass, public :: compute_edge_wind => dyn_mpas_compute_edge_wind
+        procedure, pass, public :: compute_cell_relative_vorticity => dyn_mpas_compute_cell_relative_vorticity
         procedure, pass, public :: init_phase4 => dyn_mpas_init_phase4
         procedure, pass, public :: run => dyn_mpas_run
         procedure, pass, public :: final => dyn_mpas_final
@@ -2776,6 +2777,106 @@ contains
 
         call self % debug_print(log_level_debug, subname // ' completed')
     end subroutine dyn_mpas_compute_edge_wind
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_compute_cell_relative_vorticity
+    !
+    !> summary: Compute the relative vorticities at cell points.
+    !> author: Kuan-Chih Wang
+    !> date: 2025-04-12
+    !>
+    !> MPAS uses staggered C-grid for spatial discretization, where relative
+    !> vorticities are located at vertex points because wind vectors are located at
+    !> edge points. However, physics schemes that use relative vorticities as input
+    !> usually want them at cell points instead.
+    !> This subroutine computes the relative vorticity at each cell point from its
+    !> surrounding vertex points and returns the results.
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_compute_cell_relative_vorticity(self, cell_relative_vorticity)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        real(rkind), allocatable, intent(out) :: cell_relative_vorticity(:, :)
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_cell_relative_vorticity'
+        integer :: i, k
+        integer :: ierr
+        integer, pointer :: ncellssolve, nvertlevels
+        integer, pointer :: kiteforcell(:, :), nedgesoncell(:), verticesoncell(:, :)
+        real(rkind), pointer :: areacell(:), kiteareasonvertex(:, :), vorticity(:, :)
+
+        nullify(ncellssolve, nvertlevels)
+        nullify(kiteforcell, nedgesoncell, verticesoncell)
+        nullify(areacell, kiteareasonvertex, vorticity)
+
+        ! Input.
+        call self % get_variable_pointer(ncellssolve, 'dim', 'nCellsSolve')
+        call self % get_variable_pointer(nvertlevels, 'dim', 'nVertLevels')
+
+        call self % get_variable_pointer(kiteforcell, 'mesh', 'kiteForCell')
+        call self % get_variable_pointer(nedgesoncell, 'mesh', 'nEdgesOnCell')
+        call self % get_variable_pointer(verticesoncell, 'mesh', 'verticesOnCell')
+
+        call self % get_variable_pointer(areacell, 'mesh', 'areaCell')
+        call self % get_variable_pointer(kiteareasonvertex, 'mesh', 'kiteAreasOnVertex')
+        call self % get_variable_pointer(vorticity, 'diag', 'vorticity')
+
+        ! Output.
+        allocate(cell_relative_vorticity(nvertlevels, ncellssolve), stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate cell_relative_vorticity', subname, __LINE__)
+        end if
+
+        do i = 1, ncellssolve
+            do k = 1, nvertlevels
+                cell_relative_vorticity(k, i) = regrid_from_vertex_to_cell(i, k, &
+                    nedgesoncell, verticesoncell, kiteforcell, kiteareasonvertex, areacell, &
+                    vorticity)
+            end do
+        end do
+
+        nullify(ncellssolve, nvertlevels)
+        nullify(kiteforcell, nedgesoncell, verticesoncell)
+        nullify(areacell, kiteareasonvertex, vorticity)
+    end subroutine dyn_mpas_compute_cell_relative_vorticity
+
+    !-------------------------------------------------------------------------------
+    ! function regrid_from_vertex_to_cell
+    !
+    !> summary: Regrid values from vertex points to the specified cell point.
+    !> author: Kuan-Chih Wang
+    !> date: 2025-04-12
+    !>
+    !> This function computes the area weighted average (i.e., `cell_value`) at the
+    !> specified cell point (i.e., `cell_index` and `cell_level`) from the values
+    !> at its surrounding vertex points (i.e., `vertex_value`).
+    !> The formulation used here is adapted and generalized from the
+    !> `atm_compute_solve_diagnostics` subroutine in MPAS.
+    !
+    !-------------------------------------------------------------------------------
+    pure function regrid_from_vertex_to_cell(cell_index, cell_level, &
+            nverticesoncell, verticesoncell, kiteforcell, kiteareasonvertex, areacell, &
+            vertex_value) result(cell_value)
+        integer, intent(in) :: cell_index, cell_level
+        integer, intent(in) :: nverticesoncell(:), verticesoncell(:, :), kiteforcell(:, :)
+        real(rkind), intent(in) :: kiteareasonvertex(:, :), areacell(:)
+        real(rkind), intent(in) :: vertex_value(:, :)
+        real(rkind) :: cell_value
+
+        integer :: i, j, vertex_index
+
+        cell_value = 0.0_rkind
+
+        do i = 1, nverticesoncell(cell_index)
+            j = kiteforcell(i, cell_index)
+            vertex_index = verticesoncell(i, cell_index)
+
+            cell_value = cell_value + &
+                kiteareasonvertex(j, vertex_index) * vertex_value(cell_level, vertex_index)
+        end do
+
+        cell_value = cell_value / areacell(cell_index)
+    end function regrid_from_vertex_to_cell
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase4

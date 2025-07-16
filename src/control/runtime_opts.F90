@@ -45,7 +45,6 @@ contains
       use inic_analytic_utils, only: analytic_ic_readnl
 
       use tropopause_climo_read, only: tropopause_climo_readnl
-      use musica_sima_namelist,  only: musica_ccpp_dependencies_readnl
 
 !      use tracers,             only: tracers_readnl
 !      use nudging,             only: nudging_readnl
@@ -103,7 +102,6 @@ contains
 !      call check_energy_readnl(nlfilename)
       call analytic_ic_readnl(nlfilename)
       call tropopause_climo_readnl(nlfilename)
-      call musica_ccpp_dependencies_readnl(nlfilename)
 !      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
 !      call nudging_readnl(nlfilename)
 

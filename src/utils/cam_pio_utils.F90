@@ -85,9 +85,9 @@ module cam_pio_utils
    end interface cam_pio_find_var
 
    interface cam_pio_inq_var_fill
-     module procedure inq_var_fill_i4
-     module procedure inq_var_fill_r4
-     module procedure inq_var_fill_r8
+      module procedure inq_var_fill_i4
+      module procedure inq_var_fill_r4
+      module procedure inq_var_fill_r8
    end interface cam_pio_inq_var_fill
 
    interface calc_permutation
@@ -146,7 +146,7 @@ CONTAINS
       use_scam_limits = single_column
       if (use_scam_limits) then
          call shr_scam_getCloseLatLon(File, scmlat, scmlon,                   &
-              closelat, closelon, latidx, lonidx)
+            closelat, closelon, latidx, lonidx)
          if (present(dimnames)) then
             if (trim(dimnames(1)) == 'lon') then
                start(1) = lonidx ! First dim always lon for Eulerian dycore
@@ -354,7 +354,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    subroutine cam_pio_var_info(ncid, varid, ndims, dimids, dimlens,           &
-        dimnames, varname, unlimDimID)
+      dimnames, varname, unlimDimID)
       use pio,            only: PIO_inq_varndims, PIO_inq_vardimid
       use pio,            only: PIO_inquire, PIO_inq_dimname, PIO_inq_dimlen
       use pio,            only: PIO_seterrorhandling, PIO_BCAST_ERROR
@@ -494,7 +494,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    subroutine cam_pio_check_var(ncid, varname, varid, ndims, dimids, dimlens, &
-        readvar, dimnames)
+      readvar, dimnames)
       use pio,         only: file_desc_t, var_desc_t
       use pio,         only: PIO_inq_varid, PIO_NOERR
       use pio,         only: PIO_seterrorhandling, PIO_BCAST_ERROR
@@ -525,13 +525,13 @@ CONTAINS
          readvar = .false.
          if (masterproc) then
             write(iulog,*) 'CAM_PIO_CHECK_VAR INFO: variable ',trim(varname), &
-                 ' is not on file'
+               ' is not on file'
             call shr_sys_flush(iulog)
          end if
       else
          readvar = .true.
          call cam_pio_var_info(ncid, varid, ndims, dimids, dimlens,           &
-              dimnames=dimnames, varname=varname)
+            dimnames=dimnames, varname=varname)
       end if
       call pio_seterrorhandling(ncid, err_handling)
 
@@ -565,7 +565,7 @@ CONTAINS
    !                        field on file are not in map order
    !
    subroutine cam_pio_get_decomp(iodesc, ldims, fdims, dtype, map,            &
-        field_dist_in, file_dist_in, permute)
+      field_dist_in, file_dist_in, permute)
       use pio,            only: pio_offset_kind, io_desc_t
       use cam_abortutils, only: endrun
       use cam_map_utils,  only: cam_filemap_t
@@ -600,7 +600,7 @@ CONTAINS
 
          call t_startf('get_filemap')
          call map%get_filemap(ldims, fdims, dof, src_in=field_dist_in,        &
-              dest_in=file_dist_in, permutation_in=permute)
+            dest_in=file_dist_in, permutation_in=permute)
          call t_stopf('get_filemap')
          if (ANY(fdims == 0)) then
             ! Quick sanity check
@@ -658,7 +658,7 @@ CONTAINS
          do jndex = 1, debug_output
             write(header, '(a,8i08)') ':  task', (ind, ind = strt, strt+7)
             call cam_log_multiwrite(subname, header, '(a,": ",i5,8i08)',      &
-                 int(dof(strt:strt+7)))
+               int(dof(strt:strt+7)))
             strt = strt + 8
          end do
       end if
@@ -716,11 +716,11 @@ CONTAINS
       if (present(perm)) then
          write(form, form3) lcnt, fcnt, nperm
          write(tag, form) (ldimlens(i),i=1,lcnt), (fdimlens(i),i=1,fcnt),     &
-              (perm(i),i=1,lcnt), dtype, mapind
+            (perm(i),i=1,lcnt), dtype, mapind
       else
          write(form, form2) lcnt, fcnt
          write(tag, form) (ldimlens(i),i=1,lcnt), (fdimlens(i),i=1,fcnt),     &
-              dtype, mapind
+            dtype, mapind
       end if
 
       do while(associated(curr) .and. (.not. found))
@@ -796,12 +796,12 @@ CONTAINS
             ierr = pio_inq_dimlen(File, dimid, dimlen)
             if (ierr /= PIO_NOERR) then
                write(errormsg, '(2a,i0,2a)') trim(subname), ': Error ', ierr, &
-                    ' finding dimension length for ', trim(name)
+                  ' finding dimension length for ', trim(name)
                call endrun(errormsg)
             else if (dimlen /= size) then
                write(errormsg, '(3a,2(i0,a))')                                &
-                    ': Size mismatch for dimension, ', trim(name),            &
-                    ': ', dimlen, ' (current), ', size, ' (desired)'
+                  ': Size mismatch for dimension, ', trim(name),            &
+                  ': ', dimlen, ' (current), ', size, ' (desired)'
                call endrun(trim(subname)//errormsg)
                ! No else, existing dimension is OK
             end if
@@ -916,7 +916,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)      :: filedims(4)
 
       if ( (present(start) .and. (.not. present(kount))) .or.                 &
-           (present(kount) .and. (.not. present(start)))) then
+         (present(kount) .and. (.not. present(start)))) then
          call endrun(trim(subname)//': start and kount must both be present')
       end if
 
@@ -928,7 +928,7 @@ CONTAINS
       end if
       if (exists) then
          call cam_pio_var_info(File, varid, ndims, dimids, cnt,               &
-              dimnames=filedims, varname=varname)
+            dimnames=filedims, varname=varname)
 
          if (present(start)) then
             ! start and kount override other options and are not error checked
@@ -961,7 +961,7 @@ CONTAINS
 
    !===========================================================================
    subroutine cam_pio_get_var_2d_r8_perm(varname, File, arraydims, field,      &
-        start, kount, found)
+      start, kount, found)
       use cam_abortutils, only: endrun
       use pio,            only: file_desc_t, var_desc_t, pio_get_var
       use pio,            only: PIO_MAX_NAME
@@ -991,7 +991,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)      :: filedims(3)
 
       if ( (present(start) .and. (.not. present(kount))) .or.                 &
-           (present(kount) .and. (.not. present(start)))) then
+         (present(kount) .and. (.not. present(start)))) then
          call endrun(trim(subname)//': start and kount must both be present')
       end if
 
@@ -1004,7 +1004,7 @@ CONTAINS
       end if
       if (exists) then
          call cam_pio_var_info(File, varid, ndims, dimids, cnt,               &
-              dimnames=filedims, varname=varname)
+            dimnames=filedims, varname=varname)
 
          if (present(start)) then
             ! start and kount override other options and are not error checked
@@ -1016,12 +1016,12 @@ CONTAINS
             exists = use_scam_limits(File, strt, cnt,filedims)
          end if
          if ( ((ndims == 2) .and. (trim(filedims(2)) /= 'time')) .or.         &
-              ((ndims == 3) .and. (trim(filedims(3)) == 'time'))) then
+            ((ndims == 3) .and. (trim(filedims(3)) == 'time'))) then
             call calc_permutation(filedims(1:2), arraydims, perm, isperm)
             if (isperm) then
                allocate(tmp_fld(cnt(1), cnt(2)))
                ierr = pio_get_var(File, varid, strt(1:ndims), cnt(1:ndims),   &
-                    tmp_fld)
+                  tmp_fld)
                do j = 1, cnt(2)
                   ind(2) = j
                   do i = 1, cnt(1)
@@ -1031,7 +1031,7 @@ CONTAINS
                end do
             else
                ierr = pio_get_var(File, varid, strt(1:ndims), cnt(1:ndims),   &
-                    field)
+                  field)
             end if
          else
             call endrun(trim(subname)//': Incorrect variable rank')
@@ -1067,7 +1067,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)      :: filedims(4)
 
       if ( (present(start) .and. (.not. present(kount))) .or.                 &
-           (present(kount) .and. (.not. present(start)))) then
+         (present(kount) .and. (.not. present(start)))) then
          call endrun(trim(subname)//': start and kount must both be present')
       end if
 
@@ -1080,7 +1080,7 @@ CONTAINS
       end if
       if (exists) then
          call cam_pio_var_info(File, varid, ndims, dimids, cnt,               &
-              dimnames=filedims, varname=varname)
+            dimnames=filedims, varname=varname)
 
          if (present(start)) then
             ! start and kount override other options and are not error checked
@@ -1104,7 +1104,7 @@ CONTAINS
             ierr = pio_get_var(File, varid, strt, cnt, field)
          else if (ndims == 2) then
             ierr = pio_get_var(File, varid, strt(1:ndims), cnt(1:ndims),      &
-                 field(:,:,1))
+               field(:,:,1))
          else
             call endrun(trim(subname)//': Incorrect variable rank')
          end if
@@ -1114,7 +1114,7 @@ CONTAINS
 
    !===========================================================================
    subroutine cam_pio_get_var_3d_r8_perm(varname, File, arraydims, field,     &
-        start, kount, found)
+      start, kount, found)
       use cam_abortutils, only: endrun
       use pio,            only: file_desc_t, var_desc_t, pio_get_var
       use pio,            only: PIO_MAX_NAME
@@ -1144,7 +1144,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)      :: filedims(4)
 
       if ( (present(start) .and. (.not. present(kount))) .or.                 &
-           (present(kount) .and. (.not. present(start)))) then
+         (present(kount) .and. (.not. present(start)))) then
          call endrun(trim(subname)//': start and kount must both be present')
       end if
 
@@ -1157,7 +1157,7 @@ CONTAINS
       end if
       if (exists) then
          call cam_pio_var_info(File, varid, ndims, dimids, cnt,               &
-              dimnames=filedims, varname=varname)
+            dimnames=filedims, varname=varname)
 
          if (present(start)) then
             ! start and kount override other options and are not error checked
@@ -1170,12 +1170,12 @@ CONTAINS
          end if
 
          if ( ((ndims == 3) .and. (trim(filedims(3)) /= 'time')) .or.         &
-              ((ndims == 4) .and. (trim(filedims(4)) == 'time'))) then
+            ((ndims == 4) .and. (trim(filedims(4)) == 'time'))) then
             call calc_permutation(filedims(1:3), arraydims, perm, isperm)
             if (isperm) then
                allocate(tmp_fld(cnt(1), cnt(2), cnt(3)))
                ierr = pio_get_var(File, varid, strt(1:ndims), cnt(1:ndims),   &
-                    tmp_fld)
+                  tmp_fld)
                do k = 1, cnt(3)
                   ind(3) = k
                   do j = 1, cnt(2)
@@ -1183,13 +1183,13 @@ CONTAINS
                      do i = 1, cnt(1)
                         ind(1) = i
                         field(ind(perm(1)), ind(perm(2)), ind(perm(3))) =     &
-                             tmp_fld(i, j, k)
+                           tmp_fld(i, j, k)
                      end do
                   end do
                end do
             else
                ierr = pio_get_var(File, varid, strt(1:ndims), cnt(1:ndims),   &
-                    field)
+                  field)
             end if
          else
             call endrun(trim(subname)//': Incorrect variable rank')
@@ -1258,18 +1258,22 @@ CONTAINS
    end subroutine cam_pio_createfile
 
    !===========================================================================
-   subroutine cam_pio_openfile(file, fname, mode, log_info)
+   subroutine cam_pio_openfile(file, fname, mode, log_info, errcode)
+
       use pio,           only: pio_openfile, file_desc_t, pio_nowrite
       use pio,           only: pio_noerr, pio_iotask_rank
+      use pio,           only: pio_seterrorhandling, PIO_BCAST_ERROR
       use cam_abortutils, only: endrun, cam_register_open_file
 
       type(file_desc_t), intent(inout), target :: file
       character(len=*), intent(in) :: fname
       integer, intent(in) :: mode
-      logical, optional, intent(in) :: log_info ! if .false. suppress informational logging
+      logical, optional, intent(in)  :: log_info ! If .false. suppress informational logging
+      integer, optional, intent(out) :: errcode  ! If present, returen error code instead of ending model run.
 
       integer :: ierr
       logical :: log_information
+      integer :: err_handling
 
       if (present(log_info)) then
          log_information = log_info
@@ -1277,14 +1281,35 @@ CONTAINS
          log_information = .true.
       end if
 
+      ! If an error code is present, make sure PIO returns an error
+      ! instead of aborting:
+      if (present(errcode)) then
+         call pio_seterrorhandling(pio_subsystem, PIO_BCAST_ERROR, &
+         oldmethod=err_handling)
+      end if
+
       ierr = pio_openfile(pio_subsystem, file, pio_iotype, fname, mode)
 
-      if(ierr /= PIO_NOERR) then
+      ! If error code is present, set it to the PIO error code:
+      if (present(errcode)) then
+         errcode = ierr
+      end if
+
+      if((ierr /= PIO_NOERR) .and. (.not.present(errcode))) then
+         !If error occurred and errcode is not present,
+         !then end the model run:
          call endrun('Failed to open '//trim(fname)//' to read')
       else if(pio_iotask_rank(pio_subsystem) == 0 .and. log_information &
-              .and. mode /= pio_nowrite) then
+         .and. mode /= pio_nowrite) then
          write(iulog,*) 'Opened existing file ', trim(fname), file%fh
          call cam_register_open_file(file, trim(fname))
+      end if
+
+      ! If an error code is requested, then set
+      ! the error handling back to whatever was
+      ! running before this routine:
+      if (present(errcode)) then
+         call pio_seterrorhandling(pio_subsystem, err_handling)
       end if
 
    end subroutine cam_pio_openfile
@@ -1317,7 +1342,7 @@ CONTAINS
       ! We will handle errors for this routine
 
       call pio_seterrorhandling(pio_subsystem, PIO_BCAST_ERROR,               &
-           oldmethod=err_handling)
+         oldmethod=err_handling)
 
       ierr = pio_openfile(pio_subsystem, file, pio_iotype, fname, PIO_NOWRITE)
       cam_pio_fileexists = (ierr == PIO_NOERR)
@@ -1408,7 +1433,7 @@ CONTAINS
 
    !===========================================================================
    integer function inq_var_fill_r8(File, vdesc, fillvalue, no_fill)          &
-        result(ierr)
+      result(ierr)
 #ifdef PIO2
       use pio, only: pio_inq_var_fill
 #endif
@@ -1450,7 +1475,7 @@ CONTAINS
 
    !===========================================================================
    subroutine dump_field_2d_d(fieldname, dim1b, dim1e, dim2b, dim2e, field,   &
-        compute_maxdim_in, fill_value)
+      compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
       use pio,            only: pio_offset_kind, pio_enddef
       use pio,            only: pio_double, pio_int, pio_write_darray
@@ -1507,9 +1532,9 @@ CONTAINS
       ! Define dimensions
       if (compute_maxdim) then
          call MPI_allreduce((dim1e - dim1b + 1), dimsizes(1), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
          call MPI_allreduce((dim2e - dim2b + 1), dimsizes(2), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
       else
          dimsizes(1) = dim1e - dim1b + 1
          dimsizes(2) = dim2e - dim2b + 1
@@ -1523,7 +1548,7 @@ CONTAINS
       ! Define the variables
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-           (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
       if (present(fill_value)) then
          ierr = pio_put_att(file, vdesc, '_FillValue', fill_value)
       end if
@@ -1537,12 +1562,12 @@ CONTAINS
          do i = dim1b, dim1e
             m = m + 1
             ldof(m) = (iam * lsize) + (dimsizes(1)*(j - dim2b)) +             &
-                 (i - dim1b + 1)
+               (i - dim1b + 1)
          end do
       end do
       call pio_initdecomp(pio_subsystem, PIO_DOUBLE, dimsizes, ldof, iodesc)
       call pio_write_darray(file, vdesc, iodesc,                              &
-           field(dim1b:dim1e,dim2b:dim2e), ierr, fillval)
+         field(dim1b:dim1e,dim2b:dim2e), ierr, fillval)
       call pio_freedecomp(file, iodesc)
       deallocate(ldof)
       ! Compute the bounds decomposition and write field bounds
@@ -1567,7 +1592,7 @@ CONTAINS
 
    !===========================================================================
    subroutine dump_field_3d_d(fieldname, dim1b, dim1e, dim2b, dim2e,          &
-        dim3b, dim3e, field, compute_maxdim_in, fill_value)
+      dim3b, dim3e, field, compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
       use pio,            only: pio_offset_kind, pio_enddef
       use pio,            only: pio_double, pio_int, pio_write_darray
@@ -1625,11 +1650,11 @@ CONTAINS
       ! Define dimensions
       if (compute_maxdim) then
          call MPI_allreduce((dim1e - dim1b + 1), dimsizes(1), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
          call MPI_allreduce((dim2e - dim2b + 1), dimsizes(2), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
          call MPI_allreduce((dim3e - dim3b + 1), dimsizes(3), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
       else
          dimsizes(1) = dim1e - dim1b + 1
          dimsizes(2) = dim2e - dim2b + 1
@@ -1644,7 +1669,7 @@ CONTAINS
       ! Define the variables
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-           (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
       ierr = pio_put_att(file, vdesc, '_FillValue', fillval)
       ierr = pio_enddef(file)
 
@@ -1657,13 +1682,13 @@ CONTAINS
             do i = dim1b, dim1e
                m = m + 1
                ldof(m) = (iam * lsize) + (i - dim1b + 1) +                    &
-                    (dimsizes(1)*((j - dim2b) + (dimsizes(2)*(k - dim3b))))
+                  (dimsizes(1)*((j - dim2b) + (dimsizes(2)*(k - dim3b))))
             end do
          end do
       end do
       call pio_initdecomp(pio_subsystem, PIO_DOUBLE, dimsizes, ldof, iodesc)
       call pio_write_darray(file, vdesc, iodesc,                              &
-           field(dim1b:dim1e,dim2b:dim2e,dim3b:dim3e), ierr, fillval)
+         field(dim1b:dim1e,dim2b:dim2e,dim3b:dim3e), ierr, fillval)
       call pio_freedecomp(file, iodesc)
       deallocate(ldof)
       ! Compute the bounds decomposition and write field bounds
@@ -1690,7 +1715,7 @@ CONTAINS
 
    !===========================================================================
    subroutine dump_field_4d_d(fieldname, dim1b, dim1e, dim2b, dim2e,          &
-        dim3b, dim3e, dim4b, dim4e, field, compute_maxdim_in, fill_value)
+      dim3b, dim3e, dim4b, dim4e, field, compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
       use pio,            only: pio_offset_kind, pio_enddef
       use pio,            only: pio_double, pio_int, pio_write_darray
@@ -1750,13 +1775,13 @@ CONTAINS
       ! Define dimensions
       if (compute_maxdim) then
          call MPI_allreduce((dim1e - dim1b + 1), dimsizes(1), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
          call MPI_allreduce((dim2e - dim2b + 1), dimsizes(2), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
          call MPI_allreduce((dim3e - dim3b + 1), dimsizes(3), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
          call MPI_allreduce((dim4e - dim4b + 1), dimsizes(4), 1, MPI_integer, &
-              mpi_max, mpicom, ierr)
+            mpi_max, mpicom, ierr)
       else
          dimsizes(1) = dim1e - dim1b + 1
          dimsizes(2) = dim2e - dim2b + 1
@@ -1772,7 +1797,7 @@ CONTAINS
       ! Define the variables
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-           (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
       ierr = pio_put_att(file, vdesc, '_FillValue', fillval)
       ierr = pio_enddef(file)
 
@@ -1786,16 +1811,16 @@ CONTAINS
                do i = dim1b, dim1e
                   m = m + 1
                   ldof(m) = (iam * lsize) + (i - dim1b + 1) +                 &
-                       (dimsizes(1)*((j - dim2b) +                            &
-                       (dimsizes(2)*((k - dim3b) + dimsizes(3)*(l - dim4b)))))
+                     (dimsizes(1)*((j - dim2b) +                            &
+                     (dimsizes(2)*((k - dim3b) + dimsizes(3)*(l - dim4b)))))
                end do
             end do
          end do
       end do
       call pio_initdecomp(pio_subsystem, PIO_DOUBLE, dimsizes, ldof, iodesc)
       call pio_write_darray(file, vdesc, iodesc,                              &
-           field(dim1b:dim1e,dim2b:dim2e,dim3b:dim3e,dim4b:dim4e),            &
-           ierr, fillval)
+         field(dim1b:dim1e,dim2b:dim2e,dim3b:dim3e,dim4b:dim4e),            &
+         ierr, fillval)
       call pio_freedecomp(file, iodesc)
       deallocate(ldof)
       ! Compute the bounds decomposition and write field bounds
@@ -1824,7 +1849,7 @@ CONTAINS
 
    !===========================================================================
    subroutine dump_field_6d_d(fieldname, dimbs, dimes, field,                 &
-        compute_maxdim_in, fill_value)
+      compute_maxdim_in, fill_value)
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
       use pio,            only: pio_offset_kind, pio_enddef
       use pio,            only: pio_double, pio_int, pio_write_darray
@@ -1880,7 +1905,7 @@ CONTAINS
       if (compute_maxdim) then
          do i1 = 1, 6
             call MPI_allreduce((dimes(i1) - dimbs(i1) + 1), dimsizes(i1), 1,  &
-                 MPI_integer, mpi_max, mpicom, ierr)
+               MPI_integer, mpi_max, mpicom, ierr)
          end do
       else
          do i1 = 1, 6
@@ -1895,7 +1920,7 @@ CONTAINS
       call cam_pio_def_dim(file, 'bounds', size(bounds, 1), bnddimid)
       ! Define the variables
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-           (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       ierr = pio_put_att(file, vdesc, '_FillValue', fillval)
       ierr = pio_enddef(file)
@@ -1932,9 +1957,9 @@ CONTAINS
       end do
       call pio_initdecomp(pio_subsystem, PIO_DOUBLE, dimsizes, ldof, iodesc)
       call pio_write_darray(file, vdesc, iodesc,                              &
-           field(dimbs(1):dimes(1),dimbs(2):dimes(2),dimbs(3):dimes(3),       &
-           dimbs(4):dimes(4),dimbs(5):dimes(5),dimbs(6):dimes(6)), ierr,      &
-           fillval)
+         field(dimbs(1):dimes(1),dimbs(2):dimes(2),dimbs(3):dimes(3),       &
+         dimbs(4):dimes(4),dimbs(5):dimes(5),dimbs(6):dimes(6)), ierr,      &
+         fillval)
       call pio_freedecomp(file, iodesc)
       deallocate(ldof)
       ! Compute the bounds decomposition and write field bounds
