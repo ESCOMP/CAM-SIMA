@@ -132,24 +132,15 @@ contains
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
     module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
         ! Module(s) from CAM-SIMA.
-        use air_composition, only: thermodynamic_active_species_num, &
-                                   thermodynamic_active_species_liq_num, &
-                                   thermodynamic_active_species_ice_num, &
-                                   thermodynamic_active_species_idx, thermodynamic_active_species_idx_dycore, &
-                                   thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
-                                   thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
         use cam_abortutils, only: check_allocate
         use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
         use cam_control_mod, only: initial_run
         use cam_initfiles, only: initial_file_get_id, topo_file_get_id
         use cam_logfile, only: debugout_debug, debugout_info
         use cam_pio_utils, only: clean_iodesc_list
-        use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
         use dyn_coupling, only: dyn_exchange_constituent_states
         use inic_analytic, only: analytic_ic_active
-        use physics_types, only: dycore_energy_consistency_adjust
         use runtime_obj, only: runtime_options
-        use string_utils, only: stringify
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: std_name_len
@@ -174,14 +165,6 @@ contains
         nullify(pio_init_file)
         nullify(pio_topo_file)
 
-        ! Set the energy formula of dynamical core to MPAS for use in `cam_thermo`.
-        energy_formula_dycore = energy_formula_dycore_mpas
-
-        ! The total energy of dynamical core, which uses "MPAS formula" as set above, is not consistent with
-        ! that of CAM physics, which uses "FV formula". Therefore, temperature and temperature tendency adjustments
-        ! are needed at the end of each physics time step.
-        dycore_energy_consistency_adjust = .true.
-
         allocate(constituent_name(num_advected), stat=ierr)
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
 
@@ -195,41 +178,14 @@ contains
 
         call dyn_debug_print(debugout_info, 'Defining MPAS scalars and scalar tendencies')
 
-        ! Inform MPAS about constituent names and their corresponding waterness.
+        ! Inform MPAS about the constituent names and their corresponding waterness.
         call mpas_dynamical_core % define_scalar(constituent_name, is_water_species)
 
         deallocate(constituent_name)
         deallocate(is_water_species)
 
-        ! Provide mapping information between MPAS scalars and constituent names to CAM-SIMA.
-        do i = 1, thermodynamic_active_species_num
-            thermodynamic_active_species_idx_dycore(i) = &
-                mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_idx(i))
-        end do
-
-        do i = 1, thermodynamic_active_species_liq_num
-            thermodynamic_active_species_liq_idx_dycore(i) = &
-                mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_liq_idx(i))
-        end do
-
-        do i = 1, thermodynamic_active_species_ice_num
-            thermodynamic_active_species_ice_idx_dycore(i) = &
-                mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_ice_idx(i))
-        end do
-
-        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_num = ' // &
-            stringify([thermodynamic_active_species_num]))
-        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_liq_num = ' // &
-            stringify([thermodynamic_active_species_liq_num]))
-        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_ice_num = ' // &
-            stringify([thermodynamic_active_species_ice_num]))
-
-        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_idx_dycore = [' // &
-            stringify(thermodynamic_active_species_idx_dycore) // ']')
-        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_liq_idx_dycore = [' // &
-            stringify(thermodynamic_active_species_liq_idx_dycore) // ']')
-        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_ice_idx_dycore = [' // &
-            stringify(thermodynamic_active_species_ice_idx_dycore) // ']')
+        call set_thermodynamic_active_species_mapping()
+        call set_thermodynamic_energy_formula()
 
         pio_init_file => initial_file_get_id()
         pio_topo_file => topo_file_get_id()
@@ -289,6 +245,79 @@ contains
 
         call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_init
+
+    !> Inform CAM-SIMA about the index mapping between MPAS scalars and CAM-SIMA constituents.
+    !> (KCW, 2025-07-17)
+    subroutine set_thermodynamic_active_species_mapping()
+        ! Module(s) from CAM-SIMA.
+        use air_composition, only: thermodynamic_active_species_num, &
+                                   thermodynamic_active_species_liq_num, &
+                                   thermodynamic_active_species_ice_num, &
+                                   thermodynamic_active_species_idx, thermodynamic_active_species_idx_dycore, &
+                                   thermodynamic_active_species_liq_idx, thermodynamic_active_species_liq_idx_dycore, &
+                                   thermodynamic_active_species_ice_idx, thermodynamic_active_species_ice_idx_dycore
+        use cam_logfile, only: debugout_debug
+        use string_utils, only: stringify
+
+        character(*), parameter :: subname = 'dyn_comp::set_thermodynamic_active_species_mapping'
+        integer :: i
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        do i = 1, thermodynamic_active_species_num
+            thermodynamic_active_species_idx_dycore(i) = &
+                mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_idx(i))
+        end do
+
+        do i = 1, thermodynamic_active_species_liq_num
+            thermodynamic_active_species_liq_idx_dycore(i) = &
+                mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_liq_idx(i))
+        end do
+
+        do i = 1, thermodynamic_active_species_ice_num
+            thermodynamic_active_species_ice_idx_dycore(i) = &
+                mpas_dynamical_core % map_mpas_scalar_index(thermodynamic_active_species_ice_idx(i))
+        end do
+
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_num = ' // &
+            stringify([thermodynamic_active_species_num]))
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_liq_num = ' // &
+            stringify([thermodynamic_active_species_liq_num]))
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_ice_num = ' // &
+            stringify([thermodynamic_active_species_ice_num]))
+
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_idx_dycore = [' // &
+            stringify(thermodynamic_active_species_idx_dycore) // ']')
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_liq_idx_dycore = [' // &
+            stringify(thermodynamic_active_species_liq_idx_dycore) // ']')
+        call dyn_debug_print(debugout_debug, 'thermodynamic_active_species_ice_idx_dycore = [' // &
+            stringify(thermodynamic_active_species_ice_idx_dycore) // ']')
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
+    end subroutine set_thermodynamic_active_species_mapping
+
+    !> Set the thermodynamic energy formula of dynamical core to MPAS.
+    !> (KCW, 2025-07-17)
+    subroutine set_thermodynamic_energy_formula()
+        ! Module(s) from CAM-SIMA.
+        use cam_logfile, only: debugout_debug
+        use cam_thermo_formula, only: energy_formula_dycore, energy_formula_dycore_mpas
+        use physics_types, only: dycore_energy_consistency_adjust
+
+        character(*), parameter :: subname = 'dyn_comp::set_thermodynamic_energy_formula'
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        ! Set the thermodynamic energy formula of dynamical core to MPAS for use in `cam_thermo`.
+        energy_formula_dycore = energy_formula_dycore_mpas
+
+        ! The total energy of dynamical core, which uses "MPAS formula" as set above, is not consistent with
+        ! that of CAM physics, which uses "FV formula". Therefore, temperature and temperature tendency adjustments
+        ! are needed at the end of each physics time step.
+        dycore_energy_consistency_adjust = .true.
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
+    end subroutine set_thermodynamic_energy_formula
 
     !> Check for consistency in topography data. The presence of topography file is inferred from the `pio_file` pointer.
     !> If topography file is used, check that the "PHIS" variable, which denotes surface geopotential,
