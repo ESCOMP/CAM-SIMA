@@ -456,7 +456,7 @@ subroutine test_pio_reader_0d_real_read()
     @assertEqual(press_ref_trop_value, press_ref_trop, tolerance=1.0e-7)
 
     ! Perform test cleanup:
-    deallocate(press_ref_trop
+    deallocate(press_ref_trop)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
 
