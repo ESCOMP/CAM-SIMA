@@ -28,3 +28,15 @@
   type = real | kind = kind_phys
   dimensions = (photolysis_wavelength_grid_section_dimension)
   protected = True
+[ surface_albedo ]
+  standard_name = surface_albedo_due_to_UV_and_VIS_direct
+  units = fraction
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ blackbody_temperature_at_surface ]
+  standard_name = blackbody_temperature_at_surface
+  type = real | kind = kind_phys
+  units = K
+  dimensions = (horizontal_dimension)
+  protected = True
