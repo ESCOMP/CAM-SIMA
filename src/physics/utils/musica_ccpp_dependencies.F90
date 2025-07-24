@@ -253,6 +253,8 @@ contains
                         'extraterrestrial_radiation_flux(photolysis_wavelength_grid_section_dimension)', &
                         file=__FILE__, line=__LINE__)
 
+    cam_in%asdir(:) = 0.1_kind_phys
+    cam_in%ts(:) = 292.3_kind_phys
     extraterrestrial_radiation_flux(:) = 1.0e14_kind_phys
     photolysis_wavelength_grid_interfaces = (/ &
       120.0e-9_kind_phys, &

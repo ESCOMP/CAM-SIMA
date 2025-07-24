@@ -596,7 +596,7 @@ contains
        cam_in%landfrac(i)  =  fldptr_lfrac(i)
     end do
 
-! Commented out until dimesions are figured out
+! Commented out until dimensions and usage are figured out
 #if 0
     ! Optional fields
 
@@ -678,8 +678,8 @@ contains
 #endif
 
 #if 0
-# Ignoring depvel for now as it has a problematic dimension and it was determined that it probably
-# will not be used in CAM-SIMA for some time
+! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species) 
+! and it was determined that it probably will not be used in CAM-SIMA for some time
     ! dry dep velocities
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -693,6 +693,7 @@ contains
 #endif
 
 #if 0
+! Commented out until water isotopes or carbon ccle fluxe are implemented in CAM-SIMA
     ! fields needed to calculate water isotopes to ocean evaporation processes
     call state_getfldptr(importState,  'So_ustar', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

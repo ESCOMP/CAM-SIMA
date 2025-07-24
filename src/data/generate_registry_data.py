@@ -1608,7 +1608,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             mfile.add_variable(var_node, run_env.logger)
             # Add variable to module dictionary in case it
             # is needed during code generation:
-            if local_name not in var_module_dict.keys():
+            if std_name not in var_module_dict.keys():
                 var_module_dict[std_name] = [mtable.module_name, local_name]
         # end for
         if htype == 'ddt':
