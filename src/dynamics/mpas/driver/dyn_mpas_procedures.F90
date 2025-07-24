@@ -21,7 +21,9 @@ module dyn_mpas_procedures
     public :: almost_equal
     public :: clamp
     public :: index_unique
+    public :: split
     public :: stringify
+    public :: tokenize
 
     interface almost_divisible
         module procedure almost_divisible_real32
@@ -39,6 +41,11 @@ module dyn_mpas_procedures
         module procedure clamp_real32
         module procedure clamp_real64
     end interface clamp
+
+    interface tokenize
+        module procedure tokenize_into_first_last
+        module procedure tokenize_into_tokens_separator
+    end interface tokenize
 contains
     !> Test if `a` is divisible by `b`, where `a` and `b` are both reals.
     !> (KCW, 2024-05-25)
@@ -297,6 +304,38 @@ contains
         index_unique = pack([(i, i = 1, n)], mask_unique)
     end function index_unique
 
+    !> Parse a string into tokens, one at a time. This subroutine implements the `split` intrinsic procedure as defined in
+    !> the Fortran 2023 language standard (Section 16.9.196). We implement it ourselves because the compiler support may
+    !> take years to become widespread.
+    !> (KCW, 2025-10-29)
+    pure subroutine split(string, set, pos, back)
+        character(*), intent(in) :: string, set
+        integer, intent(inout) :: pos
+        logical, optional, intent(in) :: back
+
+        integer :: offset
+
+        if (present(back)) then
+            if (back) then
+                offset = clamp(pos, 1, len(string) + 1)
+                pos = scan(string(1:offset - 1), set, back=.true.)
+
+                return
+            end if
+        end if
+
+        offset = clamp(pos, 0, len(string))
+        pos = scan(string(offset + 1:), set)
+
+        if (pos == 0) then
+            pos = len(string) + 1
+
+            return
+        end if
+
+        pos = offset + pos
+    end subroutine split
+
     !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
     !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
     !> If `value` contains exactly one element, the element will be stringified without using `separator`.
@@ -407,4 +446,65 @@ contains
 
         stringify = trim(buffer)
     end function stringify
+
+    !> Parse a string into tokens. This subroutine implements the `tokenize` intrinsic procedure as defined in
+    !> the Fortran 2023 language standard (Section 16.9.210). We implement it ourselves because the compiler support may
+    !> take years to become widespread.
+    !> (KCW, 2025-10-29)
+    pure subroutine tokenize_into_first_last(string, set, first, last)
+        character(*), intent(in) :: string, set
+        integer, allocatable, intent(out) :: first(:), last(:)
+
+        integer :: pos_start(len(string) + 1), pos_end(len(string) + 1)
+        integer :: l, n, pos
+
+        l = len(string)
+        n = 0
+        pos = 0
+
+        do while (pos < l + 1)
+            n = n + 1
+            pos_start(n) = pos + 1
+
+            call split(string, set, pos)
+
+            pos_end(n) = pos - 1
+        end do
+
+        allocate(first(n), last(n))
+
+        first(:) = pos_start(1:n)
+        last(:) = pos_end(1:n)
+    end subroutine tokenize_into_first_last
+
+    !> Parse a string into tokens. This subroutine implements the `tokenize` intrinsic procedure as defined in
+    !> the Fortran 2023 language standard (Section 16.9.210). We implement it ourselves because the compiler support may
+    !> take years to become widespread.
+    !> (KCW, 2025-10-29)
+    pure subroutine tokenize_into_tokens_separator(string, set, tokens, separator)
+        character(*), intent(in) :: string, set
+        character(:), allocatable, intent(out) :: tokens(:)
+        character(:), allocatable, optional, intent(out) :: separator(:)
+
+        integer, allocatable :: first(:), last(:)
+        integer :: i, n
+
+        call tokenize(string, set, first, last)
+
+        n = size(first)
+
+        allocate(character(maxval(last - first) + 1) :: tokens(n))
+
+        do i = 1, n
+            tokens(i) = string(first(i):last(i))
+        end do
+
+        if (present(separator)) then
+            allocate(character(1) :: separator(n - 1))
+
+            do i = 1, n - 1
+                separator(i) = string(last(i) + 1:last(i) + 1)
+            end do
+        end if
+    end subroutine tokenize_into_tokens_separator
 end module dyn_mpas_procedures
