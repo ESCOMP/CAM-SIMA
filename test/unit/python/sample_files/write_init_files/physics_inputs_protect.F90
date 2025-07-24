@@ -34,6 +34,7 @@ CONTAINS
       use spmd_utils,                   only: masterproc
       use shr_kind_mod,                 only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,                 only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,                 only: read_constituent_dimensioned_field
       use cam_ccpp_cap,                 only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                   only: kind_phys
       use phys_vars_init_check_protect, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
@@ -82,7 +83,10 @@ CONTAINS
       ! Logical to default optional argument to False:
       logical                    :: use_init_variables
 
-      ! Initalize missing and non-initialized variables strings:
+      ! Get constituent properties pointer:
+      const_props => cam_model_const_properties()
+
+      ! Initialize missing and non-initialized variables strings:
       missing_required_vars = ' '
       protected_non_init_vars = ' '
       sep = ''
@@ -172,7 +176,6 @@ CONTAINS
 
       ! Read in constituent variables if not using init variables
       field_data_ptr => cam_constituents_array()
-      const_props => cam_model_const_properties()
 
       ! Iterate over all registered constituents
       do constituent_idx = 1, size(const_props)
@@ -209,7 +212,7 @@ CONTAINS
                call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
                field_data_ptr(:,:,constituent_idx) = constituent_min_value
                if (masterproc) then
-                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'
+                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', constituent_min_value
                end if
             end if
          end if

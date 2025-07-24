@@ -739,14 +739,21 @@ def get_dimension_info(hvar):
        - The local variable name of the vertical dimension (or None)
        - True if <hvar> has one dimension which is a horizontal dimension or
             if <hvar> has two dimensions (horizontal and vertical)
+       - Flag if any dimensions are number_of_ccpp_constituents and needs
+            reading separate variables by constituent and reassembled into
+            host model indices.
     """
     vdim_name = None
     legal_dims = False
     fail_reason = ""
+
     dims = hvar.get_dimensions()
     levnm = hvar.has_vertical_dimension()
+    has_constituent_dim = any('number_of_ccpp_constituents' in dim for dim in dims)
+
     # <hvar> is only 'legal' for 2 or 3 dimensional fields (i.e., 1 or 2
-    #    dimensional variables). The second dimension must be vertical.
+    #    dimensional variables).
+    # The second dimension must either be vertical or number of constituents.
     # XXgoldyXX: If we ever need to read scalars, it would have to be
     #            done using global attributes, not 'infld'.
     ldims = len(dims)
@@ -758,7 +765,17 @@ def get_dimension_info(hvar):
         fail_reason += f"{suff}{lname} has no horizontal dimension"
         suff = "; "
     # end if
-    if (ldims > 2) or ((ldims > 1) and (not levnm)):
+
+    if has_constituent_dim:
+        # A special case where any dimensions include number_of_ccpp_constituents,
+        # in this case the variable needs to be suffixed by an underscore plus the constituent name
+        # and read and reassembled separately into host model constituent indices
+        # based on constituent name.
+        # This case will be handled separately.
+        legal_dims = True
+    elif (ldims > 2) or ((ldims > 1) and (not levnm)):
+        # The regular case where the second dimension must be vertical,
+        # and higher dimensions are unsupported.
         legal_dims = False
         unsupp = []
         for dim in dims:
@@ -785,6 +802,7 @@ def get_dimension_info(hvar):
         # end if
         suff = "; "
     # end if
+
     if legal_dims and levnm:
         # <hvar> should be legal, find the correct local name for the
         #    vertical dimension
@@ -808,7 +826,8 @@ def get_dimension_info(hvar):
             raise ValueError(f"Vertical dimension, '{levnm}', not found")
         # end if
     # end if
-    return vdim_name, legal_dims, fail_reason
+
+    return vdim_name, legal_dims, fail_reason, has_constituent_dim
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                phys_check_fname_str, constituent_set,
@@ -850,7 +869,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
-        levnm, call_read_field, reason = get_dimension_info(hvar)
+        levnm, call_read_field, reason, has_constituent_read = get_dimension_info(hvar)
         if hvar.get_prop_value('protected'):
             call_read_field = False
             if reason:
@@ -860,14 +879,23 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
             # end if
             lvar = hvar.get_prop_value('local_name')
             reason += f"{suff}{lvar} is a protected variable"
+        # end if
+
         # Set "read_field" call string:
         if call_read_field:
-            # Replace vertical dimension with local name
-            call_str = "call read_field(file, " +                             \
-                       f"'{var_stdname}', input_var_names(:,name_idx), "
+            if has_constituent_read:
+                # Special case for constituent-dimension variables.
+                call_str = f"call read_constituent_dimensioned_field(const_props, file, '{var_stdname}', input_var_names(:,name_idx), "
+            else:
+                # Replace vertical dimension with local name
+                call_str = "call read_field(file, " +                             \
+                           f"'{var_stdname}', input_var_names(:,name_idx), "
+            # end if
+
             if levnm is not None:
                 call_str += f"'{levnm}', "
             # end if
+
             err_on_not_found_string = ""
             if var_stdname in vars_init_value:
                 # if initial value is available, do not throw error when not found in initial condition file.
@@ -903,7 +931,8 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
-                                   "prot_no_init_idx", "const_idx"]],
+                                   "prot_no_init_idx", "const_idx",
+                                   "read_constituent_dimensioned_field"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables", 
                                    "cam_constituents_array", 
                                    "cam_model_const_properties"]],
@@ -967,8 +996,13 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("logical                    :: use_init_variables", 2)
     outfile.blank_line()
 
+    # Prepare constituent properties pointer for later usage:
+    outfile.comment("Get constituent properties pointer:", 2)
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
     # Initialize variables:
-    outfile.comment("Initalize missing and non-initialized variables strings:",
+    outfile.comment("Initialize missing and non-initialized variables strings:",
                     2)
     outfile.write("missing_required_vars = ' '", 2)
     outfile.write("protected_non_init_vars = ' '", 2)
@@ -1103,7 +1137,6 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # Read in constituent data
     outfile.comment("Read in constituent variables if not using init variables", 2)
     outfile.write("field_data_ptr => cam_constituents_array()", 2)
-    outfile.write("const_props => cam_model_const_properties()", 2)
     outfile.blank_line()
     outfile.comment("Iterate over all registered constituents", 2)
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
@@ -1138,7 +1171,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)", 5)
     outfile.write("field_data_ptr(:,:,constituent_idx) = constituent_min_value", 5)
     outfile.write("if (masterproc) then", 5)
-    outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'", 6)
+    outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', constituent_min_value", 6)
     outfile.write("end if", 5)
     outfile.write("end if", 4)
     outfile.write("end if", 3)
@@ -1191,7 +1224,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
-        levnm, call_check_field, reason = get_dimension_info(hvar)
+        levnm, call_check_field, reason, has_constituent_read = get_dimension_info(hvar)
+
+        # If this is a constituent-indexed field, do not check it for now.
+        if has_constituent_read:
+            continue
+        # end if
 
         # Set "check_field" call string:
         if call_check_field:

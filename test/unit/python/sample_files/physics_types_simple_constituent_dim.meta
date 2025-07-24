@@ -1,0 +1,33 @@
+[ccpp-table-properties]
+  name = physics_types_simple_constituent_dim
+  type = module
+[ccpp-arg-table]
+  name = physics_types_simple_constituent_dim
+  type = module
+[ theta ]
+  standard_name = potential_temperature
+  units = K
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension)
+[ slp ]
+  standard_name = air_pressure_at_sea_level
+  units = Pa
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ eddy_len ]
+  standard_name = eddy_length_scale
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ cool_cat_for_each_const ]
+  standard_name = super_cool_cat_every_const
+  long_name = The coolest imaginable tendency per constituent
+  units = kg kg-1 s-1
+  type = real
+  dimensions = (horizontal_dimension, number_of_ccpp_constituents)
+[ cool_default_cat_for_each_const ]
+  standard_name = super_cool_cat_with_default_every_const
+  long_name = The coolest imaginable tendency per constituent now with a default
+  units = kg kg-1 s-1
+  type = real
+  dimensions = (horizontal_dimension, number_of_ccpp_constituents)

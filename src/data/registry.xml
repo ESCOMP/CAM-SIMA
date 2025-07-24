@@ -530,8 +530,10 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>cp_or_cv_dycore</ic_file_input_names>
     </variable>
+
     <!-- Constituent Variables -->
     <!-- These are only used to set possible IC file input names, as the constituents object handles allocation. -->
+    <!-- Note: the first IC file input name should correspond to the short name of the constituent used in CAM, in order to facilitate reading constituent-dimensioned input fields. -->
     <variable local_name="q"
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
