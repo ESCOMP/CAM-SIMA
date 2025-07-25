@@ -638,7 +638,7 @@ subroutine test_pio_reader_3d_real_read()
     @assertEqual('', errmsg)
 
     ! Check that the variable's properties are correct:
-    @assert(allocated(vmr_ref))
+    @assertTrue(allocated(vmr_ref))
     @assertEqual(2, size(vmr_ref, dim=1))
     @assertEqual(20, size(vmr_ref, dim=2))
     @assertEqual(14, size(vmr_ref, dim=3))
