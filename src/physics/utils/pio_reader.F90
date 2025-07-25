@@ -1550,7 +1550,7 @@ contains
       !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
       !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.   
+      !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
@@ -1672,7 +1672,7 @@ contains
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
       !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions    
+      !data depending on the NetCDF version, so the dimensions
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
@@ -1798,7 +1798,7 @@ contains
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
       !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions 
+      !data depending on the NetCDF version, so the dimensions
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled

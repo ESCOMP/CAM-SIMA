@@ -32,7 +32,7 @@ subroutine test_pio_reader_open_close_file()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -44,7 +44,7 @@ subroutine test_pio_reader_open_close_file()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Check that reader was allocated successfully:
     @assertTrue(allocated(reader))
@@ -72,6 +72,7 @@ subroutine test_pio_reader_open_close_file()
 
     ! Deallocate reader object:
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_open_close_file
 
@@ -87,7 +88,7 @@ subroutine test_pio_reader_already_opened_file_err()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -103,7 +104,7 @@ subroutine test_pio_reader_already_opened_file_err()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Attempt to open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -118,6 +119,7 @@ subroutine test_pio_reader_already_opened_file_err()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_already_opened_file_err
 
@@ -135,7 +137,7 @@ subroutine test_pio_reader_no_file_err()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -151,7 +153,7 @@ subroutine test_pio_reader_no_file_err()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Attempt to open non-existent file:
     call reader%open_file(fname, errmsg, errcode)
@@ -162,6 +164,7 @@ subroutine test_pio_reader_no_file_err()
 
     ! Perform test cleanup:
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_no_file_err
 
@@ -179,7 +182,7 @@ subroutine test_pio_reader_1d_int_read()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -195,7 +198,7 @@ subroutine test_pio_reader_1d_int_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -219,6 +222,7 @@ subroutine test_pio_reader_1d_int_read()
     deallocate(pressure)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_1d_int_read
 
@@ -234,7 +238,7 @@ subroutine test_pio_reader_2d_int_read()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -249,7 +253,7 @@ subroutine test_pio_reader_2d_int_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -274,6 +278,7 @@ subroutine test_pio_reader_2d_int_read()
     deallocate(minor_limits_gpt_lower)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_2d_int_read
 !----------------------------------------
@@ -288,7 +293,7 @@ subroutine test_pio_reader_3d_int_read()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -303,7 +308,7 @@ subroutine test_pio_reader_3d_int_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -330,6 +335,7 @@ subroutine test_pio_reader_3d_int_read()
     deallocate(key_species)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_3d_int_read
 
@@ -345,7 +351,7 @@ subroutine test_pio_reader_1d_char_read()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -360,7 +366,7 @@ subroutine test_pio_reader_1d_char_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -402,6 +408,7 @@ subroutine test_pio_reader_1d_char_read()
     deallocate(gas_names)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_1d_char_read
 
@@ -419,7 +426,7 @@ subroutine test_pio_reader_0d_real_read()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -437,7 +444,7 @@ subroutine test_pio_reader_0d_real_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -459,6 +466,7 @@ subroutine test_pio_reader_0d_real_read()
     deallocate(press_ref_trop)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_0d_real_read
 
@@ -476,7 +484,7 @@ subroutine test_pio_reader_1d_real_read()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -494,7 +502,7 @@ subroutine test_pio_reader_1d_real_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -517,6 +525,7 @@ subroutine test_pio_reader_1d_real_read()
     deallocate(press_ref)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_1d_real_read
 
@@ -534,7 +543,7 @@ subroutine test_pio_reader_2d_real_read()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -553,7 +562,7 @@ subroutine test_pio_reader_2d_real_read()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -579,6 +588,7 @@ subroutine test_pio_reader_2d_real_read()
     deallocate(bnd_limits_wavenumber)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_2d_real_read
 !----------------------------------------
@@ -595,7 +605,7 @@ subroutine test_pio_reader_3d_real_read()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -613,10 +623,9 @@ subroutine test_pio_reader_3d_real_read()
     real(kind_phys), parameter :: vmr_ref_absb = 1.99036093_kind_phys
     real(kind_phys), parameter :: vmr_ref_alay = 14._kind_phys
 
-
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -644,6 +653,7 @@ subroutine test_pio_reader_3d_real_read()
     deallocate(vmr_ref)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_3d_real_read
 
@@ -665,7 +675,7 @@ subroutine test_pio_reader_4d_real_read_with_dims()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -695,7 +705,7 @@ subroutine test_pio_reader_4d_real_read_with_dims()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -746,6 +756,7 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     deallocate(kmajor)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_4d_real_read_with_dims
 
@@ -769,7 +780,7 @@ subroutine test_pio_reader_int_get_var_file_not_opened_err()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -783,7 +794,7 @@ subroutine test_pio_reader_int_get_var_file_not_opened_err()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Attempt to read variable without opening file:
     call reader%get_var("pressure", pressure, errmsg, errcode)
@@ -794,6 +805,7 @@ subroutine test_pio_reader_int_get_var_file_not_opened_err()
 
     ! Perform test cleanup:
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_int_get_var_file_not_opened_err
 
@@ -810,7 +822,7 @@ subroutine test_pio_reader_char_get_var_file_not_opened_err()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -824,7 +836,7 @@ subroutine test_pio_reader_char_get_var_file_not_opened_err()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Attempt to read variable without opening file:
     call reader%get_var("gas_names", gas_names, errmsg, errcode)
@@ -835,6 +847,8 @@ subroutine test_pio_reader_char_get_var_file_not_opened_err()
 
     ! Perform test cleanup:
     deallocate(reader)
+    nullify(reader)
+
 end subroutine test_pio_reader_char_get_var_file_not_opened_err
 
 !----------------------------------------
@@ -852,7 +866,7 @@ subroutine test_pio_reader_real_get_var_file_not_opened_err()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -866,7 +880,7 @@ subroutine test_pio_reader_real_get_var_file_not_opened_err()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Attempt to read variable without opening file:
     call reader%get_var("press_ref", press_ref, errmsg, errcode)
@@ -877,6 +891,8 @@ subroutine test_pio_reader_real_get_var_file_not_opened_err()
 
     ! Perform test cleanup:
     deallocate(reader)
+    nullify(reader)
+
 end subroutine test_pio_reader_real_get_var_file_not_opened_err
 
 !----------------------------------------
@@ -896,7 +912,7 @@ subroutine test_pio_reader_get_var_open_close_err()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -913,7 +929,7 @@ subroutine test_pio_reader_get_var_open_close_err()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -930,6 +946,7 @@ subroutine test_pio_reader_get_var_open_close_err()
 
     ! Perform test cleanup:
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_get_var_open_close_err
 
@@ -945,7 +962,7 @@ subroutine test_pio_reader_int_get_var_missing_var()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -962,7 +979,7 @@ subroutine test_pio_reader_int_get_var_missing_var()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -977,6 +994,7 @@ subroutine test_pio_reader_int_get_var_missing_var()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_int_get_var_missing_var
 
@@ -993,7 +1011,7 @@ subroutine test_pio_reader_char_get_var_missing_var()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -1010,7 +1028,7 @@ subroutine test_pio_reader_char_get_var_missing_var()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -1025,6 +1043,7 @@ subroutine test_pio_reader_char_get_var_missing_var()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_char_get_var_missing_var
 
@@ -1043,7 +1062,7 @@ subroutine test_pio_reader_real_get_var_missing_var()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -1060,7 +1079,7 @@ subroutine test_pio_reader_real_get_var_missing_var()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -1075,6 +1094,7 @@ subroutine test_pio_reader_real_get_var_missing_var()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_real_get_var_missing_var
 
@@ -1091,7 +1111,7 @@ subroutine test_pio_reader_int_get_var_bad_rank()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -1108,7 +1128,7 @@ subroutine test_pio_reader_int_get_var_bad_rank()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -1123,6 +1143,7 @@ subroutine test_pio_reader_int_get_var_bad_rank()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_int_get_var_bad_rank
 
@@ -1139,7 +1160,7 @@ subroutine test_pio_reader_char_get_var_bad_rank()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -1156,7 +1177,7 @@ subroutine test_pio_reader_char_get_var_bad_rank()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -1171,6 +1192,7 @@ subroutine test_pio_reader_char_get_var_bad_rank()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_char_get_var_bad_rank
 
@@ -1189,7 +1211,7 @@ subroutine test_pio_reader_real_get_var_bad_rank()
 
     use ccpp_kinds,     only: kind_phys
 
-    class(abstract_netcdf_reader_t), allocatable :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
     character(len=256) :: errmsg
@@ -1206,7 +1228,7 @@ subroutine test_pio_reader_real_get_var_bad_rank()
 
     ! Begin test:
 
-    reader = create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
@@ -1221,6 +1243,7 @@ subroutine test_pio_reader_real_get_var_bad_rank()
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
+    nullify(reader)
 
 end subroutine test_pio_reader_real_get_var_bad_rank
 
