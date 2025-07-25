@@ -632,16 +632,14 @@
     <!-- depvel (dry_deposition_velocity_from_coupler) is being intentionally ignored as one of the dimensions is problematic
          and it was determined that it probably will not be used in CAM-SIMA for some time -->
 
-    <!-- Commented out until dimension figured out
     <variable local_name="dstflx"
               standard_name="surface_upward_dust_fluxes_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <!-- Commented out until dimension figured out
     <variable local_name="fco2_lnd"
@@ -691,7 +689,7 @@
               standard_name="top_height_for_vertically_distributed_fire_emissions_from_coupler"
               units="m" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>fireztop cam_in_fireztop</ic_file_input_names>
     </variable>
@@ -740,12 +738,12 @@
       <ic_file_input_names>lwup cam_in_lwup</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until dimension figured out
+    <!-- Commented out until MEGAN dimension figured out
     <variable local_name="meganflx"
               standard_name="meganflx_tbd"
               units="tbd" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension shr_megan_mechmomps_n</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>meganflx cam_in_meganflx</ic_file_input_names>
     </variable>
@@ -779,16 +777,14 @@
     </variable>
     END COMMENT     -->
 
-    <!-- Commented out until standard name/units are resolved
     <variable local_name="re"
               standard_name="re_tbd"
               units="tbd" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>re cam_in_re</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="shf"
               standard_name="surface_upward_sensible_heat_flux_from_coupler"
@@ -826,16 +822,14 @@
     </variable>
     END COMMENT     -->
 
-    <!-- Commented out until dimension figured out
     <variable local_name="ssq"
               standard_name="sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ssq cam_in_ssq</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="sst"
               standard_name="sea_surface_temperature_from_coupler"
@@ -872,38 +866,32 @@
       <ic_file_input_names>u10 cam_in_u10</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until dimension figured out
     <variable local_name="u10withgusts"
               standard_name="wind_speed_plus_parameterized_wind_gusts_at_10m_from_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>u10withgusts cam_in_u10withgusts</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
-    <!-- Commented out until dimension figured out
     <variable local_name="ugustout"
               standard_name="parameterized_wind_gust_at_10m_from_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ugustout cam_in_ugustout</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
-    <!-- Commented out until water isotopes are enabled
     <variable local_name="ustar"
               standard_name="surface_friction_velocity_from_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension ccpp_constant_four</dimensions>
+      <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ustar cam_in_ustar</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="wsx"
               standard_name="surface_eastward_wind_stress_from_coupler"
