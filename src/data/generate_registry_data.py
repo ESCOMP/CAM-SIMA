@@ -1388,7 +1388,7 @@ class File:
         outfile.write(f'use shr_infnan_mod,   only: {nanmods}', 2)
         outfile.write('use cam_abortutils,   only: endrun', 2)
 
-        #Bring in all host dimension variables
+        #Bring all host dimension variables
         #in via use statments:
         outfile.blank_line()
         for dim in sorted(self.__var_dict.known_dimensions):
