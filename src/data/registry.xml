@@ -641,7 +641,6 @@
       <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until dimension figured out
     <variable local_name="fco2_lnd"
               standard_name="co2_flux_from_land_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
@@ -650,9 +649,7 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>fco2_lnd cam_in_fco2_lnd</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
-    <!-- Commented out until dimension figured out
     <variable local_name="fco2_ocn"
               standard_name="co2_flux_from_ocean_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
@@ -661,9 +658,7 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>fco2_ocn cam_in_fco2_ocn</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
-    <!-- Commented out until dimension figured out
     <variable local_name="fdms"
               standard_name="dms_flux_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
@@ -672,14 +667,13 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>fdms cam_in_fdms</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
-    <!-- Commented out until dimension figured out
+    <!-- Commented out until fire dimension figured out
     <variable local_name="fireflx"
               standard_name="surface_upward_fire_compound_fluxes_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension </dimensions>
+      <dimensions>horizontal_dimension shr_fire_emis_mechcomps_n</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>fireflx cam_in_fireflx</ic_file_input_names>
     </variable>
@@ -694,16 +688,14 @@
       <ic_file_input_names>fireztop cam_in_fireztop</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until dimension figured out
     <variable local_name="fv"
-              standard_name="surface_friction_velocity_from_coupler"
+              standard_name="surface_friction_velocity_over_land_from_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
+      <initial_value>0.1_kind_phys</initial_value>
       <ic_file_input_names>fv cam_in_fv</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="icefrac"
               standard_name="sea_ice_area_fraction_from_coupler"
@@ -766,16 +758,14 @@
       <ic_file_input_names>cam_in_qref</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until dimension figured out
     <variable local_name="ram1"
               standard_name="aerodynamical_resistance_at_surface_from_coupler"
               units="s m-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
+      <initial_value>0.1_kind_phys</initial_value>
       <ic_file_input_names>ram1 cam_in_ram1</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="re"
               standard_name="re_tbd"
@@ -811,7 +801,6 @@
       <ic_file_input_names>snowhland cam_in_snowhland</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until CARMA has been enabled
     <variable local_name="soilw"
               standard_name="volumetric_equilibrium_soil_moisture_from_coupler"
               units="m3 m-3" type="real" kind="kind_phys"
@@ -820,7 +809,6 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>soilw cam_in_soilw</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="ssq"
               standard_name="sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler"
@@ -885,7 +873,7 @@
     </variable>
 
     <variable local_name="ustar"
-              standard_name="surface_friction_velocity_from_coupler"
+              standard_name="surface_friction_velocity_over_ocean_from_coupler"
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -1239,13 +1227,13 @@
        <data>surface_albedo_due_to_uv_and_vis_diffuse_from_coupler</data>
        <data>surface_albedo_due_to_uv_and_vis_direct_from_coupler</data>
        <data>surface_upward_ccpp_constituent_fluxes_from_coupler</data>
-    <!-- Commented out <data>surface_upward_dust_fluxes_from_coupler</data> -->
-    <!-- Commented out <data>co2_flux_from_land_from_coupler</data> -->
-    <!-- Commented out   <data>co2_flux_from_ocean_from_coupler</data> -->
-    <!-- Commented out   <data>dms_flux_from_coupler</data> -->
+       <data>surface_upward_dust_fluxes_from_coupler</data>
+       <data>co2_flux_from_land_from_coupler</data>
+       <data>co2_flux_from_ocean_from_coupler</data>
+       <data>dms_flux_from_coupler</data>
     <!-- Commented out   <data>surface_upward_fire_compound_fluxes_from_coupler</data> -->
        <data>top_height_for_vertically_distributed_fire_emissions_from_coupler</data>
-    <!-- Commented out   <data>surface_friction_velocity_from_coupler</data> -->
+       <data>surface_friction_velocity_over_land_from_coupler</data>
        <data>sea_ice_area_fraction_from_coupler</data>
        <data>land_area_fraction_from_coupler</data>
        <data>surface_upward_latent_heat_flux_from_coupler</data>
@@ -1253,20 +1241,20 @@
     <!--   <data>meganflx_tbd</data> -->
        <data>ocean_area_fraction_from_coupler</data>
        <data>water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m_from_coupler</data>
-    <!-- Commented out   <data>aerodynamical_resistance_at_surface_from_coupler</data> -->
-    <!-- Commented out   <data>re_tbd</data> -->
+       <data>aerodynamical_resistance_at_surface_from_coupler</data>
+       <data>re_tbd</data>
        <data>surface_upward_sensible_heat_flux_from_coupler</data>
        <data>lwe_surface_snow_depth_over_ice_from_coupler</data>
        <data>lwe_surface_snow_depth_over_land_from_coupler</data>
-    <!-- Commented out   <data>volumetric_equilibrium_soil_moisture_from_coupler</data> -->
-    <!-- Commented out   <data>sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler</data> -->
+       <data>volumetric_equilibrium_soil_moisture_from_coupler</data>
+       <data>sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler</data>
        <data>sea_surface_temperature_from_coupler</data>
        <data>air_temperature_at_2m_from_coupler</data>
        <data>blackbody_temperature_at_surface_from_coupler</data>
        <data>wind_speed_at_10m_from_coupler</data>
-    <!-- Commented out   <data>wind_speed_plus_parameterized_wind_gusts_at_10m_from_coupler</data> -->
-    <!-- Commented out   <data>parameterized_wind_gust_at_10m_from_coupler</data> -->
-    <!-- Commented out   <data>surface_friction_velocity_from_coupler</data> -->
+       <data>wind_speed_plus_parameterized_wind_gusts_at_10m_from_coupler</data>
+       <data>surface_friction_velocity_over_ocean_from_coupler</data>
+       <data>parameterized_wind_gust_at_10m_from_coupler</data>
        <data>surface_eastward_wind_stress_from_coupler</data>
        <data>surface_northward_wind_stress_from_coupler</data>
     </ddt>
