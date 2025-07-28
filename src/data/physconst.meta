@@ -236,12 +236,6 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ ccpp_constant_four ]
-  standard_name = ccpp_constant_four
-  units = none
-  type = integer
-  dimensions = ()
-  protected = True
 [ rga ]
   standard_name = reciprocal_of_gravitational_acceleration
   units = s2 m-1
