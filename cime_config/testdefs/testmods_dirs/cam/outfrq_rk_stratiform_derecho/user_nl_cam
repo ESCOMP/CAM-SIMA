@@ -1,6 +1,6 @@
 ! these are QPC4 snapshots and require custom physical constant definitions.
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_before_c20250328.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_after_c20250328.nc'
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_before_c20250716.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_after_c20250716.nc'
 
 ! tolerances for testing
 ncdata_check_err = .true.
