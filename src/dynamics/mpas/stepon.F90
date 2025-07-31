@@ -72,7 +72,7 @@ contains
     ! Called by `cam_run3` in `src/control/cam_comp.F90`.
     subroutine stepon_run3(dtime_phys, cam_runtime_opts, cam_out, phys_state, dyn_in, dyn_out)
         ! Module(s) from CAM-SIMA.
-        use camsrfexch, only: cam_out_t
+        use physics_types, only: cam_out_t
         use dyn_comp, only: dyn_export_t, dyn_import_t, dyn_run
         use physics_types, only: physics_state
         use runtime_obj, only: runtime_options

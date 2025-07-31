@@ -211,7 +211,7 @@ contains
     use dshr_methods_mod , only : dshr_fldbun_getfldptr
     use dshr_strdata_mod , only : shr_strdata_advance
     use shr_kind_mod     , only : r8 => shr_kind_r8
-    use camsrfexch       , only : cam_out_t
+    use physics_types    , only : cam_out_t
     use time_manager     , only : get_curr_date
     use physics_grid     , only : columns_on_task
     use cam_logfile      , only : iulog
@@ -249,13 +249,10 @@ contains
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
 
-!Un-comment once cam_out data structure has been populated -JN
-#if 0
     do i = 1, columns_on_task
-       cam_out%nhx_nitrogen_flx(i) = dataptr1d_nhx(g)
-       cam_out%noy_nitrogen_flx(i) = dataptr1d_noy(g)
+       cam_out%nhx_nitrogen_flx(i) = dataptr1d_nhx(i)
+       cam_out%noy_nitrogen_flx(i) = dataptr1d_noy(i)
     end do
-#endif
 
   end subroutine stream_ndep_interp
 

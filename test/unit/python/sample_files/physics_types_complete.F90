@@ -78,14 +78,15 @@ module physics_types_complete
 
 CONTAINS
 
-  subroutine allocate_physics_types_complete_fields(horizontal_dimension,                         &
-       vertical_layer_dimension, number_of_constituents, set_init_val_in, reallocate_in)
+  subroutine allocate_physics_types_complete_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
+
+    use physics_grid,   only: horizontal_dimension=>columns_on_task
+    use vert_coord,   only: vertical_layer_dimension=>pver
+    use cam_constituents,   only: number_of_ccpp_constituents=>num_advected
+
     !! Dummy arguments
-    integer,           intent(in) :: horizontal_dimension
-    integer,           intent(in) :: vertical_layer_dimension
-    integer,           intent(in) :: number_of_constituents
     logical, optional, intent(in) :: set_init_val_in
     logical, optional, intent(in) :: reallocate_in
 
@@ -186,7 +187,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%q(horizontal_dimension, vertical_layer_dimension,                         &
-         number_of_constituents))
+         number_of_ccpp_constituents))
     if (set_init_val) then
       phys_state%q = nan
     end if

@@ -74,15 +74,15 @@
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension
-      number_of_constituents</dimensions>
+      number_of_ccpp_constituents</dimensions>
       <element standard_name="water_vapor_specific_humidity"
                index_name="index_of_water_vapor_specific_humidity"
-               index_pos="number_of_constituents">
+               index_pos="number_of_ccpp_constituents">
                <ic_file_input_names>Q Q_snapshot</ic_file_input_names>
       </element>
       <element standard_name="cloud_liquid_water_mixing_ratio_of_moist_air"
                index_name="index_of_cloud_liquid_water_mixing_ratio_of_moist_air"
-               index_pos="number_of_constituents">
+               index_pos="number_of_ccpp_constituents">
                <ic_file_input_names>CLDLIQ CLDLIQ_snapshot</ic_file_input_names>
       </element>
     </array>
@@ -109,4 +109,6 @@
     </variable>
   </file>
   <metadata_file>$SRCROOT/test/unit/python/sample_files/ref_pres.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
 </registry>

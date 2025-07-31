@@ -6,7 +6,6 @@
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
-  <metadata_file>$SRCROOT/src/control/camsrfexch.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/runtime_obj.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/physconst.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/orbital_data.meta</metadata_file>
@@ -431,6 +430,7 @@
       <data>tendency_of_eastward_wind_due_to_model_physics</data>
       <data>tendency_of_northward_wind_due_to_model_physics</data>
     </ddt>
+
     <variable local_name="phys_state"
               standard_name="physics_state_due_to_dynamics"
               units="None" type="physics_state">
@@ -575,50 +575,7 @@
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
     </variable>
 
-    <!-- cam_in Variables -->
-    <variable local_name="landfrac"
-              standard_name="land_area_fraction"
-              units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
-    </variable>
-    <variable local_name="ocnfrac"
-              standard_name="ocean_area_fraction"
-              units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>1.0_kind_phys</initial_value>
-      <ic_file_input_names>ocnfrac cam_in_ocnfrac</ic_file_input_names>
-    </variable>
-    <variable local_name="icefrac"
-              standard_name="sea_ice_area_fraction"
-              units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>icefrac cam_in_icefrac</ic_file_input_names>
-    </variable>
-    <variable local_name="snowhland"
-              standard_name="lwe_surface_snow_depth_over_land"
-              units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>snowhland cam_in_snowhland</ic_file_input_names>
-    </variable>
-    <variable local_name="sst"
-              standard_name="sea_surface_temperature"
-              units="K" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <!-- FIXME: this is a temporary initialization to allow CAM4/CAM7 suites to run standalone,
-           while SSTs are not being provided from another Earth system component. -->
-      <initial_value>273.15_kind_phys</initial_value>
-      <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
-    </variable>
-    <variable local_name="landm"
+   <variable local_name="landm"
               standard_name="smoothed_land_area_fraction"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
@@ -628,6 +585,734 @@
       <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
     </variable>
 
+    <!-- cam_in Variables -->
+    <variable local_name="aldif"
+              standard_name="surface_albedo_due_to_near_ir_diffuse_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>aldif cam_in_aldif</ic_file_input_names>
+    </variable>
+    <variable local_name="aldir"
+              standard_name="surface_albedo_due_to_near_ir_direct_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>aldir cam_in_aldir</ic_file_input_names>
+    </variable>
+    <variable local_name="asdif"
+              standard_name="surface_albedo_due_to_uv_and_vis_diffuse_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>asdif cam_in_asdif</ic_file_input_names>
+    </variable>
+    <variable local_name="asdir"
+              standard_name="surface_albedo_due_to_uv_and_vis_direct_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>asdir cam_in_asdir</ic_file_input_names>
+    </variable>
+    <variable local_name="cflx"
+              standard_name="surface_upward_ccpp_constituent_fluxes_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cflx cam_in_cflx</ic_file_input_names>
+    </variable>
+
+    <!-- data_flux_fuel is being intentionally ignored as it will only be needed for the online carbon cycle -->
+    <!-- data_flux_ocn is being intentionally ignored as it will only be needed for the online carbon cycle -->
+    <!-- depvel (dry_deposition_velocity_from_coupler) is being intentionally ignored as one of the dimensions is problematic
+         and it was determined that it probably will not be used in CAM-SIMA for some time -->
+
+    <variable local_name="dstflx"
+              standard_name="surface_upward_dust_fluxes_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
+    </variable>
+
+    <variable local_name="fco2_lnd"
+              standard_name="co2_flux_from_land_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>fco2_lnd cam_in_fco2_lnd</ic_file_input_names>
+    </variable>
+
+    <variable local_name="fco2_ocn"
+              standard_name="co2_flux_from_ocean_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>fco2_ocn cam_in_fco2_ocn</ic_file_input_names>
+    </variable>
+
+    <variable local_name="fdms"
+              standard_name="dms_flux_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>fdms cam_in_fdms</ic_file_input_names>
+    </variable>
+
+    <!-- Commented out until fire dimension figured out
+    <variable local_name="fireflx"
+              standard_name="surface_upward_fire_compound_fluxes_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension shr_fire_emis_mechcomps_n</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>fireflx cam_in_fireflx</ic_file_input_names>
+    </variable>
+    END COMMENT     -->
+
+    <variable local_name="fireztop"
+              standard_name="top_height_for_vertically_distributed_fire_emissions_from_coupler"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>fireztop cam_in_fireztop</ic_file_input_names>
+    </variable>
+
+    <variable local_name="fv"
+              standard_name="surface_friction_velocity_over_land_from_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.1_kind_phys</initial_value>
+      <ic_file_input_names>fv cam_in_fv</ic_file_input_names>
+    </variable>
+
+    <variable local_name="icefrac"
+              standard_name="sea_ice_area_fraction_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>icefrac cam_in_icefrac</ic_file_input_names>
+    </variable>
+    <variable local_name="landfrac"
+              standard_name="land_area_fraction_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
+    </variable>
+    <variable local_name="lhf"
+              standard_name="surface_upward_latent_heat_flux_from_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>lhf cam_in_lhf</ic_file_input_names>
+    </variable>
+    <variable local_name="lwup"
+              standard_name="longwave_upward_radiative_flux_at_surface_from_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>lwup cam_in_lwup</ic_file_input_names>
+    </variable>
+
+    <!-- Commented out until MEGAN dimension figured out
+    <variable local_name="meganflx"
+              standard_name="meganflx_tbd"
+              units="tbd" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension shr_megan_mechmomps_n</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>meganflx cam_in_meganflx</ic_file_input_names>
+    </variable>
+    END COMMENT     -->
+
+    <variable local_name="ocnfrac"
+              standard_name="ocean_area_fraction_from_coupler"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>1.0_kind_phys</initial_value>
+      <ic_file_input_names>ocnfrac cam_in_ocnfrac</ic_file_input_names>
+    </variable>
+    <variable local_name="qref"
+              standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m_from_coupler"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cam_in_qref</ic_file_input_names>
+    </variable>
+
+    <variable local_name="ram1"
+              standard_name="aerodynamical_resistance_at_surface_from_coupler"
+              units="s m-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.1_kind_phys</initial_value>
+      <ic_file_input_names>ram1 cam_in_ram1</ic_file_input_names>
+    </variable>
+
+    <variable local_name="re"
+              standard_name="re_tbd"
+              units="tbd" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>re cam_in_re</ic_file_input_names>
+    </variable>
+
+    <variable local_name="shf"
+              standard_name="surface_upward_sensible_heat_flux_from_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>shf cam_in_shf</ic_file_input_names>
+    </variable>
+    <variable local_name="snowhice"
+              standard_name="lwe_surface_snow_depth_over_ice_from_coupler"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>snowhice cam_in_snowhice</ic_file_input_names>
+    </variable>
+    <variable local_name="snowhland"
+              standard_name="lwe_surface_snow_depth_over_land_from_coupler"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>snowhland cam_in_snowhland</ic_file_input_names>
+    </variable>
+
+    <variable local_name="soilw"
+              standard_name="volumetric_equilibrium_soil_moisture_from_coupler"
+              units="m3 m-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>soilw cam_in_soilw</ic_file_input_names>
+    </variable>
+
+    <variable local_name="ssq"
+              standard_name="sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ssq cam_in_ssq</ic_file_input_names>
+    </variable>
+
+    <variable local_name="sst"
+              standard_name="sea_surface_temperature_from_coupler"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <!-- FIXME: this is a temporary initialization to allow CAM4/CAM7 suites to run standalone,
+           while SSTs are not being provided from another Earth system component. -->
+      <initial_value>273.15_kind_phys</initial_value>
+      <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
+    </variable>
+    <variable local_name="tref"
+              standard_name="air_temperature_at_2m_from_coupler"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>273.15_kind_phys</initial_value>
+      <ic_file_input_names>cam_in_tref</ic_file_input_names>
+    </variable>
+    <variable local_name="ts"
+              standard_name="blackbody_temperature_at_surface_from_coupler"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>273.15_kind_phys</initial_value>
+      <ic_file_input_names>ts cam_in_ts</ic_file_input_names>
+    </variable>
+    <variable local_name="u10"
+              standard_name="wind_speed_at_10m_from_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>u10 cam_in_u10</ic_file_input_names>
+    </variable>
+
+    <variable local_name="u10withgusts"
+              standard_name="wind_speed_plus_parameterized_wind_gusts_at_10m_from_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>u10withgusts cam_in_u10withgusts</ic_file_input_names>
+    </variable>
+
+    <variable local_name="ugustout"
+              standard_name="parameterized_wind_gust_at_10m_from_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ugustout cam_in_ugustout</ic_file_input_names>
+    </variable>
+
+    <variable local_name="ustar"
+              standard_name="surface_friction_velocity_over_ocean_from_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ustar cam_in_ustar</ic_file_input_names>
+    </variable>
+
+    <variable local_name="wsx"
+              standard_name="surface_eastward_wind_stress_from_coupler"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>wsx cam_in_wsx</ic_file_input_names>
+    </variable>
+    <variable local_name="wsy"
+              standard_name="surface_northward_wind_stress_from_coupler"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>wsy cam_in_wsy</ic_file_input_names>
+    </variable>
+
+    <!-- cam_out Variables -->
+    <variable local_name="bcphidry"
+              standard_name="dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>bcphidry cam_out_bcphidry</ic_file_input_names>
+    </variable>
+    <variable local_name="bcphiwet"
+              standard_name="wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>bcphiwet cam_out_bcphidwet</ic_file_input_names>
+    </variable>
+    <variable local_name="bcphodry"
+              standard_name="dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
+    </variable>
+    <variable local_name="co2diag"
+              standard_name="co2diag_tbd"
+              units="tbd" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
+    </variable>
+    <variable local_name="co2prog"
+              standard_name="co2prog_tbd"
+              units="tbd" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>co2prog cam_out_co2prog</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry1"
+              standard_name="dry_deposition_of_dust_bin1_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry1 cam_out_dstdry1</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry2"
+              standard_name="dry_deposition_of_dust_bin2_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry2 cam_out_dstdry2</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry3"
+              standard_name="dry_deposition_of_dust_bin3_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry3 cam_out_dstdry3</ic_file_input_names>
+    </variable>
+    <variable local_name="dstdry4"
+              standard_name="dry_deposition_of_dust_bin4_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstdry4 cam_out_dstdry4</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet1"
+              standard_name="wet_deposition_of_dust_bin1_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet1 cam_out_dstwet1</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet2"
+              standard_name="wet_deposition_of_dust_bin2_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet2 cam_out_dstwet2</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet3"
+              standard_name="wet_deposition_of_dust_bin3_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet3 cam_out_dstwet3</ic_file_input_names>
+    </variable>
+    <variable local_name="dstwet4"
+              standard_name="wet_deposition_of_dust_bin4_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>dstwet4 cam_out_dstwet4</ic_file_input_names>
+    </variable>
+    <variable local_name="flwds"
+              standard_name="longwave_downward_radiative_flux_at_surface_to_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>flwds cam_out_flwds</ic_file_input_names>
+    </variable>
+    <variable local_name="lightning_flash_freq"
+              standard_name="cloud_to_ground_lightning_flash_frequency_to_coupler"
+              units="min-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>lightning_flash_freq cam_out_lightning_flash_freq</ic_file_input_names>
+    </variable>
+    <variable local_name="netsw"
+              standard_name="net_shortwave_flux_at_surface_to_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>netsw cam_out_netsw</ic_file_input_names>
+    </variable>
+    <variable local_name="nhx_nitrogen_flx"
+              standard_name="amine_deposition_flux_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>nhx_nitrogen_flx cam_out_nhx_nitrogen_flx</ic_file_input_names>
+    </variable>
+    <variable local_name="noy_nitrogen_flx"
+              standard_name="nitrogen_oxides_deposition_flux_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>noy_nitrogen_flx cam_out_noy_nitrogen_flx</ic_file_input_names>
+    </variable>
+    <variable local_name="ocphidry"
+              standard_name="dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocphidry cam_out_ocphidry</ic_file_input_names>
+    </variable>
+    <variable local_name="ocphiwet"
+              standard_name="wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocphiwet cam_out_ocphiwet</ic_file_input_names>
+    </variable>
+    <variable local_name="ocphodry"
+              standard_name="dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface_to_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ocphodry cam_out_ocphodry</ic_file_input_names>
+    </variable>
+    <variable local_name="ozone"
+              standard_name="volume_mixing_ratio_of_ozone_wrt_dry_air_at_bottom_layer_to_coupler"
+              units="mol mol-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ozone cam_out_ozone</ic_file_input_names>
+    </variable>
+    <variable local_name="pbot"
+              standard_name="air_pressure_at_bottom_layer_to_coupler"
+              units="Pa" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>10e5_kind_phys</initial_value>
+      <ic_file_input_names>pbot cam_out_pbot</ic_file_input_names>
+    </variable>
+    <variable local_name="precc"
+              standard_name="lwe_convective_precipitation_rate_at_surface_to_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precc cam_out_precc</ic_file_input_names>
+    </variable>
+    <variable local_name="precl"
+              standard_name="lwe_large_scale_precipitation_rate_at_surface_to_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precl cam_out_precl</ic_file_input_names>
+    </variable>
+    <variable local_name="precsc"
+              standard_name="lwe_convective_snowfall_rate_at_surface_to_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precsc cam_out_precsc</ic_file_input_names>
+    </variable>
+    <variable local_name="precsl"
+              standard_name="lwe_large_scale_snowfall_rate_at_surface_to_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>precsl cam_out_precsl</ic_file_input_names>
+    </variable>
+    <variable local_name="psl"
+              standard_name="air_pressure_at_sea_level_to_coupler"
+              units="Pa" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>10e5_kind_phys</initial_value>
+      <ic_file_input_names>psl cam_out_psl</ic_file_input_names>
+    </variable>
+    <variable local_name="qbot"
+              standard_name="constituent_mixing_ratio_at_bottom_layer_to_coupler"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>qbot cam_out_qbot</ic_file_input_names>
+    </variable>
+    <variable local_name="rho"
+              standard_name="dry_air_density_at_bottom_layer_to_coupler"
+              units="kg m-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+     <!--Initial value assumes temperature of 273.15 K and pressure of 1000 hPa -->
+      <initial_value>1.275_kind_phys</initial_value>
+      <ic_file_input_names>rho cam_out_rho</ic_file_input_names>
+    </variable>
+    <variable local_name="soll"
+              standard_name="direct_solar_radiative_flux_at_surface_ge_700nm_to_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>soll cam_out_soll</ic_file_input_names>
+    </variable>
+    <variable local_name="solld"
+              standard_name="diffuse_solar_radiative_flux_at_surface_ge_700nm_to_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>solld cam_out_solld</ic_file_input_names>
+    </variable>
+    <variable local_name="sols"
+              standard_name="direct_solar_radiative_flux_at_surface_lt_700nm_to_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>sols cam_out_sols</ic_file_input_names>
+    </variable>
+    <variable local_name="solsd"
+              standard_name="diffuse_solar_radiative_flux_at_surface_lt_700nm_to_coupler"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>solsd cam_out_solsd</ic_file_input_names>
+    </variable>
+    <variable local_name="thbot"
+              standard_name="potential_temperature_wrt_surface_pressure_at_bottom_layer_to_coupler"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>273.15_kind_phys</initial_value>
+      <ic_file_input_names>thbot cam_out_thbot</ic_file_input_names>
+    </variable>
+    <variable local_name="tbot"
+              standard_name="air_temperature_at_bottom_layer_to_coupler"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>273.15_kind_phys</initial_value>
+      <ic_file_input_names>tbot cam_out_tbot</ic_file_input_names>
+    </variable>
+    <variable local_name="topo"
+              standard_name="surface_topographic_height_to_coupler"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>topo cam_out_topo</ic_file_input_names>
+    </variable>
+    <variable local_name="ubot"
+              standard_name="eastward_wind_at_bottom_layer_to_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ubot cam_out_ubot</ic_file_input_names>
+    </variable>
+    <variable local_name="vbot"
+              standard_name="northward_wind_at_bottom_layer_to_coupler"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>vbot cam_out_vbot</ic_file_input_names>
+    </variable>
+    <variable local_name="zbot"
+              standard_name="geopotential_height_wrt_surface_at_bottom_layer_to_coupler"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>zbot cam_out_zbot</ic_file_input_names>
+    </variable>
+
+    <ddt type="cam_in_t">
+       <data>surface_albedo_due_to_near_ir_diffuse_from_coupler</data>
+       <data>surface_albedo_due_to_near_ir_direct_from_coupler</data>
+       <data>surface_albedo_due_to_uv_and_vis_diffuse_from_coupler</data>
+       <data>surface_albedo_due_to_uv_and_vis_direct_from_coupler</data>
+       <data>surface_upward_ccpp_constituent_fluxes_from_coupler</data>
+       <data>surface_upward_dust_fluxes_from_coupler</data>
+       <data>co2_flux_from_land_from_coupler</data>
+       <data>co2_flux_from_ocean_from_coupler</data>
+       <data>dms_flux_from_coupler</data>
+    <!-- Commented out   <data>surface_upward_fire_compound_fluxes_from_coupler</data> -->
+       <data>top_height_for_vertically_distributed_fire_emissions_from_coupler</data>
+       <data>surface_friction_velocity_over_land_from_coupler</data>
+       <data>sea_ice_area_fraction_from_coupler</data>
+       <data>land_area_fraction_from_coupler</data>
+       <data>surface_upward_latent_heat_flux_from_coupler</data>
+       <data>longwave_upward_radiative_flux_at_surface_from_coupler</data>
+    <!--   <data>meganflx_tbd</data> -->
+       <data>ocean_area_fraction_from_coupler</data>
+       <data>water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m_from_coupler</data>
+       <data>aerodynamical_resistance_at_surface_from_coupler</data>
+       <data>re_tbd</data>
+       <data>surface_upward_sensible_heat_flux_from_coupler</data>
+       <data>lwe_surface_snow_depth_over_ice_from_coupler</data>
+       <data>lwe_surface_snow_depth_over_land_from_coupler</data>
+       <data>volumetric_equilibrium_soil_moisture_from_coupler</data>
+       <data>sea_surface_saturation_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_from_coupler</data>
+       <data>sea_surface_temperature_from_coupler</data>
+       <data>air_temperature_at_2m_from_coupler</data>
+       <data>blackbody_temperature_at_surface_from_coupler</data>
+       <data>wind_speed_at_10m_from_coupler</data>
+       <data>wind_speed_plus_parameterized_wind_gusts_at_10m_from_coupler</data>
+       <data>surface_friction_velocity_over_ocean_from_coupler</data>
+       <data>parameterized_wind_gust_at_10m_from_coupler</data>
+       <data>surface_eastward_wind_stress_from_coupler</data>
+       <data>surface_northward_wind_stress_from_coupler</data>
+    </ddt>
+
+    <variable local_name="cam_in"
+              standard_name="physics_fields_from_surface_coupler"
+              units="None" type="cam_in_t">
+      <long_name> </long_name>
+    </variable>
+
+    <ddt type="cam_out_t">
+       <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
+       <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
+       <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
+       <data>co2diag_tbd</data>
+       <data>co2prog_tbd</data>
+       <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
+       <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
+       <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
+       <data>dry_deposition_of_dust_bin4_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin1_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin2_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin3_at_surface_to_coupler</data>
+       <data>wet_deposition_of_dust_bin4_at_surface_to_coupler</data>
+       <data>longwave_downward_radiative_flux_at_surface_to_coupler</data>
+       <data>cloud_to_ground_lightning_flash_frequency_to_coupler</data>
+       <data>net_shortwave_flux_at_surface_to_coupler</data>
+       <data>amine_deposition_flux_at_surface_to_coupler</data>
+       <data>nitrogen_oxides_deposition_flux_at_surface_to_coupler</data>
+       <data>dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler</data>
+       <data>wet_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler</data>
+       <data>dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface_to_coupler</data>
+       <data>volume_mixing_ratio_of_ozone_wrt_dry_air_at_bottom_layer_to_coupler</data>
+       <data>air_pressure_at_bottom_layer_to_coupler</data>
+       <data>lwe_convective_precipitation_rate_at_surface_to_coupler</data>
+       <data>lwe_large_scale_precipitation_rate_at_surface_to_coupler</data>
+       <data>lwe_convective_snowfall_rate_at_surface_to_coupler</data>
+       <data>lwe_large_scale_snowfall_rate_at_surface_to_coupler</data>
+       <data>air_pressure_at_sea_level_to_coupler</data>
+       <data>constituent_mixing_ratio_at_bottom_layer_to_coupler</data>
+       <data>dry_air_density_at_bottom_layer_to_coupler</data>
+       <data>direct_solar_radiative_flux_at_surface_ge_700nm_to_coupler</data>
+       <data>diffuse_solar_radiative_flux_at_surface_ge_700nm_to_coupler</data>
+       <data>direct_solar_radiative_flux_at_surface_lt_700nm_to_coupler</data>
+       <data>diffuse_solar_radiative_flux_at_surface_lt_700nm_to_coupler</data>
+       <data>potential_temperature_wrt_surface_pressure_at_bottom_layer_to_coupler</data>
+       <data>air_temperature_at_bottom_layer_to_coupler</data>
+       <data>surface_topographic_height_to_coupler</data>
+       <data>eastward_wind_at_bottom_layer_to_coupler</data>
+       <data>northward_wind_at_bottom_layer_to_coupler</data>
+       <data>geopotential_height_wrt_surface_at_bottom_layer_to_coupler</data>
+    </ddt>
+
+    <variable local_name="cam_out"
+              standard_name="physics_fields_to_surface_coupler"
+              units="None" type="cam_out_t">
+      <long_name> </long_name>
+    </variable>
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
     <variable local_name="pblh"
@@ -645,7 +1330,7 @@
               units="K" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
+      <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
 

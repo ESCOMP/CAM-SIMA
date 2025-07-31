@@ -27,7 +27,7 @@
               units="1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <dimensions>horizontal_dimension  reference_pressure</dimensions>
       <initial_value>rair/cpair</initial_value>
     </variable>
     <ddt type="physics_state">
