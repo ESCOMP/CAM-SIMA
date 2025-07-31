@@ -260,7 +260,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 1   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -352,7 +352,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 2   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -444,7 +444,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 3   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -538,7 +538,7 @@ contains
       integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 4   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -630,7 +630,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 5   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -832,7 +832,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 1   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -924,7 +924,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 2   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1016,7 +1016,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 3   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1108,7 +1108,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 4   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1200,7 +1200,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer, parameter   :: var_ndims = 5   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1306,7 +1306,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 1   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1430,7 +1430,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 2   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1554,7 +1554,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 3   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1678,7 +1678,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 4   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
 
@@ -1804,7 +1804,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 5   !Number of expected variable dimensions on NetCDF file
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1929,7 +1929,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just assume a character array
       !and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 6   !Number of expected variable dimensions
+      integer, parameter   :: var_ndims = 6   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
