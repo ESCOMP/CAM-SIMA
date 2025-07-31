@@ -1304,8 +1304,8 @@ contains
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
@@ -1428,8 +1428,8 @@ contains
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
@@ -1552,8 +1552,8 @@ contains
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
@@ -1676,8 +1676,8 @@ contains
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
@@ -1802,8 +1802,8 @@ contains
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
@@ -1927,8 +1927,8 @@ contains
       !might be one larger than the actual array size if it
       !includes the character length as a dimension as well.
       !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 6   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
