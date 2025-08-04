@@ -40,12 +40,12 @@ module physics_types_parameter
 
 CONTAINS
 
-  subroutine allocate_physics_types_parameter_fields(horizontal_dimension, set_init_val_in,       &
-       reallocate_in)
+  subroutine allocate_physics_types_parameter_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
+
+
     !! Dummy arguments
-    integer,           intent(in) :: horizontal_dimension
     logical, optional, intent(in) :: set_init_val_in
     logical, optional, intent(in) :: reallocate_in
 

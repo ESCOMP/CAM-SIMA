@@ -25,7 +25,7 @@ module cam_comp
    use time_manager,              only: is_first_step, is_first_restart_step
    use time_manager,              only: get_curr_calday
 
-   use camsrfexch,                only: cam_out_t, cam_in_t
+   use physics_types,             only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
    use physics_types,             only: calday
@@ -90,7 +90,6 @@ CONTAINS
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
 !      use cam_restart,               only: cam_read_restart
-      use camsrfexch,                only: hub2atm_alloc, atm2hub_alloc
       use cam_history,               only: history_init_files
 !      use history_scam,              only: scm_intht
       use cam_pio_utils,             only: init_pio_subsystem
@@ -231,10 +230,6 @@ CONTAINS
       if (initial_run_in) then
 
          call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-
-         ! Allocate and setup surface exchange data
-         call atm2hub_alloc(cam_out)
-         call hub2atm_alloc(cam_in)
 
       else
 
@@ -563,7 +558,6 @@ CONTAINS
       use stepon,               only: stepon_final
       use phys_comp,            only: phys_final
       use cam_initfiles,        only: cam_initfiles_close
-      use camsrfexch,           only: atm2hub_deallocate, hub2atm_deallocate
 !      use ionosphere_interface, only: ionosphere_final
       use cam_control_mod,      only: initial_run
 
@@ -582,9 +576,6 @@ CONTAINS
       if (initial_run) then
          call cam_initfiles_close()
       end if
-
-      call hub2atm_deallocate(cam_in)
-      call atm2hub_deallocate(cam_out)
 
       ! This flush attempts to ensure that asynchronous diagnostic prints
       !   from all processes do not get mixed up with the "END OF MODEL RUN"

@@ -12,12 +12,14 @@
 
 
 !>
-!! @brief Auto-generated Variables for registry source file, physics_types_ddt_array
+!! @brief Auto-generated Variables for registry source file, physics_types_ddt_mf
 !!
 !
-module physics_types_ddt_array
+module physics_types_ddt_mf
 
   use ccpp_kinds, only: kind_phys
+  use physconst,  only: cpair
+  use physconst,  only: rair
 
 
   implicit none
@@ -30,31 +32,29 @@ module physics_types_ddt_array
     integer                                   :: ncol = 0
     ! latitude: Latitude
     real(kind_phys),         pointer          :: latitude(:) => NULL()
-    ! longitude: Longitude
-    real(kind_phys),         pointer          :: longitude(:) => NULL()
-    ! q: Constituent mixing ratio
-    real(kind_phys),         pointer          :: q(:, :, :) => NULL()
   end type physics_state
 
-!> \section arg_table_physics_types_ddt_array  Argument Table
-!! \htmlinclude physics_types_ddt_array.html
-  ! ix_qv: Index of water vapor specific humidity
-  integer,             public            :: ix_qv = 1
-  ! ix_cld_liq: Index of cloud liquid water mixing ratio of moist air
-  integer,             public            :: ix_cld_liq = 2
+!> \section arg_table_physics_types_ddt_mf  Argument Table
+!! \htmlinclude physics_types_ddt_mf.html
+  ! longitude: Longitude
+  real(kind_phys),     public, pointer,     protected :: longitude(:) => NULL()
+  ! cappav: Composition-dependent ratio of dry air gas constant to specific heat at constant
+  ! pressure
+  real(kind_phys),     public, allocatable          :: cappav(:, :)
   ! phys_state: Physics state variables updated by dynamical core
-  type(physics_state), public            :: phys_state
+  type(physics_state), public                       :: phys_state
 
 !! public interfaces
-  public :: allocate_physics_types_ddt_array_fields
-  public :: physics_types_ddt_array_tstep_init
+  public :: allocate_physics_types_ddt_mf_fields
+  public :: physics_types_ddt_mf_tstep_init
 
 CONTAINS
 
-  subroutine allocate_physics_types_ddt_array_fields(set_init_val_in, reallocate_in)
+  subroutine allocate_physics_types_ddt_mf_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
     use cam_abortutils,   only: endrun
 
+    use ref_pres,   only: reference_pressure=>pref_mid
 
     !! Dummy arguments
     logical, optional, intent(in) :: set_init_val_in
@@ -63,7 +63,7 @@ CONTAINS
     !! Local variables
     logical                     :: set_init_val
     logical                     :: reallocate
-    character(len=*), parameter :: subname = "allocate_physics_types_ddt_array_fields"
+    character(len=*), parameter :: subname = "allocate_physics_types_ddt_mf_fields"
 
     ! Set optional argument values
     if (present(set_init_val_in)) then
@@ -77,11 +77,31 @@ CONTAINS
       reallocate = .false.
     end if
 
-    if (set_init_val) then
-      ix_qv = 1
+    if (associated(longitude)) then
+      if (reallocate) then
+        deallocate(longitude)
+        nullify(longitude)
+      else
+        call endrun(subname//": longitude is already associated, cannot allocate")
+      end if
     end if
+    allocate(longitude(horizontal_dimension))
     if (set_init_val) then
-      ix_cld_liq = 2
+      longitude = nan
+    end if
+    if (allocated(cappav)) then
+      if (reallocate) then
+        deallocate(cappav)
+      else
+        call endrun(subname//": cappav is already allocated, cannot allocate")
+      end if
+    end if
+    allocate(cappav(horizontal_dimension, reference_pressure))
+    if (set_init_val) then
+      cappav = rair/cpair
+      call                                                                                        &
+           mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
+
     end if
     if (set_init_val) then
       phys_state%ncol = 0
@@ -98,44 +118,13 @@ CONTAINS
     if (set_init_val) then
       phys_state%latitude = nan
     end if
-    if (associated(phys_state%longitude)) then
-      if (reallocate) then
-        deallocate(phys_state%longitude)
-        nullify(phys_state%longitude)
-      else
-        call endrun(subname//": phys_state%longitude is already associated, cannot allocate")
-      end if
-    end if
-    allocate(phys_state%longitude(horizontal_dimension))
-    if (set_init_val) then
-      phys_state%longitude = nan
-    end if
-    if (associated(phys_state%q)) then
-      if (reallocate) then
-        deallocate(phys_state%q)
-        nullify(phys_state%q)
-      else
-        call endrun(subname//": phys_state%q is already associated, cannot allocate")
-      end if
-    end if
-    allocate(phys_state%q(horizontal_dimension, vertical_layer_dimension,                         &
-         number_of_constituents))
-    if (set_init_val) then
-      phys_state%q = nan
-    end if
-    if (set_init_val) then
-      phys_state%q(:,:,ix_qv) = nan
-    end if
-    if (set_init_val) then
-      phys_state%q(:,:,ix_cld_liq) = nan
-    end if
-  end subroutine allocate_physics_types_ddt_array_fields
+  end subroutine allocate_physics_types_ddt_mf_fields
 
-  subroutine physics_types_ddt_array_tstep_init()
+  subroutine physics_types_ddt_mf_tstep_init()
 
     !! Local variables
-    character(len=*), parameter :: subname = "physics_types_ddt_array_tstep_init"
+    character(len=*), parameter :: subname = "physics_types_ddt_mf_tstep_init"
 
-  end subroutine physics_types_ddt_array_tstep_init
+  end subroutine physics_types_ddt_mf_tstep_init
 
-end module physics_types_ddt_array
+end module physics_types_ddt_mf

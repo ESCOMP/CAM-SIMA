@@ -11,18 +11,18 @@
   type = integer
   dimensions = ()
   protected = True
-[ccpp-table-properties]
-  name = physics_types_ddt
-  type = module
-[ccpp-arg-table]
-  name = physics_types_ddt
-  type = module
 [ latitude ]
   standard_name = latitude
   units = radians
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
+[ccpp-table-properties]
+  name = physics_types_ddt_mf
+  type = module
+[ccpp-arg-table]
+  name = physics_types_ddt_mf
+  type = module
 [ longitude ]
   standard_name = longitude
   units = radians

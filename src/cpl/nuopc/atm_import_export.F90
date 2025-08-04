@@ -458,7 +458,7 @@ contains
     ! copy from field pointer to CAM-SIMA array data structure
     ! -----------------------------------------------------
 
-    use camsrfexch        , only : cam_in_t
+    use physics_types     , only : cam_in_t
     use shr_const_mod     , only : shr_const_stebol
     use shr_sys_mod       , only : shr_sys_abort
     use nuopc_shr_methods , only : chkerr
@@ -526,9 +526,6 @@ contains
     ! Required atmosphere input fields
     !--------------------------
 
-!Remove once the "cam_in" object has been fully implemented. -JN
-#if 0
-
     if (overwrite_flds) then
        call state_getfldptr(importState, 'Faxx_taux', fldptr=fldptr_taux, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -540,7 +537,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do i = 1, columns_on_task
           cam_in%wsx(i)    = -fldptr_taux(i) * med2mod_areacor(i)
-          cam_in%wsy(i)    = -fldptr_tauy(g) * med2mod_areacor(i)
+          cam_in%wsy(i)    = -fldptr_tauy(i) * med2mod_areacor(i)
           cam_in%shf(i)    = -fldptr_sen(i)  * med2mod_areacor(i)
           cam_in%cflx(i,1) = -fldptr_evap(i) * med2mod_areacor(i)
        end do
@@ -599,6 +596,8 @@ contains
        cam_in%landfrac(i)  =  fldptr_lfrac(i)
     end do
 
+! Commented out until dimensions and usage are figured out
+#if 0
     ! Optional fields
 
     call state_getfldptr(importState, 'Sl_ram1', fldptr=fldptr1d, exists=exists, rc=rc)
@@ -676,7 +675,11 @@ contains
           cam_in%fireztop(i) = fldptr1d(i)
        end do
     end if
+#endif
 
+#if 0
+! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species) 
+! and it was determined that it probably will not be used in CAM-SIMA for some time
     ! dry dep velocities
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -687,7 +690,10 @@ contains
           end do
        end do
     end if
+#endif
 
+#if 0
+! Commented out until water isotopes or carbon ccle fluxe are implemented in CAM-SIMA
     ! fields needed to calculate water isotopes to ocean evaporation processes
     call state_getfldptr(importState,  'So_ustar', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -806,7 +812,9 @@ contains
              cam_in%cflx(i,c_i(4)) = cam_in%cflx(i,c_i(1)) + cam_in%cflx(i,c_i(2)) + cam_in%cflx(i,c_i(3))
           end do
        end do
+
     end if
+#endif
 
     ! if first step, determine longwave up flux from the surface temperature
     if (first_time) then
@@ -817,9 +825,6 @@ contains
        end if
        first_time = .false.
     end if
-
-!Remove once the "cam_in" object has been fully implemented. -JN
-#endif
 
   end subroutine import_fields
 
@@ -835,7 +840,7 @@ contains
     use ESMF              , only : ESMF_Clock
     use nuopc_shr_methods , only : chkerr
     use srf_field_check   , only : active_Faxa_nhx, active_Faxa_noy
-    use camsrfexch        , only : cam_out_t
+    use physics_types     , only : cam_out_t
     use time_manager      , only : is_first_step, get_nstep
     use physics_grid      , only : columns_on_task
     use atm_stream_ndep   , only : stream_ndep_init, stream_ndep_interp
@@ -883,9 +888,6 @@ contains
     ! Get export state
     call NUOPC_ModelGet(gcomp, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-!Remove once the "cam_in" object has been fully implemented. -JN
-#if 0
 
     ! required export state variables
     call state_getfldptr(exportState, 'Sa_topo', fldptr=fldptr_topo, rc=rc)
@@ -947,8 +949,8 @@ contains
        fldptr_swnet(i) = cam_out%netsw(i) * mod2med_areacor(i)
        fldptr_snowc(i) = cam_out%precsc(i)*1000._r8 * mod2med_areacor(i)
        fldptr_snowl(i) = cam_out%precsl(i)*1000._r8 * mod2med_areacor(i)
-       fldptr_rainc(i) = (cam_out%precc(i) - cam_out(c)%precsc(i))*1000._r8 * mod2med_areacor(i)
-       fldptr_rainl(i) = (cam_out%precl(i) - cam_out(c)%precsl(i))*1000._r8 * mod2med_areacor(i)
+       fldptr_rainc(i) = (cam_out%precc(i) - cam_out%precsc(i))*1000._r8 * mod2med_areacor(i)
+       fldptr_rainl(i) = (cam_out%precl(i) - cam_out%precsl(i))*1000._r8 * mod2med_areacor(i)
        fldptr_soll(i)  = cam_out%soll(i)  * mod2med_areacor(i)
        fldptr_sols(i)  = cam_out%sols(i)  * mod2med_areacor(i)
        fldptr_solld(i) = cam_out%solld(i) * mod2med_areacor(i)
@@ -1035,12 +1037,9 @@ contains
        scale_ndep = 1._r8
     end if
     do i = 1, columns_on_task
-       fldptr_ndep(1,i) = cam_out(c)%nhx_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
-       fldptr_ndep(2,i) = cam_out(c)%noy_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
+       fldptr_ndep(1,i) = cam_out%nhx_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
+       fldptr_ndep(2,i) = cam_out%noy_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
     end do
-
-!Remove once the "cam_in" object has been fully implemented. -JN
-#endif
 
   end subroutine export_fields
 
