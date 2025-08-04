@@ -1231,13 +1231,6 @@ class File:
     CCPPError: Unknown registry File element, 'user'
     """
 
-    # Some data for sorting dimension names
-    __dim_order = {'horizontal_dimension' : 1,
-                   'vertical_layer_dimension' : 2,
-                   'vertical_interface_dimension' : 3,
-                   'number_of_constituents' : 4}
-    __min_dim_key = 5 # For sorting unknown dimensions
-
     def __init__(self, file_node, known_types, dycore,
                  logger, gen_code=True, file_path=None):
         """Initialize a File object from a registry node (XML)"""
@@ -1311,17 +1304,7 @@ class File:
             self.__var_dict.write_metadata(outfile)
         # end with
 
-    @classmethod
-    def dim_sort_key(cls, dim_name):
-        """Return an integer sort key for <dim_name>"""
-        if dim_name not in File.__dim_order:
-            key = File.__min_dim_key
-            File.__min_dim_key += 1
-            File.__dim_order[dim_name] = key
-        # end if
-        return File.__dim_order[dim_name]
-
-    def write_source(self, outdir, indent, logger, physconst_vars):
+    def write_source(self, outdir, indent, logger, physconst_vars, var_module_dict):
         """Write out source code for the variables in this file"""
         ofilename = os.path.join(outdir, f"{self.name}.F90")
         logger.info(f"Writing registry source file, {ofilename}")
@@ -1378,7 +1361,7 @@ class File:
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
-            self.write_allocate_routine(outfile, physconst_vars)
+            self.write_allocate_routine(outfile, physconst_vars, var_module_dict)
             self.write_tstep_init_routine(outfile, physconst_vars)
 
         # end with
@@ -1391,20 +1374,39 @@ class File:
         """Return the name of the physics timestep init routine for this module"""
         return f"{self.name}_tstep_init"
 
-    def write_allocate_routine(self, outfile, physconst_vars):
+    def write_allocate_routine(self, outfile, physconst_vars, var_module_dict):
         """Write a subroutine to allocate all the data in this module"""
         subname = self.allocate_routine_name()
-        args = list(self.__var_dict.known_dimensions)
-        args.sort(key=File.dim_sort_key) # Attempt at a consistent interface
         init_var = 'set_init_val'
-        args.append(f'{init_var}_in')
+        args = [f'{init_var}_in']
         reall_var = 'reallocate'
         args.append(f'{reall_var}_in')
         outfile.write(f'subroutine {subname}({", ".join(args)})', 1)
+
         # Use statements
         nanmods = 'nan => shr_infnan_nan, assignment(=)'
         outfile.write(f'use shr_infnan_mod,   only: {nanmods}', 2)
         outfile.write('use cam_abortutils,   only: endrun', 2)
+
+        #Bring all host dimension variables
+        #in via use statments:
+        outfile.blank_line()
+        for dim in sorted(self.__var_dict.known_dimensions):
+            if dim in var_module_dict:
+                dim_module = var_module_dict[dim][0]
+                dim_loc_name = var_module_dict[dim][1]
+                outfile.write(f'use {dim_module},   only: {dim}=>{dim_loc_name}', 2)
+
+        #Bring in "num_advected" as well if needed, as the
+        #standard name in the cam_constituents.meta file doesn't
+        #match the standard name that is actually used to represent
+        #all constituents. Please note that once the CCPP-framework
+        #supports a separation between total and advected constituents
+        #then this section of code will likely need to be modified:
+        if ('number_of_ccpp_constituents' in self.__var_dict.known_dimensions):
+            outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_advected", 2)
+        outfile.blank_line()
+
         # Dummy arguments
         outfile.write('!! Dummy arguments', 2)
         for arg in args:
@@ -1540,6 +1542,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
     """
     known_ddts = known_types.known_ddt_names()
     mfiles = []
+    var_module_dict = {} #Dictionary used to find relevant Fortran modules
     if os.path.exists(file_path):
         if run_env.logger:
             run_env.logger.info(f"Parsing metadata_file, '{file_path}'")
@@ -1571,10 +1574,10 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             raise CCPPError(emsg)
         # end if
         for var in mheader.variable_list(loop_vars=False, consts=False):
-            prop = var.get_prop_value('local_name')
-            vnode_str = f'<variable local_name="{prop}"'
-            prop = var.get_prop_value('standard_name')
-            vnode_str += f'\n          standard_name="{prop}"'
+            local_name = var.get_prop_value('local_name')
+            std_name   = var.get_prop_value('standard_name')
+            vnode_str = f'<variable local_name="{local_name}"'
+            vnode_str += f'\n          standard_name="{std_name}"'
             prop = var.get_prop_value('units')
             typ = var.get_prop_value('type')
             kind = var.get_prop_value('kind')
@@ -1603,6 +1606,10 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             vnode_str += '\n</variable>'
             var_node = ET.fromstring(vnode_str)
             mfile.add_variable(var_node, run_env.logger)
+            # Add variable to module dictionary in case it
+            # is needed during code generation:
+            if std_name not in var_module_dict.keys():
+                var_module_dict[std_name] = [mtable.module_name, local_name]
         # end for
         if htype == 'ddt':
             # We defined the variables, now create the DDT for them.
@@ -1618,7 +1625,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
         # end if
         mfiles.append(mfile)
     # end for
-    return mfiles
+    return mfiles, var_module_dict
 
 ###############################################################################
 def write_registry_files(registry, dycore, outdir, src_mod, src_root,
@@ -1635,6 +1642,7 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
     CCPPError: Unknown registry object type, 'variable'
     """
     files = []
+    var_module_dict = {}
     known_types = TypeRegistry()
     # Create a fake CCPPFrameworkEnv object to contain the logger
     run_env = CCPPFrameworkEnv(logger, host_files='',
@@ -1672,9 +1680,10 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
                                                              file_path))
                 # end if
             # end if
-            meta_files = metadata_file_to_files(file_path, known_types,
-                                                dycore, run_env)
+            meta_files, loc_var_mod_dict = metadata_file_to_files(file_path, known_types,
+                                                                  dycore, run_env)
             files.extend(meta_files)
+            var_module_dict.update(loc_var_mod_dict)
         else:
             emsg = "Unknown registry object type, '{}'"
             raise CCPPError(emsg.format(section.tag))
@@ -1699,7 +1708,7 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
         # Generate metadata and source
         if file_.generate_code:
             file_.write_metadata(outdir, logger)
-            file_.write_source(outdir, indent, logger, physconst_vars)
+            file_.write_source(outdir, indent, logger, physconst_vars, var_module_dict)
         # end if
     # end for
 

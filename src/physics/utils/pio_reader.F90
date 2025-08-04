@@ -30,20 +30,27 @@ module pio_reader
       private
       type(file_handle_t) :: sima_pio_fh !PIO File handle type
    contains
+      !File procedures
       procedure :: open_file       => open_netcdf_file
       procedure :: close_file      => close_netcdf_file
+
+      !Integer interfaces
       procedure :: get_var_int_0d  => get_netcdf_var_int_0d
       procedure :: get_var_int_1d  => get_netcdf_var_int_1d
       procedure :: get_var_int_2d  => get_netcdf_var_int_2d
       procedure :: get_var_int_3d  => get_netcdf_var_int_3d
       procedure :: get_var_int_4d  => get_netcdf_var_int_4d
       procedure :: get_var_int_5d  => get_netcdf_var_int_5d
+
+      !Real interfaces
       procedure :: get_var_real_0d => get_netcdf_var_real_0d
       procedure :: get_var_real_1d => get_netcdf_var_real_1d
       procedure :: get_var_real_2d => get_netcdf_var_real_2d
       procedure :: get_var_real_3d => get_netcdf_var_real_3d
       procedure :: get_var_real_4d => get_netcdf_var_real_4d
       procedure :: get_var_real_5d => get_netcdf_var_real_5d
+
+      !Character interfaces
       procedure :: get_var_char_0d => get_netcdf_var_char_0d
       procedure :: get_var_char_1d => get_netcdf_var_char_1d
       procedure :: get_var_char_2d => get_netcdf_var_char_2d
@@ -122,7 +129,7 @@ contains
    ! Integer interfaces
    ! ------------------------------------------------------------------
 
-   subroutine get_netcdf_var_int_0d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_int_0d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -131,11 +138,15 @@ contains
       use pio,        only: PIO_NOERR
       use pio,        only: PIO_BCAST_ERROR
 
-      class(pio_reader_t), intent(in)  :: this
-      character(len=*),    intent(in)  :: varname
-      integer, pointer,    intent(out) :: var     !Integer variable that file data will be read to.
-      integer,             intent(out) :: errcode !Error code
-      character(len=*),    intent(out) :: errmsg  !Error message
+      class(pio_reader_t),  intent(in)  :: this
+      character(len=*),     intent(in)  :: varname
+      integer, allocatable, intent(out) :: var     !Integer variable that file data will be read to.
+      integer,              intent(out) :: errcode !Error code
+      character(len=*),     intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,    intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,    intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -143,10 +154,7 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-
-      integer :: i !loop control variable
       !----------------------
 
       !Check if file is open:
@@ -226,7 +234,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_int_0d
 
-   subroutine get_netcdf_var_int_1d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_int_1d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -235,22 +243,24 @@ contains
       use pio,        only: PIO_NOERR
       use pio,        only: PIO_BCAST_ERROR
 
-      class(pio_reader_t), intent(in)  :: this
-      character(len=*),    intent(in)  :: varname
-      integer, pointer,    intent(out) :: var(:)  !Integer variable that file data will be read to.
-      integer,             intent(out) :: errcode !Error code
-      character(len=*),    intent(out) :: errmsg  !Error message
+      class(pio_reader_t),  intent(in)  :: this
+      character(len=*),     intent(in)  :: varname
+      integer, allocatable, intent(out) :: var(:)  !Integer variable that file data will be read to.
+      integer,              intent(out) :: errcode !Error code
+      character(len=*),     intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,    intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,    intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -279,68 +289,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
+      !Get variable dimension sizes:
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 1) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get variable dimension size
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -371,7 +326,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_int_1d
 
-   subroutine get_netcdf_var_int_2d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_int_2d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -380,22 +335,24 @@ contains
       use pio,        only: PIO_NOERR
       use pio,        only: PIO_BCAST_ERROR
 
-      class(pio_reader_t), intent(in)  :: this
-      character(len=*),    intent(in)  :: varname
-      integer, pointer,    intent(out) :: var(:,:) !Integer variable that file data will be read to.
-      integer,             intent(out) :: errcode !Error code
-      character(len=*),    intent(out) :: errmsg  !Error message
+      class(pio_reader_t),  intent(in)  :: this
+      character(len=*),     intent(in)  :: varname
+      integer, allocatable, intent(out) :: var(:,:) !Integer variable that file data will be read to.
+      integer,              intent(out) :: errcode !Error code
+      character(len=*),     intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,    intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,    intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -424,68 +381,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
+      !Get variable dimension sizes:
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 2) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get variable dimension sizes
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -516,7 +418,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_int_2d
 
-   subroutine get_netcdf_var_int_3d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_int_3d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -525,22 +427,24 @@ contains
       use pio,        only: PIO_NOERR
       use pio,        only: PIO_BCAST_ERROR
 
-      class(pio_reader_t), intent(in)  :: this
-      character(len=*),    intent(in)  :: varname
-      integer, pointer,    intent(out) :: var(:,:,:) !Integer variable that file data will be read to.
-      integer,             intent(out) :: errcode !Error code
-      character(len=*),    intent(out) :: errmsg  !Error message
+      class(pio_reader_t),  intent(in)  :: this
+      character(len=*),     intent(in)  :: varname
+      integer, allocatable, intent(out) :: var(:,:,:) !Integer variable that file data will be read to.
+      integer,              intent(out) :: errcode !Error code
+      character(len=*),     intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,    intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,    intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -569,68 +473,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 3) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -661,7 +510,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_int_3d
 
-   subroutine get_netcdf_var_int_4d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_int_4d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -670,11 +519,15 @@ contains
       use pio,        only: PIO_NOERR
       use pio,        only: PIO_BCAST_ERROR
 
-      class(pio_reader_t), intent(in)  :: this
-      character(len=*),    intent(in)  :: varname
-      integer, pointer,    intent(out) :: var(:,:,:,:) !Integer variable that file data will be read to.
-      integer,             intent(out) :: errcode !Error code
-      character(len=*),    intent(out) :: errmsg  !Error message
+      class(pio_reader_t),  intent(in)  :: this
+      character(len=*),     intent(in)  :: varname
+      integer, allocatable, intent(out) :: var(:,:,:,:) !Integer variable that file data will be read to.
+      integer,              intent(out) :: errcode !Error code
+      character(len=*),     intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,    intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,    intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -685,7 +538,7 @@ contains
       integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -714,68 +567,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 4) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -806,7 +604,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_int_4d
 
-   subroutine get_netcdf_var_int_5d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_int_5d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -815,22 +613,24 @@ contains
       use pio,        only: PIO_NOERR
       use pio,        only: PIO_BCAST_ERROR
 
-      class(pio_reader_t), intent(in)  :: this
-      character(len=*),    intent(in)  :: varname
-      integer, pointer,    intent(out) :: var(:,:,:,:,:) !Integer variable that file data will be read to.
-      integer,             intent(out) :: errcode !Error code
-      character(len=*),    intent(out) :: errmsg  !Error message
+      class(pio_reader_t),  intent(in)  :: this
+      character(len=*),     intent(in)  :: varname
+      integer, allocatable, intent(out) :: var(:,:,:,:,:) !Integer variable that file data will be read to.
+      integer,              intent(out) :: errcode !Error code
+      character(len=*),     intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,    intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,    intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -859,68 +659,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 5) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -956,7 +701,7 @@ contains
    ! Real interfaces
    ! ------------------------------------------------------------------
 
-   subroutine get_netcdf_var_real_0d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_real_0d(this, varname, var, errmsg, errcode, start, count)
       use ccpp_kinds, only: kind_phys
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
@@ -968,19 +713,20 @@ contains
 
       class(pio_reader_t),           intent(in)  :: this
       character(len=*),              intent(in)  :: varname
-      real(kind_phys), pointer,      intent(out) :: var     !Real variable that file data will be read to.
+      real(kind_phys), allocatable,  intent(out) :: var     !Real variable that file data will be read to.
       integer,                       intent(out) :: errcode !Error code
       character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-
-      integer :: i !loop control variable
       !----------------------
 
       !Check if file is open:
@@ -1060,7 +806,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_real_0d
 
-   subroutine get_netcdf_var_real_1d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_real_1d(this, varname, var, errmsg, errcode, start, count)
       use ccpp_kinds, only: kind_phys
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
@@ -1072,19 +818,21 @@ contains
 
       class(pio_reader_t),           intent(in)  :: this
       character(len=*),              intent(in)  :: varname
-      real(kind_phys), pointer,      intent(out) :: var(:) !Real variable that file data will be read to.
+      real(kind_phys), allocatable,  intent(out) :: var(:) !Real variable that file data will be read to.
       integer,                       intent(out) :: errcode !Error code
       character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1113,68 +861,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 1) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -1205,7 +898,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_real_1d
 
-   subroutine get_netcdf_var_real_2d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_real_2d(this, varname, var, errmsg, errcode, start, count)
       use ccpp_kinds, only: kind_phys
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
@@ -1217,19 +910,21 @@ contains
 
       class(pio_reader_t),           intent(in)  :: this
       character(len=*),              intent(in)  :: varname
-      real(kind_phys), pointer,      intent(out) :: var(:,:) !Real variable that file data will be read to.
+      real(kind_phys), allocatable,  intent(out) :: var(:,:) !Real variable that file data will be read to.
       integer,                       intent(out) :: errcode !Error code
       character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1258,68 +953,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 2) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -1350,7 +990,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_real_2d
 
-   subroutine get_netcdf_var_real_3d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_real_3d(this, varname, var, errmsg, errcode, start, count)
       use ccpp_kinds, only: kind_phys
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
@@ -1362,19 +1002,21 @@ contains
 
       class(pio_reader_t),           intent(in)  :: this
       character(len=*),              intent(in)  :: varname
-      real(kind_phys), pointer,      intent(out) :: var(:,:,:) !Real variable that file data will be read to.
+      real(kind_phys), allocatable,  intent(out) :: var(:,:,:) !Real variable that file data will be read to.
       integer,                       intent(out) :: errcode !Error code
       character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1403,71 +1045,16 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 3) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
 
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
-
-      !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data:
+      !Now attempt to allocate and initialize the variable,
+      !and read-in the NetCDF data:
       allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
@@ -1495,7 +1082,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_real_3d
 
-   subroutine get_netcdf_var_real_4d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_real_4d(this, varname, var, errmsg, errcode, start, count)
       use ccpp_kinds, only: kind_phys
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
@@ -1507,19 +1094,21 @@ contains
 
       class(pio_reader_t),           intent(in)  :: this
       character(len=*),              intent(in)  :: varname
-      real(kind_phys), pointer,      intent(out) :: var(:,:,:,:) !Real variable that file data will be read to.
+      real(kind_phys), allocatable,  intent(out) :: var(:,:,:,:) !Real variable that file data will be read to.
       integer,                       intent(out) :: errcode !Error code
       character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1548,68 +1137,13 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 4) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
@@ -1640,7 +1174,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_real_4d
 
-   subroutine get_netcdf_var_real_5d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_real_5d(this, varname, var, errmsg, errcode, start, count)
       use ccpp_kinds, only: kind_phys
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
@@ -1652,19 +1186,21 @@ contains
 
       class(pio_reader_t),           intent(in)  :: this
       character(len=*),              intent(in)  :: varname
-      real(kind_phys), pointer,      intent(out) :: var(:,:,:,:,:) !Real variable that file data will be read to.
+      real(kind_phys), allocatable,  intent(out) :: var(:,:,:,:,:) !Real variable that file data will be read to.
       integer,                       intent(out) :: errcode !Error code
       character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
 
-      integer :: i !loop control variable
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
       !----------------------
 
       !Check if file is open:
@@ -1693,71 +1229,16 @@ contains
          return
       end if
 
-      !Get number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= 5) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
 
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
-
-      !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data:
+      !Now attempt to allocate and initialize the variable,
+      !and read-in the NetCDF data:
       allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3), dim_sizes(4), dim_sizes(5)), &
                stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
@@ -1790,7 +1271,7 @@ contains
    ! Character interfaces
    ! ------------------------------------------------------------------
 
-   subroutine get_netcdf_var_char_0d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_char_0d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -1800,11 +1281,15 @@ contains
       use pio,        only: PIO_BCAST_ERROR
       use pio_types,  only: PIO_CHAR
 
-      class(pio_reader_t),       intent(in)  :: this
-      character(len=*),          intent(in)  :: varname
-      character(len=:), pointer, intent(out) :: var     !Character variable that file data will be read to.
-      integer,                   intent(out) :: errcode !Error code
-      character(len=*),          intent(out) :: errmsg  !Error message
+      class(pio_reader_t),           intent(in)  :: this
+      character(len=*),              intent(in)  :: varname
+      character(len=:), allocatable, intent(out) :: var     !Character variable that file data will be read to.
+      integer,                       intent(out) :: errcode !Error code
+      character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -1812,10 +1297,17 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-      integer              :: i !loop control variable
+
+      !NOTE:  NetCDF supports both character arrays and string-type
+      !data depending on the NetCDF version, so the dimensions
+      !might be one larger than the actual array size if it
+      !includes the character length as a dimension as well.
+      !Ideally the actual type would be checked and handled
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
+      !----------------------
 
       !Check if file is open:
       if(.not.this%sima_pio_fh%is_file_open) then
@@ -1843,8 +1335,8 @@ contains
          return
       end if
 
-      !Get variable type and number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
+      !Get variable type  on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
@@ -1864,65 +1356,13 @@ contains
          return
       end if
 
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-
-      !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions
-      !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.
-      !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
-      errcode = 0
-      if(ndims /= 1) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data.  Note that the first dimenstion
@@ -1955,7 +1395,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_0d
 
-   subroutine get_netcdf_var_char_1d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_char_1d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -1965,11 +1405,15 @@ contains
       use pio,        only: PIO_BCAST_ERROR
       use pio_types,  only: PIO_CHAR
 
-      class(pio_reader_t),       intent(in)  :: this
-      character(len=*),          intent(in)  :: varname
-      character(len=:), pointer, intent(out) :: var(:) !Character variable that file data will be read to.
-      integer,                   intent(out) :: errcode !Error code
-      character(len=*),          intent(out) :: errmsg  !Error message
+      class(pio_reader_t),           intent(in)  :: this
+      character(len=*),              intent(in)  :: varname
+      character(len=:), allocatable, intent(out) :: var(:) !Character variable that file data will be read to.
+      integer,                       intent(out) :: errcode !Error code
+      character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -1977,10 +1421,17 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-      integer              :: i !loop control variable
+
+       !NOTE:  NetCDF supports both character arrays and string-type
+      !data depending on the NetCDF version, so the dimensions
+      !might be one larger than the actual array size if it
+      !includes the character length as a dimension as well.
+      !Ideally the actual type would be checked and handled
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
+      !----------------------
 
       !Check if file is open:
       if(.not.this%sima_pio_fh%is_file_open) then
@@ -2008,8 +1459,8 @@ contains
          return
       end if
 
-      !Get variable type and number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
+      !Get variable type on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
@@ -2029,65 +1480,13 @@ contains
          return
       end if
 
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-
-      !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions
-      !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.
-      !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
-      errcode = 0
-      if(ndims /= 2) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data.  Note that the first dimenstion
@@ -2120,7 +1519,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_1d
 
-   subroutine get_netcdf_var_char_2d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_char_2d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -2130,11 +1529,15 @@ contains
       use pio,        only: PIO_BCAST_ERROR
       use pio_types,  only: PIO_CHAR
 
-      class(pio_reader_t),       intent(in)  :: this
-      character(len=*),          intent(in)  :: varname
-      character(len=:), pointer, intent(out) :: var(:,:) !Character variable that file data will be read to.
-      integer,                   intent(out) :: errcode !Error code
-      character(len=*),          intent(out) :: errmsg  !Error message
+      class(pio_reader_t),           intent(in)  :: this
+      character(len=*),              intent(in)  :: varname
+      character(len=:), allocatable, intent(out) :: var(:,:) !Character variable that file data will be read to.
+      integer,                       intent(out) :: errcode !Error code
+      character(len=*),              intent(out) :: errmsg  !Error message
+
+      !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -2142,10 +1545,17 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-      integer              :: i !loop control variable
+
+      !NOTE:  NetCDF supports both character arrays and string-type
+      !data depending on the NetCDF version, so the dimensions
+      !might be one larger than the actual array size if it
+      !includes the character length as a dimension as well.
+      !Ideally the actual type would be checked and handled
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
+      !----------------------
 
       !Check if file is open:
       if(.not.this%sima_pio_fh%is_file_open) then
@@ -2173,8 +1583,8 @@ contains
          return
       end if
 
-      !Get variable type and number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
+      !Get variable type on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
@@ -2194,65 +1604,13 @@ contains
          return
       end if
 
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-
-      !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions
-      !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.
-      !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
-      errcode = 0
-      if(ndims /= 3) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data.  Note that the first dimenstion
@@ -2285,7 +1643,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_2d
 
-   subroutine get_netcdf_var_char_3d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_char_3d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -2295,11 +1653,15 @@ contains
       use pio,        only: PIO_BCAST_ERROR
       use pio_types,  only: PIO_CHAR
 
-      class(pio_reader_t),       intent(in)  :: this
-      character(len=*),          intent(in)  :: varname
-      character(len=:), pointer, intent(out) :: var(:,:,:) !Character variable that file data will be read to.
-      integer,                   intent(out) :: errcode !Error code
-      character(len=*),          intent(out) :: errmsg  !Error message
+      class(pio_reader_t),           intent(in)  :: this
+      character(len=*),              intent(in)  :: varname
+      character(len=:), allocatable, intent(out) :: var(:,:,:) !Character variable that file data will be read to.
+      integer,                       intent(out) :: errcode !Error code
+      character(len=*),              intent(out) :: errmsg  !Error message
+
+       !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -2307,10 +1669,19 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-      integer              :: i !loop control variable
+
+      !NOTE:  NetCDF supports both character arrays and string-type
+      !data depending on the NetCDF version, so the dimensions
+      !might be one larger than the actual array size if it
+      !includes the character length as a dimension as well.
+      !Ideally the actual type would be checked and handled
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
+      !----------------------
+
+
 
       !Check if file is open:
       if(.not.this%sima_pio_fh%is_file_open) then
@@ -2338,8 +1709,8 @@ contains
          return
       end if
 
-      !Get variable type and number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
+      !Get variable type on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
@@ -2359,65 +1730,13 @@ contains
          return
       end if
 
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-
-      !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions
-      !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.
-      !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
-      errcode = 0
-      if(ndims /= 4) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data.  Note that the first dimenstion
@@ -2450,7 +1769,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_3d
 
-   subroutine get_netcdf_var_char_4d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_char_4d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -2460,11 +1779,15 @@ contains
       use pio,        only: PIO_BCAST_ERROR
       use pio_types,  only: PIO_CHAR
 
-      class(pio_reader_t),       intent(in)  :: this
-      character(len=*),          intent(in)  :: varname
-      character(len=:), pointer, intent(out) :: var(:,:,:,:) !Character variable that file data will be read to.
-      integer,                   intent(out) :: errcode !Error code
-      character(len=*),          intent(out) :: errmsg  !Error message
+      class(pio_reader_t),           intent(in)  :: this
+      character(len=*),              intent(in)  :: varname
+      character(len=:), allocatable, intent(out) :: var(:,:,:,:) !Character variable that file data will be read to.
+      integer,                       intent(out) :: errcode !Error code
+      character(len=*),              intent(out) :: errmsg  !Error message
+
+       !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -2472,10 +1795,17 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-      integer              :: i !loop control variable
+
+      !NOTE:  NetCDF supports both character arrays and string-type
+      !data depending on the NetCDF version, so the dimensions
+      !might be one larger than the actual array size if it
+      !includes the character length as a dimension as well.
+      !Ideally the actual type would be checked and handled
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
+      !----------------------
 
       !Check if file is open:
       if(.not.this%sima_pio_fh%is_file_open) then
@@ -2503,8 +1833,8 @@ contains
          return
       end if
 
-      !Get variable type and number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
+      !Get variable type on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
@@ -2524,65 +1854,13 @@ contains
          return
       end if
 
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-
-      !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions
-      !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.
-      !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
-      errcode = 0
-      if(ndims /= 5) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data.  Note that the first dimenstion
@@ -2616,7 +1894,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_4d
 
-   subroutine get_netcdf_var_char_5d(this, varname, var, errmsg, errcode)
+   subroutine get_netcdf_var_char_5d(this, varname, var, errmsg, errcode, start, count)
       use pio,        only: pio_inq_varid
       use pio,        only: pio_inq_dimlen
       use pio,        only: pio_inquire_variable
@@ -2626,11 +1904,15 @@ contains
       use pio,        only: PIO_BCAST_ERROR
       use pio_types,  only: PIO_CHAR
 
-      class(pio_reader_t),       intent(in)  :: this
-      character(len=*),          intent(in)  :: varname
-      character(len=:), pointer, intent(out) :: var(:,:,:,:,:) !Character variable that file data will be read to.
-      integer,                   intent(out) :: errcode !Error code
-      character(len=*),          intent(out) :: errmsg  !Error message
+      class(pio_reader_t),           intent(in)  :: this
+      character(len=*),              intent(in)  :: varname
+      character(len=:), allocatable, intent(out) :: var(:,:,:,:,:) !Character variable that file data will be read to.
+      integer,                       intent(out) :: errcode !Error code
+      character(len=*),              intent(out) :: errmsg  !Error message
+
+       !Optional arguments for reading a subset of the variable
+      integer, optional,             intent(in)  :: start(:) !Start indices for each dimension
+      integer, optional,             intent(in)  :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
       type(file_desc_t)    :: pio_file_handle !File handle type used by PIO
@@ -2638,10 +1920,17 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
-      integer              :: ndims           !Number of variable dimensions on NetCDF file
-      integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
-      integer              :: i !loop control variable
+
+      !NOTE:  NetCDF supports both character arrays and string-type
+      !data depending on the NetCDF version, so the dimensions
+      !might be one larger than the actual array size if it
+      !includes the character length as a dimension as well.
+      !Ideally the actual type would be checked and handled
+      !differently, but for now just confirm it's a character
+      !array and check for ndims = rank+1
+      integer, parameter   :: var_ndims = 6   !Number of expected dimensions for variable in NetCDF file
+      !----------------------
 
       !Check if file is open:
       if(.not.this%sima_pio_fh%is_file_open) then
@@ -2669,8 +1958,8 @@ contains
          return
       end if
 
-      !Get variable type and number of variable dimensions on file:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
+      !Get variable type on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
@@ -2690,65 +1979,13 @@ contains
          return
       end if
 
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-
-      !NOTE:  NetCDF supports both character arrays and string-type
-      !data depending on the NetCDF version, so the dimensions
-      !might be one larger than the actual array size if it
-      !includes the character length as a dimension as well.
-      !Ideally the actual type would be checked and handled
-      !differently, but for now just assume a character array
-      !and check for ndims = rank+1
-      errcode = 0
-      if(ndims /= 6) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
       !Get variable dimension sizes:
-      !Allocate NetCDF variable dimension ID array:
-      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
+      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
-
-      !Get variable dimension IDs:
-      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
-      if(errcode /= PIO_NOERR) then
-         !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Allocate NetCDF variable dimension sizes array:
-      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
-      if(errcode /= 0) then
-         !Reset PIO back to original error handling method:
-         call pio_seterrorhandling(pio_file_handle, err_handling)
-         return
-      end if
-
-      !Get dimension sizes:
-      do i = 1, ndims
-         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
-         if(errcode /= PIO_NOERR) then
-            !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
-
-            !Reset PIO back to original error handling method:
-            call pio_seterrorhandling(pio_file_handle, err_handling)
-            return
-         end if
-      end do
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data.  Note that the first dimenstion
@@ -2781,6 +2018,10 @@ contains
       errcode = 0
       errmsg = ''
    end subroutine get_netcdf_var_char_5d
+
+   ! ------------------------------------------------------------------
+   ! Helper routines (not externally accessible)
+   ! ------------------------------------------------------------------
 
    subroutine get_pio_errmsg(caller_errcode, varname, errcode, errmsg, file_msg)
       !Set error message based off PIO error code,
@@ -2829,5 +2070,86 @@ contains
          errcode = caller_errcode
       end if
    end subroutine get_pio_errmsg
+
+   subroutine get_dim_sizes(varname, var_rank, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      !Extract the dimension sizes for a NetCDF
+      !variable given a variable ID, and
+      !return a new 1-D array with the variable
+      !dimension sizes.
+
+      use pio,        only: pio_inq_dimlen
+      use pio,        only: pio_inquire_variable
+      use pio,        only: PIO_NOERR
+
+      !Input variables:
+      character(len=*),  intent(in) :: varname          !Name of NetCDF variable
+      integer,           intent(in) :: var_rank         !Rank (number of dims) of NetCDF variable
+      integer,           intent(in) :: var_id           !Variable ID for NetCDF variable
+      type(file_desc_t), intent(in) :: pio_file_handle  !File handle type used by PIO
+
+      !Output variables:
+      integer, allocatable, intent(out) :: dim_sizes(:)   !Variable dimension sizes
+      integer,              intent(out) :: errcode        !Error code
+      character(len=*),     intent(out) :: errmsg         !Error message
+
+      !Local variables:
+      integer              :: ndims       !Number of NetCDF variable dimensions
+      integer, allocatable :: dim_ids(:)  !Variable dimension IDs
+
+      integer :: i !loop control variable
+
+      !Initialize error code and message:
+      errcode = 0
+      errmsg  = ''
+
+      !Get number of variable dimensions on file:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
+      if(errcode /= PIO_NOERR) then
+         !Extract error message from PIO:
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
+         return
+      end if
+
+      !Check that the variable rank as specified by the caller
+      !matches what is found on the NetCDF file:
+      errcode = 0
+      if(ndims /= var_rank) then
+         errcode = bad_var_rank_err
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
+         return
+      end if
+
+      !Get variable dimension sizes:
+      !Allocate NetCDF variable dimension ID array:
+      allocate(dim_ids(ndims), stat=errcode, errmsg=errmsg)
+      if(errcode /= 0) then
+         return
+      end if
+
+      !Get variable dimension IDs:
+      errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
+      if(errcode /= PIO_NOERR) then
+         !Extract error message from PIO:
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
+         return
+      end if
+
+      !Allocate NetCDF variable dimension sizes array:
+      allocate(dim_sizes(ndims), stat=errcode, errmsg=errmsg)
+      if(errcode /= 0) then
+         return
+      end if
+
+      !Get dimension sizes:
+      do i = 1, ndims
+         errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
+         if(errcode /= PIO_NOERR) then
+            !Extract error message from PIO:
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
+            return
+         end if
+      end do
+
+   end subroutine get_dim_sizes
 
 end module pio_reader

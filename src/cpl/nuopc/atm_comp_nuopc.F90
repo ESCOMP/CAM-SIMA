@@ -43,7 +43,7 @@ module atm_comp_nuopc
    use cam_instance        , only : cam_instance_init, inst_suffix, inst_index
    use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_run4, cam_final
    use cam_comp            , only : cam_timestep_init, cam_timestep_final
-   use camsrfexch          , only : cam_out_t, cam_in_t
+   use physics_types       , only : cam_out_t, cam_in_t
 !   use radiation           , only : nextsw_cday  !uncomment once radiation has been CCPP-ized -JN
    use cam_logfile         , only : cam_set_log_unit, iulog
    use cam_abortutils      , only : check_allocate

@@ -76,7 +76,7 @@ CONTAINS
    subroutine stepon_run3(dtime, cam_runtime_opts, cam_out, phys_state,       &
         dyn_in, dyn_out)
       use runtime_obj, only: runtime_options
-      use camsrfexch,  only: cam_out_t
+      use physics_types,  only: cam_out_t
       use dyn_comp,    only: dyn_run
       use perf_mod,    only: t_startf, t_stopf, t_barrierf
 

@@ -276,9 +276,9 @@ class RegistryTest(unittest.TestCase):
         for the SE dycore"""
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
-        out_name = "physics_types_ddt"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '_se.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '_se.meta')
+        out_name = "physics_types_ddt_mf"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '.meta')
         out_source = os.path.join(_TMP_DIR, out_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
@@ -319,9 +319,9 @@ class RegistryTest(unittest.TestCase):
         """
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
-        out_name = "physics_types_ddt"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '_se.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '_se.meta')
+        out_name = "physics_types_ddt_mf"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '.meta')
         out_source = os.path.join(_TMP_DIR, out_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
@@ -373,9 +373,9 @@ class RegistryTest(unittest.TestCase):
         """
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
-        out_name = "physics_types_ddt"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '_se.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '_se.meta')
+        out_name = "physics_types_ddt_mf"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '.meta')
         out_source = os.path.join(_TMP_DIR, out_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
         remove_files([out_source, out_meta])
@@ -455,7 +455,7 @@ class RegistryTest(unittest.TestCase):
         self.assertEqual(retcode, 0, msg=amsg)
         flen = len(files)
         amsg = f"Test failure: Found {flen} files, expected 2"
-        self.assertEqual(flen, 2, msg=amsg)
+        self.assertEqual(flen, 4, msg=amsg)
 
         # Make sure each output file was created
         amsg = f"{out_meta} does not exist"
