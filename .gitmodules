@@ -44,7 +44,7 @@
 [submodule "cice"]
         path          = components/cice
         url           = https://github.com/ESCOMP/CESM_CICE
-        fxtag         = cesm_cice6_6_0_13
+        fxtag         = cesm3_cice6_6_0_13
         fxrequired    = ToplevelRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/CESM_CICE
 [submodule "cime"]
