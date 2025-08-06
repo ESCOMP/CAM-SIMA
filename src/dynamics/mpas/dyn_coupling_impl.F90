@@ -28,7 +28,7 @@ contains
         use cam_logfile, only: debugout_debug, debugout_info
         use dyn_comp, only: dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
         use dyn_grid, only: ncells_solve
-        use dyn_procedure, only: reverse
+        use dyn_procedures, only: reverse
         use physics_types, only: phys_state
         use vert_coord, only: pver
         ! Module(s) from CCPP.
@@ -361,8 +361,8 @@ contains
         !> (KCW, 2024-07-30)
         subroutine update_shared_variables(i)
             ! Module(s) from CAM-SIMA.
-            use dyn_mpas_procedure, only: clamp
-            use dyn_procedure, only: dp_by_hydrostatic_equation, omega_of_w_rho, p_by_equation_of_state, t_of_tm_qv
+            use dyn_mpas_procedures, only: clamp
+            use dyn_procedures, only: dp_by_hydrostatic_equation, omega_of_w_rho, p_by_equation_of_state, t_of_tm_qv
             use dynconst, only: constant_g => gravit, constant_rd => rair, constant_rv => rh2o
             use vert_coord, only: pver, pverp
 
@@ -444,7 +444,7 @@ contains
         !> (KCW, 2024-07-30)
         subroutine set_physics_state_column(i)
             ! Module(s) from CAM-SIMA.
-            use dyn_procedure, only: reverse
+            use dyn_procedures, only: reverse
             use dynconst, only: constant_g => gravit
             use physics_types, only: phys_state
 
@@ -688,7 +688,7 @@ contains
             use cam_logfile, only: debugout_info
             use dyn_comp, only: mpas_dynamical_core
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: reverse
+            use dyn_procedures, only: reverse
             use physics_types, only: phys_tend
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_ru'
@@ -750,7 +750,7 @@ contains
             use cam_logfile, only: debugout_info
             use dyn_comp, only: mpas_dynamical_core
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: t_of_theta_rhod_qv, t_of_tm_qv, theta_of_t_rhod_qv, tm_of_t_qv, &
+            use dyn_procedures, only: t_of_theta_rhod_qv, t_of_tm_qv, theta_of_t_rhod_qv, tm_of_t_qv, &
                                      reverse
             use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
                                 constant_rd => rair, constant_rv => rh2o

@@ -335,7 +335,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_debug_print(self, level, message, printer)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
 
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: level
@@ -375,7 +375,7 @@ contains
     subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_level, log_unit, mpas_log_unit)
         ! Module(s) from MPAS.
         use atm_core_interface, only: atm_setup_core, atm_setup_domain
-        use dyn_mpas_procedure, only: clamp
+        use dyn_mpas_procedures, only: clamp
         use mpas_domain_routines, only: mpas_allocate_domain
         use mpas_framework, only: mpas_framework_init_phase1
 
@@ -487,7 +487,7 @@ contains
     subroutine dyn_mpas_read_namelist(self, namelist_path, &
             cf_calendar, start_date_time, stop_date_time, run_duration, initial_run)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
 
         class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: namelist_path, cf_calendar
@@ -709,7 +709,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
         use mpas_bootstrapping, only: mpas_bootstrap_framework_phase1, mpas_bootstrap_framework_phase2
         use mpas_derived_types, only: mpas_io_pnetcdf, mpas_pool_type
         use mpas_pool_routines, only: mpas_pool_add_config, mpas_pool_add_dimension, mpas_pool_get_dimension
@@ -819,7 +819,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_define_scalar(self, constituent_name, is_water_species)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: index_unique, stringify
+        use dyn_mpas_procedures, only: index_unique, stringify
         use mpas_derived_types, only: field3dreal, mpas_pool_type
         use mpas_pool_routines, only: mpas_pool_add_dimension, mpas_pool_get_field
 
@@ -1217,7 +1217,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field0dchar, field1dchar, &
                                       field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
                                       field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal, &
@@ -1643,7 +1643,7 @@ contains
     !> (KCW, 2024-06-01)
     pure function parse_stream_name(stream_name) result(var_info_list)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: index_unique
+        use dyn_mpas_procedures, only: index_unique
 
         character(*), intent(in) :: stream_name
         type(var_info_type), allocatable :: var_info_list(:)
@@ -1806,7 +1806,7 @@ contains
                        pio_char, pio_int, pio_real, pio_double, &
                        pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field0dchar, field1dchar, &
                                       field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
                                       field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal
@@ -2231,7 +2231,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_exchange_halo(self, field_name)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field1dinteger, field2dinteger, field3dinteger, &
                                       field1dreal, field2dreal, field3dreal, field4dreal, field5dreal, &
                                       mpas_pool_field_info_type, mpas_pool_integer, mpas_pool_real
@@ -2720,7 +2720,7 @@ contains
         ! Module(s) from MPAS.
         use atm_core, only: atm_mpas_init_block
         use atm_time_integration, only: mpas_atm_dynamics_init
-        use dyn_mpas_procedure, only: almost_divisible, stringify
+        use dyn_mpas_procedures, only: almost_divisible, stringify
         use mpas_atm_dimensions, only: mpas_atm_set_dims
         use mpas_atm_halos, only: atm_build_halo_groups, exchange_halo_group
         use mpas_atm_threading, only: mpas_atm_threading_init
@@ -2957,7 +2957,7 @@ contains
     subroutine dyn_mpas_run(self)
         ! Module(s) from MPAS.
         use atm_core, only: atm_compute_output_diagnostics, atm_do_timestep
-        use dyn_mpas_procedure, only: stringify
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: mpas_pool_type, mpas_time_type, mpas_timeinterval_type, &
                                       mpas_now
         use mpas_pool_routines, only: mpas_pool_shift_time_levels

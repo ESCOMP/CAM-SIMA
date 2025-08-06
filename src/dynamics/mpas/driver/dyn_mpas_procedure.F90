@@ -10,7 +10,7 @@
 !> should be designated as `elemental` where possible to aid compiler optimizations, such as
 !> vectorization.
 !> Utility procedures implement simple and well-defined operations that can be easily tested.
-module dyn_mpas_procedure
+module dyn_mpas_procedures
     implicit none
 
     private
@@ -383,4 +383,4 @@ contains
 
         stringify = trim(buffer)
     end function stringify
-end module dyn_mpas_procedure
+end module dyn_mpas_procedures

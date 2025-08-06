@@ -10,7 +10,7 @@
 !> should be designated as `elemental` where possible to aid compiler optimizations, such as
 !> vectorization.
 !> Utility procedures implement simple and well-defined operations that can be easily tested.
-module dyn_procedure
+module dyn_procedures
     implicit none
 
     private
@@ -356,4 +356,4 @@ contains
         hour_min_sec(2) = sec / 60 - hour_min_sec(1) * 60
         hour_min_sec(3) = sec - hour_min_sec(1) * 3600 - hour_min_sec(2) * 60
     end function sec_to_hour_min_sec
-end module dyn_procedure
+end module dyn_procedures

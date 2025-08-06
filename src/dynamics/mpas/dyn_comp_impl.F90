@@ -53,7 +53,7 @@ contains
         use cam_control_mod, only: initial_run
         use cam_instance, only: atm_id
         use cam_logfile, only: debug_output, debugout_debug, debugout_info, iulog
-        use dyn_procedure, only: sec_to_hour_min_sec
+        use dyn_procedures, only: sec_to_hour_min_sec
         use spmd_utils, only: mpicom
         use string_utils, only: stringify
         use time_manager, only: get_start_date, get_stop_date, get_run_duration, timemgr_get_calendar_cf
@@ -432,7 +432,7 @@ contains
             use cam_grid_support, only: cam_grid_get_latvals, cam_grid_get_lonvals, cam_grid_id
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: reverse
+            use dyn_procedures, only: reverse
             use dynconst, only: deg_to_rad
             use vert_coord, only: pverp
 
@@ -510,7 +510,7 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: reverse
+            use dyn_procedures, only: reverse
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -587,7 +587,7 @@ contains
             use cam_constituents, only: num_advected
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: reverse
+            use dyn_procedures, only: reverse
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -662,8 +662,8 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: p_by_hypsometric_equation, rho_by_equation_of_state, theta_by_poisson_equation, &
-                                     tm_of_t_qv, tv_of_tm_qv, reverse
+            use dyn_procedures, only: p_by_hypsometric_equation, rho_by_equation_of_state, theta_by_poisson_equation, &
+                                      tm_of_t_qv, tv_of_tm_qv, reverse
             use dyn_tests_utils, only: vc_height
             use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
                                 constant_rd => rair, constant_rv => rh2o
@@ -800,7 +800,7 @@ contains
             use cam_abortutils, only: check_allocate
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedure, only: p_by_hypsometric_equation, rho_by_equation_of_state, theta_by_poisson_equation
+            use dyn_procedures, only: p_by_hypsometric_equation, rho_by_equation_of_state, theta_by_poisson_equation
             use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
                                 constant_rd => rair
             use vert_coord, only: pver
