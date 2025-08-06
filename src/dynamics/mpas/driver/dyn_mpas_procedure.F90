@@ -2,7 +2,9 @@
 ! SPDX-License-Identifier: Apache-2.0
 
 !> This module provides standardized procedures (i.e., functions and subroutines) that serve as
-!> reusable building blocks for larger and more complex functionalities elsewhere.
+!> reusable building blocks for larger and more complex functionalities elsewhere. Specifically,
+!> procedures in this module are intended to be used by the MPAS subdriver and therefore are
+!> compiled into the MPAS library ahead of CAM-SIMA.
 !>
 !> Computational procedures implement formulas that are universal in atmospheric sciences. They
 !> should be designated as `elemental` where possible to aid compiler optimizations, such as
