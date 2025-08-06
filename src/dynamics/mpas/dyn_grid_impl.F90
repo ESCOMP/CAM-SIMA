@@ -7,11 +7,6 @@
 !> It reads and uses the information from MPAS mesh to initialize various model grids
 !> (e.g., dynamics, physics) for CAM-SIMA in terms of dynamics decomposition.
 submodule (dyn_grid) dyn_grid_impl
-#if 0
-#error "Workaround to help the mkDepends tool in CIME find build dependencies until ESMCI/CIME#4818 is merged."
-#error "Compilers should never reach here."
-    use dyn_grid
-#endif
     implicit none
 contains
     !> Initialize various model grids (e.g., dynamics, physics) in terms of dynamics decomposition.
