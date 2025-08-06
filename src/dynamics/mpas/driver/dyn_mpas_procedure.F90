@@ -191,6 +191,8 @@ contains
     end function clamp_real64
 
     !> Return the index of unique elements in `array`, which can be any intrinsic data types, as an integer array.
+    !> Please note that `array` must only have one dimension, and the unique elements are returned by their first occurrences
+    !> in `array`.
     !> If `array` contains zero element or is of unsupported data types, an empty integer array is produced.
     !> For example, `index_unique([1, 2, 3, 1, 2, 3, 4, 5])` returns `[1, 2, 3, 7, 8]`.
     !> (KCW, 2024-03-22)
