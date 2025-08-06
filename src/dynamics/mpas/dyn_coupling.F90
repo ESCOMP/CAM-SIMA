@@ -29,5 +29,4 @@ module dyn_coupling
         module subroutine physics_to_dynamics_coupling()
         end subroutine physics_to_dynamics_coupling
     end interface
-contains
 end module dyn_coupling

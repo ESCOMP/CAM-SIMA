@@ -51,5 +51,4 @@ module dyn_grid
     integer, protected :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     integer, protected :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     real(kind_dyn_mpas), protected :: sphere_radius
-contains
 end module dyn_grid

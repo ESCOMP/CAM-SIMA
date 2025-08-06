@@ -67,5 +67,4 @@ module dyn_comp
 
     !> The "instance/object" of MPAS dynamical core.
     type(mpas_dynamical_core_type) :: mpas_dynamical_core
-contains
 end module dyn_comp
