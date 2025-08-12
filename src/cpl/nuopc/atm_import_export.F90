@@ -532,7 +532,7 @@ contains
     ! the constituent fluxes array:
     call ccpp_constituent_index(wv_stdname, wv_const_index, ierr, errmsg)
     if (ierr /= 0) then
-       call shr_sys_abort(subname // ':: Failed to get water vapor CCPP constituent index with the following error: '//errmsg)
+       call shr_sys_abort(subname//':: Failed to get water vapor CCPP constituent index with the following error: '//errmsg)
     end if
 
     !--------------------------
@@ -549,9 +549,9 @@ contains
        call state_getfldptr(importState, 'Faxx_evap', fldptr=fldptr_evap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do i = 1, columns_on_task
-          cam_in%wsx(i)                  = -fldptr_taux(i) * med2mod_areacor(i)
-          cam_in%wsy(i)                  = -fldptr_tauy(i) * med2mod_areacor(i)
-          cam_in%shf(i)                  = -fldptr_sen(i)  * med2mod_areacor(i)
+          cam_in%wsx(i)                     = -fldptr_taux(i) * med2mod_areacor(i)
+          cam_in%wsy(i)                     = -fldptr_tauy(i) * med2mod_areacor(i)
+          cam_in%shf(i)                     = -fldptr_sen(i)  * med2mod_areacor(i)
           !Add water vapor to constituent fluxes array if present:
           if (wv_const_index > 0) then
              cam_in%cflx(i, wv_const_index) = -fldptr_evap(i) * med2mod_areacor(i)
