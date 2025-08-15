@@ -334,6 +334,9 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_debug_print(self, level, message, printer)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: level
         character(*), intent(in) :: message
@@ -357,117 +360,6 @@ contains
         write(self % log_unit, '(a)') 'MPAS Subdriver (' // stringify([self % mpi_rank]) // '): ' // message
     end subroutine dyn_mpas_debug_print
 
-    !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
-    !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
-    !> If `value` contains exactly one element, the element will be stringified without using `separator`.
-    !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
-    !> If `separator` is not supplied, it defaults to ", " (i.e., a comma and a space).
-    !> (KCW, 2024-02-04)
-    pure function stringify(value, separator)
-        use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
-
-        class(*), intent(in) :: value(:)
-        character(*), optional, intent(in) :: separator
-        character(:), allocatable :: stringify
-
-        integer, parameter :: sizelimit = 1024
-
-        character(:), allocatable :: buffer, delimiter, format
-        character(:), allocatable :: value_c(:)
-        integer :: i, n, offset
-
-        if (present(separator)) then
-            delimiter = separator
-        else
-            delimiter = ', '
-        end if
-
-        n = min(size(value), sizelimit)
-
-        if (n == 0) then
-            stringify = ''
-
-            return
-        end if
-
-        select type (value)
-            type is (character(*))
-                allocate(character(len(value) * n + len(delimiter) * (n - 1)) :: buffer)
-
-                buffer(:) = ''
-                offset = 0
-
-                ! Workaround for a bug in GNU Fortran >= 12. This is perhaps the manifestation of GCC Bugzilla Bug 100819.
-                ! When a character string array is passed as the actual argument to an unlimited polymorphic dummy argument,
-                ! its array index and length parameter are mishandled.
-                allocate(character(len(value)) :: value_c(size(value)))
-
-                value_c(:) = value(:)
-
-                do i = 1, n
-                    if (len(delimiter) > 0 .and. i > 1) then
-                        buffer(offset + 1:offset + len(delimiter)) = delimiter
-                        offset = offset + len(delimiter)
-                    end if
-
-                    if (len_trim(adjustl(value_c(i))) > 0) then
-                        buffer(offset + 1:offset + len_trim(adjustl(value_c(i)))) = trim(adjustl(value_c(i)))
-                        offset = offset + len_trim(adjustl(value_c(i)))
-                    end if
-                end do
-
-                deallocate(value_c)
-            type is (integer(int32))
-                allocate(character(11 * n + len(delimiter) * (n - 1)) :: buffer)
-                allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-
-                write(format, '(a, i0, 3a)') '(ss, ', n, '(i0, :, "', delimiter, '"))'
-                write(buffer, format) value
-            type is (integer(int64))
-                allocate(character(20 * n + len(delimiter) * (n - 1)) :: buffer)
-                allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-
-                write(format, '(a, i0, 3a)') '(ss, ', n, '(i0, :, "', delimiter, '"))'
-                write(buffer, format) value
-            type is (logical)
-                allocate(character(1 * n + len(delimiter) * (n - 1)) :: buffer)
-                allocate(character(13 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-
-                write(format, '(a, i0, 3a)') '(', n, '(l1, :, "', delimiter, '"))'
-                write(buffer, format) value
-            type is (real(real32))
-                allocate(character(13 * n + len(delimiter) * (n - 1)) :: buffer)
-
-                if (maxval(abs(value)) < 1.0e5_real32) then
-                    allocate(character(20 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-                    write(format, '(a, i0, 3a)') '(ss, ', n, '(f13.6, :, "', delimiter, '"))'
-                else
-                    allocate(character(23 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-                    write(format, '(a, i0, 3a)') '(ss, ', n, '(es13.6e2, :, "', delimiter, '"))'
-                end if
-
-                write(buffer, format) value
-            type is (real(real64))
-                allocate(character(13 * n + len(delimiter) * (n - 1)) :: buffer)
-
-                if (maxval(abs(value)) < 1.0e5_real64) then
-                    allocate(character(20 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-                    write(format, '(a, i0, 3a)') '(ss, ', n, '(f13.6, :, "', delimiter, '"))'
-                else
-                    allocate(character(23 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
-                    write(format, '(a, i0, 3a)') '(ss, ', n, '(es13.6e2, :, "', delimiter, '"))'
-                end if
-
-                write(buffer, format) value
-            class default
-                stringify = ''
-
-                return
-        end select
-
-        stringify = trim(buffer)
-    end function stringify
-
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_init_phase1
     !
@@ -483,6 +375,7 @@ contains
     subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_level, log_unit, mpas_log_unit)
         ! Module(s) from MPAS.
         use atm_core_interface, only: atm_setup_core, atm_setup_domain
+        use dyn_mpas_procedures, only: clamp
         use mpas_domain_routines, only: mpas_allocate_domain
         use mpas_framework, only: mpas_framework_init_phase1
 
@@ -514,7 +407,7 @@ contains
         end if
 
         self % mpi_rank_root = (self % mpi_rank == 0)
-        self % log_level = max(min(log_level, log_level_debug), log_level_quiet)
+        self % log_level = clamp(log_level, log_level_quiet, log_level_debug)
         self % log_unit = log_unit
 
         call self % debug_print(log_level_debug, subname // ' entered')
@@ -593,6 +486,9 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_read_namelist(self, namelist_path, &
             cf_calendar, start_date_time, stop_date_time, run_duration, initial_run)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: namelist_path, cf_calendar
         integer, intent(in) :: start_date_time(6), & ! YYYY, MM, DD, hh, mm, ss.
@@ -813,6 +709,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
         ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
         use mpas_bootstrapping, only: mpas_bootstrap_framework_phase1, mpas_bootstrap_framework_phase2
         use mpas_derived_types, only: mpas_io_pnetcdf, mpas_pool_type
         use mpas_pool_routines, only: mpas_pool_add_config, mpas_pool_add_dimension, mpas_pool_get_dimension
@@ -922,6 +819,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_define_scalar(self, constituent_name, is_water_species)
         ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: index_unique, stringify
         use mpas_derived_types, only: field3dreal, mpas_pool_type
         use mpas_pool_routines, only: mpas_pool_add_dimension, mpas_pool_get_field
 
@@ -1319,6 +1217,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
         ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field0dchar, field1dchar, &
                                       field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
                                       field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal, &
@@ -1743,6 +1642,9 @@ contains
     !> Duplicate variable information in the resulting list is discarded.
     !> (KCW, 2024-06-01)
     pure function parse_stream_name(stream_name) result(var_info_list)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: index_unique
+
         character(*), intent(in) :: stream_name
         type(var_info_type), allocatable :: var_info_list(:)
 
@@ -1881,85 +1783,6 @@ contains
         end select
     end function parse_stream_name_fragment
 
-    !> Return the index of unique elements in `array`, which can be any intrinsic data types, as an integer array.
-    !> If `array` contains zero element or is of unsupported data types, an empty integer array is produced.
-    !> For example, `index_unique([1, 2, 3, 1, 2, 3, 4, 5])` returns `[1, 2, 3, 7, 8]`.
-    !> (KCW, 2024-03-22)
-    pure function index_unique(array)
-        use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
-
-        class(*), intent(in) :: array(:)
-        integer, allocatable :: index_unique(:)
-
-        character(:), allocatable :: array_c(:)
-        integer :: i, n
-        logical :: mask_unique(size(array))
-
-        n = size(array)
-
-        if (n == 0) then
-            allocate(index_unique(0))
-
-            return
-        end if
-
-        mask_unique = .false.
-
-        select type (array)
-            type is (character(*))
-                ! Workaround for a bug in GNU Fortran >= 12. This is perhaps the manifestation of GCC Bugzilla Bug 100819.
-                ! When a character string array is passed as the actual argument to an unlimited polymorphic dummy argument,
-                ! its array index and length parameter are mishandled.
-                allocate(character(len(array)) :: array_c(size(array)))
-
-                array_c(:) = array(:)
-
-                do i = 1, n
-                    if (.not. any(array_c(i) == array_c .and. mask_unique)) then
-                        mask_unique(i) = .true.
-                    end if
-                end do
-
-                deallocate(array_c)
-            type is (integer(int32))
-                do i = 1, n
-                    if (.not. any(array(i) == array .and. mask_unique)) then
-                        mask_unique(i) = .true.
-                    end if
-                end do
-            type is (integer(int64))
-                do i = 1, n
-                    if (.not. any(array(i) == array .and. mask_unique)) then
-                        mask_unique(i) = .true.
-                    end if
-                end do
-            type is (logical)
-                do i = 1, n
-                    if (.not. any((array(i) .eqv. array) .and. mask_unique)) then
-                        mask_unique(i) = .true.
-                    end if
-                end do
-            type is (real(real32))
-                do i = 1, n
-                    if (.not. any(array(i) == array .and. mask_unique)) then
-                        mask_unique(i) = .true.
-                    end if
-                end do
-            type is (real(real64))
-                do i = 1, n
-                    if (.not. any(array(i) == array .and. mask_unique)) then
-                        mask_unique(i) = .true.
-                    end if
-                end do
-            class default
-                allocate(index_unique(0))
-
-                return
-        end select
-
-        index_unique = pack([(i, i = 1, n)], mask_unique)
-    end function index_unique
-
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_check_variable_status
     !
@@ -1983,6 +1806,7 @@ contains
                        pio_char, pio_int, pio_real, pio_double, &
                        pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
         ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field0dchar, field1dchar, &
                                       field0dinteger, field1dinteger, field2dinteger, field3dinteger, &
                                       field0dreal, field1dreal, field2dreal, field3dreal, field4dreal, field5dreal
@@ -2407,6 +2231,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_exchange_halo(self, field_name)
         ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field1dinteger, field2dinteger, field3dinteger, &
                                       field1dreal, field2dreal, field3dreal, field4dreal, field5dreal, &
                                       mpas_pool_field_info_type, mpas_pool_integer, mpas_pool_real
@@ -2895,6 +2720,7 @@ contains
         ! Module(s) from MPAS.
         use atm_core, only: atm_mpas_init_block
         use atm_time_integration, only: mpas_atm_dynamics_init
+        use dyn_mpas_procedures, only: almost_divisible, stringify
         use mpas_atm_dimensions, only: mpas_atm_set_dims
         use mpas_atm_halos, only: atm_build_halo_groups, exchange_halo_group
         use mpas_atm_threading, only: mpas_atm_threading_init
@@ -3111,54 +2937,6 @@ contains
         call self % debug_print(log_level_debug, subname // ' completed')
 
         call self % debug_print(log_level_info, 'Successful initialization of MPAS dynamical core')
-    contains
-        !> Test if `a` is divisible by `b`, where `a` and `b` are both reals.
-        !> (KCW, 2024-05-25)
-        pure function almost_divisible(a, b)
-            real(rkind), intent(in) :: a, b
-            logical :: almost_divisible
-
-            real(rkind) :: error_tolerance
-
-            error_tolerance = epsilon(1.0_rkind) * max(abs(a), abs(b))
-
-            if (almost_equal(mod(abs(a), abs(b)), 0.0_rkind, absolute_tolerance=error_tolerance) .or. &
-                almost_equal(mod(abs(a), abs(b)), abs(b), absolute_tolerance=error_tolerance)) then
-                almost_divisible = .true.
-
-                return
-            end if
-
-            almost_divisible = .false.
-        end function almost_divisible
-
-        !> Test `a` and `b` for approximate equality, where `a` and `b` are both reals.
-        !> (KCW, 2024-05-25)
-        pure function almost_equal(a, b, absolute_tolerance, relative_tolerance)
-            real(rkind), intent(in) :: a, b
-            real(rkind), optional, intent(in) :: absolute_tolerance, relative_tolerance
-            logical :: almost_equal
-
-            real(rkind) :: error_tolerance
-
-            if (present(relative_tolerance)) then
-                error_tolerance = relative_tolerance * max(abs(a), abs(b))
-            else
-                error_tolerance = epsilon(1.0_rkind) * max(abs(a), abs(b))
-            end if
-
-            if (present(absolute_tolerance)) then
-                error_tolerance = max(absolute_tolerance, error_tolerance)
-            end if
-
-            if (abs(a - b) <= error_tolerance) then
-                almost_equal = .true.
-
-                return
-            end if
-
-            almost_equal = .false.
-        end function almost_equal
     end subroutine dyn_mpas_init_phase4
 
     !-------------------------------------------------------------------------------
@@ -3179,6 +2957,7 @@ contains
     subroutine dyn_mpas_run(self)
         ! Module(s) from MPAS.
         use atm_core, only: atm_compute_output_diagnostics, atm_do_timestep
+        use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: mpas_pool_type, mpas_time_type, mpas_timeinterval_type, &
                                       mpas_now
         use mpas_pool_routines, only: mpas_pool_shift_time_levels

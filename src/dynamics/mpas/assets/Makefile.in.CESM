@@ -109,13 +109,14 @@ libmpas-apply-patch:
 
 # Combine multiple static libraries into `libmpas.a` via archiver/MRI script. This requires GNU or GNU-like archiver (`ar`) program.
 libmpas-archiver-script.txt:
-	@echo "create libmpas.a"             > $(@)
-	@echo "addlib libdycore.a"          >> $(@)
-	@echo "addlib libframework.a"       >> $(@)
-	@echo "addlib libops.a"             >> $(@)
-	@echo "addmod dyn_mpas_subdriver.o" >> $(@)
-	@echo "save"                        >> $(@)
-	@echo "end"                         >> $(@)
+	@echo "create libmpas.a"              > $(@)
+	@echo "addlib libdycore.a"           >> $(@)
+	@echo "addlib libframework.a"        >> $(@)
+	@echo "addlib libops.a"              >> $(@)
+	@echo "addmod dyn_mpas_procedures.o" >> $(@)
+	@echo "addmod dyn_mpas_subdriver.o"  >> $(@)
+	@echo "save"                         >> $(@)
+	@echo "end"                          >> $(@)
 
 .PHONY: libmpas-preview
 libmpas-preview: libmpas-apply-patch libmpas-archiver-script.txt
@@ -161,7 +162,9 @@ endif
 	( cd external; $(MAKE) FC="$(FC)" SFC="$(SFC)" CC="$(CC)" SCC="$(SCC)" FFLAGS="$(FFLAGS)" CFLAGS="$(CFLAGS)" CPP="$(CPP)" NETCDF="$(NETCDF)" CORE="$(CORE)" ezxml-lib )
 
 .PHONY: subdrv
-subdrv: driver/dyn_mpas_subdriver.o
+subdrv: driver/dyn_mpas_procedures.o driver/dyn_mpas_subdriver.o
+
+driver/dyn_mpas_subdriver.o: driver/dyn_mpas_procedures.o
 
 %.o: %.F90 dycore frame ops
 	( cd $(<D); $(FC) $(CPPFLAGS) $(FFLAGS) -c $(<F) $(CPPINCLUDES) $(FCINCLUDES) -I../framework -I../operators -I../core_$(CORE) -I../core_$(CORE)/dynamics )

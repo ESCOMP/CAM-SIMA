@@ -469,6 +469,8 @@ contains
     use physconst         , only : mwco2
     use time_manager      , only : is_first_step, get_nstep
     use physics_grid      , only : columns_on_task
+    use runtime_obj       , only : wv_stdname
+    use ccpp_scheme_utils , only : ccpp_constituent_index
 
     ! input/output variabes
     type(ESMF_GridComp)               :: gcomp
@@ -479,12 +481,15 @@ contains
     ! local variables
     type(ESMF_State)   :: importState
     integer            :: i,n  ! loop indices
+    integer            :: ierr
     integer            :: nstep
+    integer            :: wv_const_index
     logical            :: overwrite_flds
     logical            :: exists
     logical            :: exists_fco2_ocn
     logical            :: exists_fco2_lnd
     character(len=128) :: fldname
+    character(len=512) :: errmsg
     real(r8), pointer  :: fldptr2d(:,:)
     real(r8), pointer  :: fldptr1d(:)
     real(r8), pointer  :: fldptr_lat(:)
@@ -522,6 +527,14 @@ contains
     overwrite_flds = .true.
     if (present(restart_init)) overwrite_flds = .not. restart_init
 
+    ! Find CCPP constituents index for water vapor,
+    ! as it is needed to properly pass evaporation into
+    ! the constituent fluxes array:
+    call ccpp_constituent_index(wv_stdname, wv_const_index, ierr, errmsg)
+    if (ierr /= 0) then
+       call shr_sys_abort(subname//':: Failed to get water vapor CCPP constituent index with the following error: '//errmsg)
+    end if
+
     !--------------------------
     ! Required atmosphere input fields
     !--------------------------
@@ -536,10 +549,13 @@ contains
        call state_getfldptr(importState, 'Faxx_evap', fldptr=fldptr_evap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do i = 1, columns_on_task
-          cam_in%wsx(i)    = -fldptr_taux(i) * med2mod_areacor(i)
-          cam_in%wsy(i)    = -fldptr_tauy(i) * med2mod_areacor(i)
-          cam_in%shf(i)    = -fldptr_sen(i)  * med2mod_areacor(i)
-          cam_in%cflx(i,1) = -fldptr_evap(i) * med2mod_areacor(i)
+          cam_in%wsx(i)                     = -fldptr_taux(i) * med2mod_areacor(i)
+          cam_in%wsy(i)                     = -fldptr_tauy(i) * med2mod_areacor(i)
+          cam_in%shf(i)                     = -fldptr_sen(i)  * med2mod_areacor(i)
+          !Add water vapor to constituent fluxes array if present:
+          if (wv_const_index > 0) then
+             cam_in%cflx(i, wv_const_index) = -fldptr_evap(i) * med2mod_areacor(i)
+          end if
        end do
     end if  ! end of overwrite_flds
 
@@ -678,7 +694,7 @@ contains
 #endif
 
 #if 0
-! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species) 
+! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species)
 ! and it was determined that it probably will not be used in CAM-SIMA for some time
     ! dry dep velocities
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
