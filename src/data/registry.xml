@@ -1418,6 +1418,53 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_tauresy</ic_file_input_names>
     </variable>
+    <variable local_name="dragblj"
+              standard_name="turbulent_orographic_form_drag_coefficent"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_dragblj</ic_file_input_names>
+    </variable>
+    <!-- REMOVECAM: the final standard name for these quantities below are
+         {east,north}ward_turbulent_orographic_form_drag_stress_at_surface.
+         however, it is shared with tautmsx; in order to distinguish between these two in CAM snapshots,
+         an alternate standard name is currently used. When CAM snapshots are retired, only either
+         Beljaars or TMS (which are mutually exclusive) provide the {east,north}ward_orographic_form_drag_stress_at_surface. -->
+    <variable local_name="taubljx"
+              standard_name="eastward_beljaars_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_taubljx</ic_file_input_names>
+    </variable>
+    <variable local_name="taubljy"
+              standard_name="northward_beljaars_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_taubljy</ic_file_input_names>
+    </variable>
+    <variable local_name="non_wv_cflx_in_free_atm_vdiff"
+              standard_name="flag_for_vertical_diffusion_apply_ccpp_constituent_fluxes_excluding_water_vapor"
+              units="flag" type="logical">
+      <long_name>should free atmosphere HB vertical diffusion handle non-water-vapor upward fluxes from coupler?</long_name>
+      <!-- should be false for CAM7 and true for CAM6; ignored elsewhere -->
+      <initial_value>.false.</initial_value>
+      <!--<initial_value phys_suite="cam6">.true.</initial_value>-->
+    </variable>
+    <variable local_name="clubbtop"
+              standard_name="vertical_layer_index_of_clubb_top_tbd"
+              units="index" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <!-- REMOVECAM: once CAM snapshots are no longer used, change to integer. -->
+      <long_name>vertical layer index for top of CLUBB for running HB above</long_name>
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_clubbtop</ic_file_input_names>
+    </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->
     <variable local_name="ql"
