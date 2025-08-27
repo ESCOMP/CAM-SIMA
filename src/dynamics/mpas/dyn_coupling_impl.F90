@@ -489,6 +489,7 @@ contains
             use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
             use cam_thermo_formula, only: energy_formula_dycore_mpas
             use dyn_comp, only: mpas_dynamical_core
+            use dyn_procedures, only: exner_function
             use dynconst, only: constant_g => gravit
             use physics_types, only: cappav, cp_or_cv_dycore, cpairv, lagrangian_vertical, phys_state, rairv, zvirv
             use runtime_obj, only: cam_runtime_opts
@@ -553,7 +554,7 @@ contains
             ! the paragraph below equation 1.5.1c in doi:10.1007/978-94-009-3027-8.
             ! Also note that `cappav` is updated externally by `cam_thermo_dry_air_update`.
             do i = 1, ncells_solve
-                phys_state % exner(i, :) = (phys_state % ps(i) / phys_state % pmid(i, :)) ** cappav(i, :)
+                phys_state % exner(i, :) = 1.0_kind_r8 / exner_function(cappav(i, :), phys_state % ps(i), phys_state % pmid(i, :))
             end do
 
             ! Note that constituents become moist after this.
