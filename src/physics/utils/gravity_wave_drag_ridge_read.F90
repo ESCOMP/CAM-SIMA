@@ -3,8 +3,10 @@
 !
 ! Remarks: this module is not CCPP-ized but is written specifically for
 ! grid decomposition-aware I/O in CAM-SIMA; it also has variables that
-! are not a grid dimension (nrdg = 16), so it uses the PIO utilities
-! directly. This module can be a useful reference for how to provide
+! are not a grid dimension (prdg = 16) that are read by specifying the
+! custom dimension. It also makes that dimension available to the CCPP
+! framework (prdg).
+! This module can be a useful reference for how to provide
 ! gridded data to underlying CCPP schemes via the CAM PIO decomposition.
 ! (hplin, 8/28/25)
 module gravity_wave_drag_ridge_read
