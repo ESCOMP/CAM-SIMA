@@ -13,6 +13,7 @@
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/gravity_wave_drag_ridge_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo_formula.meta</metadata_file>
@@ -1392,14 +1393,6 @@
     </variable>
 
     <!-- Gravity wave drag variables - need to be kept in CAM registry -->
-    <variable local_name="vramp"
-              standard_name="gravity_wave_drag_tapering_coefficients_tbd"
-              units="1"
-              type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>vertical_layer_dimension</dimensions>
-      <initial_value>1.0_kind_phys</initial_value>
-    </variable>
     <variable local_name="kvt"
               standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"
               units="m2 s-1" type="real" kind="kind_phys"

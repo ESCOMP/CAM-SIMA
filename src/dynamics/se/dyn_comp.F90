@@ -2320,7 +2320,7 @@ subroutine read_dyn_field_2d(fieldname, fh, dimname, buffer)
    end if
 
    ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case cam_read_feild can return NaNs where the element
+   ! to NaN.  In that case cam_read_field can return NaNs where the element
    ! GLL points are not "unique columns".
    ! Set NaNs or fillvalue points to zero:
    where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue)) buffer = 0.0_r8
@@ -2350,7 +2350,7 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
    end if
 
    ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case infld can return NaNs where the element GLL
+   ! to NaN.  In that case cam_read_field can return NaNs where the element GLL
    ! points are not "unique columns".
    ! Set NaNs or fillvalue points to zero:
    where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue)) buffer = 0.0_r8

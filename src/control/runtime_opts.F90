@@ -45,6 +45,7 @@ contains
       use inic_analytic_utils, only: analytic_ic_readnl
 
       use tropopause_climo_read, only: tropopause_climo_readnl
+      use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
 
 !      use tracers,             only: tracers_readnl
 !      use nudging,             only: nudging_readnl
@@ -104,7 +105,7 @@ contains
       call tropopause_climo_readnl(nlfilename)
 !      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
 !      call nudging_readnl(nlfilename)
-
+      call gravity_wave_drag_ridge_read_readnl(nlfilename)
       call dyn_readnl(nlfilename)
 
       ! Read the namelists for active physics schemes

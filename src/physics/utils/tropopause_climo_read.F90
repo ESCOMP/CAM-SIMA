@@ -13,6 +13,7 @@ module tropopause_climo_read
 
   implicit none
   private
+  save
 
   public :: tropopause_climo_readnl
   public :: tropopause_climo_read_file
