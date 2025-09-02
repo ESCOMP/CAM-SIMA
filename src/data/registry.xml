@@ -142,7 +142,7 @@
     </variable>
     <!-- State quantities for shallow/deep convection -->
     <variable local_name="qpert"
-              standard_name="convective_water_vapor_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
+              standard_name="convective_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
