@@ -363,12 +363,14 @@ contains
     !> Convert second(s) to hour(s), minute(s), and second(s).
     !> (KCW, 2024-02-07)
     pure function sec_to_hour_min_sec(sec) result(hour_min_sec)
-        integer, intent(in) :: sec
-        integer :: hour_min_sec(3)
+        use, intrinsic :: iso_fortran_env, only: int32
 
-        ! These are all intended to be integer arithmetics.
-        hour_min_sec(1) = sec / 3600
-        hour_min_sec(2) = sec / 60 - hour_min_sec(1) * 60
-        hour_min_sec(3) = sec - hour_min_sec(1) * 3600 - hour_min_sec(2) * 60
+        integer(int32), intent(in) :: sec
+        integer(int32) :: hour_min_sec(3)
+
+        ! These are all intended to be integer arithmetic.
+        hour_min_sec(1) = sec / 3600_int32
+        hour_min_sec(2) = sec / 60_int32 - hour_min_sec(1) * 60_int32
+        hour_min_sec(3) = sec - hour_min_sec(1) * 3600_int32 - hour_min_sec(2) * 60_int32
     end function sec_to_hour_min_sec
 end module dyn_procedures
