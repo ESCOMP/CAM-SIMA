@@ -13,6 +13,15 @@
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>slp sea_lev_pres</ic_file_input_names>
     </variable>
+    <variable local_name="ptend" standard_name="tendency_of_peverwhee"
+              units="s-1" type="real" kind="kind_phys"  allocatable="pointer">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>ptend</ic_file_input_names>
+    </variable>
+    <variable local_name="var_nodim" standard_name="scalar_variable_llama"
+	    units="llamas s-2" type="integer">
+      <initial_value>2</initial_value>
+    </variable>
     <variable local_name="eddy_len" standard_name="eddy_length_scale"
               units="m" type="real" kind="kind_phys"  allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>

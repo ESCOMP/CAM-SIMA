@@ -235,7 +235,7 @@ CONTAINS
       use cam_pio_utils,               only: cam_pio_openfile, cam_pio_closefile
       use ccpp_constituent_prop_mod,   only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check_simple, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_simple,        only: slp, theta
+      use physics_types_simple,        only: ptend, theta, var_nodim
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -304,38 +304,47 @@ CONTAINS
       do suite_idx = 1, size(suite_names, 1)
 
          ! Search for all needed CCPP input variables, so that they can be read from input file if need be:
-            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.true., output_vars=.false.)
+            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.false., output_vars=.true.)
 
          ! Loop over all required variables as specified by CCPP suite:
          do req_idx = 1, size(ccpp_required_data, 1)
 
-            ! First check if the required variable is a constituent:
-            call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)
-            if (constituent_idx > -1) then
-               cycle
-            else
-               ! The required variable is not a constituent. Check if the variable was read from a file
-               ! Find IC file input name array index for required variable:
-               call is_read_from_file(ccpp_required_data(req_idx), is_read, stdnam_idx_out=name_idx)
-               if (.not. is_read) then
-                  cycle
-               end if
-               ! Check variable vs input check file:
+            ! Find IC file input name array index for required variable:
+            name_idx = find_input_name_idx(ccpp_required_data(req_idx), .true., constituent_idx)
 
-               select case (trim(phys_var_stdnames(name_idx)))
-               case ('potential_temperature')
-                  call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,                 &
-                       min_relative_value, is_first, diff_found)
+            ! Check for special index values:
+            select case (name_idx)
 
-               case ('air_pressure_at_sea_level')
-                  call check_field(file, input_var_names(:,name_idx), timestep, slp, 'air_pressure_at_sea_level', min_difference, min_relative_value,  &
-                       is_first, diff_found)
+               case (const_idx)
 
-               end select !check variables
-               if (diff_found) then
-                  overall_diff_found = .true.
-               end if
-            end if !check if constituent
+                  ! If variable is a constituent, then do nothing. We'll handle these later
+
+               case (no_exist_idx)
+
+                  ! If the index for an output variable was not found, then do nothing. We won't try to check these.
+
+               case default
+
+                  ! Check variable vs input check file:
+
+                  select case (trim(phys_var_stdnames(name_idx)))
+                  case ('potential_temperature')
+                     call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,              &
+                          min_relative_value, is_first, diff_found)
+
+                  case ('tendency_of_peverwhee')
+                     call check_field(file, input_var_names(:,name_idx), timestep, ptend, 'tendency_of_peverwhee', min_difference,                     &
+                          min_relative_value, is_first, diff_found)
+
+                  case ('scalar_variable_llama')
+                     ! do nothing - 'var_nodim' can't be checked against a file because var_nodim has no horizontal dimension
+
+                  end select !check variables
+                  if (diff_found) then
+                     overall_diff_found = .true.
+                  end if
+            end select !special indices
+
          end do !Suite-required variables
 
          ! Deallocate required variables array for use in next suite:

@@ -18,7 +18,7 @@ CONTAINS
 !! \htmlinclude arg_table_temp_adjust_run.html
 !!
   SUBROUTINE temp_adjust_run(nbox, lev, temp_layer,    &
-    slp, timestep, errmsg, errflg)
+    slp, timestep, ptend, llama, errmsg, errflg)
 !----------------------------------------------------------------
    IMPLICIT NONE
 !----------------------------------------------------------------
@@ -27,6 +27,8 @@ CONTAINS
    REAL(kind_phys),    intent(inout) :: temp_layer(:, :)
    real(kind_phys),    intent(in)    :: slp(:)
    real(kind_phys),    intent(in)    :: timestep
+   real(kind_phys),    intent(out)   :: ptend(:)
+   integer,            intent(out)   :: llama
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg
 !----------------------------------------------------------------
@@ -36,6 +38,9 @@ CONTAINS
 
     errmsg = ''
     errflg = 0
+
+    ptend = 0._kind_phys
+    llama = 12
 
     do box_index = 1, nbox
        do lev_index = 1, lev

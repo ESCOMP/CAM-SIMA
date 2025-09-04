@@ -33,6 +33,7 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'number_of_mpi_tasks'}
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
+_OUTPUT_TYPES = set(['out', 'inout'])
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -131,7 +132,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    host_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -173,13 +174,17 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
             outfile.include(filepath)
         # end for
 
+        all_req_vars = in_vars + out_vars
+        # Remove duplicates but preserve order for testing
+        unique_req_vars = list(OrderedDict.fromkeys(all_req_vars))
+
         # Write public parameters:
-        retvals = write_ic_params(outfile, host_vars, ic_names, registry_constituents)
+        retvals = write_ic_params(outfile, unique_req_vars, ic_names, registry_constituents)
         ic_names, ic_max_len, stdname_max_len = retvals
 
         # Write initial condition arrays:
         write_ic_arrays(outfile, ic_names, ic_max_len,
-                        stdname_max_len, host_vars, registry_constituents)
+                        stdname_max_len, unique_req_vars, registry_constituents)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -234,18 +239,19 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Grab the host dictionary from the database
         host_dict = cap_database.host_model_dict()
 
-        # Collect imported host variables
-        host_imports = collect_host_var_imports(host_vars, host_dict, constituent_set)
-
+        # Collect imported host variables for physics read
+        host_imports = collect_host_var_imports(in_vars, host_dict, constituent_set)
         # Write physics_read_data subroutine:
-        write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
+        write_phys_read_subroutine(outfile, host_dict, in_vars, host_imports,
                                    phys_check_fname_str, constituent_set,
                                    vars_init_value)
 
         outfile.blank_line()
 
+        # Collect imported host variables for physics check
+        host_imports = collect_host_var_imports(out_vars, host_dict, constituent_set)
         # Write physics_check_data subroutine:
-        write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
+        write_phys_check_subroutine(outfile, host_dict, out_vars, host_imports,
                                     phys_check_fname_str, constituent_set)
 
     # --------------------------------------
@@ -315,7 +321,8 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
 
     # Dictionary of all 'in' and 'inout' suite variables.
     # Key is standard name, value is host-model or constituent variable
-    req_vars = {}
+    in_vars = {}
+    out_vars = {}
     missing_vars = set()
     constituent_vars = set()
     retmsg = ""
@@ -330,22 +337,31 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
             intent = cvar.get_prop_value('intent')
             is_const = cvar.get_prop_value('advected') or cvar.get_prop_value('constituent')
             if ((intent in _INPUT_TYPES) and
-                (stdname not in req_vars) and
+                (stdname not in in_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
                     #Add variable to constituent set:
                     constituent_vars.add(stdname)
                     #Add variable to required variable list if it's not a registry constituent
                     if stdname not in registry_constituents:
-                        req_vars[stdname] = cvar
+                        in_vars[stdname] = cvar
                     # end if
                 else:
                     # We need to work with the host model version of this variable
                     missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          req_vars)
+                                                          in_vars)
                     missing_vars.update(missing)
                 # end if
-            # end if (do not include output variables)
+            # end if (only input variables)
+            if ((intent in _OUTPUT_TYPES) and
+                  (stdname not in out_vars) and
+                  (stdname not in _EXCLUDED_STDNAMES)):
+                if not is_const:
+                    missing = _find_and_add_host_variable(stdname, host_dict,
+                                                          out_vars)
+                    # do nothing with missing variables
+                # end if
+            # end if (only output variables)
         # end for (loop over call list)
     # end for (loop over phases)
 
@@ -354,7 +370,7 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
         retmsg = f"Error: Missing required host variables: {mvlist}"
     # end if
     # Return the required variables as a list
-    return list(req_vars.values()), constituent_vars, retmsg
+    return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
 
 ##########################
 #FORTRAN WRITING FUNCTIONS
@@ -1178,8 +1194,6 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end do", 2)
     outfile.blank_line()
 
-    # start default case steps:
-
     # End subroutine:
     outfile.write("end subroutine physics_read_data", 1)
 
@@ -1240,8 +1254,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
             call_str += f"timestep, {var_locname}, '{var_stdname}', "
             call_str += "min_difference, min_relative_value, is_first, diff_found)"
         else:
-            call_str = f"call endrun('Cannot check status of {var_locname}'" + \
-                f"//', {reason}')"
+            # For check field, don't endrun
+            call_str = f"! do nothing - '{var_locname}' can't be checked against a file because {reason}"
         # end if
         # Add string to dictionary:
         call_string_dict[call_string_key] = call_str
@@ -1376,7 +1390,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                     "that they can be read from input file if need be:", 3)
     outfile.write("call ccpp_physics_suite_variables(suite_names" +           \
                   "(suite_idx), ccpp_required_data, errmsg, errflg, " +       \
-                  "input_vars=.true., output_vars=.false.)", 4)
+                  "input_vars=.false., output_vars=.true.)", 4)
     outfile.blank_line()
 
     # Loop over required variables:
@@ -1385,37 +1399,48 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.blank_line()
 
-    # First check if the required variable is a constituent
-    outfile.comment("First check if the required variable is a constituent:", 4)
-    outfile.write("call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)", 4)
-    outfile.write("if (constituent_idx > -1) then", 4)
-    outfile.write("cycle", 5)
-    outfile.write("else", 4)
-    outfile.comment("The required variable is not a constituent. Check if the variable was read from a file", 5)
-
     # Call input name search function:
-    outfile.comment("Find IC file input name array index for required variable:", 5)
-    outfile.write("call is_read_from_file(ccpp_required_data(req_idx), " +    \
-                  "is_read, stdnam_idx_out=name_idx)", 5)
-    outfile.write("if (.not. is_read) then", 5)
-    outfile.write("cycle", 6)
-    outfile.write("end if", 5)
+    outfile.comment("Find IC file input name array index for required variable:", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), .true., constituent_idx)", 4)
+
+    # Start select-case statement:
+    outfile.blank_line()
+    outfile.comment("Check for special index values:", 4)
+    outfile.write("select case (name_idx)", 4)
+    outfile.blank_line()
+
+    # Skip constituent variables:
+    outfile.write("case (const_idx)", 5)
+    outfile.blank_line()
+    outfile.comment("If variable is a constituent, then do nothing. We'll handle these later", 6)
+    outfile.blank_line()
+
+    # Generate error message if required variable isn't found:
+    outfile.write("case (no_exist_idx)", 5)
+    outfile.blank_line()
+    outfile.comment("If the index for an output variable was not found, then do nothing. We won't try to check these.", 6)
+    outfile.blank_line()
+
+    # start default case steps:
+    outfile.write("case default", 5)
+    outfile.blank_line()
 
     # Generate "check_field" calls:
-    outfile.comment("Check variable vs input check file:", 5)
+    outfile.comment("Check variable vs input check file:", 6)
     outfile.blank_line()
-    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 5)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 6)
     for case_call, read_call in call_string_dict.items():
-        outfile.write(case_call, 5)
-        outfile.write(read_call, 6)
+        outfile.write(case_call, 6)
+        outfile.write(read_call, 7)
         outfile.blank_line()
-    outfile.write("end select !check variables", 5)
-    outfile.write("if (diff_found) then", 5)
-    outfile.write("overall_diff_found = .true.", 6)
-    outfile.write("end if", 5)
-    outfile.write("end if !check if constituent", 4)
+    outfile.write("end select !check variables", 6)
+    outfile.write("if (diff_found) then", 6)
+    outfile.write("overall_diff_found = .true.", 7)
+    outfile.write("end if", 6)
 
     # End select case and required variables loop:
+    outfile.write("end select !special indices", 4)
+    outfile.blank_line()
     outfile.write("end do !Suite-required variables", 3)
     outfile.blank_line()
 
