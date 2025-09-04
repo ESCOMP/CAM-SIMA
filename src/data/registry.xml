@@ -1447,10 +1447,10 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_taubljy</ic_file_input_names>
     </variable>
-    <variable local_name="non_wv_cflx_in_free_atm_vdiff"
-              standard_name="flag_for_vertical_diffusion_apply_ccpp_constituent_fluxes_excluding_water_vapor"
+    <variable local_name="apply_non_wv_cflx_in_free_atm_vdiff"
+              standard_name="do_apply_ccpp_constituent_fluxes_excluding_water_vapor_in_vertical_diffusion"
               units="flag" type="logical">
-      <long_name>should free atmosphere HB vertical diffusion handle non-water-vapor upward fluxes from coupler?</long_name>
+      <long_name>should free atmosphere HB vertical diffusion apply non-water-vapor upward fluxes from coupler?</long_name>
       <!-- should be false for CAM7 and true for CAM6; ignored elsewhere -->
       <initial_value>.false.</initial_value>
       <!--<initial_value phys_suite="cam6">.true.</initial_value>-->
