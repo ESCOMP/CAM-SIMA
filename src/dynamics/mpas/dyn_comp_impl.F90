@@ -593,7 +593,7 @@ contains
             use cam_constituents, only: num_advected
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedures, only: reverse
+            use dyn_procedures, only: qv_of_sh, reverse
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -647,8 +647,8 @@ contains
                 call dyn_debug_print(debugout_verbose, 'Conversion is needed and applied for water vapor mixing ratio')
 
                 ! Convert specific humidity to water vapor mixing ratio.
-                scalars(index_qv, :, 1:ncells_solve) = &
-                    scalars(index_qv, :, 1:ncells_solve) / (1.0_kind_dyn_mpas - scalars(index_qv, :, 1:ncells_solve))
+                scalars(index_qv, :, 1:ncells_solve) = real(qv_of_sh( &
+                    real(scalars(index_qv, :, 1:ncells_solve), kind_r8)), kind_dyn_mpas)
             end if
 
             deallocate(buffer_3d_real)
