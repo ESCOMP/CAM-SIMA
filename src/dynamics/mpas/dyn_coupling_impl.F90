@@ -361,10 +361,11 @@ contains
         !> (KCW, 2024-07-30)
         subroutine update_shared_variables(i)
             ! Module(s) from CAM-SIMA.
-            use dyn_mpas_procedures, only: clamp
             use dyn_procedures, only: dp_by_hydrostatic_equation, omega_of_w_rho, p_by_equation_of_state, t_of_tm_qv
             use dynconst, only: constant_g => gravit, constant_rd => rair, constant_rv => rh2o
             use vert_coord, only: pver, pverp
+            ! Module(s) from MPAS.
+            use dyn_mpas_procedures, only: clamp
 
             integer, intent(in) :: i
 
