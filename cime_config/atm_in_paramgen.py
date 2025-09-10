@@ -735,7 +735,7 @@ def _get_nml_value_str(var_name, var_type, var_val):
     10. Check that a character variable with a trailing comma outputs
         the correct value:
     >>> _get_nml_value_str("ncdata", "char*250", "'/path/to/file',")
-    '"/path/to/file"'
+    "'/path/to/file'"
 
     11. Check that a character variable with quotes and trailing comma
         outputs the correct value:
