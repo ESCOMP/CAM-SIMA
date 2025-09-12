@@ -772,7 +772,7 @@ def _get_nml_value_str(var_name, var_type, var_val):
         #Remove extra white space:
         var_val_strip = var_val.strip()
 
-        #Remove trailing comma if present (valid Fortran namelist separator. F90 10.9.1(4); 10.8(1))
+        #Remove trailing comma if present (valid Fortran namelist separator; see Fortran 90 standard sections 10.9.1(4); 10.8(1))
         if var_val_strip.endswith(','):
             var_val_strip = var_val_strip[:-1].strip()
 
