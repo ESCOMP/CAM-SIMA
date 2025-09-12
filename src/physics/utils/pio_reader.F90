@@ -1453,7 +1453,7 @@ contains
 
       !Now attempt to allocate and initialize the variable,
       !and read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3), dim_sizes(4), dim_sizes(5)), &
+      allocate(var(alloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4), alloc_dims(5)), &
                stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
@@ -2600,12 +2600,12 @@ contains
 
       !Check if count indices are within bounds:
       do i = 1, file_var_dim_num
-         if ((count(i) < 1) .or. (count(i) > dim_sizes(i))) then
+         if ((count(i) < 1) .or. ((start(i)+count(i)-1) > dim_sizes(i))) then
             errcode = bad_subset_range_err
             write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
                   "Element ", i, " of 'count' for variable '", &
                   trim(varname), "' is out of bounds.  Expected 1 to ", &
-                  dim_sizes(i), " but got ", count(i), "."
+                  (dim_sizes(i)-start(i)+1), " but got ", count(i), "."
             return
          end if
       end do

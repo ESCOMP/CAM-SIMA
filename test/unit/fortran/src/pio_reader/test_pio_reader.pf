@@ -1920,19 +1920,27 @@ subroutine test_pio_reader_bad_count_element_range()
     ! Open file:
     call reader%open_file(fname, errmsg, errcode)
 
-    ! Attempt to read variable with negative start element:
+    ! Attempt to read variable with negative count element:
     call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1/), count=(/-6/))
 
     ! Check that the correct error was raised:
     @assertNotEqual(0, errcode)
     @assertEqual(expected_err_msg_neg, trim(errmsg))
 
-    ! Next attempt to read variable with too-large start element:
+    ! Next attempt to read variable with too-large count element:
     call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1/), count=(/60/))
 
     ! Check that the correct error was raised:
     @assertNotEqual(0, errcode)
     @assertEqual(expected_err_msg_huge, trim(errmsg))
+
+    ! Now attempt to read variable with too-large start+count element:
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/3/), count=(/58/))
+
+    ! Check that the correct error was raised:
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg_huge, trim(errmsg))
+
 
     ! Perform test cleanup:
     call reader%close_file(errmsg, errcode)
