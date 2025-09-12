@@ -1913,6 +1913,9 @@ subroutine test_pio_reader_bad_count_element_range()
     character(len=*), parameter :: expected_err_msg_huge = &
      "Element 1 of 'count' for variable 'pressure' is out of bounds.  Expected 1 to 59 but got 60."
 
+    character(len=*), parameter :: expected_err_msg_bad_start = &
+     "Element 1 of 'count' for variable 'pressure' is out of bounds.  Expected 1 to 57 but got 58."
+
     ! Begin test:
 
     reader => create_netcdf_reader_t()
@@ -1939,7 +1942,7 @@ subroutine test_pio_reader_bad_count_element_range()
 
     ! Check that the correct error was raised:
     @assertNotEqual(0, errcode)
-    @assertEqual(expected_err_msg_huge, trim(errmsg))
+    @assertEqual(expected_err_msg_bad_start, trim(errmsg))
 
 
     ! Perform test cleanup:
