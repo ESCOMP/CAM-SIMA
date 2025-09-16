@@ -1,0 +1,28 @@
+[check]
+exclude = [
+    'src/dynamics/mpas/dycore'
+]
+file-extensions = [
+    'F',
+    'f',
+    'F90',
+    'f90'
+]
+# When ignoring a linting rule, a reason should be provided.
+ignore = [
+    'C003', # Temporarily ignored due to NVIDIA HPC SDK having abysmal support for Fortran 2018.
+    'C182', # Requiring separate allocations and deallocations for each variable is too restrictive.
+            # Related variables can be grouped together at the discretion of developers.
+    'S102'  # Prefer only one space instead of two.
+]
+line-length = 132
+output-format = 'grouped'
+select = [
+    'ALL'
+]
+
+[check.exit-unlabelled-loops]
+allow-unnested-loops = true
+
+[check.strings]
+quotes = 'single'
