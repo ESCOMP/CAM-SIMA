@@ -230,8 +230,8 @@ contains
         ! In all, solve the below equation set for $T$ in terms of $\theta$, $\rho_d$ and $q_v$:
         ! \begin{equation*}
         !     \begin{cases}
-        !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_{pd}}} \\
-        !         P &= \rho_d R_d T_m \\
+        !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_{pd}}} \\[0pt]
+        !         P &= \rho_d R_d T_m \\[0pt]
         !         T_m &= T (1 + \frac{R_v}{R_d} q_v)
         !     \end{cases}
         ! \end{equation*}
@@ -268,8 +268,8 @@ contains
         ! In all, solve the below equation set for $\theta$ in terms of $T$, $\rho_d$ and $q_v$:
         ! \begin{equation*}
         !     \begin{cases}
-        !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_{pd}}} \\
-        !         P &= \rho_d R_d T_m \\
+        !         \theta &= T (\frac{P_0}{P})^{\frac{R_d}{C_{pd}}} \\[0pt]
+        !         P &= \rho_d R_d T_m \\[0pt]
         !         T_m &= T (1 + \frac{R_v}{R_d} q_v)
         !     \end{cases}
         ! \end{equation*}
