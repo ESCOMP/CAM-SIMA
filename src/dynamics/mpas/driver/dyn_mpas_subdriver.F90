@@ -37,6 +37,7 @@ module dyn_mpas_subdriver
         !> This procedure interface is modeled after the `endrun` subroutine from CAM-SIMA.
         !> It will be called whenever MPAS dynamical core encounters a fatal error and cannot continue.
         subroutine model_error_if(message, file, line)
+            implicit none
             character(*),           intent(in) :: message
             character(*), optional, intent(in) :: file
             integer,      optional, intent(in) :: line

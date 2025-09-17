@@ -26,12 +26,15 @@ module dyn_grid
 
     interface
         module subroutine model_grid_init()
+            implicit none
         end subroutine model_grid_init
 
         module subroutine dyn_inquire_mesh_dimensions()
+            implicit none
         end subroutine dyn_inquire_mesh_dimensions
 
         module pure function dyn_grid_id(name)
+            implicit none
             character(*), intent(in) :: name
             integer :: dyn_grid_id
         end function dyn_grid_id
