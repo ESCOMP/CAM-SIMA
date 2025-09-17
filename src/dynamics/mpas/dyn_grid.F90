@@ -42,7 +42,7 @@ module dyn_grid
 
     ! Grid names that are to be registered with CAM-SIMA by calling `cam_grid_register`.
     ! Grid ids can be determined by calling `dyn_grid_id`.
-    character(*), parameter :: dyn_grid_name(*) = [ character(max_hcoordname_len) :: &
+    character(*), parameter :: dyn_grid_name(*) = [character(max_hcoordname_len) :: &
         'mpas_cell',  &
         'cam_cell',   &
         'mpas_edge',  &

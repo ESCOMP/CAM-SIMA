@@ -836,7 +836,7 @@ contains
         !> Possible CCPP standard names of `qv`, which denotes water vapor mixing ratio.
         !> They are hard-coded here because MPAS needs to know where `qv` is.
         !> Index 1 is exactly what MPAS wants. Others also work, but need to be converted.
-        character(*), parameter :: mpas_scalar_qv_standard_name(*) = [ character(strkind) :: &
+        character(*), parameter :: mpas_scalar_qv_standard_name(*) = [character(strkind) :: &
             'water_vapor_mixing_ratio_wrt_dry_air', &
             'water_vapor_mixing_ratio_wrt_moist_air', &
             'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water' &
