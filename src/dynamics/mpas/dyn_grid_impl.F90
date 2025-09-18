@@ -141,9 +141,11 @@ contains
         use string_utils, only: stringify
         use vert_coord, only: pver, pverp
         ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                                len_cx => shr_kind_cx
 
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
+        character(len_cx) :: cerr
         ! Number of pure pressure levels at model top.
         integer, parameter :: num_pure_p_lev = 0
         integer :: ierr
@@ -172,17 +174,20 @@ contains
         ! Compute reference height.
         call mpas_dynamical_core % get_variable_pointer(rdzw, 'mesh', 'rdzw')
 
-        allocate(dzw(pver), stat=ierr)
-        call check_allocate(ierr, subname, 'dzw(pver)', 'dyn_grid', __LINE__)
+        allocate(dzw(pver), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'dzw(pver)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         dzw(:) = 1.0_kind_r8 / real(rdzw(:), kind_r8)
 
         nullify(rdzw)
 
-        allocate(zw(pverp), stat=ierr)
-        call check_allocate(ierr, subname, 'zw(pverp)', 'dyn_grid', __LINE__)
-        allocate(zu(pver), stat=ierr)
-        call check_allocate(ierr, subname, 'zu(pver)', 'dyn_grid', __LINE__)
+        allocate(zw(pverp), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'zw(pverp)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
+        allocate(zu(pver), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'zu(pver)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         ! In MPAS, zeta coordinates are stored in increasing order (i.e., bottom to top of atmosphere).
         ! In CAM-SIMA, however, index order is reversed (i.e., top to bottom of atmosphere).
@@ -203,13 +208,15 @@ contains
             positive='up')
 
         ! Compute reference pressure from reference height.
-        allocate(p_ref_int(pverp), stat=ierr)
-        call check_allocate(ierr, subname, 'p_ref_int(pverp)', 'dyn_grid', __LINE__)
+        allocate(p_ref_int(pverp), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'p_ref_int(pverp)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         call std_atm_pres(zw, p_ref_int, user_specified_ps=constant_p0)
 
-        allocate(p_ref_mid(pver), stat=ierr)
-        call check_allocate(ierr, subname, 'p_ref_mid(pver)', 'dyn_grid', __LINE__)
+        allocate(p_ref_mid(pver), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'p_ref_mid(pver)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         p_ref_mid(:) = 0.5_kind_r8 * (p_ref_int(1:pver) + p_ref_int(2:pverp))
 
@@ -258,9 +265,11 @@ contains
         use spmd_utils, only: iam
         use string_utils, only: stringify
         ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                                len_cx => shr_kind_cx
 
         character(*), parameter :: subname = 'dyn_grid::init_physics_grid'
+        character(len_cx) :: cerr
         character(max_hcoordname_len), allocatable :: dyn_attribute_name(:)
         integer :: hdim1_d, hdim2_d ! First and second horizontal dimensions of physics grid.
         integer :: i
@@ -288,8 +297,9 @@ contains
         call mpas_dynamical_core % get_variable_pointer(latcell, 'mesh', 'latCell')
         call mpas_dynamical_core % get_variable_pointer(loncell, 'mesh', 'lonCell')
 
-        allocate(dyn_column(ncells_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'dyn_column(ncells_solve)', 'dyn_grid', __LINE__)
+        allocate(dyn_column(ncells_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'dyn_column(ncells_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, ncells_solve
             ! Column information.
@@ -314,9 +324,9 @@ contains
             dyn_column(i) % global_dyn_block = indextocellid(i)
             dyn_column(i) % local_dyn_block  = i
             ! `dyn_block_index` is not used due to no dynamics block offset, but it still needs to be allocated.
-            allocate(dyn_column(i) % dyn_block_index(0), stat=ierr)
+            allocate(dyn_column(i) % dyn_block_index(0), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, 'dyn_column(' // stringify([i]) // ') % dyn_block_index(0)', &
-                'dyn_grid', __LINE__)
+                file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
         end do
 
         nullify(areacell)
@@ -326,8 +336,9 @@ contains
 
         ! `phys_grid_init` expects to receive the `area` attribute from dynamics.
         ! However, do not let it because dynamics grid is different from physics grid.
-        allocate(dyn_attribute_name(0), stat=ierr)
-        call check_allocate(ierr, subname, 'dyn_attribute_name(0)', 'dyn_grid', __LINE__)
+        allocate(dyn_attribute_name(0), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'dyn_attribute_name(0)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         call phys_grid_init(hdim1_d, hdim2_d, 'mpas', dyn_column, 'mpas_cell', dyn_attribute_name)
 
@@ -355,9 +366,11 @@ contains
         use dynconst, only: constant_pi => pi, rad_to_deg
         use string_utils, only: stringify
         ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                                len_cx => shr_kind_cx
 
         character(*), parameter :: subname = 'dyn_grid::define_cam_grid'
+        character(len_cx) :: cerr
         integer :: i
         integer :: ierr
         integer, pointer :: indextocellid(:)   ! Global indexes of cell centers.
@@ -412,8 +425,9 @@ contains
         call mpas_dynamical_core % get_variable_pointer(latcell, 'mesh', 'latCell')
         call mpas_dynamical_core % get_variable_pointer(loncell, 'mesh', 'lonCell')
 
-        allocate(global_grid_index(ncells_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'global_grid_index(ncells_solve)', 'dyn_grid', __LINE__)
+        allocate(global_grid_index(ncells_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'global_grid_index(ncells_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         global_grid_index(:) = int(indextocellid(1:ncells_solve), kind_imap)
 
@@ -422,12 +436,15 @@ contains
         lon_coord => horiz_coord_create('lonCell', 'nCells', ncells_global, 'longitude', 'degrees_east', &
             1, ncells_solve, real(loncell, kind_r8) * rad_to_deg, map=global_grid_index)
 
-        allocate(cell_area(ncells_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'cell_area(ncells_solve)', 'dyn_grid', __LINE__)
-        allocate(cell_weight(ncells_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'cell_weight(ncells_solve)', 'dyn_grid', __LINE__)
-        allocate(global_grid_map(3, ncells_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'global_grid_map(3, ncells_solve)', 'dyn_grid', __LINE__)
+        allocate(cell_area(ncells_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'cell_area(ncells_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
+        allocate(cell_weight(ncells_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'cell_weight(ncells_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
+        allocate(global_grid_map(3, ncells_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'global_grid_map(3, ncells_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, ncells_solve
             cell_area(i)   = real(areacell(i), kind_r8)
@@ -480,8 +497,9 @@ contains
         call mpas_dynamical_core % get_variable_pointer(latedge, 'mesh', 'latEdge')
         call mpas_dynamical_core % get_variable_pointer(lonedge, 'mesh', 'lonEdge')
 
-        allocate(global_grid_index(nedges_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'global_grid_index(nedges_solve)', 'dyn_grid', __LINE__)
+        allocate(global_grid_index(nedges_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'global_grid_index(nedges_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         global_grid_index(:) = int(indextoedgeid(1:nedges_solve), kind_imap)
 
@@ -490,8 +508,9 @@ contains
         lon_coord => horiz_coord_create('lonEdge', 'nEdges', nedges_global, 'longitude', 'degrees_east', &
             1, nedges_solve, real(lonedge, kind_r8) * rad_to_deg, map=global_grid_index)
 
-        allocate(global_grid_map(3, nedges_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'global_grid_map(3, nedges_solve)', 'dyn_grid', __LINE__)
+        allocate(global_grid_map(3, nedges_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'global_grid_map(3, nedges_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, nedges_solve
             global_grid_map(1, i) = int(i, kind_imap)
@@ -519,8 +538,9 @@ contains
         call mpas_dynamical_core % get_variable_pointer(latvertex, 'mesh', 'latVertex')
         call mpas_dynamical_core % get_variable_pointer(lonvertex, 'mesh', 'lonVertex')
 
-        allocate(global_grid_index(nvertices_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'global_grid_index(nvertices_solve)', 'dyn_grid', __LINE__)
+        allocate(global_grid_index(nvertices_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'global_grid_index(nvertices_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         global_grid_index(:) = int(indextovertexid(1:nvertices_solve), kind_imap)
 
@@ -529,8 +549,9 @@ contains
         lon_coord => horiz_coord_create('lonVertex', 'nVertices', nvertices_global, 'longitude', 'degrees_east', &
             1, nvertices_solve, real(lonvertex, kind_r8) * rad_to_deg, map=global_grid_index)
 
-        allocate(global_grid_map(3, nvertices_solve), stat=ierr)
-        call check_allocate(ierr, subname, 'global_grid_map(3, nvertices_solve)', 'dyn_grid', __LINE__)
+        allocate(global_grid_map(3, nvertices_solve), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'global_grid_map(3, nvertices_solve)', &
+            file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, nvertices_solve
            global_grid_map(1, i) = int(i, kind_imap)
