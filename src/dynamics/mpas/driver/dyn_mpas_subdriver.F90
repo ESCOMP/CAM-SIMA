@@ -844,7 +844,8 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar'
         character(strkind) :: cerr
-        integer :: i, j, ierr
+        integer :: i, j
+        integer :: ierr
         integer :: index_qv, index_water_start, index_water_end
         integer :: time_level
         type(field3dreal), pointer :: field_3d_real
@@ -1133,7 +1134,8 @@ contains
         character(*), intent(in) :: stream_name
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_write_stream'
-        integer :: i, ierr
+        integer :: i
+        integer :: ierr
         type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_stream_type), pointer :: mpas_stream
         type(var_info_type), allocatable :: var_info_list(:)
@@ -1258,8 +1260,11 @@ contains
         end interface add_stream_attribute
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_stream_with_pool'
-        character(strkind) :: cerr, stream_filename
-        integer :: i, ierr, stream_format
+        character(strkind) :: cerr
+        character(strkind) :: stream_filename
+        integer :: i
+        integer :: ierr
+        integer :: stream_format
         !> Whether a variable is present on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_present(:)
         !> Whether a variable is type, kind, and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
@@ -1843,7 +1848,9 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_check_variable_status'
         character(strkind) :: cerr
         character(strkind), allocatable :: var_name_list(:)
-        integer :: i, ierr, varid, varndims, vartype
+        integer :: i
+        integer :: ierr
+        integer :: varid, varndims, vartype
         type(field0dchar), pointer :: field_0d_char
         type(field1dchar), pointer :: field_1d_char
         type(field0dinteger), pointer :: field_0d_integer
@@ -3274,7 +3281,6 @@ contains
     pure function dyn_mpas_get_constituent_name(self, constituent_index) result(constituent_name)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: constituent_index
-
         character(:), allocatable :: constituent_name
 
         ! Catch segmentation fault.
@@ -3308,9 +3314,9 @@ contains
     pure function dyn_mpas_get_constituent_index(self, constituent_name) result(constituent_index)
         class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: constituent_name
+        integer :: constituent_index
 
         integer :: i
-        integer :: constituent_index
 
         ! Catch segmentation fault.
         if (.not. allocated(self % constituent_name)) then
@@ -3344,7 +3350,6 @@ contains
     pure function dyn_mpas_map_mpas_scalar_index(self, constituent_index) result(mpas_scalar_index)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: constituent_index
-
         integer :: mpas_scalar_index
 
         ! Catch segmentation fault.
@@ -3378,7 +3383,6 @@ contains
     pure function dyn_mpas_map_constituent_index(self, mpas_scalar_index) result(constituent_index)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: mpas_scalar_index
-
         integer :: constituent_index
 
         ! Catch segmentation fault.
