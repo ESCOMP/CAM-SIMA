@@ -1037,7 +1037,7 @@ contains
             real(real128), parameter :: range_rho(2) = [0.01_real128, 1.5_real128]
             real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
 
-            integer :: i, n
+            integer :: i, j, n
             real(real128), allocatable :: qv_real128(:), rhod_real128(:)
             real(real128), allocatable :: expected_t_real128(:), expected_theta_real128(:, :, :)
 
@@ -1307,7 +1307,7 @@ contains
 
             do i = 1, size(expected_tm_real128)
                 expected_tv_real128(:, i) = &
-                    expected_tm_real128(i) / (1.0_real64 + qv_real128(:))
+                    expected_tm_real128(i) / (1.0_real128 + qv_real128(:))
             end do
 
             expected_tv = real(expected_tv_real128, real64)
