@@ -127,17 +127,17 @@
     </variable>
     <variable local_name="frontgf"
               standard_name="frontogenesis_function"
-              units="K m-1 s-1" type="real" kind="kind_phys"
+              units="K2 m-2 s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>frontgf pbuf_frontgf</ic_file_input_names>
+      <ic_file_input_names>frontgf pbuf_FRONTGF</ic_file_input_names>
     </variable>
     <variable local_name="frontga"
               standard_name="frontogenesis_angle"
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>frontga pbuf_frontga</ic_file_input_names>
+      <ic_file_input_names>frontga pbuf_FRONTGA</ic_file_input_names>
     </variable>
     <!-- State quantities for shallow/deep convection -->
     <variable local_name="qpert"
@@ -1337,6 +1337,37 @@
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
+    <!-- Temporary initializations for gravity wave parameterizations -->
+    <variable local_name="ttend_clubb"
+              standard_name="tendency_of_air_temperature_due_to_clubb"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_TTEND_CLUBB</ic_file_input_names>
+    </variable>
+    <variable local_name="upwp_clubb_gw"
+              standard_name="upwp_clubb_gw_tbd"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <ic_file_input_names>pbuf_UPWP_CLUBB</ic_file_input_names>
+    </variable>
+    <variable local_name="vpwp_clubb_gw"
+              standard_name="vpwp_clubb_gw_tbd"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <ic_file_input_names>pbuf_VPWP_CLUBB</ic_file_input_names>
+    </variable>
+
+    <!-- Gravity wave variables - need to be kept in the CAM registry -->
+    <variable local_name="vorticity"
+              standard_name="vort4gw_tbd"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_VORT4GW</ic_file_input_names>
+    </variable>
 
     <!-- Cloud fraction variables - need to be kept in the CAM registry -->
     <variable local_name="top_lev_cloudphys"
@@ -1451,6 +1482,13 @@
               access="protected" >
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
       <initial_value>1</initial_value>
+    </variable>
+    <variable local_name="ttend_dp"
+              standard_name="tendency_of_air_temperature_due_to_deep_convection"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_TTEND_DP</ic_file_input_names>
     </variable>
 
     <!-- dme_adjust Variables -->
