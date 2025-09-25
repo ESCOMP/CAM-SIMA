@@ -176,7 +176,7 @@ contains
         real(real64) :: p, rho, t
         real(real64), allocatable :: expected_p(:), expected_rho(:, :), expected_t(:)
 
-        call generate_test_data()
+        call generate_test_data(expected_p, expected_rho, expected_t)
 
         do i = 1, size(expected_p)
             do j = 1, size(expected_t)
@@ -195,8 +195,10 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(expected_p, expected_rho, expected_t)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: expected_p(:), expected_rho(:, :), expected_t(:)
 
             real(real128), parameter :: constant_rd_real128 = 287.04_real128
 
@@ -302,7 +304,7 @@ contains
         real(real64), allocatable :: p(:)
         real(real64), allocatable :: expected_pi(:)
 
-        call generate_test_data()
+        call generate_test_data(p, expected_pi)
 
         do i = 1, size(p)
             pi = exner_function(constant_cpd, constant_p0, constant_rd, p(i))
@@ -317,8 +319,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(p, expected_pi)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: p(:)
+            real(real64), allocatable, intent(out) :: expected_pi(:)
 
             real(real128), parameter :: constant_cpd_real128 = 1004.64_real128
             real(real128), parameter :: constant_p0_real128 = 100000.0_real128
@@ -399,7 +404,7 @@ contains
         real(real64), allocatable :: dz(:), rho(:)
         real(real64), allocatable :: expected_dp(:, :)
 
-        call generate_test_data()
+        call generate_test_data(dz, rho, expected_dp)
 
         do i = 1, size(dz)
             do j = 1, size(rho)
@@ -415,8 +420,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(dz, rho, expected_dp)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: dz(:), rho(:)
+            real(real64), allocatable, intent(out) :: expected_dp(:, :)
 
             real(real128), parameter :: constant_g_real128 = 9.80665_real128
 
@@ -517,7 +525,7 @@ contains
         real(real64), allocatable :: tv(:), z2(:)
         real(real64), allocatable :: expected_p2(:, :)
 
-        call generate_test_data()
+        call generate_test_data(tv, z2, expected_p2)
 
         do i = 1, size(tv)
             do j = 1, size(z2)
@@ -539,8 +547,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(tv, z2, expected_p2)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: tv(:), z2(:)
+            real(real64), allocatable, intent(out) :: expected_p2(:, :)
 
             real(real128), parameter :: constant_g_real128 = 9.80665_real128
             real(real128), parameter :: constant_rd_real128 = 287.04_real128
@@ -653,7 +664,7 @@ contains
         real(real64), allocatable :: p(:)
         real(real64), allocatable :: expected_t(:, :), expected_theta(:)
 
-        call generate_test_data()
+        call generate_test_data(p, expected_t, expected_theta)
 
         do i = 1, size(p)
             do j = 1, size(expected_theta)
@@ -668,8 +679,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(p, expected_t, expected_theta)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: p(:)
+            real(real64), allocatable, intent(out) :: expected_t(:, :), expected_theta(:)
 
             real(real128), parameter :: constant_cpd_real128 = 1004.64_real128
             real(real128), parameter :: constant_p0_real128 = 100000.0_real128
@@ -773,7 +787,7 @@ contains
         real(real64), allocatable :: rho(:)
         real(real64), allocatable :: expected_omega(:, :), expected_w(:)
 
-        call generate_test_data()
+        call generate_test_data(rho, expected_omega, expected_w)
 
         do i = 1, size(rho)
             do j = 1, size(expected_w)
@@ -797,8 +811,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(rho, expected_omega, expected_w)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: rho(:)
+            real(real64), allocatable, intent(out) :: expected_omega(:, :), expected_w(:)
 
             real(real128), parameter :: constant_g_real128 = 9.80665_real128
 
@@ -892,7 +909,7 @@ contains
         real(real64) :: qv, sh
         real(real64), allocatable :: expected_qv(:), expected_sh(:)
 
-        call generate_test_data()
+        call generate_test_data(expected_qv, expected_sh)
 
         do i = 1, size(expected_qv)
             qv = qv_of_sh(expected_sh(i))
@@ -905,8 +922,10 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(expected_qv, expected_sh)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: expected_qv(:), expected_sh(:)
 
             real(real128), parameter :: interval_q = 0.000001_real128
             real(real128), parameter :: range_q(2) = [0.0_real128, 0.04_real128]
@@ -1002,7 +1021,7 @@ contains
         real(real64), allocatable :: qv(:), rhod(:)
         real(real64), allocatable :: expected_t(:), expected_theta(:, :, :)
 
-        call generate_test_data()
+        call generate_test_data(qv, rhod, expected_t, expected_theta)
 
         do i = 1, size(qv)
             do j = 1, size(rhod)
@@ -1021,8 +1040,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(qv, rhod, expected_t, expected_theta)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: qv(:), rhod(:)
+            real(real64), allocatable, intent(out) :: expected_t(:), expected_theta(:, :, :)
 
             real(real128), parameter :: constant_cpd_real128 = 1004.64_real128
             real(real128), parameter :: constant_p0_real128 = 100000.0_real128
@@ -1146,7 +1168,7 @@ contains
         real(real64), allocatable :: qv(:)
         real(real64), allocatable :: expected_t(:), expected_tm(:, :)
 
-        call generate_test_data()
+        call generate_test_data(qv, expected_t, expected_tm)
 
         do i = 1, size(qv)
             do j = 1, size(expected_t)
@@ -1161,8 +1183,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(qv, expected_t, expected_tm)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: qv(:)
+            real(real64), allocatable, intent(out) :: expected_t(:), expected_tm(:, :)
 
             real(real128), parameter :: constant_rd_real128 = 287.04_real128
             real(real128), parameter :: constant_rv_real128 = 461.52_real128
@@ -1264,7 +1289,7 @@ contains
         real(real64), allocatable :: qv(:)
         real(real64), allocatable :: expected_tm(:), expected_tv(:, :)
 
-        call generate_test_data()
+        call generate_test_data(qv, expected_tm, expected_tv)
 
         do i = 1, size(qv)
             do j = 1, size(expected_tm)
@@ -1279,8 +1304,11 @@ contains
         end do
     contains
         ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
-        subroutine generate_test_data()
-            use, intrinsic :: iso_fortran_env, only: real128
+        subroutine generate_test_data(qv, expected_tm, expected_tv)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: qv(:)
+            real(real64), allocatable, intent(out) :: expected_tm(:), expected_tv(:, :)
 
             real(real128), parameter :: interval_q = 0.0001_real128
             real(real128), parameter :: interval_t = 1.0_real128
