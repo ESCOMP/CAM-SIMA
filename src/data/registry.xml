@@ -1350,14 +1350,14 @@
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>pbuf_UPWP_CLUBB</ic_file_input_names>
+      <ic_file_input_names>pbuf_UPWP_CLUBB_GW</ic_file_input_names>
     </variable>
     <variable local_name="vpwp_clubb_gw"
               standard_name="vpwp_clubb_gw_tbd"
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
-      <ic_file_input_names>pbuf_VPWP_CLUBB</ic_file_input_names>
+      <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
 
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
