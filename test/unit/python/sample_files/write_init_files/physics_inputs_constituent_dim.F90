@@ -139,7 +139,7 @@ CONTAINS
 
                case (const_idx)
 
-                  ! If an index was found in the constituent hash table, then do nothing, this will be handled later
+                  ! If an index was found in the constituent hash table, then do nothing, this will be handled later.
 
                case default
 
@@ -325,7 +325,7 @@ CONTAINS
 
                case (const_idx)
 
-                  ! If variable is a constituent, then do nothing. We'll handle these later
+                  ! If variable is a constituent, then do nothing. We'll handle these later.
 
                case (init_mark_idx)
 

@@ -1099,7 +1099,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # Handle the case where the required variable is a constituent
     outfile.write("case (const_idx)", 5)
     outfile.blank_line()
-    outfile.comment("If an index was found in the constituent hash table, then do nothing, this will be handled later", 6)
+    outfile.comment("If an index was found in the constituent hash table, then do nothing, this will be handled later.", 6)
     outfile.blank_line()
 
     # start default case steps:
@@ -1412,7 +1412,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     # Skip constituent variables:
     outfile.write("case (const_idx)", 5)
     outfile.blank_line()
-    outfile.comment("If variable is a constituent, then do nothing. We'll handle these later", 6)
+    outfile.comment("If variable is a constituent, then do nothing. We'll handle these later.", 6)
     outfile.blank_line()
 
     # Skip already initialized variables:
