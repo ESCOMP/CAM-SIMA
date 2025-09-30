@@ -1,0 +1,36 @@
+hist_add_inst_fields;h1: T, Q, U, V, PS
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+analytic_ic_type=held_suarez_1994
+
+! history fields for CAM4 Hack shallow convection
+hist_output_frequency;h2: 1*nsteps
+hist_max_frames;h2: 1
+hist_add_inst_fields;h2:CMFDT,CMFDQ,CMFDLIQ,CMFDICE,CMFDQR,DQP,ICWMRSH,CMFSL,CMFLQ,FREQSH,EVAPTCM,FZSNTCM,EVSNTCM,HKNTPRPD,HKNTSNPD,HKFLXPRC,HKFLXSNW,HKEIHEAT,EVAPQCM,PRECSH,CMFMCSH
+hist_precision;h2: REAL64
+
+! history fields for CAM4 RK microphysics
+hist_output_frequency;h3: 1*nsteps
+hist_max_frames;h3: 1
+hist_add_inst_fields;h3:DQSED,DISED,DLSED,HSED,PRECSED,SNOWSED,RAINSED
+hist_add_inst_fields;h3:SH_CLD,DP_CLD,CONCLD,AST
+hist_add_inst_fields;h3:FICE,REPARTICE,REPARTLIQ,HREPART
+hist_add_inst_fields;h3:FWAUT,FSAUT,FRACW,FSACW,FSACI,PCSNOW,CME,CMEICE,CMELIQ
+hist_add_inst_fields;h3:ICE2PR,LIQ2PR,HPROGCLD,HEVAP,HMELT,HCME,HFREEZ
+hist_add_inst_fields;h3:PRODPREC,EVAPPREC,EVAPSNOW,LS_FLXPRC,LS_FLXSNW,PRACWO,PSACWO,PSACIO
+hist_add_inst_fields;h3:CLDLIQSTR,CLDICESTR,CLDLIQCON,CLDICECON
+hist_add_inst_fields;h3:IWC,LWC,ICIMR,ICWMR,REI,REL
+hist_precision;h3: REAL64
+
+! history fields for CAM4 boundary layer scheme (HB + diffusion solver)
+hist_output_frequency;h4: 1*nsteps
+hist_max_frames;h4: 1
+hist_add_inst_fields;h4:HB_ri,USTAR,obklen,PBLH
+hist_add_inst_fields;h4:KVH,KVM,CGS,TKE,TPERT,QPERT
+hist_add_inst_fields;h4:QT,SL,SLV,SLFLX,QTFLX,UFLX,VFLX
+hist_add_inst_fields;h4:sl_aft_PBL,qt_aft_PBL,slv_aft_PBL,u_aft_PBL,v_aft_PBL,qv_aft_PBL,ql_aft_PBL,qi_aft_PBL,t_aft_PBL,rh_aft_PBL
+hist_add_inst_fields;h4:slflx_PBL,qtflx_PBL,uflx_PBL,vflx_PBL,slflx_cg_PBL,qtflx_cg_PBL,uflx_cg_PBL,vflx_cg_PBL
+hist_add_inst_fields;h4:slten_PBL,qtten_PBL,uten_PBL,vten_PBL,qvten_PBL,qlten_PBL,qiten_PBL,tten_PBL,rhten_PBL
+hist_add_inst_fields;h4:qt_pre_PBL,sl_pre_PBL,slv_pre_PBL,u_pre_PBL,v_pre_PBL,qv_pre_PBL,ql_pre_PBL,qi_pre_PBL,t_pre_PBL,rh_pre_PBL
+hist_add_inst_fields;h4:DTV,DUV,DVV,DTVKE
+hist_precision;h4: REAL64

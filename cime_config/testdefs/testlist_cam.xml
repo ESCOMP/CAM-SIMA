@@ -79,6 +79,15 @@
       <option name="comment">Test for Rasch-Kristjansson microphysics scheme</option>
     </options>
   </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_hb_vdiff_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for Holtslag-Boville boundary layer scheme and vertical diffusion</option>
+    </options>
+  </test>
 
   <!-- Derecho dycore tests -->
   <test compset="FKESSLER" grid="mpasa480_mpasa480" name="SMS_Ln9" testmods="cam/outfrq_kessler_mpas_derecho">
@@ -135,7 +144,7 @@
   </test>
 
   <!-- CAM4 physics tests -->
-  <test compset="FCAM4" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="FCAM4" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
