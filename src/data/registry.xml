@@ -3,6 +3,7 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAM-SIMA Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
+  <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
@@ -19,9 +20,6 @@
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/hycoef.meta</metadata_file>
-
-  <!-- temporary for Coords1D -->
-  <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
 
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
@@ -1372,7 +1370,7 @@
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
 
-    <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in physics state -->
+    <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in the CAM registry -->
     <variable local_name="qcwat"
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
               units="kg kg-1" type="real" kind="kind_phys"
@@ -1401,7 +1399,7 @@
       <ic_file_input_names>pbuf_LCWAT</ic_file_input_names>
     </variable>
 
-    <!-- vertical diffusion solver variables - need to be kept in physics state -->
+    <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
@@ -1453,7 +1451,6 @@
       <long_name>should free atmosphere HB vertical diffusion apply non-water-vapor upward fluxes from coupler?</long_name>
       <!-- should be false for CAM7 and true for CAM6; ignored elsewhere -->
       <initial_value>.false.</initial_value>
-      <!--<initial_value phys_suite="cam6">.true.</initial_value>-->
     </variable>
     <variable local_name="clubbtop"
               standard_name="vertical_layer_index_of_clubb_top_tbd"
