@@ -16,7 +16,6 @@ on:
     branches:
       - 'staging/**'
       - development
-      - main
     paths:
       # Only run this workflow if something changes in MPAS dynamical core. Skip otherwise.
       - 'src/dynamics/mpas/**'
