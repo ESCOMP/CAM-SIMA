@@ -96,16 +96,16 @@ contains
         real(real32) :: error_tolerance
 
         if (a /= a .or. b /= b) then
-            ! NaN does not equal to anything, including itself.
+            ! NaN is not equal to anything, including itself.
             almost_equal = .false.
 
             return
         end if
 
         if (abs(a) > huge(a) .or. abs(b) > huge(b)) then
-            ! Infinity of the same sign equals to each other.
-            ! Infinity of different signs does not equal to each other.
-            ! Infinity does not equal to anything that is finite.
+            ! Infinities of the same sign are equal to each other.
+            ! Infinities of different signs are not equal to each other.
+            ! An infinity is not equal to anything that is finite.
             almost_equal = (a == b)
 
             return
@@ -138,16 +138,16 @@ contains
         real(real64) :: error_tolerance
 
         if (a /= a .or. b /= b) then
-            ! NaN does not equal to anything, including itself.
+            ! NaN is not equal to anything, including itself.
             almost_equal = .false.
 
             return
         end if
 
         if (abs(a) > huge(a) .or. abs(b) > huge(b)) then
-            ! Infinity of the same sign equals to each other.
-            ! Infinity of different signs does not equal to each other.
-            ! Infinity does not equal to anything that is finite.
+            ! Infinities of the same sign are equal to each other.
+            ! Infinities of different signs are not equal to each other.
+            ! An infinity is not equal to anything that is finite.
             almost_equal = (a == b)
 
             return

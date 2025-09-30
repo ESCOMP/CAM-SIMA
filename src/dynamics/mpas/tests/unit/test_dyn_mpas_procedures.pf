@@ -541,7 +541,7 @@ contains
         @assertFalse(almost_equal(-a, -b))
 
         if (ieee_support_nan(0.0_real32)) then
-            ! NaN does not equal to anything, including itself.
+            ! NaN is not equal to anything, including itself.
             @assertFalse(almost_equal(ieee_value(0.0_real32, ieee_quiet_nan), ieee_value(0.0_real32, ieee_quiet_nan)))
             @assertFalse(almost_equal(0.0_real32, ieee_value(0.0_real32, ieee_quiet_nan)))
 
@@ -552,14 +552,14 @@ contains
         end if
 
         if (ieee_support_inf(0.0_real32)) then
-            ! Infinity of the same sign equals to each other.
+            ! Infinities of the same sign are equal to each other.
             @assertTrue(almost_equal(ieee_value(0.0_real32, ieee_negative_inf), ieee_value(0.0_real32, ieee_negative_inf)))
             @assertTrue(almost_equal(ieee_value(0.0_real32, ieee_positive_inf), ieee_value(0.0_real32, ieee_positive_inf)))
 
-            ! Infinity of different signs does not equal to each other.
+            ! Infinities of different signs are not equal to each other.
             @assertFalse(almost_equal(ieee_value(0.0_real32, ieee_negative_inf), ieee_value(0.0_real32, ieee_positive_inf)))
 
-            ! Infinity does not equal to anything that is finite.
+            ! An infinity is not equal to anything that is finite.
             @assertFalse(almost_equal(0.0_real32, ieee_value(0.0_real32, ieee_negative_inf)))
             @assertFalse(almost_equal(0.0_real32, ieee_value(0.0_real32, ieee_positive_inf)))
         end if
@@ -599,7 +599,7 @@ contains
         @assertFalse(almost_equal(-a, -b))
 
         if (ieee_support_nan(0.0_real64)) then
-            ! NaN does not equal to anything, including itself.
+            ! NaN is not equal to anything, including itself.
             @assertFalse(almost_equal(ieee_value(0.0_real64, ieee_quiet_nan), ieee_value(0.0_real64, ieee_quiet_nan)))
             @assertFalse(almost_equal(0.0_real64, ieee_value(0.0_real64, ieee_quiet_nan)))
 
@@ -610,14 +610,14 @@ contains
         end if
 
         if (ieee_support_inf(0.0_real64)) then
-            ! Infinity of the same sign equals to each other.
+            ! Infinities of the same sign are equal to each other.
             @assertTrue(almost_equal(ieee_value(0.0_real64, ieee_negative_inf), ieee_value(0.0_real64, ieee_negative_inf)))
             @assertTrue(almost_equal(ieee_value(0.0_real64, ieee_positive_inf), ieee_value(0.0_real64, ieee_positive_inf)))
 
-            ! Infinity of different signs does not equal to each other.
+            ! Infinities of different signs are not equal to each other.
             @assertFalse(almost_equal(ieee_value(0.0_real64, ieee_negative_inf), ieee_value(0.0_real64, ieee_positive_inf)))
 
-            ! Infinity does not equal to anything that is finite.
+            ! An infinity is not equal to anything that is finite.
             @assertFalse(almost_equal(0.0_real64, ieee_value(0.0_real64, ieee_negative_inf)))
             @assertFalse(almost_equal(0.0_real64, ieee_value(0.0_real64, ieee_positive_inf)))
         end if
