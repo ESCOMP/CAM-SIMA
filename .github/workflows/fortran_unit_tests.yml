@@ -31,9 +31,10 @@ jobs:
       PIO_REFERENCE: 'pio2_6_7'
       RRTMGP_DATA_REFERENCE: 'v1.9'
     steps:
-      - name: install dependencies
+      - name: Install dependencies
         run: |
-          sudo apt install -y libnetcdff-dev libnetcdf-mpi-dev libopenmpi-dev openmpi-bin doxygen
+          sudo apt update
+          sudo apt install -y libnetcdf-mpi-dev libnetcdff-dev libopenmpi-dev
 
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v5
