@@ -26,6 +26,9 @@ jobs:
       PFUNIT_BUILD_TYPE: Release
       PFUNIT_PATH: ${{ github.workspace }}/pFUnit
       PFUNIT_REFERENCE: 'v4.13.0'
+      PIO_BUILD_TYPE: Release
+      PIO_PATH: ${{ github.workspace }}/ParallelIO
+      PIO_REFERENCE: 'pio2_6_7'
     steps:
       - name: install dependencies
         run: |
@@ -63,23 +66,32 @@ jobs:
           cmake --build "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE"
           cmake --install "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE" --prefix "$PFUNIT_PATH/install"
 
+      - name: Checkout PIO
+        uses: actions/checkout@v5
+        with:
+          repository: NCAR/ParallelIO
+          ref: ${{ env.PIO_REFERENCE }}
+          path: ParallelIO
+
       - name: Build PIO
+        env:
+          CC: mpicc
+          CXX: mpic++
+          FC: mpifort
         run: |
-          git clone --depth 1 --branch pio2_6_6 https://github.com/NCAR/ParallelIO.git
-          cd ParallelIO
-          FC=$(which mpif90) \
-          CC=$(which mpicc) \
-          cmake -S./ -B./build \
-            -DCMAKE_INSTALL_PREFIX=./install \
-            -DPIO_ENABLE_TIMING=OFF \
-            -DWITH_PNETCDF=OFF \
-            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF" \
-            -DNetCDF_Fortran_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdff.a" \
-            -DNetCDF_C_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdf.so" \
-            -DCMAKE_EXE_LINKER_FLAGS="-lmpi -Wl,--no-as-needed"
-          cd build
-          make
-          make install
+          cmake \
+            -D CMAKE_BUILD_TYPE="$PIO_BUILD_TYPE" \
+            -D CMAKE_INSTALL_PREFIX="$PIO_PATH/install" \
+            -D NetCDF_C_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdf_mpi.so" \
+            -D NetCDF_Fortran_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdff.so" \
+            -D PIO_ENABLE_DOC=OFF \
+            -D PIO_ENABLE_TESTS=OFF \
+            -D PIO_ENABLE_TIMING=OFF \
+            -D WITH_PNETCDF=OFF \
+            -B "$PIO_PATH/build" \
+            -S "$PIO_PATH"
+          cmake --build "$PIO_PATH/build" --config "$PIO_BUILD_TYPE"
+          cmake --install "$PIO_PATH/build" --config "$PIO_BUILD_TYPE" --prefix "$PIO_PATH/install"
 
       - name: Checkout atmospheric_physics
         run: |
