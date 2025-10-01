@@ -3,8 +3,8 @@ name: Fortran Unit Tests
 on:
   push:
     branches:
+      - 'staging/**'
       - development
-      - main
   pull_request:
   workflow_dispatch:
 
