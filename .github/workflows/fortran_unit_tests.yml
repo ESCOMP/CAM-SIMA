@@ -23,6 +23,9 @@ jobs:
       CC: gcc-${{ matrix.version }}
       CXX: g++-${{ matrix.version }}
       FC: gfortran-${{ matrix.version }}
+      PFUNIT_BUILD_TYPE: Release
+      PFUNIT_PATH: ${{ github.workspace }}/pFUnit
+      PFUNIT_REFERENCE: 'v4.13.0'
     steps:
       - name: install dependencies
         run: |
@@ -31,13 +34,34 @@ jobs:
       - name: Checkout cam-sima
         uses: actions/checkout@v4
 
+      # pFUnit takes a while to build. Cache it if possible to save time on consecutive workflow runs.
+      - name: Cache pFUnit
+        id: cache-pfunit
+        uses: actions/cache@v4
+        with:
+          key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.version }}-cam-sima
+          path: ${{ env.PFUNIT_PATH }}/install
+
+      # If there is a cache hit, just use the cached pFUnit and skip this step.
+      - name: Checkout pFUnit
+        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
+        uses: actions/checkout@v5
+        with:
+          repository: Goddard-Fortran-Ecosystem/pFUnit
+          ref: ${{ env.PFUNIT_REFERENCE }}
+          path: pFUnit
+
+      # If there is a cache hit, just use the cached pFUnit and skip this step.
       - name: Build pFUnit
+        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
         run: |
-          git clone --depth 1 --branch v4.10.0 https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
-          cd pFUnit
-          cmake -B./build -S.
-          cd build
-          make install
+          cmake \
+            -D CMAKE_BUILD_TYPE="$PFUNIT_BUILD_TYPE" \
+            -D CMAKE_INSTALL_PREFIX="$PFUNIT_PATH/install" \
+            -B "$PFUNIT_PATH/build" \
+            -S "$PFUNIT_PATH"
+          cmake --build "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE"
+          cmake --install "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE" --prefix "$PFUNIT_PATH/install"
 
       - name: Build PIO
         run: |
