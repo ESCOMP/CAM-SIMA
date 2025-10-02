@@ -1,19 +1,13 @@
-! these are QPC4 snapshots and require custom physical constant definitions.
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_before_c20250328.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_after_c20250328.nc'
+! these are FHIST_C4 snapshots.
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_before_c20250716.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_rasch_kristjansson_rk_stratiform_snapshot_derecho_gnu_after_c20250716.nc'
 
 ! tolerances for testing
 ncdata_check_err = .true.
 min_difference = 2e-15
 
-! qpc4
+! cam4 vertical levels.
 pver = 26
-user_defined_cpwv       = 1.846e3
-user_defined_gravit     = 9.79764
-user_defined_mwdry      = 28.96623324623746
-user_defined_mwh2o      = 18.01618112892741
-user_defined_rearth     = 6.37100e6
-user_defined_sday       = 86164.10063718943
 
 ! rk
  cldfrc_dp1             =  0.10D0

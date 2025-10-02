@@ -1,0 +1,22 @@
+! these are FHIST_C4 snapshots
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_vertical_diffusion_hb_snapshot_derecho_gnu_before_c20250717.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_vertical_diffusion_hb_snapshot_derecho_gnu_after_c20250717.nc'
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+! cam4 vertical levels.
+pver = 26
+
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1:HB_ri,USTAR,obklen,PBLH
+hist_add_inst_fields;h1:KVH,KVM,CGS,TKE,TPERT,QPERT
+hist_add_inst_fields;h1:QT,SL,SLV,SLFLX,QTFLX,UFLX,VFLX
+hist_add_inst_fields;h1:sl_aft_PBL,qt_aft_PBL,slv_aft_PBL,u_aft_PBL,v_aft_PBL,qv_aft_PBL,ql_aft_PBL,qi_aft_PBL,t_aft_PBL,rh_aft_PBL
+hist_add_inst_fields;h1:slflx_PBL,qtflx_PBL,uflx_PBL,vflx_PBL,slflx_cg_PBL,qtflx_cg_PBL,uflx_cg_PBL,vflx_cg_PBL
+hist_add_inst_fields;h1:slten_PBL,qtten_PBL,uten_PBL,vten_PBL,qvten_PBL,qlten_PBL,qiten_PBL,tten_PBL,rhten_PBL
+hist_add_inst_fields;h1:qt_pre_PBL,sl_pre_PBL,slv_pre_PBL,u_pre_PBL,v_pre_PBL,qv_pre_PBL,ql_pre_PBL,qi_pre_PBL,t_pre_PBL,rh_pre_PBL
+hist_add_inst_fields;h1:DTV,DUV,DVV,DTVKE
+hist_precision;h1: REAL64
