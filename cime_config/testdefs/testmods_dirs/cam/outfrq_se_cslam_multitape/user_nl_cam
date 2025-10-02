@@ -1,0 +1,13 @@
+! multiple history tape test for testing namelist parsing functionality.
+
+hist_output_frequency;h1: 1*nsteps
+hist_add_inst_fields;h1: T, Q
+hist_write_nstep0;h1: .true.
+
+hist_output_frequency;h2: 1*nsteps
+hist_add_inst_fields;h2: U, V
+hist_write_nstep0;h2: .true.
+
+hist_output_frequency;h3: 1*nsteps
+hist_add_inst_fields;h3: PS
+hist_write_nstep0;h3: .true.
