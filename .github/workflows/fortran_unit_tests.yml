@@ -29,13 +29,14 @@ jobs:
       PIO_BUILD_TYPE: Release
       PIO_PATH: ${{ github.workspace }}/ParallelIO
       PIO_REFERENCE: 'pio2_6_7'
+      RRTMGP_DATA_REFERENCE: 'v1.9'
     steps:
       - name: install dependencies
         run: |
           sudo apt install -y libnetcdff-dev libnetcdf-mpi-dev libopenmpi-dev openmpi-bin doxygen
 
-      - name: Checkout cam-sima
-        uses: actions/checkout@v4
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
 
       # pFUnit takes a while to build. Cache it if possible to save time on consecutive workflow runs.
       - name: Cache pFUnit
@@ -97,6 +98,13 @@ jobs:
         run: |
           bin/git-fleximod update ncar-physics ccpp-framework share
 
+      - name: Checkout rrtmgp-data for PIO file reader tests
+        uses: actions/checkout@v5
+        with:
+          repository: earth-system-radiation/rrtmgp-data
+          ref: ${{ env.RRTMGP_DATA_REFERENCE }}
+          path: rrtmgp-data
+
       - name: Build cam-sima
         run: |
           PIO_ROOT=$GITHUB_WORKSPACE/ParallelIO/install/ \
@@ -109,10 +117,6 @@ jobs:
             -S./test/unit/fortran
           cd build
           make
-
-      - name: Checkout datafiles for file IO reader tests
-        run: |
-          git clone https://github.com/earth-system-radiation/rrtmgp-data.git
 
       - name: Run fortran unit tests
         run: |
