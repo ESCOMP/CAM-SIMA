@@ -43,7 +43,7 @@ jobs:
       FC: gfortran-${{ matrix.gcc-version }}
       PFUNIT_BUILD_TYPE: Release
       PFUNIT_PATH: ${{ github.workspace }}/pFUnit
-      PFUNIT_REFERENCE: 'v4.12.0'
+      PFUNIT_REFERENCE: 'v4.13.0'
       UNIT_TESTS_BUILD_TYPE: Debug
       UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
     steps:
