@@ -139,7 +139,7 @@ CONTAINS
 
                case (const_idx)
 
-                  ! If an index was found in the constituent hash table, then do nothing, this will be handled later
+                  ! If an index was found in the constituent hash table, then do nothing, this will be handled later.
 
                case default
 
@@ -325,7 +325,12 @@ CONTAINS
 
                case (const_idx)
 
-                  ! If variable is a constituent, then do nothing. We'll handle these later
+                  ! If variable is a constituent, then do nothing. We'll handle these later.
+
+               case (init_mark_idx)
+
+                  ! If variable only has an initial_value but not read from file, then do nothing, even if it is modified by the physics scheme.
+                  ! There is nothing we can check against.
 
                case (no_exist_idx)
 
