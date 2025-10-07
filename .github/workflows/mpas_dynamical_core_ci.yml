@@ -5,9 +5,6 @@ permissions:
 
 on:
   pull_request:
-    paths:
-      # Only run this workflow if something changes in MPAS dynamical core. Skip otherwise.
-      - 'src/dynamics/mpas/**'
     types:
       - opened
       - reopened
@@ -16,9 +13,6 @@ on:
     branches:
       - 'staging/**'
       - development
-    paths:
-      # Only run this workflow if something changes in MPAS dynamical core. Skip otherwise.
-      - 'src/dynamics/mpas/**'
   workflow_dispatch:
 
 concurrency:
@@ -26,6 +20,166 @@ concurrency:
   group: ${{ github.workflow }} - ${{ github.ref }}
 
 jobs:
+  # This check is the stepped leader to determine if the rest of jobs should run. We unfortunately cannot use path filtering
+  # due to the peculiar limitations of GitHub Actions, quoted below for reference:
+  #
+  # "If a workflow is skipped due to path filtering, then checks associated with that workflow will remain in a "Pending" state.
+  # A pull request that requires those checks to be successful will be blocked from merging."
+  conditional-check:
+    name: Check if jobs should run
+    timeout-minutes: 1
+    runs-on: ubuntu-24.04
+    outputs:
+      should-run: ${{ steps.conditional.outputs.result }}
+    steps:
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
+
+      - name: Check if there are changes to MPAS dynamical core
+        id: conditional
+        run: |
+          set -euo pipefail
+
+          write_result_and_exit() {
+            case "$1" in
+              false)
+                echo "Result: Skip jobs."
+                echo "result=$1" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              true)
+                echo "Result: Run jobs."
+                echo "result=$1" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              error|*)
+                echo "Error occurred!"
+                exit 1
+                ;;
+            esac
+          }
+
+          case "${{ github.event_name }}" in
+            pull_request)
+              echo "Event is pull request."
+
+              HEAD_COMMIT="${{ github.sha }}"
+
+              if [ -z "$HEAD_COMMIT" ]; then
+                echo "HEAD_COMMIT is empty."
+                write_result_and_exit false
+              fi
+
+              echo "Fetching $HEAD_COMMIT with parents..."
+              git fetch --depth=2 origin "$HEAD_COMMIT" || write_result_and_exit error
+
+              BASE_COMMIT="$(git rev-parse $HEAD_COMMIT^1)" || write_result_and_exit error
+              ;;
+            push)
+              echo "Event is push."
+
+              BASE_COMMIT="${{ github.event.before }}"
+              HEAD_COMMIT="${{ github.event.after }}"
+
+              if [ -z "$BASE_COMMIT" ] || [ -z "$HEAD_COMMIT" ]; then
+                echo "BASE_COMMIT or HEAD_COMMIT is empty."
+                write_result_and_exit false
+              fi
+
+              if [ -z "${BASE_COMMIT//0/}" ] || [ -z "${HEAD_COMMIT//0/}" ]; then
+                echo "BASE_COMMIT or HEAD_COMMIT is null."
+                write_result_and_exit false
+              fi
+
+              echo "Fetching $BASE_COMMIT..."
+              git fetch --depth=1 origin "$BASE_COMMIT" || write_result_and_exit error
+
+              echo "Fetching $HEAD_COMMIT..."
+              git fetch --depth=1 origin "$HEAD_COMMIT" || write_result_and_exit error
+              ;;
+            workflow_dispatch)
+              echo "Event is workflow dispatch."
+
+              # Always run jobs when triggered manually.
+              write_result_and_exit true
+              ;;
+            *)
+              echo "Event is unknown."
+
+              # Always skip jobs for any other events.
+              write_result_and_exit false
+              ;;
+          esac
+
+          echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
+          git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
+
+          if grep -E -q '(^\.github\/workflows\/mpas_dynamical_core_ci\.yml$|^src\/dynamics\/mpas\/.+$)' changed-paths.txt; then
+            write_result_and_exit true
+          else
+            write_result_and_exit false
+          fi
+  # This job evaluates the overall status of MPAS dynamical core CI for the purpose of inclusion as a required status check.
+  # It exists solely due to, again, the peculiar limitations of GitHub Actions, quoted below for reference:
+  #
+  # "The `jobs.<job_id>.if` conditional is evaluated before `jobs.<job_id>.strategy.matrix` is applied." This implies that
+  # when a matrix job is set as a required status check, skipping it due to the conditional will cause a pull request to be
+  # blocked from merging.
+  overall-status:
+    name: Overall status
+    timeout-minutes: 1
+    runs-on: ubuntu-24.04
+    needs:
+      - conditional-check
+      - unit-tests
+    if: ${{ always() }}
+    steps:
+      - name: Evaluate overall status
+        run: |
+          set -euo pipefail
+
+          write_result_and_exit() {
+            case "$1" in
+              false)
+                echo "Result: Failure."
+                exit 1
+                ;;
+              true)
+                echo "Result: Success."
+                exit 0
+                ;;
+              error|*)
+                echo "Error occurred!"
+                exit 1
+                ;;
+            esac
+          }
+
+          case "${{ needs.conditional-check.result }}" in
+            success)
+              :
+              ;;
+            cancelled|failure|skipped)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
+          case "${{ needs.unit-tests.result }}" in
+            skipped|success)
+              :
+              ;;
+            cancelled|failure)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
+          write_result_and_exit true
   unit-tests:
     name: Build and run unit tests (GCC ${{ matrix.gcc-version }})
     timeout-minutes: 10
@@ -37,6 +191,8 @@ jobs:
           - '13'
           - '14'
     runs-on: ubuntu-24.04
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     env:
       CC: gcc-${{ matrix.gcc-version }}
       CXX: g++-${{ matrix.gcc-version }}
