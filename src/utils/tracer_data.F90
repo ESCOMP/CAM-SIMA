@@ -23,7 +23,6 @@ module tracer_data
   use cam_abortutils, only: endrun
   use cam_logfile, only: iulog
 
-  use physics_buffer, only: physics_buffer_desc, pbuf_get_field, pbuf_get_index
   use time_manager, only: set_time_float_from_date, set_date_from_time_float
   use pio, only: file_desc_t, var_desc_t, &
                  pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
@@ -67,7 +66,6 @@ module tracer_data
     integer :: coords(4) ! LATDIM | LONDIM | LEVDIM | TIMDIM
     integer :: order(4) ! LATDIM | LONDIM | LEVDIM | TIMDIM
     logical :: srf_fld = .false.
-    integer :: pbuf_ndx = -1
   end type trfld
 
   type trfile
@@ -121,7 +119,6 @@ module tracer_data
 
     real(r8)                        :: p0
     type(var_desc_t) :: ps_id
-    logical, allocatable, dimension(:) :: in_pbuf
     logical :: has_ps = .false.
     logical :: zonal_ave = .false.
     logical :: unstructured = .false.
@@ -476,20 +473,16 @@ contains
         flds(f)%srf_fld = .true.
       end if
 
-      ! allocate memory only if not already in pbuf2d
-      if (.not. file%in_pbuf(f)) then
-        if (flds(f)%srf_fld .or. file%top_bndry .or. file%top_layer) then
-          ! surface/top boundary/top layer field.
-          allocate (flds(f)%data(pcols, 1), stat=astat)
-        else
-          allocate (flds(f)%data(pcols, pver), stat=astat)
-        end if
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: failed to allocate flds(f)%data array; error = ', astat
-          call endrun
-        end if
+      ! allocate memory for data in container.
+      if (flds(f)%srf_fld .or. file%top_bndry .or. file%top_layer) then
+        ! surface/top boundary/top layer field.
+        allocate (flds(f)%data(pcols, 1), stat=astat)
       else
-        flds(f)%pbuf_ndx = pbuf_get_index(flds(f)%fldnam, errcode)
+        allocate (flds(f)%data(pcols, pver), stat=astat)
+      end if
+      if (astat /= 0) then
+        write (iulog, *) 'trcdata_init: failed to allocate flds(f)%data array; error = ', astat
+        call endrun
       end if
 
       if (flds(f)%srf_fld) then
@@ -794,7 +787,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine advance_trcdata(ncol, pver, pverp, &
                              pmid, pint, phis, zi, &
-                             flds, file, pbuf2d)
+                             flds, file)
 
     integer,      intent(in)    :: ncol
     integer,      intent(in)    :: pver
@@ -807,8 +800,6 @@ contains
 
     type(trfile), intent(inout) :: file
     type(trfld),  intent(inout) :: flds(:)
-
-    type(physics_buffer_desc), pointer :: pbuf2d(:, :)
 
     real(r8) :: data_time
 
@@ -848,8 +839,7 @@ contains
                              phis = phis(:ncol), &
                              zi   = zi(:ncol, :pverp), &
                              flds = flds(:), &
-                             file = file, &
-                             pbuf2d = pbuf2d) ! todo remove pbuf here
+                             file = file)
     call t_stopf('interpolate_trcdata')
 
     file%initialized = .true.
@@ -860,13 +850,11 @@ contains
 
 !-------------------------------------------------------------------
 !-------------------------------------------------------------------
-  subroutine get_fld_data(flds, field_name, data, ncol, lchnk, pbuf)
+  subroutine get_fld_data(flds, field_name, data, ncol)
     type(trfld), intent(inout) :: flds(:)
     character(len=*), intent(in) :: field_name
     real(r8), intent(out) :: data(:, :)
-    integer, intent(in) :: lchnk
     integer, intent(in) :: ncol
-    type(physics_buffer_desc), pointer :: pbuf(:)
 
     integer :: f, nflds
     real(r8), pointer  :: tmpptr(:, :)
@@ -876,12 +864,7 @@ contains
 
     do f = 1, nflds
       if (trim(flds(f)%fldnam) == trim(field_name)) then
-        if (flds(f)%pbuf_ndx > 0) then
-          call pbuf_get_field(pbuf, flds(f)%pbuf_ndx, tmpptr)
-          data(:ncol, :) = tmpptr(:ncol, :)
-        else
-          data(:ncol, :) = flds(f)%data(:ncol, :, lchnk)
-        end if
+        data(:ncol, :) = flds(f)%data(:ncol, :)
       end if
     end do
 
@@ -1778,7 +1761,7 @@ contains
   subroutine interpolate_trcdata(&
              ncol, pver, pverp, &
              pmid, pint, phis, zi, &
-             flds, file, pbuf2d)
+             flds, file)
     use physconst, only: cday, rga
 
     integer,      intent(in)    :: ncol
@@ -1792,8 +1775,6 @@ contains
 
     type(trfld),  intent(inout) :: flds(:)
     type(trfile), intent(inout) :: file
-
-    type(physics_buffer_desc), pointer :: pbuf2d(:, :)
 
     real(r8) :: fact1, fact2
     real(r8) :: deltat
@@ -1868,16 +1849,9 @@ contains
 
     fld_loop: do f = 1, nflds
 
-      if (flds(f)%pbuf_ndx <= 0) then
-        data_out3d => flds(f)%data(:, :)
-      end if
-
-      if (flds(f)%pbuf_ndx > 0) then
-        call pbuf_get_field(pbuf2d, flds(f)%pbuf_ndx, data_out)
-        ! dechunkized this call will not work
-      else
-        data_out => data_out3d(:, :)
-      end if
+      ! this could be improved after dechunkization
+      data_out3d => flds(f)%data(:, :)
+      data_out => data_out3d(:, :)
 
       ncol = pcols ! active columns
       if (file%alt_data) then
