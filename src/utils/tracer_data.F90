@@ -18,7 +18,8 @@ module tracer_data
   use shr_kind_mod, only: r8 => shr_kind_r8, shr_kind_cl
   use time_manager, only: get_curr_date, get_step_size
   use spmd_utils, only: masterproc
-  use ppgrid, only: pcols, pver, pverp, begchunk, endchunk
+  use vert_coord, only: pver, pverp
+  use physics_grid, only: pcols => columns_on_task
   use cam_abortutils, only: endrun
   use cam_logfile, only: iulog
 
@@ -49,15 +50,15 @@ module tracer_data
   public :: incr_filename
 
   type input3d
-    real(r8), dimension(:, :, :), pointer :: data => null()  ! pcols, lev, begchunk:endchunk
+    real(r8), dimension(:, :), pointer :: data => null()  ! ncol, lev
   end type input3d
 
   type input2d
-    real(r8), dimension(:, :), pointer :: data => null() ! pcols, begchunk:endchunk
+    real(r8), dimension(:), pointer :: data => null() ! ncol
   end type input2d
 
   type trfld
-    real(r8), dimension(:, :, :), pointer :: data => null() ! pcols, lev, begchunk:endchunk
+    real(r8), dimension(:, :), pointer :: data => null() ! ncol, lev
     type(input3d), dimension(4) :: input
     character(len=32) :: srcnam
     character(len=32) :: fldnam
@@ -156,8 +157,8 @@ module tracer_data
 
   integer :: plon, plat
 
-  integer, allocatable :: lon_global_grid_ndx(:, :)
-  integer, allocatable :: lat_global_grid_ndx(:, :)
+  integer, allocatable :: lon_global_grid_ndx(:) ! (ncol)
+  integer, allocatable :: lat_global_grid_ndx(:) ! (ncol)
 
 contains
 
@@ -204,7 +205,7 @@ contains
     character(len=256) :: data_units
     real(r8), allocatable :: lam(:), phi(:)
     real(r8):: rlats(pcols), rlons(pcols)
-    integer :: lchnk, ncol, icol, i, j
+    integer :: ncol, icol, i, j
     logical :: found
     integer :: aircraft_cnt
     integer :: err_handling
@@ -430,23 +431,23 @@ contains
         ierr = pio_get_var(file%curr_fileid, varid, file%hybi)
       end if
 
-      allocate (file%ps_in(1)%data(pcols, begchunk:endchunk), stat=astat)
+      allocate (file%ps_in(1)%data(pcols), stat=astat)
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(1)%data array; error = ', astat
         call endrun
       end if
-      allocate (file%ps_in(2)%data(pcols, begchunk:endchunk), stat=astat)
+      allocate (file%ps_in(2)%data(pcols), stat=astat)
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(2)%data array; error = ', astat
         call endrun
       end if
       if (file%fill_in_months) then
-        allocate (file%ps_in(3)%data(pcols, begchunk:endchunk), stat=astat)
+        allocate (file%ps_in(3)%data(pcols), stat=astat)
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(3)%data array; error = ', astat
           call endrun
         end if
-        allocate (file%ps_in(4)%data(pcols, begchunk:endchunk), stat=astat)
+        allocate (file%ps_in(4)%data(pcols), stat=astat)
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(4)%data array; error = ', astat
           call endrun
@@ -478,9 +479,10 @@ contains
       ! allocate memory only if not already in pbuf2d
       if (.not. file%in_pbuf(f)) then
         if (flds(f)%srf_fld .or. file%top_bndry .or. file%top_layer) then
-          allocate (flds(f)%data(pcols, 1, begchunk:endchunk), stat=astat)
+          ! surface/top boundary/top layer field.
+          allocate (flds(f)%data(pcols, 1), stat=astat)
         else
-          allocate (flds(f)%data(pcols, pver, begchunk:endchunk), stat=astat)
+          allocate (flds(f)%data(pcols, pver), stat=astat)
         end if
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate flds(f)%data array; error = ', astat
@@ -491,18 +493,18 @@ contains
       end if
 
       if (flds(f)%srf_fld) then
-        allocate (flds(f)%input(1)%data(pcols, 1, begchunk:endchunk), stat=astat)
+        allocate (flds(f)%input(1)%data(pcols, 1), stat=astat)
       else
-        allocate (flds(f)%input(1)%data(pcols, file%nlev, begchunk:endchunk), stat=astat)
+        allocate (flds(f)%input(1)%data(pcols, file%nlev), stat=astat)
       end if
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(1)%data array; error = ', astat
         call endrun
       end if
       if (flds(f)%srf_fld) then
-        allocate (flds(f)%input(2)%data(pcols, 1, begchunk:endchunk), stat=astat)
+        allocate (flds(f)%input(2)%data(pcols, 1), stat=astat)
       else
-        allocate (flds(f)%input(2)%data(pcols, file%nlev, begchunk:endchunk), stat=astat)
+        allocate (flds(f)%input(2)%data(pcols, file%nlev), stat=astat)
       end if
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(2)%data array; error = ', astat
@@ -511,18 +513,18 @@ contains
 
       if (file%fill_in_months) then
         if (flds(f)%srf_fld) then
-          allocate (flds(f)%input(3)%data(pcols, 1, begchunk:endchunk), stat=astat)
+          allocate (flds(f)%input(3)%data(pcols, 1), stat=astat)
         else
-          allocate (flds(f)%input(3)%data(pcols, file%nlev, begchunk:endchunk), stat=astat)
+          allocate (flds(f)%input(3)%data(pcols, file%nlev), stat=astat)
         end if
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(3)%data array; error = ', astat
           call endrun
         end if
         if (flds(f)%srf_fld) then
-          allocate (flds(f)%input(4)%data(pcols, 1, begchunk:endchunk), stat=astat)
+          allocate (flds(f)%input(4)%data(pcols, 1), stat=astat)
         else
-          allocate (flds(f)%input(4)%data(pcols, file%nlev, begchunk:endchunk), stat=astat)
+          allocate (flds(f)%input(4)%data(pcols, file%nlev), stat=astat)
         end if
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(4)%data array; error = ', astat
@@ -598,30 +600,28 @@ contains
       call get_horiz_grid_d(plat, clat_d_out=phi)
       call get_horiz_grid_d(plon, clon_d_out=lam)
 
-      if (.not. allocated(lon_global_grid_ndx)) allocate (lon_global_grid_ndx(pcols, begchunk:endchunk))
-      if (.not. allocated(lat_global_grid_ndx)) allocate (lat_global_grid_ndx(pcols, begchunk:endchunk))
+      if (.not. allocated(lon_global_grid_ndx)) allocate (lon_global_grid_ndx(pcols))
+      if (.not. allocated(lat_global_grid_ndx)) allocate (lat_global_grid_ndx(pcols))
       lon_global_grid_ndx = -huge(1)
       lat_global_grid_ndx = -huge(1)
 
-      do lchnk = begchunk, endchunk
-        ncol = get_ncols_p(lchnk)
-        call get_rlat_all_p(lchnk, ncol, rlats(:ncol))
-        call get_rlon_all_p(lchnk, ncol, rlons(:ncol))
-        do icol = 1, ncol
-          found = .false.
-          find_col: do j = 1, plat
-            do i = 1, plon
-              if (rlats(icol) == phi(j) .and. rlons(icol) == lam(i)) then
-                found = .true.
-                exit find_col
-              end if
-            end do
-          end do find_col
+      ncol = pcols ! active columns
+      call get_rlat_all_p(ncol, rlats(:ncol))
+      call get_rlon_all_p(ncol, rlons(:ncol))
+      do icol = 1, ncol
+        found = .false.
+        find_col: do j = 1, plat
+          do i = 1, plon
+            if (rlats(icol) == phi(j) .and. rlons(icol) == lam(i)) then
+              found = .true.
+              exit find_col
+            end if
+          end do
+        end do find_col
 
-          if (.not. found) call endrun('trcdata_init: not able find physics column coordinate')
-          lon_global_grid_ndx(icol, lchnk) = i
-          lat_global_grid_ndx(icol, lchnk) = j
-        end do
+        if (.not. found) call endrun('trcdata_init: not able to find physics column coordinate')
+        lon_global_grid_ndx(icol) = i
+        lat_global_grid_ndx(icol) = j
       end do
 
       deallocate (phi, lam)
@@ -789,15 +789,24 @@ contains
     end if
   end subroutine trcdata_init
 
-!-----------------------------------------------------------------------
-! Reads more data if needed and interpolates data to current model time
-!-----------------------------------------------------------------------
-  subroutine advance_trcdata(flds, file, state, pbuf2d)
-    use physics_types, only: physics_state
+  !-----------------------------------------------------------------------
+  ! Reads more data if needed and interpolates data to current model time
+  !-----------------------------------------------------------------------
+  subroutine advance_trcdata(ncol, pver, pverp, &
+                             pmid, pint, phis, zi, &
+                             flds, file, pbuf2d)
+
+    integer,      intent(in)    :: ncol
+    integer,      intent(in)    :: pver
+    integer,      intent(in)    :: pverp
+    ! state variables used for interpolation
+    real(r8),     intent(in)    :: pmid(:, :)
+    real(r8),     intent(in)    :: pint(:, :)
+    real(r8),     intent(in)    :: phis(:)
+    real(r8),     intent(in)    :: zi(:, :)
 
     type(trfile), intent(inout) :: file
-    type(trfld), intent(inout) :: flds(:)
-    type(physics_state), intent(in)    :: state(begchunk:endchunk)
+    type(trfld),  intent(inout) :: flds(:)
 
     type(physics_buffer_desc), pointer :: pbuf2d(:, :)
 
@@ -831,7 +840,16 @@ contains
     ! need to interpolate the data, regardless
     ! each mpi task needs to interpolate
     call t_startf('interpolate_trcdata')
-    call interpolate_trcdata(state, flds, file, pbuf2d)
+    call interpolate_trcdata(ncol = ncol, &
+                             pver = pver, &
+                             pverp= pverp, &
+                             pmid = pmid(:ncol,:pver), &
+                             pint = pint(:ncol,:pverp), &
+                             phis = phis(:ncol), &
+                             zi   = zi(:ncol, :pverp), &
+                             flds = flds(:), &
+                             file = file, &
+                             pbuf2d = pbuf2d) ! todo remove pbuf here
     call t_stopf('interpolate_trcdata')
 
     file%initialized = .true.
@@ -1368,22 +1386,22 @@ contains
         else if (flds(f)%srf_fld) then
           if (file%unstructured) then
             ! read data directly onto the unstructureed phys grid -- assumes input data is on same grid as phys
-            call read_physgrid_2d(fids(i), flds(f)%fldnam, recnos(i), flds(f)%input(i)%data(:, 1, :))
+            call read_physgrid_2d(fids(i), flds(f)%fldnam, recnos(i), flds(f)%input(i)%data(:, 1))
           else
             cnt3(flds(f)%coords(LONDIM)) = file%nlon
             cnt3(flds(f)%coords(LATDIM)) = file%nlat
             cnt3(flds(f)%coords(PS_TIMDIM)) = 1
             strt3(flds(f)%coords(PS_TIMDIM)) = recnos(i)
-            call read_2d_trc(fids(i), flds(f)%var_id, flds(f)%input(i)%data(:, 1, :), strt3, cnt3, file, &
+            call read_2d_trc(fids(i), flds(f)%var_id, flds(f)%input(i)%data(:, 1), strt3, cnt3, file, &
                              (/flds(f)%order(LONDIM), flds(f)%order(LATDIM)/))
           end if
         else
           if (file%unstructured) then
             ! read data directly onto the unstructureed phys grid -- assumes input data is on same grid as phys
             if (file%alt_data) then
-              call read_physgrid_3d(fids(i), flds(f)%fldnam, 'altitude', file%nlev, recnos(i), flds(f)%input(i)%data(:, :, :))
+              call read_physgrid_3d(fids(i), flds(f)%fldnam, 'altitude', file%nlev, recnos(i), flds(f)%input(i)%data(:, :))
             else
-              call read_physgrid_3d(fids(i), flds(f)%fldnam, 'lev', file%nlev, recnos(i), flds(f)%input(i)%data(:, :, :))
+              call read_physgrid_3d(fids(i), flds(f)%fldnam, 'lev', file%nlev, recnos(i), flds(f)%input(i)%data(:, :))
             end if
           else
             cnt4(flds(f)%coords(LONDIM)) = file%nlon
@@ -1431,7 +1449,6 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use ppgrid, only: pcols, begchunk, endchunk
     use phys_grid, only: get_ncols_p, get_rlat_all_p, get_rlon_all_p
     use physconst, only: pi
 
@@ -1445,7 +1462,7 @@ contains
     real(r8), allocatable, target :: wrk2d(:, :)
     real(r8), pointer :: wrk2d_in(:, :)
 
-    integer :: c, ierr, ncols
+    integer :: ierr, ncols
     real(r8), parameter :: zero = 0_r8, twopi = 2_r8*pi
     type(interp_type) :: lon_wgts, lat_wgts
     integer :: lons(pcols), lats(pcols)
@@ -1480,16 +1497,14 @@ contains
     ! For zonal average, only interpolate along latitude.
     if (file%zonal_ave) then
 
-      do c = begchunk, endchunk
-        ncols = get_ncols_p(c)
-        call get_rlat_all_p(c, pcols, to_lats)
+      ncols = pcols ! active columns
+      call get_rlat_all_p(pcols, to_lats)
 
-        call lininterp_init(file_lats, file%nlat, to_lats, ncols, 1, lat_wgts)
+      call lininterp_init(file_lats, file%nlat, to_lats, ncols, 1, lat_wgts)
 
-        call lininterp(wrk2d_in(1, :), file%nlat, loc_arr(1:ncols, c - begchunk + 1), ncols, lat_wgts)
+      call lininterp(wrk2d_in(1, :), file%nlat, loc_arr(1:ncols), ncols, lat_wgts)
 
-        call lininterp_finish(lat_wgts)
-      end do
+      call lininterp_finish(lat_wgts)
 
     else
       ! if weighting by latitude, the perform horizontal interpolation by using weight_x, weight_y
@@ -1498,40 +1513,38 @@ contains
 
         call t_startf('xy_interp')
 
-        do c = begchunk, endchunk
-          ncols = get_ncols_p(c)
-          lons(:ncols) = lon_global_grid_ndx(:ncols, c)
-          lats(:ncols) = lat_global_grid_ndx(:ncols, c)
+        ncols = pcols ! active columns
+        lons(:ncols) = lon_global_grid_ndx(:ncols)
+        lats(:ncols) = lat_global_grid_ndx(:ncols)
 
-          ! NOTE: This uses weight_[xy] instead of weight0_[xy] and
-          ! hence treats the values as a field rather than per-cell
-          ! totals.  When file%dist == TRUE, this path only appears
-          ! to be used to interpolate PS, which is probably the
-          ! correct behavior.
-          !
-          ! @reviewers: The control flow is convoluted here, so
-          ! this merits some additional scrutiny.
-          call xy_interp(file%nlon, file%nlat, 1, plon, plat, pcols, ncols, &
-                         file%weight_x, file%weight_y, wrk2d_in, loc_arr(:, c - begchunk + 1), &
-                         lons, lats, file%count_x, file%count_y, file%index_x, file%index_y)
-        end do
+        ! NOTE: This uses weight_[xy] instead of weight0_[xy] and
+        ! hence treats the values as a field rather than per-cell
+        ! totals.  When file%dist == TRUE, this path only appears
+        ! to be used to interpolate PS, which is probably the
+        ! correct behavior.
+        !
+        ! @reviewers: The control flow is convoluted here, so
+        ! this merits some additional scrutiny.
+        !
+        ! todo: pcols (size of array) and ncols (loop dim) here now equal
+        call xy_interp(file%nlon, file%nlat, 1, plon, plat, pcols, ncols, &
+                       file%weight_x, file%weight_y, wrk2d_in, loc_arr(:), &
+                       lons, lats, file%count_x, file%count_y, file%index_x, file%index_y)
 
         call t_stopf('xy_interp')
 
       else
-        do c = begchunk, endchunk
-          ncols = get_ncols_p(c)
-          call get_rlat_all_p(c, pcols, to_lats)
-          call get_rlon_all_p(c, pcols, to_lons)
+        ncols = pcols ! active columns
+        call get_rlat_all_p(pcols, to_lats)
+        call get_rlon_all_p(pcols, to_lons)
 
-          call lininterp_init(file%lons, file%nlon, to_lons, ncols, 2, lon_wgts, zero, twopi)
-          call lininterp_init(file%lats, file%nlat, to_lats, ncols, 1, lat_wgts)
+        call lininterp_init(file%lons, file%nlon, to_lons, ncols, 2, lon_wgts, zero, twopi)
+        call lininterp_init(file%lats, file%nlat, to_lats, ncols, 1, lat_wgts)
 
-          call lininterp(wrk2d_in, file%nlon, file%nlat, loc_arr(1:ncols, c - begchunk + 1), ncols, lon_wgts, lat_wgts)
+        call lininterp(wrk2d_in, file%nlon, file%nlat, loc_arr(1:ncols), ncols, lon_wgts, lat_wgts)
 
-          call lininterp_finish(lon_wgts)
-          call lininterp_finish(lat_wgts)
-        end do
+        call lininterp_finish(lon_wgts)
+        call lininterp_finish(lat_wgts)
       end if
 
     end if
@@ -1550,7 +1563,6 @@ contains
 
   subroutine read_za_trc(fid, vid, loc_arr, strt, cnt, file, order)
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
-    use ppgrid, only: pcols, begchunk, endchunk
     use phys_grid, only: get_ncols_p, get_rlat_all_p
 
     type(file_desc_t), intent(in) :: fid
@@ -1564,7 +1576,7 @@ contains
     real(r8) :: to_lats(pcols), wrk(pcols)
     real(r8), allocatable, target :: wrk2d(:, :)
     real(r8), pointer :: wrk2d_in(:, :)
-    integer :: c, k, ierr, ncols
+    integer :: k, ierr, ncols
 
     nullify (wrk2d_in)
     allocate (wrk2d(cnt(1), cnt(2)), stat=ierr)
@@ -1589,17 +1601,15 @@ contains
       wrk2d_in => wrk2d
     end if
 
-    do c = begchunk, endchunk
-      ncols = get_ncols_p(c)
-      call get_rlat_all_p(c, pcols, to_lats)
+    ncols = pcols ! active columns
+    call get_rlat_all_p(pcols, to_lats)
 
-      call lininterp_init(file%lats, file%nlat, to_lats, ncols, 1, lat_wgts)
-      do k = 1, file%nlev
-        call lininterp(wrk2d_in(:, k), file%nlat, wrk(1:ncols), ncols, lat_wgts)
-        loc_arr(1:ncols, k, c - begchunk + 1) = wrk(1:ncols)
-      end do
-      call lininterp_finish(lat_wgts)
+    call lininterp_init(file%lats, file%nlat, to_lats, ncols, 1, lat_wgts)
+    do k = 1, file%nlev
+      call lininterp(wrk2d_in(:, k), file%nlat, wrk(1:ncols), ncols, lat_wgts)
+      loc_arr(1:ncols, k) = wrk(1:ncols)
     end do
+    call lininterp_finish(lat_wgts)
 
     if (allocated(wrk2d)) then
       deallocate (wrk2d)
@@ -1612,26 +1622,19 @@ contains
 ! this assumes the input data is gridded to match the physics grid
   subroutine read_physgrid_2d(ncid, varname, recno, data)
 
-    use ncdio_atm, only: infld
-    use cam_grid_support, only: cam_grid_check, cam_grid_id, cam_grid_get_dim_names
+    use cam_field_read, only: cam_read_field
 
     type(file_desc_t) :: ncid
     character(len=*), intent(in) :: varname
     integer, intent(in) :: recno
-    real(r8), intent(out) :: data(1:pcols, begchunk:endchunk)
+    real(r8), intent(out) :: data(1:pcols)
 
     logical :: found
-    character(len=8) :: dim1name, dim2name
-    integer :: grid_id  ! grid ID for data mapping
 
-    grid_id = cam_grid_id('physgrid')
-    if (.not. cam_grid_check(grid_id)) then
-      call endrun('tracer_data::read_physgrid_2d: Internal error, no "physgrid" grid')
-    end if
-    call cam_grid_get_dim_names(grid_id, dim1name, dim2name)
-
-    call infld(varname, ncid, dim1name, dim2name, 1, pcols, begchunk, endchunk, &
-               data, found, gridname='physgrid', timelevel=recno)
+    call cam_read_field(varname=varname, ncid=ncid, &
+                        field=data, readvar=found, &
+                        gridname='physgrid', &
+                        timelevel=recno)
 
     if (.not. found) then
       call endrun('tracer_data::read_physgrid_2d: Could not find '//trim(varname)//' field in input datafile')
@@ -1644,28 +1647,22 @@ contains
 ! this assumes the input data is gridded to match the physics grid
   subroutine read_physgrid_3d(ncid, varname, vrt_coord_name, nlevs, recno, data)
 
-    use ncdio_atm, only: infld
-    use cam_grid_support, only: cam_grid_check, cam_grid_id, cam_grid_get_dim_names
+    use cam_field_read, only: cam_read_field
 
     type(file_desc_t) :: ncid
     character(len=*), intent(in) :: varname
     character(len=*), intent(in) :: vrt_coord_name
     integer, intent(in) :: nlevs
     integer, intent(in) :: recno
-    real(r8), intent(out) :: data(1:pcols, 1:nlevs, begchunk:endchunk)
+    real(r8), intent(out) :: data(1:pcols, 1:nlevs)
 
     logical :: found
-    character(len=8) :: dim1name, dim2name
-    integer :: grid_id  ! grid ID for data mapping
 
-    grid_id = cam_grid_id('physgrid')
-    if (.not. cam_grid_check(grid_id)) then
-      call endrun('tracer_data::read_physgrid_3d: Internal error, no "physgrid" grid')
-    end if
-    call cam_grid_get_dim_names(grid_id, dim1name, dim2name)
-
-    call infld(varname, ncid, dim1name, vrt_coord_name, dim2name, 1, pcols, 1, nlevs, begchunk, endchunk, &
-               data, found, gridname='physgrid', timelevel=recno)
+    call cam_read_field(varname=varname, ncid=ncid, &
+                        field=data, readvar=found, &
+                        gridname='physgrid', &
+                        timelevel=recno, &
+                        dim3name=vrt_coord_name, dim3_bnds=nlevs)
 
     if (.not. found) then
       call endrun('tracer_data::read_physgrid_3d: Could not find '//trim(varname)//' field in input datafile')
@@ -1680,7 +1677,6 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use ppgrid, only: pcols, begchunk, endchunk
     use phys_grid, only: get_ncols_p, get_rlat_all_p, get_rlon_all_p
     use physconst, only: pi
 
@@ -1691,7 +1687,7 @@ contains
 
     type(trfile), intent(in) :: file
 
-    integer :: astat, c, ncols
+    integer :: astat, ncols
     integer :: lons(pcols), lats(pcols)
 
     integer :: ierr
@@ -1725,48 +1721,42 @@ contains
       wrk3d_in => wrk3d
     end if
 
-! If weighting by latitude, then perform horizontal interpolation by using weight_x, weight_y
 
+    ! If weighting by latitude, then perform horizontal interpolation by using weight_x, weight_y
     if (file%weight_by_lat) then
 
       call t_startf('xy_interp')
       if (file%dist) then
-        do c = begchunk, endchunk
-          ncols = get_ncols_p(c)
-          lons(:ncols) = lon_global_grid_ndx(:ncols, c)
-          lats(:ncols) = lat_global_grid_ndx(:ncols, c)
+        ncols = pcols ! active columns
+        lons(:ncols) = lon_global_grid_ndx(:ncols)
+        lats(:ncols) = lat_global_grid_ndx(:ncols)
 
-          call xy_interp(file%nlon, file%nlat, file%nlev, plon, plat, pcols, ncols, &
-                         file%weight0_x, file%weight0_y, wrk3d_in, loc_arr(:, :, c - begchunk + 1), &
-                         lons, lats, file%count0_x, file%count0_y, file%index0_x, file%index0_y)
-        end do
+        call xy_interp(file%nlon, file%nlat, file%nlev, plon, plat, pcols, ncols, &
+                       file%weight0_x, file%weight0_y, wrk3d_in, loc_arr(:, :), &
+                       lons, lats, file%count0_x, file%count0_y, file%index0_x, file%index0_y)
       else
-        do c = begchunk, endchunk
-          ncols = get_ncols_p(c)
-          lons(:ncols) = lon_global_grid_ndx(:ncols, c)
-          lats(:ncols) = lat_global_grid_ndx(:ncols, c)
+        ncols = pcols ! active columns
+        lons(:ncols) = lon_global_grid_ndx(:ncols)
+        lats(:ncols) = lat_global_grid_ndx(:ncols)
 
-          call xy_interp(file%nlon, file%nlat, file%nlev, plon, plat, pcols, ncols, &
-                         file%weight_x, file%weight_y, wrk3d_in, loc_arr(:, :, c - begchunk + 1), &
-                         lons, lats, file%count_x, file%count_y, file%index_x, file%index_y)
-        end do
+        call xy_interp(file%nlon, file%nlat, file%nlev, plon, plat, pcols, ncols, &
+                       file%weight_x, file%weight_y, wrk3d_in, loc_arr(:, :), &
+                       lons, lats, file%count_x, file%count_y, file%index_x, file%index_y)
       end if
       call t_stopf('xy_interp')
 
     else
-      do c = begchunk, endchunk
-        ncols = get_ncols_p(c)
-        call get_rlat_all_p(c, pcols, to_lats)
-        call get_rlon_all_p(c, pcols, to_lons)
+      ncols = pcols ! active columns
+      call get_rlat_all_p(pcols, to_lats)
+      call get_rlon_all_p(pcols, to_lons)
 
-        call lininterp_init(file%lons, file%nlon, to_lons(1:ncols), ncols, 2, lon_wgts, zero, twopi)
-        call lininterp_init(file%lats, file%nlat, to_lats(1:ncols), ncols, 1, lat_wgts)
+      call lininterp_init(file%lons, file%nlon, to_lons(1:ncols), ncols, 2, lon_wgts, zero, twopi)
+      call lininterp_init(file%lats, file%nlat, to_lats(1:ncols), ncols, 1, lat_wgts)
 
-        call lininterp(wrk3d_in, file%nlon, file%nlat, file%nlev, loc_arr(:, :, c - begchunk + 1), ncols, pcols, lon_wgts, lat_wgts)
+      call lininterp(wrk3d_in, file%nlon, file%nlat, file%nlev, loc_arr(:, :), ncols, pcols, lon_wgts, lat_wgts)
 
-        call lininterp_finish(lon_wgts)
-        call lininterp_finish(lat_wgts)
-      end do
+      call lininterp_finish(lon_wgts)
+      call lininterp_finish(lat_wgts)
     end if
 
     if (allocated(wrk3d)) then
@@ -1785,20 +1775,29 @@ contains
 
 !------------------------------------------------------------------------------
 
-  subroutine interpolate_trcdata(state, flds, file, pbuf2d)
-    use mo_util, only: rebin
-    use physics_types, only: physics_state
+  subroutine interpolate_trcdata(&
+             ncol, pver, pverp, &
+             pmid, pint, phis, zi, &
+             flds, file, pbuf2d)
     use physconst, only: cday, rga
 
-    type(physics_state), intent(in) :: state(begchunk:endchunk)
-    type(trfld), intent(inout) :: flds(:)
+    integer,      intent(in)    :: ncol
+    integer,      intent(in)    :: pver
+    integer,      intent(in)    :: pverp
+    ! state variables used for interpolation
+    real(r8),     intent(in)    :: pmid(:, :)
+    real(r8),     intent(in)    :: pint(:, :)
+    real(r8),     intent(in)    :: phis(:)
+    real(r8),     intent(in)    :: zi(:, :)
+
+    type(trfld),  intent(inout) :: flds(:)
     type(trfile), intent(inout) :: file
 
     type(physics_buffer_desc), pointer :: pbuf2d(:, :)
 
     real(r8) :: fact1, fact2
     real(r8) :: deltat
-    integer :: f, nflds, c, ncol, i, k
+    integer :: f, nflds, ncol, i, k
     real(r8) :: ps(pcols)
     real(r8) :: datain(pcols, file%nlev)
     real(r8) :: pin(pcols, file%nlev)
@@ -1806,7 +1805,6 @@ contains
     real(r8), parameter :: m2km = 1.e-3_r8
     real(r8), pointer :: data_out3d(:, :, :)
     real(r8), pointer :: data_out(:, :)
-    integer :: chnk_offset
     real(r8) :: data_col(pver)
 
     nflds = size(flds)
@@ -1815,30 +1813,25 @@ contains
       deltat = file%datatimes(3) - file%datatimes(1)
       fact1 = (file%datatimes(3) - file%datatimem)/deltat
       fact2 = 1._r8 - fact1
-!$OMP PARALLEL DO PRIVATE (C, NCOL, F)
-      do c = begchunk, endchunk
-        ncol = state(c)%ncol
-        if (file%has_ps) then
-          file%ps_in(1)%data(:ncol, c) = fact1*file%ps_in(1)%data(:ncol, c) + fact2*file%ps_in(3)%data(:ncol, c)
-        end if
-        do f = 1, nflds
-          flds(f)%input(1)%data(:ncol, :, c) = fact1*flds(f)%input(1)%data(:ncol, :, c) + fact2*flds(f)%input(3)%data(:ncol, :, c)
-        end do
+
+      ncol = pcols ! active columns
+      if (file%has_ps) then
+        file%ps_in(1)%data(:ncol) = fact1*file%ps_in(1)%data(:ncol) + fact2*file%ps_in(3)%data(:ncol)
+      end if
+      do f = 1, nflds
+        flds(f)%input(1)%data(:ncol, :) = fact1*flds(f)%input(1)%data(:ncol, :) + fact2*flds(f)%input(3)%data(:ncol, :)
       end do
 
       deltat = file%datatimes(4) - file%datatimes(2)
       fact1 = (file%datatimes(4) - file%datatimep)/deltat
       fact2 = 1._r8 - fact1
 
-!$OMP PARALLEL DO PRIVATE (C, NCOL, F)
-      do c = begchunk, endchunk
-        ncol = state(c)%ncol
-        if (file%has_ps) then
-          file%ps_in(2)%data(:ncol, c) = fact1*file%ps_in(2)%data(:ncol, c) + fact2*file%ps_in(4)%data(:ncol, c)
-        end if
-        do f = 1, nflds
-          flds(f)%input(2)%data(:ncol, :, c) = fact1*flds(f)%input(2)%data(:ncol, :, c) + fact2*flds(f)%input(4)%data(:ncol, :, c)
-        end do
+      ncol = pcols ! active columns
+      if (file%has_ps) then
+        file%ps_in(2)%data(:ncol) = fact1*file%ps_in(2)%data(:ncol) + fact2*file%ps_in(4)%data(:ncol)
+      end if
+      do f = 1, nflds
+        flds(f)%input(2)%data(:ncol, :) = fact1*flds(f)%input(2)%data(:ncol, :) + fact2*flds(f)%input(4)%data(:ncol, :)
       end do
 
     end if
@@ -1873,94 +1866,88 @@ contains
       fact2 = 1._r8 - fact1
     end if
 
-    chnk_offset = -begchunk + 1
-
     fld_loop: do f = 1, nflds
 
       if (flds(f)%pbuf_ndx <= 0) then
-        data_out3d => flds(f)%data(:, :, :)
+        data_out3d => flds(f)%data(:, :)
       end if
 
-!$OMP PARALLEL DO PRIVATE (C, NCOL, PS, I, K, PIN, DATAIN, MODEL_Z, DATA_OUT, DATA_COL)
-      do c = begchunk, endchunk
-        if (flds(f)%pbuf_ndx > 0) then
-          call pbuf_get_field(pbuf2d, c, flds(f)%pbuf_ndx, data_out)
+      if (flds(f)%pbuf_ndx > 0) then
+        call pbuf_get_field(pbuf2d, flds(f)%pbuf_ndx, data_out)
+        ! dechunkized this call will not work
+      else
+        data_out => data_out3d(:, :)
+      end if
+
+      ncol = pcols ! active columns
+      if (file%alt_data) then
+        if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
+          datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :)
         else
-          data_out => data_out3d(:, :, c + chnk_offset)
+          datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :) + fact2*flds(f)%input(np)%data(:ncol, :)
         end if
-        ncol = state(c)%ncol
-        if (file%alt_data) then
-
-          if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
-            datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :, c)
+        do i = 1, ncol
+          model_z(1:pverp) = m2km*zi(i, pverp:1:-1)
+          if (file%geop_alt) then
+            model_z(1:pverp) = model_z(1:pverp) + m2km*phis(i)*rga
+          end if
+          if (file%conserve_column) then
+            call interpz_conserve(file%nlev, pver, file%ilevs, model_z, datain(i, :), data_col(:))
           else
-            datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :, c) + fact2*flds(f)%input(np)%data(:ncol, :, c)
+            call rebin(file%nlev, pver, file%ilevs, model_z, datain(i, :), data_col(:))
           end if
-          do i = 1, ncol
-            model_z(1:pverp) = m2km*state(c)%zi(i, pverp:1:-1)
-            if (file%geop_alt) then
-              model_z(1:pverp) = model_z(1:pverp) + m2km*state(c)%phis(i)*rga
-            end if
-            if (file%conserve_column) then
-              call interpz_conserve(file%nlev, pver, file%ilevs, model_z, datain(i, :), data_col(:))
+          data_out(i, :) = data_col(pver:1:-1)
+        end do
+      else ! .not. alt_data
+        if (file%nlev > 1) then
+          if (file%has_ps) then
+            if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
+              ps(:ncol) = fact1*file%ps_in(nm)%data(:ncol)
             else
-              call rebin(file%nlev, pver, file%ilevs, model_z, datain(i, :), data_col(:))
+              ps(:ncol) = fact1*file%ps_in(nm)%data(:ncol) + fact2*file%ps_in(np)%data(:ncol)
             end if
-            data_out(i, :) = data_col(pver:1:-1)
-          end do
-
-        else
-
-          if (file%nlev > 1) then
-            if (file%has_ps) then
-              if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
-                ps(:ncol) = fact1*file%ps_in(nm)%data(:ncol, c)
-              else
-                ps(:ncol) = fact1*file%ps_in(nm)%data(:ncol, c) + fact2*file%ps_in(np)%data(:ncol, c)
-              end if
-              do i = 1, ncol
-                do k = 1, file%nlev
-                  pin(i, k) = file%p0*file%hyam(k) + ps(i)*file%hybm(k)
-                end do
-              end do
-            else
-              do k = 1, file%nlev
-                pin(:, k) = file%levs(k)
-              end do
-            end if
-          end if
-
-          if (flds(f)%srf_fld) then
             do i = 1, ncol
-              if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
-                data_out(i, 1) = &
-                  fact1*flds(f)%input(nm)%data(i, 1, c)
-              else
-                data_out(i, 1) = &
-                  fact1*flds(f)%input(nm)%data(i, 1, c) + fact2*flds(f)%input(np)%data(i, 1, c)
-              end if
+              do k = 1, file%nlev
+                pin(i, k) = file%p0*file%hyam(k) + ps(i)*file%hybm(k)
+              end do
             end do
           else
-            if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
-              datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :, c)
-            else
-              datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :, c) + fact2*flds(f)%input(np)%data(:ncol, :, c)
-            end if
-            if (file%top_bndry) then
-              call vert_interp_ub(ncol, file%nlev, file%levs, datain(:ncol, :), data_out(:ncol, 1))
-            else if (file%top_layer) then
-              call vert_interp_ub_var(ncol, file%nlev, file%levs, state(c)%pmid(:ncol, 1), datain(:ncol, :), data_out(:ncol, 1))
-            else if (file%conserve_column) then
-              call vert_interp_mixrat(ncol, file%nlev, pver, state(c)%pint, &
-                                      datain, data_out(:, :), &
-                                      file%p0, ps, file%hyai, file%hybi, file%dist)
-            else
-              call vert_interp(ncol, file%nlev, pin, state(c)%pmid, datain, data_out(:, :))
-            end if
+            do k = 1, file%nlev
+              pin(:, k) = file%levs(k)
+            end do
           end if
-
         end if
-      end do
+
+        if (flds(f)%srf_fld) then
+          do i = 1, ncol
+            if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
+              data_out(i, 1) = &
+                fact1*flds(f)%input(nm)%data(i, 1)
+            else
+              data_out(i, 1) = &
+                fact1*flds(f)%input(nm)%data(i, 1) + fact2*flds(f)%input(np)%data(i, 1)
+            end if
+          end do
+        else
+          if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
+            datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :)
+          else
+            datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :) + fact2*flds(f)%input(np)%data(:ncol, :)
+          end if
+          if (file%top_bndry) then
+            call vert_interp_ub(ncol, file%nlev, file%levs, datain(:ncol, :), data_out(:ncol, 1))
+          else if (file%top_layer) then
+            call vert_interp_ub_var(ncol, file%nlev, file%levs, pmid(:ncol, 1), datain(:ncol, :), data_out(:ncol, 1))
+          else if (file%conserve_column) then
+            call vert_interp_mixrat(ncol, file%nlev, pver, pint, &
+                                    datain, data_out(:, :), &
+                                    file%p0, ps, file%hyai, file%hybi, file%dist)
+          else
+            call vert_interp(ncol, file%nlev, pin, pmid, datain, data_out(:, :))
+          end if
+        end if
+
+      end if
 
     end do fld_loop
 
