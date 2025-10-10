@@ -211,7 +211,7 @@ jobs:
         id: cache-pfunit
         uses: actions/cache@v4
         with:
-          key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.gcc-version }}
+          key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.gcc-version }}-mpas
           path: ${{ env.PFUNIT_PATH }}/install
 
       # If there is a cache hit, just use the cached pFUnit and skip this step.
