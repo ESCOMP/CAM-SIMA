@@ -1370,7 +1370,7 @@
 
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
     <variable local_name="vorticity"
-              standard_name="vort4gw_tbd"
+              standard_name="relative_vorticity"
               units="s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>

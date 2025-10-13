@@ -145,7 +145,7 @@ contains
     errflg = 0
 
     has_gbxar_from_topo = .false.
-    call mark_as_initialized('number_of_ridges_in_ridge_gravity_wave_drag_tbd')
+    call mark_as_initialized('number_of_ridges_in_ridge_gravity_wave_drag')
 
     ! Do we have meso-Beta file?
     if(bnd_topo /= unset_path_str) then
@@ -250,14 +250,14 @@ contains
       endif
 
       ! Mark variables as initialized so they are not read from ic file.
-      call mark_as_initialized('grid_box_area_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('isotropic_variance_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('isotropic_weight_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_half_width_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_length_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_obstacle_height_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_anisotropy_for_beta_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_clockwise_angle_from_north_for_beta_ridge_gravity_wave_drag_tbd')
+      call mark_as_initialized('grid_box_area_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('isotropic_variance_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('isotropic_weight_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_half_width_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_length_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_obstacle_height_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_anisotropy_for_beta_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_clockwise_angle_from_north_for_beta_ridge_gravity_wave_drag')
     endif
 
     ! Do we have meso-Gamma file?
@@ -348,12 +348,12 @@ contains
       deallocate(fh_rdggm)
 
       ! Mark variables as initialized so they are not read from ic file.
-      call mark_as_initialized('grid_box_area_for_gamma_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_half_width_for_gamma_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_length_for_gamma_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_obstacle_height_for_gamma_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_anisotropy_for_gamma_ridge_gravity_wave_drag_tbd')
-      call mark_as_initialized('ridge_clockwise_angle_from_north_for_gamma_ridge_gravity_wave_drag_tbd')
+      call mark_as_initialized('grid_box_area_for_gamma_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_half_width_for_gamma_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_length_for_gamma_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_obstacle_height_for_gamma_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_anisotropy_for_gamma_ridge_gravity_wave_drag')
+      call mark_as_initialized('ridge_clockwise_angle_from_north_for_gamma_ridge_gravity_wave_drag')
     endif
   end subroutine gravity_wave_drag_ridge_read_file
 
