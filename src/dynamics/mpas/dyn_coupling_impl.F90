@@ -381,7 +381,7 @@ contains
             real(kind_r8), parameter :: p_int_mid_proximity_limit = 0.05_kind_r8
 
             ! The summation term of equation 5 in doi:10.1029/2017MS001257.
-            sigma_all_q_mid_col(:) = 1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1)
+            sigma_all_q_mid_col(:) = 1.0_kind_r8 + sum(real(scalars(is_water_species_index, :, i), kind_r8), 1)
 
             ! Compute thermodynamic variables.
 
