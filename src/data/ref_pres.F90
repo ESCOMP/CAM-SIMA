@@ -185,7 +185,7 @@ contains
       ! molec_diff_bot_press
       call mark_as_initialized("pressure_at_bottom_of_molecular_diffusion")
       ! do_molec_diff
-      call mark_as_initialized("flag_for_molecular_diffusion")
+      call mark_as_initialized("do_molecular_diffusion")
       ! nbot_molec
       call mark_as_initialized("index_of_pressure_at_bottom_of_molecular_diffusion")
 
