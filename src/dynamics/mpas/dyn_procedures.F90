@@ -28,6 +28,11 @@ module dyn_procedures
     ! Utility procedures.
     public :: reverse
     public :: sec_to_hour_min_sec
+
+    interface exner_function
+        module procedure exner_function_of_cpd_p0_rd_p
+        module procedure exner_function_of_kappa_p0_p
+    end interface exner_function
 contains
     !> Compute the pressure `p` from the density `rho` and the temperature `t` by equation of state. Essentially,
     !> \( P = \rho R T \). Equation of state may take other forms, such as \( P_d = \rho_d R_d T \), \( P = \rho R_d T_v \),
@@ -69,14 +74,24 @@ contains
     end function t_by_equation_of_state
 
     !> Compute the Exner function `pi` from the pressure `p`. Essentially, \( \Pi = (\frac{P}{P_0})^{\frac{R_d}{C_{pd}}} \).
-    pure elemental function exner_function(constant_cpd, constant_p0, constant_rd, p) result(pi)
+    pure elemental function exner_function_of_cpd_p0_rd_p(constant_cpd, constant_p0, constant_rd, p) result(pi)
         use, intrinsic :: iso_fortran_env, only: real64
 
         real(real64), intent(in) :: constant_cpd, constant_p0, constant_rd, p
         real(real64) :: pi
 
         pi = (p / constant_p0) ** (constant_rd / constant_cpd)
-    end function exner_function
+    end function exner_function_of_cpd_p0_rd_p
+
+    !> Compute the Exner function `pi` from the pressure `p`. Essentially, \( \Pi = (\frac{P}{P_0})^{\kappa} \).
+    pure elemental function exner_function_of_kappa_p0_p(constant_kappa, constant_p0, p) result(pi)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: constant_kappa, constant_p0, p
+        real(real64) :: pi
+
+        pi = (p / constant_p0) ** constant_kappa
+    end function exner_function_of_kappa_p0_p
 
     !> Compute the pressure difference `dp` from the density `rho` and the height difference `dz` by hydrostatic equation.
     !> Essentially, \( \mathrm{d} P = -\rho g \mathrm{d} z \).
@@ -348,12 +363,14 @@ contains
     !> Convert second(s) to hour(s), minute(s), and second(s).
     !> (KCW, 2024-02-07)
     pure function sec_to_hour_min_sec(sec) result(hour_min_sec)
-        integer, intent(in) :: sec
-        integer :: hour_min_sec(3)
+        use, intrinsic :: iso_fortran_env, only: int32
 
-        ! These are all intended to be integer arithmetics.
-        hour_min_sec(1) = sec / 3600
-        hour_min_sec(2) = sec / 60 - hour_min_sec(1) * 60
-        hour_min_sec(3) = sec - hour_min_sec(1) * 3600 - hour_min_sec(2) * 60
+        integer(int32), intent(in) :: sec
+        integer(int32) :: hour_min_sec(3)
+
+        ! These are all intended to be integer arithmetic.
+        hour_min_sec(1) = sec / 3600_int32
+        hour_min_sec(2) = sec / 60_int32 - hour_min_sec(1) * 60_int32
+        hour_min_sec(3) = sec - hour_min_sec(1) * 3600_int32 - hour_min_sec(2) * 60_int32
     end function sec_to_hour_min_sec
 end module dyn_procedures

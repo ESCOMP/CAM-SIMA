@@ -330,6 +330,8 @@ contains
         use shr_kind_mod, only: kind_r8 => shr_kind_r8
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: almost_equal
 
         type(file_desc_t), pointer, intent(in) :: pio_file
 
@@ -373,7 +375,9 @@ contains
             surface_geometric_height(:) = surface_geopotential(:) / constant_g
 
             ! Surface geometric height in MPAS should match the values in topography file.
-            if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8) - surface_geometric_height(:)) > error_tolerance)) then
+            if (.not. all(almost_equal( &
+                real(zgrid(1, 1:ncells_solve), kind_r8), surface_geometric_height, &
+                relative_tolerance=error_tolerance))) then
                 call endrun('Surface geometric height in MPAS is not consistent with topography data', subname, __LINE__)
             end if
 
@@ -383,7 +387,9 @@ contains
             call dyn_debug_print(debugout_verbose, 'Topography file is not used for consistency check')
 
             ! Surface geometric height in MPAS should be zero.
-            if (any(abs(real(zgrid(1, 1:ncells_solve), kind_r8)) > error_tolerance)) then
+            if (.not. all(almost_equal( &
+                real(zgrid(1, 1:ncells_solve), kind_r8), 0.0_kind_r8, &
+                relative_tolerance=error_tolerance))) then
                 call endrun('Surface geometric height in MPAS is not zero', subname, __LINE__)
             end if
         end if
@@ -587,7 +593,7 @@ contains
             use cam_constituents, only: num_advected
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
-            use dyn_procedures, only: reverse
+            use dyn_procedures, only: qv_of_sh, reverse
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
@@ -641,8 +647,8 @@ contains
                 call dyn_debug_print(debugout_verbose, 'Conversion is needed and applied for water vapor mixing ratio')
 
                 ! Convert specific humidity to water vapor mixing ratio.
-                scalars(index_qv, :, 1:ncells_solve) = &
-                    scalars(index_qv, :, 1:ncells_solve) / (1.0_kind_dyn_mpas - scalars(index_qv, :, 1:ncells_solve))
+                scalars(index_qv, :, 1:ncells_solve) = real(qv_of_sh( &
+                    real(scalars(index_qv, :, 1:ncells_solve), kind_r8)), kind_dyn_mpas)
             end if
 
             deallocate(buffer_3d_real)
