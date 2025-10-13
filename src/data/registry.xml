@@ -1391,6 +1391,7 @@
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_SGH</ic_file_input_names>
+    </variable>
 
     <!-- Cloud fraction variables - need to be kept in the CAM registry -->
     <variable local_name="top_lev_cloudphys"
