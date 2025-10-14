@@ -12,6 +12,8 @@
 !   available. The caller should handle the data flow in and out of physics schemes instead of
 !   using the physics buffer, by retrieving the data from trfld%data and copying it into the
 !   subroutine arguments.
+! - file removal functionality was removed as unused.
+! - latitude weighting which requires a structured dycore is untested, as no such dycore is available in SIMA.
 !
 module tracer_data
   use perf_mod, only: t_startf, t_stopf
@@ -86,7 +88,7 @@ module tracer_data
     integer :: interp_recs
     real(r8), pointer, dimension(:) :: curr_data_times => null()
     real(r8), pointer, dimension(:) :: next_data_times => null()
-    logical :: remove_trc_file = .false.  ! delete file when finished with it
+    logical :: remove_trc_file = .false.  ! delete file when finished with it (not implemented in SIMA)
     real(r8) :: offset_time
     integer :: cyc_ndx_beg
     integer :: cyc_ndx_end
@@ -164,12 +166,15 @@ contains
   subroutine trcdata_init(specifier, filename, filelist, datapath, flds, file, &
                           rmv_file, data_cycle_yr, data_fixed_ymd, data_fixed_tod, data_type)
 
-    use dyn_grid, only: get_dyn_grid_parm, get_horiz_grid_d
-    use phys_grid, only: get_rlat_all_p, get_rlon_all_p, get_ncols_p
-    use dycore, only: dycore_is
-    use horizontal_interpolate, only: xy_interp_init
-    use spmd_utils, only: mpicom, masterprocid, mpi_real8, mpi_integer
     use physconst, only: pi
+
+    ! For latitude weighting functionality
+    !use dyn_grid, only: get_horiz_grid_int
+    !use physics_grid, only: get_rlat_all_p, get_rlon_all_p
+    !use spmd_utils, only: mpicom, masterprocid, mpi_real8, mpi_integer
+    !use horizontal_interpolate, only: xy_interp_init
+    use physics_grid, only: dycore_unstructured
+    use physics_grid, only: plon => hdim1_d, plat => hdim2_d
 
     character(len=*), intent(in)    :: specifier(:)
     character(len=*), intent(in)    :: filename
@@ -309,13 +314,8 @@ contains
     end if
     call pio_seterrorhandling(File%curr_fileid, err_handling)
 
-    plon = get_dyn_grid_parm('plon')
-    plat = get_dyn_grid_parm('plat')
-
     if (file%zonal_ave) then
-
       file%nlon = 1
-
     else
 
       if (.not. file%unstructured) then
@@ -581,203 +581,204 @@ contains
 
     ! if weighting by latitude, compute weighting for horizontal interpolation
     if (file%weight_by_lat) then
-      if (dycore_is('UNSTRUCTURED')) then
+      if (dycore_unstructured) then
         call endrun('trcdata_init: weighting by latitude not implemented for unstructured grids')
       end if
 
-      ! get dimensions of CAM resolution
-      plon = get_dyn_grid_parm('plon')
-      plat = get_dyn_grid_parm('plat')
+      call endrun('trcdata_init: weighting by latitude (used by aircraft emis) is untested in SIMA; uncomment this line for testing.')
+      ! WARNING: in SIMA, currently implemented dycores are unstructured.
+      ! The below code has been ported to the best of ability,
+      ! but is completely untested. (hplin, 10/9/25)
 
-      allocate (lam(plon), phi(plat))
-      call get_horiz_grid_d(plat, clat_d_out=phi)
-      call get_horiz_grid_d(plon, clon_d_out=lam)
+      ! allocate (lam(plon), phi(plat))
+      ! call get_horiz_grid_int(plat, clat_d_out=phi)
+      ! call get_horiz_grid_int(plon, clon_d_out=lam)
 
-      if (.not. allocated(lon_global_grid_ndx)) allocate (lon_global_grid_ndx(pcols))
-      if (.not. allocated(lat_global_grid_ndx)) allocate (lat_global_grid_ndx(pcols))
-      lon_global_grid_ndx = -huge(1)
-      lat_global_grid_ndx = -huge(1)
+      ! if (.not. allocated(lon_global_grid_ndx)) allocate (lon_global_grid_ndx(pcols))
+      ! if (.not. allocated(lat_global_grid_ndx)) allocate (lat_global_grid_ndx(pcols))
+      ! lon_global_grid_ndx = -huge(1)
+      ! lat_global_grid_ndx = -huge(1)
 
-      ncol = pcols ! active columns
-      call get_rlat_all_p(ncol, rlats(:ncol))
-      call get_rlon_all_p(ncol, rlons(:ncol))
-      do icol = 1, ncol
-        found = .false.
-        find_col: do j = 1, plat
-          do i = 1, plon
-            if (rlats(icol) == phi(j) .and. rlons(icol) == lam(i)) then
-              found = .true.
-              exit find_col
-            end if
-          end do
-        end do find_col
+      ! ncol = pcols ! active columns
+      ! call get_rlat_all_p(ncol, rlats(:ncol))
+      ! call get_rlon_all_p(ncol, rlons(:ncol))
+      ! do icol = 1, ncol
+      !   found = .false.
+      !   find_col: do j = 1, plat
+      !     do i = 1, plon
+      !       if (rlats(icol) == phi(j) .and. rlons(icol) == lam(i)) then
+      !         found = .true.
+      !         exit find_col
+      !       end if
+      !     end do
+      !   end do find_col
 
-        if (.not. found) call endrun('trcdata_init: not able to find physics column coordinate')
-        lon_global_grid_ndx(icol) = i
-        lat_global_grid_ndx(icol) = j
-      end do
+      !   if (.not. found) call endrun('trcdata_init: not able to find physics column coordinate')
+      !   lon_global_grid_ndx(icol) = i
+      !   lat_global_grid_ndx(icol) = j
+      ! end do
 
-      deallocate (phi, lam)
+      ! deallocate (phi, lam)
 
-      ! weight_x & weight_y are weighting function for x & y interpolation
-      allocate (file%weight_x(plon, file%nlon), stat=astat)
-      if (astat /= 0) then
-        write (iulog, *) 'trcdata_init: file%weight_x allocation error = ', astat
-        call endrun('trcdata_init: failed to allocate weight_x array')
-      end if
-      allocate (file%weight_y(plat, file%nlat), stat=astat)
-      if (astat /= 0) then
-        write (iulog, *) 'trcdata_init: file%weight_y allocation error = ', astat
-        call endrun('trcdata_init: failed to allocate weight_y array')
-      end if
-      allocate (file%count_x(plon), stat=astat)
-      if (astat /= 0) then
-        write (iulog, *) 'trcdata_init: file%count_x allocation error = ', astat
-        call endrun('trcdata_init: failed to allocate count_x array')
-      end if
-      allocate (file%count_y(plat), stat=astat)
-      if (astat /= 0) then
-        write (iulog, *) 'trcdata_init: file%count_y allocation error = ', astat
-        call endrun('trcdata_init: failed to allocate count_y array')
-      end if
-      allocate (file%index_x(plon, file%nlon), stat=astat)
-      if (astat /= 0) then
-        write (iulog, *) 'trcdata_init: file%index_x allocation error = ', astat
-        call endrun('trcdata_init: failed to allocate index_x array')
-      end if
-      allocate (file%index_y(plat, file%nlat), stat=astat)
-      if (astat /= 0) then
-        write (iulog, *) 'trcdata_init: file%index_y allocation error = ', astat
-        call endrun('trcdata_init: failed to allocate index_y array')
-      end if
-      file%weight_x(:, :) = 0.0_r8
-      file%weight_y(:, :) = 0.0_r8
-      file%count_x(:) = 0
-      file%count_y(:) = 0
-      file%index_x(:, :) = 0
-      file%index_y(:, :) = 0
+      ! ! weight_x & weight_y are weighting function for x & y interpolation
+      ! allocate (file%weight_x(plon, file%nlon), stat=astat)
+      ! if (astat /= 0) then
+      !   write (iulog, *) 'trcdata_init: file%weight_x allocation error = ', astat
+      !   call endrun('trcdata_init: failed to allocate weight_x array')
+      ! end if
+      ! allocate (file%weight_y(plat, file%nlat), stat=astat)
+      ! if (astat /= 0) then
+      !   write (iulog, *) 'trcdata_init: file%weight_y allocation error = ', astat
+      !   call endrun('trcdata_init: failed to allocate weight_y array')
+      ! end if
+      ! allocate (file%count_x(plon), stat=astat)
+      ! if (astat /= 0) then
+      !   write (iulog, *) 'trcdata_init: file%count_x allocation error = ', astat
+      !   call endrun('trcdata_init: failed to allocate count_x array')
+      ! end if
+      ! allocate (file%count_y(plat), stat=astat)
+      ! if (astat /= 0) then
+      !   write (iulog, *) 'trcdata_init: file%count_y allocation error = ', astat
+      !   call endrun('trcdata_init: failed to allocate count_y array')
+      ! end if
+      ! allocate (file%index_x(plon, file%nlon), stat=astat)
+      ! if (astat /= 0) then
+      !   write (iulog, *) 'trcdata_init: file%index_x allocation error = ', astat
+      !   call endrun('trcdata_init: failed to allocate index_x array')
+      ! end if
+      ! allocate (file%index_y(plat, file%nlat), stat=astat)
+      ! if (astat /= 0) then
+      !   write (iulog, *) 'trcdata_init: file%index_y allocation error = ', astat
+      !   call endrun('trcdata_init: failed to allocate index_y array')
+      ! end if
+      ! file%weight_x(:, :) = 0.0_r8
+      ! file%weight_y(:, :) = 0.0_r8
+      ! file%count_x(:) = 0
+      ! file%count_y(:) = 0
+      ! file%index_x(:, :) = 0
+      ! file%index_y(:, :) = 0
 
-      if (file%dist) then
-        allocate (file%weight0_x(plon, file%nlon), stat=astat)
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: file%weight0_x allocation error = ', astat
-          call endrun('trcdata_init: failed to allocate weight0_x array')
-        end if
-        allocate (file%weight0_y(plat, file%nlat), stat=astat)
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: file%weight0_y allocation error = ', astat
-          call endrun('trcdata_init: failed to allocate weight0_y array')
-        end if
-        allocate (file%count0_x(plon), stat=astat)
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: file%count0_x allocation error = ', astat
-          call endrun('trcdata_init: failed to allocate count0_x array')
-        end if
-        allocate (file%count0_y(plat), stat=astat)
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: file%count0_y allocation error = ', astat
-          call endrun('trcdata_init: failed to allocate count0_y array')
-        end if
-        allocate (file%index0_x(plon, file%nlon), stat=astat)
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: file%index0_x allocation error = ', astat
-          call endrun('trcdata_init: failed to allocate index0_x array')
-        end if
-        allocate (file%index0_y(plat, file%nlat), stat=astat)
-        if (astat /= 0) then
-          write (iulog, *) 'trcdata_init: file%index0_y allocation error = ', astat
-          call endrun('trcdata_init: failed to allocate index0_y array')
-        end if
-        file%weight0_x(:, :) = 0.0_r8
-        file%weight0_y(:, :) = 0.0_r8
-        file%count0_x(:) = 0
-        file%count0_y(:) = 0
-        file%index0_x(:, :) = 0
-        file%index0_y(:, :) = 0
-      end if
+      ! if (file%dist) then
+      !   allocate (file%weight0_x(plon, file%nlon), stat=astat)
+      !   if (astat /= 0) then
+      !     write (iulog, *) 'trcdata_init: file%weight0_x allocation error = ', astat
+      !     call endrun('trcdata_init: failed to allocate weight0_x array')
+      !   end if
+      !   allocate (file%weight0_y(plat, file%nlat), stat=astat)
+      !   if (astat /= 0) then
+      !     write (iulog, *) 'trcdata_init: file%weight0_y allocation error = ', astat
+      !     call endrun('trcdata_init: failed to allocate weight0_y array')
+      !   end if
+      !   allocate (file%count0_x(plon), stat=astat)
+      !   if (astat /= 0) then
+      !     write (iulog, *) 'trcdata_init: file%count0_x allocation error = ', astat
+      !     call endrun('trcdata_init: failed to allocate count0_x array')
+      !   end if
+      !   allocate (file%count0_y(plat), stat=astat)
+      !   if (astat /= 0) then
+      !     write (iulog, *) 'trcdata_init: file%count0_y allocation error = ', astat
+      !     call endrun('trcdata_init: failed to allocate count0_y array')
+      !   end if
+      !   allocate (file%index0_x(plon, file%nlon), stat=astat)
+      !   if (astat /= 0) then
+      !     write (iulog, *) 'trcdata_init: file%index0_x allocation error = ', astat
+      !     call endrun('trcdata_init: failed to allocate index0_x array')
+      !   end if
+      !   allocate (file%index0_y(plat, file%nlat), stat=astat)
+      !   if (astat /= 0) then
+      !     write (iulog, *) 'trcdata_init: file%index0_y allocation error = ', astat
+      !     call endrun('trcdata_init: failed to allocate index0_y array')
+      !   end if
+      !   file%weight0_x(:, :) = 0.0_r8
+      !   file%weight0_y(:, :) = 0.0_r8
+      !   file%count0_x(:) = 0
+      !   file%count0_y(:) = 0
+      !   file%index0_x(:, :) = 0
+      !   file%index0_y(:, :) = 0
+      ! end if
 
-      if (masterproc) then
-        ! compute weighting.  NOTE: we always set
-        ! use_flight_distance=.false. for this path since these
-        ! weights are used to inerpolate field values like PS even
-        ! when the file contains other data which should be treated
-        ! as per-cell totals.
-        call xy_interp_init(file%nlon, file%nlat, file%lons, file%lats, &
-                            plon, plat, file%weight_x, file%weight_y, .false.)
+      ! if (masterproc) then
+      !   ! compute weighting.  NOTE: we always set
+      !   ! use_flight_distance=.false. for this path since these
+      !   ! weights are used to inerpolate field values like PS even
+      !   ! when the file contains other data which should be treated
+      !   ! as per-cell totals.
+      !   call xy_interp_init(file%nlon, file%nlat, file%lons, file%lats, &
+      !                       plon, plat, file%weight_x, file%weight_y, .false.)
 
-        do i2 = 1, plon
-          file%count_x(i2) = 0
-          do i1 = 1, file%nlon
-            if (file%weight_x(i2, i1) > 0.0_r8) then
-              file%count_x(i2) = file%count_x(i2) + 1
-              file%index_x(i2, file%count_x(i2)) = i1
-            end if
-          end do
-        end do
+      !   do i2 = 1, plon
+      !     file%count_x(i2) = 0
+      !     do i1 = 1, file%nlon
+      !       if (file%weight_x(i2, i1) > 0.0_r8) then
+      !         file%count_x(i2) = file%count_x(i2) + 1
+      !         file%index_x(i2, file%count_x(i2)) = i1
+      !       end if
+      !     end do
+      !   end do
 
-        do j2 = 1, plat
-          file%count_y(j2) = 0
-          do j1 = 1, file%nlat
-            if (file%weight_y(j2, j1) > 0.0_r8) then
-              file%count_y(j2) = file%count_y(j2) + 1
-              file%index_y(j2, file%count_y(j2)) = j1
-            end if
-          end do
-        end do
+      !   do j2 = 1, plat
+      !     file%count_y(j2) = 0
+      !     do j1 = 1, file%nlat
+      !       if (file%weight_y(j2, j1) > 0.0_r8) then
+      !         file%count_y(j2) = file%count_y(j2) + 1
+      !         file%index_y(j2, file%count_y(j2)) = j1
+      !       end if
+      !     end do
+      !   end do
 
-        if (file%dist) then
-          call xy_interp_init(file%nlon, file%nlat, file%lons, file%lats, &
-                              plon, plat, file%weight0_x, file%weight0_y, .true.)
+      !   if (file%dist) then
+      !     call xy_interp_init(file%nlon, file%nlat, file%lons, file%lats, &
+      !                         plon, plat, file%weight0_x, file%weight0_y, .true.)
 
-          do i2 = 1, plon
-            file%count0_x(i2) = 0
-            do i1 = 1, file%nlon
-              if (file%weight0_x(i2, i1) > 0.0_r8) then
-                file%count0_x(i2) = file%count0_x(i2) + 1
-                file%index0_x(i2, file%count0_x(i2)) = i1
-              end if
-            end do
-          end do
+      !     do i2 = 1, plon
+      !       file%count0_x(i2) = 0
+      !       do i1 = 1, file%nlon
+      !         if (file%weight0_x(i2, i1) > 0.0_r8) then
+      !           file%count0_x(i2) = file%count0_x(i2) + 1
+      !           file%index0_x(i2, file%count0_x(i2)) = i1
+      !         end if
+      !       end do
+      !     end do
 
-          do j2 = 1, plat
-            file%count0_y(j2) = 0
-            do j1 = 1, file%nlat
-              if (file%weight0_y(j2, j1) > 0.0_r8) then
-                file%count0_y(j2) = file%count0_y(j2) + 1
-                file%index0_y(j2, file%count0_y(j2)) = j1
-              end if
-            end do
-          end do
+      !     do j2 = 1, plat
+      !       file%count0_y(j2) = 0
+      !       do j1 = 1, file%nlat
+      !         if (file%weight0_y(j2, j1) > 0.0_r8) then
+      !           file%count0_y(j2) = file%count0_y(j2) + 1
+      !           file%index0_y(j2, file%count0_y(j2)) = j1
+      !         end if
+      !       end do
+      !     end do
 
-        end if
-      end if
+      !   end if
+      ! end if
 
-      call mpi_bcast(file%weight_x, plon*file%nlon, mpi_real8, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight_x")
-      call mpi_bcast(file%weight_y, plat*file%nlat, mpi_real8, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight_y")
-      call mpi_bcast(file%count_x, plon, mpi_integer, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count_x")
-      call mpi_bcast(file%count_y, plat, mpi_integer, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count_y")
-      call mpi_bcast(file%index_x, plon*file%nlon, mpi_integer, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index_x")
-      call mpi_bcast(file%index_y, plat*file%nlat, mpi_integer, masterprocid, mpicom, ierr)
-      if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index_y")
-      if (file%dist) then
-        call mpi_bcast(file%weight0_x, plon*file%nlon, mpi_real8, masterprocid, mpicom, ierr)
-        if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight0_x")
-        call mpi_bcast(file%weight0_y, plat*file%nlat, mpi_real8, masterprocid, mpicom, ierr)
-        if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight0_y")
-        call mpi_bcast(file%count0_x, plon, mpi_integer, masterprocid, mpicom, ierr)
-        if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count0_x")
-        call mpi_bcast(file%count0_y, plat, mpi_integer, masterprocid, mpicom, ierr)
-        if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count0_y")
-        call mpi_bcast(file%index0_x, plon*file%nlon, mpi_integer, masterprocid, mpicom, ierr)
-        if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index0_x")
-        call mpi_bcast(file%index0_y, plat*file%nlat, mpi_integer, masterprocid, mpicom, ierr)
-        if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index0_y")
-      end if
+      ! call mpi_bcast(file%weight_x, plon*file%nlon, mpi_real8, masterprocid, mpicom, ierr)
+      ! if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight_x")
+      ! call mpi_bcast(file%weight_y, plat*file%nlat, mpi_real8, masterprocid, mpicom, ierr)
+      ! if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight_y")
+      ! call mpi_bcast(file%count_x, plon, mpi_integer, masterprocid, mpicom, ierr)
+      ! if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count_x")
+      ! call mpi_bcast(file%count_y, plat, mpi_integer, masterprocid, mpicom, ierr)
+      ! if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count_y")
+      ! call mpi_bcast(file%index_x, plon*file%nlon, mpi_integer, masterprocid, mpicom, ierr)
+      ! if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index_x")
+      ! call mpi_bcast(file%index_y, plat*file%nlat, mpi_integer, masterprocid, mpicom, ierr)
+      ! if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index_y")
+      ! if (file%dist) then
+      !   call mpi_bcast(file%weight0_x, plon*file%nlon, mpi_real8, masterprocid, mpicom, ierr)
+      !   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight0_x")
+      !   call mpi_bcast(file%weight0_y, plat*file%nlat, mpi_real8, masterprocid, mpicom, ierr)
+      !   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%weight0_y")
+      !   call mpi_bcast(file%count0_x, plon, mpi_integer, masterprocid, mpicom, ierr)
+      !   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count0_x")
+      !   call mpi_bcast(file%count0_y, plat, mpi_integer, masterprocid, mpicom, ierr)
+      !   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%count0_y")
+      !   call mpi_bcast(file%index0_x, plon*file%nlon, mpi_integer, masterprocid, mpicom, ierr)
+      !   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index0_x")
+      !   call mpi_bcast(file%index0_y, plat*file%nlat, mpi_integer, masterprocid, mpicom, ierr)
+      !   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: file%index0_y")
+      ! end if
 
     end if
   end subroutine trcdata_init
@@ -1432,7 +1433,7 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use phys_grid, only: get_ncols_p, get_rlat_all_p, get_rlon_all_p
+    use phys_grid, only: get_rlat_all_p, get_rlon_all_p
     use physconst, only: pi
 
     type(file_desc_t), intent(in) :: fid
@@ -1546,7 +1547,7 @@ contains
 
   subroutine read_za_trc(fid, vid, loc_arr, strt, cnt, file, order)
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
-    use phys_grid, only: get_ncols_p, get_rlat_all_p
+    use physics_grid, only: get_rlat_all_p
 
     type(file_desc_t), intent(in) :: fid
     type(var_desc_t), intent(in) :: vid
@@ -1660,7 +1661,7 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use phys_grid, only: get_ncols_p, get_rlat_all_p, get_rlon_all_p
+    use physics_grid, only: get_rlat_all_p, get_rlon_all_p
     use physconst, only: pi
 
     type(file_desc_t), intent(in) :: fid
@@ -2018,17 +2019,17 @@ contains
   end subroutine set_cycle_indices
 
   subroutine open_trc_datafile(fname, path, piofile, times, cyc_ndx_beg, cyc_ndx_end, cyc_yr)
-    use ioFileMod, only: getfil
+    use ioFileMod,     only: cam_get_file
     use cam_pio_utils, only: cam_pio_openfile
 
-    character(*), intent(in) :: fname
-    character(*), intent(in) :: path
+    character(*),      intent(in)    :: fname
+    character(*),      intent(in)    :: path
     type(file_desc_t), intent(inout) :: piofile
-    real(r8), pointer :: times(:)
+    real(r8),          pointer       :: times(:)
 
     integer, optional, intent(out) :: cyc_ndx_beg
     integer, optional, intent(out) :: cyc_ndx_end
-    integer, optional, intent(in) :: cyc_yr
+    integer, optional, intent(in)  :: cyc_yr
 
     character(len=shr_kind_cl) :: filen, filepath
     integer :: year, month, day, i, timesize
@@ -2046,7 +2047,7 @@ contains
     !
     ! open file and get fileid
     !
-    call getfil(filepath, filen, 0)
+    call cam_get_file(filepath, filen, allow_fail=.false.)
     call cam_pio_openfile(piofile, filen, PIO_NOWRITE)
     if (masterproc) write (iulog, *) 'open_trc_datafile: ', trim(filen)
 
@@ -2565,19 +2566,12 @@ contains
 
   end subroutine vert_interp
 
+  ! Interpolate data from current time-interpolated values to top interface pressure
   subroutine vert_interp_ub(ncol, nlevs, plevs, datain, dataout)
     use ref_pres, only: ptop_ref
 
-    !-----------------------------------------------------------------------
-    !
-    ! Interpolate data from current time-interpolated values to top interface pressure
-    !  -- from mo_tgcm_ubc.F90
-    !--------------------------------------------------------------------------
-    implicit none
-    ! Arguments
-    !
-    integer, intent(in)  :: ncol
-    integer, intent(in)  :: nlevs
+    integer,  intent(in)  :: ncol
+    integer,  intent(in)  :: nlevs
     real(r8), intent(in)  :: plevs(nlevs)
     real(r8), intent(in)  :: datain(ncol, nlevs)
     real(r8), intent(out) :: dataout(ncol)
@@ -2616,17 +2610,10 @@ contains
     end do
 
   end subroutine vert_interp_ub
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
+
+  ! Interpolate data from current time-interpolated values to press
   subroutine vert_interp_ub_var(ncol, nlevs, plevs, press, datain, dataout)
 
-    !-----------------------------------------------------------------------
-    !
-    ! Interpolate data from current time-interpolated values to press
-    !
-    !--------------------------------------------------------------------------
-    ! Arguments
-    !
     integer, intent(in)  :: ncol
     integer, intent(in)  :: nlevs
     real(r8), intent(in)  :: plevs(nlevs)
@@ -2670,19 +2657,8 @@ contains
   end subroutine vert_interp_ub_var
 !------------------------------------------------------------------------------
 
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
+  ! This routine advances to the next file
   subroutine advance_file(file)
-
-    !------------------------------------------------------------------------------
-    !   This routine advances to the next file
-    !------------------------------------------------------------------------------
-
-    use shr_sys_mod, only: shr_sys_system
-    use ioFileMod, only: getfil
-
-    implicit none
-
     type(trfile), intent(inout) :: file
 
     !-----------------------------------------------------------------------
@@ -2696,18 +2672,6 @@ contains
     !   close current file ...
     !-----------------------------------------------------------------------
     call pio_closefile(file%curr_fileid)
-
-    !-----------------------------------------------------------------------
-    !   remove if requested
-    !-----------------------------------------------------------------------
-    if (file%remove_trc_file) then
-      call getfil(file%curr_filename, loc_fname, 0)
-      write (iulog, *) 'advance_file: removing file = ', trim(loc_fname)
-      ctmp = 'rm -f '//trim(loc_fname)
-      write (iulog, *) 'advance_file: fsystem issuing command - '
-      write (iulog, *) trim(ctmp)
-      call shr_sys_system(ctmp, istat)
-    end if
 
     !-----------------------------------------------------------------------
     !   Advance the filename and file id

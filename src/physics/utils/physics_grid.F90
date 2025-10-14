@@ -59,7 +59,7 @@ module physics_grid
    ! hdim1_d and hdim2_d are dimensions of rectangular horizontal grid
    ! data structure, If 1D data structure, then hdim2_d == 1.
    integer, protected, public          :: hdim1_d, hdim2_d
-   logical                             :: dycore_unstructured = .false.
+   logical, public                     :: dycore_unstructured = .false.
    ! Dycore name and properties
    character(len=8), protected, public :: dycore_name = ''
 
@@ -161,7 +161,8 @@ CONTAINS
       hdim2_d            = hdim2_d_in
       dycore_name        = dycore_name_in
 
-      unstructured     = hdim2_d <= 1
+      unstructured       = hdim2_d <= 1
+      dycore_unstructured = unstructured
 
       ! Calculate total number of physics columns:
       num_global_phys_cols = hdim1_d * hdim2_d
