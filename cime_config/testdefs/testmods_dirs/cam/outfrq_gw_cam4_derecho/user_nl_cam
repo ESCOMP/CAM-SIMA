@@ -19,10 +19,3 @@ gw_qbo_hdepth_scaling = 1.0D0
 gw_top_taper = .false.
 pgwv = 0
 tau_0_ubc = .false.
-
-! output fields
-hist_add_inst_fields;h1: T, Q, U, V, PS
-hist_output_frequency;h1: 1*nsteps
-hist_write_nstep0;h1: .true.
-hist_precision;h1: REAL64
-hist_max_frames;h1: 1
