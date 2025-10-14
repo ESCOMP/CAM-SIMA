@@ -168,6 +168,8 @@ contains
 
     use physconst, only: pi
 
+    use string_utils, only: to_lower
+
     ! For latitude weighting functionality
     !use dyn_grid, only: get_horiz_grid_int
     !use physics_grid, only: get_rlat_all_p, get_rlon_all_p
@@ -572,8 +574,12 @@ contains
         end do
       end if
 
+      ! retrieve units from file (used by downstream code to potentially
+      ! perform unit conversions on read data)
+      !
+      ! convert units to lowercase to facilitate comparisons
       ierr = pio_get_att(file%curr_fileid, flds(f)%var_id, 'units', data_units)
-      flds(f)%units = trim(data_units(1:32))
+      flds(f)%units = trim(to_lower(data_units(1:32)))
 
     end do flds_loop
 
@@ -786,18 +792,18 @@ contains
   !-----------------------------------------------------------------------
   ! Reads more data if needed and interpolates data to current model time
   !-----------------------------------------------------------------------
-  subroutine advance_trcdata(ncol, pver, pverp, &
-                             pmid, pint, phis, zi, &
-                             flds, file)
+  subroutine advance_trcdata(flds, file)
+    ! dimensions of the grid can be retrieved directly
+    use vert_coord,   only: pver, pverp
+    use physics_grid, only: ncol => columns_on_task
 
-    integer,      intent(in)    :: ncol
-    integer,      intent(in)    :: pver
-    integer,      intent(in)    :: pverp
-    ! state variables used for interpolation
-    real(r8),     intent(in)    :: pmid(:, :)
-    real(r8),     intent(in)    :: pint(:, :)
-    real(r8),     intent(in)    :: phis(:)
-    real(r8),     intent(in)    :: zi(:, :)
+    ! state variables used for interpolation can be directly
+    ! retrieved from physics state here so it does not have to be
+    ! passed from every physics scheme for optional interpolation.
+    use physics_types, only: pmid
+    use physics_types, only: pint
+    use physics_types, only: phis
+    use physics_types, only: zi
 
     type(trfile), intent(inout) :: file
     type(trfld),  intent(inout) :: flds(:)
