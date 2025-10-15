@@ -29,8 +29,6 @@ module runtime_obj
       ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
       procedure, public :: waccmx_option
-      procedure, public :: gw_front
-      procedure, public :: gw_front_igw
       procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
