@@ -1867,6 +1867,7 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("specific_heat_of_air_used_in_dycore")
    call mark_as_initialized("frontogenesis_function")
    call mark_as_initialized("frontogenesis_angle")
+   call mark_as_initialized("relative_vorticity")
 
    ! These energy variables are calculated by check_energy_timestep_init
    ! but need to be marked here

@@ -1353,12 +1353,14 @@
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
+
     <!-- Temporary initializations for gravity wave parameterizations -->
     <variable local_name="ttend_clubb"
               standard_name="tendency_of_air_temperature_due_to_clubb"
               units="K s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_TTEND_CLUBB</ic_file_input_names>
     </variable>
     <variable local_name="upwp_clubb_gw"
@@ -1366,6 +1368,7 @@
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_UPWP_CLUBB_GW</ic_file_input_names>
     </variable>
     <variable local_name="vpwp_clubb_gw"
@@ -1373,6 +1376,7 @@
               units="m2 s-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
 
@@ -1407,7 +1411,7 @@
               standard_name="flag_for_cloud_area_fraction_to_use_shallow_convection_calculated_cloud_area_fraction"
               units="flag" type="logical">
       <long_name>should cloud fraction use shallow convection calculated convective cloud area fraction</long_name>
-      <!-- only true for UW and UNICON shallow schemes. set by scheme init. -->
+      <!-- only true for UW shallow scheme. set by scheme init. -->
       <initial_value>.false.</initial_value>
     </variable>
     <variable local_name="shfrc"
