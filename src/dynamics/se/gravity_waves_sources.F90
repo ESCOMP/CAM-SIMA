@@ -23,7 +23,7 @@ module gravity_waves_sources
   private :: compute_frontogenesis
   private :: compute_vorticity_4gw
 
-  type (EdgeBuffer_t) :: edge3
+  type (EdgeBuffer_t) :: edge3,edge1
   type (derivative_t)   :: deriv
   real(r8) :: psurf_ref
 
@@ -45,6 +45,7 @@ CONTAINS
 
     ! Set up variables similar to dyn_comp and prim_driver_mod initializations
     call initEdgeBuffer(par, edge3, elem, 3*nlev,nthreads=1)
+    call initEdgeBuffer(par, edge1, elem, nlev,nthreads=1)
 
     psurf_ref = hypi(nlevp)
 
@@ -123,7 +124,7 @@ CONTAINS
     use ppgrid, only          : pver
     use thread_mod, only      : horz_num_threads
     use dimensions_mod, only  : fv_nphys
-    use cam_abortutils, only  : handle_allocate_error
+    use cam_abortutils, only  : check_allocate
 
     implicit none
     type (element_t), intent(in), dimension(:) :: elem
@@ -139,6 +140,8 @@ CONTAINS
     !
     real(kind=r8), allocatable  ::  vort4gw_thr(:,:,:,:)
 
+    character(len=*), parameter :: subname = 'gws_src_vort'
+
     ! This does not need to be a thread private data-structure
     call derivinit(deriv)
     !!$OMP PARALLEL NUM_THREADS(horz_num_threads),  DEFAULT(SHARED), PRIVATE(nets,nete,hybrid,ie,ncols,vort4gw_thr)
@@ -146,7 +149,9 @@ CONTAINS
     call get_loop_ranges(hybrid,ibeg=nets,iend=nete)
 
     allocate(vort4gw_thr(nphys,nphys,nlev,nets:nete), stat=ierr)
-    call handle_allocate_error(ierr, 'gws_src_vort', 'vort4gw_thr')
+    call check_allocate(ierr, subname, &
+                        'vort4gw_thr(nphys,nphys,nlev,nets:nete)', &
+                        file=__FILE__, line=__LINE__)
 
     call compute_vorticity_4gw(vort4gw_thr,tl,tlq,elem,deriv,hybrid,nets,nete,nphys)
 
