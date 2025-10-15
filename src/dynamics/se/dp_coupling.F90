@@ -158,28 +158,19 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    call check_allocate(ierr, subname, 'omega_tmp(nphys_pts,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
-   if (cam_runtime_opts%gw_front() .or. &
-       cam_runtime_opts%gw_front_igw()) then
+   allocate(frontgf(nphys_pts,pver,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'frontgf(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
-      allocate(frontgf(nphys_pts,pver,nelemd), stat=ierr)
-      call check_allocate(ierr, subname, 'frontgf(nphys_pts,pver,nelemd)', &
-                          file=__FILE__, line=__LINE__)
-
-      allocate(frontga(nphys_pts,pver,nelemd), stat=ierr)
-      call check_allocate(ierr, subname, 'frontga(nphys_pts,pver,nelemd)', &
-                          file=__FILE__, line=__LINE__)
-   end if
+   allocate(frontga(nphys_pts,pver,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'frontga(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
 
    if (iam < par%nprocs) then
 
-      ! Gravity Waves
-      if (cam_runtime_opts%gw_front() .or. &
-          cam_runtime_opts%gw_front_igw()) then
-
-         ! Calculate frontogenesis function and angle
-         call gws_src_fnct(elem, tl_f, tl_qdp_np0, frontgf, frontga, nphys)
-
-      end if
+      ! Calculate frontogenesis function and angle
+      ! for gravity wave parameterization.
+      call gws_src_fnct(elem, tl_f, tl_qdp_np0, frontgf, frontga, nphys)
 
       if (fv_nphys > 0) then
          call test_mapping_overwrite_dyn_state(elem,dyn_out%fvm)
@@ -240,14 +231,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
       omega_tmp(:,:,:) = 0._r8
       phis_tmp(:,:)    = 0._r8
       q_tmp(:,:,:,:)   = 0._r8
-
-      if (cam_runtime_opts%gw_front() .or. &
-          cam_runtime_opts%gw_front_igw()) then
-
-         frontgf(:,:,:) = 0._r8
-         frontga(:,:,:) = 0._r8
-
-      end if
+      frontgf(:,:,:) = 0._r8
+      frontga(:,:,:) = 0._r8
 
    endif ! iam < par%nprocs
 
@@ -275,11 +260,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          phys_state%u(icol, ilyr)       = real(uv_tmp(blk_ind(1), 1, ilyr, ie), kind_phys)
          phys_state%v(icol, ilyr)       = real(uv_tmp(blk_ind(1), 2, ilyr, ie), kind_phys)
          phys_state%omega(icol, ilyr)   = real(omega_tmp(blk_ind(1), ilyr, ie), kind_phys)
-
-         if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) then
-            phys_state%frontgf(icol, ilyr) = real(frontgf(blk_ind(1), ilyr, ie), kind_phys)
-            phys_state%frontga(icol, ilyr) = real(frontga(blk_ind(1), ilyr, ie), kind_phys)
-         end if
+         phys_state%frontgf(icol, ilyr) = real(frontgf(blk_ind(1), ilyr, ie), kind_phys)
+         phys_state%frontga(icol, ilyr) = real(frontga(blk_ind(1), ilyr, ie), kind_phys)
       end do
 
       do m = 1, num_advected

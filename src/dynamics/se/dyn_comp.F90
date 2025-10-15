@@ -1864,6 +1864,8 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("tendency_of_eastward_wind_due_to_model_physics")
    call mark_as_initialized("tendency_of_northward_wind_due_to_model_physics")
    call mark_as_initialized("specific_heat_of_air_used_in_dycore")
+   call mark_as_initialized("frontogenesis_function")
+   call mark_as_initialized("frontogenesis_angle")
 
    ! These energy variables are calculated by check_energy_timestep_init
    ! but need to be marked here

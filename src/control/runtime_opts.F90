@@ -65,15 +65,11 @@ contains
       character(len=512)             :: errmsg
       character(len=64), allocatable :: schemes(:)
       integer                        :: errflg
-      logical                        :: use_gw_front
-      logical                        :: use_gw_front_igw
 
       character(len=*), parameter    ::  subname = "read_namelist"
 
       ! Initialize system-wide runtime configuration variables
       waccmx_opt = unset_str
-      use_gw_front = .false.
-      use_gw_front_igw = .false.
 
       !-----------------------------------------------------------------------
       ! Call subroutines for modules to read their own namelist.
@@ -118,12 +114,8 @@ contains
       call cam_read_ccpp_scheme_namelists(nlfilename, schemes,                &
            mpicom, masterprocid, masterproc, iulog)
 
-      ! XXgoldyXX: Need to figure out how to grab gravity-wave (and other)
-      !            scheme variables if and only if they are compiled in.
-
       ! Finally, set the system-wide runtime configuration object
-      call cam_set_runtime_opts(phys_suite_name, waccmx_opt,                  &
-           use_gw_front, use_gw_front_igw)
+      call cam_set_runtime_opts(phys_suite_name, waccmx_opt)
 
    end subroutine read_namelist
 
