@@ -138,6 +138,13 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>frontga pbuf_FRONTGA</ic_file_input_names>
     </variable>
+    <variable local_name="vorticity"
+              standard_name="relative_vorticity"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_VORT4GW</ic_file_input_names>
+    </variable>
     <!-- State quantities for shallow/deep convection -->
     <variable local_name="qpert"
               standard_name="convective_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
@@ -421,6 +428,7 @@
       <data>reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
+      <data>relative_vorticity</data>
       <data>vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep</data>
       <data>vertically_integrated_total_energy_using_dycore_energy_formula</data>
       <data>vertically_integrated_total_water_at_start_of_physics_timestep</data>
@@ -1369,13 +1377,6 @@
     </variable>
 
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
-    <variable local_name="vorticity"
-              standard_name="relative_vorticity"
-              units="s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pbuf_VORT4GW</ic_file_input_names>
-    </variable>
     <variable local_name="kvt"
               standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"
               units="m2 s-1" type="real" kind="kind_phys"
