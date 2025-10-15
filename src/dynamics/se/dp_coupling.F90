@@ -53,6 +53,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    ! dry air mass.
 
    use gravity_waves_sources,     only: gws_src_fnct
+   use gravity_waves_sources,     only: gws_src_vort
    use hycoef,                    only: hyai, ps0
    use test_fvm_mapping,          only: test_mapping_overwrite_dyn_state, test_mapping_output_phys_state
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -91,6 +92,9 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    ! Frontogenesis
    real (kind=r8),  allocatable :: frontgf(:,:,:)     ! temp arrays to hold frontogenesis
    real (kind=r8),  allocatable :: frontga(:,:,:)     ! function (frontgf) and angle (frontga)
+
+   ! Vorticity
+   real (kind=r8),  allocatable :: vort4gw(:,:,:)     ! temp arrays to hold vorticity
 
    integer              :: ncols,ierr
    integer              :: blk_ind(1), m, m_cnst
@@ -166,11 +170,19 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    call check_allocate(ierr, subname, 'frontga(nphys_pts,pver,nelemd)', &
                        file=__FILE__, line=__LINE__)
 
+   allocate(vort4gw(nphys_pts,pver,nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'vort4gw(nphys_pts,pver,nelemd)', &
+                       file=__FILE__, line=__LINE__)
+
+
    if (iam < par%nprocs) then
 
       ! Calculate frontogenesis function and angle
       ! for gravity wave parameterization.
       call gws_src_fnct(elem, tl_f, tl_qdp_np0, frontgf, frontga, nphys)
+
+      ! Calculate vorticity for moving mountain gravity wave parameterization.
+      call gws_src_vort(elem, tl_f, tl_qdp_np0, vort4gw, nphys)
 
       if (fv_nphys > 0) then
          call test_mapping_overwrite_dyn_state(elem,dyn_out%fvm)
@@ -233,6 +245,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
       q_tmp(:,:,:,:)   = 0._r8
       frontgf(:,:,:) = 0._r8
       frontga(:,:,:) = 0._r8
+      vort4gw(:,:,:) = 0._r8
 
    endif ! iam < par%nprocs
 
@@ -262,6 +275,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          phys_state%omega(icol, ilyr)   = real(omega_tmp(blk_ind(1), ilyr, ie), kind_phys)
          phys_state%frontgf(icol, ilyr) = real(frontgf(blk_ind(1), ilyr, ie), kind_phys)
          phys_state%frontga(icol, ilyr) = real(frontga(blk_ind(1), ilyr, ie), kind_phys)
+         phys_state%vorticity(icol, ilyr) = real(vort4gw(blk_ind(1), ilyr, ie), kind_phys)
       end do
 
       do m = 1, num_advected

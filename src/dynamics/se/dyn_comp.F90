@@ -838,7 +838,8 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call prim_init2(elem, fvm, hybrid, nets, nete, TimeLevel, hvcoord)
       !$OMP END PARALLEL
 
-      if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) call gws_init(elem)
+      ! initialize gravity wave sources
+      call gws_init(elem)
    end if  ! iam < par%nprocs
 
 !Remove/replace after CAMDEN history output is enabled -JN:
