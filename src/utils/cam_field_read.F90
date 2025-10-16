@@ -900,6 +900,8 @@ CONTAINS
                   call safe_endrun(subname//trim(errormsg))
                end if
             end do
+         else
+            call safe_endrun(subname//': Grid is neither block_indexed nor unstruct, cannot handle')
          end if
 
          if(ndims == target_ndims + 1) then
