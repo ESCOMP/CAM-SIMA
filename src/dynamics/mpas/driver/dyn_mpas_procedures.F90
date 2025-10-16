@@ -95,6 +95,22 @@ contains
 
         real(real32) :: error_tolerance
 
+        if (a /= a .or. b /= b) then
+            ! NaN is not equal to anything, including itself.
+            almost_equal = .false.
+
+            return
+        end if
+
+        if (abs(a) > huge(a) .or. abs(b) > huge(b)) then
+            ! Infinities of the same sign are equal to each other.
+            ! Infinities of different signs are not equal to each other.
+            ! An infinity is not equal to anything that is finite.
+            almost_equal = (a == b)
+
+            return
+        end if
+
         if (present(relative_tolerance)) then
             error_tolerance = relative_tolerance * max(abs(a), abs(b))
         else
@@ -103,15 +119,11 @@ contains
 
         if (present(absolute_tolerance)) then
             error_tolerance = max(absolute_tolerance, error_tolerance)
+        else
+            error_tolerance = max(epsilon(1.0_real32), error_tolerance)
         end if
 
-        if (abs(a - b) <= error_tolerance) then
-            almost_equal = .true.
-
-            return
-        end if
-
-        almost_equal = .false.
+        almost_equal = (abs(a - b) <= error_tolerance)
     end function almost_equal_real32
 
     !> Test `a` and `b` for approximate equality, where `a` and `b` are both reals.
@@ -125,6 +137,22 @@ contains
 
         real(real64) :: error_tolerance
 
+        if (a /= a .or. b /= b) then
+            ! NaN is not equal to anything, including itself.
+            almost_equal = .false.
+
+            return
+        end if
+
+        if (abs(a) > huge(a) .or. abs(b) > huge(b)) then
+            ! Infinities of the same sign are equal to each other.
+            ! Infinities of different signs are not equal to each other.
+            ! An infinity is not equal to anything that is finite.
+            almost_equal = (a == b)
+
+            return
+        end if
+
         if (present(relative_tolerance)) then
             error_tolerance = relative_tolerance * max(abs(a), abs(b))
         else
@@ -133,15 +161,11 @@ contains
 
         if (present(absolute_tolerance)) then
             error_tolerance = max(absolute_tolerance, error_tolerance)
+        else
+            error_tolerance = max(epsilon(1.0_real64), error_tolerance)
         end if
 
-        if (abs(a - b) <= error_tolerance) then
-            almost_equal = .true.
-
-            return
-        end if
-
-        almost_equal = .false.
+        almost_equal = (abs(a - b) <= error_tolerance)
     end function almost_equal_real64
 
     !> Clamp/Limit the value of `x` to the range of [`xmin`, `xmax`], where `x`, `xmin`, and `xmax` are all integers.

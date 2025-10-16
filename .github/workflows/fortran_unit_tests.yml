@@ -3,8 +3,8 @@ name: Fortran Unit Tests
 on:
   push:
     branches:
+      - 'staging/**'
       - development
-      - main
   pull_request:
   workflow_dispatch:
 
@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   gcc-toolchain:
-    runs-on: ubuntu-latest
+    name: Build and run with GCC ${{ matrix.version }}
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         version: [12, 13, 14]
@@ -22,64 +23,110 @@ jobs:
       CC: gcc-${{ matrix.version }}
       CXX: g++-${{ matrix.version }}
       FC: gfortran-${{ matrix.version }}
+      PFUNIT_BUILD_TYPE: Release
+      PFUNIT_PATH: ${{ github.workspace }}/pFUnit
+      PFUNIT_REFERENCE: 'v4.13.0'
+      PIO_BUILD_TYPE: Release
+      PIO_PATH: ${{ github.workspace }}/ParallelIO
+      PIO_REFERENCE: 'pio2_6_7'
+      RRTMGP_DATA_REFERENCE: 'v1.9'
     steps:
-      - name: install dependencies
+      - name: Install dependencies
         run: |
-          sudo apt install -y libnetcdff-dev libnetcdf-mpi-dev libopenmpi-dev openmpi-bin doxygen
+          sudo apt update
+          sudo apt install -y libnetcdf-mpi-dev libnetcdff-dev libopenmpi-dev
 
-      - name: Checkout cam-sima
-        uses: actions/checkout@v4
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
 
+      # pFUnit takes a while to build. Cache it if possible to save time on consecutive workflow runs.
+      - name: Cache pFUnit
+        id: cache-pfunit
+        uses: actions/cache@v4
+        with:
+          key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.version }}-cam-sima
+          path: ${{ env.PFUNIT_PATH }}/install
+
+      # If there is a cache hit, just use the cached pFUnit and skip this step.
+      - name: Checkout pFUnit
+        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
+        uses: actions/checkout@v5
+        with:
+          repository: Goddard-Fortran-Ecosystem/pFUnit
+          ref: ${{ env.PFUNIT_REFERENCE }}
+          path: pFUnit
+
+      # If there is a cache hit, just use the cached pFUnit and skip this step.
       - name: Build pFUnit
+        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
         run: |
-          git clone --depth 1 --branch v4.10.0 https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
-          cd pFUnit
-          cmake -B./build -S.
-          cd build
-          make install
+          cmake \
+            -D CMAKE_BUILD_TYPE="$PFUNIT_BUILD_TYPE" \
+            -D CMAKE_INSTALL_PREFIX="$PFUNIT_PATH/install" \
+            -B "$PFUNIT_PATH/build" \
+            -S "$PFUNIT_PATH"
+          cmake --build "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE"
+          cmake --install "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE" --prefix "$PFUNIT_PATH/install"
+
+      - name: Checkout PIO
+        uses: actions/checkout@v5
+        with:
+          repository: NCAR/ParallelIO
+          ref: ${{ env.PIO_REFERENCE }}
+          path: ParallelIO
 
       - name: Build PIO
+        env:
+          CC: mpicc
+          CXX: mpic++
+          FC: mpifort
         run: |
-          git clone --depth 1 --branch pio2_6_6 https://github.com/NCAR/ParallelIO.git
-          cd ParallelIO
-          FC=$(which mpif90) \
-          CC=$(which mpicc) \
-          cmake -S./ -B./build \
-            -DCMAKE_INSTALL_PREFIX=./install \
-            -DPIO_ENABLE_TIMING=OFF \
-            -DWITH_PNETCDF=OFF \
-            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/netCDF" \
-            -DNetCDF_Fortran_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdff.a" \
-            -DNetCDF_C_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdf.so" \
-            -DCMAKE_EXE_LINKER_FLAGS="-lmpi -Wl,--no-as-needed"
-          cd build
-          make
-          make install
+          cmake \
+            -D CMAKE_BUILD_TYPE="$PIO_BUILD_TYPE" \
+            -D CMAKE_INSTALL_PREFIX="$PIO_PATH/install" \
+            -D NetCDF_C_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdf_mpi.so" \
+            -D NetCDF_Fortran_LIBRARY="/usr/lib/x86_64-linux-gnu/libnetcdff.so" \
+            -D PIO_ENABLE_DOC=OFF \
+            -D PIO_ENABLE_TESTS=OFF \
+            -D PIO_ENABLE_TIMING=OFF \
+            -D WITH_PNETCDF=OFF \
+            -B "$PIO_PATH/build" \
+            -S "$PIO_PATH"
+          cmake --build "$PIO_PATH/build" --config "$PIO_BUILD_TYPE"
+          cmake --install "$PIO_PATH/build" --config "$PIO_BUILD_TYPE" --prefix "$PIO_PATH/install"
 
       - name: Checkout atmospheric_physics
         run: |
           bin/git-fleximod update ncar-physics ccpp-framework share
 
-      - name: Build cam-sima
+      - name: Checkout rrtmgp-data for PIO file reader tests
+        uses: actions/checkout@v5
+        with:
+          repository: earth-system-radiation/rrtmgp-data
+          ref: ${{ env.RRTMGP_DATA_REFERENCE }}
+          path: rrtmgp-data
+
+      - name: Build Fortran unit tests
         run: |
-          PIO_ROOT=$GITHUB_WORKSPACE/ParallelIO/install/ \
           cmake \
-            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/pFUnit/build/installed;/usr/lib/x86_64-linux-gnu/cmake/netCDF;/usr/lib/x86_64-linux-gnu/" \
-            -DCAM_SIMA_ENABLE_CODE_COVERAGE=ON \
-            -DCAM_SIMA_ENABLE_IO_TESTS=ON \
-            -DCAM_SIMA_ENABLE_TESTS=ON \
-            -B./build \
-            -S./test/unit/fortran
+            -D CMAKE_PREFIX_PATH="$PFUNIT_PATH/install;$PIO_PATH/install" \
+            -D CAM_SIMA_ENABLE_CODE_COVERAGE=ON \
+            -D CAM_SIMA_ENABLE_IO_TESTS=ON \
+            -D CAM_SIMA_ENABLE_TESTS=ON \
+            -B ./build \
+            -S ./test/unit/fortran
           cd build
           make
 
-      - name: Checkout datafiles for file IO reader tests
+      - name: Run Fortran unit tests
         run: |
-          git clone https://github.com/earth-system-radiation/rrtmgp-data.git
-
-      - name: Run fortran unit tests
-        run: |
-          cd build && ctest -V --output-on-failure --output-junit test_results.xml
+          ctest \
+            --output-junit test_results.xml \
+            --output-on-failure \
+            --test-dir ./build \
+            --test-output-size-failed 524288 \
+            --test-output-size-passed 524288 \
+            --verbose
 
       - name: Upload unit test results
         uses: actions/upload-artifact@v4

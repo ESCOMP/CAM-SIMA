@@ -1,0 +1,1055 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module contains a suite of unit tests for the `dyn_mpas_procedures` module. Currently, unit testing
+!> is a separate capability in CAM-SIMA. It is compiled and run independently of CIME by CMake and pFUnit.
+!>
+!> For computational procedures, if the test data are exact, tolerance should be chosen based on the number of
+!> units in the last place (ULP). Otherwise, tolerance should be chosen based on significant figures.
+!> For utility procedures, standard unit testing practices apply.
+module test_dyn_mpas_procedures
+    implicit none
+
+    private
+    public :: test_almost_divisible_by_properties_real32
+    public :: test_almost_divisible_by_properties_real64
+    public :: test_almost_divisible_by_inexact_arithmetic_real32
+    public :: test_almost_divisible_by_inexact_arithmetic_real64
+    public :: test_almost_divisible_by_precision_limits_real32
+    public :: test_almost_divisible_by_precision_limits_real64
+    public :: test_almost_equal_by_properties_real32
+    public :: test_almost_equal_by_properties_real64
+    public :: test_almost_equal_by_optional_tolerance_real32
+    public :: test_almost_equal_by_optional_tolerance_real64
+    public :: test_almost_equal_by_extreme_values_real32
+    public :: test_almost_equal_by_extreme_values_real64
+    public :: test_clamp_by_properties_int32
+    public :: test_clamp_by_properties_int64
+    public :: test_clamp_by_properties_real32
+    public :: test_clamp_by_properties_real64
+    public :: test_clamp_by_extreme_values_int32
+    public :: test_clamp_by_extreme_values_int64
+    public :: test_clamp_by_extreme_values_real32
+    public :: test_clamp_by_extreme_values_real64
+    public :: test_index_unique_by_empty_arrays
+    public :: test_index_unique_by_character_arrays
+    public :: test_index_unique_by_integer_arrays_int32
+    public :: test_index_unique_by_integer_arrays_int64
+    public :: test_index_unique_by_logical_arrays
+    public :: test_index_unique_by_real_arrays_real32
+    public :: test_index_unique_by_real_arrays_real64
+contains
+    @test
+    subroutine test_almost_divisible_by_properties_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: almost_divisible
+        use funit
+
+        ! Division of zero.
+        @assertTrue(almost_divisible(0.0_real32, 1776.0_real32))
+        @assertTrue(almost_divisible(0.0_real32, -1776.0_real32))
+
+        ! Division by one.
+        @assertTrue(almost_divisible(1776.0_real32, 1.0_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 1.0_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -1.0_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -1.0_real32))
+
+        ! Division by itself and by factors of 10.
+        @assertTrue(almost_divisible(1776.0_real32, 1776.0_real32))
+        @assertTrue(almost_divisible(1776.0_real32, 177.6_real32))
+        @assertTrue(almost_divisible(1776.0_real32, 17.76_real32))
+        @assertTrue(almost_divisible(1776.0_real32, 1.776_real32))
+        @assertTrue(almost_divisible(1776.0_real32, 0.1776_real32))
+        @assertTrue(almost_divisible(1776.0_real32, 0.01776_real32))
+        @assertTrue(almost_divisible(1776.0_real32, 0.001776_real32))
+
+        @assertTrue(almost_divisible(-1776.0_real32, 1776.0_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 177.6_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 17.76_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 1.776_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 0.1776_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 0.01776_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, 0.001776_real32))
+
+        @assertTrue(almost_divisible(1776.0_real32, -1776.0_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -177.6_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -17.76_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -1.776_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -0.1776_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -0.01776_real32))
+        @assertTrue(almost_divisible(1776.0_real32, -0.001776_real32))
+
+        @assertTrue(almost_divisible(-1776.0_real32, -1776.0_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -177.6_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -17.76_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -1.776_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -0.1776_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -0.01776_real32))
+        @assertTrue(almost_divisible(-1776.0_real32, -0.001776_real32))
+    end subroutine test_almost_divisible_by_properties_real32
+
+    @test
+    subroutine test_almost_divisible_by_properties_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: almost_divisible
+        use funit
+
+        ! Division of zero.
+        @assertTrue(almost_divisible(0.0_real64, 1776.0_real64))
+        @assertTrue(almost_divisible(0.0_real64, -1776.0_real64))
+
+        ! Division by one.
+        @assertTrue(almost_divisible(1776.0_real64, 1.0_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 1.0_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -1.0_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -1.0_real64))
+
+        ! Division by itself and by factors of 10.
+        @assertTrue(almost_divisible(1776.0_real64, 1776.0_real64))
+        @assertTrue(almost_divisible(1776.0_real64, 177.6_real64))
+        @assertTrue(almost_divisible(1776.0_real64, 17.76_real64))
+        @assertTrue(almost_divisible(1776.0_real64, 1.776_real64))
+        @assertTrue(almost_divisible(1776.0_real64, 0.1776_real64))
+        @assertTrue(almost_divisible(1776.0_real64, 0.01776_real64))
+        @assertTrue(almost_divisible(1776.0_real64, 0.001776_real64))
+
+        @assertTrue(almost_divisible(-1776.0_real64, 1776.0_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 177.6_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 17.76_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 1.776_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 0.1776_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 0.01776_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, 0.001776_real64))
+
+        @assertTrue(almost_divisible(1776.0_real64, -1776.0_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -177.6_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -17.76_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -1.776_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -0.1776_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -0.01776_real64))
+        @assertTrue(almost_divisible(1776.0_real64, -0.001776_real64))
+
+        @assertTrue(almost_divisible(-1776.0_real64, -1776.0_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -177.6_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -17.76_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -1.776_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -0.1776_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -0.01776_real64))
+        @assertTrue(almost_divisible(-1776.0_real64, -0.001776_real64))
+    end subroutine test_almost_divisible_by_properties_real64
+
+    @test
+    subroutine test_almost_divisible_by_inexact_arithmetic_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: almost_divisible
+        use funit
+
+        integer :: i
+        real(real32) :: a, b
+
+        a = 0.0_real32
+        b = 1.776_real32
+
+        ! Test a few repeated additions. Cannot test too many iterations because rounding errors accumulate over time.
+        do i = 1, 10
+            a = a + b
+
+            @assertTrue(almost_divisible(a, b))
+        end do
+
+        ! Test multiplications.
+        do i = 1, 10 ** 6
+            a = real(i, real32) * b
+
+            @assertTrue(almost_divisible(a, b))
+        end do
+    end subroutine test_almost_divisible_by_inexact_arithmetic_real32
+
+    @test
+    subroutine test_almost_divisible_by_inexact_arithmetic_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: almost_divisible
+        use funit
+
+        integer :: i
+        real(real64) :: a, b
+
+        a = 0.0_real64
+        b = 1.776_real64
+
+        ! Test a few repeated additions. Cannot test too many iterations because rounding errors accumulate over time.
+        do i = 1, 10
+            a = a + b
+
+            @assertTrue(almost_divisible(a, b))
+        end do
+
+        ! Test multiplications.
+        do i = 1, 10 ** 6
+            a = real(i, real64) * b
+
+            @assertTrue(almost_divisible(a, b))
+        end do
+    end subroutine test_almost_divisible_by_inexact_arithmetic_real64
+
+    @test
+    subroutine test_almost_divisible_by_precision_limits_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: almost_divisible
+        use funit
+
+        @assertFalse(almost_divisible(1776.0_real32, 1776.1_real32))
+        @assertFalse(almost_divisible(1776.0_real32, 1776.01_real32))
+        @assertFalse(almost_divisible(1776.0_real32, 1776.001_real32))
+        ! Precision limit should be exceeded below.
+        @assertTrue(almost_divisible(1776.0_real32, 1776.0001_real32))
+
+        @assertFalse(almost_divisible(1776.1_real32, 1776.0_real32))
+        @assertFalse(almost_divisible(1776.01_real32, 1776.0_real32))
+        @assertFalse(almost_divisible(1776.001_real32, 1776.0_real32))
+        ! Precision limit should be exceeded below.
+        @assertTrue(almost_divisible(1776.0001_real32, 1776.0_real32))
+    end subroutine test_almost_divisible_by_precision_limits_real32
+
+    @test
+    subroutine test_almost_divisible_by_precision_limits_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: almost_divisible
+        use funit
+
+        @assertFalse(almost_divisible(1776.0_real64, 1776.1_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.01_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.0001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.00001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.000001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.0000001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.00000001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.000000001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.0000000001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.00000000001_real64))
+        @assertFalse(almost_divisible(1776.0_real64, 1776.000000000001_real64))
+        ! Precision limit should be exceeded below.
+        @assertTrue(almost_divisible(1776.0_real64, 1776.0000000000001_real64))
+
+        @assertFalse(almost_divisible(1776.1_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.01_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.0001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.00001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.000001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.0000001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.00000001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.000000001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.0000000001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.00000000001_real64, 1776.0_real64))
+        @assertFalse(almost_divisible(1776.000000000001_real64, 1776.0_real64))
+        ! Precision limit should be exceeded below.
+        @assertTrue(almost_divisible(1776.0000000000001_real64, 1776.0_real64))
+    end subroutine test_almost_divisible_by_precision_limits_real64
+
+    @test
+    subroutine test_almost_equal_by_properties_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: almost_equal
+        use funit
+
+        real(real32) :: a, b
+
+        ! Identical numbers.
+        @assertTrue(almost_equal(-1776.74_real32, -1776.74_real32))
+        @assertTrue(almost_equal(-2.0_real32, -2.0_real32))
+        @assertTrue(almost_equal(-1.0_real32, -1.0_real32))
+        @assertTrue(almost_equal(-0.0_real32, -0.0_real32))
+        @assertTrue(almost_equal(0.0_real32, 0.0_real32))
+        @assertTrue(almost_equal(1.0_real32, 1.0_real32))
+        @assertTrue(almost_equal(2.0_real32, 2.0_real32))
+        @assertTrue(almost_equal(1776.74_real32, 1776.74_real32))
+
+        ! Numbers with the same magnitude but different signs.
+        @assertFalse(almost_equal(-1776.74_real32, 1776.74_real32))
+        @assertFalse(almost_equal(-2.0_real32, 2.0_real32))
+        @assertFalse(almost_equal(-1.0_real32, 1.0_real32))
+        @assertTrue(almost_equal(-0.0_real32, 0.0_real32))
+        @assertTrue(almost_equal(0.0_real32, -0.0_real32))
+        @assertFalse(almost_equal(1.0_real32, -1.0_real32))
+        @assertFalse(almost_equal(2.0_real32, -2.0_real32))
+        @assertFalse(almost_equal(1776.74_real32, -1776.74_real32))
+
+        ! Numbers with the same sign but different magnitude.
+        @assertFalse(almost_equal(-1776.74_real32, -1776.75_real32))
+        @assertFalse(almost_equal(-2.0_real32, -3.0_real32))
+        @assertFalse(almost_equal(-1.0_real32, -2.0_real32))
+        @assertFalse(almost_equal(-0.0_real32, -1.0_real32))
+        @assertFalse(almost_equal(0.0_real32, 1.0_real32))
+        @assertFalse(almost_equal(1.0_real32, 2.0_real32))
+        @assertFalse(almost_equal(2.0_real32, 3.0_real32))
+        @assertFalse(almost_equal(1776.74_real32, 1776.75_real32))
+
+        ! Numbers with different magnitude and signs.
+        @assertFalse(almost_equal(-1776.74_real32, 1776.75_real32))
+        @assertFalse(almost_equal(-2.0_real32, 3.0_real32))
+        @assertFalse(almost_equal(-1.0_real32, 2.0_real32))
+        @assertFalse(almost_equal(-0.0_real32, 1.0_real32))
+        @assertFalse(almost_equal(0.0_real32, -1.0_real32))
+        @assertFalse(almost_equal(1.0_real32, -2.0_real32))
+        @assertFalse(almost_equal(2.0_real32, -3.0_real32))
+        @assertFalse(almost_equal(1776.74_real32, -1776.75_real32))
+
+        ! Numbers that differ slightly around default tolerance.
+        a = 1.0_real32
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+
+        a = 1000.0_real32
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+
+        a = 1000000.0_real32
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+
+        a = -1.0_real32
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+
+        a = -1000.0_real32
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+
+        a = -1000000.0_real32
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+    end subroutine test_almost_equal_by_properties_real32
+
+    @test
+    subroutine test_almost_equal_by_properties_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: almost_equal
+        use funit
+
+        real(real64) :: a, b
+
+        ! Identical numbers.
+        @assertTrue(almost_equal(-1776.74_real64, -1776.74_real64))
+        @assertTrue(almost_equal(-2.0_real64, -2.0_real64))
+        @assertTrue(almost_equal(-1.0_real64, -1.0_real64))
+        @assertTrue(almost_equal(-0.0_real64, -0.0_real64))
+        @assertTrue(almost_equal(0.0_real64, 0.0_real64))
+        @assertTrue(almost_equal(1.0_real64, 1.0_real64))
+        @assertTrue(almost_equal(2.0_real64, 2.0_real64))
+        @assertTrue(almost_equal(1776.74_real64, 1776.74_real64))
+
+        ! Numbers with the same magnitude but different signs.
+        @assertFalse(almost_equal(-1776.74_real64, 1776.74_real64))
+        @assertFalse(almost_equal(-2.0_real64, 2.0_real64))
+        @assertFalse(almost_equal(-1.0_real64, 1.0_real64))
+        @assertTrue(almost_equal(-0.0_real64, 0.0_real64))
+        @assertTrue(almost_equal(0.0_real64, -0.0_real64))
+        @assertFalse(almost_equal(1.0_real64, -1.0_real64))
+        @assertFalse(almost_equal(2.0_real64, -2.0_real64))
+        @assertFalse(almost_equal(1776.74_real64, -1776.74_real64))
+
+        ! Numbers with the same sign but different magnitude.
+        @assertFalse(almost_equal(-1776.74_real64, -1776.75_real64))
+        @assertFalse(almost_equal(-2.0_real64, -3.0_real64))
+        @assertFalse(almost_equal(-1.0_real64, -2.0_real64))
+        @assertFalse(almost_equal(-0.0_real64, -1.0_real64))
+        @assertFalse(almost_equal(0.0_real64, 1.0_real64))
+        @assertFalse(almost_equal(1.0_real64, 2.0_real64))
+        @assertFalse(almost_equal(2.0_real64, 3.0_real64))
+        @assertFalse(almost_equal(1776.74_real64, 1776.75_real64))
+
+        ! Numbers with different magnitude and signs.
+        @assertFalse(almost_equal(-1776.74_real64, 1776.75_real64))
+        @assertFalse(almost_equal(-2.0_real64, 3.0_real64))
+        @assertFalse(almost_equal(-1.0_real64, 2.0_real64))
+        @assertFalse(almost_equal(-0.0_real64, 1.0_real64))
+        @assertFalse(almost_equal(0.0_real64, -1.0_real64))
+        @assertFalse(almost_equal(1.0_real64, -2.0_real64))
+        @assertFalse(almost_equal(2.0_real64, -3.0_real64))
+        @assertFalse(almost_equal(1776.74_real64, -1776.75_real64))
+
+        ! Numbers that differ slightly around default tolerance.
+        a = 1.0_real64
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+
+        a = 1000.0_real64
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+
+        a = 1000000.0_real64
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+
+        a = -1.0_real64
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+
+        a = -1000.0_real64
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+
+        a = -1000000.0_real64
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a + spacing(a)
+        @assertTrue(almost_equal(a, b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        b = a + spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+    end subroutine test_almost_equal_by_properties_real64
+
+    @test
+    subroutine test_almost_equal_by_optional_tolerance_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: almost_equal
+        use funit
+
+        @assertTrue(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.11_real32))
+        @assertFalse(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.09_real32))
+
+        @assertTrue(almost_equal(90.0_real32, 100.0_real32, relative_tolerance=0.11_real32))
+        @assertFalse(almost_equal(90.0_real32, 100.0_real32, relative_tolerance=0.09_real32))
+
+        ! The larger tolerance should prevail.
+        @assertTrue(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.11_real32, relative_tolerance=0.0_real32))
+        @assertFalse(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.09_real32, relative_tolerance=0.0_real32))
+        @assertTrue(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.0_real32, relative_tolerance=0.11_real32))
+        @assertFalse(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.0_real32, relative_tolerance=0.09_real32))
+    end subroutine test_almost_equal_by_optional_tolerance_real32
+
+    @test
+    subroutine test_almost_equal_by_optional_tolerance_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: almost_equal
+        use funit
+
+        @assertTrue(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.11_real64))
+        @assertFalse(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.09_real64))
+
+        @assertTrue(almost_equal(90.0_real64, 100.0_real64, relative_tolerance=0.11_real64))
+        @assertFalse(almost_equal(90.0_real64, 100.0_real64, relative_tolerance=0.09_real64))
+
+        ! The larger tolerance should prevail.
+        @assertTrue(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.11_real64, relative_tolerance=0.0_real64))
+        @assertFalse(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.09_real64, relative_tolerance=0.0_real64))
+        @assertTrue(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.0_real64, relative_tolerance=0.11_real64))
+        @assertFalse(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.0_real64, relative_tolerance=0.09_real64))
+    end subroutine test_almost_equal_by_optional_tolerance_real64
+
+    @test
+    subroutine test_almost_equal_by_extreme_values_real32()
+        use, intrinsic :: ieee_arithmetic, only: ieee_negative_inf, ieee_positive_inf, ieee_quiet_nan, &
+                                                 ieee_support_inf, ieee_support_nan, &
+                                                 ieee_value
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: almost_equal
+        use funit
+
+        real(real32) :: a, b
+
+        ! Comparisons based on relative tolerance break down near infernal zero.
+        ! In this case, absolute tolerance should prevail.
+        @assertTrue(almost_equal(0.0_real32, epsilon(1.0_real32)))
+        @assertTrue(almost_equal(0.0_real32, -epsilon(1.0_real32)))
+        @assertTrue(almost_equal(0.0_real32, tiny(0.0_real32)))
+        @assertTrue(almost_equal(0.0_real32, -tiny(0.0_real32)))
+        @assertFalse(almost_equal(0.0_real32, epsilon(1.0_real32), absolute_tolerance=tiny(0.0_real32)))
+        @assertFalse(almost_equal(0.0_real32, -epsilon(1.0_real32), absolute_tolerance=tiny(0.0_real32)))
+        @assertTrue(almost_equal(0.0_real32, tiny(0.0_real32), absolute_tolerance=tiny(0.0_real32)))
+        @assertTrue(almost_equal(0.0_real32, -tiny(0.0_real32), absolute_tolerance=tiny(0.0_real32)))
+
+        ! Comparisons near maximum and minimum values.
+        a = huge(0.0_real32)
+        @assertTrue(almost_equal(a, a))
+        @assertTrue(almost_equal(-a, -a))
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        @assertTrue(almost_equal(-a, -b))
+        b = a - spacing(a) * 2.0_real32
+        @assertFalse(almost_equal(a, b))
+        @assertFalse(almost_equal(-a, -b))
+
+        if (ieee_support_nan(0.0_real32)) then
+            ! NaN is not equal to anything, including itself.
+            @assertFalse(almost_equal(ieee_value(0.0_real32, ieee_quiet_nan), ieee_value(0.0_real32, ieee_quiet_nan)))
+            @assertFalse(almost_equal(0.0_real32, ieee_value(0.0_real32, ieee_quiet_nan)))
+
+            if (ieee_support_inf(0.0_real32)) then
+                @assertFalse(almost_equal(ieee_value(0.0_real32, ieee_negative_inf), ieee_value(0.0_real32, ieee_quiet_nan)))
+                @assertFalse(almost_equal(ieee_value(0.0_real32, ieee_positive_inf), ieee_value(0.0_real32, ieee_quiet_nan)))
+            end if
+        end if
+
+        if (ieee_support_inf(0.0_real32)) then
+            ! Infinities of the same sign are equal to each other.
+            @assertTrue(almost_equal(ieee_value(0.0_real32, ieee_negative_inf), ieee_value(0.0_real32, ieee_negative_inf)))
+            @assertTrue(almost_equal(ieee_value(0.0_real32, ieee_positive_inf), ieee_value(0.0_real32, ieee_positive_inf)))
+
+            ! Infinities of different signs are not equal to each other.
+            @assertFalse(almost_equal(ieee_value(0.0_real32, ieee_negative_inf), ieee_value(0.0_real32, ieee_positive_inf)))
+
+            ! An infinity is not equal to anything that is finite.
+            @assertFalse(almost_equal(0.0_real32, ieee_value(0.0_real32, ieee_negative_inf)))
+            @assertFalse(almost_equal(0.0_real32, ieee_value(0.0_real32, ieee_positive_inf)))
+        end if
+    end subroutine test_almost_equal_by_extreme_values_real32
+
+    @test
+    subroutine test_almost_equal_by_extreme_values_real64()
+        use, intrinsic :: ieee_arithmetic, only: ieee_negative_inf, ieee_positive_inf, ieee_quiet_nan, &
+                                                 ieee_support_inf, ieee_support_nan, &
+                                                 ieee_value
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: almost_equal
+        use funit
+
+        real(real64) :: a, b
+
+        ! Comparisons based on relative tolerance break down near infernal zero.
+        ! In this case, absolute tolerance should prevail.
+        @assertTrue(almost_equal(0.0_real64, epsilon(1.0_real64)))
+        @assertTrue(almost_equal(0.0_real64, -epsilon(1.0_real64)))
+        @assertTrue(almost_equal(0.0_real64, tiny(0.0_real64)))
+        @assertTrue(almost_equal(0.0_real64, -tiny(0.0_real64)))
+        @assertFalse(almost_equal(0.0_real64, epsilon(1.0_real64), absolute_tolerance=tiny(0.0_real64)))
+        @assertFalse(almost_equal(0.0_real64, -epsilon(1.0_real64), absolute_tolerance=tiny(0.0_real64)))
+        @assertTrue(almost_equal(0.0_real64, tiny(0.0_real64), absolute_tolerance=tiny(0.0_real64)))
+        @assertTrue(almost_equal(0.0_real64, -tiny(0.0_real64), absolute_tolerance=tiny(0.0_real64)))
+
+        ! Comparisons near maximum and minimum values.
+        a = huge(0.0_real64)
+        @assertTrue(almost_equal(a, a))
+        @assertTrue(almost_equal(-a, -a))
+        b = a - spacing(a)
+        @assertTrue(almost_equal(a, b))
+        @assertTrue(almost_equal(-a, -b))
+        b = a - spacing(a) * 2.0_real64
+        @assertFalse(almost_equal(a, b))
+        @assertFalse(almost_equal(-a, -b))
+
+        if (ieee_support_nan(0.0_real64)) then
+            ! NaN is not equal to anything, including itself.
+            @assertFalse(almost_equal(ieee_value(0.0_real64, ieee_quiet_nan), ieee_value(0.0_real64, ieee_quiet_nan)))
+            @assertFalse(almost_equal(0.0_real64, ieee_value(0.0_real64, ieee_quiet_nan)))
+
+            if (ieee_support_inf(0.0_real64)) then
+                @assertFalse(almost_equal(ieee_value(0.0_real64, ieee_negative_inf), ieee_value(0.0_real64, ieee_quiet_nan)))
+                @assertFalse(almost_equal(ieee_value(0.0_real64, ieee_positive_inf), ieee_value(0.0_real64, ieee_quiet_nan)))
+            end if
+        end if
+
+        if (ieee_support_inf(0.0_real64)) then
+            ! Infinities of the same sign are equal to each other.
+            @assertTrue(almost_equal(ieee_value(0.0_real64, ieee_negative_inf), ieee_value(0.0_real64, ieee_negative_inf)))
+            @assertTrue(almost_equal(ieee_value(0.0_real64, ieee_positive_inf), ieee_value(0.0_real64, ieee_positive_inf)))
+
+            ! Infinities of different signs are not equal to each other.
+            @assertFalse(almost_equal(ieee_value(0.0_real64, ieee_negative_inf), ieee_value(0.0_real64, ieee_positive_inf)))
+
+            ! An infinity is not equal to anything that is finite.
+            @assertFalse(almost_equal(0.0_real64, ieee_value(0.0_real64, ieee_negative_inf)))
+            @assertFalse(almost_equal(0.0_real64, ieee_value(0.0_real64, ieee_positive_inf)))
+        end if
+    end subroutine test_almost_equal_by_extreme_values_real64
+
+    @test
+    subroutine test_clamp_by_properties_int32()
+        use, intrinsic :: iso_fortran_env, only: int32
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3_int32, clamp(-5_int32, -3_int32, 3_int32))
+        @assertEqual(-3_int32, clamp(-4_int32, -3_int32, 3_int32))
+        @assertEqual(-3_int32, clamp(-3_int32, -3_int32, 3_int32))
+        @assertEqual(-2_int32, clamp(-2_int32, -3_int32, 3_int32))
+        @assertEqual(-1_int32, clamp(-1_int32, -3_int32, 3_int32))
+        @assertEqual(0_int32, clamp(0_int32, -3_int32, 3_int32))
+        @assertEqual(1_int32, clamp(1_int32, -3_int32, 3_int32))
+        @assertEqual(2_int32, clamp(2_int32, -3_int32, 3_int32))
+        @assertEqual(3_int32, clamp(3_int32, -3_int32, 3_int32))
+        @assertEqual(3_int32, clamp(4_int32, -3_int32, 3_int32))
+        @assertEqual(3_int32, clamp(5_int32, -3_int32, 3_int32))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3_int32, clamp(-5_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(-4_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(-3_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(-2_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(-1_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(0_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(1_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(2_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(3_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(4_int32, 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(5_int32, 3_int32, -3_int32))
+    end subroutine test_clamp_by_properties_int32
+
+    @test
+    subroutine test_clamp_by_properties_int64()
+        use, intrinsic :: iso_fortran_env, only: int64
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3_int64, clamp(-5_int64, -3_int64, 3_int64))
+        @assertEqual(-3_int64, clamp(-4_int64, -3_int64, 3_int64))
+        @assertEqual(-3_int64, clamp(-3_int64, -3_int64, 3_int64))
+        @assertEqual(-2_int64, clamp(-2_int64, -3_int64, 3_int64))
+        @assertEqual(-1_int64, clamp(-1_int64, -3_int64, 3_int64))
+        @assertEqual(0_int64, clamp(0_int64, -3_int64, 3_int64))
+        @assertEqual(1_int64, clamp(1_int64, -3_int64, 3_int64))
+        @assertEqual(2_int64, clamp(2_int64, -3_int64, 3_int64))
+        @assertEqual(3_int64, clamp(3_int64, -3_int64, 3_int64))
+        @assertEqual(3_int64, clamp(4_int64, -3_int64, 3_int64))
+        @assertEqual(3_int64, clamp(5_int64, -3_int64, 3_int64))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3_int64, clamp(-5_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(-4_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(-3_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(-2_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(-1_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(0_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(1_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(2_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(3_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(4_int64, 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(5_int64, 3_int64, -3_int64))
+    end subroutine test_clamp_by_properties_int64
+
+    @test
+    subroutine test_clamp_by_properties_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3.0_real32, clamp(-5.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(-3.0_real32, clamp(-4.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(-3.0_real32, clamp(-3.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(-2.0_real32, clamp(-2.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(-1.0_real32, clamp(-1.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(0.0_real32, clamp(0.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(1.0_real32, clamp(1.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(2.0_real32, clamp(2.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(3.0_real32, clamp(3.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(3.0_real32, clamp(4.0_real32, -3.0_real32, 3.0_real32))
+        @assertEqual(3.0_real32, clamp(5.0_real32, -3.0_real32, 3.0_real32))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3.0_real32, clamp(-5.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(-4.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(-3.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(-2.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(-1.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(0.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(1.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(2.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(3.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(4.0_real32, 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(5.0_real32, 3.0_real32, -3.0_real32))
+    end subroutine test_clamp_by_properties_real32
+
+    @test
+    subroutine test_clamp_by_properties_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3.0_real64, clamp(-5.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(-3.0_real64, clamp(-4.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(-3.0_real64, clamp(-3.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(-2.0_real64, clamp(-2.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(-1.0_real64, clamp(-1.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(0.0_real64, clamp(0.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(1.0_real64, clamp(1.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(2.0_real64, clamp(2.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(3.0_real64, clamp(3.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(3.0_real64, clamp(4.0_real64, -3.0_real64, 3.0_real64))
+        @assertEqual(3.0_real64, clamp(5.0_real64, -3.0_real64, 3.0_real64))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3.0_real64, clamp(-5.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(-4.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(-3.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(-2.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(-1.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(0.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(1.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(2.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(3.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(4.0_real64, 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(5.0_real64, 3.0_real64, -3.0_real64))
+    end subroutine test_clamp_by_properties_real64
+
+    @test
+    subroutine test_clamp_by_extreme_values_int32()
+        use, intrinsic :: iso_fortran_env, only: int32
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3_int32, clamp(-huge(0_int32), -3_int32, 3_int32))
+        @assertEqual(3_int32, clamp(huge(0_int32), -3_int32, 3_int32))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3_int32, clamp(-huge(0_int32), 3_int32, -3_int32))
+        @assertEqual(3_int32, clamp(huge(0_int32), 3_int32, -3_int32))
+    end subroutine test_clamp_by_extreme_values_int32
+
+    @test
+    subroutine test_clamp_by_extreme_values_int64()
+        use, intrinsic :: iso_fortran_env, only: int64
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3_int64, clamp(-huge(0_int64), -3_int64, 3_int64))
+        @assertEqual(3_int64, clamp(huge(0_int64), -3_int64, 3_int64))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3_int64, clamp(-huge(0_int64), 3_int64, -3_int64))
+        @assertEqual(3_int64, clamp(huge(0_int64), 3_int64, -3_int64))
+    end subroutine test_clamp_by_extreme_values_int64
+
+    @test
+    subroutine test_clamp_by_extreme_values_real32()
+        use, intrinsic :: ieee_arithmetic, only: ieee_negative_inf, ieee_positive_inf, &
+                                                 ieee_support_inf, &
+                                                 ieee_value
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3.0_real32, clamp(-huge(0.0_real32), -3.0_real32, 3.0_real32))
+        @assertEqual(3.0_real32, clamp(huge(0.0_real32), -3.0_real32, 3.0_real32))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3.0_real32, clamp(-huge(0.0_real32), 3.0_real32, -3.0_real32))
+        @assertEqual(3.0_real32, clamp(huge(0.0_real32), 3.0_real32, -3.0_real32))
+
+        if (ieee_support_inf(0.0_real32)) then
+            @assertEqual(-3.0_real32, clamp(ieee_value(0.0_real32, ieee_negative_inf), -3.0_real32, 3.0_real32))
+            @assertEqual(3.0_real32, clamp(ieee_value(0.0_real32, ieee_positive_inf), -3.0_real32, 3.0_real32))
+
+            ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+            @assertEqual(3.0_real32, clamp(ieee_value(0.0_real32, ieee_negative_inf), 3.0_real32, -3.0_real32))
+            @assertEqual(3.0_real32, clamp(ieee_value(0.0_real32, ieee_positive_inf), 3.0_real32, -3.0_real32))
+        end if
+    end subroutine test_clamp_by_extreme_values_real32
+
+    @test
+    subroutine test_clamp_by_extreme_values_real64()
+        use, intrinsic :: ieee_arithmetic, only: ieee_negative_inf, ieee_positive_inf, &
+                                                 ieee_support_inf, &
+                                                 ieee_value
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: clamp
+        use funit
+
+        @assertEqual(-3.0_real64, clamp(-huge(0.0_real64), -3.0_real64, 3.0_real64))
+        @assertEqual(3.0_real64, clamp(huge(0.0_real64), -3.0_real64, 3.0_real64))
+
+        ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+        @assertEqual(3.0_real64, clamp(-huge(0.0_real64), 3.0_real64, -3.0_real64))
+        @assertEqual(3.0_real64, clamp(huge(0.0_real64), 3.0_real64, -3.0_real64))
+
+        if (ieee_support_inf(0.0_real64)) then
+            @assertEqual(-3.0_real64, clamp(ieee_value(0.0_real64, ieee_negative_inf), -3.0_real64, 3.0_real64))
+            @assertEqual(3.0_real64, clamp(ieee_value(0.0_real64, ieee_positive_inf), -3.0_real64, 3.0_real64))
+
+            ! In the case of wrong usage where `xmin` > `xmax`, the function always returns `xmin`.
+            @assertEqual(3.0_real64, clamp(ieee_value(0.0_real64, ieee_negative_inf), 3.0_real64, -3.0_real64))
+            @assertEqual(3.0_real64, clamp(ieee_value(0.0_real64, ieee_positive_inf), 3.0_real64, -3.0_real64))
+        end if
+    end subroutine test_clamp_by_extreme_values_real64
+
+    @test
+    subroutine test_index_unique_by_empty_arrays()
+        use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        character(128), allocatable :: test_data_carr(:)
+        integer(int32), allocatable :: test_data_i32arr(:)
+        integer(int64), allocatable :: test_data_i64arr(:)
+        logical, allocatable :: test_data_larr(:)
+        real(real32), allocatable :: test_data_r32arr(:)
+        real(real64), allocatable :: test_data_r64arr(:)
+
+        integer, allocatable :: test_result(:)
+
+        allocate(test_data_carr(0))
+        allocate(test_data_i32arr(0))
+        allocate(test_data_i64arr(0))
+        allocate(test_data_larr(0))
+        allocate(test_data_r32arr(0))
+        allocate(test_data_r64arr(0))
+
+        test_result = index_unique(test_data_carr)
+        @assertTrue(allocated(test_result))
+        @assertEqual(0, size(test_result))
+
+        test_result = index_unique(test_data_i32arr)
+        @assertTrue(allocated(test_result))
+        @assertEqual(0, size(test_result))
+
+        test_result = index_unique(test_data_i64arr)
+        @assertTrue(allocated(test_result))
+        @assertEqual(0, size(test_result))
+
+        test_result = index_unique(test_data_larr)
+        @assertTrue(allocated(test_result))
+        @assertEqual(0, size(test_result))
+
+        test_result = index_unique(test_data_r32arr)
+        @assertTrue(allocated(test_result))
+        @assertEqual(0, size(test_result))
+
+        test_result = index_unique(test_data_r64arr)
+        @assertTrue(allocated(test_result))
+        @assertEqual(0, size(test_result))
+    end subroutine test_index_unique_by_empty_arrays
+
+    @test
+    subroutine test_index_unique_by_character_arrays()
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        character(*), parameter :: test_data_letters(*) = [ character(1) :: &
+            'T', 'H', 'E', &
+            'Q', 'U', 'I', 'C', 'K', &
+            'B', 'R', 'O', 'W', 'N', &
+            'F', 'O', 'X', &
+            'J', 'U', 'M', 'P', 'S', &
+            'O', 'V', 'E', 'R', &
+            'T', 'H', 'E', &
+            'L', 'A', 'Z', 'Y', &
+            'D', 'O', 'G' &
+        ]
+        character(*), parameter :: test_data_words(*) = [ character(128) :: &
+            'Mercury', &
+            'Mercury', 'Venus', &
+            'Mercury', 'Venus', 'Earth', &
+            'Mercury', 'Venus', 'Earth', 'Mars', &
+            'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', &
+            'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', &
+            'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', &
+            'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune' &
+        ]
+        integer, parameter :: expected_result_letters(*) = [ &
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 20, 21, 23, 29, 30, 31, 32, 33, 35 &
+        ]
+        integer, parameter :: expected_result_words(*) = [ &
+            1, 3, 6, 10, 15, 21, 28, 36 &
+        ]
+
+        integer, allocatable :: test_result(:)
+
+        test_result = index_unique(test_data_letters)
+        @assertEqual(expected_result_letters, test_result)
+
+        test_result = index_unique(test_data_words)
+        @assertEqual(expected_result_words, test_result)
+    end subroutine test_index_unique_by_character_arrays
+
+    @test
+    subroutine test_index_unique_by_integer_arrays_int32()
+        use, intrinsic :: iso_fortran_env, only: int32
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        integer(int32), parameter :: test_data(*) = [ &
+            1_int32, 7_int32, 7_int32, 6_int32, 0_int32, 7_int32, 0_int32, 4_int32 &
+        ]
+        integer, parameter :: expected_result(*) = [ &
+            1, 2, 4, 5, 8 &
+        ]
+
+        integer, allocatable :: test_result(:)
+
+        test_result = index_unique(test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(test_data + 10_int32)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data - 10_int32)
+        @assertEqual(expected_result, test_result)
+    end subroutine test_index_unique_by_integer_arrays_int32
+
+    @test
+    subroutine test_index_unique_by_integer_arrays_int64()
+        use, intrinsic :: iso_fortran_env, only: int64
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        integer(int64), parameter :: test_data(*) = [ &
+            1_int64, 7_int64, 7_int64, 6_int64, 0_int64, 7_int64, 0_int64, 4_int64 &
+        ]
+        integer, parameter :: expected_result(*) = [ &
+            1, 2, 4, 5, 8 &
+        ]
+
+        integer, allocatable :: test_result(:)
+
+        test_result = index_unique(test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(test_data + 10_int64)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data - 10_int64)
+        @assertEqual(expected_result, test_result)
+    end subroutine test_index_unique_by_integer_arrays_int64
+
+    @test
+    subroutine test_index_unique_by_logical_arrays()
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        logical, parameter :: test_data(*) = [ &
+            .false., .false., .true., .false., .false., .true. &
+        ]
+        integer, parameter :: expected_result(*) = [ &
+            1, 3 &
+        ]
+
+        integer, allocatable :: test_result(:)
+
+        test_result = index_unique(test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(.not. test_data)
+        @assertEqual(expected_result, test_result)
+    end subroutine test_index_unique_by_logical_arrays
+
+    @test
+    subroutine test_index_unique_by_real_arrays_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        real(real32), parameter :: test_data(*) = [ &
+            1.0_real32, 7.0_real32, 7.0_real32, 6.0_real32, 0.0_real32, 7.0_real32, 0.0_real32, 4.0_real32 &
+        ]
+        integer, parameter :: expected_result(*) = [ &
+            1, 2, 4, 5, 8 &
+        ]
+
+        integer, allocatable :: test_result(:)
+
+        test_result = index_unique(test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(test_data + 10.0_real32)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data - 10.0_real32)
+        @assertEqual(expected_result, test_result)
+    end subroutine test_index_unique_by_real_arrays_real32
+
+    @test
+    subroutine test_index_unique_by_real_arrays_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: index_unique
+        use funit
+
+        real(real64), parameter :: test_data(*) = [ &
+            1.0_real64, 7.0_real64, 7.0_real64, 6.0_real64, 0.0_real64, 7.0_real64, 0.0_real64, 4.0_real64 &
+        ]
+        integer, parameter :: expected_result(*) = [ &
+            1, 2, 4, 5, 8 &
+        ]
+
+        integer, allocatable :: test_result(:)
+
+        test_result = index_unique(test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(test_data + 10.0_real64)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data)
+        @assertEqual(expected_result, test_result)
+
+        test_result = index_unique(-test_data - 10.0_real64)
+        @assertEqual(expected_result, test_result)
+    end subroutine test_index_unique_by_real_arrays_real64
+end module test_dyn_mpas_procedures
