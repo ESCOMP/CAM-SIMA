@@ -25,7 +25,6 @@ module cam_comp
    use time_manager,              only: is_first_step, is_first_restart_step
    use time_manager,              only: get_curr_calday
 
-   use physics_types,             only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
    use physics_types,             only: calday
