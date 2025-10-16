@@ -361,10 +361,11 @@ contains
         !> (KCW, 2024-07-30)
         subroutine update_shared_variables(i)
             ! Module(s) from CAM-SIMA.
-            use dyn_mpas_procedures, only: clamp
             use dyn_procedures, only: dp_by_hydrostatic_equation, omega_of_w_rho, p_by_equation_of_state, t_of_tm_qv
             use dynconst, only: constant_g => gravit, constant_rd => rair, constant_rv => rh2o
             use vert_coord, only: pver, pverp
+            ! Module(s) from MPAS.
+            use dyn_mpas_procedures, only: clamp
 
             integer, intent(in) :: i
 
@@ -489,6 +490,7 @@ contains
             use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
             use cam_thermo_formula, only: energy_formula_dycore_mpas
             use dyn_comp, only: mpas_dynamical_core
+            use dyn_procedures, only: exner_function
             use dynconst, only: constant_g => gravit
             use physics_types, only: cappav, cp_or_cv_dycore, cpairv, lagrangian_vertical, phys_state, rairv, zvirv
             use runtime_obj, only: cam_runtime_opts
@@ -553,7 +555,7 @@ contains
             ! the paragraph below equation 1.5.1c in doi:10.1007/978-94-009-3027-8.
             ! Also note that `cappav` is updated externally by `cam_thermo_dry_air_update`.
             do i = 1, ncells_solve
-                phys_state % exner(i, :) = (phys_state % ps(i) / phys_state % pmid(i, :)) ** cappav(i, :)
+                phys_state % exner(i, :) = 1.0_kind_r8 / exner_function(cappav(i, :), phys_state % ps(i), phys_state % pmid(i, :))
             end do
 
             ! Note that constituents become moist after this.

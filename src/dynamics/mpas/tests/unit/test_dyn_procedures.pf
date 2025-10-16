@@ -1,0 +1,1599 @@
+! Copyright (C) 2025 University Corporation for Atmospheric Research (UCAR)
+! SPDX-License-Identifier: Apache-2.0
+
+!> This module contains a suite of unit tests for the `dyn_procedures` module. Currently, unit testing
+!> is a separate capability in CAM-SIMA. It is compiled and run independently of CIME by CMake and pFUnit.
+!>
+!> For computational procedures, if the test data are exact, tolerance should be chosen based on the number of
+!> units in the last place (ULP). Otherwise, tolerance should be chosen based on significant figures.
+!> For utility procedures, standard unit testing practices apply.
+module test_dyn_procedures
+    implicit none
+
+    private
+    public :: print_error_statistics
+    public :: store_error_statistics
+    public :: test_equation_of_state_family_by_known_values
+    public :: test_equation_of_state_family_by_typical_values
+    public :: test_exner_function_family_by_known_values
+    public :: test_exner_function_family_by_typical_values
+    public :: test_hydrostatic_equation_family_by_known_values
+    public :: test_hydrostatic_equation_family_by_typical_values
+    public :: test_hypsometric_equation_family_by_known_values
+    public :: test_hypsometric_equation_family_by_typical_values
+    public :: test_poisson_equation_family_by_known_values
+    public :: test_poisson_equation_family_by_typical_values
+    public :: test_omega_of_w_rho_and_vice_versa_by_known_values
+    public :: test_omega_of_w_rho_and_vice_versa_by_typical_values
+    public :: test_qv_of_sh_and_vice_versa_by_known_values
+    public :: test_qv_of_sh_and_vice_versa_by_typical_values
+    public :: test_t_of_theta_rhod_qv_and_vice_versa_by_known_values
+    public :: test_t_of_theta_rhod_qv_and_vice_versa_by_typical_values
+    public :: test_t_of_tm_qv_and_vice_versa_by_known_values
+    public :: test_t_of_tm_qv_and_vice_versa_by_typical_values
+    public :: test_tm_of_tv_qv_and_vice_versa_by_known_values
+    public :: test_tm_of_tv_qv_and_vice_versa_by_typical_values
+    public :: test_reverse_by_empty_arrays
+    public :: test_reverse_by_single_element_arrays
+    public :: test_reverse_by_multiple_element_arrays
+    public :: test_sec_to_hour_min_sec_by_positive_time
+    public :: test_sec_to_hour_min_sec_by_negative_time
+    public :: test_sec_to_hour_min_sec_by_extreme_time
+
+    !> Error statistics for each applicable test. `ulp_error_count(i)` contains the number of sample values having accuracy of
+    !> `i - 1` <= ULP < `i`. Each applicable test should call `store_error_statistics` to collect error statistics.
+    !> Do not modify it directly.
+    integer, allocatable :: ulp_error_count(:)
+contains
+    @after
+    subroutine print_error_statistics()
+        use, intrinsic :: iso_fortran_env, only: error_unit, output_unit, real64
+
+        integer :: i
+
+        ! No data have been collected.
+        if (.not. allocated(ulp_error_count)) then
+            return
+        end if
+
+        ! Invalid data.
+        if (any(ulp_error_count < 0) .or. &
+            sum(ulp_error_count) == 0) then
+
+            write(error_unit, '(a, a)') &
+                new_line(''), &
+                'Failed to print error statistics due to invalid data.'
+
+            ! Discard data without printing.
+            deallocate(ulp_error_count)
+
+            return
+        end if
+
+        write(output_unit, '(a, a, i0, a)') &
+            new_line(''), &
+            'Error statistics (N = ', sum(ulp_error_count), '):'
+
+        do i = 1, size(ulp_error_count)
+            write(output_unit, '(f6.2, a, i0, a, i0, a, i0, a)') &
+                real(ulp_error_count(i), real64) / real(sum(ulp_error_count), real64) * 100.0_real64, &
+                '% of sample values (', ulp_error_count(i), ') have accuracy of ', &
+                i - 1, ' <= ULP < ', i, '.'
+        end do
+
+        ! Discard data after printing.
+        deallocate(ulp_error_count)
+    end subroutine print_error_statistics
+
+    subroutine store_error_statistics(expected, actual, number_of_ulp)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        integer, intent(in) :: number_of_ulp
+        real(real64), intent(in) :: expected, actual
+
+        integer :: i
+        real(real64) :: absolute_error, ulp
+
+        ! Allocate data storage on the first call.
+        if (.not. allocated(ulp_error_count)) then
+            allocate(ulp_error_count(number_of_ulp + 1))
+
+            ulp_error_count(:) = 0
+        end if
+
+        ! Throughout each test, the same storage size should be requested in terms of the number of ULP.
+        ! If not, data storage will be reallocated and old data will be lost.
+        if (size(ulp_error_count) /= number_of_ulp + 1) then
+            deallocate(ulp_error_count)
+            allocate(ulp_error_count(number_of_ulp + 1))
+
+            ulp_error_count(:) = 0
+        end if
+
+        absolute_error = abs(actual - expected)
+        ulp = spacing(expected)
+
+        do i = 1, size(ulp_error_count)
+            if (absolute_error >= ulp * real(i - 1, real64) .and. &
+                absolute_error <  ulp * real(i, real64)) then
+                ulp_error_count(i) = ulp_error_count(i) + 1
+
+                exit
+            end if
+        end do
+    end subroutine store_error_statistics
+
+    @test
+    subroutine test_equation_of_state_family_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: p_by_equation_of_state, &
+                                  rho_by_equation_of_state, &
+                                  t_by_equation_of_state
+        use funit
+
+        real(real64), parameter :: constant_rd = 287.04_real64
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: expected_p(*) = [ &
+            100000.0_real64, &
+            101325.0_real64 &
+        ]
+        real(real64), parameter :: expected_rho(*) = [ &
+            1.27542925337_real64, &
+            1.20416026587_real64 &
+        ]
+        real(real64), parameter :: expected_t(*) = [ &
+            273.15_real64, &
+            293.15_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: p, rho, t
+
+        do i = 1, size(expected_p)
+            rho = rho_by_equation_of_state(constant_rd, expected_p(i), expected_t(i))
+            @assertEqual(expected_rho(i), rho, expected_rho(i) * relative_tolerance)
+
+            p = p_by_equation_of_state(constant_rd, expected_rho(i), expected_t(i))
+            @assertEqual(expected_p(i), p, expected_p(i) * relative_tolerance)
+
+            t = t_by_equation_of_state(constant_rd, expected_p(i), expected_rho(i))
+            @assertEqual(expected_t(i), t, expected_t(i) * relative_tolerance)
+        end do
+    end subroutine test_equation_of_state_family_by_known_values
+
+    @test
+    subroutine test_equation_of_state_family_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: p_by_equation_of_state, &
+                                  rho_by_equation_of_state, &
+                                  t_by_equation_of_state
+        use funit
+
+        real(real64), parameter :: constant_rd = 287.04_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 3
+
+        integer :: i, j
+        real(real64) :: p, rho, t
+        real(real64), allocatable :: expected_p(:), expected_rho(:, :), expected_t(:)
+
+        call generate_test_data(expected_p, expected_rho, expected_t)
+
+        do i = 1, size(expected_p)
+            do j = 1, size(expected_t)
+                rho = rho_by_equation_of_state(constant_rd, expected_p(i), expected_t(j))
+                @assertEqual(expected_rho(i, j), rho, spacing(expected_rho(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_rho(i, j), rho, ulp_tolerance)
+
+                p = p_by_equation_of_state(constant_rd, expected_rho(i, j), expected_t(j))
+                @assertEqual(expected_p(i), p, spacing(expected_p(i)) * ulp_tolerance)
+                call store_error_statistics(expected_p(i), p, ulp_tolerance)
+
+                t = t_by_equation_of_state(constant_rd, expected_p(i), expected_rho(i, j))
+                @assertEqual(expected_t(j), t, spacing(expected_t(j)) * ulp_tolerance)
+                call store_error_statistics(expected_t(j), t, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(expected_p, expected_rho, expected_t)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: expected_p(:), expected_rho(:, :), expected_t(:)
+
+            real(real128), parameter :: constant_rd_real128 = 287.04_real128
+
+            real(real128), parameter :: interval_p = 1.0_real128
+            real(real128), parameter :: interval_t = 1.0_real128
+            real(real128), parameter :: range_p(2) = [1000.0_real128, 105000.0_real128]
+            real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: expected_p_real128(:), expected_rho_real128(:, :), expected_t_real128(:)
+
+            n = nint((range_p(2) - range_p(1)) / interval_p) + 1
+
+            allocate(expected_p_real128(n))
+            expected_p_real128(:) = [(range_p(1) + real(i - 1, real128) * interval_p, i = 1, n)]
+            expected_p = real(expected_p_real128, real64)
+
+            n = nint((range_t(2) - range_t(1)) / interval_t) + 1
+
+            allocate(expected_t_real128(n))
+            expected_t_real128(:) = [(range_t(1) + real(i - 1, real128) * interval_t, i = 1, n)]
+            expected_t = real(expected_t_real128, real64)
+
+            allocate(expected_rho_real128(size(expected_p_real128), size(expected_t_real128)))
+
+            do i = 1, size(expected_t_real128)
+                expected_rho_real128(:, i) = &
+                    expected_p_real128(:) / (constant_rd_real128 * expected_t_real128(i))
+            end do
+
+            expected_rho = real(expected_rho_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_equation_of_state_family_by_typical_values
+
+    @test
+    subroutine test_exner_function_family_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: exner_function
+        use funit
+
+        real(real64), parameter :: constant_cpd = 1004.64_real64
+        real(real64), parameter :: constant_p0 = 100000.0_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+        real(real64), parameter :: constant_kappa = constant_rd / constant_cpd
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 4
+        real(real64), parameter :: p(*) = [ &
+            constant_p0, &
+            47829.69_real64, &
+            20971.52_real64, &
+            8235.43_real64, &
+            2799.36_real64, &
+            781.25_real64, &
+            163.84_real64, &
+            21.87_real64, &
+            1.28_real64, &
+            0.01_real64, & ! The only test value here that needs 4 ULP of tolerance.
+            0.0_real64 &
+        ]
+        real(real64), parameter :: expected_pi(*) = [ &
+            1.0_real64, &
+            0.81_real64, &
+            0.64_real64, &
+            0.49_real64, &
+            0.36_real64, &
+            0.25_real64, &
+            0.16_real64, &
+            0.09_real64, &
+            0.04_real64, &
+            0.01_real64, & ! The only test value here that needs 4 ULP of tolerance.
+            0.0_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: pi
+
+        do i = 1, size(p)
+            pi = exner_function(constant_cpd, constant_p0, constant_rd, p(i))
+            @assertEqual(expected_pi(i), pi, spacing(expected_pi(i)) * ulp_tolerance)
+
+            pi = exner_function(constant_kappa, constant_p0, p(i))
+            @assertEqual(expected_pi(i), pi, spacing(expected_pi(i)) * ulp_tolerance)
+        end do
+    end subroutine test_exner_function_family_by_known_values
+
+    @test
+    subroutine test_exner_function_family_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: exner_function
+        use funit
+
+        real(real64), parameter :: constant_cpd = 1004.64_real64
+        real(real64), parameter :: constant_p0 = 100000.0_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+        real(real64), parameter :: constant_kappa = constant_rd / constant_cpd
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 2
+
+        integer :: i
+        real(real64) :: pi
+        real(real64), allocatable :: p(:)
+        real(real64), allocatable :: expected_pi(:)
+
+        call generate_test_data(p, expected_pi)
+
+        do i = 1, size(p)
+            pi = exner_function(constant_cpd, constant_p0, constant_rd, p(i))
+            @assertTrue(pi >= 0.0_real64 .and. pi <= 1.0_real64)
+            @assertEqual(expected_pi(i), pi, spacing(expected_pi(i)) * ulp_tolerance)
+            call store_error_statistics(expected_pi(i), pi, ulp_tolerance)
+
+            pi = exner_function(constant_kappa, constant_p0, p(i))
+            @assertTrue(pi >= 0.0_real64 .and. pi <= 1.0_real64)
+            @assertEqual(expected_pi(i), pi, spacing(expected_pi(i)) * ulp_tolerance)
+            call store_error_statistics(expected_pi(i), pi, ulp_tolerance)
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(p, expected_pi)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: p(:)
+            real(real64), allocatable, intent(out) :: expected_pi(:)
+
+            real(real128), parameter :: constant_cpd_real128 = 1004.64_real128
+            real(real128), parameter :: constant_p0_real128 = 100000.0_real128
+            real(real128), parameter :: constant_rd_real128 = 287.04_real128
+            real(real128), parameter :: constant_kappa_real128 = constant_rd_real128 / constant_cpd_real128
+
+            real(real128), parameter :: interval_p = 1.0_real128
+            real(real128), parameter :: range_p(2) = [1000.0_real128, constant_p0_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: p_real128(:)
+            real(real128), allocatable :: expected_pi_real128(:)
+
+            n = nint((range_p(2) - range_p(1)) / interval_p) + 1
+
+            allocate(p_real128(n))
+            p_real128(:) = [(range_p(1) + real(i - 1, real128) * interval_p, i = 1, n)]
+            p = real(p_real128, real64)
+
+            allocate(expected_pi_real128(size(p_real128)))
+            expected_pi_real128(:) = (p_real128(:) / constant_p0_real128) ** constant_kappa_real128
+            expected_pi = real(expected_pi_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_exner_function_family_by_typical_values
+
+    @test
+    subroutine test_hydrostatic_equation_family_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: dp_by_hydrostatic_equation
+        use funit
+
+        real(real64), parameter :: constant_g = 9.80665_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real64), parameter :: dz(*) = [ &
+            0.0_real64, &
+            1.0_real64, &
+            10.0_real64, &
+            100.0_real64, &
+            1000.0_real64 &
+        ]
+        real(real64), parameter :: rho = 1.2_real64
+        real(real64), parameter :: expected_dp(*) = [ &
+            0.0_real64, &
+            -11.76798_real64, &
+            -117.6798_real64, &
+            -1176.798_real64, &
+            -11767.98_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: dp
+
+        do i = 1, size(dz)
+            dp = dp_by_hydrostatic_equation(constant_g, rho, dz(i))
+            @assertEqual(expected_dp(i), dp, spacing(expected_dp(i)) * ulp_tolerance)
+
+            ! This function should work both ways. `dz` can be positive or negative.
+            dp = dp_by_hydrostatic_equation(constant_g, rho, -dz(i))
+            @assertEqual(-expected_dp(i), dp, spacing(-expected_dp(i)) * ulp_tolerance)
+        end do
+    end subroutine test_hydrostatic_equation_family_by_known_values
+
+    @test
+    subroutine test_hydrostatic_equation_family_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: dp_by_hydrostatic_equation
+        use funit
+
+        real(real64), parameter :: constant_g = 9.80665_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 2
+
+        integer :: i, j
+        real(real64) :: dp
+        real(real64), allocatable :: dz(:), rho(:)
+        real(real64), allocatable :: expected_dp(:, :)
+
+        call generate_test_data(dz, rho, expected_dp)
+
+        do i = 1, size(dz)
+            do j = 1, size(rho)
+                dp = dp_by_hydrostatic_equation(constant_g, rho(j), dz(i))
+                @assertEqual(expected_dp(i, j), dp, spacing(expected_dp(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_dp(i, j), dp, ulp_tolerance)
+
+                ! This function should work both ways. `dz` can be positive or negative.
+                dp = dp_by_hydrostatic_equation(constant_g, rho(j), -dz(i))
+                @assertEqual(-expected_dp(i, j), dp, spacing(-expected_dp(i, j)) * ulp_tolerance)
+                call store_error_statistics(-expected_dp(i, j), dp, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(dz, rho, expected_dp)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: dz(:), rho(:)
+            real(real64), allocatable, intent(out) :: expected_dp(:, :)
+
+            real(real128), parameter :: constant_g_real128 = 9.80665_real128
+
+            real(real128), parameter :: interval_dz = 1.0_real128
+            real(real128), parameter :: interval_rho = 0.01_real128
+            real(real128), parameter :: range_dz(2) = [0.0_real128, 1000.0_real128]
+            real(real128), parameter :: range_rho(2) = [0.01_real128, 1.5_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: dz_real128(:), rho_real128(:)
+            real(real128), allocatable :: expected_dp_real128(:, :)
+
+            n = nint((range_dz(2) - range_dz(1)) / interval_dz) + 1
+
+            allocate(dz_real128(n))
+            dz_real128(:) = [(range_dz(1) + real(i - 1, real128) * interval_dz, i = 1, n)]
+            dz = real(dz_real128, real64)
+
+            n = nint((range_rho(2) - range_rho(1)) / interval_rho) + 1
+
+            allocate(rho_real128(n))
+            rho_real128(:) = [(range_rho(1) + real(i - 1, real128) * interval_rho, i = 1, n)]
+            rho = real(rho_real128, real64)
+
+            allocate(expected_dp_real128(size(dz_real128), size(rho_real128)))
+
+            do i = 1, size(rho_real128)
+                expected_dp_real128(:, i) = -rho_real128(i) * constant_g_real128 * dz_real128(:)
+            end do
+
+            expected_dp = real(expected_dp_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_hydrostatic_equation_family_by_typical_values
+
+    @test
+    subroutine test_hypsometric_equation_family_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: p_by_hypsometric_equation
+        use funit
+
+        real(real64), parameter :: constant_g = 9.80665_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: tv = 288.15_real64
+        real(real64), parameter :: z2(*) = [ &
+            0.0_real64, &
+            1.0_real64, &
+            10.0_real64, &
+            100.0_real64, &
+            1000.0_real64, &
+            8434.13153319_real64 & ! Scale height.
+        ]
+        real(real64), parameter :: expected_p2(*) = [ &
+            101325.0_real64, &
+            101312.987027_real64, &
+            101204.934342_real64, &
+            100130.725493_real64, &
+            89996.1885025_real64, &
+            101325.0_real64 * exp(-1.0_real64) & ! e-folding pressure at scale height.
+        ]
+
+        integer :: i
+        real(real64) :: p1, p2, z1
+
+        do i = 1, size(z2)
+            p1 = expected_p2(1)
+            z1 = z2(1)
+
+            p2 = p_by_hypsometric_equation(constant_g, constant_rd, p1, z1, tv, z2(i))
+            @assertEqual(expected_p2(i), p2, expected_p2(i) * relative_tolerance)
+
+            ! This function should work both ways. `z1` can be above or below `z2`.
+            p1 = expected_p2(size(expected_p2))
+            z1 = z2(size(z2))
+
+            p2 = p_by_hypsometric_equation(constant_g, constant_rd, p1, z1, tv, z2(i))
+            @assertEqual(expected_p2(i), p2, expected_p2(i) * relative_tolerance)
+        end do
+    end subroutine test_hypsometric_equation_family_by_known_values
+
+    @test
+    subroutine test_hypsometric_equation_family_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: p_by_hypsometric_equation
+        use funit
+
+        real(real64), parameter :: constant_g = 9.80665_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 5
+
+        integer :: i, j
+        real(real64) :: p1, p2, z1
+        real(real64), allocatable :: tv(:), z2(:)
+        real(real64), allocatable :: expected_p2(:, :)
+
+        call generate_test_data(tv, z2, expected_p2)
+
+        do i = 1, size(tv)
+            do j = 1, size(z2)
+                p1 = expected_p2(i, 1)
+                z1 = z2(1)
+
+                p2 = p_by_hypsometric_equation(constant_g, constant_rd, p1, z1, tv(i), z2(j))
+                @assertEqual(expected_p2(i, j), p2, spacing(expected_p2(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_p2(i, j), p2, ulp_tolerance)
+
+                ! This function should work both ways. `z1` can be above or below `z2`.
+                p1 = expected_p2(i, size(expected_p2, 2))
+                z1 = z2(size(z2))
+
+                p2 = p_by_hypsometric_equation(constant_g, constant_rd, p1, z1, tv(i), z2(j))
+                @assertEqual(expected_p2(i, j), p2, spacing(expected_p2(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_p2(i, j), p2, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(tv, z2, expected_p2)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: tv(:), z2(:)
+            real(real64), allocatable, intent(out) :: expected_p2(:, :)
+
+            real(real128), parameter :: constant_g_real128 = 9.80665_real128
+            real(real128), parameter :: constant_rd_real128 = 287.04_real128
+
+            real(real128), parameter :: p1_real128 = 101325.0_real128
+            real(real128), parameter :: z1_real128 = 0.0_real128
+
+            real(real128), parameter :: interval_t = 1.0_real128
+            real(real128), parameter :: interval_z = 1.0_real128
+            real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
+            real(real128), parameter :: range_z(2) = [0.0_real128, 10000.0_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: tv_real128(:), z2_real128(:)
+            real(real128), allocatable :: expected_p2_real128(:, :)
+
+            n = nint((range_t(2) - range_t(1)) / interval_t) + 1
+
+            allocate(tv_real128(n))
+            tv_real128(:) = [(range_t(1) + real(i - 1, real128) * interval_t, i = 1, n)]
+            tv = real(tv_real128, real64)
+
+            n = nint((range_z(2) - range_z(1)) / interval_z) + 1
+
+            allocate(z2_real128(n))
+            z2_real128(:) = [(range_z(1) + real(i - 1, real128) * interval_z, i = 1, n)]
+            z2 = real(z2_real128, real64)
+
+            allocate(expected_p2_real128(size(tv_real128), size(z2_real128)))
+
+            do i = 1, size(z2_real128)
+                expected_p2_real128(:, i) = &
+                    p1_real128 * exp(-(z2_real128(i) - z1_real128) * constant_g_real128 / (constant_rd_real128 * tv_real128(:)))
+            end do
+
+            expected_p2 = real(expected_p2_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_hypsometric_equation_family_by_typical_values
+
+    @test
+    subroutine test_poisson_equation_family_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: t_by_poisson_equation, &
+                                  theta_by_poisson_equation
+        use funit
+
+        real(real64), parameter :: constant_cpd = 1004.64_real64
+        real(real64), parameter :: constant_p0 = 100000.0_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: p(*) = [ &
+            constant_p0, &
+            92500.0_real64, &
+            85000.0_real64, &
+            70000.0_real64, &
+            50000.0_real64, &
+            40000.0_real64, &
+            30000.0_real64, &
+            25000.0_real64, &
+            20000.0_real64, &
+            15000.0_real64, &
+            10000.0_real64 &
+        ]
+        real(real64), parameter :: expected_theta = 323.15_real64
+        real(real64), parameter :: expected_t(*) = [ &
+            expected_theta, &
+            316.031497918_real64, &
+            308.487903492_real64, &
+            291.841102569_real64, &
+            265.091370294_real64, &
+            248.717884395_real64, &
+            229.092163183_real64, &
+            217.463823625_real64, &
+            204.032074241_real64, &
+            187.932401243_real64, &
+            167.374724259_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: t, theta
+
+        do i = 1, size(p)
+            t = t_by_poisson_equation(constant_cpd, constant_p0, constant_rd, expected_theta, p(i))
+            @assertEqual(expected_t(i), t, expected_t(i) * relative_tolerance)
+
+            theta = theta_by_poisson_equation(constant_cpd, constant_p0, constant_rd, t, p(i))
+            @assertEqual(expected_theta, theta, expected_theta * relative_tolerance)
+        end do
+    end subroutine test_poisson_equation_family_by_known_values
+
+    @test
+    subroutine test_poisson_equation_family_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: t_by_poisson_equation, &
+                                  theta_by_poisson_equation
+        use funit
+
+        real(real64), parameter :: constant_cpd = 1004.64_real64
+        real(real64), parameter :: constant_p0 = 100000.0_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 2
+
+        integer :: i, j
+        real(real64) :: t, theta
+        real(real64), allocatable :: p(:)
+        real(real64), allocatable :: expected_t(:, :), expected_theta(:)
+
+        call generate_test_data(p, expected_t, expected_theta)
+
+        do i = 1, size(p)
+            do j = 1, size(expected_theta)
+                t = t_by_poisson_equation(constant_cpd, constant_p0, constant_rd, expected_theta(j), p(i))
+                @assertEqual(expected_t(i, j), t, spacing(expected_t(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_t(i, j), t, ulp_tolerance)
+
+                theta = theta_by_poisson_equation(constant_cpd, constant_p0, constant_rd, expected_t(i, j), p(i))
+                @assertEqual(expected_theta(j), theta, spacing(expected_theta(j)) * ulp_tolerance)
+                call store_error_statistics(expected_theta(j), theta, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(p, expected_t, expected_theta)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: p(:)
+            real(real64), allocatable, intent(out) :: expected_t(:, :), expected_theta(:)
+
+            real(real128), parameter :: constant_cpd_real128 = 1004.64_real128
+            real(real128), parameter :: constant_p0_real128 = 100000.0_real128
+            real(real128), parameter :: constant_rd_real128 = 287.04_real128
+
+            real(real128), parameter :: interval_p = 1.0_real128
+            real(real128), parameter :: interval_t = 1.0_real128
+            real(real128), parameter :: range_p(2) = [10000.0_real128, constant_p0_real128]
+            real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: p_real128(:)
+            real(real128), allocatable :: expected_t_real128(:, :), expected_theta_real128(:)
+
+            n = nint((range_p(2) - range_p(1)) / interval_p) + 1
+
+            allocate(p_real128(n))
+            p_real128(:) = [(range_p(1) + real(i - 1, real128) * interval_p, i = 1, n)]
+            p = real(p_real128, real64)
+
+            n = nint((range_t(2) - range_t(1)) / interval_t) + 1
+
+            allocate(expected_theta_real128(n))
+            expected_theta_real128(:) = [(range_t(1) + real(i - 1, real128) * interval_t, i = 1, n)]
+            expected_theta = real(expected_theta_real128, real64)
+
+            allocate(expected_t_real128(size(p_real128), size(expected_theta_real128)))
+
+            do i = 1, size(expected_theta_real128)
+                expected_t_real128(:, i) = &
+                    expected_theta_real128(i) * &
+                    ((p_real128(:) / constant_p0_real128) ** (constant_rd_real128 / constant_cpd_real128))
+            end do
+
+            expected_t = real(expected_t_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_poisson_equation_family_by_typical_values
+
+    @test
+    subroutine test_omega_of_w_rho_and_vice_versa_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: omega_of_w_rho, &
+                                  w_of_omega_rho
+        use funit
+
+        real(real64), parameter :: constant_g = 9.80665_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real64), parameter :: rho = 1.2_real64
+        real(real64), parameter :: expected_omega(*) = [ &
+            0.0_real64, &
+            -117.6798_real64, &
+            -235.3596_real64, &
+            -353.0394_real64, &
+            -470.7192_real64, &
+            -588.399_real64 &
+        ]
+        real(real64), parameter :: expected_w(*) = [ &
+            0.0_real64, &
+            10.0_real64, &
+            20.0_real64, &
+            30.0_real64, &
+            40.0_real64, &
+            50.0_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: omega, w
+
+        do i = 1, size(expected_omega)
+            omega = omega_of_w_rho(constant_g, expected_w(i), rho)
+            @assertEqual(expected_omega(i), omega, spacing(expected_omega(i)) * ulp_tolerance)
+
+            w = w_of_omega_rho(constant_g, expected_omega(i), rho)
+            @assertEqual(expected_w(i), w, spacing(expected_w(i)) * ulp_tolerance)
+
+            ! This function should work both ways. `omega` and `w` can be positive or negative.
+            omega = omega_of_w_rho(constant_g, -expected_w(i), rho)
+            @assertEqual(-expected_omega(i), omega, spacing(-expected_omega(i)) * ulp_tolerance)
+
+            w = w_of_omega_rho(constant_g, -expected_omega(i), rho)
+            @assertEqual(-expected_w(i), w, spacing(-expected_w(i)) * ulp_tolerance)
+        end do
+    end subroutine test_omega_of_w_rho_and_vice_versa_by_known_values
+
+    @test
+    subroutine test_omega_of_w_rho_and_vice_versa_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: omega_of_w_rho, &
+                                  w_of_omega_rho
+        use funit
+
+        real(real64), parameter :: constant_g = 9.80665_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 3
+
+        integer :: i, j
+        real(real64) :: omega, w
+        real(real64), allocatable :: rho(:)
+        real(real64), allocatable :: expected_omega(:, :), expected_w(:)
+
+        call generate_test_data(rho, expected_omega, expected_w)
+
+        do i = 1, size(rho)
+            do j = 1, size(expected_w)
+                omega = omega_of_w_rho(constant_g, expected_w(j), rho(i))
+                @assertEqual(expected_omega(i, j), omega, spacing(expected_omega(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_omega(i, j), omega, ulp_tolerance)
+
+                w = w_of_omega_rho(constant_g, expected_omega(i, j), rho(i))
+                @assertEqual(expected_w(j), w, spacing(expected_w(j)) * ulp_tolerance)
+                call store_error_statistics(expected_w(j), w, ulp_tolerance)
+
+                ! This function should work both ways. `omega` and `w` can be positive or negative.
+                omega = omega_of_w_rho(constant_g, -expected_w(j), rho(i))
+                @assertEqual(-expected_omega(i, j), omega, spacing(-expected_omega(i, j)) * ulp_tolerance)
+                call store_error_statistics(-expected_omega(i, j), omega, ulp_tolerance)
+
+                w = w_of_omega_rho(constant_g, -expected_omega(i, j), rho(i))
+                @assertEqual(-expected_w(j), w, spacing(-expected_w(j)) * ulp_tolerance)
+                call store_error_statistics(-expected_w(j), w, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(rho, expected_omega, expected_w)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: rho(:)
+            real(real64), allocatable, intent(out) :: expected_omega(:, :), expected_w(:)
+
+            real(real128), parameter :: constant_g_real128 = 9.80665_real128
+
+            real(real128), parameter :: interval_rho = 0.01_real128
+            real(real128), parameter :: interval_w = 0.1_real128
+            real(real128), parameter :: range_rho(2) = [0.01_real128, 1.5_real128]
+            real(real128), parameter :: range_w(2) = [0.0_real128, 50.0_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: rho_real128(:)
+            real(real128), allocatable :: expected_omega_real128(:, :), expected_w_real128(:)
+
+            n = nint((range_rho(2) - range_rho(1)) / interval_rho) + 1
+
+            allocate(rho_real128(n))
+            rho_real128(:) = [(range_rho(1) + real(i - 1, real128) * interval_rho, i = 1, n)]
+            rho = real(rho_real128, real64)
+
+            n = nint((range_w(2) - range_w(1)) / interval_w) + 1
+
+            allocate(expected_w_real128(n))
+            expected_w_real128(:) = [(range_w(1) + real(i - 1, real128) * interval_w, i = 1, n)]
+            expected_w = real(expected_w_real128, real64)
+
+            allocate(expected_omega_real128(size(rho_real128), size(expected_w_real128)))
+
+            do i = 1, size(expected_w_real128)
+                expected_omega_real128(:, i) = -rho_real128(:) * constant_g_real128 * expected_w_real128(i)
+            end do
+
+            expected_omega = real(expected_omega_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_omega_of_w_rho_and_vice_versa_by_typical_values
+
+    @test
+    subroutine test_qv_of_sh_and_vice_versa_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: qv_of_sh, &
+                                  sh_of_qv
+        use funit
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: expected_qv(*) = [ &
+            0.0_real64, &
+            0.005_real64, &
+            0.01_real64, &
+            0.015_real64, &
+            0.02_real64, &
+            0.025_real64, &
+            0.03_real64, &
+            0.035_real64, &
+            0.04_real64 &
+        ]
+        real(real64), parameter :: expected_sh(*) = [ &
+            0.0_real64, &
+            0.00497512437811_real64, &
+            0.00990099009901_real64, &
+            0.0147783251232_real64, &
+            0.0196078431373_real64, &
+            0.0243902439024_real64, &
+            0.0291262135922_real64, &
+            0.0338164251208_real64, &
+            0.0384615384615_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: qv, sh
+
+        do i = 1, size(expected_qv)
+            qv = qv_of_sh(expected_sh(i))
+            @assertEqual(expected_qv(i), qv, expected_qv(i) * relative_tolerance)
+
+            sh = sh_of_qv(qv)
+            @assertEqual(expected_sh(i), sh, expected_sh(i) * relative_tolerance)
+        end do
+    end subroutine test_qv_of_sh_and_vice_versa_by_known_values
+
+    @test
+    subroutine test_qv_of_sh_and_vice_versa_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: qv_of_sh, &
+                                  sh_of_qv
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 2
+
+        integer :: i
+        real(real64) :: qv, sh
+        real(real64), allocatable :: expected_qv(:), expected_sh(:)
+
+        call generate_test_data(expected_qv, expected_sh)
+
+        do i = 1, size(expected_qv)
+            qv = qv_of_sh(expected_sh(i))
+            @assertEqual(expected_qv(i), qv, spacing(expected_qv(i)) * ulp_tolerance)
+            call store_error_statistics(expected_qv(i), qv, ulp_tolerance)
+
+            sh = sh_of_qv(qv)
+            @assertEqual(expected_sh(i), sh, spacing(expected_sh(i)) * ulp_tolerance)
+            call store_error_statistics(expected_sh(i), sh, ulp_tolerance)
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(expected_qv, expected_sh)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: expected_qv(:), expected_sh(:)
+
+            real(real128), parameter :: interval_q = 0.000001_real128
+            real(real128), parameter :: range_q(2) = [0.0_real128, 0.04_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: expected_qv_real128(:), expected_sh_real128(:)
+
+            n = nint((range_q(2) - range_q(1)) / interval_q) + 1
+
+            allocate(expected_qv_real128(n))
+            expected_qv_real128(:) = [(range_q(1) + real(i - 1, real128) * interval_q, i = 1, n)]
+            expected_qv = real(expected_qv_real128, real64)
+
+            allocate(expected_sh_real128(size(expected_qv_real128)))
+            expected_sh_real128(:) = expected_qv_real128(:) / (1.0_real128 + expected_qv_real128(:))
+            expected_sh = real(expected_sh_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_qv_of_sh_and_vice_versa_by_typical_values
+
+    @test
+    subroutine test_t_of_theta_rhod_qv_and_vice_versa_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: t_of_theta_rhod_qv, &
+                                  theta_of_t_rhod_qv
+        use funit
+
+        real(real64), parameter :: constant_cpd = 1004.64_real64
+        real(real64), parameter :: constant_p0 = 100000.0_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+        real(real64), parameter :: constant_rv = 461.52_real64
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: qv = 0.02_real64
+        real(real64), parameter :: rhod = 1.2_real64
+        real(real64), parameter :: expected_t(*) = [ &
+            223.15_real64, &
+            233.15_real64, &
+            243.15_real64, &
+            253.15_real64, &
+            263.15_real64, &
+            273.15_real64, &
+            283.15_real64, &
+            293.15_real64, &
+            303.15_real64, &
+            313.15_real64, &
+            323.15_real64 &
+        ]
+        real(real64), parameter :: expected_theta(*) = [ &
+            238.407973718_real64, &
+            245.991287517_real64, &
+            253.482206290_real64, &
+            260.885589838_real64, &
+            268.205861297_real64, &
+            275.447061415_real64, &
+            282.612894352_real64, &
+            289.706766573_real64, &
+            296.731820076_real64, &
+            303.690960945_real64, &
+            310.586884004_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: t, theta
+
+        do i = 1, size(expected_t)
+            t = t_of_theta_rhod_qv(constant_cpd, constant_p0, constant_rd, constant_rv, expected_theta(i), rhod, qv)
+            @assertEqual(expected_t(i), t, expected_t(i) * relative_tolerance)
+
+            theta = theta_of_t_rhod_qv(constant_cpd, constant_p0, constant_rd, constant_rv, expected_t(i), rhod, qv)
+            @assertEqual(expected_theta(i), theta, expected_theta(i) * relative_tolerance)
+        end do
+    end subroutine test_t_of_theta_rhod_qv_and_vice_versa_by_known_values
+
+    @test
+    subroutine test_t_of_theta_rhod_qv_and_vice_versa_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: t_of_theta_rhod_qv, &
+                                  theta_of_t_rhod_qv
+        use funit
+
+        real(real64), parameter :: constant_cpd = 1004.64_real64
+        real(real64), parameter :: constant_p0 = 100000.0_real64
+        real(real64), parameter :: constant_rd = 287.04_real64
+        real(real64), parameter :: constant_rv = 461.52_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 6
+
+        integer :: i, j, k
+        real(real64) :: t, theta
+        real(real64), allocatable :: qv(:), rhod(:)
+        real(real64), allocatable :: expected_t(:), expected_theta(:, :, :)
+
+        call generate_test_data(qv, rhod, expected_t, expected_theta)
+
+        do i = 1, size(qv)
+            do j = 1, size(rhod)
+                do k = 1, size(expected_t)
+                    t = t_of_theta_rhod_qv( &
+                        constant_cpd, constant_p0, constant_rd, constant_rv, expected_theta(i, j, k), rhod(j), qv(i))
+                    @assertEqual(expected_t(k), t, spacing(expected_t(k)) * ulp_tolerance)
+                    call store_error_statistics(expected_t(k), t, ulp_tolerance)
+
+                    theta = theta_of_t_rhod_qv( &
+                        constant_cpd, constant_p0, constant_rd, constant_rv, expected_t(k), rhod(j), qv(i))
+                    @assertEqual(expected_theta(i, j, k), theta, spacing(expected_theta(i, j, k)) * ulp_tolerance)
+                    call store_error_statistics(expected_theta(i, j, k), theta, ulp_tolerance)
+                end do
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(qv, rhod, expected_t, expected_theta)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: qv(:), rhod(:)
+            real(real64), allocatable, intent(out) :: expected_t(:), expected_theta(:, :, :)
+
+            real(real128), parameter :: constant_cpd_real128 = 1004.64_real128
+            real(real128), parameter :: constant_p0_real128 = 100000.0_real128
+            real(real128), parameter :: constant_rd_real128 = 287.04_real128
+            real(real128), parameter :: constant_rv_real128 = 461.52_real128
+            real(real128), parameter :: constant_cvd_real128 = constant_cpd_real128 - constant_rd_real128
+
+            real(real128), parameter :: interval_q = 0.0001_real128
+            real(real128), parameter :: interval_rho = 0.01_real128
+            real(real128), parameter :: interval_t = 1.0_real128
+            real(real128), parameter :: range_q(2) = [0.0_real128, 0.04_real128]
+            real(real128), parameter :: range_rho(2) = [0.01_real128, 1.5_real128]
+            real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
+
+            integer :: i, j, n
+            real(real128), allocatable :: qv_real128(:), rhod_real128(:)
+            real(real128), allocatable :: expected_t_real128(:), expected_theta_real128(:, :, :)
+
+            n = nint((range_q(2) - range_q(1)) / interval_q) + 1
+
+            allocate(qv_real128(n))
+            qv_real128(:) = [(range_q(1) + real(i - 1, real128) * interval_q, i = 1, n)]
+            qv = real(qv_real128, real64)
+
+            n = nint((range_rho(2) - range_rho(1)) / interval_rho) + 1
+
+            allocate(rhod_real128(n))
+            rhod_real128(:) = [(range_rho(1) + real(i - 1, real128) * interval_rho, i = 1, n)]
+            rhod = real(rhod_real128, real64)
+
+            n = nint((range_t(2) - range_t(1)) / interval_t) + 1
+
+            allocate(expected_t_real128(n))
+            expected_t_real128(:) = [(range_t(1) + real(i - 1, real128) * interval_t, i = 1, n)]
+            expected_t = real(expected_t_real128, real64)
+
+            allocate(expected_theta_real128(size(qv_real128), size(rhod_real128), size(expected_t_real128)))
+
+            do i = 1, size(expected_t_real128)
+                do j = 1, size(rhod_real128)
+                    expected_theta_real128(:, j, i) = &
+                        (expected_t_real128(i) ** (constant_cvd_real128 / constant_cpd_real128)) * &
+                        ((constant_p0_real128 / (rhod_real128(j) * constant_rd_real128 * &
+                        (1.0_real128 + constant_rv_real128 / constant_rd_real128 * qv_real128(:)))) ** &
+                        (constant_rd_real128 / constant_cpd_real128))
+                end do
+            end do
+
+            expected_theta = real(expected_theta_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_t_of_theta_rhod_qv_and_vice_versa_by_typical_values
+
+    @test
+    subroutine test_t_of_tm_qv_and_vice_versa_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: t_of_tm_qv, &
+                                  tm_of_t_qv
+        use funit
+
+        real(real64), parameter :: constant_rd = 287.04_real64
+        real(real64), parameter :: constant_rv = 461.52_real64
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: qv = 0.02_real64
+        real(real64), parameter :: expected_t(*) = [ &
+            223.15_real64, &
+            233.15_real64, &
+            243.15_real64, &
+            253.15_real64, &
+            263.15_real64, &
+            273.15_real64, &
+            283.15_real64, &
+            293.15_real64, &
+            303.15_real64, &
+            313.15_real64, &
+            323.15_real64 &
+        ]
+        real(real64), parameter :: expected_tm(*) = [ &
+            230.325877090_real64, &
+            240.647448997_real64, &
+            250.969020903_real64, &
+            261.290592809_real64, &
+            271.612164716_real64, &
+            281.933736622_real64, &
+            292.255308528_real64, &
+            302.576880435_real64, &
+            312.898452341_real64, &
+            323.220024247_real64, &
+            333.541596154_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: t, tm
+
+        do i = 1, size(expected_t)
+            t = t_of_tm_qv(constant_rd, constant_rv, expected_tm(i), qv)
+            @assertEqual(expected_t(i), t, expected_t(i) * relative_tolerance)
+
+            tm = tm_of_t_qv(constant_rd, constant_rv, t, qv)
+            @assertEqual(expected_tm(i), tm, expected_tm(i) * relative_tolerance)
+        end do
+    end subroutine test_t_of_tm_qv_and_vice_versa_by_known_values
+
+    @test
+    subroutine test_t_of_tm_qv_and_vice_versa_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: t_of_tm_qv, &
+                                  tm_of_t_qv
+        use funit
+
+        real(real64), parameter :: constant_rd = 287.04_real64
+        real(real64), parameter :: constant_rv = 461.52_real64
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 2
+
+        integer :: i, j
+        real(real64) :: t, tm
+        real(real64), allocatable :: qv(:)
+        real(real64), allocatable :: expected_t(:), expected_tm(:, :)
+
+        call generate_test_data(qv, expected_t, expected_tm)
+
+        do i = 1, size(qv)
+            do j = 1, size(expected_t)
+                t = t_of_tm_qv(constant_rd, constant_rv, expected_tm(i, j), qv(i))
+                @assertEqual(expected_t(j), t, spacing(expected_t(j)) * ulp_tolerance)
+                call store_error_statistics(expected_t(j), t, ulp_tolerance)
+
+                tm = tm_of_t_qv(constant_rd, constant_rv, expected_t(j), qv(i))
+                @assertEqual(expected_tm(i, j), tm, spacing(expected_tm(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_tm(i, j), tm, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(qv, expected_t, expected_tm)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: qv(:)
+            real(real64), allocatable, intent(out) :: expected_t(:), expected_tm(:, :)
+
+            real(real128), parameter :: constant_rd_real128 = 287.04_real128
+            real(real128), parameter :: constant_rv_real128 = 461.52_real128
+
+            real(real128), parameter :: interval_q = 0.0001_real128
+            real(real128), parameter :: interval_t = 1.0_real128
+            real(real128), parameter :: range_q(2) = [0.0_real128, 0.04_real128]
+            real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: qv_real128(:)
+            real(real128), allocatable :: expected_t_real128(:), expected_tm_real128(:, :)
+
+            n = nint((range_q(2) - range_q(1)) / interval_q) + 1
+
+            allocate(qv_real128(n))
+            qv_real128(:) = [(range_q(1) + real(i - 1, real128) * interval_q, i = 1, n)]
+            qv = real(qv_real128, real64)
+
+            n = nint((range_t(2) - range_t(1)) / interval_t) + 1
+
+            allocate(expected_t_real128(n))
+            expected_t_real128(:) = [(range_t(1) + real(i - 1, real128) * interval_t, i = 1, n)]
+            expected_t = real(expected_t_real128, real64)
+
+            allocate(expected_tm_real128(size(qv_real128), size(expected_t_real128)))
+
+            do i = 1, size(expected_t_real128)
+                expected_tm_real128(:, i) = &
+                    expected_t_real128(i) * (1.0_real128 + constant_rv_real128 / constant_rd_real128 * qv_real128(:))
+            end do
+
+            expected_tm = real(expected_tm_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_t_of_tm_qv_and_vice_versa_by_typical_values
+
+    @test
+    subroutine test_tm_of_tv_qv_and_vice_versa_by_known_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: tm_of_tv_qv, &
+                                  tv_of_tm_qv
+        use funit
+
+        ! Significant figures and relative tolerance to pass the test.
+        integer, parameter :: significant_figures = 12
+        real(real64), parameter :: relative_tolerance = 5.0_real64 * (10.0_real64 ** real(-significant_figures, real64))
+        real(real64), parameter :: qv = 0.02_real64
+        real(real64), parameter :: expected_tm(*) = [ &
+            230.325877090_real64, &
+            240.647448997_real64, &
+            250.969020903_real64, &
+            261.290592809_real64, &
+            271.612164716_real64, &
+            281.933736622_real64, &
+            292.255308528_real64, &
+            302.576880435_real64, &
+            312.898452341_real64, &
+            323.220024247_real64, &
+            333.541596154_real64 &
+        ]
+        real(real64), parameter :: expected_tv(*) = [ &
+            225.809683422_real64, &
+            235.928871566_real64, &
+            246.048059709_real64, &
+            256.167247852_real64, &
+            266.286435996_real64, &
+            276.405624139_real64, &
+            286.524812282_real64, &
+            296.644000426_real64, &
+            306.763188570_real64, &
+            316.882376713_real64, &
+            327.001564857_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: tm, tv
+
+        do i = 1, size(expected_tm)
+            tm = tm_of_tv_qv(expected_tv(i), qv)
+            @assertEqual(expected_tm(i), tm, expected_tm(i) * relative_tolerance)
+
+            tv = tv_of_tm_qv(expected_tm(i), qv)
+            @assertEqual(expected_tv(i), tv, expected_tv(i) * relative_tolerance)
+        end do
+    end subroutine test_tm_of_tv_qv_and_vice_versa_by_known_values
+
+    @test
+    subroutine test_tm_of_tv_qv_and_vice_versa_by_typical_values()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: tm_of_tv_qv, &
+                                  tv_of_tm_qv
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 2
+
+        integer :: i, j
+        real(real64) :: tm, tv
+        real(real64), allocatable :: qv(:)
+        real(real64), allocatable :: expected_tm(:), expected_tv(:, :)
+
+        call generate_test_data(qv, expected_tm, expected_tv)
+
+        do i = 1, size(qv)
+            do j = 1, size(expected_tm)
+                tm = tm_of_tv_qv(expected_tv(i, j), qv(i))
+                @assertEqual(expected_tm(j), tm, spacing(expected_tm(j)) * ulp_tolerance)
+                call store_error_statistics(expected_tm(j), tm, ulp_tolerance)
+
+                tv = tv_of_tm_qv(expected_tm(j), qv(i))
+                @assertEqual(expected_tv(i, j), tv, spacing(expected_tv(i, j)) * ulp_tolerance)
+                call store_error_statistics(expected_tv(i, j), tv, ulp_tolerance)
+            end do
+        end do
+    contains
+        ! Generate test data in quadruple precision, truncate back to double precision at last, and regard them as true answers.
+        subroutine generate_test_data(qv, expected_tm, expected_tv)
+            use, intrinsic :: iso_fortran_env, only: real64, real128
+
+            real(real64), allocatable, intent(out) :: qv(:)
+            real(real64), allocatable, intent(out) :: expected_tm(:), expected_tv(:, :)
+
+            real(real128), parameter :: interval_q = 0.0001_real128
+            real(real128), parameter :: interval_t = 1.0_real128
+            real(real128), parameter :: range_q(2) = [0.0_real128, 0.04_real128]
+            real(real128), parameter :: range_t(2) = [223.15_real128, 323.15_real128]
+
+            integer :: i, n
+            real(real128), allocatable :: qv_real128(:)
+            real(real128), allocatable :: expected_tm_real128(:), expected_tv_real128(:, :)
+
+            n = nint((range_q(2) - range_q(1)) / interval_q) + 1
+
+            allocate(qv_real128(n))
+            qv_real128(:) = [(range_q(1) + real(i - 1, real128) * interval_q, i = 1, n)]
+            qv = real(qv_real128, real64)
+
+            n = nint((range_t(2) - range_t(1)) / interval_t) + 1
+
+            allocate(expected_tm_real128(n))
+            expected_tm_real128(:) = [(range_t(1) + real(i - 1, real128) * interval_t, i = 1, n)]
+            expected_tm = real(expected_tm_real128, real64)
+
+            allocate(expected_tv_real128(size(qv_real128), size(expected_tm_real128)))
+
+            do i = 1, size(expected_tm_real128)
+                expected_tv_real128(:, i) = &
+                    expected_tm_real128(i) / (1.0_real128 + qv_real128(:))
+            end do
+
+            expected_tv = real(expected_tv_real128, real64)
+        end subroutine generate_test_data
+    end subroutine test_tm_of_tv_qv_and_vice_versa_by_typical_values
+
+    @test
+    subroutine test_reverse_by_empty_arrays()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: reverse
+        use funit
+
+        real(real64), allocatable :: array(:), reversed(:)
+
+        allocate(array(0))
+
+        reversed = reverse(array)
+
+        @assertTrue(allocated(reversed))
+        @assertEqual(0, size(reversed))
+    end subroutine test_reverse_by_empty_arrays
+
+    @test
+    subroutine test_reverse_by_single_element_arrays()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: reverse
+        use funit
+
+        real(real64), parameter :: expected(*) = [ &
+            1.0_real64 &
+        ]
+
+        real(real64), allocatable :: array(:), reversed(:)
+
+        allocate(array(1))
+
+        array(1) = 1.0_real64
+        reversed = reverse(array)
+
+        @assertTrue(allocated(reversed))
+        @assertEqual(expected, reversed)
+    end subroutine test_reverse_by_single_element_arrays
+
+    @test
+    subroutine test_reverse_by_multiple_element_arrays()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_procedures, only: reverse
+        use funit
+
+        real(real64), parameter :: expected(*) = [ &
+            5.0_real64, &
+            4.0_real64, &
+            3.0_real64, &
+            2.0_real64, &
+            1.0_real64 &
+        ]
+
+        real(real64), allocatable :: array(:), reversed(:)
+
+        allocate(array(5))
+
+        array(1) = 1.0_real64
+        array(2) = 2.0_real64
+        array(3) = 3.0_real64
+        array(4) = 4.0_real64
+        array(5) = 5.0_real64
+        reversed = reverse(array)
+
+        @assertTrue(allocated(reversed))
+        @assertEqual(expected, reversed)
+    end subroutine test_reverse_by_multiple_element_arrays
+
+    @test
+    subroutine test_sec_to_hour_min_sec_by_positive_time()
+        use, intrinsic :: iso_fortran_env, only: int32
+        use dyn_procedures, only: sec_to_hour_min_sec
+        use funit
+
+        integer(int32) :: sec
+        integer(int32) :: hour_min_sec(3)
+        integer(int32) :: expected(3)
+
+        sec = 0_int32
+        expected(:) = [0_int32, 0_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        ! Test if carries are performed correctly from `sec` to `min`.
+
+        sec = 59_int32
+        expected(:) = [0_int32, 0_int32, 59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 60_int32
+        expected(:) = [0_int32, 1_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 61_int32
+        expected(:) = [0_int32, 1_int32, 1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 119_int32
+        expected(:) = [0_int32, 1_int32, 59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 120_int32
+        expected(:) = [0_int32, 2_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 121_int32
+        expected(:) = [0_int32, 2_int32, 1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        ! Test if carries are performed correctly from `min` to `hour`.
+
+        sec = 3599_int32
+        expected(:) = [0_int32, 59_int32, 59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 3600_int32
+        expected(:) = [1_int32, 0_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 3601_int32
+        expected(:) = [1_int32, 0_int32, 1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 7199_int32
+        expected(:) = [1_int32, 59_int32, 59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 7200_int32
+        expected(:) = [2_int32, 0_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = 7201_int32
+        expected(:) = [2_int32, 0_int32, 1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+    end subroutine test_sec_to_hour_min_sec_by_positive_time
+
+    @test
+    subroutine test_sec_to_hour_min_sec_by_negative_time()
+        use, intrinsic :: iso_fortran_env, only: int32
+        use dyn_procedures, only: sec_to_hour_min_sec
+        use funit
+
+        integer(int32) :: sec
+        integer(int32) :: hour_min_sec(3)
+        integer(int32) :: expected(3)
+
+        sec = 0_int32
+        expected(:) = [0_int32, 0_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        ! Test if carries are performed correctly from `sec` to `min`.
+
+        sec = -59_int32
+        expected(:) = [0_int32, 0_int32, -59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -60_int32
+        expected(:) = [0_int32, -1_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -61_int32
+        expected(:) = [0_int32, -1_int32, -1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -119_int32
+        expected(:) = [0_int32, -1_int32, -59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -120_int32
+        expected(:) = [0_int32, -2_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -121_int32
+        expected(:) = [0_int32, -2_int32, -1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        ! Test if carries are performed correctly from `min` to `hour`.
+
+        sec = -3599_int32
+        expected(:) = [0_int32, -59_int32, -59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -3600_int32
+        expected(:) = [-1_int32, 0_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -3601_int32
+        expected(:) = [-1_int32, 0_int32, -1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -7199_int32
+        expected(:) = [-1_int32, -59_int32, -59_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -7200_int32
+        expected(:) = [-2_int32, 0_int32, 0_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        sec = -7201_int32
+        expected(:) = [-2_int32, 0_int32, -1_int32]
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+    end subroutine test_sec_to_hour_min_sec_by_negative_time
+
+    @test
+    subroutine test_sec_to_hour_min_sec_by_extreme_time()
+        use, intrinsic :: iso_fortran_env, only: int32
+        use dyn_procedures, only: sec_to_hour_min_sec
+        use funit
+
+        integer(int32) :: sec
+        integer(int32) :: hour_min_sec(3)
+        integer(int32) :: expected(3)
+
+        ! Maximum value of a 32-bit signed integer: 2147483647.
+        sec = huge(0_int32)
+        expected(:) = [596523_int32, 14_int32, 7_int32] ! About 68 years.
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+
+        ! Minimum value of a 32-bit signed integer: -2147483647. It it not -2147483648
+        ! because according to the Fortran standard, numbers have symmetric ranges.
+        sec = -huge(0_int32)
+        expected(:) = [-596523_int32, -14_int32, -7_int32] ! About 68 years.
+        hour_min_sec(:) = sec_to_hour_min_sec(sec)
+        @assertEqual(expected, hour_min_sec)
+    end subroutine test_sec_to_hour_min_sec_by_extreme_time
+end module test_dyn_procedures
