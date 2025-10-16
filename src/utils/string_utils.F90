@@ -97,7 +97,7 @@ CONTAINS
    !  0 success
    ! -1 error: no trailing digits in string
    ! -2 error: incremented integer is out of range
-   integer pure function increment_string(s, inc)
+   integer function increment_string(s, inc)
        integer,          intent(in)    :: inc ! value to increment string (may be negative)
        character(len=*), intent(inout) :: s   ! string with trailing digits
 

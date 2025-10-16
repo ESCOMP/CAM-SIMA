@@ -431,25 +431,26 @@ contains
       end if
 
       allocate (file%ps_in(1)%data(pcols), stat=astat)
+      ! TODO change to check_allocate hplin 10/16/25
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(1)%data array; error = ', astat
-        call endrun
+        call endrun('trcdata_init: failed to allocate file%ps_in(1)%data array')
       end if
       allocate (file%ps_in(2)%data(pcols), stat=astat)
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(2)%data array; error = ', astat
-        call endrun
+        call endrun('trcdata_init: failed to allocate file%ps_in(2)%data array')
       end if
       if (file%fill_in_months) then
         allocate (file%ps_in(3)%data(pcols), stat=astat)
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(3)%data array; error = ', astat
-          call endrun
+          call endrun('trcdata_init: failed to allocate file%ps_in(3)%data array')
         end if
         allocate (file%ps_in(4)%data(pcols), stat=astat)
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate file%ps_in(4)%data array; error = ', astat
-          call endrun
+          call endrun('trcdata_init: failed to allocate file%ps_in(4)%data array')
         end if
       end if
     end if
@@ -484,7 +485,7 @@ contains
       end if
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate flds(f)%data array; error = ', astat
-        call endrun
+        call endrun('trcdata_init: failed to allocate flds(f)%data array')
       end if
 
       if (flds(f)%srf_fld) then
@@ -494,7 +495,7 @@ contains
       end if
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(1)%data array; error = ', astat
-        call endrun
+        call endrun('trcdata_init: failed to allocate flds(f)%input(1)%data array')
       end if
       if (flds(f)%srf_fld) then
         allocate (flds(f)%input(2)%data(pcols, 1), stat=astat)
@@ -503,7 +504,7 @@ contains
       end if
       if (astat /= 0) then
         write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(2)%data array; error = ', astat
-        call endrun
+        call endrun('trcdata_init: failed to allocate flds(f)%input(2)%data array')
       end if
 
       if (file%fill_in_months) then
@@ -514,7 +515,7 @@ contains
         end if
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(3)%data array; error = ', astat
-          call endrun
+          call endrun('trcdata_init: failed to allocate flds(f)%input(3)%data array')
         end if
         if (flds(f)%srf_fld) then
           allocate (flds(f)%input(4)%data(pcols, 1), stat=astat)
@@ -523,7 +524,7 @@ contains
         end if
         if (astat /= 0) then
           write (iulog, *) 'trcdata_init: failed to allocate flds(f)%input(4)%data array; error = ', astat
-          call endrun
+          call endrun('trcdata_init: failed to allocate flds(f)%input(4)%data array')
         end if
       end if
 
@@ -800,10 +801,7 @@ contains
     ! state variables used for interpolation can be directly
     ! retrieved from physics state here so it does not have to be
     ! passed from every physics scheme for optional interpolation.
-    use physics_types, only: pmid
-    use physics_types, only: pint
-    use physics_types, only: phis
-    use physics_types, only: zi
+    use physics_types, only: phys_state
 
     type(trfile), intent(inout) :: file
     type(trfld),  intent(inout) :: flds(:)
@@ -841,10 +839,10 @@ contains
     call interpolate_trcdata(ncol = ncol, &
                              pver = pver, &
                              pverp= pverp, &
-                             pmid = pmid(:ncol,:pver), &
-                             pint = pint(:ncol,:pverp), &
-                             phis = phis(:ncol), &
-                             zi   = zi(:ncol, :pverp), &
+                             pmid = phys_state%pmid(:ncol,:pver), &
+                             pint = phys_state%pint(:ncol,:pverp), &
+                             phis = phys_state%phis(:ncol), &
+                             zi   = phys_state%zi(:ncol, :pverp), &
                              flds = flds(:), &
                              file = file)
     call t_stopf('interpolate_trcdata')
@@ -992,7 +990,7 @@ contains
     !           yyyy-dd-mm
     !-----------------------------------------------------------------------
 
-    use string_utils, only: incstr
+    use string_utils, only: increment_string
     use shr_file_mod, only: shr_file_getunit, shr_file_freeunit
 
     character(len=*), intent(in)    :: filename ! present dynamical dataset filename
@@ -1032,11 +1030,11 @@ contains
       if (fn_new(pos - 2:) == '.nc') then
         pos = pos - 3
       end if
-      istat = incstr(fn_new(:pos), 1)
+      istat = increment_string(fn_new(:pos), 1)
       if (istat /= 0) then
-        write (iulog, *) 'incr_flnm: incstr returned ', istat
+        write (iulog, *) 'incr_flnm: increment_string returned ', istat
         write (iulog, *) '           while trying to decrement ', trim(fn_new)
-        call endrun
+        call endrun('incr_flnm: increment_string failure')
       end if
 
     else
@@ -1150,6 +1148,7 @@ contains
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
   subroutine find_times(itms, fids, time, file, datatimem, datatimep, times_found)
+    use cam_abortutils, only: check_allocate
 
     type(trfile), intent(in) :: file
     real(r8), intent(out) :: datatimem, datatimep
@@ -1168,27 +1167,28 @@ contains
 
     real(r8), allocatable, dimension(:):: all_data_times
 
+    character(len=512) :: errmsg
+    character(len=*), parameter :: subname = "find_times"
+
     curr_tsize = size(file%curr_data_times)
     next_tsize = 0
     if (associated(file%next_data_times)) next_tsize = size(file%next_data_times)
 
     all_tsize = curr_tsize + next_tsize
 
-    allocate (all_data_times(all_tsize), stat=astat)
-    if (astat /= 0) then
-      write (iulog, *) 'find_times: failed to allocate all_data_times array; error = ', astat
-      call endrun
-    end if
+    allocate (all_data_times(all_tsize), stat=astat, errmsg=errmsg)
+    call check_allocate(astat, subname, 'all_data_times(all_tsize)',                   &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     all_data_times(:curr_tsize) = file%curr_data_times(:)
     if (next_tsize > 0) all_data_times(curr_tsize + 1:all_tsize) = file%next_data_times(:)
 
     if (.not. file%cyclical) then
       if (all(all_data_times(:) > time)) then
-        write (iulog, *) 'FIND_TIMES: ALL data times are after ', time
-        write (iulog, *) 'FIND_TIMES: file: ', trim(file%curr_filename)
-        write (iulog, *) 'FIND_TIMES: time: ', time
-        call endrun('find_times: all(all_data_times(:) > time) '//trim(file%curr_filename))
+        write (iulog, *) subname//': ALL data times are after ', time
+        write (iulog, *) subname//': file: ', trim(file%curr_filename)
+        write (iulog, *) subname//': time: ', time
+        call endrun(subname//': all(all_data_times(:) > time) '//trim(file%curr_filename))
       end if
 
       ! find bracketing times
@@ -1227,7 +1227,7 @@ contains
 
     if (.not. times_found) then
       if (masterproc) then
-        write (iulog, *) 'FIND_TIMES: Failed to find dates bracketing desired time =', time
+        write (iulog, *) subname//': Failed to find dates bracketing desired time =', time
         write (iulog, *) 'filename = '//trim(file%curr_filename)
         write (iulog, *) ' datatimem = ', file%datatimem
         write (iulog, *) ' datatimep = ', file%datatimep
@@ -1237,8 +1237,8 @@ contains
 
     deallocate (all_data_times, stat=astat)
     if (astat /= 0) then
-      write (iulog, *) 'find_times: failed to deallocate all_data_times array; error = ', astat
-      call endrun
+      write (iulog, *) subname//': failed to deallocate all_data_times array; error = ', astat
+      call endrun(subname//': failed to deallocate all_data_times array')
     end if
 
     if (.not. file%cyclical) then
@@ -1439,18 +1439,19 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use phys_grid, only: get_rlat_all_p, get_rlon_all_p
+    use physics_grid, only: get_rlat_all_p, get_rlon_all_p
     use physconst, only: pi
+    use cam_abortutils, only: check_allocate
 
     type(file_desc_t), intent(in) :: fid
     type(var_desc_t), intent(in) :: vid
     integer, intent(in) :: strt(:), cnt(:), order(2)
-    real(r8), intent(out)  :: loc_arr(:, :)
+    real(r8), intent(out)  :: loc_arr(:) ! (ncol)
     type(trfile), intent(in) :: file
 
     real(r8) :: to_lats(pcols), to_lons(pcols)
-    real(r8), allocatable, target :: wrk2d(:, :)
-    real(r8), pointer :: wrk2d_in(:, :)
+    real(r8), allocatable, target :: wrk2d(:, :) ! (cnt(1), cnt(2))
+    real(r8), pointer :: wrk2d_in(:, :) ! (file%nlon, file%nlat)
 
     integer :: ierr, ncols
     real(r8), parameter :: zero = 0_r8, twopi = 2_r8*pi
@@ -1458,19 +1459,19 @@ contains
     integer :: lons(pcols), lats(pcols)
     real(r8) :: file_lats(file%nlat)
 
+    character(len=512) :: errmsg
+    character(len=*), parameter :: subname = "read_2d_trc"
+
     nullify (wrk2d_in)
-    allocate (wrk2d(cnt(1), cnt(2)), stat=ierr)
-    if (ierr /= 0) then
-      write (iulog, *) 'read_2d_trc: wrk2d allocation error = ', ierr
-      call endrun
-    end if
+    allocate (wrk2d(cnt(1), cnt(2)), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'wrk2d(cnt(1), cnt(2))', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     if (order(1) /= 1 .or. order(2) /= 2 .or. cnt(1) /= file%nlon .or. cnt(2) /= file%nlat) then
       allocate (wrk2d_in(file%nlon, file%nlat), stat=ierr)
-      if (ierr /= 0) then
-        write (iulog, *) 'read_2d_trc: wrk2d_in allocation error = ', ierr
-        call endrun
-      end if
+
+      call check_allocate(ierr, subname, 'wrk2d_in(file%nlon, file%nlat)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
     end if
 
     ierr = pio_get_var(fid, vid, strt, cnt, wrk2d)
@@ -1551,15 +1552,17 @@ contains
 
 !------------------------------------------------------------------------
 
+  ! Read zonal average data
   subroutine read_za_trc(fid, vid, loc_arr, strt, cnt, file, order)
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use physics_grid, only: get_rlat_all_p
+    use cam_abortutils, only: check_allocate
 
     type(file_desc_t), intent(in) :: fid
     type(var_desc_t), intent(in) :: vid
     integer, intent(in) :: strt(:), cnt(:)
     integer, intent(in) :: order(2)
-    real(r8), intent(out):: loc_arr(:, :, :)
+    real(r8), intent(out):: loc_arr(:, :)
     type(trfile), intent(in) :: file
 
     type(interp_type) :: lat_wgts
@@ -1567,20 +1570,19 @@ contains
     real(r8), allocatable, target :: wrk2d(:, :)
     real(r8), pointer :: wrk2d_in(:, :)
     integer :: k, ierr, ncols
+    character(len=512) :: errmsg
+    character(len=*), parameter :: subname = "read_za_trc"
 
     nullify (wrk2d_in)
-    allocate (wrk2d(cnt(1), cnt(2)), stat=ierr)
-    if (ierr /= 0) then
-      write (iulog, *) 'read_2d_trc: wrk2d allocation error = ', ierr
-      call endrun
-    end if
+    allocate (wrk2d(cnt(1), cnt(2)), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'wrk2d(cnt(1), cnt(2))', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     if (order(1) /= 1 .or. order(2) /= 2 .or. cnt(1) /= file%nlat .or. cnt(2) /= file%nlev) then
-      allocate (wrk2d_in(file%nlat, file%nlev), stat=ierr)
-      if (ierr /= 0) then
-        write (iulog, *) 'read_2d_trc: wrk2d_in allocation error = ', ierr
-        call endrun
-      end if
+      allocate (wrk2d_in(file%nlat, file%nlev), stat=ierr, errmsg=errmsg)
+
+      call check_allocate(ierr, subname, 'wrk2d_in(file%nlat, file%nlev)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
     end if
 
     ierr = pio_get_var(fid, vid, strt, cnt, wrk2d)
@@ -1622,7 +1624,7 @@ contains
     logical :: found
 
     call cam_read_field(varname=varname, ncid=ncid, &
-                        field=data, readvar=found, &
+                        field=data(:pcols), readvar=found, &
                         gridname='physgrid', &
                         timelevel=recno)
 
@@ -1649,10 +1651,10 @@ contains
     logical :: found
 
     call cam_read_field(varname=varname, ncid=ncid, &
-                        field=data, readvar=found, &
+                        field=data(:pcols,:nlevs), readvar=found, &
                         gridname='physgrid', &
                         timelevel=recno, &
-                        dim3name=vrt_coord_name, dim3_bnds=nlevs)
+                        dim3name=vrt_coord_name, dim3_bnds=[1, nlevs])
 
     if (.not. found) then
       call endrun('tracer_data::read_physgrid_3d: Could not find '//trim(varname)//' field in input datafile')
@@ -1673,7 +1675,7 @@ contains
     type(file_desc_t), intent(in) :: fid
     type(var_desc_t), intent(in) :: vid
     integer, intent(in) :: strt(:), cnt(:), order(3)
-    real(r8), intent(out)  :: loc_arr(:, :, :)
+    real(r8), intent(out)  :: loc_arr(:, :)
 
     type(trfile), intent(in) :: file
 
@@ -1688,12 +1690,13 @@ contains
     real(r8), parameter :: zero = 0_r8, twopi = 2_r8*pi
     type(interp_type) :: lon_wgts, lat_wgts
 
-    loc_arr(:, :, :) = 0._r8
+    loc_arr(:, :) = 0._r8
     nullify (wrk3d_in)
     allocate (wrk3d(cnt(1), cnt(2), cnt(3)), stat=ierr)
+    ! TODO change to check_allocate
     if (ierr /= 0) then
       write (iulog, *) 'read_3d_trc: wrk3d allocation error = ', ierr
-      call endrun
+      call endrun('read_3d_trc: wrk3d allocation error')
     end if
 
     ierr = pio_get_var(fid, vid, strt, cnt, wrk3d)
@@ -1703,7 +1706,7 @@ contains
       allocate (wrk3d_in(file%nlon, file%nlat, file%nlev), stat=ierr)
       if (ierr /= 0) then
         write (iulog, *) 'read_3d_trc: wrk3d allocation error = ', ierr
-        call endrun
+        call endrun('read_3d_trc: wrk3d allocation error')
       end if
       wrk3d_in = reshape(wrk3d(:, :, :), (/file%nlon, file%nlat, file%nlev/), order=order)
       deallocate (wrk3d)
@@ -1756,7 +1759,7 @@ contains
     end if
     if (astat /= 0) then
       write(iulog, *) 'read_3d_trc: failed to deallocate wrk3d array; error = ', astat
-      call endrun
+      call endrun('read_3d_trc: failed to deallocate wrk3d array')
     end if
 
     ! FV only: commented out for SIMA
@@ -1785,13 +1788,13 @@ contains
 
     real(r8) :: fact1, fact2
     real(r8) :: deltat
-    integer :: f, nflds, ncol, i, k
+    integer :: f, nflds, i, k
     real(r8) :: ps(pcols)
     real(r8) :: datain(pcols, file%nlev)
     real(r8) :: pin(pcols, file%nlev)
     real(r8)            :: model_z(pverp)
     real(r8), parameter :: m2km = 1.e-3_r8
-    real(r8), pointer :: data_out3d(:, :, :)
+    real(r8), pointer :: data_out3d(:, :)
     real(r8), pointer :: data_out(:, :)
     real(r8) :: data_col(pver)
 
@@ -1802,7 +1805,6 @@ contains
       fact1 = (file%datatimes(3) - file%datatimem)/deltat
       fact2 = 1._r8 - fact1
 
-      ncol = pcols ! active columns
       if (file%has_ps) then
         file%ps_in(1)%data(:ncol) = fact1*file%ps_in(1)%data(:ncol) + fact2*file%ps_in(3)%data(:ncol)
       end if
@@ -1814,7 +1816,6 @@ contains
       fact1 = (file%datatimes(4) - file%datatimep)/deltat
       fact2 = 1._r8 - fact1
 
-      ncol = pcols ! active columns
       if (file%has_ps) then
         file%ps_in(2)%data(:ncol) = fact1*file%ps_in(2)%data(:ncol) + fact2*file%ps_in(4)%data(:ncol)
       end if
@@ -1860,7 +1861,6 @@ contains
       data_out3d => flds(f)%data(:, :)
       data_out => data_out3d(:, :)
 
-      ncol = pcols ! active columns
       if (file%alt_data) then
         if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
           datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :)
@@ -1983,22 +1983,25 @@ contains
   end subroutine get_dimension
 
   subroutine set_cycle_indices(fileid, cyc_ndx_beg, cyc_ndx_end, cyc_yr)
+    use cam_abortutils, only: check_allocate
+
     type(file_desc_t), intent(inout)  :: fileid
     integer, intent(out) :: cyc_ndx_beg
     integer, intent(out) :: cyc_ndx_end
     integer, intent(in)  :: cyc_yr
 
+    character(len=512) :: errmsg
+    character(len=*), parameter :: subname = "set_cycle_indices"
+
     integer, allocatable, dimension(:) :: dates
-    integer :: timesize, i, astat, year, ierr
+    integer :: timesize, i, errflg, year, ierr
     type(var_desc_T) :: dateid
     call get_dimension(fileid, 'time', timesize)
     cyc_ndx_beg = -1
 
-    allocate (dates(timesize), stat=astat)
-    if (astat /= 0) then
-      write (*, *) 'set_cycle_indices: failed to allocate dates array; error = ', astat
-      call endrun
-    end if
+    allocate (dates(timesize), stat=errflg, errmsg=errmsg)
+    call check_allocate(errflg, subname, 'dates(timesize)',                   &
+                                 file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     ierr = pio_inq_varid(fileid, 'date', dateid)
     ierr = pio_get_var(fileid, dateid, dates)
@@ -2012,14 +2015,13 @@ contains
         cyc_ndx_end = i
       end if
     end do
-    deallocate (dates, stat=astat)
-    if (astat /= 0) then
-      write (*, *) 'set_cycle_indices: failed to deallocate dates array; error = ', astat
-      call endrun
+    deallocate (dates, stat=errflg)
+    if (errflg /= 0) then
+      call endrun(subname // ': failed to deallocate dates array')
     end if
     if (cyc_ndx_beg < 0) then
-      write (*, *) 'set_cycle_indices: cycle year not found : ', cyc_yr
-      call endrun('set_cycle_indices: cycle year not found')
+      write (*, *) subname // ': cycle year not found : ', cyc_yr
+      call endrun(subname // ': cycle year not found')
     end if
 
   end subroutine set_cycle_indices
@@ -2027,6 +2029,7 @@ contains
   subroutine open_trc_datafile(fname, path, piofile, times, cyc_ndx_beg, cyc_ndx_end, cyc_yr)
     use ioFileMod,     only: cam_get_file
     use cam_pio_utils, only: cam_pio_openfile
+    use cam_abortutils, only: check_allocate
 
     character(*),      intent(in)    :: fname
     character(*),      intent(in)    :: path
@@ -2041,9 +2044,12 @@ contains
     integer :: year, month, day, i, timesize
     integer :: dateid, secid
     integer, allocatable, dimension(:) :: dates, datesecs
-    integer :: astat, ierr
+    integer :: ierr
     logical :: need_first_ndx
     integer :: err_handling
+
+    character(len=512) :: errmsg
+    character(len=*), parameter :: subname = "open_trc_datafile"
 
     if (len_trim(path) == 0) then
       filepath = trim(fname)
@@ -2066,22 +2072,18 @@ contains
         call endrun('open_trc_datafile: failed to deallocate data array')
       end if
     end if
-    allocate (times(timesize), stat=ierr)
-    if (ierr /= 0) then
-      write (iulog, *) 'open_trc_datafile: data allocation error = ', ierr
-      call endrun('open_trc_datafile: failed to allocate data array')
-    end if
 
-    allocate (dates(timesize), stat=astat)
-    if (astat /= 0) then
-      if (masterproc) write (iulog, *) 'open_trc_datafile: failed to allocate dates array; error = ', astat
-      call endrun
-    end if
-    allocate (datesecs(timesize), stat=astat)
-    if (astat /= 0) then
-      if (masterproc) write (iulog, *) 'open_trc_datafile: failed to allocate datesec array; error = ', astat
-      call endrun
-    end if
+    allocate (times(timesize), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'times(timesize)',                   &
+                              file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+    allocate (dates(timesize), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'dates(timesize)',                   &
+                              file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+    allocate (datesecs(timesize), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'datesecs(timesize)',                   &
+                              file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     ierr = pio_inq_varid(piofile, 'date', dateid)
     call pio_seterrorhandling(piofile, PIO_BCAST_ERROR, oldmethod=err_handling)
@@ -2115,27 +2117,28 @@ contains
       end if
     end do
 
-    deallocate (dates, stat=astat)
-    if (astat /= 0) then
-      if (masterproc) write (iulog, *) 'open_trc_datafile: failed to deallocate dates array; error = ', astat
-      call endrun
+    deallocate (dates, stat=ierr)
+    if (ierr /= 0) then
+      if (masterproc) write (iulog, *) subname //': failed to deallocate dates array; error = ', ierr
+      call endrun(subname //': failed to deallocate dates array')
     end if
-    deallocate (datesecs, stat=astat)
-    if (astat /= 0) then
-      if (masterproc) write (iulog, *) 'open_trc_datafile: failed to deallocate datesec array; error = ', astat
-      call endrun
+    deallocate (datesecs, stat=ierr)
+    if (ierr /= 0) then
+      if (masterproc) write (iulog, *) subname //': failed to deallocate datesec array; error = ', ierr
+      call endrun(subname //': failed to deallocate datesec array')
     end if
 
     if (present(cyc_yr) .and. present(cyc_ndx_beg)) then
       if (cyc_ndx_beg < 0) then
-        write (iulog, *) 'open_trc_datafile: cycle year not found : ', cyc_yr
-        call endrun('open_trc_datafile: cycle year not found '//trim(filepath))
+        write (iulog, *) subname //': cycle year not found : ', cyc_yr
+        call endrun(subname //': cycle year not found '//trim(filepath))
       end if
     end if
 
   end subroutine open_trc_datafile
 
   subroutine specify_fields(specifier, fields)
+    use cam_abortutils, only: check_allocate
 
     character(len=*), intent(in) :: specifier(:)
     type(trfld), pointer, dimension(:) :: fields
@@ -2151,7 +2154,7 @@ contains
     allocate (fld_name(nflds), src_name(nflds), stat=astat)
     if (astat /= 0) then
       write (iulog, *) 'specify_fields: failed to allocate fld_name, src_name arrays; error = ', astat
-      call endrun
+      call endrun('specify_fields: failed to allocate fld_name, src_name arrays')
     end if
 
     fld_cnt = 0
@@ -2189,7 +2192,7 @@ contains
     allocate (fields(fld_cnt), stat=astat)
     if (astat /= 0) then
       write (iulog, *) 'specify_fields: failed to allocate fields array; error = ', astat
-      call endrun
+      call endrun('specify_fields: failed to allocate fields array')
     end if
 
     do i = 1, fld_cnt
@@ -2691,12 +2694,12 @@ contains
     deallocate (file%curr_data_times, stat=astat)
     if (astat /= 0) then
       write (iulog, *) 'advance_file: failed to deallocate file%curr_data_times array; error = ', astat
-      call endrun
+      call endrun('advance_file: failed to deallocate file%curr_data_times array')
     end if
     allocate (file%curr_data_times(size(file%next_data_times)), stat=astat)
     if (astat /= 0) then
       write (iulog, *) 'advance_file: failed to allocate file%curr_data_times array; error = ', astat
-      call endrun
+      call endrun('advance_file: failed to allocate file%curr_data_times array')
     end if
     file%curr_data_times(:) = file%next_data_times(:)
 
@@ -2708,7 +2711,7 @@ contains
     deallocate (file%next_data_times, stat=astat)
     if (astat /= 0) then
       write (iulog, *) 'advance_file: failed to deallocate file%next_data_times array; error = ', astat
-      call endrun
+      call endrun('advance_file: failed to deallocate file%next_data_times array')
     end if
     nullify (file%next_data_times)
 
