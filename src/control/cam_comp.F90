@@ -25,7 +25,6 @@ module cam_comp
    use time_manager,              only: is_first_step, is_first_restart_step
    use time_manager,              only: get_curr_calday
 
-   use physics_types,             only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
    use physics_types,             only: calday
@@ -75,8 +74,7 @@ CONTAINS
         eccen, obliqr, lambm0, mvelpp,                                        &
         perpetual_run, perpetual_ymd,                                         &
         dtime, start_ymd, start_tod, ref_ymd, ref_tod,                        &
-        stop_ymd, stop_tod, curr_ymd, curr_tod,                               &
-        cam_out, cam_in)
+        stop_ymd, stop_tod, curr_ymd, curr_tod)
 
       !-----------------------------------------------------------------------
       !
@@ -144,9 +142,6 @@ CONTAINS
       integer, intent(in)      :: stop_tod      ! Stop time of day (sec)
       integer, intent(in)      :: ref_ymd       ! Reference date (YYYYMMDD)
       integer, intent(in)      :: ref_tod       ! Reference time of day (sec)
-
-      type(cam_out_t), pointer :: cam_out       ! Output from CAM to surface
-      type(cam_in_t),  pointer :: cam_in        ! Merged input state to CAM
 
       ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
@@ -345,7 +340,7 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_run1(cam_in, cam_out)
+   subroutine cam_run1()
       !-----------------------------------------------------------------------
       !
       ! Purpose:   First phase of atmosphere model run method.
@@ -356,9 +351,6 @@ CONTAINS
 
       use phys_comp, only: phys_run1
 !      use ionosphere_interface, only: ionosphere_run1
-
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed
@@ -381,7 +373,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run2(cam_out, cam_in)
+   subroutine cam_run2()
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Second phase of atmosphere model run method.
@@ -395,9 +387,6 @@ CONTAINS
       use phys_comp, only: phys_run2
       use stepon,    only: stepon_run2
 !      use ionosphere_interface, only: ionosphere_run2
-
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
 
       !
       ! Second phase of physics (after surface model update)
@@ -428,7 +417,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run3(cam_out)
+   subroutine cam_run3()
       !-----------------------------------------------------------------------
       !
       ! Purpose:  Third phase of atmosphere model run method. This consists
@@ -438,8 +427,8 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
       use stepon, only: stepon_run3
+      use physics_types, only: cam_out          ! Output from CAM to surface
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
       !-----------------------------------------------------------------------
 
       !
@@ -457,7 +446,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run4(cam_out, cam_in, rstwr, nlend,                         &
+   subroutine cam_run4(rstwr, nlend,                         &
         yr_spec, mon_spec, day_spec, sec_spec)
 
       !-----------------------------------------------------------------------
@@ -470,8 +459,6 @@ CONTAINS
 !      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
 
-      type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
-      type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
       logical,         intent(in)           :: rstwr    ! write restart file
       logical,         intent(in)           :: nlend    ! this is final timestep
       integer,         intent(in), optional :: yr_spec  ! Simulation year
@@ -549,7 +536,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_final(cam_out, cam_in)
+   subroutine cam_final()
       !-----------------------------------------------------------------------
       !
       ! Purpose:  CAM finalization.
@@ -560,12 +547,6 @@ CONTAINS
       use cam_initfiles,        only: cam_initfiles_close
 !      use ionosphere_interface, only: ionosphere_final
       use cam_control_mod,      only: initial_run
-
-      !
-      ! Arguments
-      !
-      type(cam_out_t), pointer :: cam_out ! Output from CAM to surface
-      type(cam_in_t),  pointer :: cam_in  ! Input from merged surface to CAM
 
       !-----------------------------------------------------------------------
 
