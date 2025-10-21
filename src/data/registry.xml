@@ -1535,13 +1535,13 @@
     <variable local_name="domomtran"
               standard_name="flag_for_momentum_transport_by_zhang_mcfarlane_deep_convection_scheme"
               units="flag" type="logical"
-              access="protected" >
+              allocatable="parameter">
       <initial_value>.true.</initial_value>
     </variable>
     <variable local_name="il1g"
               standard_name="index_of_first_column_of_gathered_deep_convection_arrays"
               units="index" type="integer"
-              access="protected" >
+              allocatable="parameter">
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="dpdry"
@@ -1591,7 +1591,8 @@
     </variable>
     <variable local_name="is_moist_dycore"
               standard_name="is_moist_basis_dycore"
-              units="flag" type="logical" access="protected">
+              units="flag" type="logical"
+              allocatable="parameter">
       <initial_value>.true.</initial_value>
       <initial_value dyn="SE,MPAS"> .false. </initial_value>
     </variable>
