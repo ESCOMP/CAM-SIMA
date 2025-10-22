@@ -483,7 +483,7 @@ class NLVar:
         """
         for index, alen in enumerate(self.array_len):
             aname = self.__array_names[index]
-            ofile.write(f"integer, parameter   :: {aname} = {alen}", indent)
+            ofile.write(f"integer, public, parameter :: {aname} = {alen}", indent)
         # end for
 
     @property
