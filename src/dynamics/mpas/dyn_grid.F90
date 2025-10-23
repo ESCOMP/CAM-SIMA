@@ -26,12 +26,15 @@ module dyn_grid
 
     interface
         module subroutine model_grid_init()
+            implicit none
         end subroutine model_grid_init
 
         module subroutine dyn_inquire_mesh_dimensions()
+            implicit none
         end subroutine dyn_inquire_mesh_dimensions
 
         module pure function dyn_grid_id(name)
+            implicit none
             character(*), intent(in) :: name
             integer :: dyn_grid_id
         end function dyn_grid_id
@@ -39,7 +42,7 @@ module dyn_grid
 
     ! Grid names that are to be registered with CAM-SIMA by calling `cam_grid_register`.
     ! Grid ids can be determined by calling `dyn_grid_id`.
-    character(*), parameter :: dyn_grid_name(*) = [ character(max_hcoordname_len) :: &
+    character(*), parameter :: dyn_grid_name(*) = [character(max_hcoordname_len) :: &
         'mpas_cell',  &
         'cam_cell',   &
         'mpas_edge',  &

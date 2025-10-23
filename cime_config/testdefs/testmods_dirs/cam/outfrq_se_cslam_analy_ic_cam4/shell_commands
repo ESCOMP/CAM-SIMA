@@ -1,0 +1,2 @@
+./xmlchange CAM_LINKED_LIBS=" "
+./xmlchange --append CAM_CONFIG_OPTS="--analytic-ic"

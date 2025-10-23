@@ -3,6 +3,7 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAM-SIMA Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
+  <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_logfile.meta</metadata_file>
@@ -19,6 +20,7 @@
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/hycoef.meta</metadata_file>
+
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
@@ -138,7 +140,7 @@
     </variable>
     <!-- State quantities for shallow/deep convection -->
     <variable local_name="qpert"
-              standard_name="convective_water_vapor_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
+              standard_name="convective_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
@@ -575,7 +577,8 @@
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
     </variable>
 
-   <variable local_name="landm"
+    <!-- temporaries from pbuf for snapshot usage. -->
+    <variable local_name="landm"
               standard_name="smoothed_land_area_fraction"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
@@ -583,6 +586,14 @@
       <!-- Note: In CAM, landm is read from the topo dataset (or if disabled, set to zero) -->
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
+    </variable>
+    <variable local_name="ast"
+              standard_name="stratiform_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_AST</ic_file_input_names>
     </variable>
 
     <!-- cam_in Variables -->
@@ -1359,7 +1370,7 @@
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
 
-    <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in physics state -->
+    <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in the CAM registry -->
     <variable local_name="qcwat"
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
               units="kg kg-1" type="real" kind="kind_phys"
@@ -1386,6 +1397,70 @@
       <!-- set to negative if not read from the snapshot. -->
       <initial_value>-1.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_LCWAT</ic_file_input_names>
+    </variable>
+
+    <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
+    <variable local_name="tauresx"
+              standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tauresx</ic_file_input_names>
+    </variable>
+    <variable local_name="tauresy"
+              standard_name="northward_reserved_stress_at_surface_on_previous_timestep"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tauresy</ic_file_input_names>
+    </variable>
+    <variable local_name="dragblj"
+              standard_name="turbulent_orographic_form_drag_coefficent"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_dragblj</ic_file_input_names>
+    </variable>
+    <!-- REMOVECAM: the final standard name for these quantities below are
+         {east,north}ward_turbulent_orographic_form_drag_stress_at_surface.
+         however, it is shared with tautmsx; in order to distinguish between these two in CAM snapshots,
+         an alternate standard name is currently used. When CAM snapshots are retired, only either
+         Beljaars or TMS (which are mutually exclusive) provide the {east,north}ward_orographic_form_drag_stress_at_surface. -->
+    <variable local_name="taubljx"
+              standard_name="eastward_beljaars_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_taubljx</ic_file_input_names>
+    </variable>
+    <variable local_name="taubljy"
+              standard_name="northward_beljaars_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_taubljy</ic_file_input_names>
+    </variable>
+    <variable local_name="apply_non_wv_cflx_in_free_atm_vdiff"
+              standard_name="do_apply_ccpp_constituent_fluxes_excluding_water_vapor_in_vertical_diffusion"
+              units="flag" type="logical">
+      <long_name>should free atmosphere HB vertical diffusion apply non-water-vapor upward fluxes from coupler?</long_name>
+      <!-- should be false for CAM7 and true for CAM6; ignored elsewhere -->
+      <initial_value>.false.</initial_value>
+    </variable>
+    <variable local_name="clubbtop"
+              standard_name="vertical_layer_index_of_clubb_top_tbd"
+              units="index" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <!-- REMOVECAM: once CAM snapshots are no longer used, change to integer. -->
+      <long_name>vertical layer index for top of CLUBB for running HB above</long_name>
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_clubbtop</ic_file_input_names>
     </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->
