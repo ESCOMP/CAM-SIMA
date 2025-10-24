@@ -41,24 +41,28 @@ module dyn_comp
 
     interface
         module subroutine dyn_readnl(namelist_path)
+            implicit none
             character(*), intent(in) :: namelist_path
         end subroutine dyn_readnl
 
         module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
             use runtime_obj, only: runtime_options
-
+            implicit none
             type(runtime_options), intent(in) :: cam_runtime_opts
             type(dyn_import_t), intent(in) :: dyn_in
             type(dyn_export_t), intent(in) :: dyn_out
         end subroutine dyn_init
 
         module subroutine dyn_run()
+            implicit none
         end subroutine dyn_run
 
         module subroutine dyn_final()
+            implicit none
         end subroutine dyn_final
 
         module subroutine dyn_debug_print(level, message, printer)
+            implicit none
             integer, intent(in) :: level
             character(*), intent(in) :: message
             integer, optional, intent(in) :: printer
