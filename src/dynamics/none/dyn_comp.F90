@@ -52,7 +52,7 @@ CONTAINS
 !==============================================================================
 
    subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-      use runtime_obj, only: runtime_options
+      use runtime_obj, only: set_cam_dycore, runtime_options
       ! Null dycore, no action
 
       ! Dummy arguments:
@@ -62,6 +62,7 @@ CONTAINS
 
       ! Note: dynamical core energy formula is set in dyn_grid based on dynamical core
       ! that provided the initial conditions file
+      call set_cam_dycore('null')
 
    end subroutine dyn_init
 

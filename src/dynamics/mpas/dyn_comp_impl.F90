@@ -135,7 +135,7 @@ contains
         use cam_pio_utils, only: clean_iodesc_list
         use dyn_coupling, only: dyn_exchange_constituent_states
         use inic_analytic, only: analytic_ic_active
-        use runtime_obj, only: runtime_options
+        use runtime_obj, only: runtime_options, set_cam_dycore
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: std_name_len
@@ -157,6 +157,9 @@ contains
         logical, allocatable :: is_water_species(:)
         type(file_desc_t), pointer :: pio_init_file
         type(file_desc_t), pointer :: pio_topo_file
+
+        ! Set dycore name in runtime object
+        call set_cam_dycore('mpas')
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
 

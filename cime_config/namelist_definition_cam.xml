@@ -390,6 +390,68 @@
     </values>
   </entry>
 
+<!-- Radiation -->
+
+  <entry id="iradsw">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <desc>
+       The frequency at which shortwave calculation is performed.
+       positive: time steps; negative: hours
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="iradlw">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <desc>
+       The frequency at which longwave calculation is performed.
+       positive: time steps; negative: hours
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="irad_always">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <desc>
+       The amount of time that radiation (both SW and LW) is run continuously from the start of an initial or restart run
+       positive: time steps; negative: hours
+    </desc>
+    <values>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="use_rad_uniform_angle">
+    <type>logical</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <desc>
+       If true, use the namelist-defined radiation uniform angle in the solar zenith angle calculation
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="rad_uniform_angle">
+    <type>real</type>
+    <kind>kind_phys</kind>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <desc>
+       The radiation timestep size for the solar zenith angle calculation
+    </desc>
+    <values>
+      <value>-99</value>
+    </values>
+  </entry>
+
 <!-- Vertical Coordinate -->
 
   <entry id="pver">

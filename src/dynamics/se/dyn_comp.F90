@@ -557,7 +557,7 @@ end subroutine dyn_readnl
 !=========================================================================================
 
 subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-   use runtime_obj,        only: runtime_options
+   use runtime_obj,        only: runtime_options, set_cam_dycore
    use dyn_grid,           only: elem, fvm
    use cam_pio_utils,      only: clean_iodesc_list
    use air_composition,    only: thermodynamic_active_species_num, thermodynamic_active_species_idx
@@ -653,6 +653,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! temperature and temperature tendency adjustment at end of physics.
    dycore_energy_consistency_adjust = .true.
    call mark_as_initialized("flag_for_dycore_energy_consistency_adjustment")
+
+   ! Set name of dycore in runtime object
+   call set_cam_dycore('se')
 
    ! Now allocate and set condenstate vars
    allocate(cnst_name_gll(qsize), stat=iret) ! constituent names for gll tracers

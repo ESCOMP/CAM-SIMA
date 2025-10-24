@@ -1,4 +1,16 @@
 [ccpp-table-properties]
+  name = runtime_obj
+  type = module
+[ccpp-arg-table]
+  name = runtime_obj
+  type = module
+[ unset_real ]
+  standard_name = definition_of_unset_for_real_variables
+  units = 1
+  type = real | kind = kind_phys
+  protected = True
+  dimensions = ()
+[ccpp-table-properties]
   name = runtime_options
   type = ddt
 [ccpp-arg-table]

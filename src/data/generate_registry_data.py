@@ -1064,11 +1064,11 @@ class VarDict(OrderedDict):
         # end for
 
 
-    def check_initial_values(self, physconst_vars):
+    def check_initial_values(self, physconst_vars,use_statements):
         """Raise an error if there are any initial values that are set to
         non-"used" and/or non-"physconst" variables"""
         for var in self.known_initial_value_vars:
-            if var not in physconst_vars:
+            if var not in physconst_vars and not any(second == var for _, second in use_statements):
                 emsg = f"Initial value '{var}' is not a physconst variable"
                 emsg += " or does not have necessary use statement"
                 raise CCPPError(emsg)
@@ -1704,7 +1704,7 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
         # end for
         # Then check against the initial values in the variable dictionary
         # Check will raise an exception if there is a rogue variable
-        file_.var_dict.check_initial_values(physconst_vars)
+        file_.var_dict.check_initial_values(physconst_vars,file_.use_statements)
         # Generate metadata and source
         if file_.generate_code:
             file_.write_metadata(outdir, logger)
