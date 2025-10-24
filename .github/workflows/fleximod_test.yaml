@@ -10,7 +10,7 @@ jobs:
         python-version: ["3.8", "3.x"]
     steps:
       - id: checkout-CESM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - id: run-fleximod
         run: |
           $GITHUB_WORKSPACE/bin/git-fleximod update -o

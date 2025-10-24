@@ -31,12 +31,12 @@ module kumquat_namelist
    real(kind_phys), public, protected :: kq_dc = -HUGE(1.0_kind_phys)
    logical, public, protected :: tau_0_ubc = .false.
    character(len=256), public, protected :: bnd_rdggm = unset_str
-   integer, parameter   :: cam_nl_autogen1_dimension = 2
+   integer, public, parameter :: kq_farr1_dimension = 2
    real(kind_phys), public, protected :: kq_farr1(2) = -HUGE(1.0_kind_phys)
-   integer, parameter   :: cam_nl_autogen2_dimension = 3
-   integer, parameter   :: cam_nl_autogen3_dimension = 2
+   integer, public, parameter :: kq_fake2_dimension = 3
+   integer, public, parameter :: kq_fake2_dimension_2 = 2
    integer, public, protected :: kq_fake2(3, 2) = unset_int
-   integer, parameter   :: cam_nl_autogen4_dimension = 7
+   integer, public, parameter :: kq_fchar3_dimension = 7
    character(len=256), public, protected :: kq_fchar3(7) = unset_str
 
 CONTAINS
