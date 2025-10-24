@@ -59,13 +59,24 @@
   dimensions = ()
   protected = True
 [ do_molec_diff ]
-  standard_name = flag_for_molecular_diffusion
+  standard_name = do_molecular_diffusion
   units = flag
   type = logical
   dimensions = ()
   protected = True
 [ nbot_molec ]
   standard_name = vertical_layer_index_at_bottom_of_molecular_diffusion
+  units = index
+  type = integer
+  dimensions = ()
+  protected = True
+[ gravity_wave_taper_bot_press ]
+  standard_name = largest_model_top_pressure_that_allows_tapering_gravity_wave_drag_at_model_top
+  units = Pa
+  type = real | kind = kind_phys
+  dimensions = ()
+[ nbot_gravity_wave_top_taper ]
+  standard_name = vertical_index_of_bottom_limit_for_tapering_gravity_wave_drag_at_model_top
   units = index
   type = integer
   dimensions = ()

@@ -56,6 +56,12 @@ module ref_pres
    logical, protected :: do_molec_diff = .false.
    integer, protected :: nbot_molec = 0
 
+   ! Pressure limit used to set gravity wave tapering at top of model (Pa)
+   real(kind_phys), parameter :: gravity_wave_taper_bot_press = 0.6E-02_kind_phys
+
+   ! Bottom level for tapering gravity waves at top of model
+   integer, protected :: nbot_gravity_wave_top_taper = 0
+
 !====================================================================================
 contains
 !====================================================================================
@@ -165,6 +171,11 @@ contains
             top=.false.)
       end if
 
+      ! Find level corresponding to the bottom for tapering gravity waves
+      ! at the top of model.
+      nbot_gravity_wave_top_taper = press_lim_idx(gravity_wave_taper_bot_press, &
+         top=.true.)
+
       ! Tell rest of model that variables have been initialized:
       ! pref_edge_in
       call mark_as_initialized("reference_pressure_at_interface")
@@ -185,9 +196,13 @@ contains
       ! molec_diff_bot_press
       call mark_as_initialized("pressure_at_bottom_of_molecular_diffusion")
       ! do_molec_diff
-      call mark_as_initialized("flag_for_molecular_diffusion")
+      call mark_as_initialized("do_molecular_diffusion")
       ! nbot_molec
       call mark_as_initialized("index_of_pressure_at_bottom_of_molecular_diffusion")
+      ! gravity_wave_taper_bot_press
+      call mark_as_initialized("largest_model_top_pressure_that_allows_tapering_gravity_wave_drag_at_model_top")
+      ! nbot_gravity_wave_top_taper
+      call mark_as_initialized("vertical_index_of_bottom_limit_for_tapering_gravity_wave_drag_at_model_top")
 
    end subroutine ref_pres_init
 

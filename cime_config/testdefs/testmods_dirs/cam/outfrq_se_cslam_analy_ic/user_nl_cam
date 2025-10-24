@@ -2,3 +2,11 @@ hist_add_inst_fields;h1: T, Q, U, V, PS
 hist_output_frequency;h1: 1*nsteps
 hist_write_nstep0;h1: .true.
 analytic_ic_type=held_suarez_1994
+
+! generally, analytic_ic runs do not need a topo file (see namelist_definition_cam.xml)
+! however, a topo file needs to be supplied to run the Beta Ridge gravity wave scheme.
+!
+! in the future, the FCAM7 test can be migrated to using 'real' initial conditions,
+! and this line can be removed, and
+! analytic ic runs can go back to having no topo file supplied as it is by default.
+bnd_topo='/glade/campaign/cesm/cesmdata/inputdata/atm/cam/topo/se/ne3pg3_gmted2010_modis_bedmachine_nc0540_Laplace1000_noleak_20230209.nc'
