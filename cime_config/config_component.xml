@@ -169,8 +169,8 @@
       <value compset="_CAM%PHYSTEST">--dyn none --physics-suites adiabatic</value>
 
       <!-- Aquaplanet -->
-<!--      <value compset="_DOCN%SOMAQP">-aquaplanet</value>
-      <value compset="_DOCN%AQP"   >-aquaplanet</value> -->
+      <value compset="_DOCN%SOMAQP">--aquaplanet</value>
+      <value compset="_DOCN%AQP"   >--aquaplanet</value>
 
       <!-- PORT -->
 <!--      <value compset="%PORT">-offline_drv rad</value> -->

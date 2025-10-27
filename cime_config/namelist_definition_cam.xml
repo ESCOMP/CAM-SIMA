@@ -253,6 +253,10 @@
       <value analytic_ic="1" npg="2">UNSET_PATH</value>
       <value analytic_ic="1" npg="3">UNSET_PATH</value>
       <value analytic_ic="1" npg="4">UNSET_PATH</value>
+      <value aquaplanet="1">UNSET_PATH</value>
+      <value aquaplanet="1" npg="2">UNSET_PATH</value>
+      <value aquaplanet="1" npg="3">UNSET_PATH</value>
+      <value aquaplanet="1" npg="4">UNSET_PATH</value>
     </values>
   </entry>
 

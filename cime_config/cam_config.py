@@ -481,31 +481,31 @@ class ConfigCAM:
         self.create_config("analytic_ic", analy_ic_desc,
                            analy_ic_val, [0, 1], is_nml_attr=True)
 
-        #--------------------
-        # Set ocean component
-        #--------------------
+        #--------------------------
+        # Check if running an
+        # aquaplanet configuration
+        #--------------------------
 
-        ocn_valid_vals = ["docn", "dom", "som", "socn",
-                          "aquaplanet", "pop", "mom"]
+        if user_config_opts.aquaplanet:
+            aquap_flag = 1
+        else:
+            aquap_flag = 0
 
-        ocn_desc = ["The ocean model being used.",
-                    "Valid values include prognostic ocean models (POP or MOM),",
-                    "data ocean models (DOCN or DOM), a stub ocean (SOCN), ",
-                    "and an aqua planet ocean (aquaplanet).",
-                    "This does not impact how the case is built, only how",
-                    "attributes are matched when searching for namelist defaults."]
+        aquap_desc = ["Switch to use aquaplanet configuration: ",
+                      "0 => no ",
+                      "1 => yes."]
 
-        self.create_config("ocn", ocn_desc, comp_ocn,
-                           ocn_valid_vals, is_nml_attr=True)
+        self.create_config("aquaplanet", aquap_desc,
+                           aquap_flag, [0, 1], is_nml_attr=True)
+
+        #--------------------------
+        # Set physics_suites string
+        #--------------------------
 
         phys_desc = ["A semicolon-separated list of physics suite definition "
                      "file (SDF) names.",
                      "To specify the Kessler and Held-Suarez suites as ",
                      "run time options, use '--physics-suites kessler;held_suarez_1994'."]
-
-        #--------------------------
-        # Set physics_suites string
-        #--------------------------
 
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites)
@@ -627,11 +627,17 @@ class ConfigCAM:
                             default="",
                             help="""Name of dycore""")
 
+        parser.add_argument("--aquaplanet",
+                            action='store_true',
+                            required=False,
+                            help="""Flag to turn on aquaplanet
+                                 settings (0 = False, 1 = True).""")
+
         parser.add_argument("--analytic-ic",
                             action='store_true',
                             required=False,
                             help="""Flag to turn on Analytic Initial
-                                 Conditions (ICs).""")
+                                 Conditions (ICs). 0 = False, 1 = True.""")
 
         parser.add_argument("--dyn-kind",
                             type=str,
