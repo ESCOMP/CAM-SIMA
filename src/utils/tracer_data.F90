@@ -19,16 +19,18 @@
 !   is untested as no such dycore is available in SIMA. Polar averaging is
 !   commented out as only used for FV.
 module tracer_data
-  use perf_mod, only: t_startf, t_stopf
-  use shr_kind_mod, only: r8 => shr_kind_r8, shr_kind_cl
-  use time_manager, only: get_curr_date, get_step_size
-  use spmd_utils, only: masterproc
-  use vert_coord, only: pver, pverp
-  use physics_grid, only: pcols => columns_on_task
+  use perf_mod,       only: t_startf, t_stopf
+  use shr_kind_mod,   only: r8 => shr_kind_r8, shr_kind_cl
+  use spmd_utils,     only: masterproc
   use cam_abortutils, only: endrun
-  use cam_logfile, only: iulog
+  use cam_logfile,    only: iulog
 
-  use time_manager, only: set_time_float_from_date, set_date_from_time_float
+  use vert_coord,     only: pver, pverp
+  use physics_grid,   only: pcols => columns_on_task
+
+  use time_manager,   only: get_curr_date, get_step_size
+  use time_manager,   only: set_time_float_from_date, set_date_from_time_float
+
   use pio, only: file_desc_t, var_desc_t, &
                  pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
                  pio_char, pio_noerr, &
@@ -54,30 +56,30 @@ module tracer_data
   public :: incr_filename
 
   type input3d
-    real(r8), dimension(:, :), pointer :: data => null()  ! ncol, lev
+    real(r8), dimension(:, :), pointer :: data => null() ! ncol, lev
   end type input3d
 
   type input2d
-    real(r8), dimension(:), pointer :: data => null() ! ncol
+    real(r8), dimension(:),    pointer :: data => null() ! ncol
   end type input2d
 
   type trfld
     real(r8), dimension(:, :), pointer :: data => null() ! ncol, lev
-    type(input3d), dimension(4) :: input
-    character(len=32) :: srcnam
-    character(len=32) :: fldnam
-    character(len=32) :: units
-    type(var_desc_t) :: var_id
+    type(input3d), dimension(4)        :: input
+    character(len=32)                  :: srcnam
+    character(len=32)                  :: fldnam
+    character(len=32)                  :: units
+    type(var_desc_t)                   :: var_id
     integer :: coords(4) ! LATDIM | LONDIM | LEVDIM | TIMDIM
-    integer :: order(4) ! LATDIM | LONDIM | LEVDIM | TIMDIM
+    integer :: order(4)  ! LATDIM | LONDIM | LEVDIM | TIMDIM
     logical :: srf_fld = .false.
   end type trfld
 
   type trfile
     type(input2d), dimension(4) :: ps_in
-    character(len=shr_kind_cl) :: pathname = ' '
-    character(len=shr_kind_cl) :: curr_filename = ' '
-    character(len=shr_kind_cl) :: next_filename = ' '
+    character(len=shr_kind_cl)  :: pathname = ' '
+    character(len=shr_kind_cl)  :: curr_filename = ' '
+    character(len=shr_kind_cl)  :: next_filename = ' '
     type(file_desc_t) :: curr_fileid
     type(file_desc_t) :: next_fileid
 
@@ -88,22 +90,22 @@ module tracer_data
     real(r8) :: datatimem = -1.e36_r8     ! time of prv. values read in
     real(r8) :: datatimep = -1.e36_r8     ! time of nxt. values read in
     real(r8) :: datatimes(4)
-    integer :: interp_recs
+    integer  :: interp_recs
     real(r8), pointer, dimension(:) :: curr_data_times => null()
     real(r8), pointer, dimension(:) :: next_data_times => null()
     real(r8) :: offset_time
-    integer :: cyc_ndx_beg
-    integer :: cyc_ndx_end
-    integer :: cyc_yr = 0
+    integer  :: cyc_ndx_beg
+    integer  :: cyc_ndx_end
+    integer  :: cyc_yr = 0
     real(r8) :: one_yr = 0
     real(r8) :: curr_mod_time ! model time - calendar day
     real(r8) :: next_mod_time ! model time - calendar day - next time step
-    integer :: nlon = 0
-    integer :: nlat = 0
-    integer :: nlev = 0
-    integer :: nilev = 0
-    integer :: ps_coords(3) ! LATDIM | LONDIM | TIMDIM
-    integer :: ps_order(3) ! LATDIM | LONDIM | TIMDIM
+    integer  :: nlon = 0
+    integer  :: nlat = 0
+    integer  :: nlev = 0
+    integer  :: nilev = 0
+    integer  :: ps_coords(3) ! LATDIM | LONDIM | TIMDIM
+    integer  :: ps_order(3)  ! LATDIM | LONDIM | TIMDIM
     real(r8), pointer, dimension(:) :: lons => null()
     real(r8), pointer, dimension(:) :: lats => null()
     real(r8), pointer, dimension(:) :: levs => null()
@@ -113,15 +115,15 @@ module tracer_data
     real(r8), pointer, dimension(:) :: hyai => null()
     real(r8), pointer, dimension(:) :: hybi => null()
     real(r8), pointer, dimension(:, :) :: weight_x => null(), weight_y => null()
-    integer, pointer, dimension(:) :: count_x => null(), count_y => null()
-    integer, pointer, dimension(:, :) :: index_x => null(), index_y => null()
+    integer,  pointer, dimension(:)    :: count_x => null(), count_y => null()
+    integer,  pointer, dimension(:, :) :: index_x => null(), index_y => null()
 
     real(r8), pointer, dimension(:, :) :: weight0_x => null(), weight0_y => null()
-    integer, pointer, dimension(:) :: count0_x => null(), count0_y => null()
-    integer, pointer, dimension(:, :) :: index0_x => null(), index0_y => null()
+    integer,  pointer, dimension(:)    :: count0_x => null(), count0_y => null()
+    integer,  pointer, dimension(:, :) :: index0_x => null(), index0_y => null()
     logical :: dist
 
-    real(r8)                        :: p0
+    real(r8) :: p0
     type(var_desc_t) :: ps_id
     logical :: has_ps = .false.
     logical :: zonal_ave = .false.
@@ -774,18 +776,24 @@ contains
   !-----------------------------------------------------------------------
   ! Reads more data if needed and interpolates data to current model time
   !-----------------------------------------------------------------------
-  subroutine advance_trcdata(flds, file)
+  subroutine advance_trcdata( &
+             flds, file, &
+             pmid, pint, phis, zi)
+
+    use ccpp_kinds,   only: kind_phys
+
     ! dimensions of the grid can be retrieved directly
     use vert_coord,   only: pver, pverp
     use physics_grid, only: ncol => columns_on_task
 
-    ! state variables used for interpolation can be directly
-    ! retrieved from physics state here so it does not have to be
-    ! passed from every physics scheme for optional interpolation.
-    use physics_types, only: phys_state
-
     type(trfile), intent(inout) :: file
     type(trfld),  intent(inout) :: flds(:)
+
+    ! state inputs for interpolating to model grid.
+    real(kind_phys), intent(in) :: pmid(:,:) ! air pressure [Pa]
+    real(kind_phys), intent(in) :: pint(:,:) ! air pressure at interfaces [Pa]
+    real(kind_phys), intent(in) :: phis(:)   ! surface geopotential [m2 s-2]
+    real(kind_phys), intent(in) :: zi(:,:)   ! height above surface, interfaces [m]
 
     real(r8) :: data_time
 
@@ -820,10 +828,10 @@ contains
     call interpolate_trcdata(ncol  = ncol, &
                              pver  = pver, &
                              pverp = pverp, &
-                             pmid  = phys_state%pmid(:ncol,:pver), &
-                             pint  = phys_state%pint(:ncol,:pverp), &
-                             phis  = phys_state%phis(:ncol), &
-                             zi    = phys_state%zi(:ncol, :pverp), &
+                             pmid  = pmid(:ncol,:pver), &
+                             pint  = pint(:ncol,:pverp), &
+                             phis  = phis(:ncol), &
+                             zi    = zi(:ncol, :pverp), &
                              flds  = flds(:), &
                              file  = file)
     call t_stopf('interpolate_trcdata')
@@ -1711,23 +1719,24 @@ contains
 
 !------------------------------------------------------------------------------
 
-  subroutine interpolate_trcdata(&
+  subroutine interpolate_trcdata( &
              ncol, pver, pverp, &
              pmid, pint, phis, zi, &
              flds, file)
+    use ccpp_kinds, only: kind_phys
     use physconst, only: cday, rga
 
-    integer,      intent(in)    :: ncol
-    integer,      intent(in)    :: pver
-    integer,      intent(in)    :: pverp
+    integer,         intent(in)    :: ncol
+    integer,         intent(in)    :: pver
+    integer,         intent(in)    :: pverp
     ! state variables used for interpolation
-    real(r8),     intent(in)    :: pmid(:, :)
-    real(r8),     intent(in)    :: pint(:, :)
-    real(r8),     intent(in)    :: phis(:)
-    real(r8),     intent(in)    :: zi(:, :)
+    real(kind_phys), intent(in)    :: pmid(:, :)
+    real(kind_phys), intent(in)    :: pint(:, :)
+    real(kind_phys), intent(in)    :: phis(:)
+    real(kind_phys), intent(in)    :: zi(:, :)
 
-    type(trfld),  intent(inout) :: flds(:)
-    type(trfile), intent(inout) :: file
+    type(trfld),     intent(inout) :: flds(:)
+    type(trfile),    intent(inout) :: file
 
     real(r8) :: fact1, fact2
     real(r8) :: deltat
@@ -2691,7 +2700,7 @@ contains
     !---------------------------------------------------------------
     ! ... local variables
     !---------------------------------------------------------------
-    integer  :: i, l
+    integer  :: i
     integer  :: si, si1
     integer  :: sil, siu
     real(r8) :: y

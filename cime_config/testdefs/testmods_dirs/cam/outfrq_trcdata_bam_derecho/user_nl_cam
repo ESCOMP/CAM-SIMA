@@ -1,0 +1,53 @@
+! these snapshots were constructed to specifically test whether the data read into the
+! physics buffer by tracer_data in CAM will match the data read by CAM-SIMA bit-for-bit.
+! this was done by
+! (1) taking a FHIST_C4 snapshot (which has prescribed_ozone and aero)
+! in this case a ne3pg3_fhistc4_gw_drag_cam4_oro snapshot,
+! (2) using nco to zero out the prescribed ozone and aero fields from the snapshot data,
+! to create the "before" snapshot.
+! (3) the "after" snapshot is the original snapshot file (which has non-zero values for prescribed
+! ozone and aerosols)
+! the test will pass iff. the tracer_data utility in CAM-SIMA and the prescribed_ozone/aerosols schemes
+! can populate the prescribed fields bit-for-bit compared to the original snapshot file.
+
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero_from_cam4_oro_snapshot_derecho_gnu_after_c20251028.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_after_c20250826.nc'
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+! cam4 vertical levels (FHIST_C4 snapshots)
+pver = 26
+
+prescribed_aero_datapath = "/glade/campaign/cesm/cesmdata/inputdata/atm/cam/chem/trop_mozart_aero/aero"
+prescribed_aero_file = "aero_1.9x2.5_L26_2000clim_c091112.nc"
+prescribed_aero_filelist = "aero_1.9x2.5_L26_list_c070514.txt"
+prescribed_aero_model = "bulk"
+prescribed_aero_specifier = 'sulf:SO4', 'bcar1:CB1', 'bcar2:CB2', 'ocar1:OC1', 'ocar2:OC2', 'sslt1:SSLT01', 'sslt2:SSLT02', 'sslt3:SSLT03', 'sslt4:SSLT04', 'dust1:DST01', 'dust2:DST02', 'dust3:DST03', 'dust4:DST04'
+prescribed_aero_type = "INTERP_MISSING_MONTHS"
+prescribed_aero_cycle_yr = 0
+prescribed_aero_fixed_tod = 0
+prescribed_aero_fixed_ymd = 0
+
+aerodep_flx_datapath           = '/glade/campaign/cesm/cesmdata/inputdata/atm/cam/chem/trop_mozart_aero/aero'
+aerodep_flx_file               = 'aerosoldep_monthly_1849-2006_1.9x2.5_c090803.nc'
+aerodep_flx_specifier          = 'BCDEPWET', 'BCPHODRY', 'BCPHIDRY', 'OCDEPWET', 'OCPHODRY', 'OCPHIDRY', 'DSTX01DD', 'DSTX02DD', 'DSTX03DD',
+     'DSTX04DD', 'DSTX01WD', 'DSTX02WD', 'DSTX03WD', 'DSTX04WD'
+aerodep_flx_type               = 'INTERP_MISSING_MONTHS'
+aerodep_flx_cycle_yr = 0
+
+prescribed_ozone_datapath = "/glade/campaign/cesm/cesmdata/inputdata/atm/cam/ozone"
+prescribed_ozone_file = "ozone_1.9x2.5_L26_2000clim_c091112.nc"
+prescribed_ozone_filelist = "UNSET"
+prescribed_ozone_name = "O3"
+prescribed_ozone_type = "INTERP_MISSING_MONTHS"
+prescribed_ozone_fixed_tod = 0
+prescribed_ozone_fixed_ymd = 0
+prescribed_ozone_cycle_yr = 0
+
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1:ozone
+hist_add_inst_fields;h1:sulf_D,bcar1_D,bcar2_D,ocar1_D,ocar2_D,sslt1_D,sslt2_D,sslt3_D,sslt4_D,dust1_D,dust2_D,dust3_D,dust4_D
+hist_precision;h1: REAL64
