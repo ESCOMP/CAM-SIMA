@@ -55,6 +55,7 @@ CONTAINS
 
     use vert_coord,     only: pver
     use cam_abortutils, only: check_allocate
+    use shr_kind_mod,   only: shr_kind_cl
 
     !SE dycore:
     use derivative_mod, only: derivinit
@@ -73,8 +74,9 @@ CONTAINS
     ! Local variables
     type (hybrid_t) :: hybrid
     integer :: nets, nete, ithr, ncols, ie, iret
-    real(kind=r8), allocatable  ::  frontgf_thr(:,:,:,:)
-    real(kind=r8), allocatable  ::  frontga_thr(:,:,:,:)
+    real(kind=r8), allocatable  :: frontgf_thr(:,:,:,:)
+    real(kind=r8), allocatable  :: frontga_thr(:,:,:,:)
+    character(len=shr_kind_cl)  :: errmsg
 
     character(len=*), parameter :: subname = 'gws_src_fnct'
 
@@ -85,15 +87,15 @@ CONTAINS
     hybrid = config_thread_region(par,'serial')
     call get_loop_ranges(hybrid,ibeg=nets,iend=nete)
 
-    allocate(frontgf_thr(nphys,nphys,nlev,nets:nete), stat=iret)
+    allocate(frontgf_thr(nphys,nphys,nlev,nets:nete), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'frontgf_thr(nphys,nphys,nlev,nets:nete)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(frontga_thr(nphys,nphys,nlev,nets:nete), stat=iret)
+    allocate(frontga_thr(nphys,nphys,nlev,nets:nete), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'frontga_thr(nphys,nphys,nlev,nets:nete)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     call compute_frontogenesis(frontgf_thr,frontga_thr,tl,tlq,elem,deriv,hybrid,nets,nete,nphys)
     if (fv_nphys>0) then
@@ -121,10 +123,11 @@ CONTAINS
     use dof_mod, only         : UniquePoints
     use hybrid_mod, only      : config_thread_region, get_loop_ranges
     use parallel_mod, only    : par
-    use ppgrid, only          : pver
+    use vert_coord, only      : pver
     use thread_mod, only      : horz_num_threads
     use dimensions_mod, only  : fv_nphys
     use cam_abortutils, only  : check_allocate
+    use shr_kind_mod,   only  : shr_kind_cl
 
     implicit none
     type (element_t), intent(in), dimension(:) :: elem
@@ -139,6 +142,7 @@ CONTAINS
 
     !
     real(kind=r8), allocatable  ::  vort4gw_thr(:,:,:,:)
+    character(len=shr_kind_cl)  :: errmsg
 
     character(len=*), parameter :: subname = 'gws_src_vort'
 
@@ -148,10 +152,10 @@ CONTAINS
     hybrid = config_thread_region(par,'serial')
     call get_loop_ranges(hybrid,ibeg=nets,iend=nete)
 
-    allocate(vort4gw_thr(nphys,nphys,nlev,nets:nete), stat=ierr)
+    allocate(vort4gw_thr(nphys,nphys,nlev,nets:nete), stat=ierr, errmsg=errmsg)
     call check_allocate(ierr, subname, &
                         'vort4gw_thr(nphys,nphys,nlev,nets:nete)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     call compute_vorticity_4gw(vort4gw_thr,tl,tlq,elem,deriv,hybrid,nets,nete,nphys)
 
@@ -202,7 +206,7 @@ CONTAINS
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! First calculate vorticity on GLL grid
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! set timelevel=1 fro velocities
+    ! set timelevel=1 for velocities
     n0=tl
     do ie=nets,nete
        do k=1,nlev
@@ -213,7 +217,7 @@ CONTAINS
        end do
        ! pack
        call edgeVpack(edge1, vort_gll(:,:,:,ie),nlev,0,ie)
-    enddo
+    end do
     call bndry_exchange(hybrid,edge1,location='compute_vorticity_4gw')
     do ie=nets,nete
        call edgeVunpack(edge1, vort_gll(:,:,:,ie),nlev,0,ie)
@@ -238,7 +242,7 @@ CONTAINS
              vort4gw(:,:,k,ie) = vort_gll(:,:,k,ie)
           end do
        end if
-    enddo
+    end do
 
 
   end subroutine compute_vorticity_4gw
@@ -292,9 +296,9 @@ CONTAINS
     real(r8) :: gradp(np,np,2)              ! grad(pressure)
     real(r8) :: theta(np,np,nlev)           ! potential temperature at mid points
     real(r8) :: dtheta_dp(np,np,nlev)       ! d(theta)/dp    for eta to pressure surface correction
-    real(r8) :: dum_grad(np,np,2)           ! horizontal gradient of zonal and meridional wind on cartesian coordinate on isobaric surface
-    real(r8) :: dum_cart(np,np,3,nlev)      ! zonal & meridional wind on cartesian coordinate
-    real(r8) :: ddp_dum_cart(np,np,3,nlev)  ! vertical gradient of zonal & meridional wind on cartesian coordinate
+    real(r8) :: grad_wind_cart(np,np,2)     ! horizontal gradient of zonal and meridional wind on cartesian coordinate on isobaric surface
+    real(r8) :: wind_cart(np,np,3,nlev)     ! zonal & meridional wind on cartesian coordinate
+    real(r8) :: ddp_wind_cart(np,np,3,nlev) ! vertical gradient of zonal & meridional wind on cartesian coordinate
     real(r8) :: C(np,np,2), sum_water(np,np)
 
     !  By Mark Taylor
@@ -315,7 +319,7 @@ CONTAINS
     !  Each of these gradients is represented in *spherical* coordinates (i=1,2)
     !
     !  We then dot each of these vectors with grad(theta).  This dot product is computed
-    !  in spherical coordinates.  The end result is dum_cart(c), for c=1,2,3
+    !  in spherical coordinates.  The end result is wind_cart(c), for c=1,2,3
     !  These three scalars are the three Cartesian coefficients of
     !  the vector "grad(theta)*grad(v)"
     !
@@ -357,26 +361,26 @@ CONTAINS
 
       do k=1,nlev
         do component=1,3
-          dum_cart(:,:,component,k) = sum( elem(ie)%vec_sphere2cart(:,:,component,:) * elem(ie)%state%v(:,:,:,k,tl),3 )
+          wind_cart(:,:,component,k) = sum( elem(ie)%vec_sphere2cart(:,:,component,:) * elem(ie)%state%v(:,:,:,k,tl),3 )
         end do
       end do
 
       do component=1,3
-        call compute_vertical_derivative(pint,p,dum_cart(:,:,component,:),ddp_dum_cart(:,:,component,:))
+        call compute_vertical_derivative(pint,p,wind_cart(:,:,component,:),ddp_wind_cart(:,:,component,:))
       end do
       do k=1,nlev
         call gradient_sphere(p(:,:,k),ederiv,elem(ie)%Dinv,gradp)
 
         do component=1,3
-          call gradient_sphere(dum_cart(:,:,component,k),ederiv,elem(ie)%Dinv,dum_grad)
+          call gradient_sphere(wind_cart(:,:,component,k),ederiv,elem(ie)%Dinv,grad_wind_cart)
           do i=1,2
-            dum_grad(:,:,i) = dum_grad(:,:,i) - ddp_dum_cart(:,:,component,k) * gradp(:,:,i)
+            grad_wind_cart(:,:,i) = grad_wind_cart(:,:,i) - ddp_wind_cart(:,:,component,k) * gradp(:,:,i)
           end do
-          dum_cart(:,:,component,k) = sum( gradth(:,:,:,k,ie) * dum_grad , 3 )
+          wind_cart(:,:,component,k) = sum( gradth(:,:,:,k,ie) * grad_wind_cart , 3 )
         end do
 
         do i=1,2
-          C(:,:,i) = sum(dum_cart(:,:,:,k)*elem(ie)%vec_sphere2cart(:,:,:,i), 3)
+          C(:,:,i) = sum(wind_cart(:,:,:,k)*elem(ie)%vec_sphere2cart(:,:,:,i), 3)
         end do
 
         ! gradth dot C

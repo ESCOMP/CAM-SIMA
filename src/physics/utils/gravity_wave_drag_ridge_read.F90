@@ -15,7 +15,6 @@ module gravity_wave_drag_ridge_read
 
   implicit none
   private
-  save
 
   public :: gravity_wave_drag_ridge_read_readnl
   public :: gravity_wave_drag_ridge_read_file

@@ -65,6 +65,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    use time_mod,               only: timelevel_qdp
    use control_mod,            only: qsplit
 
+   use shr_kind_mod,              only: shr_kind_cl
+
    ! arguments
    type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
    type(dyn_export_t),    intent(inout) :: dyn_out          ! dynamics export
@@ -106,6 +108,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    character(len=*), parameter :: subname = 'd_p_coupling'
    character(len=200) :: stdname_test
+   character(len=shr_kind_cl) :: errmsg
 
    !----------------------------------------------------------------------------
 
@@ -120,9 +123,9 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    if (fv_nphys > 0) then
       nphys = fv_nphys
    else
-     allocate(qgll(np,np,nlev,num_advected), stat=ierr)
+     allocate(qgll(np,np,nlev,num_advected), stat=ierr, errmsg=errmsg)
      call check_allocate(ierr, subname, 'qgll(np,np,nlev,num_advected)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      nphys = np
    end if
@@ -130,49 +133,49 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    const_data_ptr => cam_constituents_array()
 
    ! Allocate temporary arrays to hold data for physics decomposition
-   allocate(ps_tmp(nphys_pts,nelemd), stat=ierr)
+   allocate(ps_tmp(nphys_pts,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'ps_tmp(nphys_pts,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(dp3d_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   allocate(dp3d_tmp(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'dp3d_tmp(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(dp3d_tmp_tmp(nphys_pts,pver), stat=ierr)
+   allocate(dp3d_tmp_tmp(nphys_pts,pver), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'dp3d_tmp_tmp(nphys_pts,pver)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(phis_tmp(nphys_pts,nelemd), stat=ierr)
+   allocate(phis_tmp(nphys_pts,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'phis_tmp(nphys_pts,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(T_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   allocate(T_tmp(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'T_tmp(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(uv_tmp(nphys_pts,2,pver,nelemd), stat=ierr)
+   allocate(uv_tmp(nphys_pts,2,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'uv_tmp(nphys_pts,2,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(q_tmp(nphys_pts,pver,num_advected,nelemd), stat=ierr)
+   allocate(q_tmp(nphys_pts,pver,num_advected,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'q_tmp(nphys_pts,pver,num_advected,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(omega_tmp(nphys_pts,pver,nelemd), stat=ierr)
+   allocate(omega_tmp(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'omega_tmp(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(frontgf(nphys_pts,pver,nelemd), stat=ierr)
+   allocate(frontgf(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'frontgf(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(frontga(nphys_pts,pver,nelemd), stat=ierr)
+   allocate(frontga(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'frontga(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(vort4gw(nphys_pts,pver,nelemd), stat=ierr)
+   allocate(vort4gw(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'vort4gw(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
 
    if (iam < par%nprocs) then
@@ -243,9 +246,9 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
       omega_tmp(:,:,:) = 0._r8
       phis_tmp(:,:)    = 0._r8
       q_tmp(:,:,:,:)   = 0._r8
-      frontgf(:,:,:) = 0._r8
-      frontga(:,:,:) = 0._r8
-      vort4gw(:,:,:) = 0._r8
+      frontgf(:,:,:)   = 0._r8
+      frontga(:,:,:)   = 0._r8
+      vort4gw(:,:,:)   = 0._r8
 
    endif ! iam < par%nprocs
 
