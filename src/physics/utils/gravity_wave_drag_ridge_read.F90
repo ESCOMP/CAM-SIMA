@@ -15,7 +15,6 @@ module gravity_wave_drag_ridge_read
 
   implicit none
   private
-  save
 
   public :: gravity_wave_drag_ridge_read_readnl
   public :: gravity_wave_drag_ridge_read_file
@@ -346,6 +345,7 @@ contains
 
       call cam_pio_closefile(fh_rdggm)
       deallocate(fh_rdggm)
+      nullify(fh_rdggm)
 
       ! Mark variables as initialized so they are not read from ic file.
       call mark_as_initialized('grid_box_area_for_gamma_ridge_gravity_wave_drag')
