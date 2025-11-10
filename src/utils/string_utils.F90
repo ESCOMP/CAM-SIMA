@@ -6,7 +6,7 @@ module string_utils
    use cam_abortutils, only: endrun
    use string_core_utils, only: core_int_date_to_yyyymmdd, core_int_seconds_to_hhmmss
    use string_core_utils, only: to_str => core_to_str
-   use string_core_utils, only: stringify
+   use string_core_utils, only: split, stringify, tokenize
 
    implicit none
    private
@@ -18,7 +18,9 @@ module string_utils
    public :: to_str           ! Convert integer to left justified string
    public :: to_upper         ! Convert all characters in string to upper case.
    public :: to_lower         ! Convert all characters in string to lower case.
+   public :: split            ! Parse a string into tokens, one at a time
    public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
+   public :: tokenize         ! Parse a string into tokens
 
 contains
 
