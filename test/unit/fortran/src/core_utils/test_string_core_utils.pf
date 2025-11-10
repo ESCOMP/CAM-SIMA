@@ -70,7 +70,7 @@ end subroutine test_zero_int_seconds_to_hhmmss
 subroutine test_stringify_empty_arrays()
     use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=128), allocatable :: carr(:)
     integer(int32), allocatable :: i32arr(:)
@@ -82,18 +82,18 @@ subroutine test_stringify_empty_arrays()
     allocate(carr(0), i32arr(0), i64arr(0), larr(0), r32arr(0), r64arr(0))
 
     ! Empty arrays of any intrinsic data types should result in empty character strings.
-    @assertEqual('', core_stringify(carr))
-    @assertEqual('', core_stringify(i32arr))
-    @assertEqual('', core_stringify(i64arr))
-    @assertEqual('', core_stringify(larr))
-    @assertEqual('', core_stringify(r32arr))
-    @assertEqual('', core_stringify(r64arr))
+    @assertEqual('', stringify(carr))
+    @assertEqual('', stringify(i32arr))
+    @assertEqual('', stringify(i64arr))
+    @assertEqual('', stringify(larr))
+    @assertEqual('', stringify(r32arr))
+    @assertEqual('', stringify(r64arr))
 end subroutine test_stringify_empty_arrays
 
 @test
 subroutine test_stringify_character_array()
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -113,18 +113,18 @@ subroutine test_stringify_character_array()
         'Orthoclase', 'Quartz', '  Topaz', 'Corundum', 'Diamond' ]
 
     ! Spaces around each value should be trimmed. The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(carr))
+    @assertEqual(expected_default_separator, stringify(carr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(carr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(carr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(carr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(carr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_character_array
 
 @test
 subroutine test_stringify_integer_array()
     use, intrinsic :: iso_fortran_env, only: int32, int64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -144,21 +144,21 @@ subroutine test_stringify_integer_array()
     i64arr(:) = int(i32arr, int64)
 
     ! Spaces around each value should be trimmed. The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(i32arr))
-    @assertEqual(expected_default_separator, core_stringify(i64arr))
+    @assertEqual(expected_default_separator, stringify(i32arr))
+    @assertEqual(expected_default_separator, stringify(i64arr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(i32arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator, core_stringify(i64arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(i32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(i64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(i32arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator, stringify(i64arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(i32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(i64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_integer_array
 
 @test
 subroutine test_stringify_integer_extreme_values()
     use, intrinsic :: iso_fortran_env, only: int32, int64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
     character(len=*), parameter :: expected_int32_default_separator = &
@@ -181,17 +181,17 @@ subroutine test_stringify_integer_extreme_values()
     i64arr(10) = huge(i64arr)
 
     ! Extreme values should be handled properly.
-    @assertEqual(expected_int32_default_separator, core_stringify(i32arr))
-    @assertEqual(expected_int64_default_separator, core_stringify(i64arr))
-    @assertEqual(expected_int32_custom_separator_with_spaces, core_stringify(i32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_int64_custom_separator_with_spaces, core_stringify(i64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_int32_default_separator, stringify(i32arr))
+    @assertEqual(expected_int64_default_separator, stringify(i64arr))
+    @assertEqual(expected_int32_custom_separator_with_spaces, stringify(i32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_int64_custom_separator_with_spaces, stringify(i64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_integer_extreme_values
 
 @test
 subroutine test_stringify_floating_point_array()
     use, intrinsic :: iso_fortran_env, only: real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -215,21 +215,21 @@ subroutine test_stringify_floating_point_array()
 
     ! Each value should have a fixed width of 13. Only negative values should have signs.
     ! The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(r32arr))
-    @assertEqual(expected_default_separator, core_stringify(r64arr))
+    @assertEqual(expected_default_separator, stringify(r32arr))
+    @assertEqual(expected_default_separator, stringify(r64arr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(r32arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator, core_stringify(r64arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(r32arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator, stringify(r64arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_floating_point_array
 
 @test
 subroutine test_stringify_floating_point_scientific_notation()
     use, intrinsic :: iso_fortran_env, only: real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
     character(len=*), parameter :: expected_default_separator = &
@@ -248,17 +248,17 @@ subroutine test_stringify_floating_point_scientific_notation()
     r64arr(:) = real(r32arr, real64)
 
     ! Scientific notation should be enabled if there is any value with a magnitude >= 1.0E+5.
-    @assertEqual(expected_default_separator, core_stringify(r32arr))
-    @assertEqual(expected_default_separator, core_stringify(r64arr))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_default_separator, stringify(r32arr))
+    @assertEqual(expected_default_separator, stringify(r64arr))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_floating_point_scientific_notation
 
 @test
 subroutine test_stringify_floating_point_extreme_values()
     use, intrinsic :: iso_fortran_env, only: real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
     character(len=*), parameter :: expected_real32_default_separator = &
@@ -285,16 +285,16 @@ subroutine test_stringify_floating_point_extreme_values()
     r64arr(10) = 9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
 
     ! Extreme values should be handled properly.
-    @assertEqual(expected_real32_default_separator, core_stringify(r32arr))
-    @assertEqual(expected_real64_default_separator, core_stringify(r64arr))
-    @assertEqual(expected_real32_custom_separator_with_spaces, core_stringify(r32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_real64_custom_separator_with_spaces, core_stringify(r64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_real32_default_separator, stringify(r32arr))
+    @assertEqual(expected_real64_default_separator, stringify(r64arr))
+    @assertEqual(expected_real32_custom_separator_with_spaces, stringify(r32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_real64_custom_separator_with_spaces, stringify(r64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_floating_point_extreme_values
 
 @test
 subroutine test_stringify_logical_array()
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '.or.'
     character(len=*), parameter :: custom_separator_with_spaces = ' .or. '
@@ -313,9 +313,9 @@ subroutine test_stringify_logical_array()
     larr(2:10:2) = .false.
 
     ! Spaces around each value should be trimmed. The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(larr))
+    @assertEqual(expected_default_separator, stringify(larr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(larr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(larr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(larr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(larr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_logical_array

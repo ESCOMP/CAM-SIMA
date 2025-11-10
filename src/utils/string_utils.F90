@@ -5,7 +5,8 @@ module string_utils
    use cam_logfile,    only: iulog
    use cam_abortutils, only: endrun
    use string_core_utils, only: core_int_date_to_yyyymmdd, core_int_seconds_to_hhmmss
-   use string_core_utils, only: stringify=>core_stringify, to_str=>core_to_str
+   use string_core_utils, only: to_str => core_to_str
+   use string_core_utils, only: stringify
 
    implicit none
    private
@@ -19,7 +20,7 @@ module string_utils
    public :: to_lower         ! Convert all characters in string to lower case.
    public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
-CONTAINS
+contains
 
    subroutine strlist_get_ind(strlist, str, ind, abort)
 

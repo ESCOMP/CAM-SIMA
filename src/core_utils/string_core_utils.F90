@@ -6,9 +6,9 @@ module string_core_utils
     public :: core_to_str                ! Convert integer to left justified string
     public :: core_int_date_to_yyyymmdd  ! Convert encoded date integer to "yyyy-mm-dd" format
     public :: core_int_seconds_to_hhmmss ! Convert integer seconds past midnight to "hh:mm:ss" format
-    public :: core_stringify             ! Convert one or more values of any intrinsic data types to a character string for pretty printing
+    public :: stringify                  ! Convert one or more values of any intrinsic data types to a character string for pretty printing
 
-CONTAINS
+contains
 
     character(len=10) pure function core_to_str(n)
         ! return default integer as a left justified string
@@ -65,12 +65,12 @@ CONTAINS
     !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
     !> If `separator` is not supplied, it defaults to ", " (i.e., a comma and a space).
     !> (KCW, 2024-02-04)
-    pure function core_stringify(value, separator)
+    pure function stringify(value, separator)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
 
         class(*), intent(in) :: value(:)
         character(*), optional, intent(in) :: separator
-        character(:), allocatable :: core_stringify
+        character(:), allocatable :: stringify
 
         integer, parameter :: sizelimit = 1024
 
@@ -87,7 +87,7 @@ CONTAINS
         n = min(size(value), sizelimit)
 
         if (n == 0) then
-            core_stringify = ''
+            stringify = ''
 
             return
         end if
@@ -162,12 +162,12 @@ CONTAINS
 
                 write(buffer, format) value
             class default
-                core_stringify = ''
+                stringify = ''
 
                 return
         end select
 
-        core_stringify = trim(buffer)
-    end function core_stringify
+        stringify = trim(buffer)
+    end function stringify
 
 end module string_core_utils
