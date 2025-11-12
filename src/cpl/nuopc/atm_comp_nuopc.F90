@@ -56,7 +56,6 @@ module atm_comp_nuopc
    use perf_mod            , only : t_startf, t_stopf
    use physics_grid        , only : global_index_p, get_rlon_all_p, get_rlat_all_p
    use physics_grid        , only : ngcols => num_global_phys_cols
-   use physics_grid        , only : lsize  => columns_on_task
    use physics_grid        , only : hdim1_d, hdim2_d
    use cam_control_mod     , only : cam_ctrl_set_orbit
    use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
@@ -328,7 +327,8 @@ contains
   !===============================================================================
   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
 
-    use ESMF, only : ESMF_VMGet
+    use ESMF,         only : ESMF_VMGet
+    use physics_grid, only : lsize => columns_on_task
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -349,10 +349,10 @@ contains
     integer                 :: spatialDim
     integer                 :: numOwnedElements
     real(r8), allocatable   :: ownedElemCoords(:)
-    real(r8)                :: lat(lsize)
-    real(r8)                :: latMesh(lsize)
-    real(r8)                :: lon(lsize)
-    real(r8)                :: lonMesh(lsize)
+    real(r8), allocatable   :: lat(:)
+    real(r8), allocatable   :: latMesh(:)
+    real(r8), allocatable   :: lon(:)
+    real(r8), allocatable   :: lonMesh(:)
     integer                 :: ncols                             ! number of local columns
     integer                 :: start_ymd                         ! Start date (YYYYMMDD)
     integer                 :: start_tod                         ! Start time of day (sec)
@@ -415,7 +415,7 @@ contains
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
 
-    call shr_log_setLogUnit (iulog)
+    call shr_log_setLogUnit(iulog)
 
     !----------------------------------------------------------------------------
     ! generate local mpi comm
@@ -670,15 +670,39 @@ contains
 
           call cam_set_mesh_for_single_column(scol_lon, scol_lat, model_mesh, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(dof(1), stat=ierr)
-          call check_allocate(ierr, subname, 'dof(1)', file=__FILE__, line=__LINE__)
+          allocate(dof(1), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'dof(1)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
           dof(1) = 1
 
        else
 
+          ! Allocate lat/lon variables.  Note that this must be done
+          ! after 'cam_init' or else the physics grid, and thus 'lsize',
+          ! won't be propertly set.
+          allocate(lat(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'lat(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+          allocate(lon(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'lon(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+          allocate(latMesh(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'latMesh(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+          allocate(lonMesh(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'lonMesh(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+
           ! generate the dof
-          allocate(dof(lsize), stat=ierr)
-          call check_allocate(ierr, subname, 'dof(lsize)', file=__FILE__, line=__LINE__)
+          allocate(dof(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'dof(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
           do i = 1, lsize
              dof(i) = global_index_p(i)
           end do
@@ -714,6 +738,7 @@ contains
                               file=__FILE__, line=__LINE__)
           call ESMF_MeshGet(model_mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(*,*) 'DEBUG pre-loop -JN: ', lsize, size(ownedElemCoords), size(lonMesh), size(latMesh)
           do n = 1,lsize
              lonMesh(n) = ownedElemCoords(2*n-1)
              latMesh(n) = ownedElemCoords(2*n)
