@@ -44,6 +44,7 @@ contains
       use radiation_namelist,           only: radiation_readnl
 
       use dyn_comp,                     only: dyn_readnl
+      use atm_stream_ndep,              only: stream_ndep_readnl
 
       !---------------------------Arguments-----------------------------------
 
@@ -78,7 +79,6 @@ contains
       !    cam_read_ccpp_scheme_namelists
 
       call cam_logfile_readnl(nlfilename)
-!      call physics_grid_readnl(nlfilename)
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
       call cam_constituents_readnl(nlfilename)
@@ -86,16 +86,12 @@ contains
       call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)
       call ref_pres_readnl(nlfilename)
-!      call phys_debug_readnl(nlfilename)
-!      call diag_readnl(nlfilename)
-!      call check_energy_readnl(nlfilename)
       call analytic_ic_readnl(nlfilename)
       call tropopause_climo_readnl(nlfilename)
       call radiation_readnl(nlfilename)
-!      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
-!      call nudging_readnl(nlfilename)
       call gravity_wave_drag_ridge_read_readnl(nlfilename)
       call dyn_readnl(nlfilename)
+      call stream_ndep_readnl(nlfilename)
 
       ! Read the namelists for active physics schemes
       errflg = 0

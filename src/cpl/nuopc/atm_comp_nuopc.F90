@@ -738,7 +738,6 @@ contains
                               file=__FILE__, line=__LINE__)
           call ESMF_MeshGet(model_mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(*,*) 'DEBUG pre-loop -JN: ', lsize, size(ownedElemCoords), size(lonMesh), size(latMesh)
           do n = 1,lsize
              lonMesh(n) = ownedElemCoords(2*n-1)
              latMesh(n) = ownedElemCoords(2*n)

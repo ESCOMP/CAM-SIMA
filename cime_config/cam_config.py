@@ -240,8 +240,12 @@ class ConfigCAM:
         # Save local (cime_config) directory path:
         cime_conf_path = os.path.dirname(os.path.abspath(__file__))
 
-        # Save path to the "data" src direcotry:
+        # Save path to the "data" src directory:
         data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
+
+        # Save path to the "cpl/nuopc" src directory:
+        cpl_nuopc_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "cpl",
+                                          "nuopc")
 
         # Create empty XML namelist definition files dictionary:
         self.__xml_nml_def_files = OrderedDict()
@@ -249,7 +253,8 @@ class ConfigCAM:
         #Add the default host model namelists:
         self._add_xml_nml_file(cime_conf_path, "namelist_definition_cam.xml")
         self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
-        self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
+        self._add_xml_nml_file(cpl_nuopc_nml_path,
+                               "namelist_definition_atm_stream_ndep.xml")
 
         #----------------------------------------------------
         # Set CAM start date (needed for namelist generation)

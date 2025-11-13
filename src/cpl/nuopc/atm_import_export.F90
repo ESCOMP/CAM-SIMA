@@ -709,7 +709,7 @@ contains
 #endif
 
 #if 0
-! Commented out until water isotopes or carbon ccle fluxe are implemented in CAM-SIMA
+! Commented out until water isotopes or carbon cycle fluxes are implemented in CAM-SIMA
     ! fields needed to calculate water isotopes to ocean evaporation processes
     call state_getfldptr(importState,  'So_ustar', fldptr=fldptr1d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -853,14 +853,15 @@ contains
     ! Copy from CAM-SIMA array data structure into state fldptr
     ! -----------------------------------------------------
 
-    use ESMF              , only : ESMF_Clock
-    use nuopc_shr_methods , only : chkerr
-    use srf_field_check   , only : active_Faxa_nhx, active_Faxa_noy
-    use physics_types     , only : cam_out_t
-    use time_manager      , only : is_first_step, get_nstep
-    use physics_grid      , only : columns_on_task
-    use atm_stream_ndep   , only : stream_ndep_init, stream_ndep_interp
-    use atm_stream_ndep   , only : stream_ndep_is_initialized
+    use ESMF              , only: ESMF_Clock
+    use nuopc_shr_methods , only: chkerr
+    use srf_field_check   , only: active_Faxa_nhx, active_Faxa_noy
+    use physics_types     , only: cam_out_t
+    use time_manager      , only: is_first_step, get_nstep
+    use physics_grid      , only: columns_on_task
+    use atm_stream_ndep   , only: stream_ndep_init, stream_ndep_interp
+    use atm_stream_ndep   , only: stream_ndep_is_initialized
+    use atm_stream_ndep   , only: ndep_stream_active
 
     !-------------------------------
     ! Pack the export state
@@ -1033,29 +1034,36 @@ contains
        end do
     end if
 
-    ! If ndep fields are not computed in cam and must be obtained from the ndep input stream
     call state_getfldptr(exportState, 'Faxa_ndep', fldptr2d=fldptr_ndep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (.not. active_Faxa_nhx .and. .not. active_Faxa_noy) then
-       if (.not. stream_ndep_is_initialized) then
-          call stream_ndep_init(model_mesh, model_clock, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          stream_ndep_is_initialized = .true.
-       end if
+
+    fldptr_ndep(:,:) = 0._r8
+
+    ! The ndep_stream_nl namelist group is read in stream_ndep_init.  This sets whether
+    ! or not the stream will be used.
+    if (.not. stream_ndep_is_initialized) then
+       call stream_ndep_init(model_mesh, model_clock, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       stream_ndep_is_initialized = .true.
+    end if
+
+    if (ndep_stream_active) then
+
+       ! Nitrogen deposition fluxes are obtained
+       ! from the ndep input stream if input data
+       ! is available
+
+       ! get ndep fluxes from the stream
        call stream_ndep_interp(cam_out, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ! NDEP read from forcing is expected to be in units of gN/m2/sec - but the mediator
-       ! expects units of kgN/m2/sec
-       scale_ndep = .001_r8
-    else
-       ! If waccm computes ndep, then its in units of kgN/m2/s - and the mediator expects
-       ! units of kgN/m2/sec, so the following conversion needs to happen
-       scale_ndep = 1._r8
+
+       ! set field pointer to stream data
+       do i = 1, columns_on_task
+          fldptr_ndep(1,i) = cam_out%nhx_nitrogen_flx(i) * mod2med_areacor(i)
+          fldptr_ndep(2,i) = cam_out%noy_nitrogen_flx(i) * mod2med_areacor(i)
+       end do
+
     end if
-    do i = 1, columns_on_task
-       fldptr_ndep(1,i) = cam_out%nhx_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
-       fldptr_ndep(2,i) = cam_out%noy_nitrogen_flx(i) * scale_ndep * mod2med_areacor(i)
-    end do
 
   end subroutine export_fields
 
