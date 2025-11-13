@@ -44,7 +44,6 @@ module atm_comp_nuopc
    use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_run4, cam_final
    use cam_comp            , only : cam_timestep_init, cam_timestep_final
    use physics_types       , only : cam_out, cam_in
-!   use radiation           , only : nextsw_cday  !uncomment once radiation has been CCPP-ized -JN
    use cam_logfile         , only : cam_set_log_unit, iulog
    use cam_abortutils      , only : check_allocate
    use spmd_utils          , only : spmd_init, masterproc, iam
@@ -820,6 +819,8 @@ contains
   !===============================================================================
   subroutine DataInitialize(gcomp, rc)
 
+    use physics_types, only: nextsw_cday
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
@@ -952,13 +953,10 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-!Remove once radiation (nextsw_cday) has been enabled in CAM-SIMA -JN.
-#if 0
        ! Compute time of next radiation computation
        call State_SetScalar(nextsw_cday, flds_scalar_index_nextsw_cday, exportState, &
             flds_scalar_name, flds_scalar_num, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
 
        ! diagnostics
        if (dbug_flag > 1) then
@@ -1026,7 +1024,8 @@ contains
   !===============================================================================
   subroutine ModelAdvance(gcomp, rc)
 
-    use ESMF, only : ESMF_GridCompGet, esmf_vmget, esmf_vm
+    use ESMF,          only: ESMF_GridCompGet, esmf_vmget, esmf_vm
+    use physics_types, only: nextsw_cday
     ! Run CAM
 
     ! Input/output variables
@@ -1213,14 +1212,11 @@ contains
        call t_stopf ('CAM_export')
 
        ! Set the coupling scalars
-!Remove once radiation (nextsw_cday) has been enabled in CAM-SIMA -JN.
-#if 0
        ! Return time of next radiation calculation - albedos will need to be
        ! calculated by each surface model at this time
        call State_SetScalar(nextsw_cday, flds_scalar_index_nextsw_cday, exportState, &
             flds_scalar_name, flds_scalar_num, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
 
        ! diagnostics
        if (dbug_flag > 1) then
