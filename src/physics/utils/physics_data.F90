@@ -444,8 +444,18 @@ CONTAINS
          end do const_idx_loop
       end do base_idx_loop
 
-      if(.not. var_found .and. error_on_not_found_local) then
-         call endrun(subname//'Required constituent-dimensioned variables not found: No match for ' // trim(std_name))
+      if(.not. var_found) then
+         if(error_on_not_found_local) then
+            !End model run with appropriate error message:
+            call endrun(subname // 'Required constituent-dimensioned variables not found: No match for ' // trim(std_name))
+         else
+            !Write message to log file, then exit subroutine:
+            if (masterproc) then
+               write(iulog, *) subname // 'Required constituent-dimensioned variables not found: No match for ' // trim(std_name)
+               call shr_sys_flush(iulog)
+            end if
+            return !Nothing more to do here
+         end if
       end if
 
       ! Once base_idx is identified, use it in the actual constituent loop:
