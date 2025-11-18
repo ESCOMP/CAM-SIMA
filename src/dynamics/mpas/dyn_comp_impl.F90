@@ -128,7 +128,9 @@ contains
     module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
-        use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
+        use cam_constituents, only: const_name, const_is_water_species
+        use cam_constituents, only: num_constituents, num_advected
+        use cam_constituents, only: const_is_advected, readtrace
         use cam_control_mod, only: initial_run
         use cam_initfiles, only: initial_file_get_id, topo_file_get_id
         use cam_logfile, only: debugout_debug, debugout_info
@@ -174,9 +176,11 @@ contains
         call check_allocate(ierr, subname, 'is_water_species(num_advected)', &
             file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        do i = 1, num_advected
-            constituent_name(i) = const_name(i)
-            is_water_species(i) = const_is_water_species(i)
+        do i = 1, num_constituents
+            if (const_is_advected(i)) then !Skip non-advected consitutents
+                constituent_name(i) = const_name(i)
+                is_water_species(i) = const_is_water_species(i)
+            end if
         end do
 
         call dyn_debug_print(debugout_info, 'Defining MPAS scalars and scalar tendencies')
@@ -614,6 +618,8 @@ contains
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
             use cam_constituents, only: num_advected
+            use cam_constituents, only: num_constituents
+            use cam_constituents, only: const_is_advected
             use cam_logfile, only: debugout_verbose
             use dyn_grid, only: ncells_solve
             use dyn_procedures, only: qv_of_sh, reverse
@@ -652,7 +658,19 @@ contains
             call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
 
             buffer_3d_real(:, :, :) = 0.0_kind_r8
-            constituent_index(:) = [(i, i = 1, num_advected)]
+
+            ! Extract indices for all advected constituents.
+            j = 1
+            do i = 1, num_constituents
+                if (const_is_advected(i)) then
+                    constituent_index(j) = i
+                    if (j == num_advected) then
+                        exit !Break out of loop if no more advected constituents
+                    else
+                        j = j + 1
+                    end if
+                end if
+            end do
 
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, q=buffer_3d_real, &
                 m_cnst=constituent_index)
@@ -913,7 +931,8 @@ contains
     !> (KCW, 2024-05-23)
     subroutine mark_variables_as_initialized()
         ! Module(s) from CAM-SIMA.
-        use cam_constituents, only: const_name, num_advected
+        use cam_constituents, only: num_constituents, num_advected
+        use cam_constituents, only: const_name, const_is_advected
         use cam_logfile, only: debugout_debug
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: mark_as_initialized
@@ -960,8 +979,10 @@ contains
         call mark_as_initialized('tendency_of_northward_wind_due_to_model_physics')
 
         ! CCPP standard names of constituents.
-        do i = 1, num_advected
-            call mark_as_initialized(trim(adjustl(const_name(i))))
+        do i = 1, num_constituents
+            if (const_is_advected(i)) then
+                call mark_as_initialized(trim(adjustl(const_name(i))))
+            end if
         end do
 
         ! The variables below are not managed by dynamics interface. They are used by external CCPP physics schemes.

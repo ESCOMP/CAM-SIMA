@@ -24,7 +24,8 @@ contains
     module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
-        use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
+        use cam_constituents, only: num_constituents, num_advected
+        use cam_constituents, only: const_is_dry, const_is_water_species, const_is_advected
         use cam_logfile, only: debugout_debug, debugout_info
         use dyn_comp, only: dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
         use dyn_grid, only: ncells_solve
@@ -33,6 +34,7 @@ contains
         use vert_coord, only: pver
         ! Module(s) from CCPP.
         use cam_ccpp_cap, only: cam_constituents_array
+        use cam_ccpp_cap, only: cam_advected_constituents_array
         use ccpp_kinds, only: kind_phys
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
@@ -89,11 +91,20 @@ contains
             'is_water_species(num_advected)', &
             file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        do j = 1, num_advected
+
+        j = 1
+        do i = 1, num_constituents
             ! All constituent mixing ratios in MPAS are dry.
             ! Therefore, conversion in between is needed for any constituent mixing ratios that are not dry in CAM-SIMA.
-            is_conversion_needed(j) = .not. const_is_dry(j)
-            is_water_species(j) = const_is_water_species(j)
+            if (const_is_advected(i)) then
+                is_conversion_needed(j) = .not. const_is_dry(i)
+                is_water_species(j) = const_is_water_species(i)
+                if (i == num_advected) then
+                    exit !All advected constituents accounted for, so exit loop.
+                else
+                    j = j + 1
+                end if
+            end if
         end do
 
         allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
@@ -106,7 +117,8 @@ contains
             'sigma_all_q(pver)', &
             file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        constituents => cam_constituents_array()
+        !constituents => cam_constituents_array()
+        constituents => cam_advected_constituents_array()
 
         if (.not. associated(constituents)) then
             call endrun('Failed to find variable "constituents"', subname, __LINE__)
@@ -253,7 +265,8 @@ contains
         subroutine init_shared_variables()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
-            use cam_constituents, only: const_is_water_species, num_advected
+            use cam_constituents, only: num_constituents, num_advected
+            use cam_constituents, only: const_is_water_species, const_is_advected
             use dyn_comp, only: mpas_dynamical_core
             use vert_coord, only: pver, pverp
             ! Module(s) from CESM Share.
@@ -261,7 +274,7 @@ contains
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::init_shared_variables'
             character(len_cx) :: cerr
-            integer :: i
+            integer :: i, j
             integer :: ierr
             logical, allocatable :: is_water_species(:)
 
@@ -281,8 +294,16 @@ contains
                 'is_water_species(num_advected)', &
                 file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            do i = 1, num_advected
-                is_water_species(i) = const_is_water_species(i)
+            j = 1
+            do i = 1, num_constituents
+                if (const_is_advected(i)) then
+                    is_water_species(j) = const_is_water_species(i)
+                    if (j == num_advected) then
+                        exit !All advected species accounted for, so exit loop
+                    else
+                        j = j + 1
+                    end if
+                end if
             end do
 
             allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
