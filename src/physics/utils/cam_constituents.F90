@@ -164,6 +164,7 @@ CONTAINS
 
    subroutine cam_constituents_init(cnst_prop_ptr, num_advect)
       use cam_abortutils, only: endrun
+      use spmd_utils,     only: masterproc
       use cam_logfile,    only: iulog, debug_output
       use cam_logfile,    only: DEBUGOUT_VERBOSE
 
@@ -186,7 +187,7 @@ CONTAINS
 
       !If log level is verbose, then print out
       !the names/order of all registered constituents:
-      if (debug_output >= DEBUGOUT_VERBOSE) then
+      if ((debug_output >= DEBUGOUT_VERBOSE) .and. masterproc) then
 
          write(iulog,*) 'LIST OF REGISTERED CONSTITUENTS:'
          write(iulog,*) '********************************'
