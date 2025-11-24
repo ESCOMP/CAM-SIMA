@@ -1464,6 +1464,20 @@
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
+    <variable local_name="qrl"
+              standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_longwave_radiation_adjusted_by_air_pressure_thickness"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_QRL</ic_file_input_names>
+    </variable>
+    <variable local_name="wsedl"
+              standard_name="sedimentation_velocity_of_liquid_stratus_cloud_droplet_tbd"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_WSEDL</ic_file_input_names>
+    </variable>
 
     <!-- Temporary initializations for gravity wave parameterizations -->
     <variable local_name="ttend_clubb"
@@ -1564,6 +1578,23 @@
     </variable>
 
     <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
+    <variable local_name="kvm"
+              standard_name="eddy_momentum_diffusivity_at_interfaces"
+              units="m2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_kvm</ic_file_input_names>
+    </variable>
+    <variable local_name="kvh"
+              standard_name="eddy_heat_diffusivity_at_interfaces"
+              units="m2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_kvh</ic_file_input_names>
+    </variable>
+
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
@@ -1590,7 +1621,7 @@
     </variable>
     <!-- REMOVECAM: the final standard name for these quantities below are
          {east,north}ward_turbulent_orographic_form_drag_stress_at_surface.
-         however, it is shared with tautmsx; in order to distinguish between these two in CAM snapshots,
+         however, it is shared with tautms{x,y}; in order to distinguish between these two in CAM snapshots,
          an alternate standard name is currently used. When CAM snapshots are retired, only either
          Beljaars or TMS (which are mutually exclusive) provide the {east,north}ward_orographic_form_drag_stress_at_surface. -->
     <variable local_name="taubljx"
@@ -1609,6 +1640,36 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_taubljy</ic_file_input_names>
     </variable>
+    <!-- REMOVECAM: the final standard name for these quantities below are
+         {east,north}ward_turbulent_orographic_form_drag_stress_at_surface.
+         however, it is shared with taublj{x,y}; in order to distinguish between these two in CAM snapshots,
+         an alternate standard name is currently used. When CAM snapshots are retired, only either
+         Beljaars or TMS (which are mutually exclusive) provide the {east,north}ward_orographic_form_drag_stress_at_surface. -->
+    <variable local_name="tautmsx"
+              standard_name="eastward_turbulent_mountain_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tautmsx</ic_file_input_names>
+    </variable>
+    <variable local_name="tautmsy"
+              standard_name="northward_turbulent_mountain_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tautmsy</ic_file_input_names>
+    </variable>
+    <variable local_name="ksrftms"
+              standard_name="turbulent_orographic_form_drag_coefficent_at_surface"
+              units="kg s-1 m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ksrftms</ic_file_input_names>
+    </variable>
+
     <variable local_name="apply_non_wv_cflx_in_free_atm_vdiff"
               standard_name="do_apply_ccpp_constituent_fluxes_excluding_water_vapor_in_vertical_diffusion"
               units="flag" type="logical">
