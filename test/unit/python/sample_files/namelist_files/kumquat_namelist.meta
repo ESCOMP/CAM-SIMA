@@ -28,37 +28,37 @@
   units = 1
   dimensions = ()
   protected = True
-[ cam_nl_autogen1_dimension ]
-  standard_name = cam_nl_autogen1_dimension
+[ kq_farr1_dimension ]
+  standard_name = kq_farr1_dimension
   type = integer | units = 1
   dimensions = ()
 [ kq_farr1 ]
   standard_name = kumquat_fake_array1
   type = real | kind = kind_phys
   units = m s-1
-  dimensions = (cam_nl_autogen1_dimension)
+  dimensions = (kq_farr1_dimension)
   protected = True
-[ cam_nl_autogen2_dimension ]
-  standard_name = cam_nl_autogen2_dimension
+[ kq_fake2_dimension ]
+  standard_name = kq_fake2_dimension
   type = integer | units = 1
   dimensions = ()
-[ cam_nl_autogen3_dimension ]
-  standard_name = cam_nl_autogen3_dimension
+[ kq_fake2_dimension_2 ]
+  standard_name = kq_fake2_dimension_2
   type = integer | units = 1
   dimensions = ()
 [ kq_fake2 ]
   standard_name = kumquat_fake2d_array
   type = integer
   units = 1
-  dimensions = (cam_nl_autogen2_dimension, cam_nl_autogen3_dimension)
+  dimensions = (kq_fake2_dimension, kq_fake2_dimension_2)
   protected = True
-[ cam_nl_autogen4_dimension ]
-  standard_name = cam_nl_autogen4_dimension
+[ kq_fchar3_dimension ]
+  standard_name = kq_fchar3_dimension
   type = integer | units = 1
   dimensions = ()
 [ kq_fchar3 ]
   standard_name = kumquat_fake_char_array
   type = character | kind = len=256
   units = 1
-  dimensions = (cam_nl_autogen4_dimension)
+  dimensions = (kq_fchar3_dimension)
   protected = True

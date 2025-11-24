@@ -160,7 +160,7 @@ class NLVar:
     """Class to hold information about a namelist variable entry"""
 
     # For unique dimension names
-    __new_dim_suffix = 0
+    __new_dim_suffix = {}
 
     # For validity error messages
     __kind_errstr = "Conflicting kind arguments, '{}' and '{}' for '{}'"
@@ -327,9 +327,9 @@ class NLVar:
            should have been sanitized by _parse_xml_type.
 
         >>> NLVar._parse_array_desc("10", "foo")
-        ((10,), ('cam_nl_autogen1_dimension',))
+        ((10,), ('foo_dimension',))
         >>> NLVar._parse_array_desc("15,3", "bar")
-        ((15, 3), ('cam_nl_autogen2_dimension', 'cam_nl_autogen3_dimension'))
+        ((15, 3), ('bar_dimension', 'bar_dimension_2'))
         >>> NLVar._parse_array_desc("15,,3", "foobar")
         Traceback (most recent call last):
         ...
@@ -338,7 +338,7 @@ class NLVar:
         if alen:
             try:
                 alens = tuple([int(x.strip()) for x in alen.split(',')])
-                anames = tuple([cls._new_nl_dimname() for x in alens])
+                anames = tuple([cls._new_nl_dimname(name) for x in alens])
             except:
                 emsg = f"Invalid array argument, '{alen}', for {name}"
                 raise ParseInternalError(emsg)
@@ -462,10 +462,23 @@ class NLVar:
         file.write(decl, indent)
 
     @classmethod
-    def _new_nl_dimname(cls):
+    def _new_nl_dimname(cls, var_name):
         """Return a new dimension name for use with a namelist array variable"""
-        cls.__new_dim_suffix += 1
-        return f"cam_nl_autogen{cls.__new_dim_suffix}_dimension"
+
+        # Update number of dimensions for the
+        # specified namelist variable:
+        if var_name in cls.__new_dim_suffix:
+            cls.__new_dim_suffix[var_name] += 1
+        else:
+            cls.__new_dim_suffix[var_name] = 1
+
+        # Create new dimension name based
+        # on the variable name and number of
+        # variable dimensions:
+        if cls.__new_dim_suffix[var_name] > 1:
+            return f"{var_name}_dimension_{cls.__new_dim_suffix[var_name]}"
+        else:
+            return f"{var_name}_dimension"
 
     def var_mpi_type(self):
         """Return the MPI variable type constant of this NLVar object.
@@ -483,7 +496,7 @@ class NLVar:
         """
         for index, alen in enumerate(self.array_len):
             aname = self.__array_names[index]
-            ofile.write(f"integer, parameter   :: {aname} = {alen}", indent)
+            ofile.write(f"integer, public, parameter :: {aname} = {alen}", indent)
         # end for
 
     @property

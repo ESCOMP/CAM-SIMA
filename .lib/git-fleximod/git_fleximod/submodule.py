@@ -400,6 +400,9 @@ class Submodule():
                     # This is a tag
                     tag = f"refs/tags/{self.fxtag}:refs/tags/{self.fxtag}"
                     status,_ = smgit.git_operation("fetch", newremote, tag)
+                else:
+                    # This is likely a hash, so fetch full history just in case
+                    status,_ = smgit.git_operation("fetch", newremote)
                 if status == 0:
                     status,_ = smgit.git_operation("checkout", self.fxtag)
                 if status:
