@@ -37,6 +37,8 @@ CONTAINS
       use time_manager,   only: get_step_size
       use cam_abortutils, only: endrun
 
+      use physics_types,  only: is_first_timestep
+
       ! Dummy arguments
       real(r8),              intent(out)   :: dtime_out  ! Time-step (s)
       type(runtime_options), intent(in)    :: cam_runtime_opts
@@ -53,6 +55,12 @@ CONTAINS
       if (iam < npes) then
          if (dtime_out <= 0)  call endrun('stepon_timestep_init: bad dtime')
       end if
+
+      !Because when running with snapshots (thus using the null dycore)
+      !the snapshots are always from the second timestep onwards,
+      !override here the value of is_first_timestep to .false. as it is
+      !never truly the first timestep for the physics
+      is_first_timestep = .false.
 
    end subroutine stepon_timestep_init
 
