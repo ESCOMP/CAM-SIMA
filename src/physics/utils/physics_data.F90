@@ -1,4 +1,4 @@
-module physics_data
+src/data/registry.xmlmodule physics_data
 
    implicit none
    private
@@ -564,6 +564,16 @@ CONTAINS
          ! Try to find variable in file
          var_found = .false.
          call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+
+         ! Some constituents whose names are not specified in the registry
+         ! will have cnst_ prepended to them (e.g., cnst_dst_a1); also try reading
+         ! from file by removing this prefix:
+         if (.not. var_found) then
+            if (constituent_name(1:5) == 'cnst_') then
+               file_var_name = trim(base_var_names(base_idx)) // '_' // trim(constituent_name(6:))
+               call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+            end if
+         end if
 
          if (var_found) then
             ! Read the variable
