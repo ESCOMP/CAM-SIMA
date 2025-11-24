@@ -1,4 +1,4 @@
-src/data/registry.xmlmodule physics_data
+module physics_data
 
    use ccpp_kinds,   only: kind_phys
    use shr_kind_mod, only: cl=>shr_kind_cl
