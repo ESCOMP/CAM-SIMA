@@ -105,7 +105,7 @@ contains
     deallocate(ftmp)
 #endif
   end subroutine compute_adv_tends_xyz
-#ifdef scm_code
+#ifdef SCAM
   !----------------------------------------------------------------------
   ! computes camiop specific tendencies
   ! and writes these to the camiop file

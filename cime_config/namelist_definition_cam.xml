@@ -204,10 +204,10 @@
       <value>0.0D0</value>
       <value aquaplanet="1"> 101080.0D0 </value>
       <!-- Scale Dry Air Mass: for cases with topography -->
-      <value phys="cam4"   >  98288.0D0 </value>
-      <value phys="cam5"   >  98288.0D0 </value>
-      <value phys="cam6"   >  98288.0D0 </value>
-      <value phys="cam7"   >  98288.0D0 </value>
+      <value phys_suite="cam4"   >  98288.0D0 </value>
+      <value phys_suite="cam5"   >  98288.0D0 </value>
+      <value phys_suite="cam6"   >  98288.0D0 </value>
+      <value phys_suite="cam7"   >  98288.0D0 </value>
     </values>
   </entry>
 <!-- Topography -->
