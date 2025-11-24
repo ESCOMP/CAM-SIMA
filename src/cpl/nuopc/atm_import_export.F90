@@ -862,6 +862,7 @@ contains
     use atm_stream_ndep   , only: stream_ndep_init, stream_ndep_interp
     use atm_stream_ndep   , only: stream_ndep_is_initialized
     use atm_stream_ndep   , only: ndep_stream_active
+    use cam_constituents  , only: const_get_index
 
     !-------------------------------
     ! Pack the export state
@@ -876,7 +877,8 @@ contains
 
     ! local variables
     type(ESMF_State)  :: exportState
-    integer           :: i ! index variable
+    integer           :: i     ! Loop index variable
+    integer           :: ix_qv ! Constituents index for water vapor
     logical           :: exists
     real(r8)          :: scale_ndep
     ! 2d pointers
@@ -901,6 +903,10 @@ contains
     !---------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    ! Determine water vapor constituent index
+    call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', &
+                         ix_qv)
 
     ! Get export state
     call NUOPC_ModelGet(gcomp, exportState=exportState, rc=rc)
@@ -934,7 +940,7 @@ contains
        fldptr_vbot(i) = cam_out%vbot(i)
        fldptr_pbot(i) = cam_out%pbot(i)
        fldptr_tbot(i) = cam_out%tbot(i)
-       fldptr_shum(i) = cam_out%qbot(i,1)
+       fldptr_shum(i) = cam_out%qbot(i, ix_qv)
        fldptr_dens(i) = cam_out%rho(i)
        fldptr_ptem(i) = cam_out%thbot(i)
        fldptr_pslv(i) = cam_out%psl(i)
