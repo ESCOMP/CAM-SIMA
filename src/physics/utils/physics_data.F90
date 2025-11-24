@@ -1,4 +1,4 @@
-src/data/registry.xmlmodule physics_data
+module physics_data
 
    implicit none
    private
