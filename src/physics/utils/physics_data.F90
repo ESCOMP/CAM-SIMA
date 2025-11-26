@@ -157,6 +157,8 @@ CONTAINS
       use cam_pio_utils,        only: cam_pio_find_var
       use cam_abortutils,       only: endrun
       use cam_logfile,          only: iulog
+      use cam_logfile,          only: debug_output
+      use cam_logfile,          only: DEBUGOUT_INFO
       use cam_field_read,       only: cam_read_field
       use phys_vars_init_check, only: mark_as_read_from_file
 
@@ -221,7 +223,7 @@ CONTAINS
             call endrun(strerr)
          end if
       else if (.not. error_on_not_found_local) then
-         if (masterproc) then
+         if (masterproc .and. (debug_output >= DEBUGOUT_INFO)) then
             write(iulog, *) trim(std_name), ' not found, also looked for: ', trim(arr2str(var_names))
             call shr_sys_flush(iulog)
          end if
@@ -242,6 +244,8 @@ CONTAINS
       use cam_pio_utils,        only: cam_pio_find_var
       use cam_abortutils,       only: endrun
       use cam_logfile,          only: iulog
+      use cam_logfile,          only: debug_output
+      use cam_logfile,          only: DEBUGOUT_INFO
       use cam_field_read,       only: cam_read_field
       use vert_coord,           only: pver, pverp
       use phys_vars_init_check, only: mark_as_read_from_file
@@ -318,7 +322,7 @@ CONTAINS
             call endrun(strerr)
          end if
       else if (.not. error_on_not_found_local) then
-         if (masterproc) then
+         if (masterproc .and. (debug_output >= DEBUGOUT_INFO)) then
             write(iulog, *) trim(std_name), ' not found, also looked for: ', trim(arr2str(var_names))
             call shr_sys_flush(iulog)
          end if

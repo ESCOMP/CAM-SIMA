@@ -202,11 +202,13 @@ CONTAINS
       use cam_abortutils, only: endrun
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
       use time_manager,   only: is_first_step
+      use runtime_obj,    only: cam_runtime_opts
 
       ! Local variables
-      type(file_desc_t),     pointer       :: ncdata
-      integer                              :: data_frame
-      logical                              :: use_init_variables
+      type(file_desc_t), pointer :: ncdata
+      integer                    :: data_frame
+      logical                    :: use_init_variables
+      logical                    :: is_null_dycore
 
       ! Physics needs to read in all data not read in by the dycore
       ncdata => initial_file_get_id()
@@ -218,12 +220,26 @@ CONTAINS
       ! Initialize host model variables that must be done each time step:
       call physics_types_tstep_init()
 
+      ! Determine if we are running with the null dycore, which needs to
+      ! read from the IC file every time step:
+      is_null_dycore = (cam_runtime_opts%get_dycore() == 'null')
+
       ! Determine if we should read initialized variables from file
       use_init_variables = (.not. is_first_step()) .and.                      &
          (.not. is_first_restart_step())
 
-      call physics_read_data(ncdata, suite_names, data_frame,                 &
-           read_initialized_variables=use_init_variables)
+      ! Read physics data from IC file.  For the null dycore
+      ! this should be done every timestep, but for all other
+      ! dycores this should only be done at the first timestep:
+      if (.not. use_init_variables) then
+        !First time step, so always call:
+        call physics_read_data(ncdata, suite_names, data_frame,               &
+                               read_initialized_variables=use_init_variables)
+      else if(is_null_dycore) then
+        !Using null dycore, so call every time step:
+        call physics_read_data(ncdata, suite_names, data_frame,               &
+                               read_initialized_variables=use_init_variables)
+      end if
 
       ! Initialize the physics time step
       call cam_ccpp_physics_timestep_initial(phys_suite_name)

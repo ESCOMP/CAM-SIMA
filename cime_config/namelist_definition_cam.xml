@@ -139,7 +139,7 @@
       <value dyn="se" hgrid="ne30np4" nlev="70">${DIN_LOC_ROOT}/atm/waccm/ic/fw2000_ne30np4_L70_c181221.nc</value>
 
       <!-- MPAS dycore ICs -->
-      <value dyn="mpas" hgrid="mapasa120" nlev="26" analytic_ic="1">/glade/campaign/cgd/amp/aherring/mpas-uniform/mpasa120/grids/mpasa120_L26_notopo_coords_c251105.nc</value>
+      <value dyn="mpas" hgrid="mpasa120"  nlev="26" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120_L26_notopo_coords_c251105.nc</value>
       <value dyn="mpas" hgrid="mpasa480"  nlev="32" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa480_L32_notopo_coords_c240507.nc</value>
       <value dyn="mpas" hgrid="mpasa120"  nlev="32" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120_L32_notopo_coords_c240507.nc</value>
       <value dyn="mpas" hgrid="mpasa60"   nlev="32" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa60_L32_notopo_coords_c240507.nc</value>
@@ -467,6 +467,7 @@
       <value phys_suite="cam5">30</value>
       <value phys_suite="cam6">32</value>
       <value dyn="mpas" analytic_ic="1">32</value>
+      <value phys_suite="cam4" dyn="mpas" analytic_ic="1">26</value>
     </values>
   </entry>
 
