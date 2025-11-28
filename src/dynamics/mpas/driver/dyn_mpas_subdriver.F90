@@ -37,6 +37,7 @@ module dyn_mpas_subdriver
         !> This procedure interface is modeled after the `endrun` subroutine from CAM-SIMA.
         !> It will be called whenever MPAS dynamical core encounters a fatal error and cannot continue.
         subroutine model_error_if(message, file, line)
+            implicit none
             character(*),           intent(in) :: message
             character(*), optional, intent(in) :: file
             integer,      optional, intent(in) :: line
@@ -375,7 +376,7 @@ contains
     subroutine dyn_mpas_init_phase1(self, mpi_comm, model_error_impl, log_level, log_unit, mpas_log_unit)
         ! Module(s) from MPAS.
         use atm_core_interface, only: atm_setup_core, atm_setup_domain
-        use dyn_mpas_procedures, only: clamp
+        use dyn_mpas_procedures, only: clamp, stringify
         use mpas_domain_routines, only: mpas_allocate_domain
         use mpas_framework, only: mpas_framework_init_phase1
 
@@ -391,6 +392,7 @@ contains
         integer, intent(in) :: mpas_log_unit(2)
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase1'
+        character(strkind) :: cerr
         integer :: ierr
 
         self % mpi_comm = mpi_comm
@@ -414,20 +416,24 @@ contains
 
         call self % debug_print(log_level_info, 'Allocating core')
 
-        allocate(self % corelist, stat=ierr)
+        allocate(self % corelist, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate corelist', subname, __LINE__)
+            call self % model_error('Failed to allocate corelist' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(self % corelist % next)
 
         call self % debug_print(log_level_info, 'Allocating domain')
 
-        allocate(self % corelist % domainlist, stat=ierr)
+        allocate(self % corelist % domainlist, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate corelist % domainlist', subname, __LINE__)
+            call self % model_error('Failed to allocate corelist % domainlist' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(self % corelist % domainlist % next)
@@ -830,14 +836,16 @@ contains
         !> Possible CCPP standard names of `qv`, which denotes water vapor mixing ratio.
         !> They are hard-coded here because MPAS needs to know where `qv` is.
         !> Index 1 is exactly what MPAS wants. Others also work, but need to be converted.
-        character(*), parameter :: mpas_scalar_qv_standard_name(*) = [ character(strkind) :: &
+        character(*), parameter :: mpas_scalar_qv_standard_name(*) = [character(strkind) :: &
             'water_vapor_mixing_ratio_wrt_dry_air', &
             'water_vapor_mixing_ratio_wrt_moist_air', &
             'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water' &
         ]
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar'
-        integer :: i, j, ierr
+        character(strkind) :: cerr
+        integer :: i, j
+        integer :: ierr
         integer :: index_qv, index_water_start, index_water_end
         integer :: time_level
         type(field3dreal), pointer :: field_3d_real
@@ -861,16 +869,20 @@ contains
         if (size(constituent_name) == 0 .and. self % number_of_constituents == 1) then
             ! If constituent definitions are empty, `qv` is the only constituent per MPAS requirements.
             ! See `dyn_mpas_init_phase3` for details.
-            allocate(self % constituent_name(1), stat=ierr)
+            allocate(self % constituent_name(1), errmsg=cerr, stat=ierr)
 
             if (ierr /= 0) then
-                call self % model_error('Failed to allocate constituent_name', subname, __LINE__)
+                call self % model_error('Failed to allocate constituent_name' // new_line('') // &
+                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
-            allocate(self % is_water_species(1), stat=ierr)
+            allocate(self % is_water_species(1), errmsg=cerr, stat=ierr)
 
             if (ierr /= 0) then
-                call self % model_error('Failed to allocate is_water_species', subname, __LINE__)
+                call self % model_error('Failed to allocate is_water_species' // new_line('') // &
+                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
@@ -884,18 +896,22 @@ contains
                 call self % model_error('Constituent names are too long', subname, __LINE__)
             end if
 
-            allocate(self % constituent_name(self % number_of_constituents), stat=ierr)
+            allocate(self % constituent_name(self % number_of_constituents), errmsg=cerr, stat=ierr)
 
             if (ierr /= 0) then
-                call self % model_error('Failed to allocate constituent_name', subname, __LINE__)
+                call self % model_error('Failed to allocate constituent_name' // new_line('') // &
+                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             self % constituent_name(:) = adjustl(constituent_name)
 
-            allocate(self % is_water_species(self % number_of_constituents), stat=ierr)
+            allocate(self % is_water_species(self % number_of_constituents), errmsg=cerr, stat=ierr)
 
             if (ierr /= 0) then
-                call self % model_error('Failed to allocate is_water_species', subname, __LINE__)
+                call self % model_error('Failed to allocate is_water_species' // new_line('') // &
+                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             self % is_water_species(:) = is_water_species(:)
@@ -931,10 +947,12 @@ contains
 
         call self % debug_print(log_level_info, 'Creating index mapping between MPAS scalars and CAM-SIMA constituents')
 
-        allocate(self % index_mpas_scalar_to_constituent(self % number_of_constituents), stat=ierr)
+        allocate(self % index_mpas_scalar_to_constituent(self % number_of_constituents), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate index_mpas_scalar_to_constituent', subname, __LINE__)
+            call self % model_error('Failed to allocate index_mpas_scalar_to_constituent' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         self % index_mpas_scalar_to_constituent(:) = 0
@@ -964,10 +982,12 @@ contains
 
         call self % debug_print(log_level_info, 'Creating inverse index mapping between MPAS scalars and CAM-SIMA constituents')
 
-        allocate(self % index_constituent_to_mpas_scalar(self % number_of_constituents), stat=ierr)
+        allocate(self % index_constituent_to_mpas_scalar(self % number_of_constituents), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate index_constituent_to_mpas_scalar', subname, __LINE__)
+            call self % model_error('Failed to allocate index_constituent_to_mpas_scalar' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         self % index_constituent_to_mpas_scalar(:) = 0
@@ -1114,7 +1134,8 @@ contains
         character(*), intent(in) :: stream_name
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_write_stream'
-        integer :: i, ierr
+        integer :: i
+        integer :: ierr
         type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_stream_type), pointer :: mpas_stream
         type(var_info_type), allocatable :: var_info_list(:)
@@ -1239,8 +1260,11 @@ contains
         end interface add_stream_attribute
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_stream_with_pool'
+        character(strkind) :: cerr
         character(strkind) :: stream_filename
-        integer :: i, ierr, stream_format
+        integer :: i
+        integer :: ierr
+        integer :: stream_format
         !> Whether a variable is present on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_present(:)
         !> Whether a variable is type, kind, and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
@@ -1276,10 +1300,12 @@ contains
 
         call mpas_pool_create_pool(mpas_pool)
 
-        allocate(mpas_stream, stat=ierr)
+        allocate(mpas_stream, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate stream "' // trim(adjustl(stream_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate stream "' // trim(adjustl(stream_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         ! Not actually used because a PIO file descriptor is directly supplied.
@@ -1820,8 +1846,11 @@ contains
         type(var_info_type), intent(in) :: var_info
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_check_variable_status'
+        character(strkind) :: cerr
         character(strkind), allocatable :: var_name_list(:)
-        integer :: i, ierr, varid, varndims, vartype
+        integer :: i
+        integer :: ierr
+        integer :: varid, varndims, vartype
         type(field0dchar), pointer :: field_0d_char
         type(field1dchar), pointer :: field_1d_char
         type(field0dinteger), pointer :: field_0d_integer
@@ -1866,10 +1895,12 @@ contains
                         end if
 
                         if (field_0d_char % isvararray .and. associated(field_0d_char % constituentnames)) then
-                            allocate(var_name_list(size(field_0d_char % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_0d_char % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_0d_char % constituentnames(:)
@@ -1886,10 +1917,12 @@ contains
                         end if
 
                         if (field_1d_char % isvararray .and. associated(field_1d_char % constituentnames)) then
-                            allocate(var_name_list(size(field_1d_char % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_1d_char % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_1d_char % constituentnames(:)
@@ -1912,10 +1945,12 @@ contains
                         end if
 
                         if (field_0d_integer % isvararray .and. associated(field_0d_integer % constituentnames)) then
-                            allocate(var_name_list(size(field_0d_integer % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_0d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_0d_integer % constituentnames(:)
@@ -1932,10 +1967,12 @@ contains
                         end if
 
                         if (field_1d_integer % isvararray .and. associated(field_1d_integer % constituentnames)) then
-                            allocate(var_name_list(size(field_1d_integer % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_1d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_1d_integer % constituentnames(:)
@@ -1952,10 +1989,12 @@ contains
                         end if
 
                         if (field_2d_integer % isvararray .and. associated(field_2d_integer % constituentnames)) then
-                            allocate(var_name_list(size(field_2d_integer % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_2d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_2d_integer % constituentnames(:)
@@ -1972,10 +2011,12 @@ contains
                         end if
 
                         if (field_3d_integer % isvararray .and. associated(field_3d_integer % constituentnames)) then
-                            allocate(var_name_list(size(field_3d_integer % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_3d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_3d_integer % constituentnames(:)
@@ -1998,10 +2039,12 @@ contains
                         end if
 
                         if (field_0d_real % isvararray .and. associated(field_0d_real % constituentnames)) then
-                            allocate(var_name_list(size(field_0d_real % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_0d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_0d_real % constituentnames(:)
@@ -2018,10 +2061,12 @@ contains
                         end if
 
                         if (field_1d_real % isvararray .and. associated(field_1d_real % constituentnames)) then
-                            allocate(var_name_list(size(field_1d_real % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_1d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_1d_real % constituentnames(:)
@@ -2038,10 +2083,12 @@ contains
                         end if
 
                         if (field_2d_real % isvararray .and. associated(field_2d_real % constituentnames)) then
-                            allocate(var_name_list(size(field_2d_real % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_2d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_2d_real % constituentnames(:)
@@ -2058,10 +2105,12 @@ contains
                         end if
 
                         if (field_3d_real % isvararray .and. associated(field_3d_real % constituentnames)) then
-                            allocate(var_name_list(size(field_3d_real % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_3d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_3d_real % constituentnames(:)
@@ -2078,10 +2127,12 @@ contains
                         end if
 
                         if (field_4d_real % isvararray .and. associated(field_4d_real % constituentnames)) then
-                            allocate(var_name_list(size(field_4d_real % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_4d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_4d_real % constituentnames(:)
@@ -2098,10 +2149,12 @@ contains
                         end if
 
                         if (field_5d_real % isvararray .and. associated(field_5d_real % constituentnames)) then
-                            allocate(var_name_list(size(field_5d_real % constituentnames)), stat=ierr)
+                            allocate(var_name_list(size(field_5d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
-                                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                                    subname, __LINE__)
                             end if
 
                             var_name_list(:) = field_5d_real % constituentnames(:)
@@ -2118,27 +2171,33 @@ contains
         end select
 
         if (.not. allocated(var_name_list)) then
-            allocate(var_name_list(1), stat=ierr)
+            allocate(var_name_list(1), errmsg=cerr, stat=ierr)
 
             if (ierr /= 0) then
-                call self % model_error('Failed to allocate var_name_list', subname, __LINE__)
+                call self % model_error('Failed to allocate var_name_list' // new_line('') // &
+                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
             end if
 
             var_name_list(1) = var_info % name
         end if
 
-        allocate(var_is_present(size(var_name_list)), stat=ierr)
+        allocate(var_is_present(size(var_name_list)), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate var_is_present', subname, __LINE__)
+            call self % model_error('Failed to allocate var_is_present' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         var_is_present(:) = .false.
 
-        allocate(var_is_tkr_compatible(size(var_name_list)), stat=ierr)
+        allocate(var_is_tkr_compatible(size(var_name_list)), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate var_is_tkr_compatible', subname, __LINE__)
+            call self % model_error('Failed to allocate var_is_tkr_compatible' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         var_is_tkr_compatible(:) = .false.
@@ -2619,10 +2678,14 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_compute_cell_relative_vorticity(self, cell_relative_vorticity)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: cell_relative_vorticity(:, :)
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_cell_relative_vorticity'
+        character(strkind) :: cerr
         integer :: i, k
         integer :: ierr
         integer, pointer :: ncellssolve, nvertlevels
@@ -2646,10 +2709,12 @@ contains
         call self % get_variable_pointer(vorticity, 'diag', 'vorticity')
 
         ! Output.
-        allocate(cell_relative_vorticity(nvertlevels, ncellssolve), stat=ierr)
+        allocate(cell_relative_vorticity(nvertlevels, ncellssolve), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate cell_relative_vorticity', subname, __LINE__)
+            call self % model_error('Failed to allocate cell_relative_vorticity' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         do i = 1, ncellssolve
@@ -3216,7 +3281,6 @@ contains
     pure function dyn_mpas_get_constituent_name(self, constituent_index) result(constituent_name)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: constituent_index
-
         character(:), allocatable :: constituent_name
 
         ! Catch segmentation fault.
@@ -3250,9 +3314,9 @@ contains
     pure function dyn_mpas_get_constituent_index(self, constituent_name) result(constituent_index)
         class(mpas_dynamical_core_type), intent(in) :: self
         character(*), intent(in) :: constituent_name
+        integer :: constituent_index
 
         integer :: i
-        integer :: constituent_index
 
         ! Catch segmentation fault.
         if (.not. allocated(self % constituent_name)) then
@@ -3286,7 +3350,6 @@ contains
     pure function dyn_mpas_map_mpas_scalar_index(self, constituent_index) result(mpas_scalar_index)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: constituent_index
-
         integer :: mpas_scalar_index
 
         ! Catch segmentation fault.
@@ -3320,7 +3383,6 @@ contains
     pure function dyn_mpas_map_constituent_index(self, mpas_scalar_index) result(constituent_index)
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, intent(in) :: mpas_scalar_index
-
         integer :: constituent_index
 
         ! Catch segmentation fault.
@@ -3924,6 +3986,9 @@ contains
     !
     !-------------------------------------------------------------------------------
     subroutine dyn_mpas_get_variable_value_c0(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         character(strkind), allocatable, intent(out) :: variable_value
         character(*), intent(in) :: pool_name
@@ -3931,21 +3996,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_c0'
+        character(strkind) :: cerr
         character(strkind), pointer :: variable_pointer
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_c0
 
     subroutine dyn_mpas_get_variable_value_c1(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         character(strkind), allocatable, intent(out) :: variable_value(:)
         character(*), intent(in) :: pool_name
@@ -3953,21 +4024,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_c1'
+        character(strkind) :: cerr
         character(strkind), pointer :: variable_pointer(:)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_c1
 
     subroutine dyn_mpas_get_variable_value_i0(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, allocatable, intent(out) :: variable_value
         character(*), intent(in) :: pool_name
@@ -3975,21 +4052,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i0'
+        character(strkind) :: cerr
         integer, pointer :: variable_pointer
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_i0
 
     subroutine dyn_mpas_get_variable_value_i1(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, allocatable, intent(out) :: variable_value(:)
         character(*), intent(in) :: pool_name
@@ -3997,21 +4080,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i1'
+        character(strkind) :: cerr
         integer, pointer :: variable_pointer(:)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_i1
 
     subroutine dyn_mpas_get_variable_value_i2(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, allocatable, intent(out) :: variable_value(:, :)
         character(*), intent(in) :: pool_name
@@ -4019,21 +4108,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i2'
+        character(strkind) :: cerr
         integer, pointer :: variable_pointer(:, :)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_i2
 
     subroutine dyn_mpas_get_variable_value_i3(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         integer, allocatable, intent(out) :: variable_value(:, :, :)
         character(*), intent(in) :: pool_name
@@ -4041,21 +4136,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_i3'
+        character(strkind) :: cerr
         integer, pointer :: variable_pointer(:, :, :)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_i3
 
     subroutine dyn_mpas_get_variable_value_l0(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         logical, allocatable, intent(out) :: variable_value
         character(*), intent(in) :: pool_name
@@ -4063,21 +4164,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_l0'
+        character(strkind) :: cerr
         logical, pointer :: variable_pointer
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_l0
 
     subroutine dyn_mpas_get_variable_value_r0(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: variable_value
         character(*), intent(in) :: pool_name
@@ -4085,21 +4192,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r0'
+        character(strkind) :: cerr
         real(rkind), pointer :: variable_pointer
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_r0
 
     subroutine dyn_mpas_get_variable_value_r1(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: variable_value(:)
         character(*), intent(in) :: pool_name
@@ -4107,21 +4220,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r1'
+        character(strkind) :: cerr
         real(rkind), pointer :: variable_pointer(:)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_r1
 
     subroutine dyn_mpas_get_variable_value_r2(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: variable_value(:, :)
         character(*), intent(in) :: pool_name
@@ -4129,21 +4248,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r2'
+        character(strkind) :: cerr
         real(rkind), pointer :: variable_pointer(:, :)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_r2
 
     subroutine dyn_mpas_get_variable_value_r3(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: variable_value(:, :, :)
         character(*), intent(in) :: pool_name
@@ -4151,21 +4276,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r3'
+        character(strkind) :: cerr
         real(rkind), pointer :: variable_pointer(:, :, :)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_r3
 
     subroutine dyn_mpas_get_variable_value_r4(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: variable_value(:, :, :, :)
         character(*), intent(in) :: pool_name
@@ -4173,21 +4304,27 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r4'
+        character(strkind) :: cerr
         real(rkind), pointer :: variable_pointer(:, :, :, :)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)
     end subroutine dyn_mpas_get_variable_value_r4
 
     subroutine dyn_mpas_get_variable_value_r5(self, variable_value, pool_name, variable_name, time_level)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+
         class(mpas_dynamical_core_type), intent(in) :: self
         real(rkind), allocatable, intent(out) :: variable_value(:, :, :, :, :)
         character(*), intent(in) :: pool_name
@@ -4195,15 +4332,18 @@ contains
         integer, optional, intent(in) :: time_level
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_variable_value_r5'
+        character(strkind) :: cerr
         real(rkind), pointer :: variable_pointer(:, :, :, :, :)
         integer :: ierr
 
         nullify(variable_pointer)
         call self % get_variable_pointer(variable_pointer, pool_name, variable_name, time_level=time_level)
-        allocate(variable_value, source=variable_pointer, stat=ierr)
+        allocate(variable_value, source=variable_pointer, errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
-            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"', subname, __LINE__)
+            call self % model_error('Failed to allocate variable "' // trim(adjustl(variable_name)) // '"' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
         end if
 
         nullify(variable_pointer)

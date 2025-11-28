@@ -883,7 +883,7 @@ contains
         use dyn_mpas_procedures, only: index_unique
         use funit
 
-        character(*), parameter :: test_data_letters(*) = [ character(1) :: &
+        character(*), parameter :: test_data_letters(*) = [character(1) :: &
             'T', 'H', 'E', &
             'Q', 'U', 'I', 'C', 'K', &
             'B', 'R', 'O', 'W', 'N', &
@@ -894,7 +894,7 @@ contains
             'L', 'A', 'Z', 'Y', &
             'D', 'O', 'G' &
         ]
-        character(*), parameter :: test_data_words(*) = [ character(128) :: &
+        character(*), parameter :: test_data_words(*) = [character(128) :: &
             'Mercury', &
             'Mercury', 'Venus', &
             'Mercury', 'Venus', 'Earth', &

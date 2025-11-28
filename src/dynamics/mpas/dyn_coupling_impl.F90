@@ -35,13 +35,15 @@ contains
         use cam_ccpp_cap, only: cam_constituents_array
         use ccpp_kinds, only: kind_phys
         ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                                len_cx => shr_kind_cx
 
         character(*), intent(in) :: direction
         logical, intent(in) :: exchange
         logical, intent(in) :: conversion
 
         character(*), parameter :: subname = 'dyn_coupling::dyn_exchange_constituent_states'
+        character(len_cx) :: cerr
         integer :: i, j
         integer :: ierr
         integer, allocatable :: is_water_species_index(:)
@@ -77,15 +79,15 @@ contains
         nullify(constituents)
         nullify(scalars)
 
-        allocate(is_conversion_needed(num_advected), stat=ierr)
+        allocate(is_conversion_needed(num_advected), errmsg=cerr, stat=ierr)
         call check_allocate(ierr, subname, &
             'is_conversion_needed(num_advected)', &
-            'dyn_comp', __LINE__)
+            file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        allocate(is_water_species(num_advected), stat=ierr)
+        allocate(is_water_species(num_advected), errmsg=cerr, stat=ierr)
         call check_allocate(ierr, subname, &
             'is_water_species(num_advected)', &
-            'dyn_comp', __LINE__)
+            file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do j = 1, num_advected
             ! All constituent mixing ratios in MPAS are dry.
@@ -94,15 +96,15 @@ contains
             is_water_species(j) = const_is_water_species(j)
         end do
 
-        allocate(is_water_species_index(count(is_water_species)), stat=ierr)
+        allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
         call check_allocate(ierr, subname, &
             'is_water_species_index(count(is_water_species))', &
-            'dyn_comp', __LINE__)
+            file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        allocate(sigma_all_q(pver), stat=ierr)
+        allocate(sigma_all_q(pver), errmsg=cerr, stat=ierr)
         call check_allocate(ierr, subname, &
             'sigma_all_q(pver)', &
-            'dyn_comp', __LINE__)
+            file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         constituents => cam_constituents_array()
 
@@ -254,8 +256,11 @@ contains
             use cam_constituents, only: const_is_water_species, num_advected
             use dyn_comp, only: mpas_dynamical_core
             use vert_coord, only: pver, pverp
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::init_shared_variables'
+            character(len_cx) :: cerr
             integer :: i
             integer :: ierr
             logical, allocatable :: is_water_species(:)
@@ -271,54 +276,55 @@ contains
             nullify(zgrid)
             nullify(zz)
 
-            allocate(is_water_species(num_advected), stat=ierr)
+            allocate(is_water_species(num_advected), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'is_water_species(num_advected)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             do i = 1, num_advected
                 is_water_species(i) = const_is_water_species(i)
             end do
 
-            allocate(is_water_species_index(count(is_water_species)), stat=ierr)
+            allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'is_water_species_index(count(is_water_species))', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             is_water_species_index(:) = &
                 pack([(mpas_dynamical_core % map_mpas_scalar_index(i), i = 1, num_advected)], is_water_species)
 
             deallocate(is_water_species)
 
-            allocate(pd_int_col(pverp), pd_mid_col(pver), p_int_col(pverp), p_mid_col(pver), z_int_col(pverp), stat=ierr)
+            allocate(pd_int_col(pverp), pd_mid_col(pver), p_int_col(pverp), p_mid_col(pver), z_int_col(pverp), &
+                errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'pd_int_col(pverp), pd_mid_col(pver), p_int_col(pverp), p_mid_col(pver), z_int_col(pverp)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(dpd_col(pver), dp_col(pver), dz_col(pver), stat=ierr)
+            allocate(dpd_col(pver), dp_col(pver), dz_col(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'dpd_col(pver), dp_col(pver), dz_col(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(qv_mid_col(pver), sigma_all_q_mid_col(pver), stat=ierr)
+            allocate(qv_mid_col(pver), sigma_all_q_mid_col(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'qv_mid_col(pver), sigma_all_q_mid_col(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(rhod_mid_col(pver), rho_mid_col(pver), stat=ierr)
+            allocate(rhod_mid_col(pver), rho_mid_col(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'rhod_mid_col(pver), rho_mid_col(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(t_mid_col(pver), tm_mid_col(pver), tv_mid_col(pver), stat=ierr)
+            allocate(t_mid_col(pver), tm_mid_col(pver), tv_mid_col(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 't_mid_col(pver), tm_mid_col(pver), tv_mid_col(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(u_mid_col(pver), v_mid_col(pver), omega_mid_col(pver), stat=ierr)
+            allocate(u_mid_col(pver), v_mid_col(pver), omega_mid_col(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'u_mid_col(pver), v_mid_col(pver), omega_mid_col(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(exner, 'diag', 'exner')
@@ -375,7 +381,7 @@ contains
             real(kind_r8), parameter :: p_int_mid_proximity_limit = 0.05_kind_r8
 
             ! The summation term of equation 5 in doi:10.1029/2017MS001257.
-            sigma_all_q_mid_col(:) = 1.0_kind_r8 + sum(scalars(is_water_species_index, :, i), 1)
+            sigma_all_q_mid_col(:) = 1.0_kind_r8 + sum(real(scalars(is_water_species_index, :, i), kind_r8), 1)
 
             ! Compute thermodynamic variables.
 
@@ -519,10 +525,10 @@ contains
             nullify(constituents)
             nullify(constituent_properties)
 
-            allocate(minimum_constituents(num_advected), stat=ierr)
+            allocate(minimum_constituents(num_advected), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'minimum_constituents(num_advected)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             do i = 1, num_advected
                 minimum_constituents(i) = const_qmin(i)
@@ -643,8 +649,11 @@ contains
             use dyn_comp, only: mpas_dynamical_core
             use dyn_grid, only: ncells_solve
             use vert_coord, only: pver
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::init_shared_variables'
+            character(len_cx) :: cerr
             integer :: ierr
 
             call dyn_debug_print(debugout_info, 'Preparing for physics-dynamics coupling')
@@ -659,10 +668,10 @@ contains
             call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
             call mpas_dynamical_core % get_variable_pointer(zz, 'mesh', 'zz')
 
-            allocate(qv_prev(pver, ncells_solve), stat=ierr)
+            allocate(qv_prev(pver, ncells_solve), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'qv_prev(pver, ncells_solve)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             ! Save water vapor mixing ratio before being updated by physics because `set_mpas_physics_tendency_rtheta`
             ! needs it. This must be done before calling `dyn_exchange_constituent_states`.
@@ -758,8 +767,11 @@ contains
                                 constant_rd => rair, constant_rv => rh2o
             use physics_types, only: dtime_phys, phys_tend
             use vert_coord, only: pver
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_coupling::physics_to_dynamics_coupling::set_mpas_physics_tendency_rtheta'
+            character(len_cx) :: cerr
             integer :: i
             integer :: ierr
             ! Variable name suffixes have the following meanings:
@@ -779,30 +791,30 @@ contains
             nullify(theta_m)
             nullify(theta_m_tendency)
 
-            allocate(qv_col_prev(pver), qv_col_curr(pver), stat=ierr)
+            allocate(qv_col_prev(pver), qv_col_curr(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'qv_col_prev(pver), qv_col_curr(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(rhod_col(pver), stat=ierr)
+            allocate(rhod_col(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'rhod_col(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(t_col_prev(pver), t_col_curr(pver), stat=ierr)
+            allocate(t_col_prev(pver), t_col_curr(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 't_col_prev(pver), t_col_curr(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(theta_col_prev(pver), theta_col_curr(pver), stat=ierr)
+            allocate(theta_col_prev(pver), theta_col_curr(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'theta_col_prev(pver), theta_col_curr(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(thetam_col_prev(pver), thetam_col_curr(pver), stat=ierr)
+            allocate(thetam_col_prev(pver), thetam_col_curr(pver), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
                 'thetam_col_prev(pver), thetam_col_curr(pver)', &
-                'dyn_coupling', __LINE__)
+                file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(theta_m, 'state', 'theta_m', time_level=1)
             call mpas_dynamical_core % get_variable_pointer(theta_m_tendency, 'tend_physics', 'tend_rtheta_physics')

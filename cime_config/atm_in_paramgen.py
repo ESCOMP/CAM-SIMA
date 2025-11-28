@@ -720,7 +720,7 @@ def _get_nml_value_str(var_name, var_type, var_val):
     '"apple"'
 
     8.  Check that a character variable with a quotation mark
-        innternal to the string outputs the correct value:
+        internal to the string outputs the correct value:
     >>> _get_nml_value_str("banana", "char*31", ''' "app'le" ''')
     '"app\\'le"'
 
@@ -731,6 +731,16 @@ def _get_nml_value_str(var_name, var_type, var_val):
     ...
     atm_in_paramgen.AtmInParamGenError: Namelist type 'apple' for entry 'banana' is un-recognized.
     Acceptable namelist types are: logical, integer, real, or char*N.
+
+    10. Check that a character variable with a trailing comma outputs
+        the correct value:
+    >>> _get_nml_value_str("ncdata", "char*250", "'/path/to/file',")
+    "'/path/to/file'"
+
+    11. Check that a character variable with quotes and a trailing comma
+        surrounded by white space outputs the correct value:
+    >>> _get_nml_value_str("ncdata", "char*250", " '/path/to/file' , ")
+    "'/path/to/file'"
     """
 
     #Create set for variable types
@@ -761,6 +771,10 @@ def _get_nml_value_str(var_name, var_type, var_val):
     if "char*" in var_type:
         #Remove extra white space:
         var_val_strip = var_val.strip()
+
+        #Remove trailing comma if present (valid Fortran namelist separator; see Fortran 90 standard sections 10.9.1(4); 10.8(1))
+        if var_val_strip.endswith(','):
+            var_val_strip = var_val_strip[:-1].strip()
 
         #Check if string is wrapped in quotes:
         quoted_flag = _check_string_quotes(var_name, var_val_strip)

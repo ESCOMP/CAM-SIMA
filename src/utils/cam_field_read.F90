@@ -788,12 +788,28 @@ CONTAINS
       !
       ! Ensure that <field> is configured correctly
       if (dim_bounds(2,2) < dim_bounds(2,1)) then
-         if (present(gridname)) then
-            write(errormsg, *) ': grid, ', trim(gridname),                    &
-                 ' invalid for3D field'
+         if(unstruct) then
+            ! Unstructured grid expects that a second dimension does not
+            ! exist horizontally. Receive vertical dimension from caller
+            if (present(dim3_pos)) then
+               if ((dim3_pos < 1) .or. (dim3_pos > 3)) then
+                  call safe_endrun(subname//': Bad value for dim3_pos')
+               end if
+               index = dim3_pos
+            else
+               index = 2
+            end if
+            dim_bounds(index,1) = dim3_bnds(1)
+            dim_bounds(index,2) = dim3_bnds(2)
          else
-            write(errormsg, *) ': grid, physgrid, invalid for3D field'
-         end if
+            if (present(gridname)) then
+               write(errormsg, *) ': grid, ', trim(gridname),                    &
+                    ' invalid for 3D field'
+            else
+               write(errormsg, *) ': grid, physgrid, invalid for 3D field'
+            end if
+            call safe_endrun(subname//errormsg)
+         endif
       else
          if (present(dim3_pos)) then
             if ((dim3_pos < 1) .or. (dim3_pos > 3)) then
@@ -866,7 +882,10 @@ CONTAINS
                     (grid_dimlens(1) * grid_dimlens(2))
                call safe_endrun(subname//trim(errormsg))
             end if
-         else
+         else if (unstruct) then
+            ! Initialize index offset to remove vertical dimension from dimlens
+            ! to be checked.
+            index = 0
             do jndex = 1, target_ndims
                if (trim(file_dnames(jndex)) == trim(dim3name)) then
                   ! The vertical dimension may be in between array dims
@@ -881,6 +900,8 @@ CONTAINS
                   call safe_endrun(subname//trim(errormsg))
                end if
             end do
+         else
+            call safe_endrun(subname//': Grid is neither block_indexed nor unstruct, cannot handle')
          end if
 
          if(ndims == target_ndims + 1) then

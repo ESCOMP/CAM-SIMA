@@ -131,6 +131,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - conditional-check
+      - source-code-linting
       - unit-tests
     if: ${{ always() }}
     steps:
@@ -167,6 +168,18 @@ jobs:
               ;;
           esac
 
+          case "${{ needs.source-code-linting.result }}" in
+            skipped|success)
+              :
+              ;;
+            cancelled|failure)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
           case "${{ needs.unit-tests.result }}" in
             skipped|success)
               :
@@ -180,6 +193,45 @@ jobs:
           esac
 
           write_result_and_exit true
+  source-code-linting:
+    name: Lint Fortran source code
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    env:
+      FORTITUDE_VERSION: '0.7.*'
+      SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    steps:
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          cache: pip
+          python-version: '3.12'
+
+      - name: Install Fortitude
+        run: |
+          python3 -m venv venv-fortitude
+          source venv-fortitude/bin/activate
+          python3 -m pip install "fortitude-lint==$FORTITUDE_VERSION"
+
+      - name: Lint Fortran source code
+        run: |
+          source venv-fortitude/bin/activate
+          fortitude --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" check --exit-zero --output-file "$SOURCE_CODE_PATH/source-code-linting.log" --preview "$SOURCE_CODE_PATH"
+          cat "$SOURCE_CODE_PATH/source-code-linting.log"
+
+      - name: Upload Fortran source code linting log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: source-code-linting-log
+          path: ${{ env.SOURCE_CODE_PATH }}/source-code-linting.log
+          retention-days: 7
   unit-tests:
     name: Build and run unit tests (GCC ${{ matrix.gcc-version }})
     timeout-minutes: 10
