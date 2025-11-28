@@ -344,7 +344,7 @@ CONTAINS
         ! moist pressure at interface for next iteration
         pint(:,:,k+1) = pint(:,:,k)+elem(ie)%state%dp3d(:,:,k,tl)
         !
-        theta(:,:) = elem(ie)%state%T(:,:,k,tl)*(psurf_ref / p(:,:,k))**cappa
+        theta(:,:,k) = elem(ie)%state%T(:,:,k,tl)*(psurf_ref / p(:,:,k))**cappa
       end do
 
       call compute_vertical_derivative(pint,p,theta,dtheta_dp)
