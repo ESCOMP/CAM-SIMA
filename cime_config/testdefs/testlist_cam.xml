@@ -192,14 +192,16 @@
   </test>
 
   <!-- CAM4 physics tests -->
-  <test compset="FCAM4" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic_cam4">
+  <test compset="QPC4" grid="mpasa120_mpasa120" name="SMS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
+      <machine name="derecho" compiler="intel" category="debug_JN"/>
+      <machine name="derecho" compiler="gnu" category="debug_JN"/>
     </machines>
     <options>
-      <option name="wallclock">00:10:00</option>
-      <option name="comment">CAM4 test with SE-CSLAM dycore</option>
+      <option name="wallclock">00:20:00</option>
+      <option name="comment">Aquaplanet CAM4 test with MPAS dycore at 120 km resolution</option>
     </options>
   </test>
 </testlist>
