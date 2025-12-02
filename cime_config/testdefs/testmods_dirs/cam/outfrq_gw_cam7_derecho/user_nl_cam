@@ -41,3 +41,10 @@ gw_rdg_beta_cd_llb               = 1.0D0
 tau_0_ubc              = .true.
 gw_front_taubgnd                = 1.5D-3
 gw_rdg_beta_trpd_leewv            = .false.
+
+! diagnostics for gravity wave drag
+hist_add_inst_fields;h1: EKGW
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
