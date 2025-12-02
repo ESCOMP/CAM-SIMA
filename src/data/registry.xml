@@ -1668,14 +1668,6 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_TTEND_DP</ic_file_input_names>
     </variable>
-    <variable local_name="ttend_dp"
-              standard_name="tendency_of_air_temperature_due_to_deep_convection"
-              units="K s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>pbuf_TTEND_DP</ic_file_input_names>
-    </variable>
 
     <!-- dme_adjust Variables -->
     <variable local_name="qini"

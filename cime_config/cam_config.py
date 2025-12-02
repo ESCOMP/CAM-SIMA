@@ -253,6 +253,7 @@ class ConfigCAM:
         #Add the default host model namelists:
         self._add_xml_nml_file(cime_conf_path, "namelist_definition_cam.xml")
         self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
+        self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
         self._add_xml_nml_file(cpl_nuopc_nml_path,
                                "namelist_definition_atm_stream_ndep.xml")
 
