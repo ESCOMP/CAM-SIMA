@@ -1,0 +1,82 @@
+[ccpp-table-properties]
+  name = gravity_wave_drag_ridge_read
+  type = module
+
+[ccpp-arg-table]
+  name  = gravity_wave_drag_ridge_read
+  type  = module
+[ prdg ]
+  standard_name = number_of_ridges_in_ridge_gravity_wave_drag
+  units = count
+  type = integer
+  dimensions = ()
+[ rdg_gbxar ]
+  standard_name = grid_box_area_for_beta_ridge_gravity_wave_drag
+  units = km2
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ rdg_isovar ]
+  standard_name = isotropic_variance_for_beta_ridge_gravity_wave_drag
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ rdg_isowgt ]
+  standard_name = isotropic_weight_for_beta_ridge_gravity_wave_drag
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ rdg_hwdth ]
+  standard_name = ridge_half_width_for_beta_ridge_gravity_wave_drag
+  units = km
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_clngt ]
+  standard_name = ridge_length_for_beta_ridge_gravity_wave_drag
+  units = km
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_mxdis ]
+  standard_name = ridge_obstacle_height_for_beta_ridge_gravity_wave_drag
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_anixy ]
+  standard_name = ridge_anisotropy_for_beta_ridge_gravity_wave_drag
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_angll ]
+  standard_name = ridge_clockwise_angle_from_north_for_beta_ridge_gravity_wave_drag
+  units = degree
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_gbxarg ]
+  standard_name = grid_box_area_for_gamma_ridge_gravity_wave_drag
+  units = km2
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+[ rdg_hwdthg ]
+  standard_name = ridge_half_width_for_gamma_ridge_gravity_wave_drag
+  units = km
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_clngtg ]
+  standard_name = ridge_length_for_gamma_ridge_gravity_wave_drag
+  units = km
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_mxdisg ]
+  standard_name = ridge_obstacle_height_for_gamma_ridge_gravity_wave_drag
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_anixyg ]
+  standard_name = ridge_anisotropy_for_gamma_ridge_gravity_wave_drag
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)
+[ rdg_angllg ]
+  standard_name = ridge_clockwise_angle_from_north_for_gamma_ridge_gravity_wave_drag
+  units = degree
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_ridges_in_ridge_gravity_wave_drag)

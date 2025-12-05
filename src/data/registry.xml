@@ -14,6 +14,7 @@
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/gravity_wave_drag_ridge_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo_formula.meta</metadata_file>
@@ -126,17 +127,24 @@
     </variable>
     <variable local_name="frontgf"
               standard_name="frontogenesis_function"
-              units="K m-1 s-1" type="real" kind="kind_phys"
+              units="K2 m-2 s-1" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>frontgf pbuf_frontgf</ic_file_input_names>
+      <ic_file_input_names>frontgf pbuf_FRONTGF</ic_file_input_names>
     </variable>
     <variable local_name="frontga"
               standard_name="frontogenesis_angle"
               units="radians" type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>frontga pbuf_frontga</ic_file_input_names>
+      <ic_file_input_names>frontga pbuf_FRONTGA</ic_file_input_names>
+    </variable>
+    <variable local_name="vorticity"
+              standard_name="relative_vorticity"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="pointer">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_VORT4GW</ic_file_input_names>
     </variable>
     <!-- State quantities for shallow/deep convection -->
     <variable local_name="qpert"
@@ -421,6 +429,7 @@
       <data>reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
+      <data>relative_vorticity</data>
       <data>vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep</data>
       <data>vertically_integrated_total_energy_using_dycore_energy_formula</data>
       <data>vertically_integrated_total_water_at_start_of_physics_timestep</data>
@@ -1324,6 +1333,7 @@
               units="None" type="cam_out_t">
       <long_name> </long_name>
     </variable>
+
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
     <variable local_name="pblh"
@@ -1345,6 +1355,50 @@
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
 
+    <!-- Temporary initializations for gravity wave parameterizations -->
+    <variable local_name="ttend_clubb"
+              standard_name="tendency_of_air_temperature_due_to_clubb"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_TTEND_CLUBB</ic_file_input_names>
+    </variable>
+    <variable local_name="upwp_clubb_gw"
+              standard_name="upwp_clubb_gw_tbd"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_UPWP_CLUBB_GW</ic_file_input_names>
+    </variable>
+    <variable local_name="vpwp_clubb_gw"
+              standard_name="vpwp_clubb_gw_tbd"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
+    </variable>
+
+    <!-- Gravity wave variables - need to be kept in the CAM registry -->
+    <variable local_name="kvt"
+              standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"
+              units="m2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_kvt</ic_file_input_names>
+    </variable>
+    <variable local_name="sgh"
+              standard_name="standard_deviation_of_subgrid_orography_for_orographic_gravity_wave_drag"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_SGH</ic_file_input_names>
+    </variable>
+
     <!-- Cloud fraction variables - need to be kept in the CAM registry -->
     <variable local_name="top_lev_cloudphys"
               standard_name="vertical_layer_index_of_cloud_fraction_top"
@@ -1358,7 +1412,7 @@
               standard_name="flag_for_cloud_area_fraction_to_use_shallow_convection_calculated_cloud_area_fraction"
               units="flag" type="logical">
       <long_name>should cloud fraction use shallow convection calculated convective cloud area fraction</long_name>
-      <!-- only true for UW and UNICON shallow schemes. set by scheme init. -->
+      <!-- only true for UW shallow scheme. set by scheme init. -->
       <initial_value>.false.</initial_value>
     </variable>
     <variable local_name="shfrc"
@@ -1482,13 +1536,13 @@
     <variable local_name="domomtran"
               standard_name="flag_for_momentum_transport_by_zhang_mcfarlane_deep_convection_scheme"
               units="flag" type="logical"
-              access="protected" >
+              allocatable="parameter">
       <initial_value>.true.</initial_value>
     </variable>
     <variable local_name="il1g"
               standard_name="index_of_first_column_of_gathered_deep_convection_arrays"
               units="index" type="integer"
-              access="protected" >
+              allocatable="parameter">
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="dpdry"
@@ -1504,6 +1558,14 @@
               access="protected" >
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
       <initial_value>1</initial_value>
+    </variable>
+    <variable local_name="ttend_dp"
+              standard_name="tendency_of_air_temperature_due_to_deep_convection"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_TTEND_DP</ic_file_input_names>
     </variable>
 
     <!-- dme_adjust Variables -->
@@ -1530,7 +1592,8 @@
     </variable>
     <variable local_name="is_moist_dycore"
               standard_name="is_moist_basis_dycore"
-              units="flag" type="logical" access="protected">
+              units="flag" type="logical"
+              allocatable="parameter">
       <initial_value>.true.</initial_value>
       <initial_value dyn="SE,MPAS"> .false. </initial_value>
     </variable>
