@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<entry_id_pg version="0.1">
+<entry_id_pg version="2.0">
 
 <!-- Physconst Namelist Variables -->
 <!-- the following namelist variables do not have default values since the defaults are pulled from shr_cnst_mod in the code -->

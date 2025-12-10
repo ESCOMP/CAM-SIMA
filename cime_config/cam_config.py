@@ -586,25 +586,25 @@ class ConfigCAM:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         4.  Check that parse_config_opts works as expected when given a physics suite and a second argument:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         5.  Check that parse_config_opts works as expected when given both a string and logical argument:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic-ic")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', True), ('aquaplanet', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         6.  Check that parse_config_opts works as expected when given multiple physics suites:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
 
         7.  Check that parse_config_opts fails correctly when given an un-recognized argument:
         >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True)

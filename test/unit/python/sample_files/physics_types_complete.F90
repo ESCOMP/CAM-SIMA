@@ -84,7 +84,7 @@ CONTAINS
 
     use physics_grid,   only: horizontal_dimension=>columns_on_task
     use vert_coord,   only: vertical_layer_dimension=>pver
-    use cam_constituents,   only: number_of_ccpp_constituents=>num_advected
+    use cam_constituents,   only: number_of_ccpp_constituents=>num_constituents
 
     !! Dummy arguments
     logical, optional, intent(in) :: set_init_val_in
