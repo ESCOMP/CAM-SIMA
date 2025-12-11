@@ -1106,7 +1106,7 @@ contains
             ',,Mercury,Venus,,Earth,,,Mars,,Jupiter,Saturn,,Uranus,,,Neptune,,'
         character(*), parameter :: test_set_comma = ','
         character(*), parameter :: test_string_comma_space_separated = &
-            ', Mercury,Venus ,Earth , Mars, Jupiter,Saturn ,Uranus , Neptune, '
+            ' ,Mercury Venus, Earth  ,Mars  Jupiter,Saturn ,Uranus,  Neptune, '
         character(*), parameter :: test_set_comma_space = ', '
         integer, parameter :: expected_pos_comma_separated(*) = &
             [1, 2, 10, 16, 17, 23, 24, 25, 30, 31, 39, 46, 47, 54, 55, 56, 64, 65, 66]
@@ -1141,7 +1141,7 @@ contains
             ',,Mercury,Venus,,Earth,,,Mars,,Jupiter,Saturn,,Uranus,,,Neptune,,'
         character(*), parameter :: test_set_comma = ','
         character(*), parameter :: test_string_comma_space_separated = &
-            ', Mercury,Venus ,Earth , Mars, Jupiter,Saturn ,Uranus , Neptune, '
+            ' ,Mercury Venus, Earth  ,Mars  Jupiter,Saturn ,Uranus,  Neptune, '
         character(*), parameter :: test_set_comma_space = ', '
         integer, parameter :: expected_pos_comma_separated(*) = &
             [65, 64, 56, 55, 54, 47, 46, 39, 31, 30, 25, 24, 23, 17, 16, 10, 2, 1, 0]
@@ -1256,7 +1256,7 @@ contains
             ',,Mercury,Venus,,Earth,,,Mars,,Jupiter,Saturn,,Uranus,,,Neptune,,'
         character(*), parameter :: test_set_comma = ','
         character(*), parameter :: test_string_comma_space_separated = &
-            ', Mercury,Venus ,Earth , Mars, Jupiter,Saturn ,Uranus , Neptune, '
+            ' ,Mercury Venus, Earth  ,Mars  Jupiter,Saturn ,Uranus,  Neptune, '
         character(*), parameter :: test_set_comma_space = ', '
         integer, parameter :: expected_first_comma_separated(*) = &
             [1, 2, 3, 11, 17, 18, 24, 25, 26, 31, 32, 40, 47, 48, 55, 56, 57, 65, 66]
@@ -1347,7 +1347,7 @@ contains
             ',,Mercury,Venus,,Earth,,,Mars,,Jupiter,Saturn,,Uranus,,,Neptune,,'
         character(*), parameter :: test_set_comma = ','
         character(*), parameter :: test_string_comma_space_separated = &
-            ', Mercury,Venus ,Earth , Mars, Jupiter,Saturn ,Uranus , Neptune, '
+            ' ,Mercury Venus, Earth  ,Mars  Jupiter,Saturn ,Uranus,  Neptune, '
         character(*), parameter :: test_set_comma_space = ', '
         character(*), parameter :: expected_tokens_comma_separated(*) = [character(7) :: &
             '', '', 'Mercury', 'Venus', '', 'Earth', '', '', 'Mars', '', &
@@ -1362,8 +1362,8 @@ contains
             ',', ',', ',', ',', ',', ',', ',', ',' &
         ]
         character(*), parameter :: expected_separator_comma_space_separated(*) = [character(1) :: &
-            ',', ' ', ',', ' ', ',', ' ', ',', ' ', ',', ' ', &
-            ',', ' ', ',', ' ', ',', ' ', ',', ' ' &
+            ' ', ',', ' ', ',', ' ', ' ', ' ', ',', ' ', ' ', &
+            ',', ' ', ',', ',', ' ', ' ', ',', ' ' &
         ]
 
         character(:), allocatable :: tokens(:), separator(:)
