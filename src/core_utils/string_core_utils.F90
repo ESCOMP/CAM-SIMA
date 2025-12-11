@@ -66,9 +66,18 @@ contains
 
     end function core_int_seconds_to_hhmmss
 
-    !> Parse a string into tokens, one at a time. This subroutine implements the `split` intrinsic procedure as defined in
-    !> the Fortran 2023 language standard (Section 16.9.196). We implement it ourselves because the compiler support may
-    !> take years to become widespread.
+    !> Parse a string into tokens, one at a time. Each character in `set` is a token delimiter.
+    !> If `back` is absent or is present with the value `.false.`, `pos` is assigned the position of the leftmost
+    !> token delimiter in `string` whose position is greater than `pos`, or if there is no such character, it
+    !> is assigned a value one greater than the length of `string`. This identifies a token with starting
+    !> position one greater than the value of `pos` on invocation, and ending position one less than the
+    !> value of `pos` on return.
+    !> If `back` is present with the value `.true.`, `pos` is assigned the position of the rightmost token delimiter
+    !> in `string` whose position is less than `pos`, or if there is no such character, it is assigned the value
+    !> zero. This identifies a token with ending position one less than the value of `pos` on invocation, and
+    !> starting position one greater than the value of `pos` on return.
+    !> This subroutine implements the `split` intrinsic procedure as defined in the Fortran 2023 language standard
+    !> (Section 16.9.196). We implement it ourselves because the compiler support may take years to become widespread.
     !> (KCW, 2025-10-29)
     pure subroutine split(string, set, pos, back)
         character(*), intent(in) :: string, set
@@ -209,9 +218,13 @@ contains
         stringify = trim(buffer)
     end function stringify
 
-    !> Parse a string into tokens. This subroutine implements the `tokenize` intrinsic procedure as defined in
-    !> the Fortran 2023 language standard (Section 16.9.210). We implement it ourselves because the compiler support may
-    !> take years to become widespread.
+    !> Parse a string into tokens. Each character in `set` is a token delimiter.
+    !> `first` is allocated with the lower bound equal to one and the upper bound equal to the number of tokens in `string`.
+    !> Each element is assigned, in array element order, the starting position of each token in `string`, in the order found.
+    !> `last` is allocated with the lower bound equal to one and the upper bound equal to the number of tokens in `string`.
+    !> Each element is assigned, in array element order, the ending position of each token in `string`, in the order found.
+    !> This subroutine implements the `tokenize` intrinsic procedure as defined in the Fortran 2023 language standard
+    !> (Section 16.9.210). We implement it ourselves because the compiler support may take years to become widespread.
     !> (KCW, 2025-10-29)
     pure subroutine tokenize_into_first_last(string, set, first, last)
         character(*), intent(in) :: string, set
@@ -239,9 +252,13 @@ contains
         last(:) = pos_end(1:n)
     end subroutine tokenize_into_first_last
 
-    !> Parse a string into tokens. This subroutine implements the `tokenize` intrinsic procedure as defined in
-    !> the Fortran 2023 language standard (Section 16.9.210). We implement it ourselves because the compiler support may
-    !> take years to become widespread.
+    !> Parse a string into tokens. Each character in `set` is a token delimiter.
+    !> `tokens` is allocated with the lower bound equal to one and the upper bound equal to the number of tokens in `string`,
+    !> and with character length equal to the length of the longest token. It contains the tokens in `string`.
+    !> `separator` is allocated with the lower bound equal to one and the upper bound equal to one less than the number of
+    !> tokens in `string`, and with character length equal to one. It contains the token delimiters in `string`.
+    !> This subroutine implements the `tokenize` intrinsic procedure as defined in the Fortran 2023 language standard
+    !> (Section 16.9.210). We implement it ourselves because the compiler support may take years to become widespread.
     !> (KCW, 2025-10-29)
     pure subroutine tokenize_into_tokens_separator(string, set, tokens, separator)
         character(*), intent(in) :: string, set
