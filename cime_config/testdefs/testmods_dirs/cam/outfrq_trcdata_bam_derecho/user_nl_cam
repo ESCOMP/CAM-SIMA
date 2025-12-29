@@ -21,7 +21,7 @@ min_difference = 2e-15
 pver = 26
 
 prescribed_aero_datapath = "/glade/campaign/cesm/cesmdata/inputdata/atm/cam/chem/trop_mozart_aero/aero"
-prescribed_aero_file = "aero_1.9x2.5_L26_2000clim_c091112.nc"
+prescribed_aero_file = "aero_1.9x2.5_L26_1850-2005_c091112.nc"
 prescribed_aero_filelist = "aero_1.9x2.5_L26_list_c070514.txt"
 prescribed_aero_model = "bulk"
 prescribed_aero_specifier = 'sulf:SO4', 'bcar1:CB1', 'bcar2:CB2', 'ocar1:OC1', 'ocar2:OC2', 'sslt1:SSLT01', 'sslt2:SSLT02', 'sslt3:SSLT03', 'sslt4:SSLT04', 'dust1:DST01', 'dust2:DST02', 'dust3:DST03', 'dust4:DST04'
@@ -38,7 +38,7 @@ aerodep_flx_type               = 'INTERP_MISSING_MONTHS'
 aerodep_flx_cycle_yr = 0
 
 prescribed_ozone_datapath = "/glade/campaign/cesm/cesmdata/inputdata/atm/cam/ozone"
-prescribed_ozone_file = "ozone_1.9x2.5_L26_2000clim_c091112.nc"
+prescribed_ozone_file = "ozone_1.9x2.5_L26_1850-2005_c091112.nc"
 prescribed_ozone_filelist = "UNSET"
 prescribed_ozone_name = "O3"
 prescribed_ozone_type = "INTERP_MISSING_MONTHS"
