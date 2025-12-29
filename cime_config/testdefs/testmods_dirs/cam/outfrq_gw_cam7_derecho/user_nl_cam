@@ -1,0 +1,50 @@
+! fhistc_ltso snapshot
+pver = 58
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_before_c20251013.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_after_c20251013.nc'
+
+debug_output = 0
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+! topo file for beta ridge scheme input
+bnd_topo               = '/glade/campaign/cesm/cesmdata/inputdata/atm/cam/topo/se/ne3pg3_gmted2010_modis_bedmachine_nc0540_Laplace1000_noleak_20230209.nc'
+
+gw_movmtn_use_pbl_source = .true. ! se dycore
+gw_movmtn_alpha         =  0.01d0
+effgw_beres_dp         = 0.15D0
+effgw_cm               = 1.D0
+effgw_movmtn_pbl               =  1.0d0
+effgw_rdg_beta         = 0.5D0
+effgw_rdg_beta_max             = 0.5D0
+front_gaussian_width           =  30.D0
+gw_frontgfc               = 1.25D-15
+gw_apply_tndmax                = .false.
+gw_dc          = 2.5D0
+gw_dc_long             = 0.D0
+gw_drag_file_dp           = '/glade/campaign/cesm/cesmdata/inputdata/atm/waccm/gw/newmfspectra40_dc25.nc'
+gw_drag_file_movmtn                = '/glade/campaign/cesm/cesmdata/inputdata/atm/waccm/gw/mfc0lookup_mm.nc'
+gw_lndscl_sgh          = .true.
+gw_oro_south_fac               = 1.d0
+gw_polar_taper         = .false.
+gw_prndl               = 0.5D0
+gw_qbo_hdepth_scaling          = 0.32D0
+gw_movmtn_plaunch         =  32500.0d0
+gw_movmtn_psteer          =  65000.0d0
+gw_movmtn_source          =  1
+gw_rdg_beta_nrdg             = 10
+pgwv           = 32
+pgwv_long              = 0
+gw_rdg_beta_cd_llb               = 1.0D0
+tau_0_ubc              = .true.
+gw_front_taubgnd                = 1.5D-3
+gw_rdg_beta_trpd_leewv            = .false.
+
+! diagnostics for gravity wave drag
+hist_add_inst_fields;h1: EKGW
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1

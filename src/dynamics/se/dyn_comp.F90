@@ -838,7 +838,8 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call prim_init2(elem, fvm, hybrid, nets, nete, TimeLevel, hvcoord)
       !$OMP END PARALLEL
 
-      if (cam_runtime_opts%gw_front() .or. cam_runtime_opts%gw_front_igw()) call gws_init(elem)
+      ! initialize gravity wave sources
+      call gws_init(elem)
    end if  ! iam < par%nprocs
 
 !Remove/replace after CAMDEN history output is enabled -JN:
@@ -1864,6 +1865,9 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("tendency_of_eastward_wind_due_to_model_physics")
    call mark_as_initialized("tendency_of_northward_wind_due_to_model_physics")
    call mark_as_initialized("specific_heat_of_air_used_in_dycore")
+   call mark_as_initialized("frontogenesis_function")
+   call mark_as_initialized("frontogenesis_angle")
+   call mark_as_initialized("relative_vorticity")
 
    ! These energy variables are calculated by check_energy_timestep_init
    ! but need to be marked here
@@ -2320,7 +2324,7 @@ subroutine read_dyn_field_2d(fieldname, fh, dimname, buffer)
    end if
 
    ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case cam_read_feild can return NaNs where the element
+   ! to NaN.  In that case cam_read_field can return NaNs where the element
    ! GLL points are not "unique columns".
    ! Set NaNs or fillvalue points to zero:
    where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue)) buffer = 0.0_r8
@@ -2350,7 +2354,7 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
    end if
 
    ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case infld can return NaNs where the element GLL
+   ! to NaN.  In that case cam_read_field can return NaNs where the element GLL
    ! points are not "unique columns".
    ! Set NaNs or fillvalue points to zero:
    where (shr_infnan_isnan(buffer) .or. (buffer==fillvalue)) buffer = 0.0_r8
