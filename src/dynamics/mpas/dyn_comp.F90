@@ -48,7 +48,7 @@ module dyn_comp
         module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
             use runtime_obj, only: runtime_options
             implicit none
-            type(runtime_options), intent(in) :: cam_runtime_opts
+            type(runtime_options), intent(inout) :: cam_runtime_opts
             type(dyn_import_t), intent(in) :: dyn_in
             type(dyn_export_t), intent(in) :: dyn_out
         end subroutine dyn_init

@@ -56,12 +56,13 @@ CONTAINS
       ! Null dycore, no action
 
       ! Dummy arguments:
-      type(runtime_options), intent(in)  :: cam_runtime_opts
-      type(dyn_import_t),    intent(out) :: dyn_in
-      type(dyn_export_t),    intent(out) :: dyn_out
+      type(runtime_options), intent(inout) :: cam_runtime_opts
+      type(dyn_import_t),    intent(out)   :: dyn_in
+      type(dyn_export_t),    intent(out)   :: dyn_out
 
       ! Note: dynamical core energy formula is set in dyn_grid based on dynamical core
       ! that provided the initial conditions file
+      call cam_runtime_opts%set_dycore('null')
 
    end subroutine dyn_init
 

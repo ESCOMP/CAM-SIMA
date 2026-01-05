@@ -1,0 +1,28 @@
+! cam4 snapshot
+pver = 26
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_before_c20250826.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_after_c20250826.nc'
+
+debug_output = 0
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+effgw_oro = 0.125D0
+gw_apply_tndmax = .true.
+gw_dc = 0.D0
+gw_lndscl_sgh = .true.
+gw_oro_south_fac = 1.d0
+gw_prndl = 0.25d0
+gw_qbo_hdepth_scaling = 1.0D0
+gw_top_taper = .false.
+pgwv = 0
+tau_0_ubc = .false.
+
+! diagnostics for gravity wave drag
+hist_add_inst_fields;h1: EKGW
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
