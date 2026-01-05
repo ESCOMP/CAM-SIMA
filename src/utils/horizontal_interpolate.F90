@@ -7,7 +7,6 @@ module horizontal_interpolate
 
   implicit none
   private
-  save
 
   public :: xy_interp_init, xy_interp
 
@@ -34,7 +33,6 @@ contains
     do while (normalize_lon_right - 360.0_r8 > left)
       normalize_lon_right = normalize_lon_right - 360.0_r8
     end do
-    return
   end function normalize_lon_right
 
   real(r8) pure function lon_length(left, right)
@@ -44,7 +42,6 @@ contains
     real(r8), intent(in)  :: left, right
 
     lon_length = normalize_lon_right(left, right) - left
-    return
   end function lon_length
 
   real(r8) pure function normalize_lon_value(lon)
@@ -61,7 +58,6 @@ contains
     end do
 
     normalize_lon_value = norm_lon
-    return
   end function normalize_lon_value
 
   ! Return the length of the overlap between the input and
@@ -74,7 +70,7 @@ contains
     real(r8) :: norm_input_left, norm_input_right, norm_sim_left, norm_sim_right
     real(r8) :: overlap_left, overlap_right
 
-    ! Normalzie so norm_sim_left is in [0, 360) and norm_sim_left < norm_sim_right
+    ! Normalize so norm_sim_left is in [0, 360) and norm_sim_left < norm_sim_right
     norm_sim_left = normalize_lon_value(sim_left)
     norm_sim_right = normalize_lon_right(norm_sim_left, sim_right)
 
@@ -96,7 +92,6 @@ contains
     else
       calculate_lon_overlap = 0
     end if
-    return
   end function calculate_lon_overlap
 
   real(r8) function lon_weight(input_left, input_right, sim_left, sim_right, use_flight_distance)
@@ -129,7 +124,7 @@ contains
       ! No overlap; weight is zero
       lon_weight = 0
 
-    elseif (use_flight_distance) then
+    else if (use_flight_distance) then
       ! Data values are total within the grid cell.  Hence, the
       ! weight is just the fraction of the area of the original grid
       ! cell which overlaps the new cell.
@@ -154,8 +149,6 @@ contains
     if (lon_weight > 1.0_r8) then
       lon_weight = 1.0_r8
     end if
-
-    return
   end function lon_weight
 
   real(r8) pure function lat_band_weight(low, high)
@@ -214,7 +207,7 @@ contains
         (overlap_top <= overlap_bot)) then
       ! No overlap
       lat_weight = 0
-    elseif (use_flight_distance) then
+    else if (use_flight_distance) then
       ! Input values are a total for the grid cell, so the weight is
       ! just the fraction of the input cell which overlaps the
       ! sim cell.
@@ -226,7 +219,6 @@ contains
       lat_weight = lat_band_weight(overlap_bot, overlap_top)/lat_band_weight(norm_sim_bot, norm_sim_top)
       call check_invariant((0 <= lat_weight) .and. (lat_weight <= 1), "mixrat: lat_weight must be in [0, 1]")
     end if
-    return
   end function lat_weight
 
   ! This program computes weighting functions to map a variable of (num_input_lons,num_input_lats) resolution to (num_sim_lons,num_sim_lats) resolution

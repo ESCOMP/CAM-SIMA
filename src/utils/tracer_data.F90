@@ -31,6 +31,8 @@ module tracer_data
   use time_manager,   only: get_curr_date, get_step_size
   use time_manager,   only: set_time_float_from_date, set_date_from_time_float
 
+  use runtime_obj,    only: unset_real
+
   use pio, only: file_desc_t, var_desc_t, &
                  pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
                  pio_char, pio_noerr, &
@@ -43,7 +45,6 @@ module tracer_data
 
   implicit none
   private
-  save
 
   public :: trfld, input3d, input2d, trfile
   public :: trcdata_init
@@ -87,8 +88,8 @@ module tracer_data
     type(var_desc_t), pointer :: nextfnameid => null() ! pio restart file var id
 
     character(len=shr_kind_cl) :: filenames_list = ''
-    real(r8) :: datatimem = -1.e36_r8     ! time of prv. values read in
-    real(r8) :: datatimep = -1.e36_r8     ! time of nxt. values read in
+    real(r8) :: datatimem = -unset_real     ! time of prv. values read in
+    real(r8) :: datatimep = -unset_real     ! time of nxt. values read in
     real(r8) :: datatimes(4)
     integer  :: interp_recs
     real(r8), pointer, dimension(:) :: curr_data_times => null()
@@ -141,8 +142,6 @@ module tracer_data
     logical :: top_layer = .false.
     logical :: stepTime = .false.  ! Do not interpolate in time, but use stepwise times
   end type trfile
-
-  integer, public, parameter :: MAXTRCRS = 100
 
   integer, parameter :: LONDIM = 1
   integer, parameter :: LATDIM = 2
@@ -218,8 +217,8 @@ contains
 
     call specify_fields(specifier, flds)
 
-    file%datatimep = -1.e36_r8
-    file%datatimem = -1.e36_r8
+    file%datatimep = -unset_real
+    file%datatimem = -unset_real
 
     mxnflds = 0
     if (associated(flds)) mxnflds = size(flds)
@@ -268,7 +267,7 @@ contains
     end if
 
     ! if there is no list of files (len_trim(file%filenames_list)<1) then
-    !  -> set curr_filename from namelist rather from restart data
+    !  -> set curr_filename from namelist rather than restart data
     if (len_trim(file%curr_filename) < 1 .or. len_trim(file%filenames_list) < 1 .or. file%fixed) then ! initial run
       file%curr_filename = trim(filename)
 
@@ -2302,7 +2301,7 @@ contains
   !------------------------------------------------------------------------------
   ! Various utility subroutines below:
   !------------------------------------------------------------------------------
-  subroutine interpz_conserve(nsrc, ntrg, src_x, trg_x, src, trg)
+  pure subroutine interpz_conserve(nsrc, ntrg, src_x, trg_x, src, trg)
 
     integer, intent(in)   :: nsrc                  ! dimension source array
     integer, intent(in)   :: ntrg                  ! dimension target array
@@ -2502,7 +2501,7 @@ contains
   end subroutine vert_interp_mixrat
 
   ! Interpolate data from current time-interpolated values to model levels
-  subroutine vert_interp(ncol, levsiz, pin, pmid, datain, dataout)
+  pure subroutine vert_interp(ncol, levsiz, pin, pmid, datain, dataout)
     integer,  intent(in)  :: ncol
     integer,  intent(in)  :: levsiz
     real(r8), intent(in)  :: pin(pcols, levsiz)
@@ -2562,7 +2561,7 @@ contains
   end subroutine vert_interp
 
   ! Interpolate data from current time-interpolated values to top interface pressure
-  subroutine vert_interp_ub(ncol, nlevs, plevs, datain, dataout)
+  pure subroutine vert_interp_ub(ncol, nlevs, plevs, datain, dataout)
     use ref_pres, only: ptop_ref
 
     integer,  intent(in)  :: ncol
@@ -2607,7 +2606,7 @@ contains
   end subroutine vert_interp_ub
 
   ! Interpolate data from current time-interpolated values to press
-  subroutine vert_interp_ub_var(ncol, nlevs, plevs, press, datain, dataout)
+  pure subroutine vert_interp_ub_var(ncol, nlevs, plevs, press, datain, dataout)
 
     integer, intent(in)  :: ncol
     integer, intent(in)  :: nlevs
