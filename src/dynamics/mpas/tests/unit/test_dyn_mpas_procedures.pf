@@ -38,6 +38,14 @@ module test_dyn_mpas_procedures
     public :: test_index_unique_by_logical_arrays
     public :: test_index_unique_by_real_arrays_real32
     public :: test_index_unique_by_real_arrays_real64
+    public :: test_split_by_empty_string_set
+    public :: test_split_by_forward_searches
+    public :: test_split_by_backward_searches
+    public :: test_split_by_out_of_bounds_searches
+    public :: test_tokenize_into_first_last_by_empty_string_set
+    public :: test_tokenize_into_first_last_by_known_string_set
+    public :: test_tokenize_into_tokens_separator_by_empty_string_set
+    public :: test_tokenize_into_tokens_separator_by_known_string_set
 contains
     @test
     subroutine test_almost_divisible_by_properties_real32()
@@ -1052,4 +1060,336 @@ contains
         test_result = index_unique(-test_data - 10.0_real64)
         @assertEqual(expected_result, test_result)
     end subroutine test_index_unique_by_real_arrays_real64
+
+    @test
+    subroutine test_split_by_empty_string_set()
+        use dyn_mpas_procedures, only: split
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+
+        integer :: pos
+
+        ! Test `split` by empty `string`.
+
+        pos = 0
+        call split('', test_set_comma, pos)
+        @assertEqual(1, pos)
+
+        ! Test `split` by empty `string` and optional `back`.
+
+        pos = 1
+        call split('', test_set_comma, pos, back=.true.)
+        @assertEqual(0, pos)
+
+        ! Test `split` by empty `set`.
+
+        pos = 0
+        call split(test_string_comma_separated, '', pos)
+        @assertEqual(67, pos)
+
+        ! Test `split` by empty `set` and optional `back`.
+
+        pos = 67
+        call split(test_string_comma_separated, '', pos, back=.true.)
+        @assertEqual(0, pos)
+    end subroutine test_split_by_empty_string_set
+
+    @test
+    subroutine test_split_by_forward_searches()
+        use dyn_mpas_procedures, only: split
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+        character(*), parameter :: test_string_comma_space_separated = &
+            '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+        character(*), parameter :: test_set_comma_space = ', '
+        integer, parameter :: expected_pos_comma_separated(*) = &
+            [1, 2, 3, 11, 12, 18, 24, 25, 30, 31, 32, 40, 41, 48, 55, 56, 64, 65, 66, 67]
+        integer, parameter :: expected_pos_comma_space_separated(*) = &
+            [1, 2, 3, 11, 12, 18, 24, 25, 30, 31, 32, 40, 41, 48, 55, 56, 64, 65, 66, 67]
+
+        integer :: i, pos
+
+        pos = 0
+
+        do i = 1, size(expected_pos_comma_separated)
+            call split(test_string_comma_separated, test_set_comma, pos)
+
+            @assertEqual(expected_pos_comma_separated(i), pos)
+        end do
+
+        pos = 0
+
+        do i = 1, size(expected_pos_comma_space_separated)
+            call split(test_string_comma_space_separated, test_set_comma_space, pos)
+
+            @assertEqual(expected_pos_comma_space_separated(i), pos)
+        end do
+    end subroutine test_split_by_forward_searches
+
+    @test
+    subroutine test_split_by_backward_searches()
+        use dyn_mpas_procedures, only: split
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+        character(*), parameter :: test_string_comma_space_separated = &
+            '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+        character(*), parameter :: test_set_comma_space = ', '
+        integer, parameter :: expected_pos_comma_separated(*) = &
+            [66, 65, 64, 56, 55, 48, 41, 40, 32, 31, 30, 25, 24, 18, 12, 11, 3, 2, 1, 0]
+        integer, parameter :: expected_pos_comma_space_separated(*) = &
+            [66, 65, 64, 56, 55, 48, 41, 40, 32, 31, 30, 25, 24, 18, 12, 11, 3, 2, 1, 0]
+
+        integer :: i, pos
+
+        pos = 67
+
+        do i = 1, size(expected_pos_comma_separated)
+            call split(test_string_comma_separated, test_set_comma, pos, back=.true.)
+
+            @assertEqual(expected_pos_comma_separated(i), pos)
+        end do
+
+        pos = 67
+
+        do i = 1, size(expected_pos_comma_space_separated)
+            call split(test_string_comma_space_separated, test_set_comma_space, pos, back=.true.)
+
+            @assertEqual(expected_pos_comma_space_separated(i), pos)
+        end do
+    end subroutine test_split_by_backward_searches
+
+    @test
+    subroutine test_split_by_out_of_bounds_searches()
+        use dyn_mpas_procedures, only: split
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+        integer, parameter :: expected_pos_forward_searches(*) = &
+            [1, 2, 3, 11, 12, 18, 24, 25, 30, 31, 32, 40, 41, 48, 55, 56, 64, 65, 66, 67]
+        integer, parameter :: expected_pos_backward_searches(*) = &
+            [66, 65, 64, 56, 55, 48, 41, 40, 32, 31, 30, 25, 24, 18, 12, 11, 3, 2, 1, 0]
+
+        integer :: i, pos
+
+        pos = -huge(0)
+        call split('', test_set_comma, pos)
+        @assertEqual(1, pos)
+
+        pos = huge(0)
+        call split('', test_set_comma, pos, back=.true.)
+        @assertEqual(0, pos)
+
+        pos = -huge(0)
+        call split(test_string_comma_separated, '', pos)
+        @assertEqual(67, pos)
+
+        pos = huge(0)
+        call split(test_string_comma_separated, '', pos, back=.true.)
+        @assertEqual(0, pos)
+
+        pos = -huge(0)
+
+        do i = 1, size(expected_pos_forward_searches)
+            call split(test_string_comma_separated, test_set_comma, pos)
+
+            @assertEqual(expected_pos_forward_searches(i), pos)
+        end do
+
+        pos = huge(0)
+
+        do i = 1, size(expected_pos_backward_searches)
+            call split(test_string_comma_separated, test_set_comma, pos, back=.true.)
+
+            @assertEqual(expected_pos_backward_searches(i), pos)
+        end do
+    end subroutine test_split_by_out_of_bounds_searches
+
+    @test
+    subroutine test_tokenize_into_first_last_by_empty_string_set()
+        use dyn_mpas_procedures, only: tokenize
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+        integer, parameter :: expected_first_empty_string(*) = [1]
+        integer, parameter :: expected_last_empty_string(*) = [0]
+        integer, parameter :: expected_first_empty_set(*) = [1]
+        integer, parameter :: expected_last_empty_set(*) = [66]
+
+        integer, allocatable :: first(:), last(:)
+
+        ! Test `tokenize` by empty `string`.
+
+        call tokenize('', test_set_comma, first, last)
+        @assertTrue(allocated(first))
+        @assertEqual(expected_first_empty_string, first)
+        @assertTrue(allocated(last))
+        @assertEqual(expected_last_empty_string, last)
+
+        ! Test `tokenize` by empty `set`.
+
+        call tokenize(test_string_comma_separated, '', first, last)
+        @assertTrue(allocated(first))
+        @assertEqual(expected_first_empty_set, first)
+        @assertTrue(allocated(last))
+        @assertEqual(expected_last_empty_set, last)
+    end subroutine test_tokenize_into_first_last_by_empty_string_set
+
+    @test
+    subroutine test_tokenize_into_first_last_by_known_string_set()
+        use dyn_mpas_procedures, only: tokenize
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+        character(*), parameter :: test_string_comma_space_separated = &
+            '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+        character(*), parameter :: test_set_comma_space = ', '
+        integer, parameter :: expected_first_comma_separated(*) = &
+            [1, 2, 3, 4, 12, 13, 19, 25, 26, 31, 32, 33, 41, 42, 49, 56, 57, 65, 66, 67]
+        integer, parameter :: expected_last_comma_separated(*) = &
+            [0, 1, 2, 10, 11, 17, 23, 24, 29, 30, 31, 39, 40, 47, 54, 55, 63, 64, 65, 66]
+        integer, parameter :: expected_first_comma_space_separated(*) = &
+            [1, 2, 3, 4, 12, 13, 19, 25, 26, 31, 32, 33, 41, 42, 49, 56, 57, 65, 66, 67]
+        integer, parameter :: expected_last_comma_space_separated(*) = &
+            [0, 1, 2, 10, 11, 17, 23, 24, 29, 30, 31, 39, 40, 47, 54, 55, 63, 64, 65, 66]
+
+        integer, allocatable :: first(:), last(:)
+
+        call tokenize(test_string_comma_separated, test_set_comma, first, last)
+        @assertTrue(allocated(first))
+        @assertEqual(expected_first_comma_separated, first)
+        @assertTrue(allocated(last))
+        @assertEqual(expected_last_comma_separated, last)
+
+        call tokenize(test_string_comma_space_separated, test_set_comma_space, first, last)
+        @assertTrue(allocated(first))
+        @assertEqual(expected_first_comma_space_separated, first)
+        @assertTrue(allocated(last))
+        @assertEqual(expected_last_comma_space_separated, last)
+    end subroutine test_tokenize_into_first_last_by_known_string_set
+
+    @test
+    subroutine test_tokenize_into_tokens_separator_by_empty_string_set()
+        use dyn_mpas_procedures, only: tokenize
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+
+        character(:), allocatable :: expected_tokens(:), expected_separator(:)
+        character(:), allocatable :: tokens(:), separator(:)
+
+        ! Test `tokenize` by empty `string`.
+
+        allocate(character(0) :: expected_tokens(1))
+        allocate(character(1) :: expected_separator(0))
+
+        call tokenize('', test_set_comma, tokens)
+        @assertTrue(allocated(tokens))
+        @assertEqual(len(expected_tokens), len(tokens))
+        @assertEqual(size(expected_tokens), size(tokens))
+
+        ! Test `tokenize` by empty `string` and optional `separator`.
+
+        call tokenize('', test_set_comma, tokens, separator=separator)
+        @assertTrue(allocated(tokens))
+        @assertEqual(len(expected_tokens), len(tokens))
+        @assertEqual(size(expected_tokens), size(tokens))
+        @assertTrue(allocated(separator))
+        @assertEqual(len(expected_separator), len(separator))
+        @assertEqual(size(expected_separator), size(separator))
+
+        ! Test `tokenize` by empty `set`.
+
+        deallocate(expected_tokens)
+        deallocate(expected_separator)
+        allocate(character(len(test_string_comma_separated)) :: expected_tokens(1))
+        expected_tokens(1) = test_string_comma_separated
+        allocate(character(1) :: expected_separator(0))
+
+        call tokenize(test_string_comma_separated, '', tokens)
+        @assertTrue(allocated(tokens))
+        ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+        @assertEqual(expected_tokens, tokens, whitespace=keep_all)
+
+        ! Test `tokenize` by empty `set` and optional `separator`.
+
+        call tokenize(test_string_comma_separated, '', tokens, separator=separator)
+        @assertTrue(allocated(tokens))
+        ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+        @assertEqual(expected_tokens, tokens, whitespace=keep_all)
+        @assertTrue(allocated(separator))
+        @assertEqual(len(expected_separator), len(separator))
+        @assertEqual(size(expected_separator), size(separator))
+    end subroutine test_tokenize_into_tokens_separator_by_empty_string_set
+
+    @test
+    subroutine test_tokenize_into_tokens_separator_by_known_string_set()
+        use dyn_mpas_procedures, only: tokenize
+        use funit
+
+        character(*), parameter :: test_string_comma_separated = &
+            ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+        character(*), parameter :: test_set_comma = ','
+        character(*), parameter :: test_string_comma_space_separated = &
+            '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+        character(*), parameter :: test_set_comma_space = ', '
+        character(*), parameter :: expected_tokens_comma_separated(*) = [character(7) :: &
+            '', '', '', 'Mercury', '', 'Venus', 'Earth', '', 'Mars', '', &
+            '', 'Jupiter', '', 'Saturn', 'Uranus', '', 'Neptune', '', '', '' &
+        ]
+        character(*), parameter :: expected_tokens_comma_space_separated(*) = [character(7) :: &
+            '', '', '', 'Mercury', '', 'Venus', 'Earth', '', 'Mars', '', &
+            '', 'Jupiter', '', 'Saturn', 'Uranus', '', 'Neptune', '', '', '' &
+        ]
+        character(*), parameter :: expected_separator_comma_separated(*) = [character(1) :: &
+            ',', ',', ',', ',', ',', ',', ',', ',', ',', ',', &
+            ',', ',', ',', ',', ',', ',', ',', ',', ',' &
+        ]
+        character(*), parameter :: expected_separator_comma_space_separated(*) = [character(1) :: &
+            ' ', ' ', ',', ' ', ' ', ' ', ' ', ',', ' ', ',', &
+            ' ', ',', ' ', ',', ',', ',', ',', ' ', ' ' &
+        ]
+
+        character(:), allocatable :: tokens(:), separator(:)
+
+        call tokenize(test_string_comma_separated, test_set_comma, tokens)
+        @assertTrue(allocated(tokens))
+        ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+        @assertEqual(expected_tokens_comma_separated, tokens, whitespace=keep_all)
+
+        call tokenize(test_string_comma_space_separated, test_set_comma_space, tokens)
+        @assertTrue(allocated(tokens))
+        ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+        @assertEqual(expected_tokens_comma_space_separated, tokens, whitespace=keep_all)
+
+        call tokenize(test_string_comma_separated, test_set_comma, tokens, separator=separator)
+        @assertTrue(allocated(tokens))
+        ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+        @assertEqual(expected_tokens_comma_separated, tokens, whitespace=keep_all)
+        @assertTrue(allocated(separator))
+        @assertEqual(expected_separator_comma_separated, separator, whitespace=keep_all)
+
+        call tokenize(test_string_comma_space_separated, test_set_comma_space, tokens, separator=separator)
+        @assertTrue(allocated(tokens))
+        ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+        @assertEqual(expected_tokens_comma_space_separated, tokens, whitespace=keep_all)
+        @assertTrue(allocated(separator))
+        @assertEqual(expected_separator_comma_space_separated, separator, whitespace=keep_all)
+    end subroutine test_tokenize_into_tokens_separator_by_known_string_set
 end module test_dyn_mpas_procedures

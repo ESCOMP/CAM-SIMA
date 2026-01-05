@@ -1669,60 +1669,27 @@ contains
     !> (KCW, 2024-06-01)
     pure function parse_stream_name(stream_name) result(var_info_list)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedures, only: index_unique
+        use dyn_mpas_procedures, only: index_unique, tokenize
 
         character(*), intent(in) :: stream_name
         type(var_info_type), allocatable :: var_info_list(:)
 
         character(*), parameter :: supported_stream_name_operator = '+-'
-        character(1) :: stream_name_operator
-        character(:), allocatable :: stream_name_fragment
+        character(:), allocatable :: stream_name_fragment(:), stream_name_operator(:)
         character(len(invariant_var_info_list % name)), allocatable :: var_name_list(:)
-        integer :: i, j, n, offset
+        integer :: i, j
         type(var_info_type), allocatable :: var_info_list_buffer(:)
 
-        n = len_trim(stream_name)
+        call tokenize(stream_name, supported_stream_name_operator, stream_name_fragment, stream_name_operator)
 
-        if (n == 0) then
-            ! Empty character string means empty list.
-            var_info_list = parse_stream_name_fragment('')
+        var_info_list = parse_stream_name_fragment(stream_name_fragment(1))
 
-            return
-        end if
-
-        i = scan(stream_name, supported_stream_name_operator)
-
-        if (i == 0) then
-            ! No operators are present in the stream name. It is just a single stream name fragment.
-            stream_name_fragment = stream_name
-            var_info_list = parse_stream_name_fragment(stream_name_fragment)
-
-            return
-        end if
-
-        offset = 0
-        var_info_list = parse_stream_name_fragment('')
-
-        do while (.true.)
-            ! Extract operator from the stream name.
-            if (offset > 0) then
-                stream_name_operator = stream_name(offset:offset)
-            else
-                stream_name_operator = '+'
-            end if
-
-            ! Extract stream name fragment from the stream name.
-            if (i > 1) then
-                stream_name_fragment = stream_name(offset + 1:offset + i - 1)
-            else
-                stream_name_fragment = ''
-            end if
-
+        do i = 2, size(stream_name_fragment)
             ! Process the stream name fragment according to the operator.
-            if (len_trim(stream_name_fragment) > 0) then
-                var_info_list_buffer = parse_stream_name_fragment(stream_name_fragment)
+            var_info_list_buffer = parse_stream_name_fragment(stream_name_fragment(i))
 
-                select case (stream_name_operator)
+            if (size(var_info_list_buffer) > 0) then
+                select case (stream_name_operator(i - 1))
                     case ('+')
                         var_info_list = [var_info_list, var_info_list_buffer]
                     case ('-')
@@ -1733,20 +1700,6 @@ contains
                     case default
                         ! Do nothing for unknown operators. Should not happen at all.
                 end select
-            end if
-
-            offset = offset + i
-
-            ! Terminate loop when everything in the stream name has been processed.
-            if (offset + 1 > n) then
-                exit
-            end if
-
-            i = scan(stream_name(offset + 1:), supported_stream_name_operator)
-
-            ! Run the loop one last time for the remaining stream name fragment.
-            if (i == 0) then
-                i = n - offset + 1
             end if
         end do
 

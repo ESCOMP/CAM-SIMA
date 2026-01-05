@@ -5,7 +5,8 @@ module string_utils
    use cam_logfile,    only: iulog
    use cam_abortutils, only: endrun
    use string_core_utils, only: core_int_date_to_yyyymmdd, core_int_seconds_to_hhmmss
-   use string_core_utils, only: stringify=>core_stringify, to_str=>core_to_str
+   use string_core_utils, only: to_str => core_to_str
+   use string_core_utils, only: split, stringify, tokenize
 
    implicit none
    private
@@ -17,12 +18,14 @@ module string_utils
    public :: to_str           ! Convert integer to left justified string
    public :: to_upper         ! Convert all characters in string to upper case.
    public :: to_lower         ! Convert all characters in string to lower case.
+   public :: split            ! Parse a string into tokens, one at a time
    public :: stringify        ! Convert one or more values of any intrinsic data types to a character string for pretty printing
    public :: increment_string ! Increment a string whose ending characters are digits.
    public :: last_non_digit   ! Get position of last non-digit in the input string.
    public :: get_last_significant_char ! Get position of last significant (non-blank, non-null) character in string.
+   public :: tokenize         ! Parse a string into tokens
 
-CONTAINS
+contains
 
    subroutine strlist_get_ind(strlist, str, ind, abort)
 
