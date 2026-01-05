@@ -1,0 +1,45 @@
+! these are FHIST_C5 snapshots
+ncdata = '/glade/derecho/scratch/hplin/251119.cam64_128.FHIST_C5.ne3.gnu.dbg/run/snap_w_qneg_orig/251119.cam64_128.FHIST_C5.ne3.gnu.dbg.cam.h1i.1979-01-01-01800.nc'
+ncdata_check = '/glade/derecho/scratch/hplin/251119.cam64_128.FHIST_C5.ne3.gnu.dbg/run/snap_w_qneg_orig/251119.cam64_128.FHIST_C5.ne3.gnu.dbg.cam.h2i.1979-01-01-01800.nc'
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+! cam5 vertical levels.
+pver = 30
+
+! namelist options for CAM5 UW PBL.
+am_correction = .false.
+do_iss = .true.
+eddy_lbulk_max = 40.D3
+eddy_leng_max = 40.D3
+eddy_max_bot_pressure = 100.D3
+eddy_moist_entrain_a2l = 30.D0
+eddy_wstarent = .true.
+kv_freetrop_scale = 1.D0
+kv_top_pressure = 0.D0
+kv_top_scale = 1.D0
+
+! history output
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1:WGUSTD,UW_errorPBL,UW_pblh,UW_pblhp
+hist_add_inst_fields;h1:UW_tpert,UW_qpert,UW_wpert,UW_ustar
+hist_add_inst_fields;h1:UW_tkes,UW_minpblh
+hist_add_inst_fields;h1:UW_ncvfin_o,UW_ncvfin_mg,UW_ncvfin_f
+hist_add_inst_fields;h1:UW_n2,UW_s2,UW_ri
+hist_add_inst_fields;h1:UW_sfuh,UW_sflh,UW_cldn,UW_qrl,UW_ql
+hist_add_inst_fields;h1:BPROD,SFI,SPROD
+hist_add_inst_fields;h1:UW_sfi,UW_chu,UW_chs,UW_cmu,UW_cms
+hist_add_inst_fields;h1:UW_tke,UW_wcap,UW_bprod,UW_sprod
+hist_add_inst_fields;h1:UW_kvh,UW_kvm,UW_turbtype
+hist_add_inst_fields;h1:UW_gh,UW_sh,UW_sm,UW_ria,UW_leng
+hist_add_inst_fields;h1:UW_kbase_o,UW_ktop_o,UW_kbase_mg,UW_ktop_mg
+hist_add_inst_fields;h1:UW_kbase_f,UW_ktop_f,UW_wet,UW_web
+hist_add_inst_fields;h1:UW_jtbu,UW_jbbu,UW_evhc,UW_jt2slv
+hist_add_inst_fields;h1:UW_n2ht,UW_n2hb,UW_lwp,UW_optdepth
+hist_add_inst_fields;h1:UW_radfrac,UW_radf,UW_wstar,UW_wstar3fact
+hist_add_inst_fields;h1:UW_ebrk,UW_wbrk,UW_lbrk
+hist_add_inst_fields;h1:UW_ricl,UW_ghcl,UW_shcl,UW_smcl,UW_wsed
+hist_precision;h1: REAL64
