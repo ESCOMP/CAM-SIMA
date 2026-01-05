@@ -177,7 +177,7 @@
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
-      <option name="comment">Test for tracer_data chemistry and aerosols input utilities and prescribed ozone and BAM bulk aerosol</option>
+      <option name="comment">Test for tracer_data chemistry and aerosols input utilities using prescribed ozone and BAM bulk aerosol input datasets</option>
     </options>
   </test>
 
