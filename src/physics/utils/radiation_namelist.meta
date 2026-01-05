@@ -1,0 +1,37 @@
+[ccpp-table-properties]
+  name = radiation_namelist
+  type = module
+
+[ccpp-arg-table]
+  name  = radiation_namelist
+  type  = module
+[ iradsw ]
+  standard_name = frequency_of_shortwave_radiation_calculation
+  units = 1
+  type = integer
+  dimensions = ()
+  protected = True
+[ iradlw ]
+  standard_name = frequency_of_longwave_radiation_calculation
+  units = 1
+  type = integer
+  dimensions = ()
+  protected = True
+[ irad_always ]
+  standard_name = number_of_timesteps_to_force_radiation_calculation_after_initialization_namelist_parameter
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ use_rad_uniform_angle ]
+  standard_name = use_radiation_uniform_angle_in_solar_zenith_angle_calculation
+  units = flag
+  type = logical
+  dimensions = ()
+  protected = True
+[ rad_uniform_angle ]
+  standard_name = radiation_uniform_angle_in_solar_zenith_angle_calculation
+  units = rad
+  type = real | kind = kind_phys
+  dimensions = ()
+  protected = True

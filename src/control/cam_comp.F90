@@ -27,8 +27,9 @@ module cam_comp
 
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
-   use physics_types,             only: calday
+   use physics_types,             only: calday, next_calday, radiation_offset, nextsw_cday
    use physics_types,             only: is_first_timestep, nstep
+   use physics_types,             only: is_first_restart_timestep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -178,12 +179,21 @@ CONTAINS
       is_first_timestep = .true.
       call mark_as_initialized('is_first_timestep')
 
+      is_first_restart_timestep = .false.
+      call mark_as_initialized('is_first_restart_timestep')
+
       nstep = get_nstep()
       call mark_as_initialized('current_timestep_number')
 
       ! Get current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
+      next_calday = get_curr_calday(offset=int(get_step_size()))
+      radiation_offset = 0
+      nextsw_cday = next_calday
       call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
+      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
+      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
+      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -288,11 +298,13 @@ CONTAINS
       use physics_grid,              only: lat_rad, lon_rad
       use orbital_data,              only: orbital_data_advance
       use stepon,                    only: stepon_timestep_init
+      use physics_types,             only: dt_avg
       use cam_ccpp_cap,              only: cam_constituents_array
       use cam_ccpp_cap,              only: cam_model_const_properties
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use ccpp_kinds,                only: kind_phys
       use musica_ccpp_dependencies,  only: set_initial_musica_concentrations
+      use radiation_namelist,        only: use_rad_uniform_angle, rad_uniform_angle
 
       real(kind_phys), pointer :: constituents_array(:,:,:)
       type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
@@ -301,7 +313,8 @@ CONTAINS
       calday = get_curr_calday()
 
       ! Update the orbital data
-      call orbital_data_advance(calday, lat_rad, lon_rad)
+      call orbital_data_advance(calday, lat_rad, lon_rad, use_rad_uniform_angle, &
+                                rad_uniform_angle, dt_avg)
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()
@@ -339,6 +352,10 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
+
+      ! Call share code to get relevant calendar days
+      nextsw_cday = get_curr_calday(offset=radiation_offset)
+      next_calday = get_curr_calday(offset=int(get_step_size()))
 
    end subroutine cam_timestep_init
    !

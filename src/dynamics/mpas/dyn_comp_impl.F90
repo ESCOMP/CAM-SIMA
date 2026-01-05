@@ -144,7 +144,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t
 
-        type(runtime_options), intent(in) :: cam_runtime_opts
+        type(runtime_options), intent(inout) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
 
@@ -157,6 +157,9 @@ contains
         logical, allocatable :: is_water_species(:)
         type(file_desc_t), pointer :: pio_init_file
         type(file_desc_t), pointer :: pio_topo_file
+
+        ! Set dycore name in runtime object
+        call cam_runtime_opts%set_dycore('mpas')
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
 

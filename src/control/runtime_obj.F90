@@ -2,29 +2,33 @@ module runtime_obj
 
    use shr_kind_mod, only: CS => SHR_KIND_CS
    use shr_kind_mod, only: r8=>shr_kind_r8
+   use ccpp_kinds,   only: kind_phys
    implicit none
    private
 
+   !> \section arg_table_runtime_obj  Argument Table
+   !! \htmlinclude arg_table_runtime_obj.html
+   !!
+   real(kind_phys),  public, parameter :: unset_real   = huge(1.0_r8)
+
    character(len=*), public, parameter :: unset_str    = 'UNSET'
    integer,          public, parameter :: unset_int    = huge(1)
-   real(r8),         public, parameter :: unset_real   = huge(1.0_r8)
 
    ! Water vapor constituent standard name
    character(len=*), public, parameter :: wv_stdname = 'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water'
 
    ! Public interfaces and data
-
-   !> \section arg_table_runtime_options  Argument Table
-   !! \htmlinclude arg_table_runtime_options.html
-   !!
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str
+      character(len=CS), private            :: dycore     = unset_str
       character(len=16), private            :: waccmx_opt = unset_str
       ! update_thermo_variables: update thermo "constants" to composition-dependent thermo variables
       logical,           private :: update_thermo_variables = .false.
    contains
       ! General runtime access
       procedure, public :: physics_suite
+      procedure, public :: get_dycore
+      procedure, public :: set_dycore
       procedure, public :: suite_as_list
       ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
@@ -32,7 +36,7 @@ module runtime_obj
       procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
-   type(runtime_options), public, protected :: cam_runtime_opts
+   type(runtime_options), public :: cam_runtime_opts
 
    public :: cam_set_runtime_opts
 
@@ -46,6 +50,20 @@ CONTAINS
 
       physics_suite = trim(self%phys_suite)
    end function physics_suite
+
+   pure character(len=CS) function get_dycore(self)
+      class(runtime_options), intent(in) :: self
+
+      get_dycore = trim(self%dycore)
+   end function get_dycore
+
+   subroutine set_dycore(self, dycore_in)
+      class(runtime_options), intent(inout) :: self
+      character(len=*),       intent(in)    :: dycore_in
+
+      self%dycore = trim(dycore_in)
+
+   end subroutine set_dycore
 
    pure function suite_as_list(self) result(slist)
       class(runtime_options), intent(in) :: self

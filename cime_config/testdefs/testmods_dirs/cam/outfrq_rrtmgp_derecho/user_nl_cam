@@ -1,0 +1,25 @@
+! these are FHISTC_LTso snapshots
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_rrtmgp_derecho_gnu_before_c20251013.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_rrtmgp_derecho_gnu_after_c20251013.nc'
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 1e-15
+
+! vertical levels in snapshot
+pver = 58
+
+! Do radiation on every timestep we're testing
+irad_always=3
+
+! diagnostic output
+hist_output_frequency;h1: 1*nsteps
+hist_precision;h1: REAL64
+hist_add_inst_fields;h1: HR
+! Cloud output
+hist_add_inst_fields;h1: TOT_CLD_VISTAU,TOT_ICLD_VISTAU,ICE_ICLD_VISTAU,LIQ_ICLD_VISTAU
+! Longwave diagnostic output
+hist_add_inst_fields;h1: QRL,QRLC,FLNT,FLNTC,FLUT,FLUTC,LWCF,FLN200,FLN200C,FLNR,FLNS,FLNSC,FLDS,FLDSC,FUL,FDL,FULC,FDLC
+! Shortwave diagnostic fields
+hist_add_inst_fields;h1: SOLIN,QRS,QRSC,FSNT,FSNTC,FSNTOA,FSNTOAC,SWCF,FSUTOA,FSN200,FSN200C,FSNR,SOLL,SOLS,SOLLD,SOLSD
+hist_add_inst_fields;h1: FSNS,FSNSC,FSDS,FSDSC,FUS,FDS,FUSC,FDSC

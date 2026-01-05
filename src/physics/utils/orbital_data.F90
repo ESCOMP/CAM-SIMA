@@ -9,6 +9,8 @@ module orbital_data
 
   use ccpp_kinds,    only: kind_phys
   use shr_orb_mod,   only: FILL_R8 => SHR_ORB_UNDEF_REAL
+  use physics_types, only: coszrs_rad
+  use runtime_obj,   only: cam_runtime_opts
 
   implicit none
   private
@@ -55,7 +57,8 @@ contains
 
   !=======================================================================
 
-  subroutine orbital_data_advance(calendar_day, latitudes, longitudes)
+  subroutine orbital_data_advance(calendar_day, latitudes, longitudes, use_rad_uniform_angle, &
+               rad_uniform_angle, dt_avg)
    
     !-----------------------------------------------------------------------
     !
@@ -65,10 +68,14 @@ contains
    
     use shr_orb_mod,     only: shr_orb_decl, shr_orb_cosz
     use cam_control_mod, only: eccen, mvelpp, lambm0, obliqr
+    use phys_vars_init_check, only: mark_as_initialized
 
     real(kind_phys), intent(in) :: calendar_day  ! Fractional Julian calendar day (1.xx to 365.xx)
     real(kind_phys), intent(in) :: latitudes(:)  ! Centered latitude (column) [radians]
     real(kind_phys), intent(in) :: longitudes(:) ! Centered longitude (column) [radians]
+    real(kind_phys), intent(in) :: rad_uniform_angle
+    real(kind_phys), intent(in) :: dt_avg
+    logical,         intent(in) :: use_rad_uniform_angle
 
     integer :: i
 
@@ -81,6 +88,24 @@ contains
       solar_zenith_angle(i) = acos(shr_orb_cosz(calendar_day, latitudes(i), &
                                                 longitudes(i), solar_declination))
     end do
+
+    ! Compute the cosine of solar zenith angle for radiation [radians]
+    ! Don't compute this if we're running with snapshot files
+    if (trim(cam_runtime_opts%get_dycore()) /= 'null') then
+       if (use_rad_uniform_angle) then
+          do i = 1, size(latitudes)
+             coszrs_rad(i) = shr_orb_cosz(calendar_day, latitudes(i), longitudes(i), &
+                                      solar_declination, dt_avg, uniform_angle=rad_uniform_angle)
+          end do
+       else
+          do i = 1, size(latitudes)
+             ! if dt_avg /= 0, it triggers using avg coszrs
+             coszrs_rad(i) = shr_orb_cosz(calendar_day, latitudes(i), longitudes(i), &
+                                      solar_declination, dt_avg)
+          end do
+       end if
+       call mark_as_initialized('cosine_of_solar_zenith_angle_for_radiation')
+    end if
    
    end subroutine orbital_data_advance
 
