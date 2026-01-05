@@ -1627,14 +1627,6 @@
       <ic_file_input_names>pbuf_clubbtop</ic_file_input_names>
     </variable>
 
-    <!-- Test for tracer_data / chemistry -->
-    <variable local_name="ozone"
-              standard_name="o3"
-              units="kg kg-1" type="real" constituent="true">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pbuf_ozone</ic_file_input_names>
-    </variable>
-
     <!-- Test for tracer_data / aerosols / BAM -->
     <variable local_name="sulf"
               standard_name="sulf"
