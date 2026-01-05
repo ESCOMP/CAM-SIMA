@@ -596,10 +596,11 @@ CONTAINS
                ! First, check if there are NaNs anywhere in the state
                if (shr_infnan_isnan(current_value(col))) then
                   nan_count = nan_count + 1
-                  has_nan = .true.
 
-                  ! Set max diff to NaN (if not already) to signal NaN was found
-                  if (.not. shr_infnan_isnan(max_diff(1))) then
+                  if (.not. has_nan) then ! First NaN found for this variable
+                     has_nan = .true.
+
+                     ! Set max diff to NaN (if not already) to signal NaN was found
                      max_diff(1) = current_value(col) - buffer(col) ! = nan
                      max_diff_col = col
                   end if
@@ -765,10 +766,11 @@ CONTAINS
                   ! First, check if there are NaNs anywhere in the state
                   if (shr_infnan_isnan(current_value(col, lev))) then
                      nan_count = nan_count + 1
-                     has_nan = .true.
 
-                     ! Set max diff to NaN (if not already) to signal NaN was found
-                     if (.not. shr_infnan_isnan(max_diff(1))) then
+                     if (.not. has_nan) then ! First NaN found for this variable
+                        has_nan = .true.
+
+                        ! Set max diff to NaN (if not already) to signal NaN was found
                         max_diff(1) = current_value(col,lev) - buffer(col,lev) ! = nan
                         max_diff_col = col
                         max_diff_lev = lev
