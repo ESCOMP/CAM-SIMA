@@ -817,11 +817,7 @@ class SchemeNamelistInfo:
                     arglist = [grpvar.var_name]
                     dimsize = 1
                     if grpvar.array_len:
-                        # XXgoldyXX: Can be replaced math.prod in python 3.8+
                         dimsize = math.prod(grpvar.array_len)
-                        #for alen in grpvar.array_len:
-                        #    dimsize *= alen
-                        # end for
                         dimstr = f"*{dimsize}"
                     else:
                         dimstr = ""
