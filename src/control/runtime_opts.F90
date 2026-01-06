@@ -86,7 +86,7 @@ contains
       ! Note that namelists for physics schemes are read by
       !    cam_read_ccpp_scheme_namelists
 
-      call cam_logfile_readnl(nlfilename)
+      call cam_logfile_readnl(nlfilename)   !The log settings must always be read first
 !      call physics_grid_readnl(nlfilename)
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
