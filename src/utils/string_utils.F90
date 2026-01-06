@@ -7,6 +7,7 @@ module string_utils
    use string_core_utils, only: core_int_date_to_yyyymmdd, core_int_seconds_to_hhmmss
    use string_core_utils, only: to_str => core_to_str
    use string_core_utils, only: split, stringify, tokenize
+   use string_core_utils, only: increment_string, last_non_digit, get_last_significant_char
 
    implicit none
    private
@@ -91,113 +92,5 @@ contains
       sec2hms = core_int_seconds_to_hhmmss(seconds)
 
    end function sec2hms
-
-   ! Increment a string whose ending characters are digits.
-   ! The incremented integer must be in the range [0 - (10**n)-1]
-   ! where n is the number of trailing digits.
-   ! Return values:
-   !
-   !  0 success
-   ! -1 error: no trailing digits in string
-   ! -2 error: incremented integer is out of range
-   integer function increment_string(s, inc)
-       integer,          intent(in)    :: inc ! value to increment string (may be negative)
-       character(len=*), intent(inout) :: s   ! string with trailing digits
-
-       integer :: &
-         i, &        ! index
-         lstr, &     ! number of significant characters in string
-         lnd, &      ! position of last non-digit
-         ndigit, &   ! number of trailing digits
-         ival, &     ! integer value of trailing digits
-         pow, &      ! power of ten
-         digit       ! integer value of a single digit
-
-       lstr   = get_last_significant_char(s)
-       lnd    = last_non_digit(s)
-       ndigit = lstr - lnd
-
-       if(ndigit == 0) then
-           increment_string = -1
-           return
-       end if
-
-       ! Calculate integer corresponding to trailing digits.
-       ival = 0
-       pow  = 0
-       do i = lstr,lnd+1,-1
-           digit = ICHAR(s(i:i)) - ICHAR('0')
-           ival  = ival + digit * 10**pow
-           pow   = pow + 1
-       end do
-
-       ! Increment the integer
-       ival = ival + inc
-       if( ival < 0 .or. ival > 10**ndigit-1 ) then
-           increment_string = -2
-           return
-       end if
-
-       ! Overwrite trailing digits
-       pow = ndigit
-       do i = lnd+1,lstr
-           digit  = MOD( ival,10**pow ) / 10**(pow-1)
-           s(i:i) = CHAR( ICHAR('0') + digit )
-           pow    = pow - 1
-       end do
-
-       increment_string = 0
-
-   end function increment_string
-
-   ! Get position of last non-digit in the input string.
-   ! Return values:
-   !     > 0  => position of last non-digit
-   !     = 0  => token is all digits (or empty)
-   integer pure function last_non_digit(s)
-       character(len=*), intent(in) :: s
-       integer :: n, nn, digit
-
-       n = get_last_significant_char(s)
-       if(n == 0) then     ! empty string
-           last_non_digit = 0
-           return
-       end if
-
-       do nn = n,1,-1
-           digit = ICHAR(s(nn:nn)) - ICHAR('0')
-           if( digit < 0 .or. digit > 9 ) then
-               last_non_digit = nn
-           return
-           end if
-       end do
-
-       last_non_digit = 0    ! all characters are digits
-
-   end function last_non_digit
-
-   ! Get position of last significant character in string.
-   !   Here significant means non-blank or non-null.
-   !   Return values:
-   !       > 0  => position of last significant character
-   !       = 0  => no significant characters in string
-   integer pure function get_last_significant_char(cs)
-       character(len=*), intent(in) :: cs       !  Input character string
-       integer :: l, n
-
-       l = LEN(cs)
-       if( l == 0 ) then
-           get_last_significant_char = 0
-           return
-       end if
-
-       do n = l,1,-1
-           if( cs(n:n) /= ' ' .and. cs(n:n) /= CHAR(0) ) then
-               exit
-           end if
-       end do
-       get_last_significant_char = n
-
-   end function get_last_significant_char
 
 end module string_utils
