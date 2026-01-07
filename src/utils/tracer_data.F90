@@ -19,8 +19,11 @@
 !   is untested as no such dycore is available in SIMA. Polar averaging is
 !   commented out as only used for FV.
 module tracer_data
-  use perf_mod,       only: t_startf, t_stopf
+
   use shr_kind_mod,   only: r8 => shr_kind_r8, shr_kind_cl
+  use runtime_obj,    only: unset_real
+  use pio,            only: file_desc_t, var_desc_t
+
   use spmd_utils,     only: masterproc
   use cam_abortutils, only: endrun
   use cam_logfile,    only: iulog
@@ -31,10 +34,7 @@ module tracer_data
   use time_manager,   only: get_curr_date, get_step_size
   use time_manager,   only: set_time_float_from_date, set_date_from_time_float
 
-  use runtime_obj,    only: unset_real
-
-  use pio, only: file_desc_t, var_desc_t, &
-                 pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
+  use pio, only: pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
                  pio_char, pio_noerr, &
                  pio_inq_dimid, pio_inq_varid, &
                  pio_def_dim, pio_def_var, &
@@ -168,6 +168,7 @@ contains
 !--------------------------------------------------------------------------
   subroutine trcdata_init(specifier, filename, filelist, datapath, flds, file, &
                           data_cycle_yr, data_fixed_ymd, data_fixed_tod, data_type)
+
     use physconst, only: pi
     use string_utils, only: to_lower
     use cam_abortutils, only: check_allocate
@@ -780,6 +781,7 @@ contains
              pmid, pint, phis, zi)
 
     use ccpp_kinds,   only: kind_phys
+    use perf_mod,     only: t_startf, t_stopf
 
     ! dimensions of the grid can be retrieved directly
     use vert_coord,   only: pver, pverp
@@ -819,6 +821,8 @@ contains
         if (masterproc) write (iulog, *) 'READ_NEXT_TRCDATA: ', flds%fldnam
       end if
 
+      file%initialized = .true.
+
     end if
 
     ! need to interpolate the data, regardless
@@ -834,8 +838,6 @@ contains
                              flds  = flds(:), &
                              file  = file)
     call t_stopf('interpolate_trcdata')
-
-    file%initialized = .true.
 
     call t_stopf('advance_trcdata')
 
@@ -980,6 +982,7 @@ contains
     character(len=shr_kind_cl) :: fn_new, line, filepath
     integer :: ios, unitnumber
     logical :: abort_run
+    character(len=shr_kind_cm) :: errmsg
 
     if (present(abort)) then
       abort_run = abort
@@ -1013,25 +1016,25 @@ contains
       !-------------------------------------------------------------------
       if (masterproc) write(iulog, *) 'incr_flnm: old filename = ', trim(filename)
       if (masterproc) write(iulog, *) 'incr_flnm: open filenames_list : ', trim(filenames_list)
-      unitnumber = shr_file_getUnit()
+
       if (present(datapath)) then
         filepath = trim(datapath)//'/'//trim(filenames_list)
       else
         filepath = trim(filenames_list)
       end if
 
-      open (unit=unitnumber, file=filepath, iostat=ios, status="OLD")
+      open (newunit=unitnumber, file=filepath, iostat=ios, iomsg=errmsg, status="OLD")
       if (ios /= 0) then
-        call endrun('not able to open file: '//trim(filepath))
+        call endrun('not able to open file: '//trim(filepath)//'; error = '// trim(errmsg))
       end if
 
       !-------------------------------------------------------------------
       !  ...  read file names
       !-------------------------------------------------------------------
-      read (unit=unitnumber, fmt='(A)', iostat=ios) line
+      read (unit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
       if (ios /= 0) then
         if (abort_run) then
-          call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list))
+          call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
         else
           fn_new = 'NOT_FOUND'
           incr_filename = trim(fn_new)
@@ -1049,10 +1052,10 @@ contains
         !       otherwise read until find current filename
         !-------------------------------------------------------------------
         do while (trim(line) /= trim(filename))
-          read (unit=unitnumber, fmt='(A)', iostat=ios) line
+          read (newunit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
           if (ios /= 0) then
             if (abort_run) then
-              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list))
+              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
             else
               fn_new = 'NOT_FOUND'
               incr_filename = trim(fn_new)
@@ -1064,7 +1067,7 @@ contains
         !-------------------------------------------------------------------
         !      Read next filename
         !-------------------------------------------------------------------
-        read (unit=unitnumber, fmt='(A)', iostat=ios) line
+        read (unit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
 
         !---------------------------------------------------------------------------------
         !       If cyclical_list, then an end of file is not an error, but rather
@@ -1076,17 +1079,17 @@ contains
             if (cyclical_list) then
               list_cycled = .true.
               rewind (unitnumber)
-              read (unit=unitnumber, fmt='(A)', iostat=ios) line
+              read (unit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
               ! Error here should never happen, but check just in case
               if (ios /= 0) then
-                call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list))
+                call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
               end if
             else
-              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list))
+              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' //trim(errmsg))
             end if
           else
             if (abort_run) then
-              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list))
+              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
             else
               fn_new = 'NOT_FOUND'
               incr_filename = trim(fn_new)
@@ -1103,7 +1106,6 @@ contains
       fn_new = trim(line)
 
       close (unit=unitnumber)
-      call shr_file_freeUnit(unitnumber)
     end if
 
     !---------------------------------------------------------------------------------
@@ -1403,15 +1405,16 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use physics_grid, only: get_rlat_all_p, get_rlon_all_p
-    use physconst, only: pi
+    use physics_grid,   only: get_rlat_all_p, get_rlon_all_p
+    use physconst,      only: pi
     use cam_abortutils, only: check_allocate
+    use perf_mod,       only: t_startf, t_stopf
 
-    type(file_desc_t), intent(in) :: fid
-    type(var_desc_t), intent(in) :: vid
-    integer, intent(in) :: strt(:), cnt(:), order(2)
-    real(r8), intent(out)  :: loc_arr(:) ! (ncol)
-    type(trfile), intent(in) :: file
+    type(file_desc_t), intent(in)  :: fid
+    type(var_desc_t),  intent(in)  :: vid
+    integer,           intent(in)  :: strt(:), cnt(:), order(2)
+    real(r8),          intent(out) :: loc_arr(:) ! (ncol)
+    type(trfile),      intent(in)  :: file
 
     real(r8) :: to_lats(pcols), to_lons(pcols)
     real(r8), allocatable, target :: wrk2d(:, :) ! (cnt(1), cnt(2))
@@ -1432,7 +1435,7 @@ contains
                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     if (order(1) /= 1 .or. order(2) /= 2 .or. cnt(1) /= file%nlon .or. cnt(2) /= file%nlat) then
-      allocate (wrk2d_in(file%nlon, file%nlat), stat=ierr)
+      allocate (wrk2d_in(file%nlon, file%nlat), stat=ierr, errmsg=errmsg)
 
       call check_allocate(ierr, subname, 'wrk2d_in(file%nlon, file%nlat)', &
                           file=__FILE__, line=__LINE__, errmsg=errmsg)
@@ -1882,6 +1885,8 @@ contains
   end subroutine interpolate_trcdata
 
   subroutine get_dimension(fid, dname, dsize, dimid, data)
+    use cam_abortutils, only: check_allocate
+
     type(file_desc_t), intent(inout) :: fid
     character(*),      intent(in)    :: dname
     integer,           intent(out)   :: dsize
@@ -1891,6 +1896,10 @@ contains
 
     integer :: vid, ierr, id
     integer :: err_handling
+
+    character(len=shr_kind_cm) :: errmsg
+
+    character(len=*), parameter :: sub = 'get_dimension'
 
     call pio_seterrorhandling(fid, PIO_BCAST_ERROR, oldmethod=err_handling)
     ierr = pio_inq_dimid(fid, dname, id)
@@ -1911,11 +1920,8 @@ contains
             call endrun('get_dimension: failed to deallocate data array')
           end if
         end if
-        allocate (data(dsize), stat=ierr)
-        if (ierr /= 0) then
-          write (iulog, *) 'get_dimension: data allocation error = ', ierr
-          call endrun('get_dimension: failed to allocate data array')
-        end if
+        allocate (data(dsize), stat=ierr, errmsg=errmsg)
+        call check_allocate(ierr, sub, 'data(dsize)', file=__FILE__, line=__LINE__, errmsg=errmsg)
 
         ierr = pio_inq_varid(fid, dname, vid)
         ierr = pio_get_var(fid, vid, data)
@@ -2096,13 +2102,14 @@ contains
     character(len=32), allocatable, dimension(:) :: fld_name, src_name
     integer :: nflds
 
+    character(len=shr_kind_cm)  :: errmsg
+    character(len=*), parameter :: sub = 'specify_fields'
+
     nflds = size(specifier)
 
-    allocate (fld_name(nflds), src_name(nflds), stat=astat)
-    if (astat /= 0) then
-      write (iulog, *) 'specify_fields: failed to allocate fld_name, src_name arrays; error = ', astat
-      call endrun('specify_fields: failed to allocate fld_name, src_name arrays')
-    end if
+    allocate (fld_name(nflds), src_name(nflds), stat=astat, errmsg=errmsg)
+    call check_allocate(astat, sub, 'fld_name(nflds), src_name(nflds)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     fld_cnt = 0
 
@@ -2136,11 +2143,9 @@ contains
     !-----------------------------------------------------------------------
     !   ... allocate field type array
     !-----------------------------------------------------------------------
-    allocate (fields(fld_cnt), stat=astat)
-    if (astat /= 0) then
-      write (iulog, *) 'specify_fields: failed to allocate fields array; error = ', astat
-      call endrun('specify_fields: failed to allocate fields array')
-    end if
+    allocate (fields(fld_cnt), stat=astat, errmsg=errmsg)
+    call check_allocate(astat, sub, 'fields(fld_cnt)', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     do i = 1, fld_cnt
       fields(i)%fldnam = fld_name(i)
@@ -2153,6 +2158,9 @@ contains
 
   ! This routine advances to the next file
   subroutine advance_file(file)
+    use cam_abortutils, only: check_allocate
+    use shr_kind_mod,   only: shr_kind_cm
+
     type(trfile), intent(inout) :: file
 
     !-----------------------------------------------------------------------
@@ -2161,6 +2169,9 @@ contains
     character(len=shr_kind_cl) :: ctmp
     character(len=shr_kind_cl) :: loc_fname
     integer            :: istat, astat
+
+    character(len=shr_kind_cm)  :: errmsg
+    character(len=*), parameter :: sub = 'advance_file'
 
     !-----------------------------------------------------------------------
     !   close current file ...
@@ -2178,14 +2189,14 @@ contains
     !-----------------------------------------------------------------------
     deallocate (file%curr_data_times, stat=astat)
     if (astat /= 0) then
-      write (iulog, *) 'advance_file: failed to deallocate file%curr_data_times array; error = ', astat
-      call endrun('advance_file: failed to deallocate file%curr_data_times array')
+      write (iulog, *) sub//': failed to deallocate file%curr_data_times array; error = ', astat
+      call endrun(sub//': failed to deallocate file%curr_data_times array')
     end if
-    allocate (file%curr_data_times(size(file%next_data_times)), stat=astat)
-    if (astat /= 0) then
-      write (iulog, *) 'advance_file: failed to allocate file%curr_data_times array; error = ', astat
-      call endrun('advance_file: failed to allocate file%curr_data_times array')
-    end if
+
+    allocate (file%curr_data_times(size(file%next_data_times)), stat=astat, errmsg=errmsg)
+    call check_allocate(astat, sub, 'file%curr_data_times(size(file%next_data_times))', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+
     file%curr_data_times(:) = file%next_data_times(:)
 
     !-----------------------------------------------------------------------
@@ -2195,8 +2206,8 @@ contains
 
     deallocate (file%next_data_times, stat=astat)
     if (astat /= 0) then
-      write (iulog, *) 'advance_file: failed to deallocate file%next_data_times array; error = ', astat
-      call endrun('advance_file: failed to deallocate file%next_data_times array')
+      write (iulog, *) sub//': failed to deallocate file%next_data_times array; error = ', astat
+      call endrun(sub//': failed to deallocate file%next_data_times array')
     end if
     nullify (file%next_data_times)
 
@@ -2206,9 +2217,9 @@ contains
 
   subroutine init_trc_restart(whence, piofile, tr_file)
 
-    character(len=*), intent(in) :: whence
+    character(len=*),  intent(in)    :: whence
     type(file_desc_t), intent(inout) :: piofile
-    type(trfile), intent(inout) :: tr_file
+    type(trfile),      intent(inout) :: tr_file
 
     character(len=32) :: name
     integer :: ioerr, mcdimid, maxlen
@@ -2249,7 +2260,7 @@ contains
   subroutine write_trc_restart(piofile, tr_file)
 
     type(file_desc_t), intent(inout) :: piofile
-    type(trfile), intent(inout) :: tr_file
+    type(trfile),      intent(inout) :: tr_file
 
     integer :: ioerr   ! error status
     if (associated(tr_file%currfnameid)) then
@@ -2262,6 +2273,7 @@ contains
       deallocate (tr_file%nextfnameid)
       nullify (tr_file%nextfnameid)
     end if
+
   end subroutine write_trc_restart
 
   ! reads file names from restart file
@@ -2303,10 +2315,10 @@ contains
   !------------------------------------------------------------------------------
   pure subroutine interpz_conserve(nsrc, ntrg, src_x, trg_x, src, trg)
 
-    integer, intent(in)   :: nsrc                  ! dimension source array
-    integer, intent(in)   :: ntrg                  ! dimension target array
-    real(r8), intent(in)  :: src_x(nsrc + 1)         ! source coordinates
-    real(r8), intent(in)  :: trg_x(ntrg + 1)         ! target coordinates
+    integer,  intent(in)  :: nsrc                  ! dimension source array
+    integer,  intent(in)  :: ntrg                  ! dimension target array
+    real(r8), intent(in)  :: src_x(nsrc + 1)       ! source coordinates
+    real(r8), intent(in)  :: trg_x(ntrg + 1)       ! target coordinates
     real(r8), intent(in)  :: src(nsrc)             ! source array
     real(r8), intent(out) :: trg(ntrg)             ! target array
 
@@ -2367,23 +2379,24 @@ contains
 
   subroutine vert_interp_mixrat(ncol, nsrc, ntrg, trg_x, src, trg, p0, ps, hyai, hybi, use_flight_distance)
 
-    implicit none
-
     integer, intent(in)   :: ncol
     integer, intent(in)   :: nsrc                         ! dimension source array
     integer, intent(in)   :: ntrg                         ! dimension target array
-    real(r8)              :: src_x(nsrc + 1)              ! source coordinates
-    real(r8), intent(in)  :: trg_x(pcols, ntrg + 1)   ! target coordinates
-    real(r8), intent(in)  :: src(pcols, nsrc)         ! source array
-    logical,  intent(in)  :: use_flight_distance      ! .true. = flight distance, .false. = mixing ratio
-    real(r8), intent(out) :: trg(pcols, ntrg)         ! target array
+    real(r8), intent(in)  :: trg_x(pcols, ntrg + 1)       ! target coordinates
+    real(r8), intent(in)  :: src(pcols, nsrc)             ! source array
+    real(r8), intent(out) :: trg(pcols, ntrg)             ! target array
+    logical,  intent(in)  :: use_flight_distance          ! .true. = flight distance, .false. = mixing ratio
 
     real(r8) :: ps(pcols), p0, hyai(nsrc + 1), hybi(nsrc + 1)
+
     !---------------------------------------------------------------
     !   ... local variables
     !---------------------------------------------------------------
     integer  :: i, j, n
-    real(r8)     :: y, trg_lo, trg_hi, src_lo, src_hi, overlap, outside
+    real(r8) :: y, trg_lo, trg_hi, src_lo, src_hi, overlap, outside
+    real(r8) :: src_x(nsrc + 1)              ! source coordinates
+
+    character(len=*), parameter :: sub = 'vert_interp_mixrat'
 
     do n = 1, ncol   ! loop over columns
 
@@ -2398,10 +2411,10 @@ contains
       ! ascending.  This could also be checked at an earlier stage to
       ! avoid doing so for every interpolation call.
       if (.not. ALL(src_x(1:nsrc) < src_x(2:nsrc + 1))) then
-        call endrun('src_x values are not ascending')
+        call endrun(sub//': src_x values are not ascending')
       end if
       if (.not. ALL(trg_x(n, 1:ntrg) < trg_x(n, 2:ntrg + 1))) then
-        call endrun('trg_x values are not ascending')
+        call endrun(sub//': trg_x values are not ascending')
       end if
 
       do i = 1, ntrg
@@ -2510,11 +2523,11 @@ contains
     real(r8), intent(out) :: dataout(pcols, pver)
 
     ! local storage
-    integer ::  i                   ! longitude index
-    integer ::  k, kk, kkstart      ! level indices
-    integer ::  kupper(pcols)       ! Level indices for interpolation
-    real(r8) :: dpu                ! upper level pressure difference
-    real(r8) :: dpl                ! lower level pressure difference
+    integer  ::  i                   ! longitude index
+    integer  ::  k, kk, kkstart      ! level indices
+    integer  ::  kupper(pcols)       ! Level indices for interpolation
+    real(r8) :: dpu                  ! upper level pressure difference
+    real(r8) :: dpl                  ! lower level pressure difference
 
     !--------------------------------------------------------------------------
     !
@@ -2608,8 +2621,8 @@ contains
   ! Interpolate data from current time-interpolated values to press
   pure subroutine vert_interp_ub_var(ncol, nlevs, plevs, press, datain, dataout)
 
-    integer, intent(in)  :: ncol
-    integer, intent(in)  :: nlevs
+    integer,  intent(in)  :: ncol
+    integer,  intent(in)  :: nlevs
     real(r8), intent(in)  :: plevs(nlevs)
     real(r8), intent(in)  :: press(ncol)
     real(r8), intent(in)  :: datain(ncol, nlevs)
@@ -2623,7 +2636,6 @@ contains
     real(r8) :: delp
 
     do i = 1, ncol
-
       if (press(i) <= plevs(1)) then
         kl = 1
         ku = 1
@@ -2633,7 +2645,6 @@ contains
         ku = nlevs
         delp = 0._r8
       else
-
         do k = 2, nlevs
           if (press(i) <= plevs(k)) then
             ku = k
@@ -2642,7 +2653,6 @@ contains
             exit
           end if
         end do
-
       end if
 
       dataout(i) = datain(i, kl) + delp*(datain(i, ku) - datain(i, kl))
