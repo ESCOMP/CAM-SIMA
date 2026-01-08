@@ -24,15 +24,8 @@ module tracer_data
   use runtime_obj,    only: unset_real
   use pio,            only: file_desc_t, var_desc_t
 
-  use spmd_utils,     only: masterproc
-  use cam_abortutils, only: endrun
-  use cam_logfile,    only: iulog
-
   use vert_coord,     only: pver, pverp
   use physics_grid,   only: pcols => columns_on_task
-
-  use time_manager,   only: get_curr_date, get_step_size
-  use time_manager,   only: set_time_float_from_date, set_date_from_time_float
 
   use pio, only: pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
                  pio_char, pio_noerr, &
@@ -169,9 +162,12 @@ contains
   subroutine trcdata_init(specifier, filename, filelist, datapath, flds, file, &
                           data_cycle_yr, data_fixed_ymd, data_fixed_tod, data_type)
 
-    use physconst, only: pi
-    use string_utils, only: to_lower
-    use cam_abortutils, only: check_allocate
+    use physconst,      only: pi
+    use string_utils,   only: to_lower
+    use cam_abortutils, only: check_allocate, endrun
+    use spmd_utils,     only: masterproc
+    use cam_logfile,    only: iulog
+    use time_manager,   only: set_time_float_from_date
 
     ! For latitude weighting functionality
     !use dyn_grid, only: get_horiz_grid_int
@@ -195,26 +191,26 @@ contains
     character(len=*), parameter :: sub = 'trcdata_init'
     real(r8),         parameter :: d2r = pi/180._r8
 
-    integer :: f, mxnflds, astat
-    integer :: str_yr, str_mon, str_day
-    integer :: lon_dimid, lat_dimid, lev_dimid, tim_dimid, old_dimid
-    integer :: dimids(4), did
-    type(var_desc_t) :: varid
-    integer :: idx
-    integer :: ierr
-    integer :: errcode
-    real(r8) :: start_time, time1, time2
-    integer :: i1, i2, j1, j2
-    integer :: nvardims, vardimids(4)
+    integer               :: f, mxnflds, astat
+    integer               :: str_yr, str_mon, str_day
+    integer               :: lon_dimid, lat_dimid, lev_dimid, tim_dimid, old_dimid
+    integer               :: dimids(4), did
+    type(var_desc_t)      :: varid
+    integer               :: idx
+    integer               :: ierr
+    integer               :: errcode
+    real(r8)              :: start_time, time1, time2
+    integer               :: i1, i2, j1, j2
+    integer               :: nvardims, vardimids(4)
 
-    character(len=256) :: data_units
+    character(len=256)    :: data_units
     real(r8), allocatable :: lam(:), phi(:)
-    real(r8):: rlats(pcols), rlons(pcols)
-    integer :: ncol, icol, i, j
-    logical :: found
-    integer :: aircraft_cnt
-    integer :: err_handling
-    character(len=512) :: errmsg
+    real(r8)              :: rlats(pcols), rlons(pcols)
+    integer               :: ncol, icol, i, j
+    logical               :: found
+    integer               :: aircraft_cnt
+    integer               :: err_handling
+    character(len=512)    :: errmsg
 
     call specify_fields(specifier, flds)
 
@@ -247,24 +243,24 @@ contains
     case ('SERIAL')
       ! nothing needs to be done here.
     case default
-      write (iulog, *) 'trcdata_init: invalid data type: '//trim(data_type)//' file: '//trim(filename)
-      write (iulog, *) 'trcdata_init: valid data types: SERIAL | CYCLICAL | CYCLICAL_LIST | FIXED | INTERP_MISSING_MONTHS '
-      call endrun('trcdata_init: invalid data type: '//trim(data_type)//' file: '//trim(filename))
+      write (iulog, *) sub//': invalid data type: '//trim(data_type)//' file: '//trim(filename)
+      write (iulog, *) sub//': valid data types: SERIAL | CYCLICAL | CYCLICAL_LIST | FIXED | INTERP_MISSING_MONTHS '
+      call endrun(sub//': invalid data type: '//trim(data_type)//' file: '//trim(filename))
     end select
 
     if ((.not. file%fixed) .and. ((data_fixed_ymd > 0._r8) .or. (data_fixed_tod > 0._r8))) then
-      call endrun('trcdata_init: Cannot specify data_fixed_ymd or data_fixed_tod if data type is not FIXED')
+      call endrun(sub//': Cannot specify data_fixed_ymd or data_fixed_tod if data type is not FIXED')
     end if
     if ((.not. file%cyclical) .and. (data_cycle_yr > 0._r8)) then
-      call endrun('trcdata_init: Cannot specify data_cycle_yr if data type is not CYCLICAL')
+      call endrun(sub//': Cannot specify data_cycle_yr if data type is not CYCLICAL')
     end if
 
     if (file%top_bndry .and. file%top_layer) then
-      call endrun('trcdata_init: Cannot set both file%top_bndry and file%top_layer to TRUE.')
+      call endrun(sub//': Cannot set both file%top_bndry and file%top_layer to TRUE.')
     end if
 
     if (masterproc) then
-      write (iulog, *) 'trcdata_init: data type: '//trim(data_type)//' file: '//trim(filename)
+      write (iulog, *) sub//': data type: '//trim(data_type)//' file: '//trim(filename)
     end if
 
     ! if there is no list of files (len_trim(file%filenames_list)<1) then
@@ -380,8 +376,8 @@ contains
     end if
 
     if (masterproc) then
-      write (iulog, *) 'trcdata_init: file%has_ps = ', file%has_ps
-    end if ! masterproc
+      write (iulog, *) sub//': file%has_ps = ', file%has_ps
+    end if
 
     if (file%alt_data) then
       call get_dimension(file%curr_fileid, 'altitude_int', file%nilev, data=file%ilevs)
@@ -453,7 +449,7 @@ contains
       ! get netcdf variable id for the field
       ierr = pio_inq_varid(file%curr_fileid, flds(f)%srcnam, flds(f)%var_id)
       if (ierr /= pio_noerr) then
-        call endrun('trcdata_init: Cannot find var "'//trim(flds(f)%srcnam)// &
+        call endrun(sub//': Cannot find var "'//trim(flds(f)%srcnam)// &
                     '" in file "'//trim(file%curr_filename)//'"')
       end if
 
@@ -572,10 +568,10 @@ contains
     ! if weighting by latitude, compute weighting for horizontal interpolation
     if (file%weight_by_lat) then
       if (dycore_unstructured) then
-        call endrun('trcdata_init: weighting by latitude not implemented for unstructured grids')
+        call endrun(sub//': weighting by latitude not implemented for unstructured grids')
       end if
 
-      call endrun('trcdata_init: weighting by latitude (used by aircraft emis) is untested in SIMA; uncomment this line for testing.')
+      call endrun(sub//': weighting by latitude (used by aircraft emis) is untested in SIMA; uncomment this line for testing.')
       ! WARNING: in SIMA, currently implemented dycores are unstructured.
       ! The below code has been ported to the best of ability,
       ! but is completely untested. (hplin, 10/9/25)
@@ -603,7 +599,7 @@ contains
       !     end do
       !   end do find_col
 
-      !   if (.not. found) call endrun('trcdata_init: not able to find physics column coordinate')
+      !   if (.not. found) call endrun(sub//': not able to find physics column coordinate')
       !   lon_global_grid_ndx(icol) = i
       !   lat_global_grid_ndx(icol) = j
       ! end do
@@ -613,33 +609,33 @@ contains
       ! ! weight_x & weight_y are weighting function for x & y interpolation
       ! allocate (file%weight_x(plon, file%nlon), stat=astat)
       ! if (astat /= 0) then
-      !   write (iulog, *) 'trcdata_init: file%weight_x allocation error = ', astat
-      !   call endrun('trcdata_init: failed to allocate weight_x array')
+      !   write (iulog, *) sub//': file%weight_x allocation error = ', astat
+      !   call endrun(sub//': failed to allocate weight_x array')
       ! end if
       ! allocate (file%weight_y(plat, file%nlat), stat=astat)
       ! if (astat /= 0) then
-      !   write (iulog, *) 'trcdata_init: file%weight_y allocation error = ', astat
-      !   call endrun('trcdata_init: failed to allocate weight_y array')
+      !   write (iulog, *) sub//': file%weight_y allocation error = ', astat
+      !   call endrun(sub//': failed to allocate weight_y array')
       ! end if
       ! allocate (file%count_x(plon), stat=astat)
       ! if (astat /= 0) then
-      !   write (iulog, *) 'trcdata_init: file%count_x allocation error = ', astat
-      !   call endrun('trcdata_init: failed to allocate count_x array')
+      !   write (iulog, *) sub//': file%count_x allocation error = ', astat
+      !   call endrun(sub//': failed to allocate count_x array')
       ! end if
       ! allocate (file%count_y(plat), stat=astat)
       ! if (astat /= 0) then
-      !   write (iulog, *) 'trcdata_init: file%count_y allocation error = ', astat
-      !   call endrun('trcdata_init: failed to allocate count_y array')
+      !   write (iulog, *) sub//': file%count_y allocation error = ', astat
+      !   call endrun(sub//': failed to allocate count_y array')
       ! end if
       ! allocate (file%index_x(plon, file%nlon), stat=astat)
       ! if (astat /= 0) then
-      !   write (iulog, *) 'trcdata_init: file%index_x allocation error = ', astat
-      !   call endrun('trcdata_init: failed to allocate index_x array')
+      !   write (iulog, *) sub//': file%index_x allocation error = ', astat
+      !   call endrun(sub//': failed to allocate index_x array')
       ! end if
       ! allocate (file%index_y(plat, file%nlat), stat=astat)
       ! if (astat /= 0) then
-      !   write (iulog, *) 'trcdata_init: file%index_y allocation error = ', astat
-      !   call endrun('trcdata_init: failed to allocate index_y array')
+      !   write (iulog, *) sub//': file%index_y allocation error = ', astat
+      !   call endrun(sub//': failed to allocate index_y array')
       ! end if
       ! file%weight_x(:, :) = 0.0_r8
       ! file%weight_y(:, :) = 0.0_r8
@@ -651,33 +647,33 @@ contains
       ! if (file%dist) then
       !   allocate (file%weight0_x(plon, file%nlon), stat=astat)
       !   if (astat /= 0) then
-      !     write (iulog, *) 'trcdata_init: file%weight0_x allocation error = ', astat
-      !     call endrun('trcdata_init: failed to allocate weight0_x array')
+      !     write (iulog, *) sub//': file%weight0_x allocation error = ', astat
+      !     call endrun(sub//': failed to allocate weight0_x array')
       !   end if
       !   allocate (file%weight0_y(plat, file%nlat), stat=astat)
       !   if (astat /= 0) then
-      !     write (iulog, *) 'trcdata_init: file%weight0_y allocation error = ', astat
-      !     call endrun('trcdata_init: failed to allocate weight0_y array')
+      !     write (iulog, *) sub//': file%weight0_y allocation error = ', astat
+      !     call endrun(sub//': failed to allocate weight0_y array')
       !   end if
       !   allocate (file%count0_x(plon), stat=astat)
       !   if (astat /= 0) then
-      !     write (iulog, *) 'trcdata_init: file%count0_x allocation error = ', astat
-      !     call endrun('trcdata_init: failed to allocate count0_x array')
+      !     write (iulog, *) sub//': file%count0_x allocation error = ', astat
+      !     call endrun(sub//': failed to allocate count0_x array')
       !   end if
       !   allocate (file%count0_y(plat), stat=astat)
       !   if (astat /= 0) then
-      !     write (iulog, *) 'trcdata_init: file%count0_y allocation error = ', astat
-      !     call endrun('trcdata_init: failed to allocate count0_y array')
+      !     write (iulog, *) sub//': file%count0_y allocation error = ', astat
+      !     call endrun(sub//': failed to allocate count0_y array')
       !   end if
       !   allocate (file%index0_x(plon, file%nlon), stat=astat)
       !   if (astat /= 0) then
-      !     write (iulog, *) 'trcdata_init: file%index0_x allocation error = ', astat
-      !     call endrun('trcdata_init: failed to allocate index0_x array')
+      !     write (iulog, *) sub//': file%index0_x allocation error = ', astat
+      !     call endrun(sub//': failed to allocate index0_x array')
       !   end if
       !   allocate (file%index0_y(plat, file%nlat), stat=astat)
       !   if (astat /= 0) then
-      !     write (iulog, *) 'trcdata_init: file%index0_y allocation error = ', astat
-      !     call endrun('trcdata_init: failed to allocate index0_y array')
+      !     write (iulog, *) sub//': file%index0_y allocation error = ', astat
+      !     call endrun(sub//': failed to allocate index0_y array')
       !   end if
       !   file%weight0_x(:, :) = 0.0_r8
       !   file%weight0_y(:, :) = 0.0_r8
@@ -780,21 +776,23 @@ contains
              flds, file, &
              pmid, pint, phis, zi)
 
-    use ccpp_kinds,   only: kind_phys
-    use perf_mod,     only: t_startf, t_stopf
+    use ccpp_kinds,     only: kind_phys
+    use perf_mod,       only: t_startf, t_stopf
+    use spmd_utils,     only: masterproc
+    use cam_logfile,    only: iulog
 
     ! dimensions of the grid can be retrieved directly
-    use vert_coord,   only: pver, pverp
-    use physics_grid, only: ncol => columns_on_task
+    use vert_coord,     only: pver, pverp
+    use physics_grid,   only: ncol => columns_on_task
 
-    type(trfile), intent(inout) :: file
-    type(trfld),  intent(inout) :: flds(:)
+    type(trfile),    intent(inout) :: file
+    type(trfld),     intent(inout) :: flds(:)
 
     ! state inputs for interpolating to model grid.
-    real(kind_phys), intent(in) :: pmid(:,:) ! air pressure [Pa]
-    real(kind_phys), intent(in) :: pint(:,:) ! air pressure at interfaces [Pa]
-    real(kind_phys), intent(in) :: phis(:)   ! surface geopotential [m2 s-2]
-    real(kind_phys), intent(in) :: zi(:,:)   ! height above surface, interfaces [m]
+    real(kind_phys), intent(in)    :: pmid(:,:) ! air pressure [Pa]
+    real(kind_phys), intent(in)    :: pint(:,:) ! air pressure at interfaces [Pa]
+    real(kind_phys), intent(in)    :: phis(:)   ! surface geopotential [m2 s-2]
+    real(kind_phys), intent(in)    :: zi(:,:)   ! height above surface, interfaces [m]
 
     real(r8) :: data_time
 
@@ -883,9 +881,13 @@ contains
   end subroutine get_fld_ndx
 
   subroutine get_model_time(file)
+    use time_manager,   only: set_time_float_from_date
+    use time_manager,   only: get_curr_date
+    use time_manager,   only: get_step_size
+
     type(trfile), intent(inout) :: file
 
-    integer yr, mon, day, ncsec  ! components of a date
+    integer :: yr, mon, day, ncsec  ! components of a date
 
     call get_curr_date(yr, mon, day, ncsec)
 
@@ -963,8 +965,12 @@ contains
   ! Increment or decrement a date string withing a filename
   ! the filename date section is assumed to be of the form yyyy-dd-mm
   function incr_filename(filename, filenames_list, datapath, cyclical_list, list_cycled, abort)
-    use string_utils, only: increment_string
-    use shr_file_mod, only: shr_file_getunit, shr_file_freeunit
+    use spmd_utils,     only: masterproc
+    use cam_abortutils, only: endrun
+    use cam_logfile,    only: iulog
+
+    use string_utils,   only: increment_string
+    use shr_kind_mod,   only: shr_kind_cm
 
     character(len=*), intent(in)    :: filename ! present dynamical dataset filename
     character(len=*), optional, intent(in)    :: filenames_list
@@ -984,6 +990,8 @@ contains
     logical :: abort_run
     character(len=shr_kind_cm) :: errmsg
 
+    character(len=*), parameter :: sub = 'incr_filename'
+
     if (present(abort)) then
       abort_run = abort
     else
@@ -998,15 +1006,15 @@ contains
       !-----------------------------------------------------------------------
       pos = len_trim(filename)
       fn_new = filename(:pos)
-      if (masterproc) write (iulog, *) 'incr_flnm: old filename = ', trim(fn_new)
+      if (masterproc) write (iulog, *) sub//': old filename = ', trim(fn_new)
       if (fn_new(pos - 2:) == '.nc') then
         pos = pos - 3
       end if
       istat = increment_string(fn_new(:pos), 1)
       if (istat /= 0) then
-        write (iulog, *) 'incr_flnm: increment_string returned ', istat
+        write (iulog, *) sub//': increment_string returned ', istat
         write (iulog, *) '           while trying to decrement ', trim(fn_new)
-        call endrun('incr_flnm: increment_string failure')
+        call endrun(sub//': increment_string failure')
       end if
 
     else
@@ -1014,8 +1022,8 @@ contains
       !-------------------------------------------------------------------
       !  ... open filenames_list
       !-------------------------------------------------------------------
-      if (masterproc) write(iulog, *) 'incr_flnm: old filename = ', trim(filename)
-      if (masterproc) write(iulog, *) 'incr_flnm: open filenames_list : ', trim(filenames_list)
+      if (masterproc) write(iulog, *) sub//': old filename = ', trim(filename)
+      if (masterproc) write(iulog, *) sub//': open filenames_list : ', trim(filenames_list)
 
       if (present(datapath)) then
         filepath = trim(datapath)//'/'//trim(filenames_list)
@@ -1034,7 +1042,7 @@ contains
       read (unit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
       if (ios /= 0) then
         if (abort_run) then
-          call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
+          call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
         else
           fn_new = 'NOT_FOUND'
           incr_filename = trim(fn_new)
@@ -1052,10 +1060,10 @@ contains
         !       otherwise read until find current filename
         !-------------------------------------------------------------------
         do while (trim(line) /= trim(filename))
-          read (newunit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
+          read (unit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
           if (ios /= 0) then
             if (abort_run) then
-              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
+              call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
             else
               fn_new = 'NOT_FOUND'
               incr_filename = trim(fn_new)
@@ -1082,14 +1090,14 @@ contains
               read (unit=unitnumber, fmt='(A)', iostat=ios, iomsg=errmsg) line
               ! Error here should never happen, but check just in case
               if (ios /= 0) then
-                call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
+                call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
               end if
             else
-              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' //trim(errmsg))
+              call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' //trim(errmsg))
             end if
           else
             if (abort_run) then
-              call endrun('not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
+              call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
             else
               fn_new = 'NOT_FOUND'
               incr_filename = trim(fn_new)
@@ -1112,21 +1120,23 @@ contains
     !      return the current filename
     !---------------------------------------------------------------------------------
     incr_filename = trim(fn_new)
-    if (masterproc) write (iulog, *) 'incr_flnm: new filename = ', trim(incr_filename)
+    if (masterproc) write (iulog, *) sub//': new filename = ', trim(incr_filename)
 
   end function incr_filename
 
   subroutine find_times(itms, fids, time, file, datatimem, datatimep, times_found)
-    use cam_abortutils, only: check_allocate
+    use cam_abortutils, only: check_allocate, endrun
+    use spmd_utils,     only: masterproc
+    use cam_logfile,    only: iulog
+    use shr_kind_mod,   only: shr_kind_cm
 
-    type(trfile), intent(in) :: file
-    real(r8), intent(out) :: datatimem, datatimep
-
-    integer, intent(out) :: itms(2) ! record numbers that bracket time
-    type(file_desc_t), intent(out) :: fids(2) ! ids of files that contains these recs
-
-    real(r8), intent(in) :: time    ! time of interest
-    logical, intent(inout)  :: times_found
+    integer,           intent(out)    :: itms(2) ! record numbers that bracket time
+    type(file_desc_t), intent(out)    :: fids(2) ! ids of files that contains these recs
+    real(r8),          intent(in)     :: time    ! time of interest
+    type(trfile),      intent(in)     :: file
+    real(r8),          intent(out)    :: datatimem
+    real(r8),          intent(out)    :: datatimep
+    logical,           intent(inout)  :: times_found
 
     integer :: np1        ! current forward time index of dataset
     integer :: n, i      !
@@ -1134,9 +1144,9 @@ contains
     integer :: astat
     integer :: cyc_tsize
 
-    real(r8), allocatable, dimension(:):: all_data_times
+    real(r8), allocatable, dimension(:) :: all_data_times
 
-    character(len=512) :: errmsg
+    character(len=shr_kind_cm) :: errmsg
     character(len=*), parameter :: subname = "find_times"
 
     curr_tsize = size(file%curr_data_times)
@@ -1230,20 +1240,24 @@ contains
   end subroutine find_times
 
   subroutine read_next_trcdata(flds, file)
+    use cam_abortutils, only: endrun
+
+    use time_manager,   only: set_time_float_from_date, set_date_from_time_float
+    use time_manager,   only: get_curr_date
 
     type(trfile), intent(inout) :: file
-    type(trfld), intent(inout) :: flds(:)
+    type(trfld),  intent(inout) :: flds(:)
 
-    integer :: recnos(4), i, f, nflds      !
-    integer :: cnt4(4)            ! array of counts for each dimension
-    integer :: strt4(4)           ! array of starting indices
-    integer :: cnt3(3)            ! array of counts for each dimension
-    integer :: strt3(3)           ! array of starting indices
+    integer           :: recnos(4), i, f, nflds
+    integer           :: cnt4(4)            ! array of counts for each dimension
+    integer           :: strt4(4)           ! array of starting indices
+    integer           :: cnt3(3)            ! array of counts for each dimension
+    integer           :: strt3(3)           ! array of starting indices
     type(file_desc_t) :: fids(4)
-    logical :: times_found
+    logical           :: times_found
 
-    integer :: cur_yr, cur_mon, cur_day, cur_sec, yr1, yr2, mon, date, sec
-    real(r8) :: series1_time, series2_time
+    integer           :: cur_yr, cur_mon, cur_day, cur_sec, yr1, yr2, mon, date, sec
+    real(r8)          :: series1_time, series2_time
     type(file_desc_t) :: fid1, fid2
 
     nflds = size(flds)
@@ -1575,10 +1589,12 @@ contains
   subroutine read_physgrid_2d(ncid, varname, recno, data)
     use cam_field_read, only: cam_read_field
 
+    use cam_abortutils, only: endrun
+
     type(file_desc_t), intent(inout) :: ncid
-    character(len=*),  intent(in)  :: varname
-    integer,           intent(in)  :: recno
-    real(r8),          intent(out) :: data(1:pcols)
+    character(len=*),  intent(in)    :: varname
+    integer,           intent(in)    :: recno
+    real(r8),          intent(out)   :: data(1:pcols)
 
     logical :: found
 
@@ -1597,12 +1613,14 @@ contains
   subroutine read_physgrid_3d(ncid, varname, vrt_coord_name, nlevs, recno, data)
     use cam_field_read, only: cam_read_field
 
+    use cam_abortutils, only: endrun
+
     type(file_desc_t), intent(inout) :: ncid
-    character(len=*),  intent(in)  :: varname
-    character(len=*),  intent(in)  :: vrt_coord_name
-    integer,           intent(in)  :: nlevs
-    integer,           intent(in)  :: recno
-    real(r8),          intent(out) :: data(1:pcols, 1:nlevs)
+    character(len=*),  intent(in)    :: varname
+    character(len=*),  intent(in)    :: vrt_coord_name
+    integer,           intent(in)    :: nlevs
+    integer,           intent(in)    :: recno
+    real(r8),          intent(out)   :: data(1:pcols, 1:nlevs)
 
     logical :: found
 
@@ -1621,25 +1639,26 @@ contains
   !------------------------------------------------------------------------
 
   subroutine read_3d_trc(fid, vid, loc_arr, strt, cnt, file, order)
+    use physics_grid,   only: get_rlat_all_p, get_rlon_all_p
+    use physconst,      only: pi
+
+    use cam_abortutils, only: check_allocate, endrun
+    use cam_logfile,    only: iulog
+    use perf_mod,       only: t_startf, t_stopf
+
     ! Interpolation utils
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
-    use physics_grid, only: get_rlat_all_p, get_rlon_all_p
-    use physconst, only: pi
+    type(file_desc_t), intent(in)   :: fid
+    type(var_desc_t),  intent(in)   :: vid
+    real(r8),          intent(out)  :: loc_arr(:, :)
+    integer,           intent(in)   :: strt(:)
+    integer,           intent(in)   :: cnt(:)
+    type(trfile),      intent(in)   :: file
+    integer,           intent(in)   :: order(3)
 
-    use cam_abortutils, only: check_allocate
-
-    type(file_desc_t), intent(in) :: fid
-    type(var_desc_t), intent(in) :: vid
-    integer, intent(in) :: strt(:), cnt(:), order(3)
-    real(r8), intent(out)  :: loc_arr(:, :)
-
-    type(trfile), intent(in) :: file
-
-    integer :: astat
     integer :: lons(pcols), lats(pcols)
-
     integer :: ierr
 
     real(r8), allocatable, target :: wrk3d(:, :, :)
@@ -1706,13 +1725,13 @@ contains
     end if
 
     if (allocated(wrk3d)) then
-      deallocate(wrk3d, stat=astat)
+      deallocate(wrk3d, stat=ierr)
     else
-      deallocate(wrk3d_in, stat=astat)
+      deallocate(wrk3d_in, stat=ierr)
     end if
-    if (astat /= 0) then
-      write(iulog, *) 'read_3d_trc: failed to deallocate wrk3d array; error = ', astat
-      call endrun('read_3d_trc: failed to deallocate wrk3d array')
+    if (ierr /= 0) then
+      write(iulog, *) subname//': failed to deallocate wrk3d array; error = ', ierr
+      call endrun(subname//': failed to deallocate wrk3d array')
     end if
 
     ! FV only: commented out for SIMA
@@ -1885,7 +1904,9 @@ contains
   end subroutine interpolate_trcdata
 
   subroutine get_dimension(fid, dname, dsize, dimid, data)
-    use cam_abortutils, only: check_allocate
+    use cam_abortutils, only: check_allocate, endrun
+    use cam_logfile,    only: iulog
+    use shr_kind_mod,   only: shr_kind_cm
 
     type(file_desc_t), intent(inout) :: fid
     character(*),      intent(in)    :: dname
@@ -1936,12 +1957,12 @@ contains
   end subroutine get_dimension
 
   subroutine set_cycle_indices(fileid, cyc_ndx_beg, cyc_ndx_end, cyc_yr)
-    use cam_abortutils, only: check_allocate
+    use cam_abortutils, only: check_allocate, endrun
 
     type(file_desc_t), intent(inout)  :: fileid
-    integer, intent(out) :: cyc_ndx_beg
-    integer, intent(out) :: cyc_ndx_end
-    integer, intent(in)  :: cyc_yr
+    integer,           intent(out)    :: cyc_ndx_beg
+    integer,           intent(out)    :: cyc_ndx_end
+    integer,           intent(in)     :: cyc_yr
 
     character(len=512) :: errmsg
     character(len=*), parameter :: subname = "set_cycle_indices"
@@ -1980,9 +2001,13 @@ contains
   end subroutine set_cycle_indices
 
   subroutine open_trc_datafile(fname, path, piofile, times, cyc_ndx_beg, cyc_ndx_end, cyc_yr)
-    use ioFileMod,     only: cam_get_file
-    use cam_pio_utils, only: cam_pio_openfile
-    use cam_abortutils, only: check_allocate
+    use ioFileMod,      only: cam_get_file
+    use cam_pio_utils,  only: cam_pio_openfile
+    use cam_abortutils, only: check_allocate, endrun
+    use spmd_utils,     only: masterproc
+    use cam_logfile,    only: iulog
+
+    use time_manager,   only: set_time_float_from_date, set_date_from_time_float
 
     character(*),      intent(in)    :: fname
     character(*),      intent(in)    :: path
@@ -2092,6 +2117,7 @@ contains
 
   subroutine specify_fields(specifier, fields)
     use cam_abortutils, only: check_allocate
+    use shr_kind_mod,   only: shr_kind_cm
 
     character(len=*), intent(in) :: specifier(:)
     type(trfld), pointer, dimension(:) :: fields
@@ -2158,7 +2184,8 @@ contains
 
   ! This routine advances to the next file
   subroutine advance_file(file)
-    use cam_abortutils, only: check_allocate
+    use cam_abortutils, only: check_allocate, endrun
+    use cam_logfile,    only: iulog
     use shr_kind_mod,   only: shr_kind_cm
 
     type(trfile), intent(inout) :: file
@@ -2168,7 +2195,7 @@ contains
     !-----------------------------------------------------------------------
     character(len=shr_kind_cl) :: ctmp
     character(len=shr_kind_cl) :: loc_fname
-    integer            :: istat, astat
+    integer            :: astat
 
     character(len=shr_kind_cm)  :: errmsg
     character(len=*), parameter :: sub = 'advance_file'
@@ -2378,16 +2405,19 @@ contains
   end subroutine interpz_conserve
 
   subroutine vert_interp_mixrat(ncol, nsrc, ntrg, trg_x, src, trg, p0, ps, hyai, hybi, use_flight_distance)
+    use cam_abortutils, only: endrun
 
-    integer, intent(in)   :: ncol
-    integer, intent(in)   :: nsrc                         ! dimension source array
-    integer, intent(in)   :: ntrg                         ! dimension target array
-    real(r8), intent(in)  :: trg_x(pcols, ntrg + 1)       ! target coordinates
-    real(r8), intent(in)  :: src(pcols, nsrc)             ! source array
-    real(r8), intent(out) :: trg(pcols, ntrg)             ! target array
-    logical,  intent(in)  :: use_flight_distance          ! .true. = flight distance, .false. = mixing ratio
-
-    real(r8) :: ps(pcols), p0, hyai(nsrc + 1), hybi(nsrc + 1)
+    integer,  intent(in)   :: ncol
+    integer,  intent(in)   :: nsrc                         ! dimension source array
+    integer,  intent(in)   :: ntrg                         ! dimension target array
+    real(r8), intent(in)   :: trg_x(pcols, ntrg + 1)       ! target coordinates
+    real(r8), intent(in)   :: src(pcols, nsrc)             ! source array
+    real(r8), intent(out)  :: trg(pcols, ntrg)             ! target array
+    real(r8), intent(in)   :: ps(pcols)                    ! surface pressure
+    real(r8), intent(in)   :: p0
+    real(r8), intent(in)   :: hyai(nsrc + 1)
+    real(r8), intent(in)   :: hybi(nsrc + 1)
+    logical,  intent(in)   :: use_flight_distance          ! .true. = flight distance, .false. = mixing ratio
 
     !---------------------------------------------------------------
     !   ... local variables
