@@ -70,7 +70,7 @@ end subroutine test_zero_int_seconds_to_hhmmss
 subroutine test_stringify_empty_arrays()
     use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=128), allocatable :: carr(:)
     integer(int32), allocatable :: i32arr(:)
@@ -82,18 +82,18 @@ subroutine test_stringify_empty_arrays()
     allocate(carr(0), i32arr(0), i64arr(0), larr(0), r32arr(0), r64arr(0))
 
     ! Empty arrays of any intrinsic data types should result in empty character strings.
-    @assertEqual('', core_stringify(carr))
-    @assertEqual('', core_stringify(i32arr))
-    @assertEqual('', core_stringify(i64arr))
-    @assertEqual('', core_stringify(larr))
-    @assertEqual('', core_stringify(r32arr))
-    @assertEqual('', core_stringify(r64arr))
+    @assertEqual('', stringify(carr))
+    @assertEqual('', stringify(i32arr))
+    @assertEqual('', stringify(i64arr))
+    @assertEqual('', stringify(larr))
+    @assertEqual('', stringify(r32arr))
+    @assertEqual('', stringify(r64arr))
 end subroutine test_stringify_empty_arrays
 
 @test
 subroutine test_stringify_character_array()
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -113,18 +113,18 @@ subroutine test_stringify_character_array()
         'Orthoclase', 'Quartz', '  Topaz', 'Corundum', 'Diamond' ]
 
     ! Spaces around each value should be trimmed. The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(carr))
+    @assertEqual(expected_default_separator, stringify(carr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(carr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(carr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(carr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(carr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_character_array
 
 @test
 subroutine test_stringify_integer_array()
     use, intrinsic :: iso_fortran_env, only: int32, int64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -144,21 +144,21 @@ subroutine test_stringify_integer_array()
     i64arr(:) = int(i32arr, int64)
 
     ! Spaces around each value should be trimmed. The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(i32arr))
-    @assertEqual(expected_default_separator, core_stringify(i64arr))
+    @assertEqual(expected_default_separator, stringify(i32arr))
+    @assertEqual(expected_default_separator, stringify(i64arr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(i32arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator, core_stringify(i64arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(i32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(i64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(i32arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator, stringify(i64arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(i32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(i64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_integer_array
 
 @test
 subroutine test_stringify_integer_extreme_values()
     use, intrinsic :: iso_fortran_env, only: int32, int64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
     character(len=*), parameter :: expected_int32_default_separator = &
@@ -181,17 +181,17 @@ subroutine test_stringify_integer_extreme_values()
     i64arr(10) = huge(i64arr)
 
     ! Extreme values should be handled properly.
-    @assertEqual(expected_int32_default_separator, core_stringify(i32arr))
-    @assertEqual(expected_int64_default_separator, core_stringify(i64arr))
-    @assertEqual(expected_int32_custom_separator_with_spaces, core_stringify(i32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_int64_custom_separator_with_spaces, core_stringify(i64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_int32_default_separator, stringify(i32arr))
+    @assertEqual(expected_int64_default_separator, stringify(i64arr))
+    @assertEqual(expected_int32_custom_separator_with_spaces, stringify(i32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_int64_custom_separator_with_spaces, stringify(i64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_integer_extreme_values
 
 @test
 subroutine test_stringify_floating_point_array()
     use, intrinsic :: iso_fortran_env, only: real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -215,21 +215,21 @@ subroutine test_stringify_floating_point_array()
 
     ! Each value should have a fixed width of 13. Only negative values should have signs.
     ! The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(r32arr))
-    @assertEqual(expected_default_separator, core_stringify(r64arr))
+    @assertEqual(expected_default_separator, stringify(r32arr))
+    @assertEqual(expected_default_separator, stringify(r64arr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(r32arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator, core_stringify(r64arr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(r32arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator, stringify(r64arr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_floating_point_array
 
 @test
 subroutine test_stringify_floating_point_scientific_notation()
     use, intrinsic :: iso_fortran_env, only: real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
     character(len=*), parameter :: expected_default_separator = &
@@ -248,17 +248,17 @@ subroutine test_stringify_floating_point_scientific_notation()
     r64arr(:) = real(r32arr, real64)
 
     ! Scientific notation should be enabled if there is any value with a magnitude >= 1.0E+5.
-    @assertEqual(expected_default_separator, core_stringify(r32arr))
-    @assertEqual(expected_default_separator, core_stringify(r64arr))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(r64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_default_separator, stringify(r32arr))
+    @assertEqual(expected_default_separator, stringify(r64arr))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(r64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_floating_point_scientific_notation
 
 @test
 subroutine test_stringify_floating_point_extreme_values()
     use, intrinsic :: iso_fortran_env, only: real32, real64
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
     character(len=*), parameter :: expected_real32_default_separator = &
@@ -285,16 +285,16 @@ subroutine test_stringify_floating_point_extreme_values()
     r64arr(10) = 9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
 
     ! Extreme values should be handled properly.
-    @assertEqual(expected_real32_default_separator, core_stringify(r32arr))
-    @assertEqual(expected_real64_default_separator, core_stringify(r64arr))
-    @assertEqual(expected_real32_custom_separator_with_spaces, core_stringify(r32arr, separator=custom_separator_with_spaces))
-    @assertEqual(expected_real64_custom_separator_with_spaces, core_stringify(r64arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_real32_default_separator, stringify(r32arr))
+    @assertEqual(expected_real64_default_separator, stringify(r64arr))
+    @assertEqual(expected_real32_custom_separator_with_spaces, stringify(r32arr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_real64_custom_separator_with_spaces, stringify(r64arr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_floating_point_extreme_values
 
 @test
 subroutine test_stringify_logical_array()
     use funit
-    use string_core_utils, only: core_stringify
+    use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '.or.'
     character(len=*), parameter :: custom_separator_with_spaces = ' .or. '
@@ -313,9 +313,341 @@ subroutine test_stringify_logical_array()
     larr(2:10:2) = .false.
 
     ! Spaces around each value should be trimmed. The separator should default to ", ".
-    @assertEqual(expected_default_separator, core_stringify(larr))
+    @assertEqual(expected_default_separator, stringify(larr))
 
     ! Spaces around the separator should be preserved.
-    @assertEqual(expected_custom_separator, core_stringify(larr, separator=custom_separator))
-    @assertEqual(expected_custom_separator_with_spaces, core_stringify(larr, separator=custom_separator_with_spaces))
+    @assertEqual(expected_custom_separator, stringify(larr, separator=custom_separator))
+    @assertEqual(expected_custom_separator_with_spaces, stringify(larr, separator=custom_separator_with_spaces))
 end subroutine test_stringify_logical_array
+
+@test
+subroutine test_split_by_empty_string_set()
+    use funit
+    use string_core_utils, only: split
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+
+    integer :: pos
+
+    ! Test `split` by empty `string`.
+
+    pos = 0
+    call split('', test_set_comma, pos)
+    @assertEqual(1, pos)
+
+    ! Test `split` by empty `string` and optional `back`.
+
+    pos = 1
+    call split('', test_set_comma, pos, back=.true.)
+    @assertEqual(0, pos)
+
+    ! Test `split` by empty `set`.
+
+    pos = 0
+    call split(test_string_comma_separated, '', pos)
+    @assertEqual(67, pos)
+
+    ! Test `split` by empty `set` and optional `back`.
+
+    pos = 67
+    call split(test_string_comma_separated, '', pos, back=.true.)
+    @assertEqual(0, pos)
+end subroutine test_split_by_empty_string_set
+
+@test
+subroutine test_split_by_forward_searches()
+    use funit
+    use string_core_utils, only: split
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+    character(*), parameter :: test_string_comma_space_separated = &
+        '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+    character(*), parameter :: test_set_comma_space = ', '
+    integer, parameter :: expected_pos_comma_separated(*) = &
+        [1, 2, 3, 11, 12, 18, 24, 25, 30, 31, 32, 40, 41, 48, 55, 56, 64, 65, 66, 67]
+    integer, parameter :: expected_pos_comma_space_separated(*) = &
+        [1, 2, 3, 11, 12, 18, 24, 25, 30, 31, 32, 40, 41, 48, 55, 56, 64, 65, 66, 67]
+
+    integer :: i, pos
+
+    pos = 0
+
+    do i = 1, size(expected_pos_comma_separated)
+        call split(test_string_comma_separated, test_set_comma, pos)
+
+        @assertEqual(expected_pos_comma_separated(i), pos)
+    end do
+
+    pos = 0
+
+    do i = 1, size(expected_pos_comma_space_separated)
+        call split(test_string_comma_space_separated, test_set_comma_space, pos)
+
+        @assertEqual(expected_pos_comma_space_separated(i), pos)
+    end do
+end subroutine test_split_by_forward_searches
+
+@test
+subroutine test_split_by_backward_searches()
+    use funit
+    use string_core_utils, only: split
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+    character(*), parameter :: test_string_comma_space_separated = &
+        '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+    character(*), parameter :: test_set_comma_space = ', '
+    integer, parameter :: expected_pos_comma_separated(*) = &
+        [66, 65, 64, 56, 55, 48, 41, 40, 32, 31, 30, 25, 24, 18, 12, 11, 3, 2, 1, 0]
+    integer, parameter :: expected_pos_comma_space_separated(*) = &
+        [66, 65, 64, 56, 55, 48, 41, 40, 32, 31, 30, 25, 24, 18, 12, 11, 3, 2, 1, 0]
+
+    integer :: i, pos
+
+    pos = 67
+
+    do i = 1, size(expected_pos_comma_separated)
+        call split(test_string_comma_separated, test_set_comma, pos, back=.true.)
+
+        @assertEqual(expected_pos_comma_separated(i), pos)
+    end do
+
+    pos = 67
+
+    do i = 1, size(expected_pos_comma_space_separated)
+        call split(test_string_comma_space_separated, test_set_comma_space, pos, back=.true.)
+
+        @assertEqual(expected_pos_comma_space_separated(i), pos)
+    end do
+end subroutine test_split_by_backward_searches
+
+@test
+subroutine test_split_by_out_of_bounds_searches()
+    use funit
+    use string_core_utils, only: split
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+    integer, parameter :: expected_pos_forward_searches(*) = &
+        [1, 2, 3, 11, 12, 18, 24, 25, 30, 31, 32, 40, 41, 48, 55, 56, 64, 65, 66, 67]
+    integer, parameter :: expected_pos_backward_searches(*) = &
+        [66, 65, 64, 56, 55, 48, 41, 40, 32, 31, 30, 25, 24, 18, 12, 11, 3, 2, 1, 0]
+
+    integer :: i, pos
+
+    pos = -huge(0)
+    call split('', test_set_comma, pos)
+    @assertEqual(1, pos)
+
+    pos = huge(0)
+    call split('', test_set_comma, pos, back=.true.)
+    @assertEqual(0, pos)
+
+    pos = -huge(0)
+    call split(test_string_comma_separated, '', pos)
+    @assertEqual(67, pos)
+
+    pos = huge(0)
+    call split(test_string_comma_separated, '', pos, back=.true.)
+    @assertEqual(0, pos)
+
+    pos = -huge(0)
+
+    do i = 1, size(expected_pos_forward_searches)
+        call split(test_string_comma_separated, test_set_comma, pos)
+
+        @assertEqual(expected_pos_forward_searches(i), pos)
+    end do
+
+    pos = huge(0)
+
+    do i = 1, size(expected_pos_backward_searches)
+        call split(test_string_comma_separated, test_set_comma, pos, back=.true.)
+
+        @assertEqual(expected_pos_backward_searches(i), pos)
+    end do
+end subroutine test_split_by_out_of_bounds_searches
+
+@test
+subroutine test_tokenize_into_first_last_by_empty_string_set()
+    use funit
+    use string_core_utils, only: tokenize
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+    integer, parameter :: expected_first_empty_string(*) = [1]
+    integer, parameter :: expected_last_empty_string(*) = [0]
+    integer, parameter :: expected_first_empty_set(*) = [1]
+    integer, parameter :: expected_last_empty_set(*) = [66]
+
+    integer, allocatable :: first(:), last(:)
+
+    ! Test `tokenize` by empty `string`.
+
+    call tokenize('', test_set_comma, first, last)
+    @assertTrue(allocated(first))
+    @assertEqual(expected_first_empty_string, first)
+    @assertTrue(allocated(last))
+    @assertEqual(expected_last_empty_string, last)
+
+    ! Test `tokenize` by empty `set`.
+
+    call tokenize(test_string_comma_separated, '', first, last)
+    @assertTrue(allocated(first))
+    @assertEqual(expected_first_empty_set, first)
+    @assertTrue(allocated(last))
+    @assertEqual(expected_last_empty_set, last)
+end subroutine test_tokenize_into_first_last_by_empty_string_set
+
+@test
+subroutine test_tokenize_into_first_last_by_known_string_set()
+    use funit
+    use string_core_utils, only: tokenize
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+    character(*), parameter :: test_string_comma_space_separated = &
+        '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+    character(*), parameter :: test_set_comma_space = ', '
+    integer, parameter :: expected_first_comma_separated(*) = &
+        [1, 2, 3, 4, 12, 13, 19, 25, 26, 31, 32, 33, 41, 42, 49, 56, 57, 65, 66, 67]
+    integer, parameter :: expected_last_comma_separated(*) = &
+        [0, 1, 2, 10, 11, 17, 23, 24, 29, 30, 31, 39, 40, 47, 54, 55, 63, 64, 65, 66]
+    integer, parameter :: expected_first_comma_space_separated(*) = &
+        [1, 2, 3, 4, 12, 13, 19, 25, 26, 31, 32, 33, 41, 42, 49, 56, 57, 65, 66, 67]
+    integer, parameter :: expected_last_comma_space_separated(*) = &
+        [0, 1, 2, 10, 11, 17, 23, 24, 29, 30, 31, 39, 40, 47, 54, 55, 63, 64, 65, 66]
+
+    integer, allocatable :: first(:), last(:)
+
+    call tokenize(test_string_comma_separated, test_set_comma, first, last)
+    @assertTrue(allocated(first))
+    @assertEqual(expected_first_comma_separated, first)
+    @assertTrue(allocated(last))
+    @assertEqual(expected_last_comma_separated, last)
+
+    call tokenize(test_string_comma_space_separated, test_set_comma_space, first, last)
+    @assertTrue(allocated(first))
+    @assertEqual(expected_first_comma_space_separated, first)
+    @assertTrue(allocated(last))
+    @assertEqual(expected_last_comma_space_separated, last)
+end subroutine test_tokenize_into_first_last_by_known_string_set
+
+@test
+subroutine test_tokenize_into_tokens_separator_by_empty_string_set()
+    use funit
+    use string_core_utils, only: tokenize
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+
+    character(:), allocatable :: expected_tokens(:), expected_separator(:)
+    character(:), allocatable :: tokens(:), separator(:)
+
+    ! Test `tokenize` by empty `string`.
+
+    allocate(character(0) :: expected_tokens(1))
+    allocate(character(1) :: expected_separator(0))
+
+    call tokenize('', test_set_comma, tokens)
+    @assertTrue(allocated(tokens))
+    @assertEqual(len(expected_tokens), len(tokens))
+    @assertEqual(size(expected_tokens), size(tokens))
+
+    ! Test `tokenize` by empty `string` and optional `separator`.
+
+    call tokenize('', test_set_comma, tokens, separator=separator)
+    @assertTrue(allocated(tokens))
+    @assertEqual(len(expected_tokens), len(tokens))
+    @assertEqual(size(expected_tokens), size(tokens))
+    @assertTrue(allocated(separator))
+    @assertEqual(len(expected_separator), len(separator))
+    @assertEqual(size(expected_separator), size(separator))
+
+    ! Test `tokenize` by empty `set`.
+
+    deallocate(expected_tokens)
+    deallocate(expected_separator)
+    allocate(character(len(test_string_comma_separated)) :: expected_tokens(1))
+    expected_tokens(1) = test_string_comma_separated
+    allocate(character(1) :: expected_separator(0))
+
+    call tokenize(test_string_comma_separated, '', tokens)
+    @assertTrue(allocated(tokens))
+    ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+    @assertEqual(expected_tokens, tokens, whitespace=keep_all)
+
+    ! Test `tokenize` by empty `set` and optional `separator`.
+
+    call tokenize(test_string_comma_separated, '', tokens, separator=separator)
+    @assertTrue(allocated(tokens))
+    ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+    @assertEqual(expected_tokens, tokens, whitespace=keep_all)
+    @assertTrue(allocated(separator))
+    @assertEqual(len(expected_separator), len(separator))
+    @assertEqual(size(expected_separator), size(separator))
+end subroutine test_tokenize_into_tokens_separator_by_empty_string_set
+
+@test
+subroutine test_tokenize_into_tokens_separator_by_known_string_set()
+    use funit
+    use string_core_utils, only: tokenize
+
+    character(*), parameter :: test_string_comma_separated = &
+        ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
+    character(*), parameter :: test_set_comma = ','
+    character(*), parameter :: test_string_comma_space_separated = &
+        '  ,Mercury  Venus Earth ,Mars , Jupiter, Saturn,Uranus,,Neptune,  '
+    character(*), parameter :: test_set_comma_space = ', '
+    character(*), parameter :: expected_tokens_comma_separated(*) = [character(7) :: &
+        '', '', '', 'Mercury', '', 'Venus', 'Earth', '', 'Mars', '', &
+        '', 'Jupiter', '', 'Saturn', 'Uranus', '', 'Neptune', '', '', '' &
+    ]
+    character(*), parameter :: expected_tokens_comma_space_separated(*) = [character(7) :: &
+        '', '', '', 'Mercury', '', 'Venus', 'Earth', '', 'Mars', '', &
+        '', 'Jupiter', '', 'Saturn', 'Uranus', '', 'Neptune', '', '', '' &
+    ]
+    character(*), parameter :: expected_separator_comma_separated(*) = [character(1) :: &
+        ',', ',', ',', ',', ',', ',', ',', ',', ',', ',', &
+        ',', ',', ',', ',', ',', ',', ',', ',', ',' &
+    ]
+    character(*), parameter :: expected_separator_comma_space_separated(*) = [character(1) :: &
+        ' ', ' ', ',', ' ', ' ', ' ', ' ', ',', ' ', ',', &
+        ' ', ',', ' ', ',', ',', ',', ',', ' ', ' ' &
+    ]
+
+    character(:), allocatable :: tokens(:), separator(:)
+
+    call tokenize(test_string_comma_separated, test_set_comma, tokens)
+    @assertTrue(allocated(tokens))
+    ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+    @assertEqual(expected_tokens_comma_separated, tokens, whitespace=keep_all)
+
+    call tokenize(test_string_comma_space_separated, test_set_comma_space, tokens)
+    @assertTrue(allocated(tokens))
+    ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+    @assertEqual(expected_tokens_comma_space_separated, tokens, whitespace=keep_all)
+
+    call tokenize(test_string_comma_separated, test_set_comma, tokens, separator=separator)
+    @assertTrue(allocated(tokens))
+    ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+    @assertEqual(expected_tokens_comma_separated, tokens, whitespace=keep_all)
+    @assertTrue(allocated(separator))
+    @assertEqual(expected_separator_comma_separated, separator, whitespace=keep_all)
+
+    call tokenize(test_string_comma_space_separated, test_set_comma_space, tokens, separator=separator)
+    @assertTrue(allocated(tokens))
+    ! Treat whitespace differences as significant by specifying `whitespace=keep_all`.
+    @assertEqual(expected_tokens_comma_space_separated, tokens, whitespace=keep_all)
+    @assertTrue(allocated(separator))
+    @assertEqual(expected_separator_comma_space_separated, separator, whitespace=keep_all)
+end subroutine test_tokenize_into_tokens_separator_by_known_string_set

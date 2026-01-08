@@ -1,7 +1,7 @@
 ! fhistc_ltso snapshot
 pver = 58
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_before_c20251013.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_after_c20251013.nc'
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_before_c20260105.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_after_c20260105.nc'
 
 debug_output = 0
 

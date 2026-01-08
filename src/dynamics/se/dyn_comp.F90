@@ -557,7 +557,7 @@ end subroutine dyn_readnl
 !=========================================================================================
 
 subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-   use runtime_obj,        only: runtime_options, set_cam_dycore
+   use runtime_obj,        only: runtime_options
    use dyn_grid,           only: elem, fvm
    use cam_pio_utils,      only: clean_iodesc_list
    use air_composition,    only: thermodynamic_active_species_num, thermodynamic_active_species_idx
@@ -586,9 +586,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use control_mod,        only: vert_remap_uvTq_alg, vert_remap_tracer_alg
 
    ! Dummy arguments:
-   type(runtime_options), intent(in)  :: cam_runtime_opts
-   type(dyn_import_t),    intent(out) :: dyn_in
-   type(dyn_export_t),    intent(out) :: dyn_out
+   type(runtime_options), intent(inout)  :: cam_runtime_opts
+   type(dyn_import_t),    intent(out)    :: dyn_in
+   type(dyn_export_t),    intent(out)    :: dyn_out
 
    ! Local variables
    integer             :: ithr, nets, nete, ie, k, kmol_end
@@ -655,7 +655,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    call mark_as_initialized("flag_for_dycore_energy_consistency_adjustment")
 
    ! Set name of dycore in runtime object
-   call set_cam_dycore('se')
+   call cam_runtime_opts%set_dycore('se')
 
    ! Now allocate and set condenstate vars
    allocate(cnst_name_gll(qsize), stat=iret) ! constituent names for gll tracers

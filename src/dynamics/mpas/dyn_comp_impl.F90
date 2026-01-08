@@ -137,7 +137,7 @@ contains
         use cam_pio_utils, only: clean_iodesc_list
         use dyn_coupling, only: dyn_exchange_constituent_states
         use inic_analytic, only: analytic_ic_active
-        use runtime_obj, only: runtime_options, set_cam_dycore
+        use runtime_obj, only: runtime_options
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: std_name_len
@@ -146,7 +146,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t
 
-        type(runtime_options), intent(in) :: cam_runtime_opts
+        type(runtime_options), intent(inout) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
 
@@ -161,7 +161,7 @@ contains
         type(file_desc_t), pointer :: pio_topo_file
 
         ! Set dycore name in runtime object
-        call set_cam_dycore('mpas')
+        call cam_runtime_opts%set_dycore('mpas')
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
 

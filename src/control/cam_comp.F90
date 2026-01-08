@@ -194,7 +194,6 @@ CONTAINS
       call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
       call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
       call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
-      call mark_as_initialized('number_of_wavelength_samples_of_spectrum')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)

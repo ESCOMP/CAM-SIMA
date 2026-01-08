@@ -35,9 +35,3 @@
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
-[ undefined_real_rad ]
-  standard_name = definition_of_undefined_for_radiation
-  units = 1
-  type = real | kind = kind_phys
-  dimensions = ()
-  protected = True

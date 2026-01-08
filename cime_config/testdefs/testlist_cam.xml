@@ -88,6 +88,15 @@
       <option name="comment">Test for Holtslag-Boville boundary layer scheme and vertical diffusion</option>
     </options>
   </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_rrtmgp_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Snapshot test for RRTMGP</option>
+    </options>
+  </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_gw_cam4_derecho">
     <machines>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>

@@ -40,8 +40,8 @@ contains
       use inic_analytic_utils,          only: analytic_ic_readnl
 
       use tropopause_climo_read,        only: tropopause_climo_readnl
-      use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
       use radiation_namelist,           only: radiation_readnl
+      use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
 
       use dyn_comp,                     only: dyn_readnl
       use atm_stream_ndep,              only: stream_ndep_readnl
@@ -78,7 +78,7 @@ contains
       ! Note that namelists for physics schemes are read by
       !    cam_read_ccpp_scheme_namelists
 
-      call cam_logfile_readnl(nlfilename)
+      call cam_logfile_readnl(nlfilename)   !The log settings must always be read first
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
       call cam_constituents_readnl(nlfilename)

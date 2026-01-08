@@ -1,4 +1,4 @@
-! Set fixed orbital parameters
+! Set fixed orbital parameters to match CAM snapshot
 orb_mode='fixed_parameters'
 orb_eccen = 0.
 orb_obliq = 0.

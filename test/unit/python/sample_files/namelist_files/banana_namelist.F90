@@ -36,6 +36,8 @@ CONTAINS
    subroutine autogen_banana_readnl(nl_unit, mpicomm, mpiroot, mpi_isroot, logunit)
       use mpi,            only: MPI_Integer, MPI_Real8
       use shr_nl_mod,     only: shr_nl_find_group_name
+      use cam_logfile,    only: debug_output, DEBUGOUT_INFO
+      use shr_kind_mod,   only: cl=>shr_kind_cl
       use cam_abortutils, only: endrun
 
       ! Dummy arguments
@@ -47,6 +49,7 @@ CONTAINS
 
       ! Local variables
       integer                     :: ierr
+      character(len=cl)           :: errmsg
       character(len=*), parameter :: subname = 'autogen_banana_readnl'
 
       namelist /banana_nl/ rayk0, raykrange, raytau0
@@ -56,18 +59,22 @@ CONTAINS
          rewind(nl_unit)
          call shr_nl_find_group_name(nl_unit, 'banana_nl', status=ierr)
          if (ierr == 0) then
-            read(nl_unit, banana_nl, iostat=ierr)
+            read(nl_unit, banana_nl, iostat=ierr, iomsg=errmsg)
             if (ierr /= 0) then
-               call endrun(subname//':: ERROR reading namelist, banana_nl')
+               call                                                                               &
+                    endrun(subname//                                                              &
+                    ':: ERROR reading namelist, banana_nl, with following error: '//errmsg)
             end if
          else
             call endrun(subname//':: ERROR: Did not find namelist group, banana_nl.')
          end if
          ! Print out namelist values
-         write(logunit, *) 'Namelist values from banana_nl for banana'
-         write(logunit, *) 'rayk0 = ', rayk0
-         write(logunit, *) 'raykrange = ', raykrange
-         write(logunit, *) 'raytau0 = ', raytau0
+         if (debug_output >= DEBUGOUT_INFO) then
+            write(logunit, *) "Namelist values from group 'banana_nl' for scheme 'banana'"
+            write(logunit, *) 'rayk0 = ', rayk0
+            write(logunit, *) 'raykrange = ', raykrange
+            write(logunit, *) 'raytau0 = ', raytau0
+         end if
       end if
       ! Broadcast the namelist variables
       call mpi_bcast(rayk0, 1, MPI_Integer, mpiroot, mpicomm, ierr)

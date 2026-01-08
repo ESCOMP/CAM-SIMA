@@ -28,7 +28,6 @@ module radiation_namelist
                                                 ! initial or restart run
   logical, public, protected :: use_rad_uniform_angle = .false. ! if true, use the namelist rad_uniform_angle for the coszrs calculation
   real(kind_phys), public, protected :: rad_uniform_angle = -99._kind_phys ! radians
-  real(kind_phys), public, protected :: undefined_real_rad = -1._kind_phys
 
 !==============================================================================
 contains
@@ -71,7 +70,7 @@ contains
        if (ierr == 0) then
           read(unitn, radiation_nl, iostat=ierr, iomsg=errmsg)
           if (ierr /= 0) then
-             call endrun(sub // ':: ERROR reading namelist:' // errmsg)
+             call endrun(sub // ':: ERROR reading namelist: ' // errmsg)
           end if
        end if
        close(unitn)

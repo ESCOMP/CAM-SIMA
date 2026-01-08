@@ -18,10 +18,6 @@ module runtime_obj
    character(len=*), public, parameter :: wv_stdname = 'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water'
 
    ! Public interfaces and data
-
-   !> \section arg_table_runtime_options  Argument Table
-   !! \htmlinclude arg_table_runtime_options.html
-   !!
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str
       character(len=CS), private            :: dycore     = unset_str
@@ -32,6 +28,7 @@ module runtime_obj
       ! General runtime access
       procedure, public :: physics_suite
       procedure, public :: get_dycore
+      procedure, public :: set_dycore
       procedure, public :: suite_as_list
       ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
@@ -39,10 +36,9 @@ module runtime_obj
       procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
-   type(runtime_options), public, protected :: cam_runtime_opts
+   type(runtime_options), public :: cam_runtime_opts
 
    public :: cam_set_runtime_opts
-   public :: set_cam_dycore
 
    ! Private data
    logical :: runtime_configured = .false.
@@ -60,6 +56,14 @@ CONTAINS
 
       get_dycore = trim(self%dycore)
    end function get_dycore
+
+   subroutine set_dycore(self, dycore_in)
+      class(runtime_options), intent(inout) :: self
+      character(len=*),       intent(in)    :: dycore_in
+
+      self%dycore = trim(dycore_in)
+
+   end subroutine set_dycore
 
    pure function suite_as_list(self) result(slist)
       class(runtime_options), intent(in) :: self
@@ -88,13 +92,6 @@ CONTAINS
       update_thermodynamic_variables = self%update_thermo_variables
 
    end function update_thermodynamic_variables
-
-   subroutine set_cam_dycore(dycore_in)
-      character(len=*),          intent(in) :: dycore_in
-
-      cam_runtime_opts%dycore = trim(dycore_in)
-
-   end subroutine set_cam_dycore
 
    subroutine cam_set_runtime_opts(phys_suite, waccmx_opt)
       use cam_abortutils, only: endrun

@@ -3,12 +3,14 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAM-SIMA Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
+  <!-- BEGIN Metadata files provided by RRTMGP via atmospheric_physics -->
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_fluxes_byband.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_fluxes.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_gas_concentrations.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_gas_optics_rrtmgp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_optical_props.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_source_functions.meta</metadata_file>
+  <!-- END Metadata files provided by RRTMGP via atmospheric_physics -->
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
@@ -404,6 +406,13 @@
       <long_name>Change in northward wind from a parameterization</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
+    </variable>
+    <variable local_name="heating_rate"
+	      standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure"
+	      units="J kg-1 s-1" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+       <initial_value>unset_real</initial_value>
     </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="do_lagrangian_vertical_coordinate"
@@ -1698,6 +1707,7 @@
       <initial_value>.true.</initial_value>
       <initial_value dyn="SE,MPAS"> .false. </initial_value>
     </variable>
+
     <!-- Radiation variables -->
     <variable local_name="dt_avg"
               standard_name="averaging_time_interval_for_solar_zenith_angle_calculation"
@@ -1768,7 +1778,7 @@
       <ic_file_input_names>ICLWP pbuf_ICLWP</ic_file_input_names>
     </variable>
     <variable local_name="iciwpth"
-              standard_name="cloud_ice_water_path"
+              standard_name="in_cloud_ice_water_path"
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1776,7 +1786,7 @@
       <ic_file_input_names>ICIWP pbuf_ICIWP</ic_file_input_names>
     </variable>
     <variable local_name="icswpth"
-              standard_name="cloud_snow_water_path"
+              standard_name="in_cloud_snow_water_path"
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1785,7 +1795,7 @@
     </variable>
     <variable local_name="dei"
               standard_name="effective_diameter_of_stratiform_cloud_ice_particle_for_radiation"
-              units="micron" type="real" kind="kind_phys"
+              units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
@@ -1793,7 +1803,7 @@
     </variable>
     <variable local_name="des"
               standard_name="effective_diameter_of_stratiform_snow_particle_for_radiation"
-              units="micron" type="real" kind="kind_phys"
+              units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
@@ -1820,6 +1830,16 @@
               units="count" type="integer"
 	      allocatable="parameter">
       <initial_value>2</initial_value>
+    </variable>
+    <variable local_name="snow_exists"
+	      standard_name="include_liquid_plus_snow_stratiform_cloud_area_fraction"
+	    units="flag" type="logical">
+      <initial_value>.true.</initial_value>
+    </variable>
+    <variable local_name="grau_exists"
+	      standard_name="include_liquid_plus_graupel_stratiform_cloud_area_fraction"
+	    units="flag" type="logical">
+      <initial_value>.false.</initial_value>
     </variable>
   </file>
 </registry>
