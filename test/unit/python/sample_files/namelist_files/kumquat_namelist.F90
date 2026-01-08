@@ -81,7 +81,7 @@ CONTAINS
          end if
          ! Print out namelist values
          if (debug_output >= DEBUGOUT_INFO) then
-            write(logunit, *) 'Namelist values from kumquat_nl for kumquat'
+            write(logunit, *) "Namelist values from group 'kumquat_nl' for scheme 'kumquat'"
             write(logunit, *) 'pgwv = ', pgwv
             write(logunit, *) 'kq_dc = ', kq_dc
             write(logunit, *) 'tau_0_ubc = ', tau_0_ubc

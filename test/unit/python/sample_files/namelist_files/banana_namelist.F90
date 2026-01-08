@@ -70,7 +70,7 @@ CONTAINS
          end if
          ! Print out namelist values
          if (debug_output >= DEBUGOUT_INFO) then
-            write(logunit, *) 'Namelist values from banana_nl for banana'
+            write(logunit, *) "Namelist values from group 'banana_nl' for scheme 'banana'"
             write(logunit, *) 'rayk0 = ', rayk0
             write(logunit, *) 'raykrange = ', raykrange
             write(logunit, *) 'raytau0 = ', raytau0

@@ -782,8 +782,8 @@ class SchemeNamelistInfo:
 
                 ofile.comment("Print out namelist values", 3)
                 ofile.write("if (debug_output >= DEBUGOUT_INFO) then", 3)
-                msg = f"Namelist values from {grpname} for {self.scheme}"
-                ofile.write(f"write(logunit, *) '{msg}'", 4)
+                msg = f"Namelist values from group '{grpname}' for scheme '{self.scheme}'"
+                ofile.write(f'write(logunit, *) "{msg}"', 4)
                 for grpvar in self.__groups[grpname]:
                     if grpvar.array_len:
                         # do loop syntax:
