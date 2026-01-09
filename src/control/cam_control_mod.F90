@@ -101,7 +101,6 @@ CONTAINS
    !---------------------------------------------------------------------------
 
    subroutine cam_ctrl_set_orbit(eccen_in, obliqr_in, lambm0_in, mvelpp_in)
-      use phys_vars_init_check, only: mark_as_initialized
 
       real(r8), intent(in) :: eccen_in
       real(r8), intent(in) :: obliqr_in
@@ -112,8 +111,6 @@ CONTAINS
       obliqr = obliqr_in
       lambm0 = lambm0_in
       mvelpp = mvelpp_in
-
-      call mark_as_initialized('planet_orbital_eccentricity_factor')
 
    end subroutine cam_ctrl_set_orbit
 

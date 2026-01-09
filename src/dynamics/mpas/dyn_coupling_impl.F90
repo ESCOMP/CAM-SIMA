@@ -117,7 +117,6 @@ contains
             'sigma_all_q(pver)', &
             file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        !constituents => cam_constituents_array()
         constituents => cam_advected_constituents_array()
 
         if (.not. associated(constituents)) then
