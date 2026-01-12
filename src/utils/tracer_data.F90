@@ -27,15 +27,6 @@ module tracer_data
   use vert_coord,     only: pver, pverp
   use physics_grid,   only: pcols => columns_on_task
 
-  use pio, only: pio_seterrorhandling, pio_internal_error, pio_bcast_error, &
-                 pio_char, pio_noerr, &
-                 pio_inq_dimid, pio_inq_varid, &
-                 pio_def_dim, pio_def_var, &
-                 pio_put_att, pio_put_var, &
-                 pio_get_var, pio_get_att, pio_nowrite, pio_inq_dimlen, &
-                 pio_inq_vardimid, pio_inq_dimlen, pio_closefile, &
-                 pio_inquire_variable
-
   implicit none
   private
 
@@ -50,90 +41,89 @@ module tracer_data
   public :: incr_filename
 
   type input3d
-    real(r8), dimension(:, :), pointer :: data => null() ! ncol, lev
+    real(r8), dimension(:, :), allocatable :: data ! ncol, lev
   end type input3d
 
   type input2d
-    real(r8), dimension(:),    pointer :: data => null() ! ncol
+    real(r8), dimension(:),    allocatable :: data ! ncol
   end type input2d
 
   type trfld
-    real(r8), dimension(:, :), pointer :: data => null() ! ncol, lev
-    type(input3d), dimension(4)        :: input
-    character(len=32)                  :: srcnam
-    character(len=32)                  :: fldnam
-    character(len=32)                  :: units
-    type(var_desc_t)                   :: var_id
-    integer :: coords(4) ! LATDIM | LONDIM | LEVDIM | TIMDIM
-    integer :: order(4)  ! LATDIM | LONDIM | LEVDIM | TIMDIM
-    logical :: srf_fld = .false.
+    real(r8), dimension(:, :), allocatable :: data ! ncol, lev
+    type(input3d), dimension(4)            :: input
+    character(len=32)                      :: srcnam
+    character(len=32)                      :: fldnam
+    character(len=32)                      :: units
+    type(var_desc_t)                       :: var_id
+    integer                                :: coords(4) ! LATDIM | LONDIM | LEVDIM | TIMDIM
+    integer                                :: order(4)  ! LATDIM | LONDIM | LEVDIM | TIMDIM
+    logical                                :: srf_fld = .false.
   end type trfld
 
   type trfile
-    type(input2d), dimension(4) :: ps_in
-    character(len=shr_kind_cl)  :: pathname = ' '
-    character(len=shr_kind_cl)  :: curr_filename = ' '
-    character(len=shr_kind_cl)  :: next_filename = ' '
-    type(file_desc_t) :: curr_fileid
-    type(file_desc_t) :: next_fileid
+    type(input2d), dimension(4)            :: ps_in
+    character(len=shr_kind_cl)             :: pathname = ' '
+    character(len=shr_kind_cl)             :: curr_filename = ' '
+    character(len=shr_kind_cl)             :: next_filename = ' '
+    type(file_desc_t)                      :: curr_fileid
+    type(file_desc_t)                      :: next_fileid
 
-    type(var_desc_t), pointer :: currfnameid => null() ! pio restart file var id
-    type(var_desc_t), pointer :: nextfnameid => null() ! pio restart file var id
+    type(var_desc_t), allocatable          :: currfnameid ! pio restart file var id
+    type(var_desc_t), allocatable          :: nextfnameid ! pio restart file var id
 
-    character(len=shr_kind_cl) :: filenames_list = ''
-    real(r8) :: datatimem = -unset_real     ! time of prv. values read in
-    real(r8) :: datatimep = -unset_real     ! time of nxt. values read in
-    real(r8) :: datatimes(4)
-    integer  :: interp_recs
-    real(r8), pointer, dimension(:) :: curr_data_times => null()
-    real(r8), pointer, dimension(:) :: next_data_times => null()
-    real(r8) :: offset_time
-    integer  :: cyc_ndx_beg
-    integer  :: cyc_ndx_end
-    integer  :: cyc_yr = 0
-    real(r8) :: one_yr = 0
-    real(r8) :: curr_mod_time ! model time - calendar day
-    real(r8) :: next_mod_time ! model time - calendar day - next time step
-    integer  :: nlon = 0
-    integer  :: nlat = 0
-    integer  :: nlev = 0
-    integer  :: nilev = 0
-    integer  :: ps_coords(3) ! LATDIM | LONDIM | TIMDIM
-    integer  :: ps_order(3)  ! LATDIM | LONDIM | TIMDIM
-    real(r8), pointer, dimension(:) :: lons => null()
-    real(r8), pointer, dimension(:) :: lats => null()
-    real(r8), pointer, dimension(:) :: levs => null()
-    real(r8), pointer, dimension(:) :: ilevs => null()
-    real(r8), pointer, dimension(:) :: hyam => null()
-    real(r8), pointer, dimension(:) :: hybm => null()
-    real(r8), pointer, dimension(:) :: hyai => null()
-    real(r8), pointer, dimension(:) :: hybi => null()
-    real(r8), pointer, dimension(:, :) :: weight_x => null(), weight_y => null()
-    integer,  pointer, dimension(:)    :: count_x => null(), count_y => null()
-    integer,  pointer, dimension(:, :) :: index_x => null(), index_y => null()
+    character(len=shr_kind_cl)             :: filenames_list = ''
+    real(r8)                               :: datatimem = -unset_real     ! time of prv. values read in
+    real(r8)                               :: datatimep = -unset_real     ! time of nxt. values read in
+    real(r8)                               :: datatimes(4)
+    integer                                :: interp_recs
+    real(r8), dimension(:), allocatable    :: curr_data_times
+    real(r8), dimension(:), allocatable    :: next_data_times
+    real(r8)                               :: offset_time
+    integer                                :: cyc_ndx_beg
+    integer                                :: cyc_ndx_end
+    integer                                :: cyc_yr = 0
+    real(r8)                               :: one_yr = 0
+    real(r8)                               :: curr_mod_time ! model time - calendar day
+    real(r8)                               :: next_mod_time ! model time - calendar day - next time step
+    integer                                :: nlon = 0
+    integer                                :: nlat = 0
+    integer                                :: nlev = 0
+    integer                                :: nilev = 0
+    integer                                :: ps_coords(3) ! LATDIM | LONDIM | TIMDIM
+    integer                                :: ps_order(3)  ! LATDIM | LONDIM | TIMDIM
+    real(r8), dimension(:),    allocatable :: lons
+    real(r8), dimension(:),    allocatable :: lats
+    real(r8), dimension(:),    allocatable :: levs
+    real(r8), dimension(:),    allocatable :: ilevs
+    real(r8), dimension(:),    allocatable :: hyam
+    real(r8), dimension(:),    allocatable :: hybm
+    real(r8), dimension(:),    allocatable :: hyai
+    real(r8), dimension(:),    allocatable :: hybi
+    real(r8), dimension(:, :), allocatable :: weight_x, weight_y
+    integer,  dimension(:)   , allocatable :: count_x, count_y
+    integer,  dimension(:, :), allocatable :: index_x, index_y
+    real(r8), dimension(:, :), allocatable :: weight0_x, weight0_y
+    integer,  dimension(:)   , allocatable :: count0_x, count0_y
+    integer,  dimension(:, :), allocatable :: index0_x, index0_y
+    logical                                :: dist
 
-    real(r8), pointer, dimension(:, :) :: weight0_x => null(), weight0_y => null()
-    integer,  pointer, dimension(:)    :: count0_x => null(), count0_y => null()
-    integer,  pointer, dimension(:, :) :: index0_x => null(), index0_y => null()
-    logical :: dist
-
-    real(r8) :: p0
-    type(var_desc_t) :: ps_id
-    logical :: has_ps = .false.
-    logical :: zonal_ave = .false.
-    logical :: unstructured = .false.
-    logical :: alt_data = .false.
-    logical :: geop_alt = .false.
-    logical :: cyclical = .false.
-    logical :: cyclical_list = .false.
-    logical :: weight_by_lat = .false.
-    logical :: conserve_column = .false.
-    logical :: fill_in_months = .false.
-    logical :: fixed = .false.
-    logical :: initialized = .false.
-    logical :: top_bndry = .false.
-    logical :: top_layer = .false.
-    logical :: stepTime = .false.  ! Do not interpolate in time, but use stepwise times
+    real(r8)                               :: p0
+    type(var_desc_t)                       :: ps_id ! var id of PS variable
+    logical                                :: has_ps = .false.
+    logical                                :: zonal_ave = .false.
+    logical                                :: unstructured = .false.
+    logical                                :: alt_data = .false.
+    logical                                :: geop_alt = .false.
+    logical                                :: cyclical = .false.
+    logical                                :: cyclical_list = .false.
+    logical                                :: weight_by_lat = .false.
+    logical                                :: conserve_column = .false.
+    logical                                :: fill_in_months = .false.
+    logical                                :: fixed = .false.
+    logical                                :: initialized = .false.
+    logical                                :: top_bndry = .false.
+    logical                                :: top_layer = .false.
+    logical                                :: stepTime = .false.  ! Do not interpolate in time, but use stepwise times
   end type trfile
 
   integer, parameter :: LONDIM = 1
@@ -168,6 +158,10 @@ contains
     use spmd_utils,     only: masterproc
     use cam_logfile,    only: iulog
     use time_manager,   only: set_time_float_from_date
+
+    use pio,            only: pio_inquire_variable, pio_inq_vardimid, pio_inq_varid, pio_inq_dimid
+    use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio,            only: pio_get_att, pio_get_var
 
     ! For latitude weighting functionality
     !use dyn_grid, only: get_horiz_grid_int
@@ -898,7 +892,7 @@ contains
   end subroutine get_model_time
 
   subroutine check_files(file, fids, itms, times_found)
-    type(trfile), intent(inout) :: file
+    type(trfile),      intent(inout) :: file
     type(file_desc_t), intent(out)   :: fids(2) ! ids of files that contains these recs
     integer, optional, intent(out)   :: itms(2)
     logical, optional, intent(inout) :: times_found
@@ -913,17 +907,14 @@ contains
     !-----------------------------------------------------------------------
     if ((file%next_mod_time > file%curr_data_times(size(file%curr_data_times))) .or. file%cyclical_list) then
       if (file%cyclical_list) then
-        if (associated(file%next_data_times)) then
+        if (allocated(file%next_data_times)) then
           if ((file%curr_mod_time > file%datatimep)) then
-
             call advance_file(file)
-
           end if
         end if
-
       end if
 
-      if (.not. associated(file%next_data_times)) then
+      if (.not. allocated(file%next_data_times)) then
         ! open next file if not already opened...
         if (file%cyclical_list) then
           file%next_filename = incr_filename(file%curr_filename, filenames_list=file%filenames_list, datapath=file%pathname, &
@@ -940,9 +931,8 @@ contains
     !        If using next_data_times and the current is greater than or equal to the next, then
     !        close the current file, and set up for next file.
     !-----------------------------------------------------------------------
-    if (associated(file%next_data_times)) then
+    if (allocated(file%next_data_times)) then
       if (file%cyclical_list .and. list_cycled) then    ! special case - list cycled
-
         file%datatimem = file%curr_data_times(size(file%curr_data_times))
         itms(1) = size(file%curr_data_times)
         fids(1) = file%curr_fileid
@@ -952,11 +942,8 @@ contains
         fids(2) = file%next_fileid
 
         times_found = .true.
-
       else if (file%curr_mod_time >= file%next_data_times(1)) then
-
         call advance_file(file)
-
       end if
     end if
 
@@ -1151,7 +1138,7 @@ contains
 
     curr_tsize = size(file%curr_data_times)
     next_tsize = 0
-    if (associated(file%next_data_times)) next_tsize = size(file%next_data_times)
+    if (allocated(file%next_data_times)) next_tsize = size(file%next_data_times)
 
     all_tsize = curr_tsize + next_tsize
 
@@ -1424,6 +1411,8 @@ contains
     use cam_abortutils, only: check_allocate
     use perf_mod,       only: t_startf, t_stopf
 
+    use pio,            only: pio_get_var
+
     type(file_desc_t), intent(in)  :: fid
     type(var_desc_t),  intent(in)  :: vid
     integer,           intent(in)  :: strt(:), cnt(:), order(2)
@@ -1431,8 +1420,8 @@ contains
     type(trfile),      intent(in)  :: file
 
     real(r8) :: to_lats(pcols), to_lons(pcols)
-    real(r8), allocatable, target :: wrk2d(:, :) ! (cnt(1), cnt(2))
-    real(r8), pointer :: wrk2d_in(:, :) ! (file%nlon, file%nlat)
+    real(r8), allocatable, target  :: wrk2d(:, :)    ! (cnt(1), cnt(2))
+    real(r8),              pointer :: wrk2d_in(:, :) ! (file%nlon, file%nlat)
 
     integer :: ierr
     real(r8), parameter :: zero = 0_r8, twopi = 2_r8*pi
@@ -1531,8 +1520,10 @@ contains
   ! Read zonal average data
   subroutine read_za_trc(fid, vid, loc_arr, strt, cnt, file, order)
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
-    use physics_grid, only: get_rlat_all_p
-    use cam_abortutils, only: check_allocate
+    use physics_grid,     only: get_rlat_all_p
+    use cam_abortutils,   only: check_allocate
+
+    use pio,              only: pio_get_var
 
     type(file_desc_t), intent(in) :: fid
     type(var_desc_t), intent(in) :: vid
@@ -1645,6 +1636,8 @@ contains
     use cam_abortutils, only: check_allocate, endrun
     use cam_logfile,    only: iulog
     use perf_mod,       only: t_startf, t_stopf
+
+    use pio,            only: pio_get_var
 
     ! Interpolation utils
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
@@ -1759,16 +1752,16 @@ contains
     type(trfld),     intent(inout) :: flds(:)
     type(trfile),    intent(inout) :: file
 
-    real(r8) :: fact1, fact2
-    real(r8) :: deltat
-    integer :: f, nflds, i, k
-    real(r8) :: ps(pcols)
-    real(r8) :: datain(pcols, file%nlev)
-    real(r8) :: pin(pcols, file%nlev)
+    real(r8)            :: fact1, fact2
+    real(r8)            :: deltat
+    integer             :: f, nflds, i, k
+    real(r8)            :: ps(pcols)
+    real(r8)            :: datain(pcols, file%nlev)
+    real(r8)            :: pin(pcols, file%nlev)
     real(r8)            :: model_z(pverp)
+    real(r8)            :: data_col(pver)
+
     real(r8), parameter :: m2km = 1.e-3_r8
-    real(r8), pointer :: data_out(:, :)
-    real(r8) :: data_col(pver)
 
     nflds = size(flds)
 
@@ -1828,7 +1821,6 @@ contains
     end if
 
     fld_loop: do f = 1, nflds
-      data_out => flds(f)%data(:, :)
 
       if (file%alt_data) then
         if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
@@ -1846,7 +1838,7 @@ contains
           else
             call rebin(file%nlev, pver, file%ilevs, model_z, datain(i, :), data_col(:))
           end if
-          data_out(i, :) = data_col(pver:1:-1)
+          flds(f)%data(i, :) = data_col(pver:1:-1)
         end do
       else ! .not. alt_data
         if (file%nlev > 1) then
@@ -1871,10 +1863,10 @@ contains
         if (flds(f)%srf_fld) then
           do i = 1, ncol
             if (fact2 == 0) then  ! This needed as %data is not set if fact2=0 (and lahey compiler core dumps)
-              data_out(i, 1) = &
+              flds(f)%data(i, 1) = &
                 fact1*flds(f)%input(nm)%data(i, 1)
             else
-              data_out(i, 1) = &
+              flds(f)%data(i, 1) = &
                 fact1*flds(f)%input(nm)%data(i, 1) + fact2*flds(f)%input(np)%data(i, 1)
             end if
           end do
@@ -1885,15 +1877,15 @@ contains
             datain(:ncol, :) = fact1*flds(f)%input(nm)%data(:ncol, :) + fact2*flds(f)%input(np)%data(:ncol, :)
           end if
           if (file%top_bndry) then
-            call vert_interp_ub(ncol, file%nlev, file%levs, datain(:ncol, :), data_out(:ncol, 1))
+            call vert_interp_ub(ncol, file%nlev, file%levs, datain(:ncol, :), flds(f)%data(:ncol, 1))
           else if (file%top_layer) then
-            call vert_interp_ub_var(ncol, file%nlev, file%levs, pmid(:ncol, 1), datain(:ncol, :), data_out(:ncol, 1))
+            call vert_interp_ub_var(ncol, file%nlev, file%levs, pmid(:ncol, 1), datain(:ncol, :), flds(f)%data(:ncol, 1))
           else if (file%conserve_column) then
             call vert_interp_mixrat(ncol, file%nlev, pver, pint, &
-                                    datain, data_out(:, :), &
+                                    datain, flds(f)%data(:, :), &
                                     file%p0, ps, file%hyai, file%hybi, file%dist)
           else
-            call vert_interp(ncol, file%nlev, pin, pmid, datain, data_out(:, :))
+            call vert_interp(ncol, file%nlev, pin, pmid, datain, flds(f)%data(:, :))
           end if
         end if
 
@@ -1908,12 +1900,16 @@ contains
     use cam_logfile,    only: iulog
     use shr_kind_mod,   only: shr_kind_cm
 
-    type(file_desc_t), intent(inout) :: fid
-    character(*),      intent(in)    :: dname
-    integer,           intent(out)   :: dsize
+    use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio,            only: pio_inq_dimid, pio_inq_dimlen, pio_inq_varid
+    use pio,            only: pio_get_var
 
-    integer,  optional, intent(out)  :: dimid
-    real(r8), optional, pointer, dimension(:) :: data
+    type(file_desc_t), intent(inout)              :: fid
+    character(*),      intent(in)                 :: dname
+    integer,           intent(out)                :: dsize
+
+    integer,  optional, intent(out)               :: dimid
+    real(r8), optional, allocatable, dimension(:) :: data
 
     integer :: vid, ierr, id
     integer :: err_handling
@@ -1934,11 +1930,11 @@ contains
       end if
 
       if (present(data)) then
-        if (associated(data)) then
+        if (allocated(data)) then
           deallocate (data, stat=ierr)
           if (ierr /= 0) then
-            write (iulog, *) 'get_dimension: data deallocation error = ', ierr
-            call endrun('get_dimension: failed to deallocate data array')
+            write (iulog, *) sub//': data deallocation error = ', ierr
+            call endrun(sub//': failed to deallocate data array')
           end if
         end if
         allocate (data(dsize), stat=ierr, errmsg=errmsg)
@@ -1958,6 +1954,8 @@ contains
 
   subroutine set_cycle_indices(fileid, cyc_ndx_beg, cyc_ndx_end, cyc_yr)
     use cam_abortutils, only: check_allocate, endrun
+
+    use pio,            only: pio_get_var, pio_inq_varid
 
     type(file_desc_t), intent(inout)  :: fileid
     integer,           intent(out)    :: cyc_ndx_beg
@@ -2009,10 +2007,15 @@ contains
 
     use time_manager,   only: set_time_float_from_date, set_date_from_time_float
 
-    character(*),      intent(in)    :: fname
-    character(*),      intent(in)    :: path
-    type(file_desc_t), intent(inout) :: piofile
-    real(r8),          pointer       :: times(:)
+    use pio,            only: PIO_NOWRITE
+    use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio,            only: pio_inq_varid
+    use pio,            only: pio_get_var
+
+    character(*),          intent(in)    :: fname
+    character(*),          intent(in)    :: path
+    type(file_desc_t),     intent(inout) :: piofile
+    real(r8), allocatable, intent(inout) :: times(:)
 
     integer, optional, intent(out) :: cyc_ndx_beg
     integer, optional, intent(out) :: cyc_ndx_end
@@ -2043,7 +2046,7 @@ contains
 
     call get_dimension(piofile, 'time', timesize)
 
-    if (associated(times)) then
+    if (allocated(times)) then
       deallocate (times, stat=ierr)
       if (ierr /= 0) then
         write (iulog, *) 'open_trc_datafile: data deallocation error = ', ierr
@@ -2188,6 +2191,8 @@ contains
     use cam_logfile,    only: iulog
     use shr_kind_mod,   only: shr_kind_cm
 
+    use pio,            only: pio_closefile
+
     type(trfile), intent(inout) :: file
 
     !-----------------------------------------------------------------------
@@ -2236,13 +2241,16 @@ contains
       write (iulog, *) sub//': failed to deallocate file%next_data_times array; error = ', astat
       call endrun(sub//': failed to deallocate file%next_data_times array')
     end if
-    nullify (file%next_data_times)
 
   end subroutine advance_file
 
 !------------------------------------------------------------------------------
 
   subroutine init_trc_restart(whence, piofile, tr_file)
+    use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio,            only: pio_char
+    use pio,            only: pio_inq_dimid, pio_def_dim
+    use pio,            only: pio_put_att, pio_def_var
 
     character(len=*),  intent(in)    :: whence
     type(file_desc_t), intent(inout) :: piofile
@@ -2269,7 +2277,7 @@ contains
       maxlen = len_trim(tr_file%curr_filename)
       ioerr = pio_put_att(pioFile, tr_file%currfnameid, 'actual_len', maxlen)
     else
-      nullify (tr_file%currfnameid)
+      deallocate(tr_file%currfnameid)
     end if
 
     if (len_trim(tr_file%next_filename) > 1) then
@@ -2279,32 +2287,34 @@ contains
       maxlen = len_trim(tr_file%next_filename)
       ioerr = pio_put_att(pioFile, tr_file%nextfnameid, 'actual_len', maxlen)
     else
-      nullify (tr_file%nextfnameid)
+      deallocate(tr_file%nextfnameid)
     end if
   end subroutine init_trc_restart
 
   ! writes file names to restart file
   subroutine write_trc_restart(piofile, tr_file)
+    use pio,            only: pio_put_var
 
     type(file_desc_t), intent(inout) :: piofile
     type(trfile),      intent(inout) :: tr_file
 
     integer :: ioerr   ! error status
-    if (associated(tr_file%currfnameid)) then
+    if (allocated(tr_file%currfnameid)) then
       ioerr = pio_put_var(pioFile, tr_file%currfnameid, tr_file%curr_filename)
       deallocate (tr_file%currfnameid)
-      nullify (tr_file%currfnameid)
     end if
-    if (associated(tr_file%nextfnameid)) then
+    if (allocated(tr_file%nextfnameid)) then
       ioerr = pio_put_var(pioFile, tr_file%nextfnameid, tr_file%next_filename)
       deallocate (tr_file%nextfnameid)
-      nullify (tr_file%nextfnameid)
     end if
 
   end subroutine write_trc_restart
 
   ! reads file names from restart file
   subroutine read_trc_restart(whence, piofile, tr_file)
+    use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio,            only: pio_inq_varid, pio_get_att, pio_get_var
+
     character(len=*), intent(in) :: whence
     type(file_desc_t), intent(inout) :: piofile
     type(trfile), intent(inout) :: tr_file
@@ -2314,7 +2324,7 @@ contains
     integer :: slen
     integer :: err_handling
 
-    call PIO_SetErrorHandling(piofile, PIO_BCAST_ERROR, oldmethod=err_handling)
+    call pio_seterrorhandling(piofile, PIO_BCAST_ERROR, oldmethod=err_handling)
     name = trim(whence)//'_curr_fname'
     ioerr = pio_inq_varid(piofile, name, vdesc)
     if (ioerr == PIO_NOERR) then
@@ -2333,7 +2343,7 @@ contains
       ioerr = pio_get_var(piofile, vdesc, tr_file%next_filename)
       if (slen < SHR_KIND_CL) tr_file%next_filename(slen + 1:) = ' '
     end if
-    call PIO_SetErrorHandling(piofile, err_handling)
+    call pio_seterrorhandling(piofile, err_handling)
 
   end subroutine read_trc_restart
 
