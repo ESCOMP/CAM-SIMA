@@ -24,9 +24,6 @@ module tracer_data
   use runtime_obj,    only: unset_real
   use pio,            only: file_desc_t, var_desc_t
 
-  use vert_coord,     only: pver, pverp
-  use physics_grid,   only: pcols => columns_on_task
-
   implicit none
   private
 
@@ -151,6 +148,9 @@ contains
 !--------------------------------------------------------------------------
   subroutine trcdata_init(specifier, filename, filelist, datapath, flds, file, &
                           data_cycle_yr, data_fixed_ymd, data_fixed_tod, data_type)
+
+    use vert_coord,     only: pver, pverp
+    use physics_grid,   only: pcols => columns_on_task
 
     use physconst,      only: pi
     use string_utils,   only: to_lower
@@ -1403,6 +1403,8 @@ contains
 !------------------------------------------------------------------------
 
   subroutine read_2d_trc(fid, vid, loc_arr, strt, cnt, file, order)
+    use physics_grid,   only: pcols => columns_on_task
+
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
 
@@ -1519,11 +1521,14 @@ contains
 
   ! Read zonal average data
   subroutine read_za_trc(fid, vid, loc_arr, strt, cnt, file, order)
-    use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
+    use physics_grid,   only: pcols => columns_on_task
+
     use physics_grid,     only: get_rlat_all_p
     use cam_abortutils,   only: check_allocate
 
     use pio,              only: pio_get_var
+
+    use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
 
     type(file_desc_t), intent(in) :: fid
     type(var_desc_t), intent(in) :: vid
@@ -1578,6 +1583,8 @@ contains
 
   ! this assumes the input data is gridded to match the physics grid
   subroutine read_physgrid_2d(ncid, varname, recno, data)
+    use physics_grid,   only: pcols => columns_on_task
+
     use cam_field_read, only: cam_read_field
 
     use cam_abortutils, only: endrun
@@ -1602,6 +1609,8 @@ contains
 
   ! this assumes the input data is gridded to match the physics grid
   subroutine read_physgrid_3d(ncid, varname, vrt_coord_name, nlevs, recno, data)
+    use physics_grid,   only: pcols => columns_on_task
+
     use cam_field_read, only: cam_read_field
 
     use cam_abortutils, only: endrun
@@ -1630,6 +1639,7 @@ contains
   !------------------------------------------------------------------------
 
   subroutine read_3d_trc(fid, vid, loc_arr, strt, cnt, file, order)
+    use physics_grid,   only: pcols => columns_on_task
     use physics_grid,   only: get_rlat_all_p, get_rlon_all_p
     use physconst,      only: pi
 
@@ -1755,9 +1765,9 @@ contains
     real(r8)            :: fact1, fact2
     real(r8)            :: deltat
     integer             :: f, nflds, i, k
-    real(r8)            :: ps(pcols)
-    real(r8)            :: datain(pcols, file%nlev)
-    real(r8)            :: pin(pcols, file%nlev)
+    real(r8)            :: ps(ncol)
+    real(r8)            :: datain(ncol, file%nlev)
+    real(r8)            :: pin(ncol, file%nlev)
     real(r8)            :: model_z(pverp)
     real(r8)            :: data_col(pver)
 
@@ -2420,10 +2430,10 @@ contains
     integer,  intent(in)   :: ncol
     integer,  intent(in)   :: nsrc                         ! dimension source array
     integer,  intent(in)   :: ntrg                         ! dimension target array
-    real(r8), intent(in)   :: trg_x(pcols, ntrg + 1)       ! target coordinates
-    real(r8), intent(in)   :: src(pcols, nsrc)             ! source array
-    real(r8), intent(out)  :: trg(pcols, ntrg)             ! target array
-    real(r8), intent(in)   :: ps(pcols)                    ! surface pressure
+    real(r8), intent(in)   :: trg_x(ncol, ntrg + 1)        ! target coordinates
+    real(r8), intent(in)   :: src(ncol, nsrc)              ! source array
+    real(r8), intent(out)  :: trg(ncol, ntrg)              ! target array
+    real(r8), intent(in)   :: ps(ncol)                     ! surface pressure
     real(r8), intent(in)   :: p0
     real(r8), intent(in)   :: hyai(nsrc + 1)
     real(r8), intent(in)   :: hybi(nsrc + 1)
@@ -2555,17 +2565,19 @@ contains
 
   ! Interpolate data from current time-interpolated values to model levels
   pure subroutine vert_interp(ncol, levsiz, pin, pmid, datain, dataout)
+    use vert_coord,     only: pver
+
     integer,  intent(in)  :: ncol
     integer,  intent(in)  :: levsiz
-    real(r8), intent(in)  :: pin(pcols, levsiz)
-    real(r8), intent(in)  :: pmid(pcols, pver)
-    real(r8), intent(in)  :: datain(pcols, levsiz)
-    real(r8), intent(out) :: dataout(pcols, pver)
+    real(r8), intent(in)  :: pin(ncol, levsiz)
+    real(r8), intent(in)  :: pmid(ncol, pver)
+    real(r8), intent(in)  :: datain(ncol, levsiz)
+    real(r8), intent(out) :: dataout(ncol, pver)
 
     ! local storage
     integer  ::  i                   ! longitude index
     integer  ::  k, kk, kkstart      ! level indices
-    integer  ::  kupper(pcols)       ! Level indices for interpolation
+    integer  ::  kupper(ncol)       ! Level indices for interpolation
     real(r8) :: dpu                  ! upper level pressure difference
     real(r8) :: dpl                  ! lower level pressure difference
 
