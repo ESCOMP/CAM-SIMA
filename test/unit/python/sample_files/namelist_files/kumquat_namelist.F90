@@ -44,6 +44,8 @@ CONTAINS
    subroutine autogen_kumquat_readnl(nl_unit, mpicomm, mpiroot, mpi_isroot, logunit)
       use mpi,            only: MPI_Character, MPI_Integer, MPI_Logical, MPI_Real8
       use shr_nl_mod,     only: shr_nl_find_group_name
+      use cam_logfile,    only: debug_output, DEBUGOUT_INFO
+      use shr_kind_mod,   only: cl=>shr_kind_cl
       use cam_abortutils, only: endrun
 
       ! Dummy arguments
@@ -55,6 +57,10 @@ CONTAINS
 
       ! Local variables
       integer                     :: ierr
+      character(len=cl)           :: errmsg
+
+      ! Used for namelist variable logging:
+      integer :: i, j
       character(len=*), parameter :: subname = 'autogen_kumquat_readnl'
 
       namelist /kumquat_nl/ pgwv, kq_dc, tau_0_ubc, bnd_rdggm, kq_farr1, kq_fake2, kq_fchar3
@@ -64,22 +70,37 @@ CONTAINS
          rewind(nl_unit)
          call shr_nl_find_group_name(nl_unit, 'kumquat_nl', status=ierr)
          if (ierr == 0) then
-            read(nl_unit, kumquat_nl, iostat=ierr)
+            read(nl_unit, kumquat_nl, iostat=ierr, iomsg=errmsg)
             if (ierr /= 0) then
-               call endrun(subname//':: ERROR reading namelist, kumquat_nl')
+               call                                                                               &
+                    endrun(subname//                                                              &
+                    ':: ERROR reading namelist, kumquat_nl, with following error: '//errmsg)
             end if
          else
             call endrun(subname//':: ERROR: Did not find namelist group, kumquat_nl.')
          end if
          ! Print out namelist values
-         write(logunit, *) 'Namelist values from kumquat_nl for kumquat'
-         write(logunit, *) 'pgwv = ', pgwv
-         write(logunit, *) 'kq_dc = ', kq_dc
-         write(logunit, *) 'tau_0_ubc = ', tau_0_ubc
-         write(logunit, *) 'bnd_rdggm = ', bnd_rdggm
-         write(logunit, *) 'kq_farr1 = ', kq_farr1
-         write(logunit, *) 'kq_fake2 = ', kq_fake2
-         write(logunit, *) 'kq_fchar3 = ', kq_fchar3
+         if (debug_output >= DEBUGOUT_INFO) then
+            write(logunit, *) "Namelist values from group 'kumquat_nl' for scheme 'kumquat'"
+            write(logunit, *) 'pgwv = ', pgwv
+            write(logunit, *) 'kq_dc = ', kq_dc
+            write(logunit, *) 'tau_0_ubc = ', tau_0_ubc
+            write(logunit, *) 'bnd_rdggm = ', bnd_rdggm
+            do i=1,2
+               write(logunit,'(a,i0,a)')  'kq_farr1(',i,') = '
+               write(logunit, *) kq_farr1(i)
+            end do
+            do i=1,3
+               do j=1,2
+                  write(logunit,'(a,i0,a,i0,a)')  'kq_fake2(',i,',',j,') = '
+                  write(logunit, *) kq_fake2(i,j)
+               end do
+            end do
+            do i=1,7
+               write(logunit,'(a,i0,a)')  'kq_fchar3(',i,') = '
+               write(logunit, *) kq_fchar3(i)
+            end do
+         end if
       end if
       ! Broadcast the namelist variables
       call mpi_bcast(pgwv, 1, MPI_Integer, mpiroot, mpicomm, ierr)

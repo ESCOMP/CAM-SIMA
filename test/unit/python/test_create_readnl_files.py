@@ -300,6 +300,37 @@ class CreateReadnlFilesTest(unittest.TestCase):
         #type was bad:
         self.assertEqual(nlvar_obj.missing(), ermsg)
 
+    def test_nlvar_too_many_dims_xml(self):
+        """
+        Test that the "NLVar" class can correctly
+        determine that a namelist xml variable has
+        too many array dimensions and triggers
+        the array limit error.
+        """
+
+        #Set expected error message:
+        ermsg = "Namelist variable 'apple_bananas' "
+        ermsg += "has 11 dimensions,\n"
+        ermsg += "which is more than the limit "
+        ermsg += "of 8 dimensions that is "
+        ermsg += "currently supported."
+
+        #Create an xml namelist entry with too many
+        #array dimensions:
+        too_many_dims_xml_entry = ET.fromstring("""<entry id="apple_bananas">
+        <type>integer(2,3,4,5,6,7,8,9,10,11,12)</type>
+        <category>banana</category><group>banana_nl</group>
+        <units>1</units><desc>Fancy Hawaii bananas</desc>
+        <values><value>2</value></values></entry>""")
+
+        #Expect "IndexError":
+        with self.assertRaises(IndexError) as ixerr:
+            #Try to create an "NLVar" object:
+            nlvar_obj = NLVar(too_many_dims_xml_entry)
+
+        #Check that error message matches what's expected:
+        self.assertEqual(ermsg, str(ixerr.exception))
+
     def test_single_namelist_def(self):
         """
         Test that the 'gen_namelist_files' function
