@@ -21,38 +21,30 @@ contains
 
    subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
 
-      use spmd_utils,                only: mpicom, masterproc, masterprocid
-      use cam_abortutils,            only: endrun
-      use cam_logfile,               only: cam_logfile_readnl, iulog
-      use cam_initfiles,             only: cam_initfiles_readnl
-      use cam_constituents,          only: cam_constituents_readnl
-      use cam_ccpp_scheme_namelists, only: cam_read_ccpp_scheme_namelists
-      use runtime_obj,               only: cam_set_runtime_opts, unset_str
-      use cam_ccpp_cap,              only: ccpp_physics_suite_schemes
+      use spmd_utils,                   only: mpicom, masterproc, masterprocid
+      use cam_abortutils,               only: endrun
+      use cam_logfile,                  only: cam_logfile_readnl, iulog
+      use cam_initfiles,                only: cam_initfiles_readnl
+      use cam_constituents,             only: cam_constituents_readnl
+      use cam_ccpp_scheme_namelists,    only: cam_read_ccpp_scheme_namelists
+      use runtime_obj,                  only: cam_set_runtime_opts, unset_str
+      use cam_ccpp_cap,                 only: ccpp_physics_suite_schemes
 
-!      use physics_grid,        only: physics_grid_readnl
+      use cam_history,                  only: history_readnl
 
-      use cam_history,         only: history_readnl
+      use physconst,                    only: physconst_readnl
+      use phys_comp,                    only: phys_readnl, phys_suite_name
+      use vert_coord,                   only: vert_coord_readnl
+      use ref_pres,                     only: ref_pres_readnl
 
-!      use scamMod,             only: scam_readnl
-      use physconst,           only: physconst_readnl
-      use phys_comp,           only: phys_readnl, phys_suite_name
-      use vert_coord,          only: vert_coord_readnl
-      use ref_pres,            only: ref_pres_readnl
-!      use phys_debug_util,     only: phys_debug_readnl
+      use inic_analytic_utils,          only: analytic_ic_readnl
 
-!      use cam_diagnostics,     only: diag_readnl
-      use inic_analytic_utils, only: analytic_ic_readnl
-
-      use tropopause_climo_read, only: tropopause_climo_readnl
-      use radiation_namelist,    only: radiation_readnl
+      use tropopause_climo_read,        only: tropopause_climo_readnl
+      use radiation_namelist,           only: radiation_readnl
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
 
-!      use tracers,             only: tracers_readnl
-!      use nudging,             only: nudging_readnl
-
-      use dyn_comp,            only: dyn_readnl
-      !use ionosphere_interface,only: ionosphere_readnl
+      use dyn_comp,                     only: dyn_readnl
+      use atm_stream_ndep,              only: stream_ndep_readnl
 
       !---------------------------Arguments-----------------------------------
 
@@ -87,7 +79,6 @@ contains
       !    cam_read_ccpp_scheme_namelists
 
       call cam_logfile_readnl(nlfilename)   !The log settings must always be read first
-!      call physics_grid_readnl(nlfilename)
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
       call cam_constituents_readnl(nlfilename)
@@ -95,16 +86,12 @@ contains
       call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)
       call ref_pres_readnl(nlfilename)
-!      call phys_debug_readnl(nlfilename)
-!      call diag_readnl(nlfilename)
-!      call check_energy_readnl(nlfilename)
       call analytic_ic_readnl(nlfilename)
       call tropopause_climo_readnl(nlfilename)
       call radiation_readnl(nlfilename)
-!      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
-!      call nudging_readnl(nlfilename)
       call gravity_wave_drag_ridge_read_readnl(nlfilename)
       call dyn_readnl(nlfilename)
+      call stream_ndep_readnl(nlfilename)
 
       ! Read the namelists for active physics schemes
       errflg = 0

@@ -1404,7 +1404,7 @@ class File:
         #supports a separation between total and advected constituents
         #then this section of code will likely need to be modified:
         if ('number_of_ccpp_constituents' in self.__var_dict.known_dimensions):
-            outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_advected", 2)
+            outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_constituents", 2)
         outfile.blank_line()
 
         # Dummy arguments

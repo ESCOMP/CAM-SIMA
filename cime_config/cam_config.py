@@ -240,8 +240,12 @@ class ConfigCAM:
         # Save local (cime_config) directory path:
         cime_conf_path = os.path.dirname(os.path.abspath(__file__))
 
-        # Save path to the "data" src direcotry:
+        # Save path to the "data" src directory:
         data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
+
+        # Save path to the "cpl/nuopc" src directory:
+        cpl_nuopc_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "cpl",
+                                          "nuopc")
 
         # Create empty XML namelist definition files dictionary:
         self.__xml_nml_def_files = OrderedDict()
@@ -250,6 +254,8 @@ class ConfigCAM:
         self._add_xml_nml_file(cime_conf_path, "namelist_definition_cam.xml")
         self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
         self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
+        self._add_xml_nml_file(cpl_nuopc_nml_path,
+                               "namelist_definition_atm_stream_ndep.xml")
 
         #----------------------------------------------------
         # Set CAM start date (needed for namelist generation)
@@ -481,31 +487,31 @@ class ConfigCAM:
         self.create_config("analytic_ic", analy_ic_desc,
                            analy_ic_val, [0, 1], is_nml_attr=True)
 
-        #--------------------
-        # Set ocean component
-        #--------------------
+        #--------------------------
+        # Check if running an
+        # aquaplanet configuration
+        #--------------------------
 
-        ocn_valid_vals = ["docn", "dom", "som", "socn",
-                          "aquaplanet", "pop", "mom"]
+        if user_config_opts.aquaplanet:
+            aquap_flag = 1
+        else:
+            aquap_flag = 0
 
-        ocn_desc = ["The ocean model being used.",
-                    "Valid values include prognostic ocean models (POP or MOM),",
-                    "data ocean models (DOCN or DOM), a stub ocean (SOCN), ",
-                    "and an aqua planet ocean (aquaplanet).",
-                    "This does not impact how the case is built, only how",
-                    "attributes are matched when searching for namelist defaults."]
+        aquap_desc = ["Switch to use aquaplanet configuration: ",
+                      "0 => no ",
+                      "1 => yes."]
 
-        self.create_config("ocn", ocn_desc, comp_ocn,
-                           ocn_valid_vals, is_nml_attr=True)
+        self.create_config("aquaplanet", aquap_desc,
+                           aquap_flag, [0, 1], is_nml_attr=True)
+
+        #--------------------------
+        # Set physics_suites string
+        #--------------------------
 
         phys_desc = ["A semicolon-separated list of physics suite definition "
                      "file (SDF) names.",
                      "To specify the Kessler and Held-Suarez suites as ",
                      "run time options, use '--physics-suites kessler;held_suarez_1994'."]
-
-        #--------------------------
-        # Set physics_suites string
-        #--------------------------
 
         self.create_config("physics_suites", phys_desc,
                            user_config_opts.physics_suites)
@@ -580,25 +586,25 @@ class ConfigCAM:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         4.  Check that parse_config_opts works as expected when given a physics suite and a second argument:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         5.  Check that parse_config_opts works as expected when given both a string and logical argument:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic-ic")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', True), ('aquaplanet', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         6.  Check that parse_config_opts works as expected when given multiple physics suites:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
 
         7.  Check that parse_config_opts fails correctly when given an un-recognized argument:
         >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True)
@@ -627,11 +633,17 @@ class ConfigCAM:
                             default="",
                             help="""Name of dycore""")
 
+        parser.add_argument("--aquaplanet",
+                            action='store_true',
+                            required=False,
+                            help="""Flag to turn on aquaplanet
+                                 settings (0 = False, 1 = True).""")
+
         parser.add_argument("--analytic-ic",
                             action='store_true',
                             required=False,
                             help="""Flag to turn on Analytic Initial
-                                 Conditions (ICs).""")
+                                 Conditions (ICs). 0 = False, 1 = True.""")
 
         parser.add_argument("--dyn-kind",
                             type=str,
