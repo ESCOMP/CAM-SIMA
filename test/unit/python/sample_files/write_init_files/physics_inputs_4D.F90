@@ -40,7 +40,7 @@ CONTAINS
       use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_logfile,               only: iulog
-      use physics_types_4D,          only: slp, theta
+      use physics_types_4D,          only: eddy_len, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -150,7 +150,10 @@ CONTAINS
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call endrun('Cannot read slp from file'//', slp has unsupported dimension, timestep_for_physics.')
+                        call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), 'lev', timestep, slp)
+
+                     case ('eddy_length_scale')
+                        call endrun('Cannot read eddy_len from file'//', eddy_len has unsupported dimension, vertical_layer_dimension (dimension 4).')
 
                   end select !read variables
                end select !special indices

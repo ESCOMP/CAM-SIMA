@@ -794,15 +794,29 @@ def get_dimension_info(hvar):
         # and dimensions greater than three are unsupported.
         legal_dims = False
         unsupp = []
-        for dim in dims:
-            if ((not is_horizontal_dimension(dim)) and
-                (not is_vertical_dimension(dim))):
-                if dim[0:18] == "ccpp_constant_one:":
-                    rdim = dim[18:]
+        vert_idx = -1
+        for dim_idx, dim in enumerate(dims):
+            # Skip the first dimension if it is horizontal:
+            if (not is_horizontal_dimension(dim) or dim_idx > 0):
+                # Save (and skip) the vertical dimension index,
+                # which must be the second dimension present:
+                if (is_vertical_dimension(dim) and dim_idx == 1):
+                    vert_idx = dim_idx
                 else:
-                    rdim = dim
+                    # An extra, non-horizontal dimension is allowed
+                    # immediately after the vertical dimension,
+                    # so check if this is not the case:
+                    if (vert_idx < 0) or (dim_idx != (vert_idx + 1)):
+                        if dim[0:18] == "ccpp_constant_one:":
+                            rdim = dim[18:]
+                        else:
+                            rdim = dim
+                        # end if
+                        #Update dimension string with dimension index:
+                        rdim = rdim + f" (dimension {dim_idx+1})"
+                        unsupp.append(rdim)
+                    # end if
                 # end if
-                unsupp.append(rdim)
             # end if
         # end for
         if len(unsupp) > 1:
