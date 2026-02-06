@@ -789,9 +789,9 @@ def get_dimension_info(hvar):
         # based on constituent name.
         # This case will be handled separately.
         legal_dims = True
-    elif (ldims > 2) or ((ldims > 1) and (not levnm)):
+    elif (ldims > 3) or ((ldims > 1) and (not levnm)):
         # The regular case where the second dimension must be vertical,
-        # and higher dimensions are unsupported.
+        # and dimensions greater than three are unsupported.
         legal_dims = False
         unsupp = []
         for dim in dims:
@@ -949,8 +949,8 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx",
                                    "read_constituent_dimensioned_field"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", 
-                                   "cam_constituents_array", 
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
+                                   "cam_constituents_array",
                                    "cam_model_const_properties"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  [phys_check_fname_str, ["phys_var_num", "phys_var_stdnames",
@@ -1149,7 +1149,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # End suite loop:
     outfile.write(" end do !CCPP suites", 2)
     outfile.blank_line()
-    
+
     # Read in constituent data
     outfile.comment("Read in constituent variables if not using init variables", 2)
     outfile.write("field_data_ptr => cam_constituents_array()", 2)
