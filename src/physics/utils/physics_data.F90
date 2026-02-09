@@ -939,7 +939,7 @@ CONTAINS
       logical                          :: var_found = .true.
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
-      character(len=*),  parameter     :: subname = 'check_field_3d'
+      character(len=*),  parameter     :: subname = 'check_field_4d'
       real(kind_phys)                  :: diff
       integer                          :: ierr                      !For MPI
       integer                          :: mpi_stat(mpi_status_size) !For MPI
@@ -991,7 +991,8 @@ CONTAINS
          !dimension, not a generic third dimension:
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
-              dim3_bnds=[1, num_levs], dim3_pos=2, log_output=.false.)
+              dim3_bnds=[1, num_levs], dim3_pos=2,                            &
+              dim4_bnds=[1, size(buffer, 3)],log_output=.false.)
          if (var_found) then
             do extra_dim = 1, size(buffer, 3)
                do lev = 1, num_levs
