@@ -618,7 +618,6 @@ class RegistryTest(unittest.TestCase):
 
         # Setup test
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
-        tree, root = read_xml_file(infilename)
 
         # Open base XML file:
         base_tree = ET.parse(infilename)

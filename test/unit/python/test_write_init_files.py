@@ -764,13 +764,15 @@ class WriteInitTest(unittest.TestCase):
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
-    def test_4d_var_write_init(self):
+    def test_4d_5d_var_write_init(self):
         """
         Test that the 'write_init_files' function
-        correctly determines that a variable that
-        could be called from "read_field" has more
-        than two dimensions (which read_field can't handle),
-        and creates the correct endrun message.
+        correctly determines that a variable with
+        an extra non-spatial dimension can be
+        read from file, but that a variable with
+        two extra non-spatial dimensions will
+        fail, and thus creates the correct endrun
+        message.
         """
 
         # Setup registry inputs:
