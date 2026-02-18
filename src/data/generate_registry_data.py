@@ -141,7 +141,7 @@ class VarBase:
     __pointer_type_str = "pointer"
 
     def __init__(self, elem_node, local_name, dimensions, known_types,
-                 type_default, units_default="", kind_default='',
+                 type_default, units_default="", kind_default='', dycore='',
                  protected=False, index_name='', local_index_name='',
                  local_index_name_str='', alloc_default='none',
                  tstep_init_default=False):
@@ -154,6 +154,7 @@ class VarBase:
         self.__standard_name = elem_node.get('standard_name')
         self.__long_name = ''
         self.__initial_value = ''
+        self.__initial_value_match = 0
         self.__initial_val_vars = set()
         self.__ic_names = None
         self.__elements = []
@@ -183,7 +184,30 @@ class VarBase:
             if attrib.tag == 'long_name':
                 self.__long_name = attrib.text
             elif attrib.tag == 'initial_value':
-                self.__initial_value = attrib.text
+                # Figure out if we should use this initial_value
+                #  If the number of matching attributes is greater than the
+                #  default or a previous match, pick this one
+                matches = 0
+                if not attrib.keys():
+                    self.__initial_value = attrib.text
+                # end if (no attributes, this is the default)
+                for att in attrib.keys():
+                    # Check each attribute (for now, this is only the dycore)
+                    if att == 'dyn':
+                        dycore_list = attrib.get('dyn').lower().split(',')
+                        if dycore in dycore_list:
+                            matches += 1
+                        # end if (dycore matches)
+                    # end if (check the dycore)
+                # end for
+                if matches == self.__initial_value_match and matches != 0:
+                    emsg = f"Unclear which initial_value to use for {local_name}. There are at least two configurations with {matches} matching attributes"
+                    raise CCPPError(emsg)
+                elif matches > self.__initial_value_match:
+                    # Use this initial_value (for now)
+                    self.__initial_value_match = matches
+                    self.__initial_value = attrib.text
+                # end if (number of matches)
             elif attrib.tag == 'ic_file_input_names':
                 #Separate out string into list:
                 self.__ic_names = [x.strip() for x in attrib.text.split(' ') if x]
@@ -488,16 +512,16 @@ class Variable(VarBase):
 ###############################################################################
     # pylint: disable=too-many-instance-attributes
     """Registry variable
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dimensions>ccpp_constant_one:horizontal_dimension:two</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dimensions>ccpp_constant_one:horizontal_dimension:two</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Illegal dimension string, ccpp_constant_one:horizontal_dimension:two, in u, step not allowed.
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Unknown Variable content, dims
-    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Bad variable attribute, 'kkind', for 'u'
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Dimension, 'vertical_dimension', not found for 'u'
     """
@@ -511,7 +535,7 @@ class Variable(VarBase):
                         "phys_timestep_init_zero", "standard_name",
                         "type", "units", "version"]
 
-    def __init__(self, var_node, known_types, vdict, logger):
+    def __init__(self, var_node, known_types, vdict, dycore, logger):
         # pylint: disable=too-many-locals
         """Initialize a Variable from registry XML"""
         local_name = var_node.get('local_name')
@@ -588,7 +612,7 @@ class Variable(VarBase):
         # Initialize the base class
         super().__init__(var_node, local_name,
                                        my_dimensions, known_types, ttype,
-                                       protected=protected)
+                                       dycore=dycore, protected=protected)
 
         for attrib in var_node:
             # Second pass, only process array elements
@@ -1040,11 +1064,11 @@ class VarDict(OrderedDict):
         # end for
 
 
-    def check_initial_values(self, physconst_vars):
+    def check_initial_values(self, physconst_vars,use_statements):
         """Raise an error if there are any initial values that are set to
         non-"used" and/or non-"physconst" variables"""
         for var in self.known_initial_value_vars:
-            if var not in physconst_vars:
+            if var not in physconst_vars and not any(second == var for _, second in use_statements):
                 emsg = f"Initial value '{var}' is not a physconst variable"
                 emsg += " or does not have necessary use statement"
                 raise CCPPError(emsg)
@@ -1090,7 +1114,7 @@ class DDT:
                 varname = attrib.text
                 include_var = True
                 attrib_dycores = [x.strip().lower() for x in
-                                  attrib.get('dycore', default="").split(',')
+                                  attrib.get('dyn', default="").split(',')
                                   if x]
                 if attrib_dycores and (dycore not in attrib_dycores):
                     include_var = False
@@ -1207,13 +1231,6 @@ class File:
     CCPPError: Unknown registry File element, 'user'
     """
 
-    # Some data for sorting dimension names
-    __dim_order = {'horizontal_dimension' : 1,
-                   'vertical_layer_dimension' : 2,
-                   'vertical_interface_dimension' : 3,
-                   'number_of_constituents' : 4}
-    __min_dim_key = 5 # For sorting unknown dimensions
-
     def __init__(self, file_node, known_types, dycore,
                  logger, gen_code=True, file_path=None):
         """Initialize a File object from a registry node (XML)"""
@@ -1226,6 +1243,7 @@ class File:
         self.__use_statements = []
         self.__generate_code = gen_code
         self.__file_path = file_path
+        self.__dycore = dycore
         for obj in file_node:
             if obj.tag in ['variable', 'array']:
                 self.add_variable(obj, logger)
@@ -1252,7 +1270,7 @@ class File:
         """Create a Variable from <var_node> and add to this File's
         variable dictionary"""
         newvar = Variable(var_node, self.__known_types, self.__var_dict,
-                          logger)
+                          self.__dycore, logger)
         self.__var_dict.add_variable(newvar)
 
     def add_ddt(self, newddt, logger=None):
@@ -1286,17 +1304,7 @@ class File:
             self.__var_dict.write_metadata(outfile)
         # end with
 
-    @classmethod
-    def dim_sort_key(cls, dim_name):
-        """Return an integer sort key for <dim_name>"""
-        if dim_name not in File.__dim_order:
-            key = File.__min_dim_key
-            File.__min_dim_key += 1
-            File.__dim_order[dim_name] = key
-        # end if
-        return File.__dim_order[dim_name]
-
-    def write_source(self, outdir, indent, logger, physconst_vars):
+    def write_source(self, outdir, indent, logger, physconst_vars, var_module_dict):
         """Write out source code for the variables in this file"""
         ofilename = os.path.join(outdir, f"{self.name}.F90")
         logger.info(f"Writing registry source file, {ofilename}")
@@ -1353,7 +1361,7 @@ class File:
             outfile.end_module_header()
             outfile.write("", 0)
             # Write data management subroutines
-            self.write_allocate_routine(outfile, physconst_vars)
+            self.write_allocate_routine(outfile, physconst_vars, var_module_dict)
             self.write_tstep_init_routine(outfile, physconst_vars)
 
         # end with
@@ -1366,20 +1374,39 @@ class File:
         """Return the name of the physics timestep init routine for this module"""
         return f"{self.name}_tstep_init"
 
-    def write_allocate_routine(self, outfile, physconst_vars):
+    def write_allocate_routine(self, outfile, physconst_vars, var_module_dict):
         """Write a subroutine to allocate all the data in this module"""
         subname = self.allocate_routine_name()
-        args = list(self.__var_dict.known_dimensions)
-        args.sort(key=File.dim_sort_key) # Attempt at a consistent interface
         init_var = 'set_init_val'
-        args.append(f'{init_var}_in')
+        args = [f'{init_var}_in']
         reall_var = 'reallocate'
         args.append(f'{reall_var}_in')
         outfile.write(f'subroutine {subname}({", ".join(args)})', 1)
+
         # Use statements
         nanmods = 'nan => shr_infnan_nan, assignment(=)'
         outfile.write(f'use shr_infnan_mod,   only: {nanmods}', 2)
         outfile.write('use cam_abortutils,   only: endrun', 2)
+
+        #Bring all host dimension variables
+        #in via use statments:
+        outfile.blank_line()
+        for dim in sorted(self.__var_dict.known_dimensions):
+            if dim in var_module_dict:
+                dim_module = var_module_dict[dim][0]
+                dim_loc_name = var_module_dict[dim][1]
+                outfile.write(f'use {dim_module},   only: {dim}=>{dim_loc_name}', 2)
+
+        #Bring in "num_advected" as well if needed, as the
+        #standard name in the cam_constituents.meta file doesn't
+        #match the standard name that is actually used to represent
+        #all constituents. Please note that once the CCPP-framework
+        #supports a separation between total and advected constituents
+        #then this section of code will likely need to be modified:
+        if ('number_of_ccpp_constituents' in self.__var_dict.known_dimensions):
+            outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_constituents", 2)
+        outfile.blank_line()
+
         # Dummy arguments
         outfile.write('!! Dummy arguments', 2)
         for arg in args:
@@ -1515,6 +1542,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
     """
     known_ddts = known_types.known_ddt_names()
     mfiles = []
+    var_module_dict = {} #Dictionary used to find relevant Fortran modules
     if os.path.exists(file_path):
         if run_env.logger:
             run_env.logger.info(f"Parsing metadata_file, '{file_path}'")
@@ -1546,10 +1574,10 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             raise CCPPError(emsg)
         # end if
         for var in mheader.variable_list(loop_vars=False, consts=False):
-            prop = var.get_prop_value('local_name')
-            vnode_str = f'<variable local_name="{prop}"'
-            prop = var.get_prop_value('standard_name')
-            vnode_str += f'\n          standard_name="{prop}"'
+            local_name = var.get_prop_value('local_name')
+            std_name   = var.get_prop_value('standard_name')
+            vnode_str = f'<variable local_name="{local_name}"'
+            vnode_str += f'\n          standard_name="{std_name}"'
             prop = var.get_prop_value('units')
             typ = var.get_prop_value('type')
             kind = var.get_prop_value('kind')
@@ -1578,6 +1606,10 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             vnode_str += '\n</variable>'
             var_node = ET.fromstring(vnode_str)
             mfile.add_variable(var_node, run_env.logger)
+            # Add variable to module dictionary in case it
+            # is needed during code generation:
+            if std_name not in var_module_dict.keys():
+                var_module_dict[std_name] = [mtable.module_name, local_name]
         # end for
         if htype == 'ddt':
             # We defined the variables, now create the DDT for them.
@@ -1593,7 +1625,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
         # end if
         mfiles.append(mfile)
     # end for
-    return mfiles
+    return mfiles, var_module_dict
 
 ###############################################################################
 def write_registry_files(registry, dycore, outdir, src_mod, src_root,
@@ -1610,6 +1642,7 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
     CCPPError: Unknown registry object type, 'variable'
     """
     files = []
+    var_module_dict = {}
     known_types = TypeRegistry()
     # Create a fake CCPPFrameworkEnv object to contain the logger
     run_env = CCPPFrameworkEnv(logger, host_files='',
@@ -1647,9 +1680,10 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
                                                              file_path))
                 # end if
             # end if
-            meta_files = metadata_file_to_files(file_path, known_types,
-                                                dycore, run_env)
+            meta_files, loc_var_mod_dict = metadata_file_to_files(file_path, known_types,
+                                                                  dycore, run_env)
             files.extend(meta_files)
+            var_module_dict.update(loc_var_mod_dict)
         else:
             emsg = "Unknown registry object type, '{}'"
             raise CCPPError(emsg.format(section.tag))
@@ -1670,11 +1704,11 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
         # end for
         # Then check against the initial values in the variable dictionary
         # Check will raise an exception if there is a rogue variable
-        file_.var_dict.check_initial_values(physconst_vars)
+        file_.var_dict.check_initial_values(physconst_vars,file_.use_statements)
         # Generate metadata and source
         if file_.generate_code:
             file_.write_metadata(outdir, logger)
-            file_.write_source(outdir, indent, logger, physconst_vars)
+            file_.write_source(outdir, indent, logger, physconst_vars, var_module_dict)
         # end if
     # end for
 
@@ -1758,6 +1792,30 @@ def _create_constituent_list(registry):
     # end for
     return constituent_list
 
+###############################################################################
+def _create_variables_with_initial_value_list(registry):
+###############################################################################
+    """
+    Create a list of all variables with initial_value defined in the registry.
+    To be used by write_init_files.py to allow these variables to
+    not error when not found in the initial conditions file.
+    """
+    vars_init_value_list = []
+    for section in registry:
+        if section.tag == 'file':
+            for obj in section:
+                if obj.tag == 'variable':
+                    for subobj in obj:
+                        if subobj.tag == 'initial_value':
+                            stdname = obj.get('standard_name')
+                            vars_init_value_list.append(stdname)
+                        # end if (only if initial_value node is found)
+                    # end for
+                # end if (ignore other node types)
+            # end for
+        # end if (ignore other node types)
+    # end for
+    return vars_init_value_list
 
 ###############################################################################
 def gen_registry(registry_file, dycore, outdir, indent,
@@ -1767,7 +1825,7 @@ def gen_registry(registry_file, dycore, outdir, indent,
     """Parse a registry XML file and generate source code and metadata.
     <dycore> is the name of the dycore for DP coupling specialization.
     <config> is a dictionary containing other configuration items for
-       souce code customization.
+       source code customization.
     Source code and metadata is output to <outdir>.
     <src_mod> is the location of the builds SourceMods/src.cam directory
     <src_root> is the top of the component tree
@@ -1805,8 +1863,7 @@ def gen_registry(registry_file, dycore, outdir, indent,
     try:
         emsg = f"Invalid registry file, {registry_file}"
         file_ok = validate_xml_file(registry_file, 'registry', version,
-                                    logger, schema_path=schema_dir,
-                                    error_on_noxmllint=error_on_no_validate)
+                                    logger, schema_path=schema_dir)
     except CCPPError as ccpperr:
         emsg += f"\n{ccpperr}"
         file_ok = False
@@ -1819,7 +1876,8 @@ def gen_registry(registry_file, dycore, outdir, indent,
         retcode = 1
         files = None
         ic_names = None
-        constituents = None
+        registry_constituents = None
+        vars_init_value = None
     else:
         library_name = registry.get('name')
         emsg = f"Parsing registry, {library_name}"
@@ -1830,9 +1888,10 @@ def gen_registry(registry_file, dycore, outdir, indent,
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
         registry_constituents = _create_constituent_list(registry)
+        vars_init_value = _create_variables_with_initial_value_list(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, registry_constituents
+    return retcode, files, ic_names, registry_constituents, vars_init_value
 
 def main():
     """Function to execute when module called as a script"""

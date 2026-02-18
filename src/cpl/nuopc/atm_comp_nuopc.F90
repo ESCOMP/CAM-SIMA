@@ -43,8 +43,7 @@ module atm_comp_nuopc
    use cam_instance        , only : cam_instance_init, inst_suffix, inst_index
    use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_run4, cam_final
    use cam_comp            , only : cam_timestep_init, cam_timestep_final
-   use camsrfexch          , only : cam_out_t, cam_in_t
-!   use radiation           , only : nextsw_cday  !uncomment once radiation has been CCPP-ized -JN
+   use physics_types       , only : cam_out, cam_in
    use cam_logfile         , only : cam_set_log_unit, iulog
    use cam_abortutils      , only : check_allocate
    use spmd_utils          , only : spmd_init, masterproc, iam
@@ -56,7 +55,6 @@ module atm_comp_nuopc
    use perf_mod            , only : t_startf, t_stopf
    use physics_grid        , only : global_index_p, get_rlon_all_p, get_rlat_all_p
    use physics_grid        , only : ngcols => num_global_phys_cols
-   use physics_grid        , only : lsize  => columns_on_task
    use physics_grid        , only : hdim1_d, hdim2_d
    use cam_control_mod     , only : cam_ctrl_set_orbit
    use cam_pio_utils       , only : cam_pio_createfile, cam_pio_openfile, cam_pio_closefile, pio_subsystem
@@ -108,8 +106,6 @@ module atm_comp_nuopc
   integer                      :: nthrds
   integer                      :: ierr                ! allocate status
   integer         , parameter  :: dbug_flag = 0
-  type(cam_in_t)  , pointer    :: cam_in
-  type(cam_out_t) , pointer    :: cam_out
   integer         , pointer    :: dof(:)              ! global index space decomposition
   character(len=256)           :: rsfilename_spec_cam ! Filename specifier for restart surface file
   character(*)    ,parameter   :: modName =  "(atm_comp_nuopc)"
@@ -330,7 +326,8 @@ contains
   !===============================================================================
   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
 
-    use ESMF, only : ESMF_VMGet
+    use ESMF,         only : ESMF_VMGet
+    use physics_grid, only : lsize => columns_on_task
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -351,10 +348,10 @@ contains
     integer                 :: spatialDim
     integer                 :: numOwnedElements
     real(r8), allocatable   :: ownedElemCoords(:)
-    real(r8)                :: lat(lsize)
-    real(r8)                :: latMesh(lsize)
-    real(r8)                :: lon(lsize)
-    real(r8)                :: lonMesh(lsize)
+    real(r8), allocatable   :: lat(:)
+    real(r8), allocatable   :: latMesh(:)
+    real(r8), allocatable   :: lon(:)
+    real(r8), allocatable   :: lonMesh(:)
     integer                 :: ncols                             ! number of local columns
     integer                 :: start_ymd                         ! Start date (YYYYMMDD)
     integer                 :: start_tod                         ! Start time of day (sec)
@@ -417,7 +414,7 @@ contains
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
 
-    call shr_log_setLogUnit (iulog)
+    call shr_log_setLogUnit(iulog)
 
     !----------------------------------------------------------------------------
     ! generate local mpi comm
@@ -664,9 +661,7 @@ contains
          stop_ymd=stop_ymd,                           &
          stop_tod=stop_tod,                           &
          curr_ymd=curr_ymd,                           &
-         curr_tod=curr_tod,                           &
-         cam_out=cam_out,                             &
-         cam_in=cam_in)
+         curr_tod=curr_tod)
 
     if (mediator_present) then
 
@@ -674,15 +669,39 @@ contains
 
           call cam_set_mesh_for_single_column(scol_lon, scol_lat, model_mesh, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(dof(1), stat=ierr)
-          call check_allocate(ierr, subname, 'dof(1)', file=__FILE__, line=__LINE__)
+          allocate(dof(1), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'dof(1)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
           dof(1) = 1
 
        else
 
+          ! Allocate lat/lon variables.  Note that this must be done
+          ! after 'cam_init' or else the physics grid, and thus 'lsize',
+          ! won't be propertly set.
+          allocate(lat(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'lat(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+          allocate(lon(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'lon(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+          allocate(latMesh(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'latMesh(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+          allocate(lonMesh(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'lonMesh(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
+
           ! generate the dof
-          allocate(dof(lsize), stat=ierr)
-          call check_allocate(ierr, subname, 'dof(lsize)', file=__FILE__, line=__LINE__)
+          allocate(dof(lsize), stat=ierr, errmsg=tempc1)
+          call check_allocate(ierr, subname, 'dof(lsize)', &
+                              file=__FILE__, line=__LINE__, &
+                              errmsg=tempc1)
           do i = 1, lsize
              dof(i) = global_index_p(i)
           end do
@@ -799,6 +818,8 @@ contains
 
   !===============================================================================
   subroutine DataInitialize(gcomp, rc)
+
+    use physics_types, only: nextsw_cday
 
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -918,7 +939,7 @@ contains
           call import_fields( gcomp, cam_in, rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call cam_timestep_init()
-          call cam_run1 ( cam_in, cam_out )
+          call cam_run1 ()
           call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
@@ -927,18 +948,15 @@ contains
           call import_fields( gcomp, cam_in, restart_init=.true., rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call cam_timestep_init()
-          call cam_run1 ( cam_in, cam_out )
+          call cam_run1 ()
           call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-!Remove once radiation (nextsw_cday) has been enabled in CAM-SIMA -JN.
-#if 0
        ! Compute time of next radiation computation
        call State_SetScalar(nextsw_cday, flds_scalar_index_nextsw_cday, exportState, &
             flds_scalar_name, flds_scalar_num, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
 
        ! diagnostics
        if (dbug_flag > 1) then
@@ -980,7 +998,7 @@ contains
     !---------------------------------------------------------------
 
        call cam_timestep_init()
-       call cam_run1 ( cam_in, cam_out )
+       call cam_run1 ()
 
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="true", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1006,7 +1024,8 @@ contains
   !===============================================================================
   subroutine ModelAdvance(gcomp, rc)
 
-    use ESMF, only : ESMF_GridCompGet, esmf_vmget, esmf_vm
+    use ESMF,          only: ESMF_GridCompGet, esmf_vmget, esmf_vm
+    use physics_types, only: nextsw_cday
     ! Run CAM
 
     ! Input/output variables
@@ -1156,15 +1175,15 @@ contains
        ! This includes the "physics_after_coupler" CCPP physics group.
 
        call t_startf ('CAM_run2')
-       call cam_run2( cam_out, cam_in )
+       call cam_run2()
        call t_stopf  ('CAM_run2')
 
        call t_startf ('CAM_run3')
-       call cam_run3( cam_out )
+       call cam_run3()
        call t_stopf  ('CAM_run3')
 
        call t_startf ('CAM_run4')
-       call cam_run4( cam_out, cam_in, rstwr, nlend, &
+       call cam_run4( rstwr, nlend, &
             yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
        call t_stopf  ('CAM_run4')
        call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check)
@@ -1180,7 +1199,7 @@ contains
        ! This includes the "physics_before_coupler" CCPP physics group.
 
        call t_startf ('CAM_run1')
-       call cam_run1 ( cam_in, cam_out )
+       call cam_run1 ()
        call t_stopf  ('CAM_run1')
 
     end do
@@ -1193,14 +1212,11 @@ contains
        call t_stopf ('CAM_export')
 
        ! Set the coupling scalars
-!Remove once radiation (nextsw_cday) has been enabled in CAM-SIMA -JN.
-#if 0
        ! Return time of next radiation calculation - albedos will need to be
        ! calculated by each surface model at this time
        call State_SetScalar(nextsw_cday, flds_scalar_index_nextsw_cday, exportState, &
             flds_scalar_name, flds_scalar_num, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
 
        ! diagnostics
        if (dbug_flag > 1) then
@@ -1453,7 +1469,7 @@ contains
     endif
 
     call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false., do_history_write=.false.)
-    call cam_final(cam_out, cam_in)
+    call cam_final()
 
     if (masterproc) then
        write(iulog,F91)

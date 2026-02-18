@@ -132,7 +132,7 @@ def _find_scheme_source(source_dirs, metadata_file_name):
     doctests:
 
     1.  Check that the function can correctly find source and namelist files:
-    >>> _find_scheme_source([os.path.join(_CAM_ROOT_DIR, "test", "unit", "sample_files", \
+    >>> _find_scheme_source([os.path.join(_CAM_ROOT_DIR, "test", "unit", "python", "sample_files", \
                             "autogen_files")], "two_scheme_banana") # doctest: +ELLIPSIS
     ('...two_scheme_banana.F90', '...two_scheme_banana_namelist.xml')
 
@@ -358,6 +358,68 @@ def _update_genccpp_dir(utility_files, genccpp_dir):
     # end for
 
 ###############################################################################
+def _set_rrtmgp_dependencies(dependency_files, gpu_flag):
+###############################################################################
+    """
+    Modify the list of files that physics schemes depend on
+    (as provided by the CCPP) so that the correct RRTMGP
+    dependencies exist for either CPUs or GPUs.
+
+    This function returns a modified list with either the
+    CPU or GPU RRTMGP dependencies, but not both.
+
+    >>> in_files = ['/some/path/file.F90','/some/rte-kernels/rrtmgp.F90', \
+                    '/some/rte-kernels/accel/rrtmgp.F90', \
+                    '/some/rte-kernels/mo_rte_solver_kernels.F90', \
+                    '/some/rte-kernels/accel/mo_rte_solver_kernels.F90', \
+                    '/some/other/path/file.F90', \
+                    '/other/rrtmgp-kernels/mo_gas_optics_rrtmgp_kernels.F90', \
+                    '/other/rrtmgp-kernels/accel/mo_gas_optics_rrtmgp_kernels.F90', ]
+    >>> _set_rrtmgp_dependencies(in_files, False)
+    ['/some/path/file.F90', '/some/rte-kernels/rrtmgp.F90', \
+'/some/rte-kernels/accel/rrtmgp.F90', '/some/rte-kernels/mo_rte_solver_kernels.F90', \
+'/some/other/path/file.F90', '/other/rrtmgp-kernels/mo_gas_optics_rrtmgp_kernels.F90']
+
+    >>> _set_rrtmgp_dependencies(in_files, True)
+    ['/some/path/file.F90', '/some/rte-kernels/rrtmgp.F90', \
+'/some/rte-kernels/accel/rrtmgp.F90', \
+'/some/rte-kernels/accel/mo_rte_solver_kernels.F90', '/some/other/path/file.F90', \
+'/other/rrtmgp-kernels/accel/mo_gas_optics_rrtmgp_kernels.F90']
+    """
+
+    # Create new list of CCPP-dependent files:
+    new_dependency_files = []
+
+    # List of directory strings that indicate
+    # RRTMGP dependencies:
+    rrtmgp_subdirs = ['rte-kernels', 'rrtmgp-kernels']
+
+    # List of RRTMGP files that differ between CPUs and GPUs:
+    rrtmgp_files = ['mo_rte_solver_kernels.F90',
+                    'mo_optical_props_kernels.F90',
+                    'mo_gas_optics_rrtmgp_kernels.F90']
+
+
+    for file_path in dependency_files:
+        if any(subdir in file_path for subdir in rrtmgp_subdirs):
+            if any(rfile in file_path for rfile in rrtmgp_files):
+                if (gpu_flag and 'accel' in file_path):
+                    #If GPU-enabled and is "accelerated", include it:
+                    new_dependency_files.append(file_path)
+                elif (not gpu_flag and 'accel' not in file_path):
+                    #If CPU-only and not "accelerated", include it:
+                    new_dependency_files.append(file_path)
+            else:
+                #Not a hardware-dependent file, so include it:
+                new_dependency_files.append(file_path)
+        else:
+            #Not an RRTMGP file, so include it:
+            new_dependency_files.append(file_path)
+
+    # Return newly-modified dependency files:
+    return new_dependency_files
+
+###############################################################################
 def generate_registry(data_search, build_cache, atm_root, bldroot,
                       source_mods_dir, dycore, gen_fort_indent):
 ###############################################################################
@@ -392,7 +454,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
                                    gen_fort_indent, source_mods_dir, atm_root,
                                    logger=_LOGGER, schema_paths=data_search,
                                    error_on_no_validate=True)
-            retcode, reg_file_list, ic_names, registry_constituents = retvals
+            retcode, reg_file_list, ic_names, registry_constituents, vars_init_value = retvals
             # Raise error if gen_registry failed:
             if retcode != 0:
                 emsg = "ERROR:Unable to generate CAM data structures from {}, err = {}"
@@ -406,20 +468,22 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         # Save build details in the build cache
         reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
-                                    reg_file_paths, ic_names, registry_constituents)
+                                    reg_file_paths, ic_names, registry_constituents, vars_init_value)
     else:
         # If we did not run the registry generator, retrieve info from cache
         reg_file_paths = build_cache.reg_file_list()
         ic_names = build_cache.ic_names()
         registry_constituents = build_cache.constituents()
+        vars_init_value = build_cache.vars_init_value()
     # End if
 
-    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents
+    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents, vars_init_value
 
 ###############################################################################
 def generate_physics_suites(build_cache, preproc_defs, host_name,
                             phys_suites_str, atm_root, bldroot,
-                            reg_dir, reg_files, source_mods_dir, force):
+                            reg_dir, reg_files, source_mods_dir,
+                            gpu_flag, force):
 ###############################################################################
     """
     Generate the source for the configured physics suites,
@@ -451,6 +515,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # Find the SDFs specified for this model build
     sdfs = []
     scheme_files = []
+    scheme_names = set()
     xml_files = {} # key is scheme, value is xml file path
     for sdf in phys_suites_str.split(';'):
         sdf_path = _find_file(f"suite_{sdf}.xml", suite_search)
@@ -466,6 +531,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         # Given an SDF, find all the schemes it calls
         _, suite = read_xml_file(sdf_path)
         sdf_schemes = _find_schemes_in_sdf(suite)
+        #Add schemes to set of all scheme names:
+        scheme_names.update(sdf_schemes)
         # For each scheme, find its metadata file
         for scheme in sdf_schemes:
             if scheme in all_scheme_files:
@@ -597,20 +664,20 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # So go-ahead and copy all of the source code from
     # there to the bld directory:
     if do_gen_ccpp:
-        # Set CCPP physics "utilities" path
-        atm_phys_util_dir = os.path.join(atm_schemes_path, "utilities")
+        # Set CCPP physics 'utilities' path
+        atm_phys_utilities_dir  = os.path.join(atm_schemes_path, "utilities")
 
-        # Check that directory exists
-        if not os.path.isdir(atm_phys_util_dir):
+        # Check that the directory exists
+        if not os.path.isdir(atm_phys_utilities_dir):
             # CAM-SIMA will likely not run without this, so raise an error
-            emsg = "ERROR: Unable to find CCPP physics utilities directory:\n"
-            emsg += f" {atm_phys_util_dir}\n Have you run 'git-fleximod'?"
+            emsg = "ERROR: Unable to find CCPP physics 'utilities' directory:\n"
+            emsg += f" {atm_phys_utilities_dir}\n Have you run 'git-fleximod'?"
             raise CamAutoGenError(emsg)
         # end if
 
-        # Copy all utility source files to the build directory
-        atm_phys_util_files = glob.glob(os.path.join(atm_phys_util_dir, "*.F90"))
-        for util_file in atm_phys_util_files:
+        # Copy all 'utilities' source files to the build directory
+        atm_phys_utilities_files = glob.glob(os.path.join(atm_phys_utilities_dir, "*.F90"))
+        for util_file in atm_phys_utilities_files:
             shutil.copy(util_file, physics_blddir)
         # end for
 
@@ -628,19 +695,38 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
             raise CamAutoGenError(emsg)
         # end if
 
+        # Copy all 'to_be_ccppized' source files to the build directory
         atm_phys_to_be_ccppized_files = glob.glob(os.path.join(atm_phys_to_be_ccppized_dir, "*.F90"))
         for to_be_ccppized_file in atm_phys_to_be_ccppized_files:
            shutil.copy(to_be_ccppized_file, physics_blddir)
         # end for
-    # end if
+
+        # Copy 'phys_utils' modules to the build directory,
+        # as SIMA's pio_reader module depends on them.
+        # Note: This requirement will likely disappear once
+        # the abstract File I/O interface has been moved to the
+        # CCPP-framework itself.
+        atm_phys_phys_utils_dir = os.path.join(atm_phys_top_dir, "phys_utils")
+
+        # Check that the directory exists
+        if not os.path.isdir(atm_phys_phys_utils_dir):
+            # CAM-SIMA will likely not run without this, so raise an error
+            emsg = "ERROR: Unable to find CCPP physics 'phys_utils' directory:\n"
+            emsg += f" {atm_phys_phys_utils_dir}\n Have you run 'git-fleximod'?"
+            raise CamAutoGenError(emsg)
+
+        # Copy all 'phys_utils' source files to the build directory
+        atm_phys_phys_utils_files = glob.glob(os.path.join(atm_phys_phys_utils_dir, "*.F90"))
+        for util_file in atm_phys_phys_utils_files:
+            shutil.copy(util_file, physics_blddir)
+
+    # end if (do_gen_ccpp)
 
     if do_gen_ccpp or do_gen_nl:
         # save build details in the build cache
         build_cache.update_ccpp(sdfs, scheme_files, host_files, xml_files,
                                 scheme_nl_meta_files, nl_groups, create_nl_file,
                                 preproc_cache_str, kind_types)
-        ##XXgoldyXX: v Temporary fix: Copy CCPP Framework source code into
-        ##XXgoldyXX: v   generated code directory
         request = DatatableReport("utility_files")
         ufiles_str = datatable_report(cap_output_file, request, ";")
         utility_files = ufiles_str.split(';')
@@ -649,17 +735,25 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         dep_str = datatable_report(cap_output_file, request, ";")
         if len(dep_str) > 0:
             dependency_files = dep_str.split(';')
+            # If using RRTMGP in the physics suite, then modify
+            # the provided dependency files list to use the correct
+            # CPU or GPU RRTMGP dependencies:
+            if any("rrtmgp_" in scheme_name for scheme_name in scheme_names):
+                dependency_files = _set_rrtmgp_dependencies(dependency_files,
+                                                            gpu_flag)
+
+            # Copy dependencies files into CCPP build directory
             _update_genccpp_dir(dependency_files, genccpp_dir)
-        ##XXgoldyXX: ^ Temporary fix:
     # End if
 
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file,       \
-        xml_files.values(), capgen_db
+        xml_files.values(), capgen_db, scheme_names
 
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
                            source_mods_dir, gen_fort_indent,
-                           cap_database, ic_names, registry_constituents):
+                           cap_database, ic_names, registry_constituents,
+                           vars_init_value):
 ###############################################################################
     """
     Generate the host model initialization source code files
@@ -669,7 +763,7 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
     and/or script).
     """
 
-    #Add new directory to build path:
+    # Add new directory to build path:
     init_dir = os.path.join(bldroot, "phys_init")
     # Use this for cache check
     gen_init_file = os.path.join(_REG_GEN_DIR, "write_init_files.py")
@@ -680,11 +774,11 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
         if force_ccpp or force_init:
             do_gen_init = True
         else:
-            #If not, then check cache to see if actual
-            #"write_init_files.py" was modified:
+            # If not, then check cache to see if actual
+            # "write_init_files.py" was modified:
             do_gen_init = build_cache.init_write_mismatch(gen_init_file)
     else:
-        #If no directory exists, then one will need
+        # If no directory exists, then one will need
         # to create new routines:
         os.mkdir(init_dir)
         do_gen_init = True
@@ -697,7 +791,7 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
         #   within write_init_files (so that write_init_files can be the place
         #   where the source include files are stored).
         source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_init_files(cap_database, ic_names, registry_constituents,
+        retmsg = write_init_files(cap_database, ic_names, registry_constituents, vars_init_value,
                                   init_dir, _find_file, source_paths,
                                   gen_fort_indent, _LOGGER)
 

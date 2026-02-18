@@ -25,7 +25,7 @@
   dimensions = ()
   protected = True
 [ cpliq ]
-  standard_name = specific_heat_of_liquid_water_at_20c
+  standard_name = specific_heat_of_liquid_water_at_constant_pressure
   long_name = Specific heat of fresh H2O
   units = J kg-1 K-1
   type = real | kind = kind_phys
@@ -274,7 +274,7 @@
   dimensions = ()
   protected = True
 [ zvir ]
-  standard_name = ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
+  standard_name = ratio_of_water_vapor_to_dry_air_gas_constants_minus_one
   units = 1
   type = real | kind = kind_phys
   dimensions = ()

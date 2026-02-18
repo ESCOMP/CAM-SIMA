@@ -9,7 +9,6 @@
   <!-- Derecho physics tests -->
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_kessler_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
@@ -19,7 +18,6 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_held_suarez_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
@@ -29,7 +27,6 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_tj2016_before_coupler_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
@@ -39,12 +36,92 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_tj2016_after_coupler_derecho">
     <machines>
-      <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
       <option name="comment">Test for Moist Held-Suarez (TJ2016) physics (physics_after_coupler group)</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_zm_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for Zhang McFarlane deep convection scheme</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_hack_shallow_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for Hack shallow convection scheme</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_dme_adjust_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for dme_adjust scheme</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_rk_stratiform_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for Rasch-Kristjansson microphysics scheme</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_hb_vdiff_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for Holtslag-Boville boundary layer scheme and vertical diffusion</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_gw_cam4_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for orographic gravity wave scheme (CAM4)</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_gw_cam7_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for moving mountain, deep convective, frontogenesis, beta ridge gravity wave scheme suite (CAM7)</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_rrtmgp_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Snapshot test for RRTMGP</option>
+    </options>
+  </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_rrtmgp_derecho_gpu">
+    <machines>
+      <machine name="derecho" compiler="nvhpc" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">GPU snapshot test for RRTMGP</option>
     </options>
   </test>
 
@@ -59,7 +136,7 @@
       <option name="comment">Test for MPAS dycore (with Kessler physics)</option>
     </options>
   </test>
-  <test compset="FKESSLER" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
+  <test compset="FKESSLER" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -69,7 +146,7 @@
       <option name="comment">Test for SE-CSLAM dycore (with Kessler physics)</option>
     </options>
   </test>
-  <test compset="FHS94" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
+  <test compset="FHS94" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -79,7 +156,7 @@
       <option name="comment">Test for SE-CSLAM dycore (with Held-Suarez physics)</option>
     </options>
   </test>
-  <test compset="FTJ16" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
+  <test compset="FTJ16" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -89,9 +166,30 @@
       <option name="comment">Test for SE-CSLAM dycore (with TJ2016 [moist Held-Suarez] physics)</option>
     </options>
   </test>
+  <test compset="FADIAB" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for SE-CSLAM dycore with dry adiabatic settings (no physics forcings)</option>
+    </options>
+  </test>
+
+  <!-- Multiple history tape test -->
+  <test compset="FKESSLER" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_multitape">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for SE-CSLAM dycore (with Kessler physics) with multiple history tapes</option>
+    </options>
+  </test>
 
   <!-- CAM7 physics tests -->
-  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="FCAM7" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -99,6 +197,18 @@
     <options>
       <option name="wallclock">00:10:00</option>
       <option name="comment">CAM7 test with SE-CSLAM dycore</option>
+    </options>
+  </test>
+
+  <!-- CAM4 physics tests -->
+  <test compset="QPC4" grid="mpasa120_mpasa120" name="SMS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+      <option name="comment">Aquaplanet CAM4 test with MPAS dycore at 120 km resolution</option>
     </options>
   </test>
 </testlist>

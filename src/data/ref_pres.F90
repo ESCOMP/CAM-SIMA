@@ -56,6 +56,12 @@ module ref_pres
    logical, protected :: do_molec_diff = .false.
    integer, protected :: nbot_molec = 0
 
+   ! Pressure limit used to set gravity wave tapering at top of model (Pa)
+   real(kind_phys), parameter :: gravity_wave_taper_bot_press = 0.6E-02_kind_phys
+
+   ! Bottom level for tapering gravity waves at top of model
+   integer, protected :: nbot_gravity_wave_top_taper = 0
+
 !====================================================================================
 contains
 !====================================================================================
@@ -94,13 +100,11 @@ contains
          end if
       end if
 
-      if (npes > 1) then
-         ! Broadcast namelist variables
-         call mpi_bcast(trop_cloud_top_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(clim_modal_aero_top_press, 1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(do_molec_press,            1,  mpi_real8, masterprocid, mpicom, ierr)
-         call mpi_bcast(molec_diff_bot_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
-      endif
+      ! Broadcast namelist variables
+      call mpi_bcast(trop_cloud_top_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(clim_modal_aero_top_press, 1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(do_molec_press,            1,  mpi_real8, masterprocid, mpicom, ierr)
+      call mpi_bcast(molec_diff_bot_press,      1,  mpi_real8, masterprocid, mpicom, ierr)
 
    end subroutine ref_pres_readnl
 
@@ -153,19 +157,24 @@ contains
       pref_mid_norm = pref_mid/psurf_ref
 
       ! Find level corresponding to the top of troposphere clouds.
-      trop_cloud_top_lev = press_lim_idx(pver, trop_cloud_top_press, &
+      trop_cloud_top_lev = press_lim_idx(trop_cloud_top_press, &
          top=.true.)
 
       ! Find level corresponding to the top for MAM processes.
-      clim_modal_aero_top_lev = press_lim_idx(pver, clim_modal_aero_top_press, &
+      clim_modal_aero_top_lev = press_lim_idx(clim_modal_aero_top_press, &
          top=.true.)
 
       ! Find level corresponding to the molecular diffusion bottom.
       do_molec_diff = (ptop_ref < do_molec_press)
       if (do_molec_diff) then
-         nbot_molec = press_lim_idx(pver, molec_diff_bot_press, &
+         nbot_molec = press_lim_idx(molec_diff_bot_press, &
             top=.false.)
       end if
+
+      ! Find level corresponding to the bottom for tapering gravity waves
+      ! at the top of model.
+      nbot_gravity_wave_top_taper = press_lim_idx(gravity_wave_taper_bot_press, &
+         top=.true.)
 
       ! Tell rest of model that variables have been initialized:
       ! pref_edge_in
@@ -179,7 +188,7 @@ contains
       ! num_pr_lev
       call mark_as_initialized("number_of_pure_pressure_levels_at_top")
       ! trop_cloud_top_lev
-      call mark_as_initialized("index_of_pressure_at_troposhere_cloud_top")
+      call mark_as_initialized("vertical_layer_index_of_troposphere_cloud_physics_top")
       ! clim_modal_aero_top_lev
       call mark_as_initialized("index_of_air_pressure_at_top_of_aerosol_model")
       ! do_molec_press
@@ -187,21 +196,24 @@ contains
       ! molec_diff_bot_press
       call mark_as_initialized("pressure_at_bottom_of_molecular_diffusion")
       ! do_molec_diff
-      call mark_as_initialized("flag_for_molecular_diffusion")
+      call mark_as_initialized("do_molecular_diffusion")
       ! nbot_molec
       call mark_as_initialized("index_of_pressure_at_bottom_of_molecular_diffusion")
+      ! gravity_wave_taper_bot_press
+      call mark_as_initialized("largest_model_top_pressure_that_allows_tapering_gravity_wave_drag_at_model_top")
+      ! nbot_gravity_wave_top_taper
+      call mark_as_initialized("vertical_index_of_bottom_limit_for_tapering_gravity_wave_drag_at_model_top")
 
    end subroutine ref_pres_init
 
 !====================================================================================
 
    ! Convert pressure limiters to the appropriate level.
-   pure function press_lim_idx(pver, pres, top) result(lev_idx_lim)
+   pure function press_lim_idx(pres, top) result(lev_idx_lim)
 
       use vert_coord, only: index_top_layer, index_bottom_layer
 
       ! Input arguments:
-      integer, intent(in)         :: pver ! Number of vertical levels
       real(kind_phys), intent(in) :: pres ! Air pressure (Pa)
       logical,  intent(in)        :: top  ! Is this a top or bottom limit?
 

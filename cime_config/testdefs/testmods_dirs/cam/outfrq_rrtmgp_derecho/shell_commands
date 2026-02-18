@@ -1,0 +1,2 @@
+ ./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites rrtmgp"
+./xmlchange RUN_STARTDATE=1979-01-01

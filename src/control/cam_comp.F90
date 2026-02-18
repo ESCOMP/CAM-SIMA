@@ -25,11 +25,11 @@ module cam_comp
    use time_manager,              only: is_first_step, is_first_restart_step
    use time_manager,              only: get_curr_calday
 
-   use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
-   use physics_types,             only: calday
+   use physics_types,             only: calday, next_calday, radiation_offset, nextsw_cday
    use physics_types,             only: is_first_timestep, nstep
+   use physics_types,             only: is_first_restart_timestep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -75,8 +75,7 @@ CONTAINS
         eccen, obliqr, lambm0, mvelpp,                                        &
         perpetual_run, perpetual_ymd,                                         &
         dtime, start_ymd, start_tod, ref_ymd, ref_tod,                        &
-        stop_ymd, stop_tod, curr_ymd, curr_tod,                               &
-        cam_out, cam_in)
+        stop_ymd, stop_tod, curr_ymd, curr_tod)
 
       !-----------------------------------------------------------------------
       !
@@ -84,25 +83,30 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,        only: cam_initfiles_open
-      use dyn_grid,             only: model_grid_init
-      use phys_comp,            only: phys_init
-      use phys_comp,            only: phys_register
-      use dyn_comp,             only: dyn_init
-!      use cam_restart,          only: cam_read_restart
-      use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-      use cam_history,          only: history_init_files
-!      use history_scam,         only: scm_intht
-      use cam_pio_utils,        only: init_pio_subsystem
-      use cam_instance,         only: inst_suffix
-!      use history_defaults,     only: initialize_iop_history
-      use stepon,               only: stepon_init
-      use air_composition,      only: air_composition_init
-      use cam_ccpp_cap,         only: cam_ccpp_initialize_constituents
-      use physics_grid,         only: columns_on_task
-      use vert_coord,           only: pver
-      use phys_vars_init_check, only: mark_as_initialized
-      use tropopause_climo_read, only: tropopause_climo_read_file
+      use cam_initfiles,             only: cam_initfiles_open
+      use dyn_grid,                  only: model_grid_init
+      use phys_comp,                 only: phys_init, phys_suite_name
+      use phys_comp,                 only: phys_register
+      use dyn_comp,                  only: dyn_init
+!      use cam_restart,               only: cam_read_restart
+      use cam_history,               only: history_init_files
+!      use history_scam,              only: scm_intht
+      use cam_pio_utils,             only: init_pio_subsystem
+      use cam_instance,              only: inst_suffix
+!      use history_defaults,          only: initialize_iop_history
+      use stepon,                    only: stepon_init
+      use air_composition,           only: air_composition_init
+      use cam_ccpp_cap,              only: cam_ccpp_initialize_constituents
+      use cam_ccpp_cap,              only: cam_model_const_properties
+      use physics_grid,              only: columns_on_task
+      use vert_coord,                only: pver
+      use phys_vars_init_check,      only: mark_as_initialized
+      use tropopause_climo_read,     only: tropopause_climo_read_file
+      use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
+      use orbital_data,              only: orbital_data_init
+      use ccpp_kinds,                only: kind_phys
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use musica_ccpp_dependencies,  only: musica_ccpp_dependencies_init
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -141,13 +145,12 @@ CONTAINS
       integer, intent(in)      :: ref_ymd       ! Reference date (YYYYMMDD)
       integer, intent(in)      :: ref_tod       ! Reference time of day (sec)
 
-      type(cam_out_t), pointer :: cam_out       ! Output from CAM to surface
-      type(cam_in_t),  pointer :: cam_in        ! Merged input state to CAM
-
-                                                ! Local variables
+      ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
       integer                  :: errflg
       character(len=cx)        :: errmsg
+
+      type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
       !-----------------------------------------------------------------------
 
       call init_pio_subsystem()
@@ -176,12 +179,21 @@ CONTAINS
       is_first_timestep = .true.
       call mark_as_initialized('is_first_timestep')
 
+      is_first_restart_timestep = .false.
+      call mark_as_initialized('is_first_restart_timestep')
+
       nstep = get_nstep()
       call mark_as_initialized('current_timestep_number')
 
       ! Get current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
+      next_calday = get_curr_calday(offset=int(get_step_size()))
+      radiation_offset = 0
+      nextsw_cday = next_calday
       call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
+      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
+      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
+      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -225,10 +237,6 @@ CONTAINS
 
          call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
-         ! Allocate and setup surface exchange data
-         call atm2hub_alloc(cam_out)
-         call hub2atm_alloc(cam_in)
-
       else
 
 !!XXgoldyXX: v need to import this
@@ -245,6 +253,21 @@ CONTAINS
 
       ! Read tropopause climatology
       call tropopause_climo_read_file()
+
+      ! Read gravity wave drag data for ridge parameterization
+      call gravity_wave_drag_ridge_read_file()
+
+      ! TEMPORARY:  Prescribe realistic but inaccurate physical quantities
+      ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
+      !
+      ! Remove this when MUSICA input data are available from CAM-SIMA or
+      ! other physics schemes.
+      constituent_properties => cam_model_const_properties()
+      call musica_ccpp_dependencies_init(columns_on_task, pver, &
+           constituent_properties, phys_suite_name)
+
+      ! Initialize orbital data
+      call orbital_data_init(columns_on_task)
 
       call phys_init()
 
@@ -271,8 +294,27 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp, only: phys_timestep_init
-      use stepon,    only: stepon_timestep_init
+      use phys_comp,                 only: phys_timestep_init
+      use physics_grid,              only: lat_rad, lon_rad
+      use orbital_data,              only: orbital_data_advance
+      use stepon,                    only: stepon_timestep_init
+      use physics_types,             only: dt_avg
+      use cam_ccpp_cap,              only: cam_constituents_array
+      use cam_ccpp_cap,              only: cam_model_const_properties
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use ccpp_kinds,                only: kind_phys
+      use musica_ccpp_dependencies,  only: set_initial_musica_concentrations
+      use radiation_namelist,        only: use_rad_uniform_angle, rad_uniform_angle
+
+      real(kind_phys), pointer :: constituents_array(:,:,:)
+      type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
+
+      ! Update current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+
+      ! Update the orbital data
+      call orbital_data_advance(calday, lat_rad, lon_rad, use_rad_uniform_angle, &
+                                rad_uniform_angle, dt_avg)
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()
@@ -287,6 +329,23 @@ CONTAINS
       call stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
            dyn_in, dyn_out)
       call t_stopf('stepon_timestep_init')
+
+      !----------------------------------------------------------
+      ! TEMPORARY:  Set initial MUSICA constituent values
+      !
+      !            This is a temporary workaround to initialize
+      !            MUSICA constituent values until the file I/O
+      !            capability is implemented.
+      !            Remove this when MUSICA species are initialized
+      !            by CAM-SIMA.
+      !----------------------------------------------------------
+      if (is_first_timestep) then
+         constituents_array => cam_constituents_array()
+         constituent_properties => cam_model_const_properties()
+         call set_initial_musica_concentrations(constituents_array, &
+              constituent_properties)
+      end if
+
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_INIT Call the Physics package
@@ -294,14 +353,15 @@ CONTAINS
       !
       call phys_timestep_init()
 
-      ! Update current fractional calendar day. Needs to be updated at every timestep.
-      calday = get_curr_calday()
+      ! Call share code to get relevant calendar days
+      nextsw_cday = get_curr_calday(offset=radiation_offset)
+      next_calday = get_curr_calday(offset=int(get_step_size()))
 
    end subroutine cam_timestep_init
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_run1(cam_in, cam_out)
+   subroutine cam_run1()
       !-----------------------------------------------------------------------
       !
       ! Purpose:   First phase of atmosphere model run method.
@@ -312,9 +372,6 @@ CONTAINS
 
       use phys_comp, only: phys_run1
 !      use ionosphere_interface, only: ionosphere_run1
-
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed
@@ -337,7 +394,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run2(cam_out, cam_in)
+   subroutine cam_run2()
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Second phase of atmosphere model run method.
@@ -351,9 +408,6 @@ CONTAINS
       use phys_comp, only: phys_run2
       use stepon,    only: stepon_run2
 !      use ionosphere_interface, only: ionosphere_run2
-
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
 
       !
       ! Second phase of physics (after surface model update)
@@ -384,7 +438,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run3(cam_out)
+   subroutine cam_run3()
       !-----------------------------------------------------------------------
       !
       ! Purpose:  Third phase of atmosphere model run method. This consists
@@ -394,8 +448,8 @@ CONTAINS
       !
       !-----------------------------------------------------------------------
       use stepon, only: stepon_run3
+      use physics_types, only: cam_out          ! Output from CAM to surface
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
       !-----------------------------------------------------------------------
 
       !
@@ -413,7 +467,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run4(cam_out, cam_in, rstwr, nlend,                         &
+   subroutine cam_run4(rstwr, nlend,                         &
         yr_spec, mon_spec, day_spec, sec_spec)
 
       !-----------------------------------------------------------------------
@@ -426,8 +480,6 @@ CONTAINS
 !      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
 
-      type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
-      type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
       logical,         intent(in)           :: rstwr    ! write restart file
       logical,         intent(in)           :: nlend    ! this is final timestep
       integer,         intent(in), optional :: yr_spec  ! Simulation year
@@ -505,7 +557,7 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_final(cam_out, cam_in)
+   subroutine cam_final()
       !-----------------------------------------------------------------------
       !
       ! Purpose:  CAM finalization.
@@ -514,15 +566,8 @@ CONTAINS
       use stepon,               only: stepon_final
       use phys_comp,            only: phys_final
       use cam_initfiles,        only: cam_initfiles_close
-      use camsrfexch,           only: atm2hub_deallocate, hub2atm_deallocate
 !      use ionosphere_interface, only: ionosphere_final
       use cam_control_mod,      only: initial_run
-
-      !
-      ! Arguments
-      !
-      type(cam_out_t), pointer :: cam_out ! Output from CAM to surface
-      type(cam_in_t),  pointer :: cam_in  ! Input from merged surface to CAM
 
       !-----------------------------------------------------------------------
 
@@ -533,9 +578,6 @@ CONTAINS
       if (initial_run) then
          call cam_initfiles_close()
       end if
-
-      call hub2atm_deallocate(cam_in)
-      call atm2hub_deallocate(cam_out)
 
       ! This flush attempts to ensure that asynchronous diagnostic prints
       !   from all processes do not get mixed up with the "END OF MODEL RUN"
@@ -615,6 +657,7 @@ CONTAINS
               default_value=0._kind_phys,                                               &
               vertical_dim="vertical_layer_dimension",                                  &
               advected=.true.,                                                          &
+              diag_name="Q",                                                            &
            errcode=errflg, errmsg=errmsg)
 
          if (errflg /= 0) then

@@ -186,8 +186,9 @@ class ConfigCAM:
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
         self.__caseroot = case.get_value("CASEROOT")
-        self.__bldroot = os.path.join(exeroot, "atm", "obj")
+        self.__bldroot  = os.path.join(exeroot, "atm", "obj")
         self.__atm_name = case.get_value("COMP_ATM")
+        self.__gpu_flag = case.get_value("OPENACC_GPU_OFFLOAD") #Returns a Boolean
 
         # Save CPP definitions as a list:
         self.__cppdefs = [x for x in case.get_value("CAM_CPPDEFS").split() if x]
@@ -240,8 +241,12 @@ class ConfigCAM:
         # Save local (cime_config) directory path:
         cime_conf_path = os.path.dirname(os.path.abspath(__file__))
 
-        # Save path to the "data" src direcotry:
+        # Save path to the "data" src directory:
         data_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "data")
+
+        # Save path to the "cpl/nuopc" src directory:
+        cpl_nuopc_nml_path = os.path.join(cime_conf_path, os.pardir, "src", "cpl",
+                                          "nuopc")
 
         # Create empty XML namelist definition files dictionary:
         self.__xml_nml_def_files = OrderedDict()
@@ -250,6 +255,8 @@ class ConfigCAM:
         self._add_xml_nml_file(cime_conf_path, "namelist_definition_cam.xml")
         self._add_xml_nml_file(data_nml_path, "namelist_definition_physconst.xml")
         self._add_xml_nml_file(data_nml_path, "namelist_definition_ref_pres.xml")
+        self._add_xml_nml_file(cpl_nuopc_nml_path,
+                               "namelist_definition_atm_stream_ndep.xml")
 
         #----------------------------------------------------
         # Set CAM start date (needed for namelist generation)
@@ -481,22 +488,26 @@ class ConfigCAM:
         self.create_config("analytic_ic", analy_ic_desc,
                            analy_ic_val, [0, 1], is_nml_attr=True)
 
-        #--------------------
-        # Set ocean component
-        #--------------------
+        #--------------------------
+        # Check if running an
+        # aquaplanet configuration
+        #--------------------------
 
-        ocn_valid_vals = ["docn", "dom", "som", "socn",
-                          "aquaplanet", "pop", "mom"]
+        if user_config_opts.aquaplanet:
+            aquap_flag = 1
+        else:
+            aquap_flag = 0
 
-        ocn_desc = ["The ocean model being used.",
-                    "Valid values include prognostic ocean models (POP or MOM),",
-                    "data ocean models (DOCN or DOM), a stub ocean (SOCN), ",
-                    "and an aqua planet ocean (aquaplanet).",
-                    "This does not impact how the case is built, only how",
-                    "attributes are matched when searching for namelist defaults."]
+        aquap_desc = ["Switch to use aquaplanet configuration: ",
+                      "0 => no ",
+                      "1 => yes."]
 
-        self.create_config("ocn", ocn_desc, comp_ocn,
-                           ocn_valid_vals, is_nml_attr=True)
+        self.create_config("aquaplanet", aquap_desc,
+                           aquap_flag, [0, 1], is_nml_attr=True)
+
+        #--------------------------
+        # Set physics_suites string
+        #--------------------------
 
         phys_desc = ["A semicolon-separated list of physics suite definition "
                      "file (SDF) names.",
@@ -576,25 +587,25 @@ class ConfigCAM:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         4.  Check that parse_config_opts works as expected when given a physics suite and a second argument:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         5.  Check that parse_config_opts works as expected when given both a string and logical argument:
-        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic_ic")
+        >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler --dyn se --analytic-ic")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', True), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
+        [('analytic_ic', True), ('aquaplanet', False), ('dyn', 'se'), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler')]
 
         6.  Check that parse_config_opts works as expected when given multiple physics suites:
         >>> config_opts = ConfigCAM.parse_config_opts("--physics-suites kessler;musica")
         >>> vargs = vars(config_opts)
         >>> [(x, vargs[x]) for x in sorted(vargs)]
-        [('analytic_ic', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
+        [('analytic_ic', False), ('aquaplanet', False), ('dyn', ''), ('dyn_kind', 'REAL64'), ('phys_kind', 'REAL64'), ('physics_suites', 'kessler;musica')]
 
         7.  Check that parse_config_opts fails correctly when given an un-recognized argument:
         >>> ConfigCAM.parse_config_opts("--phys kessler musica", test_mode=True)
@@ -609,26 +620,44 @@ class ConfigCAM:
                                          epilog="Allowed values of "+cco_str)
 
         #Add argument options:
-        parser.add_argument("--physics-suites", "-physics-suites", type=str,
-                            required=True, metavar='<CCPP_SDFs>',
+        parser.add_argument("--physics-suites",
+                            type=str,
+                            required=True,
+                            metavar='<CCPP_SDFs>',
                             help="""Semicolon-separated list of Physics Suite
                                  Definition Files (SDFs)""")
 
-        parser.add_argument("--dyn", "-dyn", metavar='<dycore>',
-                            type=str, required=False, default="",
+        parser.add_argument("--dyn",
+                            type=str,
+                            required=False,
+                            metavar='<dycore>',
+                            default="",
                             help="""Name of dycore""")
 
-        parser.add_argument("--analytic_ic", "-analytic_ic",
-                            action='store_true', required=False,
-                            help="""Flag to turn on Analytic Initial
-                                 Conditions (ICs).""")
+        parser.add_argument("--aquaplanet",
+                            action='store_true',
+                            required=False,
+                            help="""Flag to turn on aquaplanet
+                                 settings (0 = False, 1 = True).""")
 
-        parser.add_argument("--dyn_kind", "-dyn_kind",
-                            type=str, required=False, default="REAL64",
+        parser.add_argument("--analytic-ic",
+                            action='store_true',
+                            required=False,
+                            help="""Flag to turn on Analytic Initial
+                                 Conditions (ICs). 0 = False, 1 = True.""")
+
+        parser.add_argument("--dyn-kind",
+                            type=str,
+                            required=False,
+                            metavar='<kind string>',
+                            default="REAL64",
                             help="""Fortran kind used in dycore for type real.""")
 
-        parser.add_argument("--phys_kind", "-phys_kind",
-                            type=str, required=False, default="REAL64",
+        parser.add_argument("--phys-kind",
+                            type=str,
+                            required=False,
+                            metavar='<kind string>',
+                            default="REAL64",
                             help="""Fortran kind used in physics for type real.""")
 
         popts = [opt for opt in config_opts.split(" ") if opt]
@@ -838,7 +867,7 @@ class ConfigCAM:
         retvals = generate_registry(data_search, build_cache, self.__atm_root,
                                     self.__bldroot, source_mods_dir,
                                     dyn, gen_fort_indent)
-        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents = retvals
+        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents, vars_init_value = retvals
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -851,8 +880,8 @@ class ConfigCAM:
                                           self.__atm_name, phys_suites,
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
-                                          force_ccpp)
-        phys_dirs, force_init, _, nml_fils, capgen_db = retvals
+                                          self.__gpu_flag, force_ccpp)
+        phys_dirs, force_init, _, nml_fils, capgen_db, scheme_names = retvals
 
         # Add namelist definition files to dictionary:
         for nml_fil in nml_fils:
@@ -871,7 +900,8 @@ class ConfigCAM:
         init_dir = generate_init_routines(build_cache, self.__bldroot,
                                           force_ccpp, force_init,
                                           source_mods_dir, gen_fort_indent,
-                                          capgen_db, ic_names, registry_constituents)
+                                          capgen_db, ic_names, registry_constituents,
+                                          vars_init_value)
 
         #Add registry path to config object:
         init_dir_desc = "Location of auto-generated physics initialization code."
@@ -881,6 +911,9 @@ class ConfigCAM:
         # write out the cache here as we have completed pre-processing
         #--------------------------------------------------------------
         build_cache.write()
+
+        #Return the set of all scheme names present in the SDFs:
+        return scheme_names
 
     #++++++++++++++++++++++++
 

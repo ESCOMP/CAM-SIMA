@@ -14,6 +14,7 @@ module cam_constituents
    public :: const_longname
    public :: const_molec_weight
    public :: const_get_index
+   public :: const_is_advected
    public :: const_is_dry
    public :: const_is_moist
    public :: const_is_wet
@@ -37,10 +38,17 @@ module cam_constituents
    !! \htmlinclude cam_constituents.html
    integer, public, protected :: num_advected = 0
 
+   integer, public, protected :: num_constituents = 0
+
    !! Note: There are no <xxx>_name interfaces in function interfaces below
    !!       because use of this sort of interface is often for optional
    !!       constituents and there is no way to indicate a missing
    !!       constituent in these functions (e.g., a logical).
+
+   interface const_is_advected
+      module procedure const_is_advected_obj
+      module procedure const_is_advected_index
+   end interface const_is_advected
 
    interface const_is_dry
       module procedure const_is_dry_obj
@@ -156,10 +164,16 @@ CONTAINS
 
    subroutine cam_constituents_init(cnst_prop_ptr, num_advect)
       use cam_abortutils, only: endrun
+      use spmd_utils,     only: masterproc
+      use cam_logfile,    only: iulog, debug_output
+      use cam_logfile,    only: DEBUGOUT_VERBOSE
 
       ! Initialize module constituent variables
       type(ccpp_constituent_prop_ptr_t), pointer :: cnst_prop_ptr(:)
       integer, intent(in)                        :: num_advect
+
+      !For log output:
+      integer :: cnst_idx
 
       if (initialized) then
          call endrun("cam_constituents_init: already initialized",            &
@@ -167,8 +181,24 @@ CONTAINS
       end if
       const_props => cnst_prop_ptr
       num_advected = num_advect
+      num_constituents = size(const_props)
 
       initialized = .true.
+
+      !If log level is verbose, then print out
+      !the names/order of all registered constituents:
+      if ((debug_output >= DEBUGOUT_VERBOSE) .and. masterproc) then
+
+         write(iulog,*) 'LIST OF REGISTERED CONSTITUENTS:'
+         write(iulog,*) '********************************'
+         write(iulog,*) ' Constituent index : Standard name : Advected (T or F)'
+         do cnst_idx = 1, num_constituents
+            write(iulog,'(I0,3A, L)') cnst_idx, ' : ', trim(const_name(cnst_idx)), ' : ', &
+                                   const_is_advected(cnst_idx)
+         end do
+         write(iulog,*) '********************************'
+
+      end if
 
    end subroutine cam_constituents_init
 
@@ -361,6 +391,44 @@ CONTAINS
       end if
 
    end subroutine const_get_index
+
+   !#######################################################################
+
+   logical function const_is_advected_obj(const_obj)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+
+      ! Return .true. if the constituent object, <const_obj>, is advected
+      ! Dummy argument
+      type(ccpp_constituent_prop_ptr_t), intent(in) :: const_obj
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_is_advected_obj: '
+
+      call const_obj%is_advected(const_is_advected_obj, err_code, err_msg)
+      if (err_code /= 0) then
+         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+              trim(err_msg), file=__FILE__, line=__LINE__)
+      end if
+
+   end function const_is_advected_obj
+
+   !#######################################################################
+
+   logical function const_is_advected_index(const_ind)
+
+      ! Return .true. if the constituent at <index> is advected
+      ! Dummy argument
+      integer, intent(in) :: const_ind
+      ! Local variable
+      character(len=*), parameter :: subname = 'const_is_advected_index: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         const_is_advected_index = const_is_advected(const_props(const_ind))
+      end if
+
+   end function const_is_advected_index
 
    !#######################################################################
 

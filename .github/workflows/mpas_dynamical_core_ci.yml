@@ -1,0 +1,302 @@
+name: MPAS Dynamical Core CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  push:
+    branches:
+      - 'staging/**'
+      - development
+  workflow_dispatch:
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }} - ${{ github.ref }}
+
+jobs:
+  # This check is the stepped leader to determine if the rest of jobs should run. We unfortunately cannot use path filtering
+  # due to the peculiar limitations of GitHub Actions, quoted below for reference:
+  #
+  # "If a workflow is skipped due to path filtering, then checks associated with that workflow will remain in a "Pending" state.
+  # A pull request that requires those checks to be successful will be blocked from merging."
+  conditional-check:
+    name: Check if jobs should run
+    timeout-minutes: 1
+    runs-on: ubuntu-24.04
+    outputs:
+      should-run: ${{ steps.conditional.outputs.result }}
+    steps:
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
+
+      - name: Check if there are changes to MPAS dynamical core
+        id: conditional
+        run: |
+          set -euo pipefail
+
+          write_result_and_exit() {
+            case "$1" in
+              false)
+                echo "Result: Skip jobs."
+                echo "result=$1" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              true)
+                echo "Result: Run jobs."
+                echo "result=$1" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              error|*)
+                echo "Error occurred!"
+                exit 1
+                ;;
+            esac
+          }
+
+          case "${{ github.event_name }}" in
+            pull_request)
+              echo "Event is pull request."
+
+              HEAD_COMMIT="${{ github.sha }}"
+
+              if [ -z "$HEAD_COMMIT" ]; then
+                echo "HEAD_COMMIT is empty."
+                write_result_and_exit false
+              fi
+
+              echo "Fetching $HEAD_COMMIT with parents..."
+              git fetch --depth=2 origin "$HEAD_COMMIT" || write_result_and_exit error
+
+              BASE_COMMIT="$(git rev-parse $HEAD_COMMIT^1)" || write_result_and_exit error
+              ;;
+            push)
+              echo "Event is push."
+
+              BASE_COMMIT="${{ github.event.before }}"
+              HEAD_COMMIT="${{ github.event.after }}"
+
+              if [ -z "$BASE_COMMIT" ] || [ -z "$HEAD_COMMIT" ]; then
+                echo "BASE_COMMIT or HEAD_COMMIT is empty."
+                write_result_and_exit false
+              fi
+
+              if [ -z "${BASE_COMMIT//0/}" ] || [ -z "${HEAD_COMMIT//0/}" ]; then
+                echo "BASE_COMMIT or HEAD_COMMIT is null."
+                write_result_and_exit false
+              fi
+
+              echo "Fetching $BASE_COMMIT..."
+              git fetch --depth=1 origin "$BASE_COMMIT" || write_result_and_exit error
+
+              echo "Fetching $HEAD_COMMIT..."
+              git fetch --depth=1 origin "$HEAD_COMMIT" || write_result_and_exit error
+              ;;
+            workflow_dispatch)
+              echo "Event is workflow dispatch."
+
+              # Always run jobs when triggered manually.
+              write_result_and_exit true
+              ;;
+            *)
+              echo "Event is unknown."
+
+              # Always skip jobs for any other events.
+              write_result_and_exit false
+              ;;
+          esac
+
+          echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
+          git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
+
+          if grep -E -q '(^\.github\/workflows\/mpas_dynamical_core_ci\.yml$|^src\/dynamics\/mpas\/.+$)' changed-paths.txt; then
+            write_result_and_exit true
+          else
+            write_result_and_exit false
+          fi
+  # This job evaluates the overall status of MPAS dynamical core CI for the purpose of inclusion as a required status check.
+  # It exists solely due to, again, the peculiar limitations of GitHub Actions, quoted below for reference:
+  #
+  # "The `jobs.<job_id>.if` conditional is evaluated before `jobs.<job_id>.strategy.matrix` is applied." This implies that
+  # when a matrix job is set as a required status check, skipping it due to the conditional will cause a pull request to be
+  # blocked from merging.
+  overall-status:
+    name: Overall status
+    timeout-minutes: 1
+    runs-on: ubuntu-24.04
+    needs:
+      - conditional-check
+      - source-code-linting
+      - unit-tests
+    if: ${{ always() }}
+    steps:
+      - name: Evaluate overall status
+        run: |
+          set -euo pipefail
+
+          write_result_and_exit() {
+            case "$1" in
+              false)
+                echo "Result: Failure."
+                exit 1
+                ;;
+              true)
+                echo "Result: Success."
+                exit 0
+                ;;
+              error|*)
+                echo "Error occurred!"
+                exit 1
+                ;;
+            esac
+          }
+
+          case "${{ needs.conditional-check.result }}" in
+            success)
+              :
+              ;;
+            cancelled|failure|skipped)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
+          case "${{ needs.source-code-linting.result }}" in
+            skipped|success)
+              :
+              ;;
+            cancelled|failure)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
+          case "${{ needs.unit-tests.result }}" in
+            skipped|success)
+              :
+              ;;
+            cancelled|failure)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
+          write_result_and_exit true
+  source-code-linting:
+    name: Lint Fortran source code
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    env:
+      FORTITUDE_VERSION: '0.7.*'
+      SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    steps:
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          cache: pip
+          python-version: '3.12'
+
+      - name: Install Fortitude
+        run: |
+          python3 -m venv venv-fortitude
+          source venv-fortitude/bin/activate
+          python3 -m pip install "fortitude-lint==$FORTITUDE_VERSION"
+
+      - name: Lint Fortran source code
+        run: |
+          source venv-fortitude/bin/activate
+          fortitude --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" check --exit-zero --output-file "$SOURCE_CODE_PATH/source-code-linting.log" --preview "$SOURCE_CODE_PATH"
+          cat "$SOURCE_CODE_PATH/source-code-linting.log"
+
+      - name: Upload Fortran source code linting log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: source-code-linting-log
+          path: ${{ env.SOURCE_CODE_PATH }}/source-code-linting.log
+          retention-days: 7
+  unit-tests:
+    name: Build and run unit tests (GCC ${{ matrix.gcc-version }})
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc-version:
+          - '12'
+          - '13'
+          - '14'
+    runs-on: ubuntu-24.04
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    env:
+      CC: gcc-${{ matrix.gcc-version }}
+      CXX: g++-${{ matrix.gcc-version }}
+      FC: gfortran-${{ matrix.gcc-version }}
+      PFUNIT_BUILD_TYPE: Release
+      PFUNIT_PATH: ${{ github.workspace }}/pFUnit
+      PFUNIT_REFERENCE: 'v4.13.0'
+      UNIT_TESTS_BUILD_TYPE: Debug
+      UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    steps:
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v5
+
+      # pFUnit takes a while to build. Cache it if possible to save time on consecutive workflow runs.
+      - name: Cache pFUnit
+        id: cache-pfunit
+        uses: actions/cache@v4
+        with:
+          key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.gcc-version }}-mpas
+          path: ${{ env.PFUNIT_PATH }}/install
+
+      # If there is a cache hit, just use the cached pFUnit and skip this step.
+      - name: Checkout pFUnit
+        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
+        uses: actions/checkout@v5
+        with:
+          repository: Goddard-Fortran-Ecosystem/pFUnit
+          ref: ${{ env.PFUNIT_REFERENCE }}
+          path: pFUnit
+
+      # If there is a cache hit, just use the cached pFUnit and skip this step.
+      - name: Build pFUnit
+        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
+        run: |
+          cmake -D CMAKE_BUILD_TYPE="$PFUNIT_BUILD_TYPE" -D CMAKE_INSTALL_PREFIX="$PFUNIT_PATH/install" -B "$PFUNIT_PATH/build" -S "$PFUNIT_PATH"
+          cmake --build "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE"
+          cmake --install "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE" --prefix "$PFUNIT_PATH/install"
+
+      - name: Build unit tests
+        run: |
+          cmake -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" -D CMAKE_PREFIX_PATH="$PFUNIT_PATH/install" -B "$UNIT_TESTS_PATH/build" -S "$UNIT_TESTS_PATH"
+          cmake --build "$UNIT_TESTS_PATH/build" --config "$UNIT_TESTS_BUILD_TYPE"
+
+      - name: Run unit tests
+        run: |
+          ctest --build-config "$UNIT_TESTS_BUILD_TYPE" --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" --output-on-failure --test-dir "$UNIT_TESTS_PATH/build" --verbose
+
+      - name: Upload unit tests log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: unit-tests-log-gcc-v${{ matrix.gcc-version }}
+          path: ${{ env.UNIT_TESTS_PATH }}/build/unit-tests.log
+          retention-days: 7

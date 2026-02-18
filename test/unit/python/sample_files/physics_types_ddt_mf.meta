@@ -1,0 +1,43 @@
+[ccpp-table-properties]
+  name = physics_state
+  type = ddt
+[ccpp-arg-table]
+  name = physics_state
+  type = ddt
+[ ncol ]
+  standard_name = horizontal_dimension
+  long_name = Number of horizontal columns
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ latitude ]
+  standard_name = latitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ccpp-table-properties]
+  name = physics_types_ddt_mf
+  type = module
+[ccpp-arg-table]
+  name = physics_types_ddt_mf
+  type = module
+[ longitude ]
+  standard_name = longitude
+  units = radians
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
+[ cappav ]
+  standard_name = composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure
+  long_name = Composition-dependent ratio of dry air gas constant to specific heat at constant pressure
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, reference_pressure)
+[ phys_state ]
+  standard_name = physics_state_due_to_dynamics
+  long_name = Physics state variables updated by dynamical core
+  units = None
+  type = physics_state
+  dimensions = ()

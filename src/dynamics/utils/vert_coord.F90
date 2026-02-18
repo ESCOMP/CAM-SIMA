@@ -67,10 +67,8 @@ CONTAINS
          end if
       end if
 
-      if (npes > 1) then
-         ! Broadcast namelist variables
-         call mpi_bcast(pver, 1, mpi_integer, masterprocid, mpicom, ierr)
-      endif
+      ! Broadcast namelist variables
+      call mpi_bcast(pver, 1, mpi_integer, masterprocid, mpicom, ierr)
 
    end subroutine vert_coord_readnl
 
