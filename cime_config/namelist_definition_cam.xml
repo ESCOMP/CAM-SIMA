@@ -125,7 +125,7 @@
       dry surface pressure scaling. If less than or equal to 0.0,
       do not perform scaling. If greater than 0.0, perform scaling to scale_dry_air_mass
       value (in Pa) as the average dry surface pressure target.
-      Default: set by build-namelist.
+      Default: 0.0
     </desc>
     <values>
       <value>0.0D0</value>

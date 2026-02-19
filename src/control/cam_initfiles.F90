@@ -123,11 +123,11 @@ CONTAINS
            mstrid, mpicom, ierr)
       if (ierr /= 0) then
          call endrun(subname//": ERROR: mpi_bcast: cam_branch_file")
-       end if
-       call mpi_bcast(scale_dry_air_mass, 1, mpi_real8, mstrid, mpicom, ierr)
-       if (ierr /= 0) then
+      end if
+      call mpi_bcast(scale_dry_air_mass, 1, mpi_real8, mstrid, mpicom, ierr)
+      if (ierr /= 0) then
          call endrun(subname//": ERROR: mpi_bcast: scale_dry_air_mass")
-       endif
+      endif
       call mpi_bcast(unset_path_str, len(unset_path_str), mpi_character,      &
            mstrid, mpicom, ierr)
       if (ierr /= 0) then

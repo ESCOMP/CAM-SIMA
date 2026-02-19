@@ -14,7 +14,7 @@
 !#define skip_high_order_fq_map !do mass and correlation preserving phys2fvm mapping but no high-order pre-mapping of fq
 #define mass_fix
 module fvm_mapping
-  use shr_kind_mod,           only: r8=>shr_kind_r8
+  use shr_kind_mod,           only: r8=>shr_kind_r8, len_cx=>shr_kind_cx
   use dimensions_mod,         only: irecons_tracer
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
@@ -26,7 +26,7 @@ module fvm_mapping
 
   public :: phys2dyn_forcings_fvm, dyn2phys, dyn2phys_vector, dyn2phys_all_vars,dyn2fvm_mass_vars
   public :: phys2dyn,fvm2dyn,dyn2fvm,cslam2gll
-  save
+
   integer                                            :: save_max_overlap
   real(kind=r8), allocatable, dimension(:,:,:,:,:)   :: save_air_mass_overlap
   real(kind=r8), allocatable, dimension(:,:,:,:,:,:) :: save_q_overlap
@@ -67,6 +67,7 @@ contains
     integer              :: nflds
     logical, allocatable :: llimiter(:)
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'phys2dyn_forcings_fvm (SE)'
 
     if (no_cslam) then
@@ -81,18 +82,19 @@ contains
       !
       call t_startf('p2d-pg2:copying')
       nflds = 4+ntrac
-      allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), stat=iret)
+      allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(fld_gll(np,np,nlev,3,nets:nete), stat=iret)
+      allocate(fld_gll(np,np,nlev,3,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'fld_gll(np,np,nlev,3,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(llimiter(3), stat=iret)
+      allocate(llimiter(3), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'llimiter(nflds)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       fld_phys = -9.99E99_r8!xxx necessary?
 
@@ -154,19 +156,20 @@ contains
        !
        ! nflds is ft, fu, fv, + thermo species
        nflds = 3
-       allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), stat=iret)
+       allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret)
+       allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'fld_gll(np,np,nlev,nflds,nets:nete)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(llimiter(nflds), stat=iret)
+       allocate(llimiter(nflds), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, ' llimiter(nflds)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        llimiter(1:nflds) = .false.
        do ie=nets,nete
@@ -467,46 +470,52 @@ contains
     integer :: k,m_cnst,ie
     integer :: iret
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'dyn2phys_all_vars'
 
     !OMP BARRIER OMP MASTER needed
     if (nc.ne.fv_nphys) then
       save_max_overlap = 4 !max number of mass overlap areas between phys and fvm grids
-      allocate(save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
+      allocate(save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete), stat=iret)
+      allocate(save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete)', &
                           file=__FILE__, line=__LINE__)
 
-      allocate(save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete), stat=iret)
+      allocate(save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
+      allocate(save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete), stat=iret)
+      allocate(save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
+      allocate(save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       save_num_overlap = 0
-      allocate(save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete), stat=iret)
+      allocate(save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     end if
 
@@ -576,7 +585,7 @@ contains
     real (kind=r8), intent(in), optional :: q_gll(np,np)
     real (kind=r8)                       :: qdp_phys(nc,nc), min_val, max_val
     integer                              :: i,j
-    
+
     call subcell_integration(qdp_gll(:,:), np, nc, metdet,qdp_phys)
     if (present(inv_dp_darea_phys)) then
       !
@@ -677,6 +686,7 @@ contains
 
     integer :: iret
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'setup_interpdata_for_gll_to_phys_vec_mapping (SE)'
 
     ngrid = fv_nphys*fv_nphys
@@ -686,17 +696,17 @@ contains
     !
     gp_quadrature = gausslobatto(np)
     call interpolate_create(gp_quadrature,interp_p)
-    allocate(interpdata%interp_xy(ngrid), stat=iret)
+    allocate(interpdata%interp_xy(ngrid), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'interpdata%interp_xy(ngrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(interpdata%ilat(ngrid), stat=iret)
+    allocate(interpdata%ilat(ngrid), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'interpdata%ilat(ngrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(interpdata%ilon(ngrid), stat=iret)
+    allocate(interpdata%ilon(ngrid), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'interpdata%ilon(ngrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     !
     !WARNING: THIS CODE INTERFERES WITH LAT-LON OUTPUT
@@ -1023,27 +1033,32 @@ contains
     real(kind=r8), allocatable, dimension(:,:,:) :: dq_overlap
     real(kind=r8), allocatable, dimension(:,:,:) :: fq_phys_overlap
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'phys2fvm (SE)'
 
-    allocate(dq_min_overlap       (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(dq_min_overlap       (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'dq_min_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(dq_max_overlap       (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(dq_max_overlap       (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'dq_max_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(dq_overlap           (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(dq_overlap           (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'dq_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(fq_phys_overlap      (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(fq_phys_overlap      (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'fq_phys_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     do m_cnst=1,num_trac
       fqdp_fvm(:,:,m_cnst) = 0.0_r8
@@ -1086,7 +1101,7 @@ contains
 #endif
             !
             ! prepare for mass fixing algorithm
-            !       
+            !
             dq_min_overlap(h,jx,jy)   = save_q_overlap(h,jx,jy,k,m_cnst,ie)-phys_cdp_min(jx,jy)
             dq_max_overlap  (h,jx,jy) = save_q_overlap(h,jx,jy,k,m_cnst,ie)-phys_cdp_max(jx,jy)
           end do
@@ -1184,7 +1199,7 @@ contains
     use dp_mapping, only: weights_eul_index_all_fvm2phys
     use dp_mapping, only: weights_lgr_index_all_phys2fvm, weights_eul_index_all_phys2fvm,jall_phys2fvm
     use dp_mapping, only: weights_all_phys2fvm
-    
+
     integer              , intent(in)           :: ie,k
     type(fvm_struct)     , intent(in)           :: fvm
     integer              , intent(in)           :: num_trac, max_overlap
@@ -1217,7 +1232,7 @@ contains
         end if
       end do
     end do
-    
+
     llimiter_q=.false.
     call get_physgrid_recons(fvm,fq_phys,recons_q,num_trac,llimiter_q)
     !
@@ -1241,7 +1256,7 @@ contains
        end do
      end do
   end subroutine get_fq_overlap
-  
+
   subroutine get_physgrid_recons(fvm,field_phys,recons_phys,num_trac,llimiter)
     use dimensions_mod, only: fv_nphys,nhr_phys,nhc_phys,ns_phys
     use fvm_reconstruction_mod, only: reconstruction
@@ -1385,6 +1400,7 @@ contains
 
      integer                                             :: ie,i,j,k,m_cnst,nq,iret
      real (kind=r8), dimension(:,:,:,:,:)  , allocatable :: fld_fvm, fld_gll
+     character(len=len_cx)       :: errmsg
      character(len=*), parameter :: subname = 'cslam2gll'
      !
      ! for tensor product Lagrange interpolation
@@ -1396,17 +1412,17 @@ contains
 
      !Allocate variables
      !------------------
-     allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete), stat=iret)
+     allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete)', &
-          file=__FILE__, line=__LINE__)
+          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(fld_gll(np,np,nlev,thermodynamic_active_species_num,nets:nete),stat=iret)
+     allocate(fld_gll(np,np,nlev,thermodynamic_active_species_num,nets:nete),stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fld_gll(np,np,nlev,thermodynamic_active_species_num,nets:nete)', &
-          file=__FILE__, line=__LINE__)
+          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(llimiter(nflds), stat=iret)
+     allocate(llimiter(nflds), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'llimiter(nflds)', &
-          file=__FILE__, line=__LINE__)
+          file=__FILE__, line=__LINE__, errmsg=errmsg)
      !------------------
 
      llimiter(1:nflds) = .false.

@@ -1,6 +1,6 @@
 module element_mod
 
-  use shr_kind_mod,           only: r8=>shr_kind_r8, i8=>shr_kind_i8
+  use shr_kind_mod,           only: r8=>shr_kind_r8, i8=>shr_kind_i8, len_cx => shr_kind_cx
   use coordinate_systems_mod, only: spherical_polar_t, cartesian2D_t, cartesian3D_t, distance
   use edgetype_mod,           only: edgedescriptor_t
   use gridgraph_mod,          only: gridvertex_t
@@ -345,46 +345,48 @@ contains
     type (element_t), intent(inout)   :: elem(:)
     integer                           :: num, j, i, iret
 
+    character(len=len_cx)       :: errmsg
+
     character(len=*), parameter :: subname = 'allocate_element_desc (SE)'
 
     num = SIZE(elem)
 
     do j=1,num
-       allocate(elem(j)%desc%putmapP(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%putmapP(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%putmapP(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%getmapP(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%getmapP(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%getmapP(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%putmapP_ghost(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%getmapP_ghost(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%putmapS(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%putmapS(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%putmapS(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%getmapS(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%getmapS(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%getmapS(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%reverse(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%reverse(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%reverse(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%globalID(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%globalID(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%globalID(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%loc2buf(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%loc2buf(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%loc2buf(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        do i=1,max_neigh_edges
           elem(j)%desc%loc2buf(i)=i
@@ -407,6 +409,8 @@ contains
     !Local arguments:
     integer :: num, i, iret
 
+    character(len=len_cx)       :: errmsg
+
     character(len=*), parameter :: subname = 'allocate_element_dims (SE)'
 
     !---------------
@@ -419,111 +423,111 @@ contains
       !--------------------------
 
       ! velocity
-      allocate(elem(i)%state%v(np,np,2,nlev,timelevels), stat=iret)
+      allocate(elem(i)%state%v(np,np,2,nlev,timelevels), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%v(np,np,2,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! temperature
-      allocate(elem(i)%state%T(np,np,nlev,timelevels), stat=iret)
+      allocate(elem(i)%state%T(np,np,nlev,timelevels), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%T(np,np,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! dry delta p on levels
-      allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret)
+      allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%dp3d(np,np,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! Tracer mass
-      allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret)
+      allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,2)', &
-                          file=__FILE__, line=__LINE__)
-      
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+
       !--------------------------
 
       !Allocate "derived" variables:
       !----------------------------
 
       ! velocity for SE tracer advection
-      allocate(elem(i)%derived%vn0(np,np,2,nlev), stat=iret)
+      allocate(elem(i)%derived%vn0(np,np,2,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%vn0(np,np,2,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! mean dp dissipation tendency, if nu_p>0
-      allocate(elem(i)%derived%dpdiss_biharmonic(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dpdiss_biharmonic(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dpdiss_biharmonic(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! mean dp used to compute psdiss_tens
-      allocate(elem(i)%derived%dpdiss_ave(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dpdiss_ave(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dpdiss_ave(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! geopotential
-      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%phi(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! vertical velocity
-      allocate(elem(i)%derived%omega(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%omega(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%omega(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! for dp_tracers at physics timestep
-      allocate(elem(i)%derived%dp(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dp(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dp(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! divergence of dp
-      allocate(elem(i)%derived%divdp(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%divdp(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%divdp(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! DSSed divdp
-      allocate(elem(i)%derived%divdp_proj(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%divdp_proj(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%divdp_proj(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! total tracer mass for diagnostics
-      allocate(elem(i)%derived%mass(max(qsize_d,ntrac)+9), stat=iret)
+      allocate(elem(i)%derived%mass(max(qsize_d,ntrac)+9), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%mass(max(qsize_d,ntrac)+9)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! tracer forcing
-      allocate(elem(i)%derived%FQ(np,np,nlev,qsize_d), stat=iret)
+      allocate(elem(i)%derived%FQ(np,np,nlev,qsize_d), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FQ(np,np,nlev,qsize_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! momentum forcing
-      allocate(elem(i)%derived%FM(np,np,2,nlev), stat=iret)
+      allocate(elem(i)%derived%FM(np,np,2,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FM(np,np,2,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! save full updated dp right after physics
-      allocate(elem(i)%derived%FDP(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%FDP(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FDP(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! temperature forcing
-      allocate(elem(i)%derived%FT(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%FT(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FT(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! reference temperature profile for hyperviscosity
-      allocate(elem(i)%derived%T_ref(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%T_ref(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%T_ref(np,np,nlev)', &
-           file=__FILE__, line=__LINE__)
+           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! reference pressure level thickness profile for hyperviscosity
-      allocate(elem(i)%derived%dp_ref(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dp_ref(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dp_ref(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       !----------------------------
 
       !First Coordinate:
-      allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret)
+      allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%sub_elem_mass_flux(nc,nc,4,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     end do
 

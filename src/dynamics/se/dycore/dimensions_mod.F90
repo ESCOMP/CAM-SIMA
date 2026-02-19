@@ -54,7 +54,7 @@ module dimensions_mod
 
   real(r8), allocatable, public :: nu_scale_top(:) ! scaling of del2 viscosity in sponge layer (initialized in dyn_comp)
   real(r8), allocatable, public :: nu_lev(:)       ! level dependent del4 (u,v) damping
-  real(r8), allocatable, public :: nu_t_lev(:)     ! level depedendet del4 T damping
+  real(r8), allocatable, public :: nu_t_lev(:)     ! level dependent del4 T damping
   integer,               public :: ksponge_end     ! sponge is active k=1,ksponge_end
   real(r8), allocatable, public :: nu_div_lev(:)   ! scaling of viscosity in sponge layer
 
@@ -108,9 +108,13 @@ contains
      use cam_constituents, only: num_advected
      use cam_abortutils,   only: check_allocate
 
+     ! Module(s) from CESM Share.
+     use shr_kind_mod, only: len_cx => shr_kind_cx
+
      ! Local variables:
 
-     integer :: iret
+     integer               :: iret
+     character(len=len_cx) :: errmsg
 
      character(len=*), parameter :: subname = 'dimensions_mod_init'
 
@@ -134,41 +138,41 @@ contains
 
      ! Allocate vertically-dimensioned variables:
 
-     allocate(irecons_tracer_lev(nlev), stat=iret)
+     allocate(irecons_tracer_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'irecons_tracer_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_scale_top(nlev), stat=iret)
+     allocate(nu_scale_top(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_scale_top(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_lev(nlev), stat=iret)
+     allocate(nu_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_t_lev(nlev), stat=iret)
+     allocate(nu_t_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_t_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_div_lev(nlev), stat=iret)
+     allocate(nu_div_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_div_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(kmvis_ref(nlev), stat=iret)
+     allocate(kmvis_ref(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'kmvis_ref(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(kmcnd_ref(nlev), stat=iret)
+     allocate(kmcnd_ref(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'kmcnd_ref(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(rho_ref(nlev), stat=iret)
+     allocate(rho_ref(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'rho_ref(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(km_sponge_factor(nlev), stat=iret)
+     allocate(km_sponge_factor(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'km_sponge_factor(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
   end subroutine dimensions_mod_init
 

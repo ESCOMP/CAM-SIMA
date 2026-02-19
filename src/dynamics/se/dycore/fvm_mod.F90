@@ -60,13 +60,13 @@ contains
 
     integer,intent(in)                        :: nets,nete
     integer,intent(in)                        :: ndepth     ! depth of halo
-    integer,intent(in)                        :: kmin,kmax  ! min and max vertical level 
-    integer,intent(in)                        :: ksize      ! the total number of vertical 
+    integer,intent(in)                        :: kmin,kmax  ! min and max vertical level
+    integer,intent(in)                        :: ksize      ! the total number of vertical
 
     integer                                   :: ie,i1,i2,kblk,kptr,q
     !
     !
-     
+
     if(kmin .ne. 1 .or. kmax .ne. nlev) then
        print *,'WARNING: fill_halo_fvm_noprealloc does not support the passing of non-contigous arrays'
        print *,'WARNING:   incorrect answers are likely'
@@ -90,7 +90,7 @@ contains
     if(FVM_TIMERS) call t_startf('FVM:Communication')
     call ghost_exchange(hybrid,cellghostbuf,location='fill_halo_fvm_noprealloc')
     if(FVM_TIMERS) call t_stopf('FVM:Communication')
-    !-----------------------------------------------------------------------------------!                        
+    !-----------------------------------------------------------------------------------!
     if(FVM_TIMERS) call t_startf('FVM:Unpack')
     do ie=nets,nete
        kptr = kmin-1
@@ -118,15 +118,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
 
     integer,intent(in)                        :: nets,nete
     integer,intent(in)                        :: ndepth     ! depth of halo
-    integer,intent(in)                        :: kmin,kmax  ! min and max vertical level 
-    integer,intent(in)                        :: ksize      ! the total number of vertical 
+    integer,intent(in)                        :: kmin,kmax  ! min and max vertical level
+    integer,intent(in)                        :: ksize      ! the total number of vertical
     logical, optional                         :: active     ! indicates if te current thread is active
     integer                                   :: ie,i1,i2,kblk,q,kptr
     !
     !
     logical :: lactive
 
-    if(present(active)) then 
+    if(present(active)) then
        lactive = active
     else
        lactive = .true.
@@ -150,7 +150,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     if(FVM_TIMERS) call t_startf('FVM:Communication')
     call ghost_exchange(hybrid,cellghostbuf,location='fill_halo_fvm_prealloc')
     if(FVM_TIMERS) call t_stopf('FVM:Communication')
-    !-----------------------------------------------------------------------------------!                        
+    !-----------------------------------------------------------------------------------!
     if(FVM_TIMERS) call t_startf('FVM:Unpack')
     if(lactive) then
     do ie=nets,nete
@@ -295,7 +295,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     end if
   end subroutine fill_halo_and_extend_panel
 
-  
+
   ! initialize global buffers shared by all threads
   subroutine fvm_init1(par,elem)
     use parallel_mod,           only: parallel_t
@@ -307,12 +307,12 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use dimensions_mod,         only: nc,nhe, nhc, nlev,ntrac, ntrac,ns, nhr, use_cslam
     use dimensions_mod,         only: large_Courant_incr
     use dimensions_mod,         only: kmin_jet,kmax_jet
-    
+
     type (parallel_t) :: par
     type (element_t),intent(inout)            :: elem(:)
     !
     if (use_cslam) then
-      if (par%masterproc) then 
+      if (par%masterproc) then
         write(iulog,*) "                                           "
         write(iulog,*) "|-----------------------------------------|"
         write(iulog,*) "| FVM tracer transport scheme information |"
@@ -335,7 +335,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
           write(iulog,*)'with this choice of rsplit =',rsplit
           write(iulog,*)'rsplit must be a multiple of fvm_supercycling=',fvm_supercycling
         end if
-        call endrun("PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling)<>0")        
+        call endrun("PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling)<>0")
       endif
 
       if (qsize>0.and.mod(rsplit,fvm_supercycling_jet).ne.0) then
@@ -344,15 +344,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
           write(iulog,*)'with this choice of rsplit =',rsplit
           write(iulog,*)'rsplit must be a multiple of fvm_supercycling_jet=',fvm_supercycling_jet
         end if
-        call endrun("PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling_jet)<>0")        
+        call endrun("PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling_jet)<>0")
       endif
-      
+
       if (large_Courant_incr.and.(fvm_supercycling.ne.fvm_supercycling_jet)) then
         if (par%masterproc) then
           write(iulog,*)'Large Courant number increment requires no level dependent supercycling'
           write(iulog,*)'i.e. fvm_supercycling must be equal to fvm_supercycling_jet'
         end if
-        call endrun("PARAMETER ERROR for fvm: large_courant_incr requires fvm_supercycling=fvm_supercycling_jet")        
+        call endrun("PARAMETER ERROR for fvm: large_courant_incr requires fvm_supercycling=fvm_supercycling_jet")
       endif
 
       if (par%masterproc) then
@@ -369,7 +369,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       if (nc.ne.3) then
         if (par%masterproc) then
           write(iulog,*) "Only nc==3 is supported for CSLAM"
-        endif
+        end if
         call endrun("PARAMETER ERRROR for fvm: only nc=3 supported for CSLAM")
       end if
 
@@ -382,7 +382,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
           write(iulog,*) "ns==2: using linear interpolation for mapping cell averages values across edges"
           write(iulog,*) "Note that ns=4 is default CSLAM setting used in Lauritzen et al. (2010)"
           write(iulog,*) "so this option is slightly less accurate (but the stencil is smaller near panel edges!)"
-          
+
         else if (ns==3) then
           write(iulog,*) "ns==3: using quadratic interpolation for mapping cell averages values across edges"
           write(iulog,*) "Note that ns=4 is default CSLAM setting used in Lauritzen et al. (2010)"
@@ -390,17 +390,17 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         else if (ns==4) then
           write(iulog,*) "ns==4: using cubic interpolation for mapping cell averages values across edges"
           write(iulog,*) "This is default CSLAM setting used in Lauritzen et al. (2010)"
-        else 
+        else
           write(iulog,*) "Not a tested value for ns but it should work! You choose ns = ",ns
         end if
-        
+
         !       if (ns.NE.3) then
         !         write(*,*) "In fvm_reconstruction_mod function matmul_w has been hard-coded for ns=3 for performance"
         !         write(*,*) "Revert to general code - outcommented above"
         !         call endrun("stopping")
         !       end if
       end if
-      
+
       if (MOD(ns,2)==0.and.nhr+(nhe-1)+ns/2>nc+nc) then
         write(iulog,*) "to run this combination of ns and nhr you need to increase nc to ",nhr+ns/2+nhe-1
         write(iulog,*) "You choose (ns,nhr,nc,nhe)=",ns,nhr,nc,nhe
@@ -411,17 +411,17 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         write(iulog,*) "You choose (ns,nhr,nc,nhe)=",ns,nhr,nc,nhe
         call endrun("stopping")
       end if
-      
+
       if (nc==3.and.ns.ne.3) then
         if (par%masterproc) then
           write(iulog,*) "Recommended setting for nc=3 is ns=3 (linear interpolation in halo)"
           write(iulog,*) "You choose ns=",ns
           write(iulog,*) "Goto dimensions_mod to change value of ns"
           write(iulog,*) "or outcomment call haltmop below (i.e. you know what you are doing!)"
-        endif
+        end if
         call endrun("stopping")
       end if
-    endif
+    end if
 
     if (nc==4.and.ns.ne.4) then
       if (par%masterproc) then
@@ -533,8 +533,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use coordinate_systems_mod, only: cubedsphere2cart, cart2cubedsphere
     implicit none
     type (element_t) ,intent(inout)  :: elem(:)
-    type (fvm_struct),intent(inout)  :: fvm(:) 
-    type (hybrid_t)  ,intent(in)     :: hybrid                      
+    type (fvm_struct),intent(inout)  :: fvm(:)
+    type (hybrid_t)  ,intent(in)     :: hybrid
     integer          ,intent(in)     :: nets,nete,irecons
     !
     type (edgeBuffer_t)     :: cellghostbuf
@@ -567,7 +567,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       call ghostpack(cellghostbuf, fvm(ie)%norm_elem_coord(1,:,:),1,istart,ie)
       istart = istart+1
       call ghostpack(cellghostbuf, fvm(ie)%norm_elem_coord(2,:,:),1,istart,ie)
-      istart = istart+1        
+      istart = istart+1
       do ixy=1,2
         do ivertex=1,4
           call ghostpack(cellghostbuf, fvm(ie)%vtx_cart(ivertex,ixy,:,:) ,1,istart,ie)
@@ -586,7 +586,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       call ghostunpack(cellghostbuf, fvm(ie)%norm_elem_coord(1,:,:),1,istart,ie)
       istart = istart+1
       call ghostunpack(cellghostbuf, fvm(ie)%norm_elem_coord(2,:,:),1,istart,ie)
-      istart = istart+1        
+      istart = istart+1
       do ixy=1,2
         do ivertex=1,4
           call ghostunpack(cellghostbuf, fvm(ie)%vtx_cart(ivertex,ixy,:,:) ,1,istart,ie)
@@ -599,9 +599,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         call ghostunpack(cellghostbuf, fvm(ie)%spherecentroid(ixy,:,:) ,1,istart,ie)
       end do
     enddo
-    call freeghostbuffer(cellghostbuf)    
+    call freeghostbuffer(cellghostbuf)
     !
-    ! indicator for non-existing cells 
+    ! indicator for non-existing cells
     ! set vtx_cart to corner value in non-existent cells
     !
     do ie=nets,nete
@@ -627,26 +627,26 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
          fvm(ie)%vtx_cart(:,2,nc+1 :nc+nhc,1-nhc:0     ) = fvm(ie)%vtx_cart(2,2,nc,1)
        end if
      end do
-     
+
      !
      ! set vectors for perpendicular flux vector
      !
      rot90_matrix(1,1) = 0; rot90_matrix(2,1) =  1 !counter-clockwise rotation matrix
-     rot90_matrix(1,2) =-1; rot90_matrix(2,2) =  0 !counter-clockwise rotation matrix 
-     
+     rot90_matrix(1,2) =-1; rot90_matrix(2,2) =  0 !counter-clockwise rotation matrix
+
      iside = 1
      unit_vec(1,iside) = 0 !x-component of displacement vector for side 1
      unit_vec(2,iside) = 1 !y-component of displacement vector for side 1
-     
+
      do iside=2,4
        unit_vec(:,iside) = MATMUL(rot90_matrix(:,:),unit_vec(:,iside-1))
      end do
-     
+
      !
      ! fill halo done
      !
      !-------------------------------
-     
+
      do ie=nets,nete
        fvm(ie)%displ_max = 0.0_r8
        do j=imin,imax
@@ -655,7 +655,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
            ! rotate gnomonic coordinate vector
            !
            !           fvm(ie)%norm_elem_coord(:,i,j) = MATMUL(fvm(ie)%rot_matrix(:,:,i,j),fvm(ie)%norm_elem_coord(:,i,j))
-           !    
+           !
            ishft = NINT(fvm(ie)%flux_orient(2,i,j))
            do ixy=1,2
              !
@@ -664,10 +664,10 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
              fvm(ie)%vtx_cart(1:4,ixy,i,j) = cshift(fvm(ie)%vtx_cart(1:4,ixy,i,j),shift=ishft)
              fvm(ie)%flux_vec        (ixy,i,j,1:4) = cshift(unit_vec                (ixy,1:4    ),shift=ishft)
              !
-             ! set flux vector to zero in non-existent cells (corner halo) 
+             ! set flux vector to zero in non-existent cells (corner halo)
              !
              fvm(ie)%flux_vec        (ixy,i,j,1:4) = fvm(ie)%ifct(i,j)*fvm(ie)%flux_vec(ixy,i,j,1:4)
-             
+
              iside=1
              fvm(ie)%displ_max(i,j,iside) = fvm(ie)%displ_max(i,j,iside)+&
                   ABS(fvm(ie)%vtx_cart(4,ixy,i,j)-fvm(ie)%vtx_cart(1,ixy,i,j))
@@ -687,7 +687,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
      !
      ! pre-compute derived metric terms used for integration, polynomial
      ! evaluation at fvm cell vertices, etc.
-     !    
+     !
      do ie=nets,nete
        call compute_reconstruct_matrix(nc,nhe,nhc,irecons,fvm(ie)%dalpha,fvm(ie)%dbeta,&
            fvm(ie)%spherecentroid,fvm(ie)%vtx_cart,fvm(ie)%centroid_stretch,&
@@ -695,7 +695,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
      end do
       !
       ! create a normalized element coordinate system with a halo
-      !    
+      !
      do ie=nets,nete
        do j=1-nhc,nc+nhc
          do i=1-nhc,nc+nhc
@@ -731,7 +731,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
      end do
 
    end subroutine fvm_init3
-  
+
 
   subroutine fvm_pg_init(elem, fvm, hybrid, nets, nete,irecons)
     use coordinate_systems_mod, only : cartesian2D_t,cartesian3D_t
@@ -816,9 +816,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
           call ghostunpack(cellghostbuf, fvm(ie)%spherecentroid_physgrid(ixy,:,:) ,1,istart,ie)
         end do
       enddo
-      call freeghostbuffer(cellghostbuf)    
+      call freeghostbuffer(cellghostbuf)
       !
-      ! indicator for non-existing cells 
+      ! indicator for non-existing cells
       ! set vtx_cart to corner value in non-existent cells
       !
       do ie=nets,nete
@@ -852,32 +852,32 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
                fvm(ie)%vtx_cart_physgrid(2,2,fv_nphys,1)
         end if
       end do
-      
+
       !
       ! set vectors for perpendicular flux vector
       !
       rot90_matrix(1,1) = 0; rot90_matrix(2,1) =  1 !counter-clockwise rotation matrix
-      rot90_matrix(1,2) =-1; rot90_matrix(2,2) =  0 !counter-clockwise rotation matrix 
-      
+      rot90_matrix(1,2) =-1; rot90_matrix(2,2) =  0 !counter-clockwise rotation matrix
+
       iside = 1
       unit_vec(1,iside) = 0 !x-component of displacement vector for side 1
       unit_vec(2,iside) = 1 !y-component of displacement vector for side 1
-      
+
       do iside=2,4
         unit_vec(:,iside) = MATMUL(rot90_matrix(:,:),unit_vec(:,iside-1))
       end do
-      
+
       !
       ! fill halo done
       !
       !-------------------------------
-      
+
       do ie=nets,nete
         do j=imin,imax
           do i=imin,imax
             !
             ! rotate gnomonic coordinate vector
-            !    
+            !
             ishft = NINT(fvm(ie)%flux_orient_physgrid(2,i,j))
             do ixy=1,2
               !
@@ -891,18 +891,18 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       !
       ! pre-compute derived metric terms used for integration, polynomial
       ! evaluation at fvm cell vertices, etc.
-      !    
+      !
       do ie=nets,nete
         call compute_reconstruct_matrix(fv_nphys,nhe_phys,nhc_phys,irecons,fvm(ie)%dalpha_physgrid,fvm(ie)%dbeta_physgrid,&
              fvm(ie)%spherecentroid_physgrid,fvm(ie)%vtx_cart_physgrid,fvm(ie)%centroid_stretch_physgrid,&
              fvm(ie)%vertex_recons_weights_physgrid,fvm(ie)%recons_metrics_physgrid,fvm(ie)%recons_metrics_integral_physgrid)
-      end do      
+      end do
       !
       ! code specific for physgrid
       !
       !
       ! create a normalized element coordinate system with a halo
-      !    
+      !
       do ie=nets,nete
         do j=1-nhc_phys,fv_nphys+nhc_phys
           do i=1-nhc_phys,fv_nphys+nhc_phys

@@ -57,7 +57,7 @@ CONTAINS
 
          ! If the optional fortran allocate error message is passed in, include it in the abort message
          if(present(errmsg)) then
-            write(abort_msg, '(a)') trim(abort_msg) // new_line('a') // "Allocation failed with: " // trim(errmsg)
+            write(abort_msg, '(a)') trim(abort_msg) // new_line('a') // "Allocation failed with: " // adjustl(trim(errmsg))
          endif
 
          ! End the simulation
