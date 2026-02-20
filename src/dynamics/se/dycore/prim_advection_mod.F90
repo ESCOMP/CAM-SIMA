@@ -181,8 +181,6 @@ contains
     integer              , intent(in   ) :: nets
     integer              , intent(in   ) :: nete
 
-
-    !print *,'prim_Advec_Tracers_remap: qsize: ',qsize
     call Prim_Advec_Tracers_remap_rk2( elem , deriv , hvcoord , hybrid , dt , tl , nets , nete )
   end subroutine Prim_Advec_Tracers_remap
 
@@ -233,8 +231,7 @@ contains
   subroutine Prim_Advec_Tracers_remap_rk2( elem , deriv , hvcoord , hybrid , dt , tl , nets , nete )
     use derivative_mod, only: divergence_sphere
     use control_mod   , only: qsplit
-    use hybrid_mod    , only: get_loop_ranges!, PrintHybrid
-!    use thread_mod    , only : omp_set_num_threads, omp_get_thread_num
+    use hybrid_mod    , only: get_loop_ranges
 
     type (element_t)     , intent(inout) :: elem(:)
     type (derivative_t)  , intent(in   ) :: deriv
@@ -333,7 +330,7 @@ contains
     do ie=nets,nete
       do q=qbeg,qend
         do k=kbeg,kend
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -363,7 +360,7 @@ contains
   !
   ! ===================================
   use dimensions_mod , only : np, nlev
-  use hybrid_mod     , only : hybrid_t!, PrintHybrid
+  use hybrid_mod     , only : hybrid_t
   use hybrid_mod     , only : get_loop_ranges, threadOwnsTracer
   use element_mod    , only : element_t
   use derivative_mod , only : derivative_t, divergence_sphere, limiter_optim_iter_full
@@ -446,7 +443,7 @@ contains
     do ie = nets, nete
       ! add hyperviscosity to RHS.  apply to Q at timelevel n0, Qdp(n0)/dp
       do k = kbeg, kend
-        !OMP_COLLAPSE_SIMD 
+        !OMP_COLLAPSE_SIMD
         !DIR_VECTOR_ALIGNED
         do j=1,np
         do i=1,np
@@ -486,7 +483,7 @@ contains
       if ( nu_p > 0 ) then
         do ie = nets, nete
           do k = kbeg, kend
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -497,7 +494,7 @@ contains
           do q = qbeg,qend
             do k = kbeg, kend
               ! NOTE: divide by dp0 since we multiply by dp0 below
-              !OMP_COLLAPSE_SIMD 
+              !OMP_COLLAPSE_SIMD
               !DIR_VECTOR_ALIGNED
               do j=1,np
               do i=1,np
@@ -521,7 +518,7 @@ contains
       do ie = nets, nete
         do q = qbeg, qend
           do k = kbeg, kend
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -543,7 +540,7 @@ contains
       do ie = nets, nete
         do q = qbeg, qend
           do k = kbeg, kend
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -572,7 +569,7 @@ contains
     do k = kbeg, kend
       ! derived variable divdp_proj() (DSS'd version of divdp) will only be correct on 2nd and 3rd stage
       ! but that's ok because rhs_multiplier=0 on the first stage:
-      !OMP_COLLAPSE_SIMD 
+      !OMP_COLLAPSE_SIMD
       !DIR_VECTOR_ALIGNED
       do j=1,np
       do i=1,np
@@ -586,7 +583,7 @@ contains
         ! Note that the term dpdissk is independent of Q
         do k = kbeg, kend
           ! UN-DSS'ed dp at timelevel n0+1:
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -597,7 +594,7 @@ contains
             ! add contribution from UN-DSS'ed PS dissipation
 !            dpdiss(:,:) = ( hvcoord%hybi(k+1) - hvcoord%hybi(k) ) *
 !            elem(ie)%derived%psdiss_biharmonic(:,:)
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -619,7 +616,7 @@ contains
     do q = qbeg, qend
       do k = kbeg, kend
         ! div( U dp Q),
-        !OMP_COLLAPSE_SIMD 
+        !OMP_COLLAPSE_SIMD
         !DIR_VECTOR_ALIGNED
         do j=1,np
         do i=1,np
@@ -640,8 +637,8 @@ contains
         enddo
 
         ! optionally add in hyperviscosity computed above:
-        if ( rhs_viss /= 0 ) then 
-          !OMP_COLLAPSE_SIMD 
+        if ( rhs_viss /= 0 ) then
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -662,7 +659,7 @@ contains
       ! dont do this earlier, since we allow np1_qdp == n0_qdp
       ! and we dont want to overwrite n0_qdp until we are done using it
       do k = kbeg, kend
-        !OMP_COLLAPSE_SIMD 
+        !OMP_COLLAPSE_SIMD
         !DIR_VECTOR_ALIGNED
         do j=1,np
         do i=1,np
@@ -693,7 +690,7 @@ contains
         if ( DSSopt == DSSdiv_vdp_ave ) DSSvar => elem(ie)%derived%divdp_proj(:,:,:)
         ! also DSS extra field
         do k = kbeg, kend
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -718,7 +715,7 @@ contains
         kptr = qsize*nlev + kbeg -1
         call edgeVunpack( edgeAdvp1 , DSSvar(:,:,kbeg:kend) , kblk , kptr , ie )
         do k = kbeg, kend
-           !OMP_COLLAPSE_SIMD 
+           !OMP_COLLAPSE_SIMD
            !DIR_VECTOR_ALIGNED
            do j=1,np
            do i=1,np
@@ -732,7 +729,7 @@ contains
       kptr = nlev*(q-1) + kbeg - 1
       call edgeVunpack( edgeAdvp1 , elem(ie)%state%Qdp(:,:,kbeg:kend,q,np1_qdp) , kblk , kptr , ie )
         do k = kbeg, kend
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -806,7 +803,7 @@ contains
   !
   !  For correct scaling, dt2 should be the same 'dt2' used in the leapfrog advace
   use dimensions_mod , only : np, nlev
-  use hybrid_mod     , only : hybrid_t!, PrintHybrid
+  use hybrid_mod     , only : hybrid_t
   use hybrid_mod     , only : get_loop_ranges
   use element_mod    , only : element_t
   use derivative_mod , only : derivative_t
@@ -954,7 +951,7 @@ contains
     !
     use hybvcoord_mod,          only: hvcoord_t
     use vertremap_mod,          only: remap1
-    use hybrid_mod,             only: hybrid_t, config_thread_region,get_loop_ranges, PrintHybrid
+    use hybrid_mod,             only: hybrid_t, config_thread_region,get_loop_ranges
     use fvm_control_volume_mod, only: fvm_struct
     use dimensions_mod,         only: use_cslam, ntrac
     use dimensions_mod,         only: kord_tr,kord_tr_cslam

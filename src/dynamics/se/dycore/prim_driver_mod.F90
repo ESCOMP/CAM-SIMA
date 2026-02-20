@@ -120,7 +120,7 @@ contains
 
     if (topology /= "cube") then
        call endrun('Error: only cube topology supported for primaitve equations')
-    endif
+    end if
 
     ! CAM has set tstep based on dtime before calling prim_init2(),
     ! so only now does HOMME learn the timstep.  print them out:
@@ -135,7 +135,7 @@ contains
     if (hybrid%masterthread) then
        if (phys_tscale/=0) then
           write(iulog,'(a,2f9.2)') "CAM physics timescale:        ",phys_tscale
-       endif
+       end if
        write(iulog,'(a,2f9.2)') "CAM dtime (dt_phys):             ",tstep*nsplit*qsplit*rsplit
 
        write(iulog,*) "CAM-SE uses dry-mass vertical coordinates"
@@ -262,7 +262,7 @@ contains
     if (statefreq>0) then
       if (MODULO(nstep_end,statefreq)==0 .or. nstep_end==tl%nstep0) then
         compute_diagnostics=.true.
-      endif
+      end if
     end if
     !
     ! initialize variables for computing vertical Courant number
@@ -278,7 +278,7 @@ contains
         dp_start(:,:,1:nlev,ie) = elem(ie)%state%dp3d(:,:,:,tl%n0)
         dp_start(:,:,nlev+1,ie) = elem(ie)%state%dp3d(:,:,nlev,tl%n0)
       end do
-    endif
+    end if
 
 
     call TimeLevel_Qdp( tl, qsplit, n0_qdp)
@@ -316,7 +316,7 @@ contains
          call prim_step(elem, fvm, hybrid,nets,nete, dt, tl, hvcoord,r,nsubstep==nsplit,dt_remap)
       end if
       call tot_energy_dyn(elem,fvm,nets,nete,tl%np1,n0_qdp,'dAL')
-    enddo
+    end do
 
 
     ! defer final timelevel update until after remap and diagnostics
@@ -347,7 +347,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     call tot_energy_dyn(elem,fvm,nets,nete,tl%np1,np1_qdp,'dAR')
 
-    if (nsubstep==nsplit.and. .not. single_column) then
+    if (nsubstep==nsplit .and. .not. single_column) then
       call compute_omega(hybrid,tl%np1,np1_qdp,elem,deriv,nets,nete,dt_remap,hvcoord)
     end if
 
@@ -453,14 +453,14 @@ contains
 
     type (element_t) ,  intent(inout) :: elem(:)
     type(fvm_struct),   intent(inout) :: fvm(:)
-    type (hybrid_t),    intent(in)    :: hybrid  ! distributed parallel structure (shared)
-    type (hvcoord_t),   intent(in)    :: hvcoord         ! hybrid vertical coordinate struct
-    integer,            intent(in)    :: nets  ! starting thread element number (private)
-    integer,            intent(in)    :: nete  ! ending thread element number   (private)
-    real(kind=r8),      intent(in)    :: dt  ! "timestep dependent" timestep
+    type (hybrid_t),    intent(in)    :: hybrid    ! distributed parallel structure (shared)
+    type (hvcoord_t),   intent(in)    :: hvcoord   ! hybrid vertical coordinate struct
+    integer,            intent(in)    :: nets      ! starting thread element number (private)
+    integer,            intent(in)    :: nete      ! ending thread element number   (private)
+    real(kind=r8),      intent(in)    :: dt        ! "timestep dependent" timestep
     type (TimeLevel_t), intent(inout) :: tl
-    integer, intent(in)               :: rstep ! vertical remap subcycling step
-    logical, intent(in)               :: last_step! last step before d_p_coupling
+    integer, intent(in)               :: rstep     ! vertical remap subcycling step
+    logical, intent(in)               :: last_step ! last step before d_p_coupling
     real(kind=r8), intent(in)         :: dt_remap
 
     type (hybrid_t):: hybridnew,hybridnew2
@@ -489,11 +489,11 @@ contains
       if (nu_p>0) then
          elem(ie)%derived%dpdiss_ave=0
          elem(ie)%derived%dpdiss_biharmonic=0
-      endif
+      end if
 
       ! dp at time t:  use floating lagrangian levels:
       elem(ie)%derived%dp(:,:,:)=elem(ie)%state%dp3d(:,:,:,tl%n0)
-    enddo
+    end do
 
     ! ===============
     ! Dynamical Step
@@ -521,7 +521,7 @@ contains
     call t_stopf('prim_advance_exp')
 
        ! defer final timelevel update until after Q update.
-  enddo
+  end do
 #ifdef HOMME_TEST_SUB_ELEMENT_MASS_FLUX
     if (use_cslam.and.rstep==1) then
       do ie=nets,nete
@@ -540,7 +540,7 @@ contains
             write(iulog,*) __FILE__,__LINE__,"**CSLAM mass-flux ERROR**",ie,k,i,j,tempmass(i,j),x,&
                    ABS((tempmass(i,j)-x)/tempmass(i,j))
             call endrun('**CSLAM mass-flux ERROR**')
-          endif
+          end if
         end do
         end do
       end do
@@ -627,7 +627,7 @@ contains
              (/nc*nc,nlev/)), nc*nc, ie)
       end do
 #endif
-   endif
+   end if
 
    end subroutine prim_step
    subroutine prim_step_scm(elem, fvm, hybrid,nets,nete, dt, tl, hvcoord, rstep)
@@ -678,9 +678,9 @@ contains
       if (nu_p>0) then
          elem(ie)%derived%dpdiss_ave=0
          elem(ie)%derived%dpdiss_biharmonic=0
-      endif
+      end if
       elem(ie)%derived%dp(:,:,:)=elem(ie)%state%dp3d(:,:,:,tl%n0)
-    enddo
+    end do
 
     ! ===============
     ! Dynamical Step
@@ -702,7 +702,7 @@ contains
             hybrid, dt, tl, nets, nete)
 
        call t_stopf('set_prescribed_scm')
-    enddo
+    end do
 #endif
   end subroutine prim_step_scm
 !=======================================================================================================!
@@ -783,7 +783,7 @@ contains
         write (iulog,*) "Mixing ratios that are wet have been scaled so that total mass of tracer is conserved"
         write (iulog,*) "Mixing ratios that are dry have not been changed (mass not conserved in scaling process)"
         write (iulog,*) "------ end info from prim_set_dry_mass -------------------------------------------------------"
-      endif
+      end if
     end subroutine prim_set_dry_mass
 
     subroutine get_global_ave_surface_pressure(elem, global_ave_ps_inic)
@@ -815,7 +815,7 @@ contains
 
       do ie=nets,nete
         tmp(:,:,ie)=elem(ie)%state%psdry(:,:)
-      enddo
+      end do
       global_ave_ps_inic = global_integral(elem, tmp(:,:,nets:nete),hybrid,np,nets,nete)
       deallocate(tmp)
     end subroutine get_global_ave_surface_pressure

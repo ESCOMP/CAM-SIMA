@@ -80,13 +80,13 @@ contains
   !locations for nm1 and n0 for Qdp - because
   !it only has 2 levels for storage
   subroutine TimeLevel_Qdp(tl, qsplit, n0, np1)
-    use dimensions_mod, only: use_cslam
     type (TimeLevel_t) :: tl
     integer, intent(in) :: qsplit
     integer, intent(inout) :: n0
     integer, intent(inout), optional :: np1
 
     integer :: i_temp
+
 !xxxx change when not double advecting
     i_temp = tl%nstep/qsplit
 
@@ -97,12 +97,10 @@ contains
        endif
     else
        n0 = 2
-       if (present(np1)) then 
+       if (present(np1)) then
           np1 = 1
        end if
     endif
-
-    !print * ,'nstep = ', tl%nstep, 'qsplit= ', qsplit, 'i_temp = ', i_temp, 'n0 = ', n0
 
   end subroutine TimeLevel_Qdp
 
@@ -124,13 +122,13 @@ contains
        ntmp    = tl%np1
        tl%np1  = tl%n0
        tl%n0   = ntmp
-    else 
+    else
        print *,'WARNING: TimeLevel_update called wint invalid uptype=',uptype
     end if
-       
+
     tl%nstep = tl%nstep+1
 !$OMP END MASTER
-!$OMP BARRIER    
+!$OMP BARRIER
   end subroutine TimeLevel_update
 
 end module se_dyn_time_mod

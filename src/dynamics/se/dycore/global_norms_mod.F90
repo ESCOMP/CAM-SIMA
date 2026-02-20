@@ -70,7 +70,7 @@ contains
     end do
     do ie=nets,nete
       global_shared_buf(ie,1:num_flds) = J_tmp(ie,:)
-    enddo
+    end do
     !JMD    print *,'global_integral: before wrap_repro_sum'
     call wrap_repro_sum(nvars=num_flds, comm=hybrid%par%comm)
     !JMD    print *,'global_integral: after wrap_repro_sum'
@@ -116,7 +116,7 @@ contains
     end do
     do ie=nets,nete
       global_shared_buf(ie,1:num_flds) = J_tmp(ie,:)
-    enddo
+    end do
     !JMD    print *,'global_integral: before wrap_repro_sum'
     call wrap_repro_sum(nvars=num_flds, comm=hybrid%par%comm)
     !JMD    print *,'global_integral: after wrap_repro_sum'
@@ -173,7 +173,7 @@ contains
        end do
     do ie=nets,nete
       global_shared_buf(ie,1) = J_tmp(ie)
-    enddo
+    end do
 !JMD    print *,'global_integral: before wrap_repro_sum'
     call wrap_repro_sum(nvars=1, comm=hybrid%par%comm)
 !JMD    print *,'global_integral: after wrap_repro_sum'
@@ -334,7 +334,7 @@ contains
 
       global_shared_buf(ie,1) = elem(ie)%area
       global_shared_buf(ie,2) = elem(ie)%dx_short
-    enddo
+    end do
     call wrap_repro_sum(nvars=2, comm=hybrid%par%comm)
     avg_area     = global_shared_sum(1)/real(nelem, r8)
     tot_area_rad = global_shared_sum(1)
@@ -349,7 +349,7 @@ contains
     min_max_dx   = ParallelMin(min_max_dx,hybrid)
     max_ratio    = ParallelMax(max_ratio,hybrid)
     ! Physical units for area
-    min_area = min_area*rearth*rearth/1000000._r8!m2 (rearth is in units of km)
+    min_area = min_area*rearth*rearth/1000000._r8 !m2 (rearth is in units of km)
     max_area = max_area*rearth*rearth/1000000._r8
     avg_area = avg_area*rearth*rearth/1000000._r8
     tot_area = tot_area_rad*rearth*rearth/1000000._r8
@@ -359,8 +359,8 @@ contains
        write(iulog,*)"Area of unit sphere is",I_sphere
        write(iulog,*)"Should be 1.0 to round off..."
        write(iulog,'(a,f9.3)') 'Element area:  max/min',(max_area/min_area)
-       write(iulog,'(a,E23.15)') 'Total Grid area:  ',(tot_area)
-       write(iulog,'(a,E23.15)') 'Total Grid area rad^2:  ',(tot_area_rad)
+       write(iulog,'(a,E23.15)') 'Total Grid area:  ',tot_area
+       write(iulog,'(a,E23.15)') 'Total Grid area rad^2:  ',tot_area_rad
        if (.not.MeshUseMeshFile) then
            write(iulog,'(a,f6.3,f8.2)') "Average equatorial node spacing (deg, km) = ", &
                 real(90, r8)/real(ne*(np-1), r8), pi*rearth/(2000.0_r8*real(ne*(np-1), r8))
@@ -396,7 +396,7 @@ contains
         ! equivilant to a uniform grid with ne=fine_ne
         if (np /= 4 ) call endrun('ERROR: setting fine_ne only supported with NP=4')
         max_unif_dx = (111.28_r8*30)/real(fine_ne, r8)   ! in km
-      endif
+      end if
 
       !
       ! note: if L = eigenvalue of metinv, then associated length scale (km) is
@@ -493,7 +493,7 @@ contains
     else
       ! constant coefficient formula:
       normDinv_hypervis = (lambda_vis**2) * (ra*max_normDinv)**4
-    endif
+    end if
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !  TENSOR, RESOLUTION-AWARE HYPERVISCOSITY
@@ -517,8 +517,8 @@ contains
             call edgeVunpack(edgebuf,zeta(1,1,ie),1,0,ie)
             elem(ie)%tensorVisc(:,:,rowind,colind) = zeta(:,:,ie)*elem(ie)%rspheremp(:,:)
           end do
-        enddo !rowind
-      enddo !colind
+        end do !rowind
+      end do !colind
       call FreeEdgeBuffer(edgebuf)
 
       !IF BILINEAR MAP OF V NEEDED
@@ -543,9 +543,9 @@ contains
               end do
             end do
           end do
-        enddo !rowind
-      enddo !colind
-    endif
+        end do !rowind
+      end do !colind
+    end if
     deallocate(gp%points)
     deallocate(gp%weights)
 
@@ -597,7 +597,7 @@ contains
       if (hybrid%masterthread) write(iulog,* )"Model top damping configuration: top_090_140km"
     else
       !
-      ! WACCM-x - geospace (~4e-7 Pa)
+      ! WACCM-X - geospace (~4e-7 Pa)
       !
       top_140_600km = .true.
       if (hybrid%masterthread) write(iulog,* )"Model top damping configuration: top_140_600km"
@@ -726,9 +726,9 @@ contains
     dt_max_tracer_se       = S_rk_tracer*min_gw/(umax*max_normDinv*ra)
     if (use_cslam) then
       if (large_Courant_incr) then
-        dt_max_tracer_fvm      = dble(nhe)*(4.0_r8*pi*Rearth/dble(4.0_r8*ne*nc))/umax
+        dt_max_tracer_fvm      = real(nhe, r8)*(4.0_r8*pi*Rearth/real(4.0_r8*ne*nc, r8))/umax
       else
-        dt_max_tracer_fvm      = dble(nhe)*(2.0_r8*pi*Rearth/dble(4.0_r8*ne*nc))/umax
+        dt_max_tracer_fvm      = real(nhe, r8)*(2.0_r8*pi*Rearth/real(4.0_r8*ne*nc, r8))/umax
       end if
     else
       dt_max_tracer_fvm = -1.0_r8
@@ -781,7 +781,7 @@ contains
                            ' (this WARNING can sometimes be ignored in level 1)'
           else
             write(iulog,*) 'WARNING: theoretically unstable in sponge; increase se_hypervis_subcycle_sponge'
-          endif
+          end if
         end if
       end do
       write(iulog,*) ' '
@@ -1158,7 +1158,7 @@ contains
        nsize_use = nsize
     else
        nsize_use = nelemd
-    endif
+    end if
     if (nvars .gt. nrepro_vars) call endrun('ERROR: repro_sum_buffer_size exceeded')
 
 ! Repro_sum contains its own OpenMP, so only one thread should call it (AAM)

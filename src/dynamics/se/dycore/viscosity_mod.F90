@@ -104,8 +104,8 @@ subroutine biharmonic_wk_dp3d(elem,dptens,dpflux,ttens,vtens,deriv,edge3,hybrid,
         else
           nu_ratio1=sqrt(nu_div_lev(k)/nu_lev(k))
           nu_ratio2=sqrt(nu_div_lev(k)/nu_lev(k))
-        endif
-      endif
+        end if
+      end if
 
       tmp=elem(ie)%state%T(:,:,k,nt)-elem(ie)%derived%T_ref(:,:,k)
       call laplace_sphere_wk(tmp,deriv,elem(ie),ttens(:,:,k,ie),var_coef=var_coef1)
@@ -115,7 +115,7 @@ subroutine biharmonic_wk_dp3d(elem,dptens,dpflux,ttens,vtens,deriv,edge3,hybrid,
 
       call vlaplace_sphere_wk(elem(ie)%state%v(:,:,:,k,nt),deriv,elem(ie),.true.,vtens(:,:,:,k,ie), &
            var_coef=var_coef1,nu_ratio=nu_ratio1)
-    enddo
+    end do
 
     kptr = kbeg - 1
     call edgeVpack(edge3,ttens(:,:,kbeg:kend,ie),kblk,kptr,ie)
@@ -128,7 +128,7 @@ subroutine biharmonic_wk_dp3d(elem,dptens,dpflux,ttens,vtens,deriv,edge3,hybrid,
 
     kptr = kbeg - 1 + 3*nlev
     call edgeVpack(edge3,dptens(:,:,kbeg:kend,ie),kblk,kptr,ie)
-  enddo
+  end do
 
   call bndry_exchange(hybrid,edge3,location='biharmonic_wk_dp3d')
 
@@ -152,8 +152,8 @@ subroutine biharmonic_wk_dp3d(elem,dptens,dpflux,ttens,vtens,deriv,edge3,hybrid,
 !CLEAN        tmp(:,:)= rspheremv(:,:)*dptens(:,:,k,ie)
         tmp(:,:)= elem(ie)%rspheremp(:,:)*dptens(:,:,k,ie)
         call subcell_Laplace_fluxes(tmp, deriv, elem(ie), np, nc,dpflux(:,:,:,k,ie))
-      enddo
-    endif
+      end do
+    end if
 
     ! apply inverse mass matrix, then apply laplace again
     !$omp parallel do num_threads(vert_num_threads) private(k,v,tmp,tmp2)
@@ -172,8 +172,8 @@ subroutine biharmonic_wk_dp3d(elem,dptens,dpflux,ttens,vtens,deriv,edge3,hybrid,
       call vlaplace_sphere_wk(v(:,:,:),deriv,elem(ie),.true.,vtens(:,:,:,k,ie), &
            var_coef=.true.,nu_ratio=nu_ratio2)
 
-    enddo
-  enddo
+    end do
+  end do
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end subroutine biharmonic_wk_dp3d
 
@@ -212,11 +212,11 @@ subroutine biharmonic_wk_omega(elem,ptens,deriv,edge3,hybrid,nets,nete,kbeg,kend
     do k=kbeg,kend
       tmp=elem(ie)%derived%omega(:,:,k)
       call laplace_sphere_wk(tmp,deriv,elem(ie),ptens(:,:,k,ie),var_coef=var_coef1)
-    enddo
+    end do
 
     kptr = kbeg - 1
     call edgeVpack(edge3,ptens(:,:,kbeg:kend,ie),kblk,kptr,ie)
-  enddo
+  end do
 
   call bndry_exchange(hybrid,edge3,location='biharmonic_wk_omega')
 
@@ -231,8 +231,8 @@ subroutine biharmonic_wk_omega(elem,ptens,deriv,edge3,hybrid,nets,nete,kbeg,kend
     do k=kbeg,kend
       tmp(:,:)=rspheremv(:,:)*ptens(:,:,k,ie)
       call laplace_sphere_wk(tmp,deriv,elem(ie),ptens(:,:,k,ie),var_coef=.true.)
-    enddo
-  enddo
+    end do
+  end do
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end subroutine biharmonic_wk_omega
 
@@ -274,11 +274,11 @@ integer :: kblk,qblk   ! The per thead size of the vertical and tracers
          do k=kbeg,kend
            lap_p(:,:)=qtens(:,:,k,q,ie)
            call laplace_sphere_wk(lap_p,deriv,elem(ie),qtens(:,:,k,q,ie),var_coef=var_coef1)
-         enddo
+         end do
          kptr = nlev*(q-1) + kbeg - 1
          call edgeVpack(edgeq, qtens(:,:,kbeg:kend,q,ie),kblk,kptr,ie)
-      enddo
-   enddo
+      end do
+   end do
 
 
    call bndry_exchange(hybrid,edgeq,location='biharmonic_wk_scalar')
@@ -292,9 +292,9 @@ integer :: kblk,qblk   ! The per thead size of the vertical and tracers
         do k=kbeg,kend
            lap_p(:,:)=elem(ie)%rspheremp(:,:)*qtens(:,:,k,q,ie)
            call laplace_sphere_wk(lap_p,deriv,elem(ie),qtens(:,:,k,q,ie),var_coef=.true.)
-        enddo
-      enddo
-   enddo
+        end do
+      end do
+   end do
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end subroutine biharmonic_wk_scalar
@@ -314,7 +314,7 @@ real (kind=r8), dimension(np,np,nlev,nets:nete) :: zeta
 integer :: k,i,j,ie,ic,kptr,nthread_save
 
 
-    call initEdgeBuffer(hybrid%par,edge1,elem,nlev)
+call initEdgeBuffer(hybrid%par,edge1,elem,nlev)
 
 do ie=nets,nete
 #if (defined COLUMN_OPENMP)
@@ -322,10 +322,10 @@ do ie=nets,nete
 #endif
    do k=1,nlev
       zeta(:,:,k,ie)=zeta(:,:,k,ie)*elem(ie)%spheremp(:,:)
-   enddo
+   end do
    kptr=0
    call edgeVpack(edge1, zeta(1,1,1,ie),nlev,kptr,ie)
-enddo
+end do
 call bndry_exchange(hybrid,edge1,location='make_C0')
 do ie=nets,nete
    kptr=0
@@ -335,8 +335,8 @@ do ie=nets,nete
 #endif
    do k=1,nlev
       zeta(:,:,k,ie)=zeta(:,:,k,ie)*elem(ie)%rspheremp(:,:)
-   enddo
-enddo
+   end do
+end do
 
 call FreeEdgeBuffer(edge1)
 
@@ -389,10 +389,10 @@ do ie=nets,nete
    do k=1,nlev
       v(:,:,1,k,ie)=v(:,:,1,k,ie)*elem(ie)%spheremp(:,:)
       v(:,:,2,k,ie)=v(:,:,2,k,ie)*elem(ie)%spheremp(:,:)
-   enddo
+   end do
    kptr=0
    call edgeVpack(edge2, v(1,1,1,1,ie),2*nlev,kptr,ie)
-enddo
+end do
 call bndry_exchange(hybrid,edge2,location='make_C0_vector')
 do ie=nets,nete
    kptr=0
@@ -403,8 +403,8 @@ do ie=nets,nete
    do k=1,nlev
       v(:,:,1,k,ie)=v(:,:,1,k,ie)*elem(ie)%rspheremp(:,:)
       v(:,:,2,k,ie)=v(:,:,2,k,ie)*elem(ie)%rspheremp(:,:)
-   enddo
-enddo
+   end do
+end do
 
 call FreeEdgeBuffer(edge2)
 #endif
@@ -445,8 +445,8 @@ do ie=nets,nete
     ulatlon(:,:,1) = elem(ie)%D(:,:,1,1)*v1 + elem(ie)%D(:,:,1,2)*v2
     ulatlon(:,:,2) = elem(ie)%D(:,:,2,1)*v1 + elem(ie)%D(:,:,2,2)*v2
    call vorticity_sphere(ulatlon,deriv,elem(ie),zeta(:,:,k,ie))
-enddo
-enddo
+end do
+end do
 
 call make_C0(zeta,elem,hybrid,nets,nete)
 
@@ -484,8 +484,8 @@ do ie=nets,nete
     ulatlon(:,:,1) = elem(ie)%D(:,:,1,1)*v1 + elem(ie)%D(:,:,1,2)*v2
     ulatlon(:,:,2) = elem(ie)%D(:,:,2,1)*v1 + elem(ie)%D(:,:,2,2)*v2
    call divergence_sphere(ulatlon,deriv,elem(ie),zeta(:,:,k,ie))
-enddo
-enddo
+end do
+end do
 
 call make_C0(zeta,elem,hybrid,nets,nete)
 
@@ -574,8 +574,8 @@ do ie=nets,nete
 #endif
 do k=1,nlev
    call vorticity_sphere(elem(ie)%state%v(:,:,:,k,nt),deriv,elem(ie),zeta(:,:,k,ie))
-enddo
-enddo
+end do
+end do
 
 call make_C0(zeta,elem,hybrid,nets,nete)
 
@@ -609,8 +609,8 @@ do ie=nets,nete
 #endif
 do k=1,nlev
    call divergence_sphere(elem(ie)%state%v(:,:,:,k,nt),deriv,elem(ie),zeta(:,:,k,ie))
-enddo
-enddo
+end do
+end do
 
 call make_C0(zeta,elem,hybrid,nets,nete)
 
@@ -646,8 +646,8 @@ subroutine neighbor_minmax(hybrid,edgeMinMax,nets,nete,min_neigh,max_neigh)
          call  edgeSpack(edgeMinMax,min_neigh(kbeg:kend,q,ie),kblk,kptr,ie)
          kptr = qsize*nlev + nlev*(q - 1) + kbeg - 1
          call  edgeSpack(edgeMinMax,max_neigh(kbeg:kend,q,ie),kblk,kptr,ie)
-      enddo
-   enddo
+      end do
+   end do
 
    call bndry_exchange(hybrid,edgeMinMax,location='neighbor_minmax')
 
@@ -659,9 +659,9 @@ subroutine neighbor_minmax(hybrid,edgeMinMax,nets,nete,min_neigh,max_neigh)
          call  edgeSunpackMAX(edgeMinMax,max_neigh(kbeg:kend,q,ie),kblk,kptr,ie)
          do k=kbeg,kend
             min_neigh(k,q,ie) = max(min_neigh(k,q,ie),0.0_r8)
-         enddo
-      enddo
-   enddo
+         end do
+      end do
+   end do
 
 end subroutine neighbor_minmax
 
@@ -690,8 +690,8 @@ subroutine neighbor_minmax_start(hybrid,edgeMinMax,nets,nete,min_neigh,max_neigh
          call  edgeSpack(edgeMinMax,min_neigh(kbeg:kend,q,ie),kblk,kptr,ie)
          kptr = qsize*nlev + nlev*(q - 1) + kbeg - 1
          call  edgeSpack(edgeMinMax,max_neigh(kbeg:kend,q,ie),kblk,kptr,ie)
-      enddo
-   enddo
+      end do
+   end do
 
    call bndry_exchange_start(hybrid,edgeMinMax,location='neighbor_minmax_start')
 
@@ -723,9 +723,9 @@ subroutine neighbor_minmax_finish(hybrid,edgeMinMax,nets,nete,min_neigh,max_neig
          call  edgeSunpackMAX(edgeMinMax,max_neigh(kbeg:kend,q,ie),kblk,kptr,ie)
          do k=kbeg,kend
             min_neigh(k,q,ie) = max(min_neigh(k,q,ie),0.0_r8)
-         enddo
-      enddo
-   enddo
+         end do
+      end do
+   end do
 
 end subroutine neighbor_minmax_finish
 
