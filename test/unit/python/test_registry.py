@@ -133,8 +133,8 @@ class RegistryTest(unittest.TestCase):
         # end with
         expected_error = "reg_bad_xml.xml:32: element ic_file_input_name: Schemas validity error : Element 'ic_file_input_name': This element is not expected. Expected is one of ( initial_value, ic_file_input_names )."
         split_exception = str(cerr.exception).split('\n')
-        amsg = f"Test failure: exception raised is {len(split_exception)} lines long and is expected to be 4"
-        self.assertEqual(len(split_exception), 4, msg=amsg)
+        amsg = f"Test failure: exception raised is {len(split_exception)} lines long and is expected to be 5"
+        self.assertEqual(len(split_exception), 5, msg=amsg)
         # Check that the full xmllint message was returned
         self.assertTrue(split_exception[2].endswith(expected_error))
 

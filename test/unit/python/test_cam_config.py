@@ -72,7 +72,8 @@ class FakeCase:
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
             "RUN_STARTDATE" : "101",
-            "DEBUG" : False
+            "DEBUG" : False,
+            "OPENACC_GPU_OFFLOAD": False
             }
 
     def get_value(self, key):
