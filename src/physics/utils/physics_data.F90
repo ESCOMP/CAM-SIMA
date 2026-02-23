@@ -1015,6 +1015,9 @@ CONTAINS
       integer                          :: max_diff_gl_lev
       integer                          :: max_diff_gl_extra_dim
       integer                          :: diff_count_gl
+      integer                          :: nan_count
+      integer                          :: nan_count_gl
+      logical                          :: has_nan
 
       !Initialize output variables
       ierr = 0
@@ -1029,6 +1032,8 @@ CONTAINS
       max_diff(1)        = 0._kind_phys
       max_diff(2)        = real(iam, kind_phys) !MPI rank for this task
       diff_found         = .false.
+      nan_count         = 0
+      has_nan           = .false.
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (.not. var_found) then
@@ -1054,27 +1059,52 @@ CONTAINS
             do extra_dim = 1, size(buffer, 3)
                do lev = 1, num_levs
                   do col = 1, size(buffer(:,lev,extra_dim))
-                     if (abs(current_value(col, lev, extra_dim)) < min_relative_value) then
-                        !Calculate absolute difference:
-                        diff = abs(current_value(col, lev, extra_dim) - buffer(col, lev, extra_dim))
+                     ! Check for NaNs first
+                     if (current_value(col, lev, extra_dim) /= current_value(col, lev, extra_dim) .or. &
+                         buffer(col, lev, extra_dim) /= buffer(col, lev, extra_dim)) then
+                        nan_count = nan_count + 1
+                        if (.not. has_nan) then
+                           has_nan = .true.
+
+                           ! Force max_diff to NaN to signal NaN found
+                           max_diff(1) = current_value(col, lev, extra_dim) - &
+                                         buffer(col, lev, extra_dim)
+                           max_diff_col       = col
+                           max_diff_lev       = lev
+                           max_diff_extra_dim = extra_dim
+                        end if
                      else
-                        !Calculate relative difference:
-                        diff = abs(current_value(col, lev, extra_dim) - buffer(col, lev, extra_dim)) / &
-                           abs(current_value(col, lev, extra_dim))
-                     end if
-                     if (diff > max_diff(1)) then
-                        max_diff(1) = diff
-                        max_diff_col = col
-                        max_diff_lev = lev
-                        max_diff_extra_dim = extra_dim
-                     end if
-                     !Determine if diff is large enough to be considered a "hit"
-                     if (diff > min_difference) then
-                        diff_count = diff_count + 1
+                        if (abs(current_value(col, lev, extra_dim)) < min_relative_value) then
+                           ! Absolute difference
+                           diff = abs(current_value(col, lev, extra_dim) - &
+                                      buffer(col, lev, extra_dim))
+                        else
+                           ! Relative difference
+                           diff = abs(current_value(col, lev, extra_dim) - &
+                                      buffer(col, lev, extra_dim)) / &
+                                  abs(current_value(col, lev, extra_dim))
+                        end if
+
+                        if (diff > max_diff(1)) then
+                           max_diff(1) = diff
+                           max_diff_col       = col
+                           max_diff_lev       = lev
+                           max_diff_extra_dim = extra_dim
+                        end if
+
+                        if (diff > min_difference) then
+                           diff_count = diff_count + 1
+                        end if
                      end if
                   end do
                end do
             end do
+
+            !Add NaN count to total difference count:
+            diff_count = diff_count + nan_count
+
+            call mpi_reduce(nan_count, nan_count_gl, 1, mpi_integer,          &
+                            mpi_sum, masterprocid, mpicom, ierr)
 
             !Make relevant MPI calls to get global values:
             call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,        &
@@ -1118,6 +1148,7 @@ CONTAINS
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
+                                               nan_count_gl,                  &
                                                max_diff_gl(1),                &
                                                int(max_diff_gl(2)),           &
                                                max_diff_gl_col,               &
