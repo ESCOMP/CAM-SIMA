@@ -491,12 +491,12 @@
     <!-- Date and time variables -->
     <variable local_name="calday"
               standard_name="fractional_calendar_days_on_end_of_current_timestep"
-              units="1" type="real" kind="kind_phys">
+              units="days" type="real" kind="kind_phys">
       <long_name>fractional calendar day at end of current timestep</long_name>
     </variable>
     <variable local_name="next_calday"
               standard_name="fractional_calendar_days_on_end_of_next_timestep"
-              units="1" type="real" kind="kind_phys">
+              units="days" type="real" kind="kind_phys">
       <long_name>fractional calendar day at end of next timestep</long_name>
     </variable>
     <variable local_name="nextsw_cday"
@@ -1826,7 +1826,7 @@
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
     </variable>
     <variable local_name="two"
-              standard_name="ccpp_constant_two"
+              standard_name="constant_dimension_two"
               units="count" type="integer"
 	      allocatable="parameter">
       <initial_value>2</initial_value>

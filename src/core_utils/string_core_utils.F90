@@ -124,7 +124,7 @@ contains
 
         character(:), allocatable :: buffer, delimiter, format
         character(:), allocatable :: value_c(:)
-        integer :: i, n, offset
+        integer :: i, n, offset, fmt_len
 
         if (present(separator)) then
             delimiter = separator
@@ -168,43 +168,50 @@ contains
 
                 deallocate(value_c)
             type is (integer(int32))
-                allocate(character(11 * n + len(delimiter) * (n - 1)) :: buffer)
-                allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                allocate(character(len=11 * n + len(delimiter) * (n - 1)) :: buffer)
+                fmt_len = 17 + len(delimiter) + floor(log10(real(n))) + 1
+                allocate(character(fmt_len) :: format)
 
                 write(format, '(a, i0, 3a)') '(ss, ', n, '(i0, :, "', delimiter, '"))'
                 write(buffer, format) value
             type is (integer(int64))
-                allocate(character(20 * n + len(delimiter) * (n - 1)) :: buffer)
-                allocate(character(17 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                allocate(character(len=20 * n + len(delimiter) * (n - 1)) :: buffer)
+                fmt_len = 17 + len(delimiter) + floor(log10(real(n))) + 1
+                allocate(character(len=fmt_len) :: format)
 
                 write(format, '(a, i0, 3a)') '(ss, ', n, '(i0, :, "', delimiter, '"))'
                 write(buffer, format) value
             type is (logical)
-                allocate(character(1 * n + len(delimiter) * (n - 1)) :: buffer)
-                allocate(character(13 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                allocate(character(len=1 * n + len(delimiter) * (n - 1)) :: buffer)
+                fmt_len = 13 + len(delimiter) + floor(log10(real(n))) + 1
+                allocate(character(len=fmt_len) :: format)
 
                 write(format, '(a, i0, 3a)') '(', n, '(l1, :, "', delimiter, '"))'
                 write(buffer, format) value
             type is (real(real32))
-                allocate(character(13 * n + len(delimiter) * (n - 1)) :: buffer)
+                allocate(character(len=13 * n + len(delimiter) * (n - 1)) :: buffer)
 
                 if (maxval(abs(value)) < 1.0e5_real32) then
-                    allocate(character(20 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                    fmt_len = 20 + len(delimiter) + floor(log10(real(n))) + 1
+                    allocate(character(len=fmt_len) :: format)
                     write(format, '(a, i0, 3a)') '(ss, ', n, '(f13.6, :, "', delimiter, '"))'
                 else
-                    allocate(character(23 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                    fmt_len = 23 + len(delimiter) + floor(log10(real(n))) + 1
+                    allocate(character(len=fmt_len) :: format)
                     write(format, '(a, i0, 3a)') '(ss, ', n, '(es13.6e2, :, "', delimiter, '"))'
                 end if
 
                 write(buffer, format) value
             type is (real(real64))
-                allocate(character(13 * n + len(delimiter) * (n - 1)) :: buffer)
+                allocate(character(len=13 * n + len(delimiter) * (n - 1)) :: buffer)
 
                 if (maxval(abs(value)) < 1.0e5_real64) then
-                    allocate(character(20 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                    fmt_len = 20 + len(delimiter) + floor(log10(real(n))) + 1
+                    allocate(character(len=fmt_len) :: format)
                     write(format, '(a, i0, 3a)') '(ss, ', n, '(f13.6, :, "', delimiter, '"))'
                 else
-                    allocate(character(23 + len(delimiter) + floor(log10(real(n))) + 1) :: format)
+                    fmt_len = 23 + len(delimiter) + floor(log10(real(n))) + 1
+                    allocate(character(len=fmt_len) :: format)
                     write(format, '(a, i0, 3a)') '(ss, ', n, '(es13.6e2, :, "', delimiter, '"))'
                 end if
 

@@ -150,7 +150,7 @@ CONTAINS
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call endrun('Cannot read slp from file'//', slp has unsupported dimension, band_number.')
+                        call endrun('Cannot read slp from file'//', slp has unsupported dimension, band_number (dimension 2).')
 
                   end select !read variables
                end select !special indices

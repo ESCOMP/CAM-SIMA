@@ -107,7 +107,7 @@ CONTAINS
               trim(varname), ', ', ndims
          call safe_endrun(subname//trim(errormsg))
       else if (num_bounds < 1) then
-         call safe_endrun(subname//': too few dimension boundss for '//trim(varname))
+         call safe_endrun(subname//': too few dimension bounds for '//trim(varname))
       else if (num_bounds > 3) then
          write(errormsg, '(3a,i0)') ': too many dimension bounds for, ',      &
               trim(varname), ', ', num_bounds
@@ -186,6 +186,7 @@ CONTAINS
       ! Local array, <field> is 1D
       !
 
+      use shr_kind_mod,     only: cl=>shr_kind_cl
       use pio,              only: pio_read_darray, PIO_NOERR
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
@@ -234,7 +235,7 @@ CONTAINS
       integer                                   :: dim_bounds(2, 2)
       character(len=PIO_MAX_NAME)               :: dim1name, dim2name
       character(len=PIO_MAX_NAME)               :: tmpname
-      character(len=128)                        :: errormsg
+      character(len=cl)                         :: errormsg
       ! Logical to determine whether to print output messages
       logical                                   :: log_read_field
       logical                                   :: readvar_tmp
@@ -327,7 +328,9 @@ CONTAINS
          arraydimsize(1) = (dim_bounds(1,2) - dim_bounds(1,1) + 1)
          if (arraydimsize(1) /= size(field, 1)) then
             write(errormsg, '(4a,i0)') ': Mismatch between array bounds ',    &
-                 'and field size for ', trim(varname), ', dimension ', 1
+                 'and field size for ', trim(varname), ', dimension 1', &
+                 ', variable array bounds = ', arraydimsize(1), ', file field size = ', &
+                 size(field, 1)
             call safe_endrun(subname//errormsg)
          end if
 
@@ -409,6 +412,7 @@ CONTAINS
       ! Local array, <field> is 2D
       !
 
+      use shr_kind_mod,     only: cl=>shr_kind_cl
       use pio,              only: pio_read_darray, PIO_NOERR
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
@@ -425,7 +429,7 @@ CONTAINS
       ! gridname: Name of variable's grid (default 'physgrid')
       character(len=*), optional, intent(in)  :: gridname
       integer,          optional, intent(in)  :: timelevel
-      ! dim3name: Name of vertical dimension, if field reprsents a 3D quantity
+      ! dim3name: Name of vertical dimension, if field represents a 3D quantity
       character(len=*), optional, intent(in)  :: dim3name
       ! dim3_bnds: Bounds of vertical dimension, if field is 3D
       integer,          optional, intent(in)  :: dim3_bnds(2)
@@ -463,7 +467,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)             :: dim1name, dim2name
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
       character(len=PIO_MAX_NAME)             :: tmpname
-      character(len=128)                      :: errormsg
+      character(len=cl)                       :: errormsg
       ! Logical to determine whether to print output messages
       logical                                 :: log_read_field
       logical                                 :: readvar_tmp
@@ -575,7 +579,9 @@ CONTAINS
                write(errormsg, '(2(a,i0),3a,i0)')                             &
                     ': Mismatch between array size (', arraydimsize(jndex),   &
                     ') and field size (', size(field, jndex), ') for ',       &
-                    trim(varname), ', dimension = ', jndex
+                    trim(varname), ', dimension = ', jndex,                   &
+                    ', variable array bounds = ', arraydimsize(jndex),        &
+                    ', file field size = ', size(field, jndex)
                call safe_endrun(subname//errormsg)
             end if
          end do
@@ -664,22 +670,21 @@ CONTAINS
 
       readvar = readvar_tmp
 
-      return
-
    end subroutine infld_real8_2d
 
    !
    ! ROUTINE: infld_real8_3d
    !
    subroutine infld_real8_3d(varname, ncid, field, readvar, dim3name,         &
-        dim3_bnds, dim3_pos, gridname, timelevel, log_output, fillvalue)
+        dim3_bnds, dim3_pos, dim4_bnds, gridname, timelevel, log_output, fillvalue)
       !
       ! infld_real8_3d:
       ! Netcdf I/O of 8-byte real field from netCDF file
-      ! Field on file is 3D
+      ! Field on file is 3D or 4D
       ! Local array, <field> is 3D
       !
 
+      use shr_kind_mod,     only: cl=>shr_kind_cl
       use pio,              only: pio_read_darray, PIO_NOERR
       use pio,              only: PIO_MAX_NAME, pio_inq_dimname
       use cam_grid_support, only: cam_grid_get_decomp, cam_grid_is_unstructured
@@ -698,6 +703,8 @@ CONTAINS
       ! dim3_bnds: Bounds of vertical dimension, if field is 3D
       integer,                    intent(in)  :: dim3_bnds(2)
       integer,          optional, intent(in)  :: dim3_pos
+      ! dim4_bnds: Bounds of 4th dimension, if field is 4D (e.g., size bins dimension for aerosol fields)
+      integer,          optional, intent(in)  :: dim4_bnds(2)
       ! gridname: Name of variable's grid (default 'physgrid')
       character(len=*), optional, intent(in)  :: gridname
       integer,          optional, intent(in)  :: timelevel
@@ -719,6 +726,8 @@ CONTAINS
 
       ! ndims: The number of dimensions of the field in the file
       integer                                 :: ndims
+      ! pdims: The number of dimensions of the field in the file to print
+      integer                                 :: pdims
       ! target_ndims: The number of expected dimensions for field on file
       integer                                 :: target_ndims
       ! dimids: file variable dims
@@ -733,7 +742,7 @@ CONTAINS
       character(len=PIO_MAX_NAME)             :: dim1name, dim2name
       character(len=PIO_MAX_NAME)             :: file_dnames(PIO_MAX_VAR_DIMS)
       character(len=PIO_MAX_NAME)             :: tmpname
-      character(len=128)                      :: errormsg
+      character(len=cl)                       :: errormsg
       ! Logical to determine whether to print output messages
       logical                                 :: log_read_field
       logical                                 :: readvar_tmp
@@ -769,7 +778,11 @@ CONTAINS
       block_indexed = cam_grid_is_block_indexed(grid_id)
       ! Is this an unstructured grid (i.e., one column dimension on file)?
       unstruct = cam_grid_is_unstructured(grid_id)
-      target_ndims = num_target_dims(3, unstruct)
+      if (present(dim4_bnds)) then
+         target_ndims = num_target_dims(4, unstruct)
+      else
+         target_ndims = num_target_dims(3, unstruct)
+      end if   
       if ((debug_output > 0) .and. masterproc) then
          if (present(timelevel)) then
             write(errormsg, '(a,i0)') ', timelevel = ', timelevel
@@ -826,6 +839,21 @@ CONTAINS
          dim_bounds(index,1) = dim3_bnds(1)
          dim_bounds(index,2) = dim3_bnds(2)
       end if
+
+      !If the variable has an extra (non-spatial) dimension as indicated
+      !by the presence of dim4_bnds, then set the dim bounds of the extra
+      !dimension as provided by the caller, with the assumption that it
+      !is always immediately after the vertical dimension:
+      if (present(dim4_bnds)) then
+         if (present(dim3_pos)) then
+            index = dim3_pos + 1
+         else
+            index = 3
+         end if
+         dim_bounds(index,1) = dim4_bnds(1)
+         dim_bounds(index,2) = dim4_bnds(2)
+      end if
+
       !
       ! Read netCDF file
       !
@@ -838,8 +866,7 @@ CONTAINS
       ! If field is on file:
       !
       if (readvar_tmp) then
-         call print_input_field_info(dimlens, ndims, 2, 4, dim_bounds, 3,     &
-              varname, subname)
+         pdims = ndims
          ! Check to make sure that any 'extra' dimension is time
          if (ndims > target_ndims + 1) then
             call safe_endrun(subname//': too many dimensions for '//trim(varname))
@@ -855,9 +882,12 @@ CONTAINS
                   call safe_endrun(subname//errormsg)
                end if
             end if
+            pdims = target_ndims
          else if (ndims < target_ndims) then
             call safe_endrun(subname//': too few dimensions for '//trim(varname))
          end if ! No else, things are okay
+         call print_input_field_info(dimlens, pdims, 2, 4, dim_bounds, 3,     &
+              varname, subname)
          !
          ! Get array dimension id's and sizes
          !
@@ -866,8 +896,10 @@ CONTAINS
          arraydimsize(3) = (dim_bounds(3,2) - dim_bounds(3,1) + 1)
          do jndex = 1, 3
             if (arraydimsize(jndex) /= size(field, jndex)) then
-               write(errormsg, '(4a,i0)') ': Mismatch between array bounds ', &
-                    'and field size for ', trim(varname), ', dimension ', jndex
+               write(errormsg, '(4a,i0)') ': Mismatch between array bounds ',     &
+                    'and field size for ', trim(varname), ', dimension ', jndex,  &
+                    ', variable array bounds = ', arraydimsize(jndex),            &
+                    ', file field size = ', size(field, jndex)
                call safe_endrun(subname//errormsg)
             end if
          end do
@@ -946,8 +978,6 @@ CONTAINS
       end if  ! end of readvar_tmp
 
       readvar = readvar_tmp
-
-      return
 
    end subroutine infld_real8_3d
 
