@@ -328,10 +328,11 @@ contains
     real (kind=r8), parameter :: threshold = 1.0E-40_r8
     character(len=128)        :: errormsg
     integer :: im1,jm1,ip1,jp1
-           !
-       ! fill in non-existent (in physical space) corner values to simplify
-       ! logic in limiter code (min/max operation)
-       !
+
+    !
+    ! fill in non-existent (in physical space) corner values to simplify
+    ! logic in limiter code (min/max operation)
+    !
     do itr=1,ntrac
        if (.not. llimiter(itr)) cycle
        if (cubeboundary>4) then
@@ -630,7 +631,7 @@ contains
   end subroutine slopelimiter_val
   !END SUBROUTINE SLOPELIMITER_VAL------------------------------------------CE-for FVM!
   !DIR$ ATTRIBUTES FORCEINLINE :: dotproduct
-  function dotproduct(w,f,ns)
+  pure function dotproduct(w,f,ns)
     implicit none
     real (kind=r8)                          :: dotproduct
     real (kind=r8),dimension(:), intent(in) :: w,f      !dimension(ns)
@@ -646,7 +647,7 @@ contains
   end function dotproduct
 
   !DIR$ ATTRIBUTES FORCEINLINE :: DotProduct_gen
-  function DotProduct_gen(w,f,ns)
+  pure function DotProduct_gen(w,f,ns)
     implicit none
     real (kind=r8)                          :: DotProduct_gen
     real (kind=r8),dimension(:), intent(in) :: w,f      !dimension(ns)
@@ -661,7 +662,7 @@ contains
   ! special hard-coded version of the function where ns=3
   ! for performance optimization
   !DIR$ ATTRIBUTES FORCEINLINE :: DotProduct_3
-  function DotProduct_3(w, f)
+  pure function DotProduct_3(w, f)
     IMPLICIT NONE
     REAL(KIND=r8), dimension(3), intent(in) :: w
     REAL(KIND=r8), dimension(3), intent(in) :: f
