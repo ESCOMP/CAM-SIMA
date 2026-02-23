@@ -1844,6 +1844,8 @@
 
     <!-- CAM with MMM "convection-permitting" physics suite (EXPERIMENTAL) -->
     <!-- Variables for "bl_gwdo" physics scheme -->
+    <!-- TODO: `var` may be related or even equivalent to `sgh`. Should come back to investigate when
+         this suite is fully implemented. -->
     <variable local_name="var"
               standard_name="standard_deviation_of_subgrid_orography"
               units="m" type="real" kind="kind_phys"
