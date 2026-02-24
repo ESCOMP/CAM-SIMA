@@ -95,6 +95,7 @@
     <group>dyn_se_nl</group>
     <desc>
       Enable thermal conductivity and molecular diffusion in the horizontal in SE dycore.
+      Default: 1.0 for WACCM-X, 0.0 (i.e., not used) for all other configurations.
     </desc>
     <values>
       <value>0.0</value>
@@ -273,7 +274,6 @@
       where press is pressure
 
       If &lt; 0, se_sponge_del4_nu_fac is automatically set based on model top location.
-      Default: Set by build-namelist.
     </desc>
     <values>
       <value>-1</value>
@@ -301,14 +301,13 @@
   <entry id="se_sponge_del4_lev">
     <type>real</type>
     <category>se></category>
-    <group>dyn_se_nl</group>    
+    <group>dyn_se_nl</group>
     <desc>
       Level index around which increased del4 damping is centered.
 
       See se_sponge_del4_nu_fac and se_sponge_del4_nu_div_fac
 
       If &lt; 0, se_sponge_del4_lev is automatically set based on model top location.
-      Default: Set by build-namelist.
     </desc>
     <values>
       <value>-1</value>
@@ -651,7 +650,8 @@
     <valid_values>1,2,3</valid_values>
     <desc>
       1: Exner version of pressure gradient force (PGF)
-      see Appendix A in https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2022MS003192
+      see Appendix A in Herrington et al., 2022,
+      doi: 10.1029/2022MS003192
 
       2: Traditional pressure gradient formulation (grad p)
 

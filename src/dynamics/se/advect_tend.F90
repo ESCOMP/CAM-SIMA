@@ -6,7 +6,6 @@ module advect_tend
 
   use shr_kind_mod, only : r8 => shr_kind_r8
 
-  save
   private
 
   public :: compute_adv_tends_xyz
@@ -49,7 +48,7 @@ contains
       nx=nc
     else
       nx=np
-    endif
+    end if
 
     allocate( ftmp(nx*nx,nlev), stat=iret )
     call check_allocate(iret, subname, 'ftmp(nx*nx,nlev)', &
@@ -63,7 +62,7 @@ contains
                           file=__FILE__, line=__LINE__)
 
       adv_tendxyz(:,:,:,:,:) = 0._r8
-    endif
+    end if
 
     if (use_cslam) then
       do ie=nets,nete
@@ -75,7 +74,7 @@ contains
       do ie=nets,nete
         do ic = 1, num_advected
           adv_tendxyz(:,:,:,ic,ie) = elem(ie)%state%Qdp(:,:,:,ic,qn0)/elem(ie)%state%dp3d(:,:,:,n0)  - adv_tendxyz(:,:,:,ic,ie)
-        enddo
+        end do
       end do
     end if
 
@@ -96,7 +95,7 @@ contains
         end do
       end do
       deallocate(adv_tendxyz)
-    endif
+    end if
     deallocate(ftmp)
 #else
     if (.not. init) then
@@ -146,7 +145,7 @@ contains
       nx=nc
     else
       nx=np
-    endif
+    end if
     nxsq=nx*nx
 
     init = .false.
@@ -170,7 +169,7 @@ contains
       allocate( iop_ttendxyz_init(nx,nx,nlev,nets:nete),stat=ierr )
       if (ierr/=0) call endrun( sub//': not able to allocate iop_ttendxyz_init' )
       iop_ttendxyz_init = 0._r8
-    endif
+    end if
 
     ! save initial/calc tendencies on second call to this routine.
     if (use_cslam) then
@@ -183,7 +182,7 @@ contains
       do ie=nets,nete
         do ic=1,pcnst
           iop_qtendxyz(:,:,:,ic,ie) = elem(ie)%state%Qdp(:,:,:,ic,qn0)/elem(ie)%state%dp3d(:,:,:,n0)  - iop_qtendxyz(:,:,:,ic,ie)
-       enddo
+       end do
       end do
     end if
     do ie=nets,nete
@@ -243,7 +242,7 @@ contains
                   else
                      elem(ie)%state%Qdp(i,j,:,p,qn0)=q_new(i,j,:)*elem(ie)%state%dp3d(i,j,:,n0)
                   end if
-               enddo
+               end do
                out_q(i+(j-1)*nx,:) = elem(ie)%state%Qdp(i,j,:,1,qn0)/elem(ie)%state%dp3d(i,j,:,n0)
             end do
          end do
@@ -255,7 +254,7 @@ contains
          call outfld('divT3d',t_adv,npsq,ie)
          do p=1,pcnst
             call outfld(trim(cnst_name(p))//'_dten',q_adv(:,:,p),nxsq,ie)
-         enddo
+         end do
       end do
 
       deallocate(iop_ttendxyz)
@@ -272,7 +271,7 @@ contains
       deallocate(q_adv)
       deallocate(q_new)
 
-    endif
+    end if
   end subroutine compute_write_iop_fields
 #endif
 end module advect_tend

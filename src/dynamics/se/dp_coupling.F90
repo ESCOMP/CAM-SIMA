@@ -34,7 +34,7 @@ use element_mod,      only: element_t
 
 implicit none
 private
-save
+
 
 public :: d_p_coupling, p_d_coupling
 
@@ -250,7 +250,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
       frontga(:,:,:)   = 0._r8
       vort4gw(:,:,:)   = 0._r8
 
-   endif ! iam < par%nprocs
+   end if ! iam < par%nprocs
 
    if (fv_nphys < 1) then
       deallocate(qgll)
@@ -750,7 +750,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    ! Ensure N2 = 1 - (O2 + O + H) mmr is greater than 0
    ! Check for unusually large H2 values and set to lower value.
    !------------------------------------------------------------
-   !xxx this code is NOT in cam_development?
    if (cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
        cam_runtime_opts%waccmx_option() == 'neutral')  then
 
@@ -770,15 +769,15 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
                const_data_ptr(i,k,ixh) = const_data_ptr(i,k,ixh) * (1._r8 - N2mmrMin) / mmrSum_O_O2_H
 
-            endif
+            end if
 
             if(const_data_ptr(i,k,ixh2) > H2lim) then
                const_data_ptr(i,k,ixh2) = H2lim
-            endif
+            end if
 
          end do
       end do
-   endif
+   end if
 
    ! Ensure tracers are all greater than or equal to their
    ! minimum-allowed value:

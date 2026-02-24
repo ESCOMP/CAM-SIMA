@@ -61,6 +61,7 @@ integer, parameter :: fvm_decomp = 102 ! The FVM (CSLAM) grid
 integer, parameter :: physgrid_d = 103 ! physics grid on dynamics decomp
 integer, parameter :: ini_decomp = 104 ! alternate dynamics grid for reading initial file
 integer, parameter :: ini_decomp_scm = 205 ! alternate dynamics grid for reading initial file
+                                           ! in single colum (SCAM) mode.
 
 character(len=3), protected :: ini_grid_name
 
@@ -266,7 +267,7 @@ subroutine model_grid_init()
       nelem     = 0
       nelemd    = 0
       nelemdmax = 0
-   endif
+   end if
 
    ! nelemdmax is computed on the dycore comm, we need it globally.
    ngcols_d = nelemdmax
@@ -793,7 +794,7 @@ subroutine define_cam_grids()
    type(horiz_coord_t), pointer :: lat_coord
    type(horiz_coord_t), pointer :: lon_coord
    integer(iMap),       pointer :: grid_map(:,:)
-   integer(iMap),       pointer :: grid_map_scm(:,:) !grid_map decomp for single column mode   
+   integer(iMap),       pointer :: grid_map_scm(:,:) !grid_map decomp for single column mode
 
    real(r8),        allocatable :: pelat_deg(:)  ! pe-local latitudes (degrees)
    real(r8),        allocatable :: pelon_deg(:)  ! pe-local longitudes (degrees)
