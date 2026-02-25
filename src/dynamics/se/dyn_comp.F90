@@ -1054,6 +1054,8 @@ subroutine dyn_run(dyn_state)
 #ifdef scam
    use scamMod,          only: single_column, use_3dfrc
    use se_single_column_mod, only: apply_SC_forcing,ie_scm
+#else
+   logical, parameter :: single_column = .false. !Always assume single-column mode is off.
 #endif
 
    type(dyn_export_t), intent(inout) :: dyn_state
@@ -1200,7 +1202,7 @@ subroutine dyn_run(dyn_state)
             ps_before(:,:,ie) = dyn_state%elem(ie)%state%psdry(:,:)
          end do
       end if
-#ifdef scam
+
       if (single_column) then
          nets_in=ie_scm
          nete_in=ie_scm
@@ -1208,13 +1210,11 @@ subroutine dyn_run(dyn_state)
          nets_in=nets
          nete_in=nete
       end if
+
       ! forward-in-time RK, with subcycling
       call prim_run_subcycle(dyn_state%elem, dyn_state%fvm, hybrid, nets_in, nete_in, &
                              tstep, TimeLevel, hvcoord, n, omega_cn)
-#else
-      call prim_run_subcycle(dyn_state%elem, dyn_state%fvm, hybrid, nets, nete, &
-                 tstep, TimeLevel, hvcoord, n, .false., omega_cn)
-#endif
+
       if (ldiag) then
          do ie = nets, nete
             abs_ps_tend(:,:,ie) = abs_ps_tend(:,:,ie) +                                &
@@ -2079,19 +2079,15 @@ subroutine set_phis(dyn_in)
 
       ! Set name of grid object which will be used to read data from file
       ! into internal data structure via PIO.
-#ifdef scam
       if (single_column) then
          grid_name = 'SCM'
-       else
-#endif
-         if (fv_nphys == 0) then
+      else
+         if (.not.use_cslam) then
             grid_name = 'GLL'
          else
             grid_name = 'physgrid_d'
          end if
-#ifdef scam
       end if
-#endif
       ! Get number of global columns from the grid object and check that
       ! it matches the file data.
       call cam_grid_dimensions(grid_name, dims)
@@ -2108,11 +2104,7 @@ subroutine set_phis(dyn_in)
          call endrun(subname//': dimension ncol does not have a value in bnd_topo file')
       end if
 
-#ifdef scam
       if (ncol_size /= dyn_cols .and. .not. single_column) then
-#else
-      if (ncol_size /= dyn_cols) then
-#endif
          if (masterproc) then
             write(iulog,*) subname//': ncol_size=', ncol_size, ' : dyn_cols=', dyn_cols
          end if
