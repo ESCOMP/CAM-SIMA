@@ -275,11 +275,11 @@
 
   <!-- Untested simple model compsets -->
 
-  <!-- CAM with MMM "convection-permitting" physics suite (EXPERIMENTAL) -->
+  <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
   <!-- Temporarily using stub land model during development, but a real one will be required -->
   <compset>
-    <alias>MMMCONVPERM</alias>
-    <lname>2000_CAM%MMMCONVPERM_SLND_SICE_SOCN_SROF_SGLC_SWAV</lname>
+    <alias>MPASCP</alias>
+    <lname>2000_CAM%MPASCP_SLND_SICE_SOCN_SROF_SGLC_SWAV</lname>
   </compset>
 
   <!-- ****************************** -->

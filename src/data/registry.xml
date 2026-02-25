@@ -1842,7 +1842,7 @@
       <initial_value>.false.</initial_value>
     </variable>
 
-    <!-- CAM with MMM "convection-permitting" physics suite (EXPERIMENTAL) -->
+    <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
     <!-- Variables for "bl_gwdo" physics scheme -->
     <!-- TODO: `var` may be related or even equivalent to `sgh`. Should come back to investigate when
          this suite is fully implemented. -->

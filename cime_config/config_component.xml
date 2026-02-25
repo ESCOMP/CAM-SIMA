@@ -13,7 +13,7 @@
     <desc atm="CAM50[%CCTS][%CLB][%PORT][%RCO2][%SCAM][%SDYN][%WCSC][%WCTS]"              >CAM cam5 physics:</desc>
     <desc atm="CAM40[%PORT][%RCO2][%SCAM][%SDYN][%TMOZ][%WXIE][%WXIED][%WCMD]"                   >CAM cam4 physics:</desc>
     <desc atm="CAM[%ADIAB][%PHYSTEST][%DABIP04][%TJ16][%HS94][%KESSLER][%RCO2][%SPCAMS][%SPCAMCLBS][%SPCAMM][%SPCAMCLBM]">CAM simplified and non-versioned physics:</desc>
-    <desc atm="CAM%MMMCONVPERM">CAM with MMM "convection-permitting" physics suite (EXPERIMENTAL)</desc>
+    <desc atm="CAM%MPASCP">CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL)</desc>
 
   <!--
     ===============
@@ -176,9 +176,9 @@
       <!-- PORT -->
 <!--      <value compset="%PORT">-offline_drv rad</value> -->
 
-      <!-- CAM with MMM "convection-permitting" physics suite (EXPERIMENTAL) -->
+      <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
       <!-- Temporarily using analytic initial condition during development -->
-      <value compset="CAM%MMMCONVPERM">--physics-suites convection_permitting --analytic-ic</value>
+      <value compset="CAM%MPASCP">--physics-suites convection_permitting --analytic-ic</value>
     </values>
     <group>build_component_cam</group>
     <file>env_build.xml</file>
