@@ -74,7 +74,7 @@
     </desc>
     <values>
       <value>3</value>
-      <value hgrid="ne16np4">4</value>
+      <value hgrid="ne16np4" model_top="lt">1</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle_sponge">
@@ -216,6 +216,7 @@
     </desc>
     <values>
       <value>-1</value>
+      <value hgrid="ne16np4">6.e15</value>
       <value hypervis_type="scalar" se_refined_mesh="1">1.0e13</value>
     </values>
   </entry>
@@ -229,6 +230,7 @@
     </desc>
     <values>
       <value>-1</value>
+      <value hgrid="ne16np4">6.e15</value>
       <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
     </values>
   </entry>
@@ -242,6 +244,7 @@
     </desc>
     <values>
       <value>-1</value>
+      <value hgrid="ne16np4">6.e15</value>
       <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
     </values>
   </entry>
