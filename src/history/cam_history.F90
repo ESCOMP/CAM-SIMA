@@ -179,6 +179,8 @@ CONTAINS
                write_history = .true.
             else
                write_history = .false.
+               ! Zero out the history buffers so nothing gets accumulated from nstep0
+               call hist_configs(file_idx)%clear_buffers()
             end if
          end if
          if (.not. write_history) then
@@ -838,7 +840,6 @@ CONTAINS
                write(iulog,9004)
             end if
          end if
-         call hist_configs(file_idx)%clear_buffers()
       end do
 9003  format('    Output at NSTEP     = ',i10,/, &
              '    Number of time samples on this file = ',i10,/, &

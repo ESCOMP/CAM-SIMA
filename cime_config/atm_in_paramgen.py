@@ -1410,7 +1410,7 @@ class AtmInParamGen(ParamGen):
                         #End if (array indices)
 
                         #Extract value string:
-                        val_str   = ' '.join(line_ss[1:]) # the rest is the value string
+                        val_str   = ' '.join(line_ss[1:]).strip() # the rest is the value string
 
                         #Check if value string ends in array continuation:
                         if is_array:

@@ -762,7 +762,6 @@ CONTAINS
             write(errmsg,'(3a)') 'ERROR Field : ',trim(this%field_names(idx)),' not available'
             call endrun(subname//errmsg, file=__FILE__, line=__LINE__)
          end select
-         !call field_ptr%dimensions(dimensions)
          dimensions = field_ptr%dimensions()
          field_shape = field_ptr%shape()
          beg_dim = field_ptr%beg_dims()
@@ -1505,6 +1504,7 @@ CONTAINS
       use cam_abortutils,      only: check_allocate, endrun
       use hist_field,          only: hist_field_info_t
       use shr_kind_mod,        only: r4 => shr_kind_r4
+      use hist_msg_handler,    only: hist_log_messages
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
       type(hist_field_info_t), intent(inout) :: field
@@ -1529,6 +1529,7 @@ CONTAINS
       real(r8), allocatable          :: field_data_r8(:,:)
       real(r4), allocatable          :: field_data_r4(:,:)
       class(hist_buffer_t), pointer  :: buff_ptr
+      type(hist_log_messages)        :: errors
       character(len=CL)              :: errmsg
       character(len=*), parameter    :: subname = 'config_write_field: '
 
@@ -1594,6 +1595,9 @@ CONTAINS
          end if
       end do
 
+      ! Clear the buffers after writing
+      call field%clear_buffers(logger=errors)
+
    end subroutine config_write_field
 
    ! ========================================================================
@@ -1642,7 +1646,6 @@ CONTAINS
       ! Local variables
       integer :: field_idx
       type(hist_log_messages) :: errors
-
 
       do field_idx = 1, size(this%field_list)
          call this%field_list(field_idx)%clear_buffers(logger=errors)
@@ -1802,8 +1805,6 @@ CONTAINS
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_avg > 0) then
-         call endrun(subname//"ERROR, average fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_avg_fields(:), max_fldlen*num_fields_avg, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if

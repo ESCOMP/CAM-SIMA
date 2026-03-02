@@ -6,8 +6,8 @@
 	fxDONOTUSEurl = https://github.com/NCAR/ccpp-framework
 [submodule "history"]
 	path = src/history/buffers
-	url = https://github.com/ESMCI/history_output
-	fxtag         = history01_00
+	url = https://github.com/peverwhee/history_output
+	fxtag         = 1404b7d0b602a36c6bc5abdf4b1ef3d2af4b1a50
 	fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
