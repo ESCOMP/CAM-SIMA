@@ -1,23 +1,13 @@
 module stepon
 
-use shr_kind_mod,   only: r8 => SHR_KIND_R8
-use dyn_comp,       only: dyn_import_t, dyn_export_t
-use physics_types,  only: physics_state, physics_tend
-use spmd_utils,     only: iam, mpicom
-use perf_mod,       only: t_startf, t_stopf, t_barrierf
-use runtime_obj,    only: runtime_options
-
-!SE dycore:
-use parallel_mod,   only: par
-use dimensions_mod, only: nelemd
 #ifdef scam
 use scamMod,                only: use_iop, doiopupdate, single_column, &
                                   setiopupdate, readiopdata
 use se_single_column_mod,   only: scm_setfield, iop_broadcast
 #endif
+
 implicit none
 private
-save
 
 public stepon_init
 public stepon_timestep_init
@@ -30,10 +20,18 @@ contains
 !=========================================================================================
 
 subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
-#ifdef constituents
-   use constituents,   only: pcnst, cnst_name, cnst_longname
+   use cam_constituents,    only: num_constituents, const_name
+   use cam_constituents,    only: const_longname
+   use runtime_obj,         only: runtime_options
+   use cam_history,         only: history_add_field
+   use cam_history_support, only: horiz_only
+
+   !SE/CAM interface:
+   use dyn_comp,            only: dyn_import_t, dyn_export_t
+
+   !SE dycore:
    use dimensions_mod, only: fv_nphys, cnst_name_gll, cnst_longname_gll, qsize
-#endif
+
    ! Dummy arguments
    type(runtime_options), intent(in) :: cam_runtime_opts ! Runtime settings object
    type(dyn_import_t),    intent(in) :: dyn_in           ! Dynamics import container
@@ -41,41 +39,51 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
 
    ! local variables
    integer :: m, m_cnst
-#ifdef constituents
+
    !----------------------------------------------------------------------------
    ! These fields on dynamics grid are output before the call to d_p_coupling.
    do m_cnst = 1, qsize
-     call addfld(trim(cnst_name_gll(m_cnst))//'_gll',  (/ 'lev' /), 'I', 'kg/kg',   &
-          trim(cnst_longname_gll(m_cnst)), gridname='GLL')
-     call addfld(trim(cnst_name_gll(m_cnst))//'dp_gll',  (/ 'lev' /), 'I', 'kg/kg',   &
-          trim(cnst_longname_gll(m_cnst))//'*dp', gridname='GLL')
+     call history_add_field(trim(cnst_name_gll(m_cnst))//'_gll',  trim(cnst_longname_gll(m_cnst)), &
+         'lev', 'inst', 'kg kg-1', gridname='GLL')
+     call history_add_field(trim(cnst_name_gll(m_cnst))//'dp_gll', trim(cnst_longname_gll(m_cnst))//'*dp', &
+         'lev', 'inst', 'kg kg-1', gridname='GLL')
    end do
-   call addfld('U_gll'     ,(/ 'lev' /), 'I', 'm/s ','U wind on gll grid',gridname='GLL')
-   call addfld('V_gll'     ,(/ 'lev' /), 'I', 'm/s ','V wind on gll grid',gridname='GLL')
-   call addfld('T_gll'     ,(/ 'lev' /), 'I', 'K '  ,'T on gll grid'     ,gridname='GLL')
-   call addfld('dp_ref_gll' ,(/ 'lev' /), 'I', '  '  ,'dp dry / dp_ref on gll grid'     ,gridname='GLL')
-   call addfld('PSDRY_gll' ,horiz_only , 'I', 'Pa ' ,'psdry on gll grid' ,gridname='GLL')
-   call addfld('PS_gll'    ,horiz_only , 'I', 'Pa ' ,'ps on gll grid'    ,gridname='GLL')
-   call addfld('PHIS_gll'  ,horiz_only , 'I', 'Pa ' ,'PHIS on gll grid'  ,gridname='GLL')
+
+   call history_add_field('U_gll'      ,'U wind on gll grid'         ,'lev'      , 'inst', 'm s-1 ',gridname='GLL')
+   call history_add_field('V_gll'      ,'V wind on gll grid'         ,'lev'      , 'inst', 'm s-1 ',gridname='GLL')
+   call history_add_field('T_gll'      ,'T on gll grid'              ,'lev'      , 'inst', 'K '    ,gridname='GLL')
+   call history_add_field('dp_ref_gll' ,'dp dry / dp_ref on gll grid','lev'      , 'inst', '1'     ,gridname='GLL')
+   call history_add_field('PSDRY_gll'  ,'psdry on gll grid'          ,horiz_only , 'inst', 'Pa '   ,gridname='GLL')
+   call history_add_field('PS_gll'     ,'ps on gll grid'             ,horiz_only , 'inst', 'Pa '   ,gridname='GLL')
+   call history_add_field('PHIS_gll'   ,'PHIS on gll grid'           ,horiz_only , 'inst', 'Pa '   ,gridname='GLL')
 
    ! Fields for initial condition files
-   call addfld('U&IC',   (/ 'lev' /),  'I', 'm/s', 'Zonal wind',     gridname='GLL' )
-   call addfld('V&IC',   (/ 'lev' /),  'I', 'm/s', 'Meridional wind',gridname='GLL' )
+   call history_add_field('U&IC',  'Zonal wind'      ,'lev' ,  'inst', 'm s-1', gridname='GLL')
+   call history_add_field('V&IC',  'Meridional wind' ,'lev' ,  'inst', 'm s-1', gridname='GLL')
+
    ! Don't need to register U&IC V&IC as vector components since we don't interpolate IC files
-   call add_default('U&IC',0, 'I')
-   call add_default('V&IC',0, 'I')
+   !Uncomment or delete once history output "groups" have been
+   !implemented in CAM-SIMA -JN:
+   !call add_default('U&IC',0, 'inst')
+   !call add_default('V&IC',0, 'inst')
 
-   call addfld('PS&IC', horiz_only,  'I', 'Pa', 'Surface pressure',       gridname='GLL')
-   call addfld('T&IC',  (/ 'lev' /), 'I', 'K',  'Temperature',            gridname='GLL')
-   call add_default('PS&IC', 0, 'I')
-   call add_default('T&IC',  0, 'I')
+   call history_add_field('PS&IC', 'Surface pressure' ,horiz_only , 'inst', 'Pa', gridname='GLL')
+   call history_add_field('T&IC',  'Temperature'      ,'lev'      , 'inst', 'K ', gridname='GLL')
 
-   do m_cnst = 1,pcnst
-      call addfld(trim(cnst_name(m_cnst))//'&IC', (/ 'lev' /), 'I', 'kg/kg', &
-                  trim(cnst_longname(m_cnst)), gridname='GLL')
-      call add_default(trim(cnst_name(m_cnst))//'&IC', 0, 'I')
+   !Uncomment or delete once history output "groups" have been
+   !implemented in CAM-SIMA -JN:
+   !call add_default('PS&IC', 0, 'inst')
+   !call add_default('T&IC',  0, 'inst')
+
+   do m_cnst = 1, num_constituents
+      call history_add_field(trim(const_name(m_cnst))//'&IC', trim(const_longname(m_cnst)), &
+                  'lev', 'inst', 'kg kg-1', gridname='GLL')
+
+      !Uncomment or delete once history output "groups" have been
+      !implemented in CAM-SIMA -JN:
+      !call add_default(trim(const_name(m_cnst))//'&IC', 0, 'inst')
    end do
-#endif
+
 end subroutine stepon_init
 
 !=========================================================================================
@@ -83,12 +91,21 @@ end subroutine stepon_init
 subroutine stepon_timestep_init(dtime_out, cam_runtime_opts, phys_state,      &
      phys_tend, dyn_in, dyn_out)
 
+   use shr_kinds_mod,  only: r8=>shr_kind_r8
+   use perf_mod,       only: t_startf, t_stopf, t_barrierf
+   use runtime_obj,    only: runtime_options
+   use physics_types,  only: physics_state, physics_tend
    use time_manager,   only: get_step_size
    use cam_abortutils, only: endrun
-   use dp_coupling,    only: d_p_coupling           ! dynamics-physics coupling
+   use spmd_utils,     only: iam, mpicom
+
+   !SE/CAM interface:
+   use dyn_comp,       only: dyn_import_t, dyn_export_t
+   use dp_coupling,    only: d_p_coupling                ! dynamics-physics coupling
 
    !SE dycore:
-   use se_dyn_time_mod,     only: tstep                  ! dynamics timestep
+   use se_dyn_time_mod, only: tstep                      ! dynamics timestep
+   use parallel_mod,    only: par
 
    ! Dummy arguments
    real(r8),              intent(out)   :: dtime_out        ! Time-step (s)
@@ -149,14 +166,21 @@ end subroutine stepon_timestep_init
 
 subroutine stepon_run2(cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
 
+   use runtime_obj,    only: runtime_options
+   use physics_types,  only: physics_state, physics_tend
+   use perf_mod,       only: t_startf, t_stopf, t_barrierf
+   use spmd_utils,     only: mpicom
+
    !SE/CAM interface:
-   use dp_coupling,      only: p_d_coupling
-   use dyn_grid,         only: TimeLevel
+   use dp_coupling,    only: p_d_coupling
+   use dyn_grid,       only: TimeLevel
+   use dyn_comp,       only: dyn_import_t, dyn_export_t
 
    !SE dycore:
    use se_dyn_time_mod,  only: TimeLevel_Qdp
    use control_mod,      only: qsplit
    use prim_advance_mod, only: tot_energy_dyn
+   use dimensions_mod,   only: nelemd
 
    ! Dummy arguments
    type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
@@ -190,15 +214,21 @@ end subroutine stepon_run2
 
 subroutine stepon_run3(dtime, cam_runtime_opts, cam_out, phys_state, dyn_in, dyn_out)
 
-   use physics_types,     only: cam_out_t
+   use shr_kinds_mod,  only: r8=>shr_kind_r8
+   use runtime_obj,    only: runtime_options
+   use physics_types,  only: cam_out_t, physics_state
+   use perf_mod,       only: t_startf, t_stopf, t_barrierf
+   use spmd_utils,     only: mpicom
 
    !SE/CAM interface:
+   use dyn_comp,       only: dyn_import_t, dyn_export_t
    use dyn_comp,       only: dyn_run
    use dyn_grid,       only: TimeLevel
 #ifdef scam
    use advect_tend,    only: compute_write_iop_fields
 #endif
    use advect_tend,    only: compute_adv_tends_xyz
+
    !SE dycore:
    use se_dyn_time_mod,only: TimeLevel_Qdp
    use control_mod,    only: qsplit
@@ -269,14 +299,20 @@ end subroutine stepon_final
 !=========================================================================================
 
 subroutine diag_dynvar_ic(elem, fvm)
-   !use constituents,           only: cnst_type, cnst_name
-   !use cam_history,            only: write_inithist, outfld, hist_fld_active, fieldname_len
-   use dyn_grid,               only: TimeLevel
+
+   use shr_kinds_mod,          only: r8=>shr_kind_r8, cl=>shr_kind_cl
+   use cam_constituents,       only: const_is_wet, const_name
+   use cam_history,            only: is_history_field_active, history_out_field
+   !use cam_history,           only: write_inithist
+   use cam_history_support,    only: fieldname_len
    use air_composition,        only: thermodynamic_active_species_idx
    use air_composition,        only: thermodynamic_active_species_idx_dycore
    use dyn_thermo,             only: get_sum_species, get_ps, get_dp_ref
    use hycoef,                 only: hyai, hybi, ps0
    use cam_abortutils,         only: endrun, check_allocate
+
+   !SE/CAM interface:
+   use dyn_grid,               only: TimeLevel
 
    !SE dycore:
    use se_dyn_time_mod,        only: TimeLevel_Qdp   !  dynamics typestep
@@ -297,7 +333,9 @@ subroutine diag_dynvar_ic(elem, fvm)
    integer              :: ie, i, j, k, m, m_cnst, nq
    integer              :: tl_f, tl_qdp
    integer              :: iret
-   !character(len=fieldname_len) :: tfname !Uncomment once 'fieldname_len' or an equivalent is available -JN
+   character(len=cl)    :: errmsg
+
+   character(len=fieldname_len) :: tfname
 
    type(hybrid_t)        :: hybrid
    integer               :: nets, nete
@@ -314,16 +352,14 @@ subroutine diag_dynvar_ic(elem, fvm)
    tl_f = timelevel%n0
    call TimeLevel_Qdp(TimeLevel, qsplit, tl_Qdp)
 
-   allocate(ftmp(npsq,nlev,2), stat=iret)
+   allocate(ftmp(npsq,nlev,2), stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, 'ftmp(npsq,nlev,2)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#if 0
    ! Output tracer fields for analysis of advection schemes
    do m_cnst = 1, qsize
      tfname = trim(cnst_name_gll(m_cnst))//'_gll'
-     if (hist_fld_active(tfname)) then
+     if (is_history_field_active(tfname)) then
        do ie = 1, nelemd
          qtmp(:,:,:) =  elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
               elem(ie)%state%dp3d(:,:,:,tl_f)
@@ -333,32 +369,26 @@ subroutine diag_dynvar_ic(elem, fvm)
                   elem(ie)%state%dp3d(i,j,:,tl_f)
            end do
          end do
-         call outfld(tfname, ftmp(:,:,1), npsq, ie)
+         call history_out_field(tfname, ftmp(:,:,1))
        end do
      end if
    end do
 
    do m_cnst = 1, qsize
      tfname = trim(cnst_name_gll(m_cnst))//'dp_gll'
-     if (hist_fld_active(tfname)) then
+     if (is_history_field_active(tfname)) then
        do ie = 1, nelemd
          do j = 1, np
            do i = 1, np
              ftmp(i+(j-1)*np,:,1) = elem(ie)%state%Qdp(i,j,:,m_cnst,tl_qdp)
            end do
          end do
-         call outfld(tfname, ftmp(:,:,1), npsq, ie)
+         call history_out_field(tfname, ftmp(:,:,1))
        end do
      end if
    end do
 
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#endif
-
-!Remove once "outfld" is enabled in CAMDEN -JN:
-#if 0
-
-   if (hist_fld_active('U_gll') .or. hist_fld_active('V_gll')) then
+   if (is_history_field_active('U_gll') .or. is_history_field_active('V_gll')) then
       do ie = 1, nelemd
          do j = 1, np
             do i = 1, np
@@ -366,23 +396,23 @@ subroutine diag_dynvar_ic(elem, fvm)
                ftmp(i+(j-1)*np,:,2) = elem(ie)%state%v(i,j,2,:,tl_f)
             end do
          end do
-         call outfld('U_gll', ftmp(:,:,1), npsq, ie)
-         call outfld('V_gll', ftmp(:,:,2), npsq, ie)
+         call history_out_field('U_gll', ftmp(:,:,1))
+         call history_out_field('V_gll', ftmp(:,:,2))
       end do
    end if
 
-   if (hist_fld_active('T_gll')) then
+   if (is_history_field_active('T_gll')) then
       do ie = 1, nelemd
          do j = 1, np
             do i = 1, np
                ftmp(i+(j-1)*np,:,1) = elem(ie)%state%T(i,j,:,tl_f)
             end do
          end do
-         call outfld('T_gll', ftmp(:,:,1), npsq, ie)
+         call history_out_field('T_gll', ftmp(:,:,1))
       end do
    end if
 
-   if (hist_fld_active('dp_ref_gll')) then
+   if (is_history_field_active('dp_ref_gll')) then
      do ie = 1, nelemd
        call get_dp_ref(hyai,hybi,ps0,elem(ie)%state%phis(:,:),dp_ref(:,:,:),ps_ref(:,:))
          do j = 1, np
@@ -390,25 +420,25 @@ subroutine diag_dynvar_ic(elem, fvm)
                ftmp(i+(j-1)*np,:,1) = elem(ie)%state%dp3d(i,j,:,tl_f)/dp_ref(i,j,:)
             end do
          end do
-         call outfld('dp_ref_gll', ftmp(:,:,1), npsq, ie)
+         call history_out_field('dp_ref_gll', ftmp(:,:,1))
       end do
    end if
 
-   if (hist_fld_active('PSDRY_gll')) then
+   if (is_history_field_active('PSDRY_gll')) then
       do ie = 1, nelemd
          do j = 1, np
             do i = 1, np
                ftmp(i+(j-1)*np,1,1) = elem(ie)%state%psdry(i,j)
             end do
          end do
-         call outfld('PSDRY_gll', ftmp(:,1,1), npsq, ie)
+         call history_out_field('PSDRY_gll', ftmp(:,1,1))
       end do
    end if
 
-   if (hist_fld_active('PS_gll')) then
-     allocate(fld_2d(np,np), stat=iret)
+   if (is_history_field_active('PS_gll')) then
+     allocate(fld_2d(np,np), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fld_2d(np, np)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      do ie = 1, nelemd
        call get_ps(elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
@@ -418,25 +448,23 @@ subroutine diag_dynvar_ic(elem, fvm)
               ftmp(i+(j-1)*np,1,1) = fld_2d(i,j)
             end do
          end do
-         call outfld('PS_gll', ftmp(:,1,1), npsq, ie)
+         call history_out_field('PS_gll', ftmp(:,1,1))
+
        end do
        deallocate(fld_2d)
    end if
 
-   if (hist_fld_active('PHIS_gll')) then
+   if (is_history_field_active('PHIS_gll')) then
       do ie = 1, nelemd
-         call outfld('PHIS_gll', RESHAPE(elem(ie)%state%phis, (/np*np/)), np*np, ie)
+         call history_out_field('PHIS_gll', RESHAPE(elem(ie)%state%phis, (/np*np/)))
       end do
    end if
 
-!Remove once history output is available in CAMDEN -JN:
-#endif
-
-   !if (write_inithist()) then !Un-comment once history output is available -JN
-   if (.false.) then            !Remove once history output is available -JN
-     allocate(fld_2d(np,np), stat=iret)
+   !if (write_inithist()) then !Un-comment once IC file writing is available -JN
+   if (.false.) then
+     allocate(fld_2d(np,np), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fld_2d(np, np)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      do ie = 1, nelemd
        call get_ps(elem(ie)%state%Qdp(:,:,:,:,tl_Qdp),&
@@ -446,42 +474,38 @@ subroutine diag_dynvar_ic(elem, fvm)
            ftmp(i+(j-1)*np,1,1) = fld_2d(i,j)
          end do
        end do
-!       call outfld('PS&IC', ftmp(:,1,1), npsq, ie)
+       call history_out_field('PS&IC', ftmp(:,1,1))
      end do
      deallocate(fld_2d)
      if (fv_nphys < 1) then
-        allocate(factor_array(np,np,nlev), stat=iret)
+        allocate(factor_array(np,np,nlev), stat=iret, errmsg=errmsg)
         call check_allocate(iret, subname, 'factor_array(np,np,nlev)', &
-                            file=__FILE__, line=__LINE__)
+                            file=__FILE__, line=__LINE__, errmsg=errmsg)
      end if
 
      do ie = 1, nelemd
 
-         !Un-comment once history output is available -JN:
-         !call outfld('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   (/npsq,nlev/)), npsq, ie)
-         !call outfld('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), (/npsq,nlev/)), npsq, ie)
-         !call outfld('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), (/npsq,nlev/)), npsq, ie)
+         call history_out_field('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   (/npsq,nlev/)))
+         call history_out_field('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), (/npsq,nlev/)))
+         call history_out_field('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), (/npsq,nlev/)))
 
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#if 0
          if (fv_nphys < 1) then
             call get_sum_species(elem(ie)%state%Qdp(:,:,:,:,tl_qdp), &
                thermodynamic_active_species_idx_dycore, factor_array,dp_dry=elem(ie)%state%dp3d(:,:,:,tl_f))
             factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
             do m_cnst = 1, qsize
-               if (cnst_type(m_cnst) == 'wet') then
-                  call outfld(trim(cnst_name(m_cnst))//'&IC', &
+               if (const_is_wet(m_cnst)) then
+                  call history_out_field(trim(const_name(m_cnst))//'&IC', &
                        RESHAPE(factor_array(:,:,:)*elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)), npsq, ie)
+                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
                else
-                  call outfld(trim(cnst_name(m_cnst))//'&IC', &
+                  call history_out_field(trim(const_name(m_cnst))//'&IC', &
                        RESHAPE(elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)), npsq, ie)
+                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
                end if
             end do
          end if
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#endif
+
       end do
 
       if (fv_nphys > 0) then
@@ -490,34 +514,31 @@ subroutine diag_dynvar_ic(elem, fvm)
          hybrid = config_thread_region(par,'serial')
          call get_loop_ranges(hybrid, ibeg=nets, iend=nete)
 
-         allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete), stat=iret)
+         allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac,nets:nete)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(fld_gll(np,np,nlev,ntrac,nets:nete), stat=iret)
+         allocate(fld_gll(np,np,nlev,ntrac,nets:nete), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'fld_gll(np,np,nlev,ntrac,nets:nete)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(llimiter(ntrac), stat=iret)
+         allocate(llimiter(ntrac), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, 'llimiter(ntrac)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(factor_array(nc,nc,nlev), stat=iret)
+         allocate(factor_array(nc,nc,nlev), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, 'factor_array(nc,nc,nlev)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          llimiter = .true.
-
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#if 0
 
          do ie = nets, nete
            call get_sum_species(fvm(ie)%c(1:nc,1:nc,:,:),thermodynamic_active_species_idx,factor_array)
            factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
            do m_cnst = 1, ntrac
-             if (cnst_type(m_cnst) == 'wet') then
+             if (const_is_wet(m_cnst)) then
                fld_fvm(1:nc,1:nc,:,m_cnst,ie) = fvm(ie)%c(1:nc,1:nc,:,m_cnst)*factor_array(:,:,:)
              else
                fld_fvm(1:nc,1:nc,:,m_cnst,ie) = fvm(ie)%c(1:nc,1:nc,:,m_cnst)
@@ -529,13 +550,10 @@ subroutine diag_dynvar_ic(elem, fvm)
 
          do ie = nets, nete
             do m_cnst = 1, ntrac
-               call outfld(trim(cnst_name(m_cnst))//'&IC', &
-                    RESHAPE(fld_gll(:,:,:,m_cnst,ie), (/npsq,nlev/)), npsq, ie)
+               call history_out_field(trim(const_name(m_cnst))//'&IC', &
+                    RESHAPE(fld_gll(:,:,:,m_cnst,ie), (/npsq,nlev/)))
             end do
          end do
-
-!REMOVE ONCE TRACERS/CHEMISTRY IS ENABLED -JN:
-#endif
 
          deallocate(fld_fvm)
          deallocate(fld_gll)

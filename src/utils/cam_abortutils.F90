@@ -9,7 +9,6 @@ module cam_abortutils
 
    implicit none
    private
-   save
 
    public :: endrun
    public :: safe_endrun

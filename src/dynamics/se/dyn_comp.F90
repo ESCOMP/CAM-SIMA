@@ -2,7 +2,7 @@ module dyn_comp
 
 ! CAM interfaces to the SE Dynamical Core
 
-use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
+use shr_kind_mod,           only: r8=>shr_kind_r8
 use dynconst,               only: pi
 use spmd_utils,             only: iam, masterproc
 use cam_constituents,       only: const_name, const_longname, num_advected
@@ -22,8 +22,6 @@ use cam_grid_support,       only: cam_grid_id, cam_grid_get_gcid, &
 use inic_analytic,          only: analytic_ic_active, analytic_ic_set_ic
 use dyn_tests_utils,        only: vcoord=>vc_dry_pressure
 
-!use cam_history,            only: outfld, hist_fld_active, fieldname_len
-!use cam_history_support,    only: max_fieldname_len
 use time_manager,           only: get_step_size
 
 use cam_field_read,         only: cam_read_field
@@ -50,7 +48,6 @@ use bndry_mod,              only: bndry_exchange
 
 implicit none
 private
-save
 
 public ::          &
      dyn_import_t, &
@@ -88,8 +85,6 @@ end interface read_dyn_var
 real(r8), parameter :: rad2deg = 180.0_r8 / pi
 real(r8), parameter :: deg2rad = pi / 180.0_r8
 
-integer, parameter :: max_fieldname_len = 27 !Remove once history is enabled -JN
-
 !===============================================================================
 contains
 !===============================================================================
@@ -98,6 +93,7 @@ subroutine dyn_readnl(NLFileName)
    use mpi,            only: mpi_real8, mpi_integer, mpi_character, mpi_logical
    use air_composition,only: thermodynamic_active_species_num
    use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
+   use shr_kind_mod,   only: shr_kind_cl
    use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
    use native_mapping, only: native_mapping_readnl
@@ -143,7 +139,7 @@ subroutine dyn_readnl(NLFileName)
    integer                      :: se_hypervis_subcycle_q
    integer                      :: se_limiter_option
    real(r8)                     :: se_max_hypervis_courant
-   character(len=SHR_KIND_CL)   :: se_mesh_file
+   character(len=shr_kind_cl)   :: se_mesh_file
    integer                      :: se_ne
    integer                      :: se_npes
    integer                      :: se_nsplit
@@ -258,7 +254,7 @@ subroutine dyn_readnl(NLFileName)
    call MPI_bcast(se_hypervis_subcycle_q, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_limiter_option, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_max_hypervis_courant, 1, mpi_real8, masterprocid, mpicom, ierr)
-   call MPI_bcast(se_mesh_file, SHR_KIND_CL,  mpi_character, masterprocid, mpicom, ierr)
+   call MPI_bcast(se_mesh_file, shr_kind_cl,  mpi_character, masterprocid, mpicom, ierr)
    call MPI_bcast(se_ne, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_npes, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_nsplit, 1, mpi_integer, masterprocid, mpicom, ierr)
@@ -550,14 +546,17 @@ end subroutine dyn_readnl
 !=========================================================================================
 
 subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-   use runtime_obj,        only: runtime_options
-   use dyn_grid,           only: elem, fvm
-   use cam_pio_utils,      only: clean_iodesc_list
-   use air_composition,    only: thermodynamic_active_species_num, thermodynamic_active_species_idx
-   use air_composition,    only: thermodynamic_active_species_idx_dycore
-   use dynconst,           only: cpair, pstd
-   use dyn_thermo,         only: get_molecular_diff_coef_reference
-   !use cam_history,        only: addfld, add_default, horiz_only, register_vector_field
+   use shr_kind_mod,        only: cl=>shr_kind_cl
+   use runtime_obj,         only: runtime_options
+   use dyn_grid,            only: elem, fvm
+   use cam_pio_utils,       only: clean_iodesc_list
+   use air_composition,     only: thermodynamic_active_species_num, thermodynamic_active_species_idx
+   use air_composition,     only: thermodynamic_active_species_idx_dycore
+   use dynconst,            only: cpair, pstd
+   use dyn_thermo,          only: get_molecular_diff_coef_reference
+   use cam_history,         only: history_add_field
+   use cam_history_support, only: horiz_only
+   !use cam_history,        only: register_vector_field
    use gravity_waves_sources, only: gws_init
    use cam_thermo_formula, only: energy_formula_dycore, ENERGY_FORMULA_DYCORE_SE
    use physics_types,      only: dycore_energy_consistency_adjust
@@ -593,6 +592,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    integer :: ixq, ixcldice, ixcldliq, ixrain, ixsnow, ixgraupel
    integer :: m_cnst, m
    integer :: iret
+   character(len=cl) :: errmsg
 
    ! variables for initializing energy and axial angular momentum diagnostics
    integer, parameter                         :: num_stages = 14
@@ -637,23 +637,23 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    call cam_runtime_opts%set_dycore('se')
 
    ! Now allocate and set condenstate vars
-   allocate(cnst_name_gll(qsize), stat=iret) ! constituent names for gll tracers
+   allocate(cnst_name_gll(qsize), stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, 'cnst_name_gll(qsize)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(cnst_longname_gll(qsize), stat=iret) ! long name of constituents for gll tracers
+   allocate(cnst_longname_gll(qsize), stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, 'cnst_longname_gll(qsize)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(kord_tr(qsize), stat=iret)
+   allocate(kord_tr(qsize), stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, 'kord_tr(qsize)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    kord_tr(:) = vert_remap_tracer_alg
    if (use_cslam) then
-     allocate(kord_tr_cslam(ntrac), stat=iret)
+     allocate(kord_tr_cslam(ntrac), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'kord_tr_cslam(ntrac)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      kord_tr_cslam(:) = vert_remap_tracer_alg
    end if
@@ -875,56 +875,53 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call gws_init(elem)
    end if  ! iam < par%nprocs
 
-!Remove/replace after CAMDEN history output is enabled -JN:
-#if 0
-
-   call addfld ('nu_kmvis',   (/ 'lev' /), 'A', '', 'Molecular viscosity Laplacian coefficient'            , gridname='GLL')
-   call addfld ('nu_kmcnd',   (/ 'lev' /), 'A', '', 'Thermal conductivity Laplacian coefficient'           , gridname='GLL')
-   call addfld ('nu_kmcnd_dp',(/ 'lev' /), 'A', '', 'Thermal conductivity like Laplacian coefficient on dp', gridname='GLL')
-
+   call history_add_field ('nu_kmvis', 'Molecular viscosity Laplacian coefficient', 'lev', 'avg', '1',                gridname='GLL')
+   call history_add_field ('nu_kmcnd', 'Thermal conductivity Laplacian coefficient', 'lev', 'avg', '1',               gridname='GLL')
+   call history_add_field ('nu_kmcnd_dp', 'Thermal conductivity like Laplacian coefficient on dp', 'lev', 'avg', '1', gridname='GLL')
 
    ! Forcing from physics on the GLL grid
-   call addfld ('FU',  (/ 'lev' /), 'A', 'm/s2', 'Zonal wind forcing term on GLL grid',     gridname='GLL')
-   call addfld ('FV',  (/ 'lev' /), 'A', 'm/s2', 'Meridional wind forcing term on GLL grid',gridname='GLL')
-   call register_vector_field('FU', 'FV')
-   call addfld ('FT',  (/ 'lev' /), 'A', 'K/s', 'Temperature forcing term on GLL grid',gridname='GLL')
+   call history_add_field ('FU', 'Zonal wind forcing term on GLL grid', 'lev', 'avg', 'm s-2',      gridname='GLL')
+   call history_add_field ('FV', 'Meridional wind forcing term on GLL grid', 'lev', 'avg', 'm s-2', gridname='GLL')
+   !call register_vector_field('FU', 'FV') !<-For interpolated history output (not yet implemented)
+   call history_add_field ('FT', 'Temperature forcing term on GLL grid', 'lev', 'avg', 'K s-1',     gridname='GLL')
 
    ! Tracer forcing on fvm (CSLAM) grid and internal CSLAM pressure fields
    if (use_cslam) then
       do m = 1, ntrac
-         call addfld (trim(const_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg',   &
-            trim(const_longname(m)), gridname='FVM')
-
-         call addfld ('F'//trim(const_name(m))//'_fvm',  (/ 'lev' /), 'I', 'kg/kg/s',   &
-            trim(const_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
+         call history_add_field (trim(const_name(m))//'_fvm', trim(const_longname(m)), 'lev', 'inst', 'kg/kg',   &
             gridname='FVM')
+
+         call history_add_field ('F'//trim(const_name(m))//'_fvm', &
+           trim(const_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
+           'lev', 'inst', 'kg kg-1 s-1', gridname='FVM')
       end do
 
-      call addfld ('dp_fvm' ,(/ 'lev' /), 'I', 'Pa','CSLAM Pressure level thickness', gridname='FVM')
-      call addfld ('PSDRY_fvm',horiz_only, 'I','Pa','CSLAM dry surface pressure'    , gridname='FVM')
+      call history_add_field ('dp_fvm' , 'CSLAM Pressure level thickness', 'lev', 'inst', 'Pa',   gridname='FVM')
+      call history_add_field ('PSDRY_fvm', 'CSLAM dry surface pressure', horiz_only, 'inst','Pa', gridname='FVM')
    end if
 
    do m_cnst = 1, qsize
-     call addfld ('F'//trim(cnst_name_gll(m_cnst))//'_gll',  (/ 'lev' /), 'I', 'kg/kg/s',   &
-          trim(const_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', gridname='GLL')
+     call history_add_field ('F'//trim(cnst_name_gll(m_cnst))//'_gll',  &
+          trim(const_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', &
+          'lev', 'inst', 'kg kg-1 s-1', gridname='GLL')
    end do
 
    ! Energy diagnostics and axial angular momentum diagnostics
-   call addfld ('ABS_dPSdt',  horiz_only, 'A', 'Pa/s', 'Absolute surface pressure tendency',gridname='GLL')
+   call history_add_field ('ABS_dPSdt', 'Absolute surface pressure tendency', horiz_only, 'avg', 'Pa s-1', gridname='GLL')
 
    if (use_cslam) then
 #ifdef waccm_debug
-     call addfld ('CSLAM_gamma',  (/ 'lev' /), 'A', '', 'Courant number from CSLAM',     gridname='FVM')
+     call history_add_field ('CSLAM_gamma',  'Courant number from CSLAM', 'lev', 'avg', '1', gridname='FVM')
 #endif
-     call addfld ('WV_PDC',   horiz_only, 'A', 'kg/m2','Total column water vapor lost in physics-dynamics coupling',gridname='FVM')
-     call addfld ('WL_PDC',   horiz_only, 'A', 'kg/m2','Total column cloud water lost in physics-dynamics coupling',gridname='FVM')
-     call addfld ('WI_PDC',   horiz_only, 'A', 'kg/m2','Total column cloud ice lost in physics-dynamics coupling'  ,gridname='FVM')
-     call addfld ('TT_PDC',   horiz_only, 'A', 'kg/m2','Total column test tracer lost in physics-dynamics coupling',gridname='FVM')
+     call history_add_field ('WV_PDC',   'Total column water vapor lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM')
+     call history_add_field ('WL_PDC',   'Total column cloud water lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM')
+     call history_add_field ('WI_PDC',   'Total column cloud ice lost in physics-dynamics coupling'  , horiz_only, 'avg', 'kg m-2', gridname='FVM')
+     call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM')
    else
-     call addfld ('WV_PDC',   horiz_only, 'A', 'kg/m2','Total column water vapor lost in physics-dynamics coupling',gridname='GLL')
-     call addfld ('WL_PDC',   horiz_only, 'A', 'kg/m2','Total column cloud water lost in physics-dynamics coupling',gridname='GLL')
-     call addfld ('WI_PDC',   horiz_only, 'A', 'kg/m2','Total column cloud ice lost in physics-dynamics coupling'  ,gridname='GLL')
-     call addfld ('TT_PDC',   horiz_only, 'A', 'kg/m2','Total column test tracer lost in physics-dynamics coupling',gridname='GLL')
+     call history_add_field ('WV_PDC',   'Total column water vapor lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
+     call history_add_field ('WL_PDC',   'Total column cloud water lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
+     call history_add_field ('WI_PDC',   'Total column cloud ice lost in physics-dynamics coupling'  , horiz_only, 'avg', 'kg m-2', gridname='GLL')
+     call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
    end if
 
    do istage = 1,SIZE(stage)
@@ -934,9 +931,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
              TRIM(ADJUSTL(" ")),TRIM(ADJUSTL(stage_txt(istage)))
          write(str3,*) TRIM(ADJUSTL(vars_unit(ivars)))
          if (ntrac>0.and.massv(ivars)) then
-           call addfld (TRIM(ADJUSTL(str1)),   horiz_only, 'A', TRIM(ADJUSTL(str3)),TRIM(ADJUSTL(str2)),gridname='FVM')
+           call history_add_field (TRIM(ADJUSTL(str1)),   horiz_only, 'avg', TRIM(ADJUSTL(str3)),TRIM(ADJUSTL(str2)), gridname='FVM')
          else
-           call addfld (TRIM(ADJUSTL(str1)),   horiz_only, 'A', TRIM(ADJUSTL(str3)),TRIM(ADJUSTL(str2)),gridname='GLL')
+           call history_add_field (TRIM(ADJUSTL(str1)),   horiz_only, 'avg', TRIM(ADJUSTL(str3)),TRIM(ADJUSTL(str2)), gridname='GLL')
          end if
       end do
    end do
@@ -946,16 +943,21 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    !
    if (use_cslam) then
      do m = 1, num_advected
-       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(const_name(m))//' horz + vert',  &
+       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg','kg kg-1 s-1',  &
             gridname='FVM')
      end do
    else
      do m = 1, num_advected
-       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(const_name(m))//' horz + vert',  &
+       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg','kg kg-1 s-1',  &
             gridname='GLL')
      end do
    end if
    call phys_getopts(history_budget_out=history_budget, history_budget_histfile_num_out=budget_hfile_num)
+
+! Need SIMA-specific mechanism to automatically add groups of history fields (maybe
+! via labels in history_add_field?). For now, just comment out all references to
+! add_default.
+#if 0
    if ( history_budget ) then
       call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ixq)
       call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water',  &
@@ -965,6 +967,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call add_default(tottnam(ixcldliq), budget_hfile_num, ' ')
       call add_default(tottnam(ixcldice), budget_hfile_num, ' ')
    end if
+#endif
 
   ! constituent indices for waccm-x
   if ( cam_runtime_opts%waccmx_option() == 'ionosphere' .or. &
@@ -975,10 +978,8 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
      call const_get_index('hydrogen_mixing_ratio_wrt_total_mass', ixh2)
   end if
 
-   call test_mapping_addfld
+  call test_mapping_addfld
 
-!Remove/replace after CAMDEN history output is enabled -JN:
-#endif
 #ifdef cam_thermo_history
    if (thermo_budget_history) then
       ! Register stages for budgets
@@ -1018,16 +1019,21 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    !
    if (use_cslam) then
      do m = 1, pcnst
-       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(cnst_name(m))//' horz + vert',  &
-            gridname='FVM')
+       call history_add_field(tottnam(m), trim(cnst_name(m))//' horz + vert', 'lev','avg', &
+           'kg kg-1 s-1', gridname='FVM')
      end do
    else
      do m = 1, pcnst
-       call addfld(tottnam(m),(/ 'lev' /),'A','kg/kg/s',trim(cnst_name(m))//' horz + vert',  &
-            gridname='GLL')
+       call history_add_field(tottnam(m), trim(cnst_name(m))//' horz + vert', 'lev','avg', &
+            'kg kg-1 s-1', gridname='GLL')
      end do
    end if
    call phys_getopts(history_budget_out=history_budget, history_budget_histfile_num_out=budget_hfile_num)
+
+! Need SIMA-specific mechanism to automatically add groups of history fields (maybe
+! via labels in history_add_field?). For now, just comment out all references to
+! add_default.
+#if 0
    if ( history_budget ) then
       call cnst_get_ind('CLDLIQ', ixcldliq)
       call cnst_get_ind('CLDICE', ixcldice)
@@ -1036,13 +1042,16 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       call add_default(tottnam(ixcldice), budget_hfile_num, ' ')
    end if
 #endif
+#endif
 end subroutine dyn_init
 
 !=========================================================================================
 
 subroutine dyn_run(dyn_state)
+   use shr_kind_mod,     only: cl=>shr_kind_cl
    use air_composition,  only: thermodynamic_active_species_num, dry_air_species_num
    use air_composition,  only: thermodynamic_active_species_idx_dycore
+   use cam_history,      only: is_history_field_active, history_out_field
 
    !Se dycore:
    use prim_driver_mod,  only: prim_run_subcycle
@@ -1060,14 +1069,15 @@ subroutine dyn_run(dyn_state)
 
    type(dyn_export_t), intent(inout) :: dyn_state
 
-   type(hybrid_t) :: hybrid
-   integer        :: tl_f
-   integer        :: n
-   integer        :: nets, nete, ithr
-   integer        :: i, ie, j, k, m, nq, m_cnst
-   integer        :: n0_qdp, nsplit_local
-   integer        :: iret
-   logical        :: ldiag
+   type(hybrid_t)    :: hybrid
+   integer           :: tl_f
+   integer           :: n
+   integer           :: nets, nete, ithr
+   integer           :: i, ie, j, k, m, nq, m_cnst
+   integer           :: n0_qdp, nsplit_local
+   integer           :: iret
+   logical           :: ldiag
+   character(len=cl) :: errmsg
 
    real(r8) :: ftmp(npsq,nlev,3)
    real(r8) :: dtime
@@ -1091,17 +1101,15 @@ subroutine dyn_run(dyn_state)
 
    if (iam >= par%nprocs) return
 
-!Un-comment once history output is enabled -JN
-!   ldiag = hist_fld_active('ABS_dPSdt')
-   ldiag = .false.
+   ldiag = is_history_field_active('ABS_dPSdt')
    if (ldiag) then
-      allocate(ps_before(np,np,nelemd), stat=iret)
+      allocate(ps_before(np,np,nelemd), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'ps_before(np,np,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(abs_ps_tend(np,np,nelemd), stat=iret)
+      allocate(abs_ps_tend(np,np,nelemd), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'abs_ps_tend(np,np,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    end if
 
@@ -1115,11 +1123,8 @@ subroutine dyn_run(dyn_state)
    tl_f = TimeLevel%n0   ! timelevel which was adjusted by physics
    call TimeLevel_Qdp(TimeLevel, qsplit, n0_qdp)!get n0_qdp for diagnostics call
 
-!Uncomment once "outfld" is enabled in CAMDEN-JN:
-#if 0
-
    ! output physics forcing
-   if (hist_fld_active('FU') .or. hist_fld_active('FV') .or.hist_fld_active('FT')) then
+   if (is_history_field_active('FU') .or. is_history_field_active('FV') .or. is_history_field_active('FT')) then
       do ie = nets, nete
          do k = 1, nlev
             do j = 1, np
@@ -1131,21 +1136,20 @@ subroutine dyn_run(dyn_state)
             end do
          end do
 
-         call outfld('FU', ftmp(:,:,1), npsq, ie)
-         call outfld('FV', ftmp(:,:,2), npsq, ie)
-         call outfld('FT', ftmp(:,:,3), npsq, ie)
+         call history_out_field('FU', ftmp(:,:,1))
+         call history_out_field('FV', ftmp(:,:,2))
+         call history_out_field('FT', ftmp(:,:,3))
       end do
    end if
 
    do m = 1, qsize
-     if (hist_fld_active('F'//trim(cnst_name_gll(m))//'_gll')) then
+     if (is_history_field_active('F'//trim(cnst_name_gll(m))//'_gll')) then
        do ie = nets, nete
-         call outfld('F'//trim(cnst_name_gll(m))//'_gll',&
-              RESHAPE(dyn_state%elem(ie)%derived%FQ(:,:,:,m), (/np*np,nlev/)), npsq, ie)
+         call history_out_field('F'//trim(cnst_name_gll(m))//'_gll',&
+              RESHAPE(dyn_state%elem(ie)%derived%FQ(:,:,:,m), (/np*np,nlev/)))
        end do
      end if
    end do
-#endif
 
    ! convert elem(ie)%derived%fq to mass tendency
    if (.not.use_cslam) then
@@ -1224,20 +1228,16 @@ subroutine dyn_run(dyn_state)
       end if
 
    end do
-!Uncomment once "outfld" is enabled in CAMDEN-JN:
-#if 0
+
    if (ldiag) then
       do ie=nets,nete
          abs_ps_tend(:,:,ie)=abs_ps_tend(:,:,ie)/DBLE(nsplit)
-         call outfld('ABS_dPSdt',RESHAPE(abs_ps_tend(:,:,ie),(/npsq/)),npsq,ie)
+         call history_out_field('ABS_dPSdt',RESHAPE(abs_ps_tend(:,:,ie),(/npsq/)))
       end do
    end if
-#endif
 
    !$OMP END PARALLEL
 
-!Uncomment once "outfld" is enabled in CAMDEN-JN:
-#if 0
    if (ldiag) then
       deallocate(ps_before,abs_ps_tend)
    endif
@@ -1246,9 +1246,10 @@ subroutine dyn_run(dyn_state)
       call apply_SC_forcing(dyn_state%elem,hvcoord,TimeLevel,3,.false.)
    end if
 #endif
+
    ! output vars on CSLAM fvm grid
    call write_dyn_vars(dyn_state)
-#endif
+
 end subroutine dyn_run
 
 !===============================================================================
@@ -1263,11 +1264,13 @@ end subroutine dyn_final
 !===============================================================================
 
 subroutine read_inidat(dyn_in)
+   use shr_kind_mod,         only: cl=>shr_kind_cl
    use air_composition,      only: thermodynamic_active_species_num, dry_air_species_num
    use air_composition,      only: thermodynamic_active_species_idx
    use shr_sys_mod,          only: shr_sys_flush
    use hycoef,               only: hyai, hybi, ps0
    use phys_vars_init_check, only: mark_as_initialized
+   use cam_history_support,  only: max_fieldname_len
 
    !SE-dycore:
    use element_mod,          only: timelevels
@@ -1317,7 +1320,7 @@ subroutine read_inidat(dyn_in)
    real(r8)                         :: pertval
    integer                          :: i, j, indx, nq
    integer                          :: dyn_cols
-   character(len=128)               :: errmsg
+   character(len=cl)                :: errmsg
    character(len=*), parameter      :: subname='READ_INIDAT'
 
    ! fvm vars
@@ -1340,31 +1343,31 @@ subroutine read_inidat(dyn_in)
       nullify(elem)
    end if
 
-   allocate(qtmp(np,np,nlev,nelemd,num_advected), stat=ierr)
+   allocate(qtmp(np,np,nlev,nelemd,num_advected), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'qtmp(np,np,nlev,nelemd,num_advected)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    qtmp = 0._r8
 
    ! Set mask to indicate which columns are active
    nullify(ldof)
    call cam_grid_get_gcid(cam_grid_id(ini_grid_name), ldof)
-   allocate(pmask(npsq*nelemd), stat=ierr)
+   allocate(pmask(npsq*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'pmask(npsq*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    pmask(:) = (ldof /= 0)
 
    ! lat/lon needed in radians
    latvals_deg => cam_grid_get_latvals(cam_grid_id(ini_grid_name))
    lonvals_deg => cam_grid_get_lonvals(cam_grid_id(ini_grid_name))
-   allocate(latvals(np*np*nelemd), stat=ierr)
+   allocate(latvals(np*np*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'latvals(np*np*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(lonvals(np*np*nelemd), stat=ierr)
+   allocate(lonvals(np*np*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'lonvals(np*np*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    latvals(:) = latvals_deg(:)*deg2rad
    lonvals(:) = lonvals_deg(:)*deg2rad
@@ -1398,9 +1401,9 @@ subroutine read_inidat(dyn_in)
       end do
 
       inic_wet = .false.
-      allocate(glob_ind(npsq * nelemd), stat=ierr)
+      allocate(glob_ind(npsq * nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'glob_ind(npsq*nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       j = 1
       do ie = 1, nelemd
@@ -1412,14 +1415,14 @@ subroutine read_inidat(dyn_in)
       end do
 
       ! First, initialize all the variables, then assign
-      allocate(dbuf4(npsq, nlev, nelemd, (qsize + 4)), stat=ierr)
+      allocate(dbuf4(npsq, nlev, nelemd, (qsize + 4)), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dbuf4(npsq,nlev,nelemd,(qsize+4))', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       dbuf4 = 0.0_r8
-      allocate(m_ind(qsize), stat=ierr)
+      allocate(m_ind(qsize), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'm_ind(qsize)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do m_cnst = 1, qsize
          m_ind(m_cnst) = thermodynamic_active_species_idx(m_cnst)
@@ -1481,13 +1484,13 @@ subroutine read_inidat(dyn_in)
 
       ! Read ICs from file.  Assume all fields in the initial file are on the GLL grid.
 
-      allocate(dbuf2(npsq,nelemd), stat=ierr)
+      allocate(dbuf2(npsq,nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dbuf2(npsq,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(dbuf3(npsq,nlev,nelemd), stat=ierr)
+      allocate(dbuf3(npsq,nlev,nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dbuf3(npsq,nlev,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! Check that number of columns in IC file matches grid definition.
       call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
@@ -1578,9 +1581,9 @@ subroutine read_inidat(dyn_in)
          end if
 
          call random_seed(size=rndm_seed_sz)
-         allocate(rndm_seed(rndm_seed_sz), stat=ierr)
+         allocate(rndm_seed(rndm_seed_sz), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'rndm_seed(rndm_seed_sz)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          do ie = 1, nelemd
             ! seed random number generator based on element ID
@@ -1641,9 +1644,9 @@ subroutine read_inidat(dyn_in)
       end if
    end do
 
-   allocate(dbuf3(npsq,nlev,nelemd), stat=ierr)
+   allocate(dbuf3(npsq,nlev,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'dbuf3(npsq,nlev,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    do m_cnst = 1, num_advected
 
@@ -1737,9 +1740,9 @@ subroutine read_inidat(dyn_in)
          write(iulog,*) 'Convert specific/wet mixing ratios to dry'
       end if
 
-      allocate(factor_array(np,np,nlev,nelemd), stat=ierr)
+      allocate(factor_array(np,np,nlev,nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'factor_array(np,np,nlev,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       !
       ! compute: factor_array = 1/(1-sum(q))
@@ -1931,7 +1934,7 @@ subroutine read_inidat(dyn_in)
    call mark_as_initialized("northward_wind") !northward wind
    call mark_as_initialized("air_temperature")
 
-   !Mark all constituents as initialized
+   !Mark all advected constituents as initialized
    do m_cnst = 1, num_advected
       call mark_as_initialized(const_name(m_cnst))
    end do
@@ -1994,7 +1997,9 @@ subroutine set_phis(dyn_in)
    ! which are computed on the physics grid.  In this case phis on the physics grid
    ! will be interpolated to the GLL grid.
 
+   use shr_kind_mod,         only: cl=>shr_kind_cl
    use phys_vars_init_check, only: mark_as_initialized
+   use cam_history_support,  only: max_fieldname_len
 
    ! Arguments
    type (dyn_import_t), target, intent(inout) :: dyn_in   ! dynamics import
@@ -2009,6 +2014,7 @@ subroutine set_phis(dyn_in)
 
    integer                          :: i, ie, indx, j, kptr
    integer                          :: ierr, pio_errtype
+   character(len=cl)                :: errmsg
 
    character(len=max_fieldname_len) :: fieldname
    character(len=max_fieldname_len) :: fieldname_gll
@@ -2042,16 +2048,16 @@ subroutine set_phis(dyn_in)
       nullify(elem)
    end if
 
-   allocate(phis_tmp(npsq,nelemd), stat=ierr)
+   allocate(phis_tmp(npsq,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'phis_tmp(npsq,nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    phis_tmp = 0.0_r8
 
    if (use_cslam) then
-      allocate(phis_phys_tmp(fv_nphys**2,nelemd), stat=ierr)
+      allocate(phis_phys_tmp(fv_nphys**2,nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'phis_phys_tmp(fv_nphys**2,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       phis_phys_tmp = 0.0_r8
       do ie=1,nelemd
@@ -2065,9 +2071,9 @@ subroutine set_phis(dyn_in)
    ! Set mask to indicate which columns are active in GLL grid.
    nullify(ldof)
    call cam_grid_get_gcid(cam_grid_id('GLL'), ldof)
-   allocate(pmask(npsq*nelemd), stat=ierr)
+   allocate(pmask(npsq*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'pmask(npsq*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    pmask(:) = (ldof /= 0)
    deallocate(ldof)
@@ -2157,20 +2163,20 @@ subroutine set_phis(dyn_in)
       ! lat/lon needed in radians
       latvals_deg => cam_grid_get_latvals(cam_grid_id('GLL'))
       lonvals_deg => cam_grid_get_lonvals(cam_grid_id('GLL'))
-      allocate(latvals(np*np*nelemd), stat=ierr)
+      allocate(latvals(np*np*nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'latvals(np*np*nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(lonvals(np*np*nelemd), stat=ierr)
+      allocate(lonvals(np*np*nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'lonvals(np*np*nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       latvals(:) = latvals_deg(:)*deg2rad
       lonvals(:) = lonvals_deg(:)*deg2rad
 
-      allocate(glob_ind(npsq*nelemd), stat=ierr)
+      allocate(glob_ind(npsq*nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'glob_ind(npsq*nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       j = 1
       do ie = 1, nelemd
@@ -2226,6 +2232,8 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
 
    ! This routine is only called when data will be read from the initial file.  It is not
    ! called when the initial file is only supplying vertical coordinate info.
+
+   use cam_history_support,  only: max_fieldname_len
 
    type(file_desc_t), pointer       :: file
    type(element_t),   pointer       :: elem(:)
@@ -2477,6 +2485,8 @@ end subroutine read_phys_field_2d
 
 subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
 
+   use shr_kind_mod,       only: cl=>shr_kind_cl
+
    !SE dycore:
    use hybrid_mod,         only: get_loop_ranges, config_thread_region
    use dimensions_mod,     only: nhc_phys
@@ -2493,6 +2503,7 @@ subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
    integer                          :: nets, nete, ie,i,j,indx, iret
    real(r8),            allocatable :: fld_phys(:,:,:,:,:),fld_gll(:,:,:,:,:)
    logical                          :: llimiter(1)
+   character(len=cl)                :: errmsg
 
    character(len=*), parameter      :: subname = 'map_phis_from_physgrid_to_gll'
 
@@ -2504,14 +2515,15 @@ subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
 
    call get_loop_ranges(hybrid, ibeg=nets, iend=nete)
 
-   allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,1,1,nets:nete), stat=iret)
+   allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,1,1,nets:nete), &
+            stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, &
                        'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,1,1,nets:nete)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(fld_gll(np,np,1,1,nets:nete), stat=iret)
+   allocate(fld_gll(np,np,1,1,nets:nete), stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, 'fld_gll(np,np,1,1,nets:nete)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    fld_phys = 0.0_r8
    do ie = nets, nete
@@ -2539,9 +2551,10 @@ end subroutine map_phis_from_physgrid_to_gll
 
 !========================================================================================
 
-!Un-comment once "outfld has been enabled in CAMDEN -JN:
-#if 0
 subroutine write_dyn_vars(dyn_out)
+
+   use cam_history_support, only: fieldname_len
+   use cam_history,         only: history_out_field
 
    type (dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
 
@@ -2551,25 +2564,23 @@ subroutine write_dyn_vars(dyn_out)
 
    if (use_cslam) then
       do ie = 1, nelemd
-         call outfld('dp_fvm', RESHAPE(dyn_out%fvm(ie)%dp_fvm(1:nc,1:nc,:),   &
-                                       (/nc*nc,nlev/)), nc*nc, ie)
-         call outfld('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc),     &
-                                          (/nc*nc/)), nc*nc, ie)
+         call history_out_field('dp_fvm', RESHAPE(dyn_out%fvm(ie)%dp_fvm(1:nc,1:nc,:),   &
+                                       (/nc*nc,nlev/)))
+         call history_out_field('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc),     &
+                                          (/nc*nc/)))
          do m = 1, ntrac
             tfname = trim(const_name(m))//'_fvm'
-            call outfld(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m),     &
-                                        (/nc*nc,nlev/)), nc*nc, ie)
+            call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m),     &
+                                        (/nc*nc,nlev/)))
 
             tfname = 'F'//trim(const_name(m))//'_fvm'
-            call outfld(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),    &
-                                        (/nc*nc,nlev/)), nc*nc, ie)
+            call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),    &
+                                        (/nc*nc,nlev/)))
          end do
       end do
    end if
 
 end subroutine write_dyn_vars
-
-#endif
 
 !=========================================================================================
 end module dyn_comp
