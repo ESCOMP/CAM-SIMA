@@ -6,12 +6,7 @@ module native_mapping
 !  using the SE basis functions.   The output mapping file name is generated based on the SE model resolution
 !  and the input grid file name and ends in '_date_native.nc'
 !
-  use mpi,               only: mpi_character, mpi_logical, mpi_integer, mpi_max
-  use cam_logfile,       only: iulog
-  use shr_kind_mod,      only: r8 => shr_kind_r8, shr_kind_cl
-  use shr_const_mod,     only: pi=>shr_const_pi
-  use cam_abortutils,    only: endrun
-  use spmd_utils,        only: iam, masterproc, mpicom, mstrid=>masterprocid
+  use shr_kind_mod,      only: shr_kind_cl
 
   implicit none
   private
@@ -27,8 +22,13 @@ contains
 
 subroutine native_mapping_readnl(NLFileName)
 
-   use shr_nl_mod,  only: find_group_name => shr_nl_find_group_name
-   use runtime_obj, only: unset_str
+   use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
+   use runtime_obj,    only: unset_str
+   use cam_logfile,    only: iulog
+   use cam_abortutils, only: endrun
+   use spmd_utils,     only: masterproc, mpicom
+   use spmd_utils,     only: mstrid=>masterprocid
+   use mpi,            only: mpi_character, mpi_logical
 
    character(len=*), intent(in) :: NLFileName
 
@@ -82,9 +82,13 @@ end subroutine native_mapping_readnl
 
 subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, areaa)
 
+    use shr_kind_mod,   only: r8=>shr_kind_r8
     use shr_infnan_mod, only: isnan=>shr_infnan_isnan
     use cam_pio_utils,  only: cam_pio_openfile, cam_pio_createfile
-    use cam_abortutils, only: check_allocate
+    use cam_logfile,    only: iulog
+    use cam_abortutils, only: endrun, check_allocate
+    use spmd_utils,     only: iam, masterpoc
+    use mpi,            only: mpi_integer, mpi_max
 
     use pio, only: pio_noerr, pio_openfile, pio_createfile, pio_closefile, &
          pio_get_var, pio_put_var, pio_write_darray,pio_int, pio_double, &
@@ -121,7 +125,7 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
     real(r8),         intent(in) :: clon(ncol)
     real(r8),         intent(in) :: areaa(ncol)
 
-    character(len=shr_kind_cl) :: mappingfile, fname
+    character(len=shr_kind_cl) :: mappingfile, fname, errmsg
 
 
     type(hybrid_t) :: hybrid
@@ -203,27 +207,27 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
 
        ierr = pio_inq_dimid( ogfile, 'grid_size', dimid)
        ierr = pio_inq_dimlen( ogfile, dimid, npts)
-       allocate(lat(npts), stat=ierr)
+       allocate(lat(npts), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'lat(npts)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(lon(npts), stat=ierr)
+       allocate(lon(npts), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'lon(npts)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(grid_imask(npts), stat=ierr)
+       allocate(grid_imask(npts), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'grid_mask(npts)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(areab(npts), stat=ierr)
+       allocate(areab(npts), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'areab(npts)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        ierr = pio_inq_dimid( ogfile, 'grid_rank', dimid)
        ierr = pio_inq_dimlen(ogfile, dimid, dg_rank)
-       allocate(dg_dims(dg_rank), stat=ierr)
+       allocate(dg_dims(dg_rank), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'dg_dims(dg_rank)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        ierr = pio_inq_varid( ogfile, 'grid_dims', vid)
        ierr = pio_get_var( ogfile, vid, dg_dims)
@@ -327,17 +331,17 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        ! allocate storage
        do ii=1,nelemd
           ngrid = interpdata(ii)%n_interp
-          allocate(interpdata(ii)%interp_xy( ngrid ), stat=ierr )
+          allocate(interpdata(ii)%interp_xy( ngrid ), stat=ierr, errmsg=errmsg)
           call check_allocate(ierr, subname, 'interpdata(ii)%interp_xy(ngrid)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-          allocate(interpdata(ii)%ilat( ngrid ), stat=ierr )
+          allocate(interpdata(ii)%ilat( ngrid ), stat=ierr, errmsg=errmsg)
           call check_allocate(ierr, subname, 'interpdata(ii)%ilat(ngrid)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-          allocate(interpdata(ii)%ilon( ngrid ), stat=ierr )
+          allocate(interpdata(ii)%ilon( ngrid ), stat=ierr, errmsg=errmsg)
           call check_allocate(ierr, subname, 'interpdata(ii)%ilon(ngrid)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=errmsg)
 
           interpdata(ii)%n_interp=0  ! reset counter
        enddo
@@ -365,21 +369,21 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        end do
 
 
-       allocate(h(int(countx)), stat=ierr)
+       allocate(h(int(countx)), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'h(int(countx))', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(h1d(int(countx)*npsq*nelemd), stat=ierr)
+       allocate(h1d(int(countx)*npsq*nelemd), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'h1d(int(countx)*npsq*nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(row(int(countx)*npsq*nelemd), stat=ierr)
+       allocate(row(int(countx)*npsq*nelemd), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'row(int(countx)*npsq*nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(col(int(countx)*npsq*nelemd), stat=ierr)
+       allocate(col(int(countx)*npsq*nelemd), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'col(int(countx)*npsq*nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        row = 0
        col = 0
@@ -425,9 +429,9 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
        call mpi_allreduce(cntperelem_in, cntperelem_out, nelem, MPI_INTEGER, MPI_MAX, par%comm, ierr)
 
 
-       allocate(ldof(ngrid), stat=ierr)
+       allocate(ldof(ngrid), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'ldof(ngrid)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        ldof = 0
        ii=1
@@ -473,9 +477,6 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
 
        ierr = pio_def_dim( ogfile, 'dst_grid_rank',dg_rank, dg_dim)
        ierr = pio_def_var( ogfile, 'dst_grid_dims',pio_int, (/dg_dim/),dg_id)
-
-
-
 
 
        ierr = pio_def_var( ogfile, 'col', pio_int, (/ns_dim/), colid)
@@ -574,9 +575,6 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
 
 
   end subroutine create_native_mapping_files
-
-
-
 
 
 end module native_mapping

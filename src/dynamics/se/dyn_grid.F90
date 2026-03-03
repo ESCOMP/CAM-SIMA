@@ -26,35 +26,19 @@ module dyn_grid
 !
 !-------------------------------------------------------------------------------
 
-use mpi,                    only: mpi_integer, mpi_real8
-use pio,                    only: file_desc_t
 use shr_kind_mod,           only: r8 => shr_kind_r8, shr_kind_cl
-use spmd_utils,             only: masterproc, iam, mpicom, mstrid=>masterprocid, &
-                                  npes
-use cam_constituents,       only: num_advected
 use dynconst,               only: pi
-use cam_initfiles,          only: initial_file_get_id
 use physics_column_type,    only: physics_column_t, kind_pcol
-use cam_map_utils,          only: iMap
-
-use cam_logfile,            only: iulog
-use cam_abortutils,         only: endrun, check_allocate
 
 !SE dycore:
-use dimensions_mod,         only: globaluniquecols, nelem, nelemd, nelemdmax, &
-                                  ne, np, npsq, fv_nphys, nlev, use_cslam, nlevp, nc
 use element_mod,            only: element_t
 use fvm_control_volume_mod, only: fvm_struct
 use hybvcoord_mod,          only: hvcoord_t
-use prim_init,              only: prim_init1
-use edge_mod,               only: initEdgeBuffer
 use edgetype_mod,           only: EdgeBuffer_t
 use se_dyn_time_mod,        only: TimeLevel_t
-use dof_mod,                only: UniqueCoords, UniquePoints
 
 implicit none
 private
-save
 
 integer, parameter :: dyn_decomp = 101 ! The SE dynamics grid
 integer, parameter :: fvm_decomp = 102 ! The FVM (CSLAM) grid
@@ -84,10 +68,7 @@ public ::         &
 
 public :: model_grid_init
 
-!!XXgoldyXX: v try to remove?
-public :: dyn_grid_get_colndx ! get element block/column and MPI process indices
-!!XXgoldyXX: ^ try to remove?
-public :: dyn_grid_get_elem_coords ! get coords of a specified block element
+public :: dyn_grid_get_elem_coords ! get coords of a specified block element  <-Is this actually used? -JN
 
 ! Namelist variables controlling grid writing.
 ! Read in dyn_readnl from dyn_se_inparm group.
@@ -119,7 +100,14 @@ subroutine model_grid_init()
    ! and then initializes the physics grid and
    ! decomposition based on the dynamics (SE) grid.
 
-   use mpi,                 only: mpi_max
+   use pio,                 only: file_desc_t
+   use cam_constituents,    only: num_advected
+   use cam_initfiles,       only: initial_file_get_id
+   use cam_logfile,         only: iulog
+   use cam_abortutils,      only: endrun, check_allocate
+   use spmd_utils,          only: masterproc, iam, mpicom, mstrid=>masterprocid, &
+                                  npes
+   use mpi,                 only: mpi_integer, mpi_max
    use vert_coord,          only: vert_coord_init, pver
    use hycoef,              only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
@@ -131,6 +119,8 @@ subroutine model_grid_init()
    use physics_grid,        only: phys_grid_init
    use dp_mapping,          only: dp_init, dp_write, nphys_pts
    use native_mapping,      only: do_native_mapping, create_native_mapping_files
+   use prim_init,           only: prim_init1
+   use edge_mod,            only: initEdgeBuffer
 
    !SE dycore:
    use parallel_mod,        only: par
@@ -151,6 +141,7 @@ subroutine model_grid_init()
 
    type(hybrid_t)              :: hybrid
    integer                     :: ierr
+   character(len=shr_kind_cl)  :: errmsg
    integer                     :: dtime
 
    real(r8), allocatable       :: clat(:), clon(:), areaa(:)
@@ -204,33 +195,33 @@ subroutine model_grid_init()
 
    !Allocate SE dycore "hvcoord" structure:
    !+++++++
-   allocate(hvcoord%hyai(nlevp), stat=ierr)
+   allocate(hvcoord%hyai(nlevp), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%hyai(nlevp)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(hvcoord%hyam(nlev), stat=ierr)
+   allocate(hvcoord%hyam(nlev), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%hyam(nlev)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(hvcoord%hybi(nlevp), stat=ierr)
+   allocate(hvcoord%hybi(nlevp), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%hybi(nlevp)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(hvcoord%hybm(nlev), stat=ierr)
+   allocate(hvcoord%hybm(nlev), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%hybm(nlev)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(hvcoord%hybd(nlev), stat=ierr)
+   allocate(hvcoord%hybd(nlev), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%hybd(nlev)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(hvcoord%etam(nlev), stat=ierr)
+   allocate(hvcoord%etam(nlev), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%etam(nlev)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(hvcoord%etai(nlevp), stat=ierr)
+   allocate(hvcoord%etai(nlevp), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'hvcoord%etai(nlevp)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    !+++++++
 
@@ -331,25 +322,25 @@ subroutine model_grid_init()
 
    if (do_native_mapping) then
 
-      allocate(areaA(ngcols_d), stat=ierr)
+      allocate(areaA(ngcols_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'areaA(ngcols_d)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(clat(ngcols_d), stat=ierr)
+      allocate(clat(ngcols_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'clat(ngcols_d)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(clon(ngcols_d), stat=ierr)
+      allocate(clon(ngcols_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'clon(ngcols_d)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       call get_horiz_grid_int(ngcols_d, clat_d_out=clat, clon_d_out=clon, area_d_out=areaA)
 
       ! Create mapping files using SE basis functions
-      call create_native_mapping_files(par, elem, 'native', ngcols_d, clat, clon, areaa)
-      call create_native_mapping_files(par, elem, 'bilin', ngcols_d, clat, clon, areaa)
+      call create_native_mapping_files(par, elem, 'native', ngcols_d, clat, clon, areaA)
+      call create_native_mapping_files(par, elem, 'bilin', ngcols_d, clat, clon, areaA)
 
-      deallocate(areaa, clat, clon)
+      deallocate(areaA, clat, clon)
    end if
 
    ! Calculate number of of local columns:
@@ -428,8 +419,11 @@ subroutine set_dyn_col_values()
 
    use physconst,              only: pi
    use string_utils,           only: to_str
+   use spmd_utils,             only: iam
+   use cam_abortutils,         only: check_allocate
 
    !SE dycore:
+   use dimensions_mod,         only: nelemd, fv_nphy
    use coordinate_systems_mod, only: spherical_polar_t
 
    ! Local variables
@@ -442,6 +436,7 @@ subroutine set_dyn_col_values()
    real(r8)                        :: dcoord
    real(kind_pcol),  parameter     :: radtodeg = 180.0_kind_pcol / pi
    real(kind_pcol),  parameter     :: degtorad = pi / 180.0_kind_pcol
+   character(len=shr_kind_cl)      :: errmsg
    character(len=*), parameter     :: subname = 'set_dyn_col_values'
 
    lindex = 0
@@ -473,11 +468,12 @@ subroutine set_dyn_col_values()
             local_dyn_columns(lindex)%global_dyn_block =                   &
                  elem(elem_ind)%GlobalId
 
-            allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
+            allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr, &
+                     errmsg=errmsg)
             call check_allocate(ierr, subname, &
                                 'local_dyn_columns('//&
                                 to_str(lindex)//')%dyn_block_index(1)', &
-                               file=__FILE__, line=__LINE__)
+                               file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             local_dyn_columns(lindex)%dyn_block_index(1) = col_ind + 1
          end do
@@ -508,11 +504,12 @@ subroutine set_dyn_col_values()
             local_dyn_columns(lindex)%global_dyn_block =                   &
                  elem(elem_ind)%GlobalId
 
-            allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
+            allocate(local_dyn_columns(lindex)%dyn_block_index(1), stat=ierr, &
+                     errmsg=errmsg)
             call check_allocate(ierr, subname, &
                                 'local_dyn_columns('//&
                                 to_str(lindex)//')%dyn_block_index(1)', &
-                               file=__FILE__, line=__LINE__)
+                               file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             local_dyn_columns(lindex)%dyn_block_index(1) = col_ind
          end do
@@ -525,6 +522,11 @@ subroutine set_dyn_col_values()
 
 subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
      wght_d_out, lat_d_out, lon_d_out)
+
+   use cam_abortutils, only: endrun, check_allocate
+
+   !SE dycore:
+   use dimensions_mod, only: fv_nphys, nelem_d, ngcols_d
 
    ! Return global arrays of latitude and longitude (in radians), column
    ! surface area (in radians squared) and surface integration weights for
@@ -601,9 +603,9 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
       if (present(clon_d_out)) then
          call create_global_coords(clat_d_out, clon_d_out, lat_d_out, lon_d_out)
       else
-         allocate(temp(nxy), stat=ierr)
+         allocate(temp(nxy), stat=ierr, errmsg=errormsg)
          call check_allocate(ierr, subname, 'temp(nxy)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errormsg)
 
          call create_global_coords(clat_d_out, temp, lat_d_out, lon_d_out)
          deallocate(temp)
@@ -611,9 +613,9 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
 
    else if (present(clon_d_out)) then
 
-      allocate(temp(nxy), stat=ierr)
+      allocate(temp(nxy), stat=ierr, errmsg=errormsg)
       call check_allocate(ierr, subname, 'temp(nxy)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errormsg)
 
       call create_global_coords(temp, clon_d_out, lat_d_out, lon_d_out)
       deallocate(temp)
@@ -624,32 +626,13 @@ end subroutine get_horiz_grid_int
 
 !=========================================================================================
 
-subroutine dyn_grid_get_colndx(igcol, ncols, owners, col, lbk)
-
-   ! For each global column index return the owning task.  If the column is owned
-   ! by this task, then also return the local block number and column index in that
-   ! block.
-   !
-   ! NOTE: this routine needs to be updated for the physgrid
-
-   integer, intent(in)  :: ncols
-   integer, intent(in)  :: igcol(ncols)
-   integer, intent(out) :: owners(ncols)
-   integer, intent(out) :: col(ncols)
-   integer, intent(out) :: lbk(ncols)
-
-   !----------------------------------------------------------------------------
-
-   owners = (igcol * 0) -1 ! Kill compiler warnings
-   col    = -1             ! Kill compiler warnings
-   lbk    = -1             ! Kill compiler warnings
-   call endrun('dyn_grid_get_colndx: not implemented for unstructured grids')
-
-end subroutine dyn_grid_get_colndx
-
-!=========================================================================================
-
 subroutine dyn_grid_get_elem_coords(ie, rlon, rlat, cdex)
+
+   use cam_abortutils, only: endrun, check_allocate
+
+   !SE dycore:
+   use dof_mod,        only: UniqueCoords
+   use dimensions_mod, only: np
 
    ! Returns coordinates of a specified block element of the dyn grid
    !
@@ -664,25 +647,27 @@ subroutine dyn_grid_get_elem_coords(ie, rlon, rlat, cdex)
    integer, optional, intent(out) :: cdex(:) ! global column index
 
    integer :: sb,eb, ii, i,j, icol, igcol, ierr
-   real(r8), allocatable :: clat(:), clon(:)
+
+   real(r8), allocatable       :: clat(:), clon(:)
+   character(len=shr_kind_cl)  :: errmsg
 
    character(len=*), parameter :: subname = 'dyn_grid_get_elem_coords'
    !----------------------------------------------------------------------------
 
    if (fv_nphys > 0) then
-      call endrun('dyn_grid_get_colndx: not implemented for the FVM physics grid')
+      call endrun(subname//': not implemented for the FVM physics grid')
    end if
 
    sb = elem(ie)%idxp%UniquePtOffset
    eb = sb + elem(ie)%idxp%NumUniquePts-1
 
-   allocate(clat(sb:eb), stat=ierr)
+   allocate(clat(sb:eb), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'clat(sb:eb)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(clon(sb:eb), stat=ierr)
+   allocate(clon(sb:eb), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'clon(sb:eb)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    call UniqueCoords( elem(ie)%idxP, elem(ie)%spherep, clat(sb:eb), clon(sb:eb) )
 
@@ -709,6 +694,7 @@ end subroutine dyn_grid_get_elem_coords
 !=========================================================================================
 
 subroutine get_hdim_name(fh_ini, ini_grid_hdim_name)
+
    use pio, only: pio_inq_dimid, pio_seterrorhandling
    use pio, only: PIO_BCAST_ERROR, PIO_NOERR
 
@@ -781,6 +767,8 @@ subroutine define_cam_grids()
 
    use cam_grid_support, only: horiz_coord_t, horiz_coord_create
    use cam_grid_support, only: cam_grid_register, cam_grid_attribute_register
+   use cam_map_utils,    only: iMap
+   use cam_abortutils,   only: check_allocate
 #ifdef SCAM
    use scamMod,          only: closeioplon,closeioplat,closeioplonidx,single_column
 #endif
@@ -790,6 +778,7 @@ subroutine define_cam_grids()
    ! Local variables
    integer                      :: i, ii, j, k, ie, mapind, ierr
    character(len=8)             :: latname, lonname, ncolname, areaname
+   character(len=shr_kind_cl)   :: errmsg
 
    type(horiz_coord_t), pointer :: lat_coord
    type(horiz_coord_t), pointer :: lon_coord
@@ -831,21 +820,21 @@ subroutine define_cam_grids()
       end do
    end do
 
-   allocate(pelat_deg(np*np*nelemd), stat=ierr)
+   allocate(pelat_deg(np*np*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'pelat_deg(np*np*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(pelon_deg(np*np*nelemd), stat=ierr)
+   allocate(pelon_deg(np*np*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'pelon_deg(np*np*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(pearea(np*np*nelemd), stat=ierr)
+   allocate(pearea(np*np*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'pearea(np*np*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   allocate(pemap(np*np*nelemd), stat=ierr)
+   allocate(pemap(np*np*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'pemap(np*np*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    pemap = 0_iMap
    ii = 1
@@ -984,17 +973,17 @@ subroutine define_cam_grids()
 
       ncols_fvm = nc * nc * nelemd
       ngcols_fvm = nc * nc * nelem_d
-      allocate(fvm_coord(ncols_fvm), stat=ierr)
+      allocate(fvm_coord(ncols_fvm), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'fvm_coord(ncols_fvm)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(fvm_map(ncols_fvm), stat=ierr)
+      allocate(fvm_map(ncols_fvm), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'fvm_map(ncols_fvm)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(fvm_area(ncols_fvm), stat=ierr)
+      allocate(fvm_area(ncols_fvm), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'fvm_area(ncols_fvm)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemd
          k = 1
@@ -1066,17 +1055,17 @@ subroutine define_cam_grids()
       ncols_physgrid = fv_nphys * fv_nphys * nelemd
       ngcols_physgrid = fv_nphys * fv_nphys * nelem_d
 
-      allocate(physgrid_coord(ncols_physgrid), stat=ierr)
+      allocate(physgrid_coord(ncols_physgrid), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'physgrid_coord(ncols_physgrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(physgrid_map(ncols_physgrid), stat=ierr)
+      allocate(physgrid_map(ncols_physgrid), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'physgrid_map(ncols_physgrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(physgrid_area(ncols_physgrid), stat=ierr)
+      allocate(physgrid_area(ncols_physgrid), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'physgrid_area(ncols_physgrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemd
          k = 1
@@ -1109,9 +1098,9 @@ subroutine define_cam_grids()
            map=physgrid_map)
 
       ! Map for physics grid
-      allocate(grid_map(3, ncols_physgrid), stat=ierr)
+      allocate(grid_map(3, ncols_physgrid), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'grid_map(3, ncols_physgrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       grid_map = 0_iMap
       mapind = 1
@@ -1148,15 +1137,16 @@ end subroutine define_cam_grids
 
 subroutine write_grid_mapping(par, elem)
 
-   use cam_pio_utils, only: cam_pio_createfile, cam_pio_newdecomp
-   use pio,           only: pio_def_dim, var_desc_t, pio_int, pio_def_var, &
-                            pio_enddef, pio_closefile, io_desc_t, &
-                            pio_write_darray, pio_freedecomp, &
-                            pio_offset_kind
+   use cam_pio_utils,  only: cam_pio_createfile, cam_pio_newdecomp
+   use pio,            only: pio_def_dim, var_desc_t, pio_int, pio_def_var, &
+                             pio_enddef, pio_closefile, io_desc_t, &
+                             pio_write_darray, pio_freedecomp, &
+                             pio_offset_kind
 
    ! SE dycore:
-   use parallel_mod,  only: parallel_t
-   use dof_mod,       only: createmetadata
+   use parallel_mod,   only: parallel_t
+   use dof_mod,        only: createmetadata
+   use dimensions_mod, only: np, nelem_d
 
    ! arguments
    type(parallel_t), intent(in) :: par
@@ -1214,7 +1204,15 @@ end subroutine write_grid_mapping
 !=========================================================================================
 
 subroutine create_global_area(area_d)
-   use dp_mapping, only: dp_reorder, dp_allocate, dp_deallocate
+
+   use mpi,            only: mpi_integer, mpi_real8
+   use spmd_utils,     only: masterproc, iam, mpicom, mstrid=>masterprocid, npes
+   use cam_abortutils, only: endrun, check_allocate
+
+   !SE dycore:
+   use dimensions_mod, only: fv_nphys, nelem_d, nelemd, nelemdmax, ngcols_d
+   use dof_mod,        only: UniquePoints
+   use dp_mapping,     only: dp_reorder, dp_allocate, dp_deallocate
 
    ! Gather global array of column areas for the physics grid,
    ! reorder to global column order, then broadcast it to all tasks.
@@ -1230,6 +1228,7 @@ subroutine create_global_area(area_d)
    integer                     :: ie, sb, eb, i, j, k
    integer                     :: ierr
    integer                     :: ibuf
+   character(len=shr_kind_cl)  :: errmsg
    character(len=*), parameter :: subname = 'create_global_area'
    !----------------------------------------------------------------------------
 
@@ -1242,13 +1241,13 @@ subroutine create_global_area(area_d)
       ! first gather all data onto masterproc, in mpi task order (via
       ! mpi_gatherv) then redorder into globalID order (via dp_reorder)
       ncol = fv_nphys*fv_nphys*nelem_d
-      allocate(rbuf(ncol), stat=ierr)
+      allocate(rbuf(ncol), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'rbuf(ncol)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(dp_area(fv_nphys*fv_nphys,nelem_d), stat=ierr)
+      allocate(dp_area(fv_nphys*fv_nphys,nelem_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dp_area(fv_nphys*fv_nphys,nelem_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemd
          k = 1
@@ -1290,9 +1289,9 @@ subroutine create_global_area(area_d)
 
    else ! physics is on the GLL grid
 
-      allocate(rbuf(ngcols_d), stat=ierr)
+      allocate(rbuf(ngcols_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'rbuf(ngcols_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemdmax
          if (ie <= nelemd) then
@@ -1331,7 +1330,15 @@ end subroutine create_global_area
 !=========================================================================================
 
 subroutine create_global_coords(clat, clon, lat_out, lon_out)
-   use dp_mapping, only: dp_reorder, dp_allocate, dp_deallocate
+
+   use mpi,            only: mpi_integer
+   use spmd_utils,     only: masterproc, iam, mpicom, mstrid=>masterprocid, npes
+   use cam_abortutils, only: check_allocate, endrun
+
+   !SE dycore:
+   use dimensions_mod, only: fv_nphys, nelem_d, nelemd, nelemdmax, ngcols_d
+   use dof_mod,        only: UniqueCoords
+   use dp_mapping,     only: dp_reorder, dp_allocate, dp_deallocate
 
    ! Gather global arrays of column coordinates for the physics grid,
    ! reorder to global column order, then broadcast to all tasks.
@@ -1349,6 +1356,7 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
    integer                         :: ierr
    integer                         :: ibuf
    integer                         :: ncol
+   character(len=shr_kind_cl)      :: errmsg
    character(len=*), parameter     :: subname = 'create_global_coords'
    !----------------------------------------------------------------------------
 
@@ -1371,17 +1379,17 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
       ! mpi_gatherv) then redorder into globalID order (via dp_reorder)
 
       ncol = fv_nphys*fv_nphys*nelem_d
-      allocate(rbuf(ncol), stat=ierr)
+      allocate(rbuf(ncol), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'rbuf(ncol)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(dp_lon(fv_nphys*fv_nphys,nelem_d), stat=ierr)
+      allocate(dp_lon(fv_nphys*fv_nphys,nelem_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dp_lon(fv_nphys*fv_nphys,nelem_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(dp_lat(fv_nphys*fv_nphys,nelem_d), stat=ierr)
+      allocate(dp_lat(fv_nphys*fv_nphys,nelem_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dp_lat(fv_nphys*fv_nphys,nelem_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemd
          k = 1
@@ -1444,9 +1452,9 @@ subroutine create_global_coords(clat, clon, lat_out, lon_out)
 
    else ! physics uses the GLL grid
 
-      allocate(rbuf(ngcols_d), stat=ierr)
+      allocate(rbuf(ngcols_d), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'rbuf(ngcols_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemdmax
 

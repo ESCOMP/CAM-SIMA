@@ -1,16 +1,13 @@
 module gravity_waves_sources
+
   use shr_kind_mod,   only: r8 => shr_kind_r8
 
   !SE dycore:
   use derivative_mod, only: derivative_t
-  use dimensions_mod, only: np,nlev
   use edgetype_mod,   only: EdgeBuffer_t
-  use element_mod,    only: element_t
-  use hybrid_mod,     only: hybrid_t
 
   implicit none
   private
-  save
 
   !! gravity_waves_sources created by S Santos, 10 Aug 2011
   !!
@@ -33,11 +30,13 @@ CONTAINS
 
   subroutine gws_init(elem)
 
+    use hycoef,         only: hypi
+
     !SE dycore:
     use parallel_mod,   only: par
     use edge_mod,       only: initEdgeBuffer
-    use hycoef,         only: hypi
-    use dimensions_mod, only: nlevp
+    use element_mod,    only: element_t
+    use dimensions_mod, only: nlev
     use thread_mod,     only: horz_num_threads
 
     ! Elem will be needed for future updates to edge code
@@ -58,9 +57,11 @@ CONTAINS
     use shr_kind_mod,   only: shr_kind_cl
 
     !SE dycore:
+    use element_mod,    only: element_t
     use derivative_mod, only: derivinit
     use dimensions_mod, only: npsq, nelemd
     use dof_mod,        only: UniquePoints
+    use hybrid_mod,     only: hybrid_t
     use hybrid_mod,     only: config_thread_region, get_loop_ranges
     use parallel_mod,   only: par
     use thread_mod,     only: horz_num_threads
@@ -118,6 +119,13 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine gws_src_vort(elem, tl, tlq, vort4gw, nphys)
+
+    use cam_abortutils, only  : check_allocate
+    use shr_kind_mod,   only  : shr_kind_cl
+
+    !SE dycore:
+    use element_mod,    only  : element_t
+    use hybrid_mod,     only  : hybrid_t
     use derivative_mod, only  : derivinit
     use dimensions_mod, only  : nelemd
     use dof_mod, only         : UniquePoints
@@ -126,8 +134,6 @@ CONTAINS
     use vert_coord, only      : pver
     use thread_mod, only      : horz_num_threads
     use dimensions_mod, only  : fv_nphys
-    use cam_abortutils, only  : check_allocate
-    use shr_kind_mod,   only  : shr_kind_cl
 
     implicit none
     type (element_t), intent(in), dimension(:) :: elem
@@ -185,10 +191,12 @@ CONTAINS
   !
   ! * corresponding/blame-able
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    use element_mod,    only: element_t
+    use hybrid_mod,     only: hybrid_t
     use derivative_mod, only: vorticity_sphere
     use edge_mod,       only: edgevpack, edgevunpack
     use bndry_mod,      only: bndry_exchange
-    use dimensions_mod, only: fv_nphys
+    use dimensions_mod, only: np, fv_nphys
     use fvm_mapping,    only: dyn2phys
 
     type(hybrid_t),     intent(in)            :: hybrid
@@ -270,11 +278,12 @@ CONTAINS
     use dyn_grid,        only: hvcoord
 
     !SE dycore:
+    use element_mod,     only: element_t
     use derivative_mod,  only: gradient_sphere, ugradv_sphere
     use edge_mod,        only: edgevpack, edgevunpack
     use bndry_mod,       only: bndry_exchange
-    use dimensions_mod,  only: fv_nphys,ntrac
-    use fvm_mapping,     only: dyn2phys_vector,dyn2phys
+    use dimensions_mod,  only: np, fv_nphys, ntrac, nlev
+    use fvm_mapping,     only: dyn2phys_vector, dyn2phys
 
     type(hybrid_t),     intent(in)            :: hybrid
     type(element_t),    intent(inout), target :: elem(:)

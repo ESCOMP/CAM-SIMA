@@ -4,47 +4,10 @@ module dyn_comp
 
 use shr_kind_mod,           only: r8=>shr_kind_r8
 use dynconst,               only: pi
-use spmd_utils,             only: iam, masterproc
-use cam_constituents,       only: const_name, const_longname, num_advected
-use cam_constituents,       only: const_get_index, const_is_wet, const_qmin
-use cam_constituents,       only: readtrace
-use air_composition,        only: const_is_water_species
-use cam_control_mod,        only: initial_run
-use cam_physics_control,    only: simple_phys
-use cam_initfiles,          only: initial_file_get_id, topo_file_get_id, pertlim
-use dyn_grid,               only: ini_grid_name, timelevel, hvcoord, edgebuf
 
-use cam_grid_support,       only: cam_grid_id, cam_grid_get_gcid, &
-                                  cam_grid_dimensions, cam_grid_get_dim_names, &
-                                  cam_grid_get_latvals, cam_grid_get_lonvals,  &
-                                  max_hcoordname_len
-
-use inic_analytic,          only: analytic_ic_active, analytic_ic_set_ic
-use dyn_tests_utils,        only: vcoord=>vc_dry_pressure
-
-use time_manager,           only: get_step_size
-
-use cam_field_read,         only: cam_read_field
-
-use pio,                    only: file_desc_t, pio_seterrorhandling, PIO_BCAST_ERROR, &
-                                  pio_inq_dimid, pio_inq_dimlen, PIO_NOERR
-
-use shr_infnan_mod,         only: shr_infnan_isnan
-use cam_logfile,            only: iulog
-use cam_abortutils,         only: endrun, check_allocate
-use cam_map_utils,          only: iMap
-use shr_sys_mod,            only: shr_sys_flush
-
-use parallel_mod,           only: par
-use hybrid_mod,             only: hybrid_t
-use dimensions_mod,         only: nelemd, nlev, np, npsq, ntrac, nc, fv_nphys, &
-                                  qsize, use_cslam
-use element_mod,            only: element_t, elem_state_t
+!SE dycore:
+use element_mod,            only: element_t
 use fvm_control_volume_mod, only: fvm_struct
-use se_dyn_time_mod,        only: nsplit
-use edge_mod,               only: initEdgeBuffer, edgeVpack, edgeVunpack, FreeEdgeBuffer
-use edgetype_mod,           only: EdgeBuffer_t
-use bndry_mod,              only: bndry_exchange
 
 implicit none
 private
@@ -98,6 +61,9 @@ subroutine dyn_readnl(NLFileName)
    use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
    use native_mapping, only: native_mapping_readnl
    use vert_coord,     only: pver
+   use cam_logfile,    only: iulog
+   use cam_abortutils, only: endrun
+   use cam_control_mod, only: initial_run
 
    !SE dycore:
    use namelist_mod,   only: homme_set_defaults, homme_postprocess_namelist
@@ -548,8 +514,14 @@ end subroutine dyn_readnl
 subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use shr_kind_mod,        only: cl=>shr_kind_cl
    use runtime_obj,         only: runtime_options
-   use dyn_grid,            only: elem, fvm
+   use dyn_grid,            only: elem, fvm, hvcoord
    use cam_pio_utils,       only: clean_iodesc_list
+   use cam_abortutils,      only: endrun, check_allocate
+   use spmd_utils,          only: iam
+   use parallel_mod,        only: par
+   use cam_constituents,    only: const_name, const_longname, num_advected, &
+                                  const_get_index, const_is_wet, const_qmin, readtrace
+   use cam_initfiles,       only: initial_file_get_id, topo_file_get_id, pertlim
    use air_composition,     only: thermodynamic_active_species_num, thermodynamic_active_species_idx
    use air_composition,     only: thermodynamic_active_species_idx_dycore
    use dynconst,            only: cpair, pstd
@@ -1052,8 +1024,12 @@ subroutine dyn_run(dyn_state)
    use air_composition,  only: thermodynamic_active_species_num, dry_air_species_num
    use air_composition,  only: thermodynamic_active_species_idx_dycore
    use cam_history,      only: is_history_field_active, history_out_field
+   use spmd_utils,       only: iam
+   use dyn_grid,         only: TimeLevel, hvcoord
+   use time_manager,     only: get_step_size
 
-   !Se dycore:
+   !SE dycore:
+   use parallel_mod,     only: par
    use prim_driver_mod,  only: prim_run_subcycle
    use dimensions_mod,   only: cnst_name_gll
    use se_dyn_time_mod,  only: tstep, nsplit, timelevel_qdp, tevolve
@@ -1271,8 +1247,14 @@ subroutine read_inidat(dyn_in)
    use hycoef,               only: hyai, hybi, ps0
    use phys_vars_init_check, only: mark_as_initialized
    use cam_history_support,  only: max_fieldname_len
+   use spmd_utils,           only: iam
+   use cam_abortutils,       only: endrun, check_allocate
+   use dyn_grid,             only: ini_grid_name
+   use cam_grid_support,     only: cam_grid_id, cam_grid_get_gcid, cam_grid_get_latvals, &
+                                   cam_grid_get_lonvals, cam_grid_dimensions
 
    !SE-dycore:
+   use parallel_mod,         only: par
    use element_mod,          only: timelevels
    use fvm_mapping,          only: dyn2fvm_mass_vars
    use control_mod,          only: runtype,initial_global_ave_dry_ps
@@ -2000,6 +1982,12 @@ subroutine set_phis(dyn_in)
    use shr_kind_mod,         only: cl=>shr_kind_cl
    use phys_vars_init_check, only: mark_as_initialized
    use cam_history_support,  only: max_fieldname_len
+   use spmd_utils,           only: iam
+   use cam_initfiles,        only: topo_file_get_id
+   use dyn_grid,             only: ini_grid_name
+
+   !SE dycore:
+   use parallel_mod,         only: par
 
    ! Arguments
    type (dyn_import_t), target, intent(inout) :: dyn_in   ! dynamics import
@@ -2234,6 +2222,13 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
    ! called when the initial file is only supplying vertical coordinate info.
 
    use cam_history_support,  only: max_fieldname_len
+   use spmd_utils,           only: iam, masterproc
+   use pio,                  only: pio_inq_dimid, pio_inq_dimlen, PIO_NOERR
+   use cam_abortutils,       only: endrun
+   use shr_sys_mod,          only: shr_sys_flush
+   use dyn_grid,             only: ini_grid_name
+   use cam_logfile,          only: iulog
+   use cam_grid_support,     only: cam_grid_get_dim_names, cam_grid_id
 
    type(file_desc_t), pointer       :: file
    type(element_t),   pointer       :: elem(:)
@@ -2381,6 +2376,10 @@ end function dyn_field_exists
 !========================================================================================
 
 subroutine read_dyn_field_2d(fieldname, fh, dimname, buffer)
+   use cam_field_read,     only: cam_read_field
+   use cam_abortutils,     only: endrun
+   use shr_infnan_mod,     only: shr_infnan_isnan
+   use dyn_grid,           only: ini_grid_name
 
    ! Dummy arguments
    character(len=*),  intent(in)    :: fieldname
@@ -2422,6 +2421,10 @@ end subroutine read_dyn_field_2d
 !========================================================================================
 
 subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
+   use cam_field_read,     only: cam_read_field
+   use cam_abortutils,     only: endrun
+   use shr_infnan_mod,     only: shr_infnan_isnan
+   use dyn_grid,           only: ini_grid_name
 
    ! Dummy arguments
    character(len=*),  intent(in)    :: fieldname
@@ -2463,6 +2466,8 @@ end subroutine read_dyn_field_3d
 !========================================================================================
 
 subroutine read_phys_field_2d(fieldname, fh, dimname, buffer)
+   use cam_field_read,     only: cam_read_field
+   use cam_abortutils,     only: endrun
 
    ! Dummy arguments
    character(len=*),  intent(in)    :: fieldname
@@ -2488,6 +2493,7 @@ subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
    use shr_kind_mod,       only: cl=>shr_kind_cl
 
    !SE dycore:
+   use parallel_mod,       only: par
    use hybrid_mod,         only: get_loop_ranges, config_thread_region
    use dimensions_mod,     only: nhc_phys
    use fvm_mapping,        only: phys2dyn
@@ -2555,6 +2561,10 @@ subroutine write_dyn_vars(dyn_out)
 
    use cam_history_support, only: fieldname_len
    use cam_history,         only: history_out_field
+   use cam_constituents,    only: const_name
+
+   !SE dycore:
+   use dimensions_mod,      only: ntrac, nc, use_cslam
 
    type (dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
 
