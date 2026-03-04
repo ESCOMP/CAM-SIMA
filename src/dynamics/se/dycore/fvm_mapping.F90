@@ -1073,17 +1073,9 @@ contains
       do jy=1,fv_nphys
         do jx=1,fv_nphys
           num = save_num_overlap(jx,jy,k,ie)
-#ifdef debug_coupling
-          save_q_overlap(:,jx,jy,k,m_cnst,ie) = 0.0_r8
-          save_q_phys(jx,jy,k,m_cnst,ie)      = 0.0_r8
-          tmp = save_q_phys(jx,jy,k,m_cnst,ie)+fq_phys(jx,jy,m_cnst) !updated physics grid mixing ratio
-          phys_cdp_max(jx,jy)= MAX(max_patch,tmp)
-          phys_cdp_min(jx,jy)= MIN(min_patch,tmp)
-#else
           tmp = save_q_phys(jx,jy,k,m_cnst,ie)+fq_phys(jx,jy,m_cnst) !updated physics grid mixing ratio
           phys_cdp_max(jx,jy)= MAX(MAX(MAXVAL(save_q_overlap(1:num,jx,jy,k,m_cnst,ie)),max_patch),tmp)
           phys_cdp_min(jx,jy)= MIN(MIN(MINVAL(save_q_overlap(1:num,jx,jy,k,m_cnst,ie)),min_patch),tmp)
-#endif
           !
           ! add high-order fq change when it does not violate monotonicity
           !

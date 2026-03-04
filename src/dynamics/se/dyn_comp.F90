@@ -545,7 +545,6 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use prim_driver_mod,    only: prim_init2
    use se_dyn_time_mod,    only: time_at
    use control_mod,        only: runtype, nu_top, molecular_diff
-   use test_fvm_mapping,   only: test_mapping_addfld
    use control_mod,        only: vert_remap_uvTq_alg, vert_remap_tracer_alg
    use std_atm_profile,    only: std_atm_height
 
@@ -669,7 +668,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    do m=1,thermodynamic_active_species_liq_num
      if (use_cslam) then
        do mfound=1,qsize
-         if (TRIM(cnst_name(thermodynamic_active_species_liq_idx(m)))==TRIM(cnst_name_gll(mfound))) then
+         if (TRIM(const_name(thermodynamic_active_species_liq_idx(m)))==TRIM(cnst_name_gll(mfound))) then
            thermodynamic_active_species_liq_idx_dycore(m) = mfound
          end if
        end do
@@ -683,7 +682,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    do m=1,thermodynamic_active_species_ice_num
      if (use_cslam) then
        do mfound=1,qsize
-         if (TRIM(cnst_name(thermodynamic_active_species_ice_idx(m)))==TRIM(cnst_name_gll(mfound))) then
+         if (TRIM(const_name(thermodynamic_active_species_ice_idx(m)))==TRIM(cnst_name_gll(mfound))) then
            thermodynamic_active_species_ice_idx_dycore(m) = mfound
          end if
        end do
@@ -983,7 +982,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
                       longname="dE/dt adiabatic dynamics"                              )
       call cam_budget_em_register('dEdt_del2_del4_tot' ,'dEdt_del4_tot'    ,'dEdt_del2_sponge'  ,'dyn','sum', &
                       longname="dE/dt explicit diffusion total"                        )
-      call cam_budget_em_register('dEdt_residual'      ,'dEdt_floating_dyn','dEdt_del2_del4_tot','dyn','dif',&
+      call cam_budget_em_register('dEdt_residual'      ,'dEdt_floating_dyn','dEdt_del2_del4_tot','dyn','dif', &
                       longname="dE/dt residual (dEdt_floating_dyn-dEdt_del2_del4_tot)" )
    end if
    !
@@ -991,12 +990,12 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    !
    if (use_cslam) then
      do m = 1, pcnst
-       call history_add_field(tottnam(m), trim(cnst_name(m))//' horz + vert', 'lev','avg', &
+       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg', &
            'kg kg-1 s-1', gridname='FVM')
      end do
    else
      do m = 1, pcnst
-       call history_add_field(tottnam(m), trim(cnst_name(m))//' horz + vert', 'lev','avg', &
+       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg', &
             'kg kg-1 s-1', gridname='GLL')
      end do
    end if
@@ -1067,10 +1066,6 @@ subroutine dyn_run(dyn_state)
    character(len=*), parameter :: subname = 'dyn_run'
 
    !----------------------------------------------------------------------------
-
-#ifdef debug_coupling
-   return
-#endif
 
    nsplit_local = nsplit
    tevolve = 0._r8

@@ -506,8 +506,7 @@ contains
     use hybvcoord_mod,  only: hvcoord_t
     use fvm_control_volume_mod, only: fvm_struct
     use air_composition, only: thermodynamic_active_species_idx_dycore
-!Un-comment once constituents and history outputs are enabled -JN:
-!    use cam_history,     only: outfld, hist_fld_active
+    use cam_history,     only: history_out_field, is_history_field_active
 
     type (hybrid_t)    , intent(in)   :: hybrid
     type (element_t)   , intent(inout), target :: elem(:)
@@ -772,33 +771,31 @@ contains
       !
       ! diagnostics
       !
-!Un-comment once history outputs are enabled -JN:
-#if 0
-      if (hist_fld_active('nu_kmvis')) then
+      if (is_history_field_active('nu_kmvis')) then
         do ie=nets,nete
           tmp_kmvis = 0.0_r8
           do k=1,ksponge_end
             tmp_kmvis(:,:,k) = kmvis(:,:,k,ie)/rho_dry(:,:,k,ie)
           end do
-          call outfld('nu_kmvis',RESHAPE(tmp_kmvis(:,:,:), (/npsq,nlev/)), npsq, ie)
+          call history_out_field('nu_kmvis',RESHAPE(tmp_kmvis(:,:,:), (/npsq,nlev/)))
         end do
       end if
-      if (hist_fld_active('nu_kmcnd')) then
+      if (is_history_field_active('nu_kmcnd')) then
         do ie=nets,nete
           tmp_kmcnd = 0.0_r8
           do k=1,ksponge_end
             tmp_kmcnd(:,:,k) = kmcnd(:,:,k,ie)*inv_cp_full(:,:,k,ie)/rho_dry(:,:,k,ie)
           end do
-          call outfld('nu_kmcnd',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)), npsq, ie)
+          call history_out_field('nu_kmcnd',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)))
         end do
       end if
-      if (hist_fld_active('nu_kmcnd_dp')) then
+      if (is_history_field_active('nu_kmcnd_dp')) then
         do ie=nets,nete
           tmp_kmcnd = 0.0_r8
           do k=1,ksponge_end
             tmp_kmcnd(:,:,k) = kmcnd(:,:,k,ie)/(cpair*rho_ref(k))
           end do
-          call outfld('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)), npsq, ie)
+          call history_out_field('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)))
         end do
       end if
 
@@ -811,7 +808,6 @@ contains
           kmvis(:,:,k,ie) = kmvis(:,:,k,ie)/kmvis_ref(k)
         end do
       end do
-#endif
     end if
     !
     ! Horizontal Laplacian diffusion
@@ -1492,10 +1488,9 @@ contains
     use dimensions_mod,         only: npsq,nlev,np,nc,use_cslam,qsize
     use physconst,              only: rga, rearth, omega
     use element_mod,            only: element_t
-!Un-comment once constituents and history outputs are enabled -JN:
-!    use cam_history,            only: outfld
+!    use cam_history,            only: history_out_field
 !    use cam_history_support,    only: max_fieldname_len
-!    use constituents,           only: cnst_get_ind
+!    use cam_constituents,       only: const_get_index
     use string_utils,           only: strlist_get_ind
     use hycoef,                 only: hyai, ps0
     use fvm_control_volume_mod, only: fvm_struct
@@ -1546,8 +1541,9 @@ contains
 
     integer :: ie,i,j,k,m_cnst,nq,idx
     integer :: ixwv,ixcldice, ixcldliq, ixtt ! CLDICE, CLDLIQ and test tracer indices
-!Un-comment once history outputs are enabled -JN:
-#if 0
+
+
+#ifdef cam_thermo_history
     character(len=max_fieldname_len) :: name_out(thermo_budget_num_vars)
 
     !-----------------------------------------------------------------------
@@ -1558,8 +1554,8 @@ contains
 
       if (use_cslam) then
         ixwv = 1
-        call cnst_get_ind('CLDLIQ' , ixcldliq, abort=.false.)
-        call cnst_get_ind('CLDICE' , ixcldice, abort=.false.)
+        call const_get_index('CLDLIQ' , ixcldliq, abort=.false.)
+        call const_get_index('CLDICE' , ixcldice, abort=.false.)
       else
         !
         ! when using CSLAM the condensates on the GLL grid may be located in a different index than in physics
@@ -1568,7 +1564,7 @@ contains
         call strlist_get_ind(cnst_name_gll, 'CLDLIQ' , ixcldliq, abort=.false.)
         call strlist_get_ind(cnst_name_gll, 'CLDICE' , ixcldice, abort=.false.)
       end if
-      call cnst_get_ind('TT_LW' , ixtt    , abort=.false.)
+      call const_get_index('TT_LW' , ixtt    , abort=.false.)
       !
       ! Compute frozen static energy in 3 parts:  KE, SE, and energy associated with vapor and liquid
       !
@@ -1598,10 +1594,10 @@ contains
         !
         ! Output energy diagnostics on GLL grid
         !
-        call outfld(name_out(poidx)  ,po       ,npsq,ie)
-        call outfld(name_out(seidx)  ,se       ,npsq,ie)
-        call outfld(name_out(keidx)  ,ke       ,npsq,ie)
-        call outfld(name_out(teidx)  ,ke+se+po ,npsq,ie)
+        call history_out_field(name_out(poidx)  ,po)
+        call history_out_field(name_out(seidx)  ,se)
+        call history_out_field(name_out(keidx)  ,ke)
+        call history_out_field(name_out(teidx)  ,ke+se+po)
         !
         ! mass variables are output on CSLAM grid if using CSLAM else GLL grid
         !
@@ -1700,18 +1696,17 @@ contains
             end do
           end do
         end do
-        call outfld(name_out(mridx)  ,mr       ,npsq,ie)
-        call outfld(name_out(moidx)  ,mo       ,npsq,ie)
+        call history_out_field(name_out(mridx), mr)
+        call history_out_field(name_out(moidx), mo)
       end do
    end if ! if thermo budget history
 #endif
   end subroutine tot_energy_dyn
 
   subroutine output_qdp_var_dynamics(qdp,nx,num_trac,nets,nete,outfld_name)
-    use dimensions_mod, only: nlev,ntrac
-!Un-comment once constituents and history outputs are enabled -JN:
-!    use cam_history   , only: outfld, hist_fld_active
-!    use constituents  , only: cnst_get_ind
+    use dimensions_mod,   only: nlev,ntrac
+    use cam_history   ,   only: is_history_field_active
+    use cam_constituents, only: const_get_index
     !------------------------------Arguments--------------------------------
 
     integer      ,intent(in) :: nx,num_trac,nets,nete
@@ -1725,20 +1720,19 @@ contains
     character(len=16) :: name_out1,name_out2,name_out3,name_out4
     !-----------------------------------------------------------------------
 
-!Un-comment once history outputs are enabled -JN:
-#if 0
-
     name_out1 = 'WV_'   //trim(outfld_name)
     name_out2 = 'WI_'   //trim(outfld_name)
     name_out3 = 'WL_'   //trim(outfld_name)
     name_out4 = 'TT_'   //trim(outfld_name)
 
-    if ( hist_fld_active(name_out1).or.hist_fld_active(name_out2).or.hist_fld_active(name_out3).or.&
-         hist_fld_active(name_out4)) then
+    if ( is_history_field_active(name_out1).or.&
+         is_history_field_active(name_out2).or.&
+         is_history_field_active(name_out3).or.&
+         is_history_field_active(name_out4)) then
 
-      call cnst_get_ind('CLDLIQ', ixcldliq, abort=.false.)
-      call cnst_get_ind('CLDICE', ixcldice, abort=.false.)
-      call cnst_get_ind('TT_LW' , ixtt    , abort=.false.)
+      call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldliq, abort=.false.)
+      call const_get_index('cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldice, abort=.false.)
+      call const_get_index('TT_LW' , ixtt    , abort=.false.)
 
       do ie=nets,nete
         call util_function(qdp(:,:,:,1,ie),nx,nlev,name_out1,ie)
@@ -1747,7 +1741,6 @@ contains
         if (ixtt>0    ) call util_function(qdp(:,:,:,ixtt    ,ie),nx,nlev,name_out4,ie)
       end do
     end if
-#endif
   end subroutine output_qdp_var_dynamics
 
   !
@@ -1755,16 +1748,15 @@ contains
   !
   subroutine util_function(f_in,nx,nz,name_out,ie)
     use physconst,   only: rga
-!Un-comment once history outputs are enabled -JN:
-!    use cam_history, only: outfld, hist_fld_active
+    use cam_history, only: history_out_field, is_history_field_active
+
     integer,           intent(in) :: nx,nz,ie
     real(kind=r8),     intent(in) :: f_in(nx,nx,nz)
     character(len=16), intent(in) :: name_out
     real(kind=r8)       :: f_out(nx*nx)
     integer             :: i,j,k
-!Un-comment once history outputs are enabled -JN:
-#if 0
-    if (hist_fld_active(name_out)) then
+
+    if (is_history_field_active(name_out)) then
       f_out = 0.0_r8
       do k = 1, nz
         do j = 1, nx
@@ -1774,9 +1766,9 @@ contains
         end do
       end do
       f_out = f_out*rga
-      call outfld(name_out,f_out,nx*nx,ie)
+      call history_out_field(name_out,f_out)
     end if
-#endif
+
   end subroutine util_function
 
    subroutine compute_omega(hybrid,n0,qn0,elem,deriv,nets,nete,dt,hvcoord)

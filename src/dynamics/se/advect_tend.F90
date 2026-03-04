@@ -21,11 +21,13 @@ contains
   !   - second call computes and outputs the tendencies
   !----------------------------------------------------------------------
   subroutine compute_adv_tends_xyz(elem,fvm,nets,nete,qn0,n0)
-!    use cam_history,           only: outfld, hist_fld_active
-    use time_manager,           only: get_step_size
+
+    use shr_kind_mod,          only: cl=>shr_kind_cl
+    use cam_history,           only: history_out_field
+    use time_manager,          only: get_step_size
 !    use cam_constituents,      only: tottnam,num_advected
-    use cam_constituents,       only: num_advected
-    use cam_abortutils,         only: check_allocate
+    use cam_constituents,      only: num_advected
+    use cam_abortutils,        only: check_allocate
 
     ! SE dycore:
     use dimensions_mod,         only: nc,np,nlev,ntrac,use_cslam
@@ -42,6 +44,8 @@ contains
     logical  :: init
     real(r8), allocatable, dimension(:,:) :: ftmp
 
+    character(len=cl) :: errmsg
+
     character(len=*), parameter :: subname = 'compute_adv_tends_xyz'
 
     if (use_cslam) then
@@ -50,16 +54,16 @@ contains
       nx=np
     end if
 
-    allocate( ftmp(nx*nx,nlev), stat=iret )
+    allocate( ftmp(nx*nx,nlev), stat=iret, errmsg=errmsg )
     call check_allocate(iret, subname, 'ftmp(nx*nx,nlev)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     init = .false.
     if ( .not. allocated( adv_tendxyz ) ) then
       init = .true.
-      allocate( adv_tendxyz(nx,nx,nlev,num_advected,nets:nete), stat=iret )
+      allocate( adv_tendxyz(nx,nx,nlev,num_advected,nets:nete), stat=iret, errmsg=errmsg )
       call check_allocate(iret, subname, 'adv_tendxyz(nx,nx,nlev,num_advected,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       adv_tendxyz(:,:,:,:,:) = 0._r8
     end if
@@ -78,8 +82,7 @@ contains
       end do
     end if
 
-!Remove once history outputs are enabled:
-#if 0
+#ifdef cam_thermo_history
     if ( .not. init ) then
       dt = get_step_size()
       idt = 1._r8/dt
@@ -91,7 +94,7 @@ contains
               ftmp(i+(j-1)*nx,:) = adv_tendxyz(i,j,:,ic,ie)
             end do
           end do
-          call outfld(tottnam(ic), ftmp,nx*nx, ie)
+          call history_out_field(tottnam(ic), ftmp)
         end do
       end do
       deallocate(adv_tendxyz)
