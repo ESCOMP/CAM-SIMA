@@ -10,6 +10,7 @@ module physconst
    use shr_const_mod,  only: shr_const_mwwv
    use shr_const_mod,  only: shr_const_latice
    use shr_const_mod,  only: shr_const_latvap
+   use shr_const_mod,  only: shr_const_latsub
    use shr_const_mod,  only: shr_const_cpdair
    use shr_const_mod,  only: shr_const_rhofw
    use shr_const_mod,  only: shr_const_cpwv
@@ -52,6 +53,7 @@ module physconst
    real(kind_phys), public, parameter :: karman      = real(shr_const_karman, kind_phys)     ! Von Karman constant
    real(kind_phys), public, parameter :: latice      = real(shr_const_latice, kind_phys)     ! Latent heat of fusion (J kg-1)
    real(kind_phys), public, parameter :: latvap      = real(shr_const_latvap, kind_phys)     ! Latent heat of vaporization (J kg-1)
+   real(kind_phys), public, parameter :: latsub      = real(shr_const_latsub, kind_phys)     ! Latent heat of sublimation (J kg-1)
    real(kind_phys), public, parameter :: pi          = real(shr_const_pi, kind_phys)         ! 3.14...
    real(kind_phys), public, protected :: pstd        = real(shr_const_pstd, kind_phys)       ! Standard pressure (Pascals)
    real(kind_phys), public, protected :: pref        = 1.0e5_kind_phys                       ! Reference surface pressure (Pascals)

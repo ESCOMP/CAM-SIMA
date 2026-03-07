@@ -1921,5 +1921,95 @@
 	    units="flag" type="logical">
       <initial_value>.false.</initial_value>
     </variable>
+
+    <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
+    <!-- Variables for "bl_gwdo" physics scheme -->
+    <!-- TODO: `var` may be related or even equivalent to `sgh`. Should come back to investigate when
+         this suite is fully implemented. -->
+    <variable local_name="var"
+              standard_name="standard_deviation_of_subgrid_orography"
+              units="m" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="oc1"
+              standard_name="convexity_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="oa2d1"
+              standard_name="eastward_asymmetry_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="oa2d2"
+              standard_name="northward_asymmetry_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="oa2d3"
+              standard_name="northeastward_asymmetry_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="oa2d4"
+              standard_name="southeastward_asymmetry_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="ol2d1"
+              standard_name="eastward_dimensionless_effective_length_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="ol2d2"
+              standard_name="northward_dimensionless_effective_length_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="ol2d3"
+              standard_name="northeastward_dimensionless_effective_length_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="ol2d4"
+              standard_name="southeastward_dimensionless_effective_length_of_subgrid_orography"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <!-- Variables for "sf_mynn" physics scheme -->
+    <variable local_name="mavail"
+              standard_name="surface_moisture_availability"
+              units="1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="tsk"
+              standard_name="skin_temperature_at_surface"
+              units="K" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>273.15_kind_phys</initial_value>
+    </variable>
   </file>
 </registry>
