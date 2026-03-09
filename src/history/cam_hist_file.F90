@@ -126,6 +126,7 @@ module cam_hist_file
       procedure :: write_field => config_write_field
       procedure :: close_files => config_close_files
       procedure :: clear_buffers => config_clear_buffers
+      procedure :: reset_samples => config_reset_samples
    end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
@@ -1657,6 +1658,16 @@ CONTAINS
    end subroutine config_clear_buffers
 
    ! ========================================================================
+
+   subroutine config_reset_samples(this)
+
+      class(hist_file_t), intent(inout) :: this
+
+      this%num_samples = 0
+
+   end subroutine config_reset_samples
+
+! ========================================================================
 
    pure function count_array(arr_in) result(arr_count)
       ! Dummy arguments
