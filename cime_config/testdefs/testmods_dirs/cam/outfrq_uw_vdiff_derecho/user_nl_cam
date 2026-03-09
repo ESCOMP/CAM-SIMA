@@ -1,6 +1,6 @@
 ! these are FHIST_C5 snapshots
-ncdata = '/glade/derecho/scratch/hplin/251119.cam64_128.FHIST_C5.ne3.gnu.dbg/run/snap_w_qneg_orig/251119.cam64_128.FHIST_C5.ne3.gnu.dbg.cam.h1i.1979-01-01-01800.nc'
-ncdata_check = '/glade/derecho/scratch/hplin/251119.cam64_128.FHIST_C5.ne3.gnu.dbg/run/snap_w_qneg_orig/251119.cam64_128.FHIST_C5.ne3.gnu.dbg.cam.h2i.1979-01-01-01800.nc'
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_c5_vertical_diffusion_uw_snapshot_derecho_gnu_before_c20260309.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_c5_vertical_diffusion_uw_snapshot_derecho_gnu_after_c20260309.nc'
 
 ! tolerances for testing
 ncdata_check_err = .true.
