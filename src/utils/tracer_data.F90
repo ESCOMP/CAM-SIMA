@@ -1639,6 +1639,8 @@ contains
   subroutine read_3d_trc(fid, vid, loc_arr, strt, cnt, file, order)
     use physics_grid,   only: pcols => columns_on_task
     use physics_grid,   only: get_rlat_all_p, get_rlon_all_p
+    use physics_grid,   only: plon => hdim1_d, plat => hdim2_d
+
     use physconst,      only: pi
 
     use cam_abortutils, only: check_allocate, endrun
