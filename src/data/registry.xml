@@ -1464,13 +1464,6 @@
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
-    <variable local_name="qrl"
-              standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_longwave_radiation_adjusted_by_air_pressure_thickness"
-              units="K s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>pbuf_QRL</ic_file_input_names>
-    </variable>
     <variable local_name="wsedl"
               standard_name="sedimentation_velocity_of_liquid_stratus_cloud_droplet_tbd"
               units="m s-1" type="real" kind="kind_phys"
