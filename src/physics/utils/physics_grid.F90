@@ -59,7 +59,7 @@ module physics_grid
    ! hdim1_d and hdim2_d are dimensions of rectangular horizontal grid
    ! data structure, If 1D data structure, then hdim2_d == 1.
    integer, protected, public          :: hdim1_d, hdim2_d
-   logical                             :: dycore_unstructured = .false.
+   logical, public                     :: dycore_unstructured = .false.
    ! Dycore name and properties
    character(len=8), protected, public :: dycore_name = ''
 
@@ -131,7 +131,6 @@ CONTAINS
       real(r8),               pointer     :: area_d(:)
       real(r8)                            :: mem_hw_beg, mem_hw_end
       real(r8)                            :: mem_beg, mem_end
-      logical                             :: unstructured
       real(r8)                            :: temp ! For MPI
       integer                             :: ierr ! For error codes
 
@@ -160,8 +159,7 @@ CONTAINS
       hdim1_d            = hdim1_d_in
       hdim2_d            = hdim2_d_in
       dycore_name        = dycore_name_in
-
-      unstructured     = hdim2_d <= 1
+      dycore_unstructured = hdim2_d <= 1
 
       ! Calculate total number of physics columns:
       num_global_phys_cols = hdim1_d * hdim2_d
@@ -225,7 +223,7 @@ CONTAINS
       ! First, create a map for the physics grid
       ! It's structure will depend on whether or not the physics grid is
       ! unstructured
-      if (unstructured) then
+      if (dycore_unstructured) then
          allocate(grid_map(3, columns_on_task), stat=ierr)
          call check_allocate(ierr, subname, 'grid_map(3, columns_on_task)', &
                              file=__FILE__, line=__LINE__)
@@ -257,7 +255,7 @@ CONTAINS
          end if
          grid_map(1, col_index) = col_index
          grid_map(2, col_index) = 0 ! No chunking in physics anymore
-         if (unstructured) then
+         if (dycore_unstructured) then
             grid_map(3, col_index) = phys_columns(col_index)%global_col_num
          else
             ! lon
@@ -272,7 +270,7 @@ CONTAINS
       !      the physics grid
       !      However, these will be in the dynamics decomposition
 
-      if (unstructured) then
+      if (dycore_unstructured) then
          lon_coord => horiz_coord_create('lon', 'ncol', num_global_phys_cols, &
               'longitude', 'degrees_east', 1, size(lonvals), lonvals,         &
               map=grid_map(3,:))
@@ -314,7 +312,7 @@ CONTAINS
       end if
       call cam_grid_register('physgrid', phys_decomp,                         &
            lat_coord, lon_coord, grid_map, src_in=(/ 1, 0 /),                 &
-           unstruct=unstructured, block_indexed=.false.)
+           unstruct=dycore_unstructured, block_indexed=.false.)
 
       ! Copy required attributes from the dynamics array
       do index = 1, size(dyn_attributes)
@@ -323,7 +321,7 @@ CONTAINS
       end do
 
       if ((.not. cam_grid_attr_exists('physgrid', 'area')) .and.              &
-           unstructured) then
+           dycore_unstructured) then
          ! Physgrid always needs an area attribute. If we did not inherit one
          !   from the dycore (i.e., physics and dynamics are on different
          !   grids), create that attribute here (Note, a separate physics

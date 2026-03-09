@@ -638,6 +638,7 @@ CONTAINS
       use cam_field_read, only: cam_read_field
       use mpi,            only: mpi_maxloc, mpi_sum, mpi_status_size
       use mpi,            only: mpi_2double_precision, mpi_integer
+      use shr_infnan_mod, only: shr_infnan_isnan
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: std_name_len
@@ -669,6 +670,9 @@ CONTAINS
       real(kind_phys)                  :: max_diff_gl(2) !Stores the global max diff and its MPI rank
       integer                          :: max_diff_gl_col
       integer                          :: diff_count_gl
+      integer                          :: nan_count      ! Count of NaNs found
+      integer                          :: nan_count_gl   ! Global count of NaNs
+      logical                          :: has_nan        ! Flag indicating NaN was found
 
       !Initialize output variables
       ierr = 0
@@ -691,26 +695,50 @@ CONTAINS
          call cam_read_field(found_name, file, buffer, var_found,             &
               timelevel=timestep, log_output=.false.)
          if (var_found) then
+            nan_count = 0
+            has_nan   = .false.
+
             do col = 1, size(buffer)
-               if (abs(current_value(col)) < min_relative_value) then
-                  !Calculate absolute difference:
-                  diff = abs(current_value(col) - buffer(col))
+               ! First, check if there are NaNs anywhere in the state
+               if (shr_infnan_isnan(current_value(col))) then
+                  nan_count = nan_count + 1
+
+                  if (.not. has_nan) then ! First NaN found for this variable
+                     has_nan = .true.
+
+                     ! Set max diff to NaN (if not already) to signal NaN was found
+                     max_diff(1) = current_value(col) - buffer(col) ! = nan
+                     max_diff_col = col
+                  end if
                else
-                  !Calculate relative difference:
-                  diff = abs(current_value(col) - buffer(col)) /              &
-                     abs(current_value(col))
-               end if
-               if (diff > max_diff(1)) then
-                  max_diff(1)  = diff
-                  max_diff_col = col
-               end if
-               if (diff > min_difference) then
-                  diff_count = diff_count + 1
+                  ! Calculate actual diffs for non-NaN values:
+                  if (abs(current_value(col)) < min_relative_value) then
+                     !Calculate absolute difference:
+                     diff = abs(current_value(col) - buffer(col))
+                  else
+                     !Calculate relative difference:
+                     diff = abs(current_value(col) - buffer(col)) /              &
+                        abs(current_value(col))
+                  end if
+                  ! Only update max diff if greater and not already nan:
+                  if (diff > max_diff(1) .and. .not. has_nan) then
+                     max_diff(1)  = diff
+                     max_diff_col = col
+                  end if
+                  if (diff > min_difference) then
+                     diff_count = diff_count + 1
+                  end if
                end if
             end do
+
+            !Add NaN count to total difference count:
+            diff_count = diff_count + nan_count
+
             !Gather results across all nodes to get global values
+            call mpi_reduce(nan_count, nan_count_gl, 1, mpi_integer,          &
+                            mpi_sum, masterprocid, mpicom, ierr)
             call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,        &
-                            mpi_sum, masterprocid,  mpicom, ierr)
+                            mpi_sum, masterprocid, mpicom, ierr)
 
             call mpi_allreduce(max_diff, max_diff_gl, 1,                      &
                                MPI_2DOUBLE_PRECISION,                         &
@@ -737,7 +765,8 @@ CONTAINS
             !Print difference stats to log file
             if (masterproc) then
                if (diff_count_gl > 0) then
-                  call write_check_field_entry(stdname, diff_count_gl,        &
+                  call write_check_field_entry(stdname, diff_count_gl,      &
+                                               nan_count_gl,                &
                                                max_diff_gl(1),              &
                                                int(max_diff_gl(2)),         &
                                                max_diff_gl_col, is_first)
@@ -764,6 +793,7 @@ CONTAINS
       use mpi,            only: mpi_maxloc, mpi_sum, mpi_status_size
       use mpi,            only: mpi_2double_precision, mpi_integer
       use vert_coord,     only: pver, pverp
+      use shr_infnan_mod, only: shr_infnan_isnan
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: std_name_len
@@ -800,6 +830,9 @@ CONTAINS
       integer                          :: max_diff_gl_col
       integer                          :: max_diff_gl_lev
       integer                          :: diff_count_gl
+      integer                          :: nan_count      ! Count of NaNs found
+      integer                          :: nan_count_gl   ! Global count of NaNs
+      logical                          :: has_nan        ! Flag indicating NaN was found
 
       !Initialize output variables
       ierr = 0
@@ -832,29 +865,52 @@ CONTAINS
               timelevel=timestep, dim3name=trim(vcoord_name),                 &
               dim3_bnds=[1, num_levs], log_output=.false.)
          if (var_found) then
+            nan_count = 0
+            has_nan = .false.
+
             do lev = 1, num_levs
                do col = 1, size(buffer(:,lev))
-                  if (abs(current_value(col, lev)) < min_relative_value) then
-                     !Calculate absolute difference:
-                     diff = abs(current_value(col, lev) - buffer(col, lev))
+                  ! First, check if there are NaNs anywhere in the state
+                  if (shr_infnan_isnan(current_value(col, lev))) then
+                     nan_count = nan_count + 1
+
+                     if (.not. has_nan) then ! First NaN found for this variable
+                        has_nan = .true.
+
+                        ! Set max diff to NaN (if not already) to signal NaN was found
+                        max_diff(1) = current_value(col,lev) - buffer(col,lev) ! = nan
+                        max_diff_col = col
+                        max_diff_lev = lev
+                     end if
                   else
-                     !Calculate relative difference:
-                     diff = abs(current_value(col, lev) - buffer(col, lev)) / &
-                        abs(current_value(col, lev))
-                  end if
-                  if (diff > max_diff(1)) then
-                     max_diff(1) = diff
-                     max_diff_col = col
-                     max_diff_lev = lev
-                  end if
-                  !Determine if diff is large enough to be considered a "hit"
-                  if (diff > min_difference) then
-                     diff_count = diff_count + 1
+                     ! Calculate actual diffs for non-NaN values:
+                     if (abs(current_value(col, lev)) < min_relative_value) then
+                        !Calculate absolute difference:
+                        diff = abs(current_value(col, lev) - buffer(col, lev))
+                     else
+                        !Calculate relative difference:
+                        diff = abs(current_value(col, lev) - buffer(col, lev)) / &
+                           abs(current_value(col, lev))
+                     end if
+                     if (diff > max_diff(1)) then
+                        max_diff(1) = diff
+                        max_diff_col = col
+                        max_diff_lev = lev
+                     end if
+                     !Determine if diff is large enough to be considered a "hit"
+                     if (diff > min_difference) then
+                        diff_count = diff_count + 1
+                     end if
                   end if
                end do
             end do
 
-            !Make relevant MPI calls to get global values:
+            !Add NaN count to total difference count:
+            diff_count = diff_count + nan_count
+
+            !Gather results across all nodes to get global values
+            call mpi_reduce(nan_count, nan_count_gl, 1, mpi_integer,          &
+                            mpi_sum, masterprocid, mpicom, ierr)
             call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,        &
                  mpi_sum, masterprocid, mpicom, ierr)
 
@@ -889,11 +945,12 @@ CONTAINS
             !Print difference stats to log file
             if (masterproc) then
                if (diff_count_gl > 0) then
-                  call write_check_field_entry(stdname, diff_count_gl,        &
+                  call write_check_field_entry(stdname, diff_count_gl,      &
+                                               nan_count_gl,                &
                                                max_diff_gl(1),              &
                                                int(max_diff_gl(2)),         &
-                                               max_diff_gl_col,               &
-                                               is_first,                      &
+                                               max_diff_gl_col,             &
+                                               is_first,                    &
                                                max_diff_lev=max_diff_gl_lev)
                   is_first = .false.
                   diff_found = .true.
@@ -958,6 +1015,9 @@ CONTAINS
       integer                          :: max_diff_gl_lev
       integer                          :: max_diff_gl_extra_dim
       integer                          :: diff_count_gl
+      integer                          :: nan_count
+      integer                          :: nan_count_gl
+      logical                          :: has_nan
 
       !Initialize output variables
       ierr = 0
@@ -972,6 +1032,8 @@ CONTAINS
       max_diff(1)        = 0._kind_phys
       max_diff(2)        = real(iam, kind_phys) !MPI rank for this task
       diff_found         = .false.
+      nan_count         = 0
+      has_nan           = .false.
 
       call cam_pio_find_var(file, var_names, found_name, vardesc, var_found)
       if (.not. var_found) then
@@ -997,27 +1059,52 @@ CONTAINS
             do extra_dim = 1, size(buffer, 3)
                do lev = 1, num_levs
                   do col = 1, size(buffer(:,lev,extra_dim))
-                     if (abs(current_value(col, lev, extra_dim)) < min_relative_value) then
-                        !Calculate absolute difference:
-                        diff = abs(current_value(col, lev, extra_dim) - buffer(col, lev, extra_dim))
+                     ! Check for NaNs first
+                     if (current_value(col, lev, extra_dim) /= current_value(col, lev, extra_dim) .or. &
+                         buffer(col, lev, extra_dim) /= buffer(col, lev, extra_dim)) then
+                        nan_count = nan_count + 1
+                        if (.not. has_nan) then
+                           has_nan = .true.
+
+                           ! Force max_diff to NaN to signal NaN found
+                           max_diff(1) = current_value(col, lev, extra_dim) - &
+                                         buffer(col, lev, extra_dim)
+                           max_diff_col       = col
+                           max_diff_lev       = lev
+                           max_diff_extra_dim = extra_dim
+                        end if
                      else
-                        !Calculate relative difference:
-                        diff = abs(current_value(col, lev, extra_dim) - buffer(col, lev, extra_dim)) / &
-                           abs(current_value(col, lev, extra_dim))
-                     end if
-                     if (diff > max_diff(1)) then
-                        max_diff(1) = diff
-                        max_diff_col = col
-                        max_diff_lev = lev
-                        max_diff_extra_dim = extra_dim
-                     end if
-                     !Determine if diff is large enough to be considered a "hit"
-                     if (diff > min_difference) then
-                        diff_count = diff_count + 1
+                        if (abs(current_value(col, lev, extra_dim)) < min_relative_value) then
+                           ! Absolute difference
+                           diff = abs(current_value(col, lev, extra_dim) - &
+                                      buffer(col, lev, extra_dim))
+                        else
+                           ! Relative difference
+                           diff = abs(current_value(col, lev, extra_dim) - &
+                                      buffer(col, lev, extra_dim)) / &
+                                  abs(current_value(col, lev, extra_dim))
+                        end if
+
+                        if (diff > max_diff(1)) then
+                           max_diff(1) = diff
+                           max_diff_col       = col
+                           max_diff_lev       = lev
+                           max_diff_extra_dim = extra_dim
+                        end if
+
+                        if (diff > min_difference) then
+                           diff_count = diff_count + 1
+                        end if
                      end if
                   end do
                end do
             end do
+
+            !Add NaN count to total difference count:
+            diff_count = diff_count + nan_count
+
+            call mpi_reduce(nan_count, nan_count_gl, 1, mpi_integer,          &
+                            mpi_sum, masterprocid, mpicom, ierr)
 
             !Make relevant MPI calls to get global values:
             call mpi_reduce(diff_count, diff_count_gl, 1, mpi_integer,        &
@@ -1061,6 +1148,7 @@ CONTAINS
             if (masterproc) then
                if (diff_count_gl > 0) then
                   call write_check_field_entry(stdname, diff_count_gl,        &
+                                               nan_count_gl,                  &
                                                max_diff_gl(1),                &
                                                int(max_diff_gl(2)),           &
                                                max_diff_gl_col,               &
@@ -1077,7 +1165,8 @@ CONTAINS
 
    end subroutine check_field_4d
 
-   subroutine write_check_field_entry(stdname,      diff_count,               &
+   subroutine write_check_field_entry(stdname,                                &
+                                      diff_count,   nan_count,                &
                                       max_diff,     max_diff_rank,            &
                                       max_diff_col, is_first,                 &
                                       max_diff_lev, max_diff_extra_dim)
@@ -1089,6 +1178,7 @@ CONTAINS
       !Dummy variables:
       character(len=*),  intent(in) :: stdname
       integer,           intent(in) :: diff_count
+      integer,           intent(in) :: nan_count
       real(kind_phys),   intent(in) :: max_diff
       integer,           intent(in) :: max_diff_rank      !MPI rank max diff occurred on
       integer,           intent(in) :: max_diff_col       !max diff column (1st) dimension value
@@ -1119,7 +1209,7 @@ CONTAINS
          slen = 0
       end if
 
-      !Write out difference and index valuesa:
+      !Write out difference and index values:
       if (present(max_diff_lev)) then
          if(present(max_diff_extra_dim)) then
              write(index_str, '(a,i0,a,i0,a,i0,a,i0,a)') "(",max_diff_rank,",",max_diff_col,",",max_diff_lev,",",max_diff_extra_dim,")"
@@ -1131,6 +1221,12 @@ CONTAINS
       end if
       write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,i7,2x,e8.2,3x,a)"
       write(iulog, fmt_str) stdname(1:slen), diff_count, max_diff, index_str
+
+      !Print out warning if any NaN values found:
+      if (nan_count > 0) then
+         write(iulog, '(a,i0,a)') ' (!) ', nan_count, &
+               ' NaN values in variable!'
+      end if
 
    end subroutine write_check_field_entry
 
