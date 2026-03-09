@@ -137,8 +137,6 @@ module tracer_data
   integer, parameter :: nm = 1    ! array index for previous (minus) data
   integer, parameter :: np = 2    ! array index for next (plus) data
 
-  integer :: plon, plat
-
   integer, allocatable :: lon_global_grid_ndx(:) ! (ncol)
   integer, allocatable :: lat_global_grid_ndx(:) ! (ncol)
 
@@ -242,10 +240,10 @@ contains
       call endrun(sub//': invalid data type: '//trim(data_type)//' file: '//trim(filename))
     end select
 
-    if ((.not. file%fixed) .and. ((data_fixed_ymd > 0._r8) .or. (data_fixed_tod > 0._r8))) then
+    if ((.not. file%fixed) .and. ((data_fixed_ymd > 0) .or. (data_fixed_tod > 0))) then
       call endrun(sub//': Cannot specify data_fixed_ymd or data_fixed_tod if data type is not FIXED')
     end if
-    if ((.not. file%cyclical) .and. (data_cycle_yr > 0._r8)) then
+    if ((.not. file%cyclical) .and. (data_cycle_yr > 0)) then
       call endrun(sub//': Cannot specify data_cycle_yr if data type is not CYCLICAL')
     end if
 
@@ -842,7 +840,6 @@ contains
     integer, intent(in) :: ncol
 
     integer :: f, nflds
-    real(r8), pointer  :: tmpptr(:, :)
 
     data(:, :) = 0._r8
     nflds = size(flds)
@@ -1404,6 +1401,7 @@ contains
 
   subroutine read_2d_trc(fid, vid, loc_arr, strt, cnt, file, order)
     use physics_grid,   only: pcols => columns_on_task
+    use physics_grid,   only: plon => hdim1_d, plat => hdim2_d
 
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
     use horizontal_interpolate, only: xy_interp
@@ -1981,7 +1979,7 @@ contains
 
     integer, allocatable, dimension(:) :: dates
     integer :: timesize, i, errflg, year, ierr
-    type(var_desc_T) :: dateid
+    type(var_desc_t) :: dateid
     call get_dimension(fileid, 'time', timesize)
     cyc_ndx_beg = -1
 
