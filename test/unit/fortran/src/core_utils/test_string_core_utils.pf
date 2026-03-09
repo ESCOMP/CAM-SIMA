@@ -651,3 +651,203 @@ subroutine test_tokenize_into_tokens_separator_by_known_string_set()
     @assertTrue(allocated(separator))
     @assertEqual(expected_separator_comma_space_separated, separator, whitespace=keep_all)
 end subroutine test_tokenize_into_tokens_separator_by_known_string_set
+
+@test
+subroutine test_get_last_significant_char_empty_string()
+    use funit
+    use string_core_utils, only: get_last_significant_char
+
+    character(len=10) :: test_string
+
+    test_string = ''
+    @assertEqual(0, get_last_significant_char(test_string))
+end subroutine test_get_last_significant_char_empty_string
+
+@test
+subroutine test_get_last_significant_char_all_blanks()
+    use funit
+    use string_core_utils, only: get_last_significant_char
+
+    character(len=10) :: test_string
+
+    test_string = '          '
+    @assertEqual(0, get_last_significant_char(test_string))
+end subroutine test_get_last_significant_char_all_blanks
+
+@test
+subroutine test_get_last_significant_char_trailing_spaces()
+    use funit
+    use string_core_utils, only: get_last_significant_char
+
+    character(len=20) :: test_string
+
+    test_string = 'Mercury     '
+    @assertEqual(7, get_last_significant_char(test_string))
+end subroutine test_get_last_significant_char_trailing_spaces
+
+@test
+subroutine test_get_last_significant_char_no_trailing_spaces()
+    use funit
+    use string_core_utils, only: get_last_significant_char
+
+    character(len=7) :: test_string
+
+    test_string = 'Mercury'
+    @assertEqual(7, get_last_significant_char(test_string))
+end subroutine test_get_last_significant_char_no_trailing_spaces
+
+@test
+subroutine test_last_non_digit_empty_string()
+    use funit
+    use string_core_utils, only: last_non_digit
+
+    character(len=10) :: test_string
+
+    test_string = ''
+    @assertEqual(0, last_non_digit(test_string))
+end subroutine test_last_non_digit_empty_string
+
+@test
+subroutine test_last_non_digit_all_digits()
+    use funit
+    use string_core_utils, only: last_non_digit
+
+    character(len=10) :: test_string
+
+    test_string = '12345'
+    @assertEqual(0, last_non_digit(test_string))
+end subroutine test_last_non_digit_all_digits
+
+@test
+subroutine test_last_non_digit_with_trailing_digits()
+    use funit
+    use string_core_utils, only: last_non_digit
+
+    character(len=20) :: test_string
+
+    test_string = 'test_file_123'
+    @assertEqual(10, last_non_digit(test_string))
+end subroutine test_last_non_digit_with_trailing_digits
+
+@test
+subroutine test_last_non_digit_no_trailing_digits()
+    use funit
+    use string_core_utils, only: last_non_digit
+
+    character(len=20) :: test_string
+
+    test_string = 'test_file_abc'
+    @assertEqual(13, last_non_digit(test_string))
+end subroutine test_last_non_digit_no_trailing_digits
+
+@test
+subroutine test_last_non_digit_single_digit()
+    use funit
+    use string_core_utils, only: last_non_digit
+
+    character(len=10) :: test_string
+
+    test_string = 'file5'
+    @assertEqual(4, last_non_digit(test_string))
+end subroutine test_last_non_digit_single_digit
+
+@test
+subroutine test_last_non_digit_with_leading_zeros()
+    use funit
+    use string_core_utils, only: last_non_digit
+
+    character(len=15) :: test_string
+
+    test_string = 'snapshot_00042'
+    @assertEqual(9, last_non_digit(test_string))
+end subroutine test_last_non_digit_with_leading_zeros
+
+@test
+subroutine test_increment_string_no_trailing_digits()
+    use funit
+    use string_core_utils, only: increment_string
+
+    character(len=20) :: test_string
+    integer :: result
+
+    test_string = 'test_file'
+    result = increment_string(test_string, 1)
+
+    @assertEqual(-1, result)
+    @assertEqual('test_file', test_string)
+end subroutine test_increment_string_no_trailing_digits
+
+@test
+subroutine test_increment_string_single_digit_increment()
+    use funit
+    use string_core_utils, only: increment_string
+
+    character(len=20) :: test_string
+    integer :: result
+
+    test_string = 'file5'
+    result = increment_string(test_string, 1)
+
+    @assertEqual(0, result)
+    @assertEqual('file6', test_string)
+end subroutine test_increment_string_single_digit_increment
+
+@test
+subroutine test_increment_string_multiple_digits()
+    use funit
+    use string_core_utils, only: increment_string
+
+    character(len=20) :: test_string
+    integer :: result
+
+    test_string = 'snapshot_042'
+    result = increment_string(test_string, 1)
+
+    @assertEqual(0, result)
+    @assertEqual('snapshot_043', test_string)
+end subroutine test_increment_string_multiple_digits
+
+@test
+subroutine test_increment_string_with_rollover()
+    use funit
+    use string_core_utils, only: increment_string
+
+    character(len=20) :: test_string
+    integer :: result
+
+    test_string = 'file09'
+    result = increment_string(test_string, 1)
+
+    @assertEqual(0, result)
+    @assertEqual('file10', test_string)
+end subroutine test_increment_string_with_rollover
+
+@test
+subroutine test_increment_string_with_large_increment()
+    use funit
+    use string_core_utils, only: increment_string
+
+    character(len=20) :: test_string
+    integer :: result
+
+    test_string = 'test_000'
+    result = increment_string(test_string, 42)
+
+    @assertEqual(0, result)
+    @assertEqual('test_042', test_string)
+end subroutine test_increment_string_with_large_increment
+
+@test
+subroutine test_increment_string_positive_overflow()
+    use funit
+    use string_core_utils, only: increment_string
+
+    character(len=20) :: test_string
+    integer :: result
+
+    test_string = 'file99'
+    result = increment_string(test_string, 1)
+
+    @assertEqual(-2, result)
+end subroutine test_increment_string_positive_overflow
+
