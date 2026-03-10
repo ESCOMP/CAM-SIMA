@@ -1422,11 +1422,12 @@ CONTAINS
 
       !Write verbose check_field log header:
       write(iulog, *) ''
-      write(iulog, *) 'No differences found for all the variables below:'
+      write(iulog, *) 'No differences found (above the threshold) for all variables below:'
       write(iulog, *) 'Note: If a variable is not in the registry, '
       write(iulog, *) '      or if a constituent is not registered,'
+      write(iulog, *) '      or the variable was not updated by any scheme,'
       write(iulog, *) '      it is not checked against the snapshot.'
-      write(iulog, *) '      Verify all model state variables are enumerated below:'
+      write(iulog, *) '      Verify all expected model state variables are enumerated below:'
       write(iulog, *) ''
       write(fmt_str, '(a,i0,a)') "(1x,a,t",indent_level+1,",1x,a,3x,a,3x,a)"
       write(iulog, fmt_str) 'Variable Checked', '# Values', 'Avg (model)', 'Avg (snapshot)'
