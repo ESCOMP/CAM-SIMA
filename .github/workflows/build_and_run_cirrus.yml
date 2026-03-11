@@ -1,5 +1,8 @@
 name: Build and run CAM-SIMA on CIRRUS
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -16,8 +19,6 @@ concurrency:
 jobs:
   build-and-run-on-CIRRUS:
     name: Run ${{ matrix.image }} on ${{ matrix.runner }}
-    permissions:
-      contents: read
     env:
       TMP_DIR: tmp
       TMP_OUTPUT: case_output.log
@@ -48,7 +49,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout push code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up some git configurations
         run: |
@@ -57,16 +58,16 @@ jobs:
 
       - name: Checkout individual components
         run: |
-          ./bin/git-fleximod -C ${GITHUB_WORKSPACE} update
+          ./bin/git-fleximod -C "${GITHUB_WORKSPACE}" update
 
       - name: Build and run ${{ matrix.test_type }} test of ${{ matrix.compset }} at ${{ matrix.res }} resolution
         run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PIO/lib:$NETCDF_FORTRAN_PATH/lib:$NETCDF_C_PATH/lib:$LAPACK/lib:$LAPACK/lib64:$PNETCDF/lib
-          if [ "${{ matrix.runner }}" == "gha-runner-gpu-camsima" ]; then
-            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_ROOT/lib64:$CUDA_ROOT/lib64/stubs
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PIO/lib:$NETCDF_FORTRAN_PATH/lib:$NETCDF_C_PATH/lib:$LAPACK/lib:$LAPACK/lib64:$PNETCDF/lib"
+          if [ "${{ matrix.runner }}" = "gha-runner-gpu-camsima" ]; then
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_ROOT/lib64:$CUDA_ROOT/lib64/stubs"
           fi
           cd cime/scripts
-          ./create_test ${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }} --output-root /$TMP_DIR/ci_test --no-batch 2>&1 | tee "$TMP_OUTPUT"
+          ./create_test "${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}" --output-root "/$TMP_DIR/ci_test" --no-batch 2>&1 | tee "$TMP_OUTPUT"
 
       - name: Check the test PASS/FAIL status
         if: always()
@@ -75,19 +76,21 @@ jobs:
           STATUS_OUTPUT=$(./cs.status.*)
           echo "$STATUS_OUTPUT"
           OVERALL_STATUS=$(echo "$STATUS_OUTPUT" | grep -oP 'Overall:\s*\K\w+')
-          if [ "$OVERALL_STATUS" == "PASS" ]; then
+          if [ "$OVERALL_STATUS" = "PASS" ]; then
             echo "Test passed"
           else
             echo "Test FAILED (Overall status: ${OVERALL_STATUS:-not found})"
-            exit 911
+            exit 123
           fi
 
       - name: Upload logs to GitHub artifacts when the CI test fails
         if: failure() 
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs.${{ matrix.test_type }}.${{ matrix.compset }}.${{ matrix.compiler }}.${{ matrix.runner }}
           path: |
-            /$TMP_DIR/ci_test/${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*/cesm.log*
-            /$TMP_DIR/ci_test/${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*/atm.log*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/bld/atm.bldlog*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/bld/cesm.bldlog*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/run/cesm.log*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/run/atm.log*
           retention-days: 7
