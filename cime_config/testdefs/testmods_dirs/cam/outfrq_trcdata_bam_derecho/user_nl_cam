@@ -1,17 +1,22 @@
 ! these snapshots were constructed to specifically test whether the data read into the
 ! physics buffer by tracer_data in CAM will match the data read by CAM-SIMA bit-for-bit.
 ! this was done by
-! (1) taking a FHIST_C4 snapshot (which has prescribed_ozone and aero)
-! in this case a ne3pg3_fhistc4_gw_drag_cam4_oro snapshot,
+! (1) taking a FHIST_C4 snapshot (which has prescribed_ozone, aero, aerodep_flx, and volcaero)
+!     using a "user_set" location at the beginning of tphysbc, before check_energy_fix
+!     this is because the prescribed data modules run during timestep_init;
+!     the energy fixer will change model state, causing changes in the interpolation,
+!     so the "before" snapshot before the global energy fixer needs to be used.
 ! (2) using nco to zero out the prescribed ozone and aero fields from the snapshot data,
-! to create the "before" snapshot.
-! (3) the "after" snapshot is the original snapshot file (which has non-zero values for prescribed
-! ozone and aerosols)
+!     to create the "before" snapshot:
+!        ncap2 -O -s 'pbuf_ozone=0.0*pbuf_ozone' h1i_v2.nc 0xozone.nc
+!        ncap2 -O -s 'pbuf_sulf=0.0*pbuf_sulf;pbuf_bcar1=0.0*pbuf_sulf;pbuf_bcar2=0.0*pbuf_sulf;pbuf_ocar1=0.0*pbuf_sulf;pbuf_ocar2=0.0*pbuf_sulf;pbuf_sslt1=0.0*pbuf_sulf;pbuf_sslt2=0.0*pbuf_sulf;pbuf_sslt3=0.0*pbuf_sulf;pbuf_sslt4=0.0*pbuf_sulf;pbuf_dust1=0.0*pbuf_sulf;pbuf_dust2=0.0*pbuf_sulf;pbuf_dust3=0.0*pbuf_sulf;pbuf_dust4=0.0*pbuf_sulf;pbuf_VOLC_RAD_GEOM=0.0*pbuf_VOLC_RAD_GEOM;pbuf_VOLC_MMR=0.0*pbuf_VOLC_MMR' 0xozone.nc 0xozone_aero_volcaero.nc
+! (3) the "after" snapshot is the original "before" snapshot file
+!     (which has non-zero values for prescribed ozone and aerosol)
 ! the test will pass iff. the tracer_data utility in CAM-SIMA and the prescribed_ozone/aerosols schemes
 ! can populate the prescribed fields bit-for-bit compared to the original snapshot file.
 
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero_from_cam4_oro_snapshot_derecho_gnu_after_c20251028.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_after_c20250826.nc'
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero-volcaero_from_energy_fixer_derecho_gnu_before_c20260312.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero-volcaero_from_energy_fixer_derecho_gnu_after_c20260312.nc'
 
 ! tolerances for testing
 ncdata_check_err = .true.
@@ -46,8 +51,12 @@ prescribed_ozone_fixed_tod = 0
 prescribed_ozone_fixed_ymd = 0
 prescribed_ozone_cycle_yr = 0
 
+prescribed_volcaero_datapath = "/glade/campaign/cesm/cesmdata/inputdata/atm/cam/volc"
+prescribed_volcaero_file = "CCSM4_volcanic_1850-2008_prototype1.nc"
+
 hist_output_frequency;h1: 1*nsteps
 hist_max_frames;h1: 1
 hist_add_inst_fields;h1:ozone
 hist_add_inst_fields;h1:sulf_D,bcar1_D,bcar2_D,ocar1_D,ocar2_D,sslt1_D,sslt2_D,sslt3_D,sslt4_D,dust1_D,dust2_D,dust3_D,dust4_D
+hist_add_inst_fields;h1:VOLC_MMR,VOLC_RAD_GEOM,VOLC_MASS,VOLC_MASS_C
 hist_precision;h1: REAL64
