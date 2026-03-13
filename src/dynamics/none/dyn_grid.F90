@@ -239,7 +239,7 @@ CONTAINS
          if (xtype /= PIO_DOUBLE) then
             call endrun(subname//': Snapshot file has non-FLOAT64 data '//  &
                  '(variable '//trim(fieldname)//'). '//                     &
-                 'This will cause answer differences!'//                    &
+                 'This will cause answer differences! '//                    &
                  'Please rerun CAM with ndens = 1 to write 64-bit float '// &
                  'snapshots for use with CAM-SIMA.')
          end if
