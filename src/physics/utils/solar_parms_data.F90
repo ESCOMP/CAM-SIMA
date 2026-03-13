@@ -1,4 +1,4 @@
-!-------------------------------------------------------------------------------
+src/physics/utils/radiation_namelist.meta!-------------------------------------------------------------------------------
 ! solar variability parameters -- space weather indices
 !-------------------------------------------------------------------------------
 module solar_parms_data
@@ -87,7 +87,7 @@ contains
     !	... readin the solar parms dataset
     !-----------------------------------------------------------------------
 
-    call getfil(filepath,  locfn, 0)
+    call cam_get_file(filepath,  locfn)
     call cam_pio_openfile(ncid, locfn, PIO_NOWRITE)
 
     call time_coord_prev%initialize(filepath, fixed=fixed,                    &
