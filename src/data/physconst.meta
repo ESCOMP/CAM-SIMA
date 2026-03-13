@@ -7,14 +7,14 @@
 [ avogad ]
   standard_name = avogadro_number
   long_name = Avogadro's Number
-  units = molecules mole-1
+  units = molecules kmol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
 [ boltz ]
   standard_name = boltzmann_constant
   long_name = Boltzmann's Constant
-  units = J K-1
+  units = J K-1 molecule-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True
