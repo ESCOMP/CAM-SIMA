@@ -315,6 +315,32 @@
 
 <!-- Radiation -->
 
+  <entry id="nswbands">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <units>count</units>
+    <desc>
+       Number of shortwave bands.
+       Units: count
+    </desc>
+    <values>
+      <value>14</value><!-- rrtmgp -->
+    </values>
+  </entry>
+  <entry id="nlwbands">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <units>count</units>
+    <desc>
+       Number of longwave bands.
+       Units: count
+    </desc>
+    <values>
+      <value>16</value><!-- rrtmgp -->
+    </values>
+  </entry>
   <entry id="iradsw">
     <type>integer</type>
     <category>radiation</category>
@@ -374,6 +400,195 @@
     </desc>
     <values>
       <value>-99</value>
+    </values>
+  </entry>
+
+<!-- Radiatively active aerosol -->
+  <entry id="mode_defs">
+    <type>char*256(120)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Definitions for the aerosol modes that may be used in the rad_climate and
+      rad_aer_diag_* variables.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="bin_defs">
+    <type>char*256(640)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Definitions for the aerosol bins that may be used in the rad_climate and
+      rad_aer_diag_* variables.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_climate">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      A list of the radiatively active species, i.e., species that affect the
+      climate simulation via the radiative heating rate calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_1">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      A list of species to be used in the first diagnostic radiative heating rate
+      calculation. These species are not the ones affecting the climate
+      simulation. This is a hook for performing radiative forcing calculations.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_2">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 2nd diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_3">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 3rd diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_4">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 4th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_5">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 5th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_6">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 6th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_7">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 7th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_8">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 8th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_9">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 9th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_10">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 10th diagnostic calculation.
+    </desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+<!-- Aerosol optics -->
+  <entry id="water_refindex_file">
+    <type>char*256</type>
+    <category>radiation</category>
+    <group>aerosol_optics_nl</group>
+    <units>none</units>
+    <desc>
+      Full pathname of dataset for water refractive indices used in modal aerosol optics.
+    </desc>
+    <values>
+      <value>${DIN_LOC_ROOT}/atm/cam/physprops/water_refindex_rrtmg_c080910.nc</value>
     </values>
   </entry>
 
