@@ -6,7 +6,7 @@ module radiative_aerosol
 !
 ! Provides query routines (rad_aer_get_info*, rad_aer_get_props*, etc.) and
 ! property-access routines that wrap phys_prop lookups.
-! Init is via rad_aer_init (uses host-specific module aerosol_mmr_cam).
+! Init is via rad_aer_readnl (namelist) and rad_aer_init (physprop + CCPP indices).
 !
 !------------------------------------------------------------------------------------------------
 
@@ -626,7 +626,7 @@ subroutine rad_aer_get_props_by_idx(list_idx, &
    r_sw_ext, r_sw_scat, r_sw_ascat, r_lw_abs, mu, &
    aername, density_aer, hygro_aer, dryrad_aer, dispersion_aer, num_to_mass_aer)
    use shr_kind_mod,   only: r8 => shr_kind_r8
-   use phys_prop,      only: physprop_get, ot_length
+   use aerosol_physical_properties,      only: physprop_get, ot_length
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, aerlist_t, bulk_aerosol_list
@@ -727,7 +727,7 @@ subroutine rad_aer_get_mam_props_by_idx(list_idx, &
    aername, density_aer, hygro_aer, dryrad_aer, dispersion_aer, &
    num_to_mass_aer, spectype)
    use shr_kind_mod,   only: r8 => shr_kind_r8
-   use phys_prop,      only: physprop_get, ot_length
+   use aerosol_physical_properties,      only: physprop_get, ot_length
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list, modes
@@ -843,7 +843,7 @@ subroutine rad_aer_get_bin_props_by_idx(list_idx, &
    aername, density_aer, hygro_aer, dryrad_aer, dispersion_aer, &
    num_to_mass_aer, spectype, specmorph)
    use shr_kind_mod,   only: r8 => shr_kind_r8
-   use phys_prop,      only: physprop_get, ot_length
+   use aerosol_physical_properties,      only: physprop_get, ot_length
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list, bins
@@ -958,7 +958,7 @@ subroutine rad_aer_get_mode_props(list_idx, mode_idx, opticstype, &
    rhcrystal, rhdeliques)
 
    use shr_kind_mod,   only: r8 => shr_kind_r8
-   use phys_prop,      only: physprop_get, ot_length
+   use aerosol_physical_properties,      only: physprop_get, ot_length
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list
@@ -1042,7 +1042,7 @@ subroutine rad_aer_get_bin_props(list_idx, bin_idx, opticstype, &
    sw_hygro_ext_wtp, sw_hygro_ssa_wtp, sw_hygro_asm_wtp, lw_hygro_ext_wtp, &
    sw_hygro_coreshell_ext, sw_hygro_coreshell_ssa, sw_hygro_coreshell_asm, lw_hygro_coreshell_ext, dryrad )
    use shr_kind_mod,   only: r8 => shr_kind_r8
-   use phys_prop,      only: physprop_get, ot_length
+   use aerosol_physical_properties,      only: physprop_get, ot_length
    use cam_abortutils, only: endrun
    use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list
@@ -1190,25 +1190,113 @@ end subroutine print_aerosol_lists
 !
 ! In SIMA, this will read aerosol-specific namelists directly
 ! (rad_aerosol / rad_aer_diag_N instead of rad_climate / rad_diag_N).
-subroutine rad_aer_readnl(mode_defs, bin_defs)
-   use phys_prop,      only: physprop_accum_unique_files
+subroutine rad_aer_readnl(nlfile)
+   use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
+   use shr_kind_mod,   only: shr_kind_cm
+   use mpi,            only: mpi_character
+   use spmd_utils,     only: mpicom
+   use aerosol_physical_properties,      only: physprop_accum_unique_files
    use spmd_utils,     only: masterproc
+   use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: &
-      cs1, verbose, N_DIAG, modes, bins, &
+      cs1, verbose, N_DIAG, n_rad_cnst, n_mode_str, n_bin_str, &
+      modes, bins, &
       active_calls, bulk_aerosol_list, modal_aerosol_list, sectional_aerosol_list, &
-      radcnst_namelist, parse_mode_defs, parse_bin_defs, &
+      radcnst_namelist, parse_rad_specifier, parse_mode_defs, parse_bin_defs, &
       list_populate, print_modes, print_bins
 
    ! Arguments
-   character(len=cs1), intent(inout) :: mode_defs(:)
-   character(len=cs1), intent(inout) :: bin_defs(:)
+   character(len=*), intent(in) :: nlfile
 
    ! Local variables
-   integer :: i
+   integer :: i, unitn, ierr
    character(len=2) :: suffix
    character(len=1), pointer   :: ctype(:)
    character(len=*), parameter :: subname = 'rad_aer_readnl'
+   character(len=shr_kind_cm)  :: errmsg
+
+   ! Namelist variables (matching XML: group rad_aer_nl)
+   character(len=cs1), dimension(n_mode_str) :: mode_defs     = ' '
+   character(len=cs1), dimension(n_bin_str)  :: bin_defs      = ' '
+   character(len=cs1) :: rad_aer_climate(n_rad_cnst)          = ' '
+   character(len=cs1) :: rad_aer_diag_1(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_2(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_3(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_4(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_5(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_6(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_7(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_8(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_9(n_rad_cnst)           = ' '
+   character(len=cs1) :: rad_aer_diag_10(n_rad_cnst)          = ' '
+
+   namelist /rad_aer_nl/ mode_defs, bin_defs,          &
+      rad_aer_climate,                                  &
+      rad_aer_diag_1,  rad_aer_diag_2,  rad_aer_diag_3,  &
+      rad_aer_diag_4,  rad_aer_diag_5,  rad_aer_diag_6,  &
+      rad_aer_diag_7,  rad_aer_diag_8,  rad_aer_diag_9,  &
+      rad_aer_diag_10
    !-----------------------------------------------------------------------------
+
+   errmsg = ''
+
+   if (masterproc) then
+      open(newunit=unitn, file=trim(nlfile), status='old')
+      call find_group_name(unitn, 'rad_aer_nl', status=ierr)
+      if (ierr == 0) then
+         read(unitn, rad_aer_nl, iostat=ierr, iomsg=errmsg)
+         if (ierr /= 0) then
+            call endrun(subname // ':: ERROR reading namelist: ' // errmsg)
+         end if
+      end if
+      close(unitn)
+   end if
+
+   ! Broadcast namelist variables
+   call mpi_bcast(mode_defs,       len(mode_defs(1))*n_mode_str,          mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(bin_defs,        len(bin_defs(1))*n_bin_str,            mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_climate, len(rad_aer_climate(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_1,  len(rad_aer_diag_1(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_2,  len(rad_aer_diag_2(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_3,  len(rad_aer_diag_3(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_4,  len(rad_aer_diag_4(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_5,  len(rad_aer_diag_5(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_6,  len(rad_aer_diag_6(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_7,  len(rad_aer_diag_7(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_8,  len(rad_aer_diag_8(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_9,  len(rad_aer_diag_9(1))*n_rad_cnst,   mpi_character, 0, mpicom, ierr)
+   call mpi_bcast(rad_aer_diag_10, len(rad_aer_diag_10(1))*n_rad_cnst,  mpi_character, 0, mpicom, ierr)
+
+   ! Parse the namelist input strings into radcnst_namelist
+   do i = 0, N_DIAG
+      select case (i)
+      case(0)
+         call parse_rad_specifier(rad_aer_climate, radcnst_namelist(i))
+      case (1)
+         call parse_rad_specifier(rad_aer_diag_1, radcnst_namelist(i))
+      case (2)
+         call parse_rad_specifier(rad_aer_diag_2, radcnst_namelist(i))
+      case (3)
+         call parse_rad_specifier(rad_aer_diag_3, radcnst_namelist(i))
+      case (4)
+         call parse_rad_specifier(rad_aer_diag_4, radcnst_namelist(i))
+      case (5)
+         call parse_rad_specifier(rad_aer_diag_5, radcnst_namelist(i))
+      case (6)
+         call parse_rad_specifier(rad_aer_diag_6, radcnst_namelist(i))
+      case (7)
+         call parse_rad_specifier(rad_aer_diag_7, radcnst_namelist(i))
+      case (8)
+         call parse_rad_specifier(rad_aer_diag_8, radcnst_namelist(i))
+      case (9)
+         call parse_rad_specifier(rad_aer_diag_9, radcnst_namelist(i))
+      case (10)
+         call parse_rad_specifier(rad_aer_diag_10, radcnst_namelist(i))
+      end select
+   end do
+
+   ! Were there any constituents specified for the nth diagnostic call?
+   active_calls(:) = (radcnst_namelist(:)%ncnst > 0)
 
    ! Parse mode definition strings
    call parse_mode_defs(mode_defs, modes)
@@ -1276,19 +1364,15 @@ end subroutine rad_aer_readnl
 ! Complete aerosol initialization (phase 2).
 ! Reads physprop files, resolves constituent indices for modes/bins,
 ! finishes aerosol list init, and registers aerosol diagnostic fields.
-!
-! Called from physpkg before rad_cnst_init (gas init).
 subroutine rad_aer_init()
-   use phys_prop,      only: physprop_init
+   use aerosol_physical_properties,      only: physprop_init
    use radiative_aerosol_definitions, only: &
       N_DIAG, modes, bins, active_calls, &
       bulk_aerosol_list, modal_aerosol_list, sectional_aerosol_list, list_resolve_physprops
 
-   !REMOVECAM: aerosol_mmr_cam handles CAM-specific index resolution
-   use aerosol_mmr_cam, only: aerosol_mmr_init, &
+   use aerosol_mmr_ccpp, only: aerosol_mmr_init, &
       resolve_mode_idx, resolve_bin_idx, resolve_bulk_idx, &
       rad_aer_diag_init
-   !REMOVECAM_END
 
    integer :: i
    character(len=*), parameter :: subname = 'rad_aer_init'
@@ -1300,24 +1384,20 @@ subroutine rad_aer_init()
    ! Read physical properties from data files
    call physprop_init()
 
-   !REMOVECAM: resolve host-specific indices (CAM uses pbuf and state)
+   ! Resolve host-specific CCPP constituent indices
    call resolve_mode_idx(modes)
    call resolve_bin_idx(bins)
-   !REMOVECAM_END
 
    ! Resolve physprop indices for aerosol lists
    do i = 0, N_DIAG
       if (active_calls(i)) then
-         !REMOVECAM: resolve host-specific indices (CAM uses pbuf and state)
          call resolve_bulk_idx(bulk_aerosol_list(i))
-         !REMOVECAM_END
          call list_resolve_physprops(bulk_aerosol_list(i), modal_aerosol_list(i), sectional_aerosol_list(i))
       end if
    end do
 
-   !REMOVECAM: history add calls for radiative aerosol diagnostics.
+   ! Register aerosol diagnostic history fields
    call rad_aer_diag_init(bulk_aerosol_list(0))
-   !REMOVECAM_END
 
 end subroutine rad_aer_init
 
