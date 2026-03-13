@@ -1,14 +1,8 @@
 module bulk_aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
-  !REMOVECAM
-  use aerosol_mmr_cam, only: rad_cnst_get_aer_mmr
-  !REMOVECAM_END
+  use ccpp_kinds, only: kind_phys
+  use aerosol_mmr_ccpp, only: rad_cnst_get_aer_mmr
   use cam_abortutils,   only: endrun
-  
-  !REMOVECAM: no longer need pbuf and state after CAM is retired
-  use physics_buffer, only: physics_buffer_desc
-  use physics_types, only: physics_state
-  !REMOVECAM_END
 
   use aerosol_state_mod, only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
@@ -18,10 +12,7 @@ module bulk_aerosol_state_mod
   type, extends(aerosol_state) :: bulk_aerosol_state
      private
 
-      !REMOVECAM: state and pbuf will be replaced by SIMA MMR API
-      type(physics_state), pointer :: state => null()
-      type(physics_buffer_desc), pointer :: pbuf(:) => null()
-      !REMOVECAM_END
+      real(kind_phys), pointer :: constituents(:,:,:) => null()
 
    contains
 
@@ -59,9 +50,8 @@ contains
 
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
-  function constructor(state,pbuf,list_idx) result(newobj)
-    type(physics_state), target :: state
-    type(physics_buffer_desc), pointer :: pbuf(:)
+  function constructor(constituents, list_idx) result(newobj)
+    real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
     integer, intent(in), optional :: list_idx
     type(bulk_aerosol_state), pointer :: newobj
 
@@ -73,8 +63,7 @@ contains
        return
     end if
 
-    newobj%state => state
-    newobj%pbuf => pbuf
+    newobj%constituents => constituents
 
     if (present(list_idx)) call newobj%set_list_idx(list_idx)
 
@@ -85,8 +74,7 @@ contains
   subroutine destructor(self)
     type(bulk_aerosol_state), intent(inout) :: self
 
-    nullify(self%state)
-    nullify(self%pbuf)
+    nullify(self%constituents)
 
   end subroutine destructor
 
@@ -142,7 +130,7 @@ contains
 
     ! species_ndx is ignored in the bulk implementation.
     ! bin_ndx is used to identify each individual bulk aerosol.
-    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, self%state, self%pbuf, mmr)
+    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, self%constituents, mmr)
 
   end subroutine get_ambient_mmr
 

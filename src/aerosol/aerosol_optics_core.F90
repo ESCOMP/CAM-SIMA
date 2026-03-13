@@ -30,7 +30,7 @@ contains
                                         relh, sulfwtpct, crefwsw, crefwlw, &
                                         geometric_radius) result(aero_optics)
 
-    use phys_prop, only: ot_length
+    use aerosol_physical_properties, only: ot_length
 
     use aerosol_properties_mod, only: aerosol_properties
     use aerosol_state_mod, only: aerosol_state
@@ -186,6 +186,7 @@ contains
     if (.not. associated(aero_optics)) then
       errflg = 1
       errmsg = 'unrecognized aerosol optics type, could not create object'
+      return
     end if
 
     ! Determine if this is a coarse dust mode (MAM only)
@@ -385,6 +386,7 @@ contains
     if (.not. associated(aero_optics)) then
       errflg = 1
       errmsg = 'unrecognized aerosol optics type, could not create object'
+      return
     end if
 
     do iwav = 1, nlwbands

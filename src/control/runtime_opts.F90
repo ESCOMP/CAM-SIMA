@@ -41,6 +41,8 @@ contains
 
       use tropopause_climo_read,        only: tropopause_climo_readnl
       use radiation_namelist,           only: radiation_readnl
+      use radiative_aerosol,            only: rad_aer_readnl
+      use read_water_refindex,          only: read_water_refindex_readnl
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
 
       use dyn_comp,                     only: dyn_readnl
@@ -89,6 +91,8 @@ contains
       call analytic_ic_readnl(nlfilename)
       call tropopause_climo_readnl(nlfilename)
       call radiation_readnl(nlfilename)
+      call rad_aer_readnl(nlfilename)
+      call read_water_refindex_readnl(nlfilename)
       call gravity_wave_drag_ridge_read_readnl(nlfilename)
       call dyn_readnl(nlfilename)
       call stream_ndep_readnl(nlfilename)
