@@ -69,7 +69,8 @@ CONTAINS
       use cam_pio_utils,    only: cam_pio_newdecomp
       use cam_abortutils,   only: endrun
       use cam_logfile,      only: cam_log_multiwrite
-      use cam_initfiles,    only: initial_file_get_id
+      use cam_initfiles,    only: initial_file_get_id, unset_path_str
+      use phys_comp,        only: ncdata_check
       use vert_coord,       only: vert_coord_init, pver
       use hycoef,           only: hycoef_init, hypi, hypm, nprlev, &
                                   hyam, hybm, hyai, hybi, ps0
@@ -230,18 +231,23 @@ CONTAINS
          ! Check that snapshot file has 64-bit floats (ndens=1).
          ! Running with 32-bit (FLOAT32) snapshots will definitely cause
          ! answer differences between CAM-SIMA and the CAM snapshot
-         ! leading to wasted debugging time, so disallow this configuration:
-         iret = pio_inq_vartype(fh_ini, vardesc, xtype)
-         if (iret /= PIO_NOERR) then
-            call endrun(subname//': Unable to inquire variable type for '// &
-                 trim(fieldname))
-         end if
-         if (xtype /= PIO_DOUBLE) then
-            call endrun(subname//': Snapshot file has non-FLOAT64 data '//  &
-                 '(variable '//trim(fieldname)//'). '//                     &
-                 'This will cause answer differences! '//                    &
-                 'Please rerun CAM with ndens = 1 to write 64-bit float '// &
-                 'snapshots for use with CAM-SIMA.')
+         ! leading to wasted debugging time, so disallow this configuration.
+         ! Only check when running a snapshot test (ncdata_check is set),
+         ! since the null dycore may also be used for other purposes
+         ! (e.g. single-column model) where lower-precision data is fine.
+         if (trim(ncdata_check) /= trim(unset_path_str)) then
+            iret = pio_inq_vartype(fh_ini, vardesc, xtype)
+            if (iret /= PIO_NOERR) then
+               call endrun(subname//': Unable to inquire variable type for '// &
+                    trim(fieldname))
+            end if
+            if (xtype /= PIO_DOUBLE) then
+               call endrun(subname//': Snapshot file has non-FLOAT64 data '//  &
+                    '(variable '//trim(fieldname)//'). '//                     &
+                    'This will cause answer differences! '//                    &
+                    'Please rerun CAM with ndens = 1 to write 64-bit float '// &
+                    'snapshots for use with CAM-SIMA.')
+            end if
          end if
          ! Find the variable dimension info
          dimnames = ''

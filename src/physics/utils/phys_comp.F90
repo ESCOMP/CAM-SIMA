@@ -26,7 +26,7 @@ module phys_comp
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS) :: suite_parts_expect(2) = (/"physics_before_coupler", "physics_after_coupler "/)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
-   character(len=SHR_KIND_CL)              :: ncdata_check = unset_str
+   character(len=SHR_KIND_CL), public, protected :: ncdata_check = unset_str
    logical                                 :: ncdata_check_err = .false.
    character(len=SHR_KIND_CL)              :: cam_physics_mesh = unset_str
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_before = unset_str
