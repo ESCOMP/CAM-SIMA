@@ -316,8 +316,13 @@ contains
     integer, intent(in) :: nlev      ! number of levels
 
     real(r8) :: vol(ncol,nlev)       ! m3/kg
+    real(r8), pointer :: mmr(:,:)    ! kg/kg
+    real(r8) :: dens                 ! kg/m3
 
-    vol = -huge(1._r8)
+    call aero_props%get(bin_idx, 1, density=dens)
+    call self%get_ambient_mmr(species_ndx=1, bin_ndx=bin_idx, mmr=mmr)
+
+    vol(:ncol,:nlev) = mmr(:ncol,:nlev)/dens
 
   end function dry_volume
 
@@ -335,7 +340,8 @@ contains
 
     real(r8) :: vol(ncol,nlev)       ! m3/kg
 
-    vol = -huge(1._r8)
+    vol = self%dry_volume(aero_props, bin_idx, ncol, nlev) &
+        + self%water_volume(aero_props, bin_idx, ncol, nlev)
 
   end function wet_volume
 
@@ -353,7 +359,7 @@ contains
 
     real(r8) :: vol(ncol,nlev)       ! m3/kg
 
-    vol = -huge(1._r8)
+    vol = 0._r8
 
   end function water_volume
 
