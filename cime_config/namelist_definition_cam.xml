@@ -578,19 +578,6 @@
     </values>
   </entry>
 
-<!-- Aerosol optics -->
-  <entry id="water_refindex_file">
-    <type>char*256</type>
-    <category>radiation</category>
-    <group>aerosol_optics_nl</group>
-    <units>none</units>
-    <desc>
-      Full pathname of dataset for water refractive indices used in modal aerosol optics.
-    </desc>
-    <values>
-      <value>${DIN_LOC_ROOT}/atm/cam/physprops/water_refindex_rrtmg_c080910.nc</value>
-    </values>
-  </entry>
 
 <!-- Vertical Coordinate -->
 

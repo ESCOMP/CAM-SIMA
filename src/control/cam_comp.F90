@@ -722,7 +722,6 @@ CONTAINS
       ! Called after phys_init and before history_init_files.
       use radiative_aerosol,     only: rad_aer_init
       use aerosol_instances_mod, only: aerosol_instances_init, aerosol_instances_init_states
-      use read_water_refindex,   only: read_water_refindex_file
       use cam_ccpp_cap,          only: cam_constituents_array
       use ccpp_kinds,            only: kind_phys
       use phys_vars_init_check, only: mark_as_initialized
@@ -734,9 +733,6 @@ CONTAINS
 
       ! Create aerosol properties objects
       call aerosol_instances_init()
-
-      ! Read water refractive index data
-      call read_water_refindex_file()
 
       ! Wire constituents pointer into aerosol state objects
       constituents => cam_constituents_array()
