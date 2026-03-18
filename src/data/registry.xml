@@ -1546,6 +1546,22 @@
       <!-- only used if use_shfrc is .true. -->
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
+    <variable local_name="cush"
+              standard_name="shallow_convective_scale_height"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_cush</ic_file_input_names>
+    </variable>
+    <variable local_name="tke"
+              standard_name="specific_turbulent_kinetic_energy_at_interfaces"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tke</ic_file_input_names>
+    </variable>
 
     <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in the CAM registry -->
     <variable local_name="qcwat"
