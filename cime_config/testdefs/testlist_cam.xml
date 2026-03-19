@@ -170,6 +170,7 @@
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="debug_jn"/>
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>

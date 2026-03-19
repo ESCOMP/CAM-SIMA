@@ -84,10 +84,11 @@ subroutine create_native_mapping_files(par, elem, maptype, ncol, clat, clon, are
 
     use shr_kind_mod,   only: r8=>shr_kind_r8
     use shr_infnan_mod, only: isnan=>shr_infnan_isnan
+    use physconst,      only: pi
     use cam_pio_utils,  only: cam_pio_openfile, cam_pio_createfile
     use cam_logfile,    only: iulog
     use cam_abortutils, only: endrun, check_allocate
-    use spmd_utils,     only: iam, masterpoc
+    use spmd_utils,     only: iam, masterproc
     use mpi,            only: mpi_integer, mpi_max
 
     use pio, only: pio_noerr, pio_openfile, pio_createfile, pio_closefile, &

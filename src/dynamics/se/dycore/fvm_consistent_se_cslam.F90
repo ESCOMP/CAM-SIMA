@@ -42,8 +42,7 @@ contains
     use edgetype_mod          , only: edgebuffer_t
     use bndry_mod             , only: ghost_exchange
     use hybvcoord_mod         , only: hvcoord_t
-!Un-comment once constituents are enabled -JN:
-    use constituents          , only: qmin
+    use cam_constituents      , only: const_qmin
     use dimensions_mod        , only: large_Courant_incr,irecons_tracer_lev
     use thread_mod            , only: vert_num_threads, omp_set_nested
     implicit none
@@ -237,8 +236,7 @@ contains
               ! convert to mixing ratio
               fvm(ie)%c(i,j,k,itr) = fvm(ie)%c(i,j,k,itr)*inv_dp_area(i,j)
               ! remove round-off undershoots
-!Remove once constituents are enabled and ucomment above line -JN:
-              fvm(ie)%c(i,j,k,itr) = MAX(fvm(ie)%c(i,j,k,itr),qmin(itr))
+              fvm(ie)%c(i,j,k,itr) = MAX(fvm(ie)%c(i,j,k,itr),const_qmin(itr))
             end do
           end do
         end do

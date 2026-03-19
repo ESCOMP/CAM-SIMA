@@ -36,7 +36,7 @@ CONTAINS
     use parallel_mod,   only: par
     use edge_mod,       only: initEdgeBuffer
     use element_mod,    only: element_t
-    use dimensions_mod, only: nlev
+    use dimensions_mod, only: nlev, nlevp
     use thread_mod,     only: horz_num_threads
 
     ! Elem will be needed for future updates to edge code
@@ -59,13 +59,12 @@ CONTAINS
     !SE dycore:
     use element_mod,    only: element_t
     use derivative_mod, only: derivinit
-    use dimensions_mod, only: npsq, nelemd
+    use dimensions_mod, only: npsq, nelemd, fv_nphys, nlev
     use dof_mod,        only: UniquePoints
     use hybrid_mod,     only: hybrid_t
     use hybrid_mod,     only: config_thread_region, get_loop_ranges
     use parallel_mod,   only: par
     use thread_mod,     only: horz_num_threads
-    use dimensions_mod, only: fv_nphys
 
     type (element_t), intent(inout), dimension(:) :: elem
     integer, intent(in)          :: tl, nphys, tlq
@@ -127,13 +126,12 @@ CONTAINS
     use element_mod,    only  : element_t
     use hybrid_mod,     only  : hybrid_t
     use derivative_mod, only  : derivinit
-    use dimensions_mod, only  : nelemd
+    use dimensions_mod, only  : nelemd, fv_nphys, nlev
     use dof_mod, only         : UniquePoints
     use hybrid_mod, only      : config_thread_region, get_loop_ranges
     use parallel_mod, only    : par
     use vert_coord, only      : pver
     use thread_mod, only      : horz_num_threads
-    use dimensions_mod, only  : fv_nphys
 
     implicit none
     type (element_t), intent(in), dimension(:) :: elem
@@ -191,12 +189,14 @@ CONTAINS
   !
   ! * corresponding/blame-able
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    !SE dycore:
     use element_mod,    only: element_t
     use hybrid_mod,     only: hybrid_t
     use derivative_mod, only: vorticity_sphere
     use edge_mod,       only: edgevpack, edgevunpack
     use bndry_mod,      only: bndry_exchange
-    use dimensions_mod, only: np, fv_nphys
+    use dimensions_mod, only: np, fv_nphys, nlev
     use fvm_mapping,    only: dyn2phys
 
     type(hybrid_t),     intent(in)            :: hybrid
@@ -279,6 +279,7 @@ CONTAINS
 
     !SE dycore:
     use element_mod,     only: element_t
+    use hybrid_mod,      only: hybrid_t
     use derivative_mod,  only: gradient_sphere, ugradv_sphere
     use edge_mod,        only: edgevpack, edgevunpack
     use bndry_mod,       only: bndry_exchange
@@ -444,6 +445,10 @@ CONTAINS
   end subroutine compute_frontogenesis
 
   subroutine compute_vertical_derivative(pint,pmid,data,ddata_dp)
+
+    !SE dycore:
+    use dimensions_mod, only: np, nlev
+
     !---------------------------------------------------------------------------
     real(r8),   intent(in ) :: pint(np,np,nlev+1)
     real(r8),   intent(in ) :: pmid(np,np,nlev)

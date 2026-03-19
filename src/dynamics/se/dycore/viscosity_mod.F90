@@ -344,6 +344,7 @@ end subroutine
 
 
 subroutine make_C0_vector(v,elem,hybrid,nets,nete)
+#if 1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! apply DSS to a velocity vector
 ! this is a low-performance routine used for I/O and analysis.
@@ -406,6 +407,7 @@ do ie=nets,nete
 end do
 
 call FreeEdgeBuffer(edge2)
+#endif
 end subroutine
 
 

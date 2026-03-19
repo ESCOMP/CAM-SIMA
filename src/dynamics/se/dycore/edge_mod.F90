@@ -19,7 +19,6 @@ module edge_mod
 
   implicit none
   private
-  save
 
   ! 8-byte Integer routines
   public :: LongEdgeVpack, LongEdgeVunpackMIN
@@ -116,7 +115,7 @@ module edge_mod
 ! routines which including element edge data
 ! (used for FVM arrays where edge data is not shared by neighboring elements)
 ! these routines pack/unpack element data with user specified halo size
-                                  
+
   ! Wrap pointer so we can make an array of them.
   type :: wrap_ptr
     real (kind=r8), dimension(:,:), pointer :: ptr => null()
@@ -152,13 +151,13 @@ contains
     call initEdgeBuffer(par,edge,elem,nlyr,bndry_type=bndry_type, &
                          nthreads=nthreads,CardinalLength=ndepth*npoints,OrdinalLength=ndepth*ndepth)
     ! set some parameters need to support deep halos
-    edge%ndepth  = ndepth 
+    edge%ndepth  = ndepth
     edge%npoints = npoints
     edge%lb      = 1 - edge%ndepth
     edge%ub      = edge%npoints + edge%ndepth
 
   end subroutine initGhostBuffer
-   
+
 
 
   subroutine zeroEdgeBuffer(edge)
@@ -1837,7 +1836,7 @@ contains
 
 
 subroutine ghostpack(edge,v,vlyr,kptr,ielem)
-  
+
   use dimensions_mod, only : max_corner_elem
   use control_mod, only : north, south, east, west, neast, nwest, seast, swest
   use edgetype_mod, only : EdgeDescriptor_t
@@ -2072,8 +2071,8 @@ subroutine ghostunpack(edge,v,vlyr,kptr,ielem)
   do l=swest,swest+max_corner_elem-1
      isw = edge%getmap(l,ielem)
      if(isw /= -1) then
-        ! note the following is the the correct meaning of reverse in this code.  
-        ! It is  best described as a transponse operation 
+        ! note the following is the the correct meaning of reverse in this code.
+        ! It is  best described as a transponse operation
         if (edge%reverse(l,ielem)) then
            do k=1,vlyr
               ktmp = nhc*(kptr+k-1)
@@ -2109,7 +2108,7 @@ subroutine ghostunpack(edge,v,vlyr,kptr,ielem)
 ! SEAST
   do l=swest+max_corner_elem,swest+2*max_corner_elem-1
      ise = edge%getmap(l,ielem)
-     if(ise /= -1) then 
+     if(ise /= -1) then
         if (edge%reverse(l,ielem)) then
            do k=1,vlyr
               ktmp = nhc*(kptr+k-1)
@@ -2145,7 +2144,7 @@ subroutine ghostunpack(edge,v,vlyr,kptr,ielem)
 ! NEAST
   do l=swest+3*max_corner_elem,swest+4*max_corner_elem-1
      ine = edge%getmap(l,ielem)
-     if(ine /= -1) then 
+     if(ine /= -1) then
         if (edge%reverse(l,ielem)) then
            do k=1,vlyr
               ktmp = nhc*(kptr+k-1)
@@ -2181,7 +2180,7 @@ subroutine ghostunpack(edge,v,vlyr,kptr,ielem)
 ! NWEST
   do l=swest+2*max_corner_elem,swest+3*max_corner_elem-1
      inw = edge%getmap(l,ielem)
-     if(inw /= -1) then 
+     if(inw /= -1) then
         if (edge%reverse(l,ielem)) then
            do k=1,vlyr
               ktmp = nhc*(kptr+k-1)

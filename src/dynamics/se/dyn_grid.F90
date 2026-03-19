@@ -129,7 +129,9 @@ subroutine model_grid_init()
    use control_mod,         only: qsplit, rsplit
    use se_dyn_time_mod,     only: tstep, nsplit
    use fvm_mod,             only: fvm_init2, fvm_init3, fvm_pg_init
+   use dimensions_mod,      only: nelem, nelemd, nelemdmax, globaluniquecols
    use dimensions_mod,      only: irecons_tracer, dimensions_mod_init, qsize
+   use dimensions_mod,      only: fv_nphys, npsq, use_cslam, nlev, nlevp
    use comp_gll_ctr_vol,    only: gll_grid_write
 
    ! Local variables
@@ -423,7 +425,7 @@ subroutine set_dyn_col_values()
    use cam_abortutils,         only: check_allocate
 
    !SE dycore:
-   use dimensions_mod,         only: nelemd, fv_nphy
+   use dimensions_mod,         only: nelemd, fv_nphys
    use coordinate_systems_mod, only: spherical_polar_t
 
    ! Local variables
@@ -526,7 +528,7 @@ subroutine get_horiz_grid_int(nxy, clat_d_out, clon_d_out, area_d_out, &
    use cam_abortutils, only: endrun, check_allocate
 
    !SE dycore:
-   use dimensions_mod, only: fv_nphys, nelem_d, ngcols_d
+   use dimensions_mod, only: fv_nphys
 
    ! Return global arrays of latitude and longitude (in radians), column
    ! surface area (in radians squared) and surface integration weights for
@@ -632,7 +634,7 @@ subroutine dyn_grid_get_elem_coords(ie, rlon, rlat, cdex)
 
    !SE dycore:
    use dof_mod,        only: UniqueCoords
-   use dimensions_mod, only: np
+   use dimensions_mod, only: ne, np, fv_nphys
 
    ! Returns coordinates of a specified block element of the dyn grid
    !
@@ -697,6 +699,7 @@ subroutine get_hdim_name(fh_ini, ini_grid_hdim_name)
 
    use pio, only: pio_inq_dimid, pio_seterrorhandling
    use pio, only: PIO_BCAST_ERROR, PIO_NOERR
+   use pio, only: file_desc_t
 
    ! Determine whether the initial file uses 'ncol' or 'ncol_d' horizontal
    ! dimension in the unstructured grid.  It is also possible when using
@@ -773,7 +776,7 @@ subroutine define_cam_grids()
    use scamMod,          only: closeioplon,closeioplat,closeioplonidx,single_column
 #endif
    !SE dycore:
-   use dimensions_mod,   only: nc
+   use dimensions_mod,   only: nc, ne, nelemd, np, npsq, use_cslam, fv_nphys
 
    ! Local variables
    integer                      :: i, ii, j, k, ie, mapind, ierr
@@ -1141,12 +1144,12 @@ subroutine write_grid_mapping(par, elem)
    use pio,            only: pio_def_dim, var_desc_t, pio_int, pio_def_var, &
                              pio_enddef, pio_closefile, io_desc_t, &
                              pio_write_darray, pio_freedecomp, &
-                             pio_offset_kind
+                             file_desc_t, pio_offset_kind
 
    ! SE dycore:
    use parallel_mod,   only: parallel_t
    use dof_mod,        only: createmetadata
-   use dimensions_mod, only: np, nelem_d
+   use dimensions_mod, only: np, nelemd
 
    ! arguments
    type(parallel_t), intent(in) :: par
@@ -1208,9 +1211,10 @@ subroutine create_global_area(area_d)
    use mpi,            only: mpi_integer, mpi_real8
    use spmd_utils,     only: masterproc, iam, mpicom, mstrid=>masterprocid, npes
    use cam_abortutils, only: endrun, check_allocate
+   use cam_logfile,    only: iulog
 
    !SE dycore:
-   use dimensions_mod, only: fv_nphys, nelem_d, nelemd, nelemdmax, ngcols_d
+   use dimensions_mod, only: fv_nphys, nelemd, nelemdmax, np
    use dof_mod,        only: UniquePoints
    use dp_mapping,     only: dp_reorder, dp_allocate, dp_deallocate
 
@@ -1331,12 +1335,13 @@ end subroutine create_global_area
 
 subroutine create_global_coords(clat, clon, lat_out, lon_out)
 
-   use mpi,            only: mpi_integer
+   use mpi,            only: mpi_integer, mpi_real8
    use spmd_utils,     only: masterproc, iam, mpicom, mstrid=>masterprocid, npes
    use cam_abortutils, only: check_allocate, endrun
+   use cam_logfile,    only: iulog
 
    !SE dycore:
-   use dimensions_mod, only: fv_nphys, nelem_d, nelemd, nelemdmax, ngcols_d
+   use dimensions_mod, only: fv_nphys, nelemd, nelemdmax
    use dof_mod,        only: UniqueCoords
    use dp_mapping,     only: dp_reorder, dp_allocate, dp_deallocate
 

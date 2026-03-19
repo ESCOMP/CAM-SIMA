@@ -53,39 +53,41 @@ contains
 !===============================================================================
 
 subroutine dyn_readnl(NLFileName)
-   use mpi,            only: mpi_real8, mpi_integer, mpi_character, mpi_logical
-   use air_composition,only: thermodynamic_active_species_num
-   use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-   use shr_kind_mod,   only: shr_kind_cl
-   use spmd_utils,     only: masterproc, masterprocid, mpicom, npes
-   use dyn_grid,       only: se_write_grid_file, se_grid_filename, se_write_gll_corners
-   use native_mapping, only: native_mapping_readnl
-   use vert_coord,     only: pver
-   use cam_logfile,    only: iulog
-   use cam_abortutils, only: endrun
-   use cam_control_mod, only: initial_run
+   use mpi,              only: mpi_real8, mpi_integer, mpi_character, mpi_logical
+   use air_composition,  only: thermodynamic_active_species_num
+   use shr_nl_mod,       only: find_group_name => shr_nl_find_group_name
+   use shr_kind_mod,     only: shr_kind_cl
+   use spmd_utils,       only: masterproc, masterprocid, mpicom, npes
+   use dyn_grid,         only: se_write_grid_file, se_grid_filename, se_write_gll_corners
+   use native_mapping,   only: native_mapping_readnl
+   use vert_coord,       only: pver
+   use cam_logfile,      only: iulog
+   use cam_abortutils,   only: endrun
+   use cam_control_mod,  only: initial_run
+   use cam_constituents, only: num_advected
 
    !SE dycore:
-   use namelist_mod,   only: homme_set_defaults, homme_postprocess_namelist
-   use control_mod,    only: hypervis_subcycle, hypervis_subcycle_sponge
-   use control_mod,    only: hypervis_subcycle_q, statefreq, runtype
-   use control_mod,    only: nu, nu_div, nu_p, nu_q, nu_top, qsplit, rsplit
-   use control_mod,    only: vert_remap_uvTq_alg, vert_remap_tracer_alg
-   use control_mod,    only: tstep_type, rk_stage_user
-   use control_mod,    only: ftype, limiter_option, partmethod
-   use control_mod,    only: topology, variable_nsplit
-   use control_mod,    only: fine_ne, hypervis_power, hypervis_scaling
-   use control_mod,    only: max_hypervis_courant, statediag_numtrac,refined_mesh
-   use control_mod,    only: molecular_diff, pgf_formulation, dribble_in_rsplit_loop
-   use control_mod,    only: sponge_del4_nu_div_fac, sponge_del4_nu_fac, sponge_del4_lev
-   use dimensions_mod, only: ne, npart
-   use dimensions_mod, only: large_Courant_incr
-   use dimensions_mod, only: fvm_supercycling, fvm_supercycling_jet
-   use dimensions_mod, only: kmin_jet, kmax_jet
-   use params_mod,     only: SFCURVE
-   use parallel_mod,   only: initmpi
-   use thread_mod,     only: initomp, max_num_threads
-   use thread_mod,     only: horz_num_threads, vert_num_threads, tracer_num_threads
+   use namelist_mod,    only: homme_set_defaults, homme_postprocess_namelist
+   use control_mod,     only: hypervis_subcycle, hypervis_subcycle_sponge
+   use control_mod,     only: hypervis_subcycle_q, statefreq, runtype
+   use control_mod,     only: nu, nu_div, nu_p, nu_q, nu_top, qsplit, rsplit
+   use control_mod,     only: vert_remap_uvTq_alg, vert_remap_tracer_alg
+   use control_mod,     only: tstep_type, rk_stage_user
+   use control_mod,     only: ftype, limiter_option, partmethod
+   use control_mod,     only: topology, variable_nsplit
+   use control_mod,     only: fine_ne, hypervis_power, hypervis_scaling
+   use control_mod,     only: max_hypervis_courant, statediag_numtrac,refined_mesh
+   use control_mod,     only: molecular_diff, pgf_formulation, dribble_in_rsplit_loop
+   use control_mod,     only: sponge_del4_nu_div_fac, sponge_del4_nu_fac, sponge_del4_lev
+   use dimensions_mod,  only: ne, npart, fv_nphys, use_cslam
+   use dimensions_mod,  only: large_Courant_incr
+   use dimensions_mod,  only: fvm_supercycling, fvm_supercycling_jet
+   use dimensions_mod,  only: kmin_jet, kmax_jet
+   use params_mod,      only: SFCURVE
+   use parallel_mod,    only: par, initmpi
+   use thread_mod,      only: initomp, max_num_threads
+   use thread_mod,      only: horz_num_threads, vert_num_threads, tracer_num_threads
+   use se_dyn_time_mod, only: nsplit
 
    ! Dummy argument
    character(len=*), intent(in) :: NLFileName
@@ -458,6 +460,9 @@ subroutine dyn_readnl(NLFileName)
 
       integer function set_vert_remap( remap_T, remap_alg )
 
+         use cam_abortutils, only: endrun
+         use cam_logfile,    only: iulog
+
          ! Convert namelist input strings to the internally used integers.
 
          character(len=*), intent(in) :: remap_T    ! scheme for remapping temperature
@@ -514,14 +519,16 @@ end subroutine dyn_readnl
 subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use shr_kind_mod,        only: cl=>shr_kind_cl
    use runtime_obj,         only: runtime_options
+   use cam_logfile,         only: iulog
    use dyn_grid,            only: elem, fvm, hvcoord
+   use dyn_grid,            only: TimeLevel
    use cam_pio_utils,       only: clean_iodesc_list
-   use cam_abortutils,      only: endrun, check_allocate
-   use spmd_utils,          only: iam
-   use parallel_mod,        only: par
+   use cam_abortutils,      only: check_allocate
+   use spmd_utils,          only: iam, masterproc
    use cam_constituents,    only: const_name, const_longname, num_advected, &
-                                  const_get_index, const_is_wet, const_qmin, readtrace
-   use cam_initfiles,       only: initial_file_get_id, topo_file_get_id, pertlim
+                                  const_get_index, const_is_wet, const_qmin
+   use cam_initfiles,       only: initial_file_get_id, topo_file_get_id
+   use cam_control_mod,     only: initial_run
    use air_composition,     only: thermodynamic_active_species_num, thermodynamic_active_species_idx
    use air_composition,     only: thermodynamic_active_species_idx_dycore
    use dynconst,            only: cpair, pstd
@@ -535,12 +542,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use phys_vars_init_check, only: mark_as_initialized
 
    !SE dycore:
+   use parallel_mod,       only: par
    use prim_advance_mod,   only: prim_advance_init
    use thread_mod,         only: horz_num_threads
-   use hybrid_mod,         only: get_loop_ranges, config_thread_region
-   use dimensions_mod,     only: nu_scale_top
+   use hybrid_mod,         only: hybrid_t, get_loop_ranges, config_thread_region
+   use dimensions_mod,     only: nu_scale_top, nlev, ntrac, qsize
    use dimensions_mod,     only: ksponge_end, kmvis_ref, kmcnd_ref,rho_ref,km_sponge_factor
-   use dimensions_mod,     only: cnst_name_gll, cnst_longname_gll
+   use dimensions_mod,     only: cnst_name_gll, cnst_longname_gll, use_cslam
    use dimensions_mod,     only: irecons_tracer_lev, irecons_tracer, kord_tr, kord_tr_cslam
    use prim_driver_mod,    only: prim_init2
    use se_dyn_time_mod,    only: time_at
@@ -873,7 +881,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
    do m_cnst = 1, qsize
      call history_add_field ('F'//trim(cnst_name_gll(m_cnst))//'_gll',  &
-          trim(const_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', &
+          trim(cnst_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', &
           'lev', 'inst', 'kg kg-1 s-1', gridname='GLL')
    end do
 
@@ -895,6 +903,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
      call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
    end if
 
+#ifdef energy_budget_code
    do istage = 1,SIZE(stage)
       do ivars=1,SIZE(vars)
          write(str1,*) TRIM(ADJUSTL(vars(ivars))),TRIM(ADJUSTL("_")),TRIM(ADJUSTL(stage(istage)))
@@ -908,7 +917,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
          end if
       end do
    end do
+#endif
 
+#ifdef cam_thermo_history
    !
    ! add dynamical core tracer tendency output
    !
@@ -923,12 +934,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
             gridname='GLL')
      end do
    end if
-   call phys_getopts(history_budget_out=history_budget, history_budget_histfile_num_out=budget_hfile_num)
+#endif
 
 ! Need SIMA-specific mechanism to automatically add groups of history fields (maybe
 ! via labels in history_add_field?). For now, just comment out all references to
 ! add_default.
 #if 0
+   call phys_getopts(history_budget_out=history_budget, history_budget_histfile_num_out=budget_hfile_num)
    if ( history_budget ) then
       call const_get_index('water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water', ixq)
       call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water',  &
@@ -948,8 +960,6 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
      call const_get_index('atomic_hydrogen_mixing_ratio_wrt_total_mass',  ixh)
      call const_get_index('hydrogen_mixing_ratio_wrt_total_mass', ixh2)
   end if
-
-  call test_mapping_addfld
 
 #ifdef cam_thermo_history
    if (thermo_budget_history) then
@@ -1026,20 +1036,24 @@ subroutine dyn_run(dyn_state)
    use spmd_utils,       only: iam
    use dyn_grid,         only: TimeLevel, hvcoord
    use time_manager,     only: get_step_size
+   use cam_abortutils,   only: check_allocate
 
    !SE dycore:
    use parallel_mod,     only: par
    use prim_driver_mod,  only: prim_run_subcycle
-   use dimensions_mod,   only: cnst_name_gll
+   use dimensions_mod,   only: cnst_name_gll, nelemd, np, npsq
+   use dimensions_mod,   only: nc, nlev, use_cslam, ntrac, qsize
    use se_dyn_time_mod,  only: tstep, nsplit, timelevel_qdp, tevolve
-   use hybrid_mod,       only: config_thread_region, get_loop_ranges
+   use hybrid_mod,       only: hybrid_t, config_thread_region, get_loop_ranges
    use control_mod,      only: qsplit, rsplit, ftype_conserve
    use thread_mod,       only: horz_num_threads
+   use bndry_mod,        only: bndry_exchange
 #ifdef scam
    use scamMod,          only: single_column, use_3dfrc
    use se_single_column_mod, only: apply_SC_forcing,ie_scm
 #else
    logical, parameter :: single_column = .false. !Always assume single-column mode is off.
+   integer, parameter :: ie_scm = 1              !Make up a value so that the model compiles
 #endif
 
    type(dyn_export_t), intent(inout) :: dyn_state
@@ -1188,7 +1202,7 @@ subroutine dyn_run(dyn_state)
 
       ! forward-in-time RK, with subcycling
       call prim_run_subcycle(dyn_state%elem, dyn_state%fvm, hybrid, nets_in, nete_in, &
-                             tstep, TimeLevel, hvcoord, n, omega_cn)
+                             tstep, TimeLevel, hvcoord, n, single_column, omega_cn)
 
       if (ldiag) then
          do ie = nets, nete
@@ -1227,6 +1241,9 @@ end subroutine dyn_run
 
 subroutine dyn_final(DYN_STATE, RESTART_FILE)
 
+   !SE dycore:
+   use element_mod, only: elem_state_t
+
    type (elem_state_t), target     :: DYN_STATE
    character(LEN=*)   , intent(IN) :: RESTART_FILE
 
@@ -1236,25 +1253,40 @@ end subroutine dyn_final
 
 subroutine read_inidat(dyn_in)
    use shr_kind_mod,         only: cl=>shr_kind_cl
+   use pio,                  only: file_desc_t
+   use pio,                  only: pio_seterrorhandling, PIO_BCAST_ERROR
    use air_composition,      only: thermodynamic_active_species_num, dry_air_species_num
    use air_composition,      only: thermodynamic_active_species_idx
    use shr_sys_mod,          only: shr_sys_flush
    use hycoef,               only: hyai, hybi, ps0
    use phys_vars_init_check, only: mark_as_initialized
    use cam_history_support,  only: max_fieldname_len
-   use spmd_utils,           only: iam
+   use spmd_utils,           only: iam, masterproc
    use cam_abortutils,       only: endrun, check_allocate
-   use dyn_grid,             only: ini_grid_name
-   use cam_grid_support,     only: cam_grid_id, cam_grid_get_gcid, cam_grid_get_latvals, &
-                                   cam_grid_get_lonvals, cam_grid_dimensions
+   use cam_logfile,          only: iulog
+   use dyn_grid,             only: ini_grid_name, hvcoord
+   use cam_map_utils,        only: iMap
+   use cam_grid_support,     only: cam_grid_id, cam_grid_get_gcid, cam_grid_get_latvals
+   use cam_grid_support,     only: cam_grid_get_lonvals, cam_grid_dimensions, max_hcoordname_len
+   use inic_analytic,        only: analytic_ic_active, analytic_ic_set_ic
+   use cam_initfiles,        only: pertlim, initial_file_get_id, topo_file_get_id
+   use cam_constituents,     only: readtrace, num_advected, const_name
+   use cam_constituents,     only: const_is_water_species, const_qmin, const_is_wet
+   use dyn_tests_utils,      only: vcoord=>vc_dry_pressure
 
    !SE-dycore:
    use parallel_mod,         only: par
    use element_mod,          only: timelevels
    use fvm_mapping,          only: dyn2fvm_mass_vars
+   use bndry_mod,            only: bndry_exchange
    use control_mod,          only: runtype,initial_global_ave_dry_ps
    use prim_driver_mod,      only: prim_set_dry_mass
    use cam_initfiles,        only: scale_dry_air_mass
+   use edgetype_mod,         only: edgebuffer_t
+   use edge_mod,             only: initEdgeBuffer, FreeEdgeBuffer, edgeVpack, edgeVunpack
+   use dimensions_mod,       only: np, npsq, nc, ntrac, qsize
+   use dimensions_mod,       only: nlev, nelemd, use_cslam
+
    ! Arguments
    type (dyn_import_t), target, intent(inout) :: dyn_in   ! dynamics import
 
@@ -1974,15 +2006,35 @@ subroutine set_phis(dyn_in)
    ! which are computed on the physics grid.  In this case phis on the physics grid
    ! will be interpolated to the GLL grid.
 
+   use pio,                  only: file_desc_t, pio_inq_dimid, pio_inq_dimlen
+   use pio,                  only: pio_seterrorhandling, PIO_NOERR, PIO_BCAST_ERROR
    use shr_kind_mod,         only: cl=>shr_kind_cl
+   use cam_abortutils,       only: endrun, check_allocate
+   use cam_logfile,          only: iulog
    use phys_vars_init_check, only: mark_as_initialized
    use cam_history_support,  only: max_fieldname_len
-   use spmd_utils,           only: iam
+   use cam_grid_support,     only: max_hcoordname_len, cam_grid_id
+   use cam_grid_support,     only: cam_grid_get_latvals, cam_grid_get_lonvals
+   use cam_grid_support,     only: cam_grid_dimensions, cam_grid_get_gcid
+   use cam_map_utils,        only: iMap
+   use spmd_utils,           only: iam, masterproc
    use cam_initfiles,        only: topo_file_get_id
-   use dyn_grid,             only: ini_grid_name
+   use dyn_grid,             only: ini_grid_name, edgebuf
+   use inic_analytic,        only: analytic_ic_active, analytic_ic_set_ic
+   use dyn_tests_utils,      only: vcoord=>vc_dry_pressure
 
    !SE dycore:
+   use dimensions_mod,       only: np, npsq, nelemd, fv_nphys
+   use dimensions_mod,       only: use_cslam
    use parallel_mod,         only: par
+   use bndry_mod,            only: bndry_exchange
+   use edge_mod,             only: edgeVpack, edgeVunpack
+
+#ifdef scam
+   use scamMod,              only: single_column
+#else
+   logical, parameter :: single_column = .false. !Always assume single-column mode is off.
+#endif
 
    ! Arguments
    type (dyn_import_t), target, intent(inout) :: dyn_in   ! dynamics import
@@ -1992,7 +2044,7 @@ subroutine set_phis(dyn_in)
 
    type(element_t), pointer         :: elem(:)
 
-   real(r8), allocatable            :: phis_tmp(:,:)      ! (npsp,nelemd)
+   real(r8), allocatable            :: phis_tmp(:,:)      ! (npsq,nelemd)
    real(r8), allocatable            :: phis_phys_tmp(:,:) ! (fv_nphys**2,nelemd)
 
    integer                          :: i, ie, indx, j, kptr
@@ -2105,7 +2157,7 @@ subroutine set_phis(dyn_in)
       if (use_cslam.and.dyn_field_exists(fh_topo, trim(fieldname_gll),required=.false.)) then
          !
          ! If physgrid it is recommended to read in PHIS on the GLL grid and then
-         ing map to the physgrid in d_p_coupling
+         ! map to the physgrid in d_p_coupling
          !
          ! This requires a topo file with PHIS_gll on it ...
          !
@@ -2218,12 +2270,16 @@ subroutine check_file_layout(file, elem, dyn_cols, file_desc, dyn_ok, dimname)
 
    use cam_history_support,  only: max_fieldname_len
    use spmd_utils,           only: iam, masterproc
-   use pio,                  only: pio_inq_dimid, pio_inq_dimlen, PIO_NOERR
+   use pio,                  only: pio_inq_dimid, pio_inq_dimlen
+   use pio,                  only: PIO_NOERR, file_desc_t
    use cam_abortutils,       only: endrun
    use shr_sys_mod,          only: shr_sys_flush
    use dyn_grid,             only: ini_grid_name
    use cam_logfile,          only: iulog
    use cam_grid_support,     only: cam_grid_get_dim_names, cam_grid_id
+
+   !SE dycore:
+   use dimensions_mod,       only: nelemd, np, npsq
 
    type(file_desc_t), pointer       :: file
    type(element_t),   pointer       :: elem(:)
@@ -2335,7 +2391,8 @@ end subroutine check_file_layout
 logical function dyn_field_exists(fh, fieldname, required)
 
    use pio,            only: var_desc_t, PIO_inq_varid
-   use pio,            only: PIO_NOERR
+   use pio,            only: file_desc_t, PIO_NOERR
+   use cam_abortutils, only: endrun
 
    type(file_desc_t), intent(in) :: fh
    character(len=*),  intent(in) :: fieldname
@@ -2371,6 +2428,8 @@ end function dyn_field_exists
 !========================================================================================
 
 subroutine read_dyn_field_2d(fieldname, fh, dimname, buffer)
+
+   use pio,                only: file_desc_t
    use cam_field_read,     only: cam_read_field
    use cam_abortutils,     only: endrun
    use shr_infnan_mod,     only: shr_infnan_isnan
@@ -2416,10 +2475,15 @@ end subroutine read_dyn_field_2d
 !========================================================================================
 
 subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
+
+   use pio,                only: file_desc_t
    use cam_field_read,     only: cam_read_field
    use cam_abortutils,     only: endrun
    use shr_infnan_mod,     only: shr_infnan_isnan
    use dyn_grid,           only: ini_grid_name
+
+   ! SE dycore:
+   use dimensions_mod,     only: nlev
 
    ! Dummy arguments
    character(len=*),  intent(in)    :: fieldname
@@ -2461,6 +2525,8 @@ end subroutine read_dyn_field_3d
 !========================================================================================
 
 subroutine read_phys_field_2d(fieldname, fh, dimname, buffer)
+
+   use pio,                only: file_desc_t
    use cam_field_read,     only: cam_read_field
    use cam_abortutils,     only: endrun
 
@@ -2486,11 +2552,12 @@ end subroutine read_phys_field_2d
 subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
 
    use shr_kind_mod,       only: cl=>shr_kind_cl
+   use cam_abortutils,     only: check_allocate
 
    !SE dycore:
    use parallel_mod,       only: par
-   use hybrid_mod,         only: get_loop_ranges, config_thread_region
-   use dimensions_mod,     only: nhc_phys
+   use hybrid_mod,         only: hybrid_t, get_loop_ranges, config_thread_region
+   use dimensions_mod,     only: fv_nphys, nhc_phys, nelemd, np, npsq
    use fvm_mapping,        only: phys2dyn
    use thread_mod,         only: horz_num_threads
 
@@ -2559,7 +2626,7 @@ subroutine write_dyn_vars(dyn_out)
    use cam_constituents,    only: const_name
 
    !SE dycore:
-   use dimensions_mod,      only: ntrac, nc, use_cslam
+   use dimensions_mod,      only: nlev, ntrac, nc, nelemd, use_cslam
 
    type (dyn_export_t), intent(inout) :: dyn_out ! Dynamics export container
 

@@ -578,8 +578,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use cam_constituents,  only: const_is_wet
    use cam_constituents,  only: const_get_index
    use cam_constituents,  only: const_qmin
-   use runtime_obj,       only: wv_stdname
-   use physics_types,     only: lagrangian_vertical
+   use runtime_obj,       only: wv_stdname, runtime_options
+   use physics_types,     only: physics_state, physics_tend, lagrangian_vertical
    use physconst,         only: cpair, gravit, zvir
    use cam_thermo,        only: cam_thermo_dry_air_update, cam_thermo_water_update
    use air_composition,   only: thermodynamic_active_species_num

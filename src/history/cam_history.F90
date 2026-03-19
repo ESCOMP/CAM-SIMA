@@ -882,9 +882,6 @@ CONTAINS
      ! Input variables:
      character(len=*), intent(in) :: diagnostic_name
 
-     ! Output variable:
-     logical :: is_active
-
      ! Local variables:
      integer :: file_idx
      character(len=cl) :: errmsg

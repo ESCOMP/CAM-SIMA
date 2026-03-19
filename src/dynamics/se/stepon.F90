@@ -26,10 +26,10 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
    use cam_history,         only: history_add_field
    use cam_history_support, only: horiz_only
 
-   !SE/CAM interface:
+   ! SE/CAM interface:
    use dyn_comp,            only: dyn_import_t, dyn_export_t
 
-   !SE dycore:
+   ! SE dycore:
    use dimensions_mod, only: fv_nphys, cnst_name_gll, cnst_longname_gll, qsize
 
    ! Dummy arguments
@@ -91,7 +91,7 @@ end subroutine stepon_init
 subroutine stepon_timestep_init(dtime_out, cam_runtime_opts, phys_state,      &
      phys_tend, dyn_in, dyn_out)
 
-   use shr_kinds_mod,  only: r8=>shr_kind_r8
+   use shr_kind_mod,   only: r8=>shr_kind_r8
    use perf_mod,       only: t_startf, t_stopf, t_barrierf
    use runtime_obj,    only: runtime_options
    use physics_types,  only: physics_state, physics_tend
@@ -99,11 +99,11 @@ subroutine stepon_timestep_init(dtime_out, cam_runtime_opts, phys_state,      &
    use cam_abortutils, only: endrun
    use spmd_utils,     only: iam, mpicom
 
-   !SE/CAM interface:
+   ! SE/CAM interface:
    use dyn_comp,       only: dyn_import_t, dyn_export_t
    use dp_coupling,    only: d_p_coupling                ! dynamics-physics coupling
 
-   !SE dycore:
+   ! SE dycore:
    use se_dyn_time_mod, only: tstep                      ! dynamics timestep
    use parallel_mod,    only: par
 
@@ -169,18 +169,19 @@ subroutine stepon_run2(cam_runtime_opts, phys_state, phys_tend, dyn_in, dyn_out)
    use runtime_obj,    only: runtime_options
    use physics_types,  only: physics_state, physics_tend
    use perf_mod,       only: t_startf, t_stopf, t_barrierf
-   use spmd_utils,     only: mpicom
+   use spmd_utils,     only: mpicom, iam
 
-   !SE/CAM interface:
+   ! SE/CAM interface:
    use dp_coupling,    only: p_d_coupling
    use dyn_grid,       only: TimeLevel
    use dyn_comp,       only: dyn_import_t, dyn_export_t
 
-   !SE dycore:
+   ! SE dycore:
    use se_dyn_time_mod,  only: TimeLevel_Qdp
    use control_mod,      only: qsplit
    use prim_advance_mod, only: tot_energy_dyn
    use dimensions_mod,   only: nelemd
+   use parallel_mod,     only: par
 
    ! Dummy arguments
    type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
@@ -214,13 +215,13 @@ end subroutine stepon_run2
 
 subroutine stepon_run3(dtime, cam_runtime_opts, cam_out, phys_state, dyn_in, dyn_out)
 
-   use shr_kinds_mod,  only: r8=>shr_kind_r8
+   use shr_kind_mod,   only: r8=>shr_kind_r8
    use runtime_obj,    only: runtime_options
    use physics_types,  only: cam_out_t, physics_state
    use perf_mod,       only: t_startf, t_stopf, t_barrierf
    use spmd_utils,     only: mpicom
 
-   !SE/CAM interface:
+   ! SE/CAM interface:
    use dyn_comp,       only: dyn_import_t, dyn_export_t
    use dyn_comp,       only: dyn_run
    use dyn_grid,       only: TimeLevel
@@ -229,9 +230,10 @@ subroutine stepon_run3(dtime, cam_runtime_opts, cam_out, phys_state, dyn_in, dyn
 #endif
    use advect_tend,    only: compute_adv_tends_xyz
 
-   !SE dycore:
+   ! SE dycore:
    use se_dyn_time_mod,only: TimeLevel_Qdp
    use control_mod,    only: qsplit
+   use dimensions_mod, only: nelemd
 
    ! Dummy arguments
    real(r8),              intent(in)    :: dtime            ! Time-step
@@ -289,6 +291,13 @@ end subroutine stepon_run3
 
 subroutine stepon_final(cam_runtime_opts, dyn_in, dyn_out)
 
+   use runtime_obj, only: runtime_options
+
+   ! SE/CAM interface:
+   use dyn_comp,    only: dyn_import_t, dyn_export_t
+
+   ! SE dycore
+
    ! Dummy arguments
    type(runtime_options), intent(in)    :: cam_runtime_opts ! Runtime settings object
    type(dyn_import_t),    intent(inout) :: dyn_in           ! Dynamics import container
@@ -300,7 +309,7 @@ end subroutine stepon_final
 
 subroutine diag_dynvar_ic(elem, fvm)
 
-   use shr_kinds_mod,          only: r8=>shr_kind_r8, cl=>shr_kind_cl
+   use shr_kind_mod,           only: r8=>shr_kind_r8, cl=>shr_kind_cl
    use cam_constituents,       only: const_is_wet, const_name
    use cam_history,            only: is_history_field_active, history_out_field
    !use cam_history,           only: write_inithist
@@ -311,17 +320,18 @@ subroutine diag_dynvar_ic(elem, fvm)
    use hycoef,                 only: hyai, hybi, ps0
    use cam_abortutils,         only: endrun, check_allocate
 
-   !SE/CAM interface:
+   ! SE/CAM interface:
    use dyn_grid,               only: TimeLevel
 
-   !SE dycore:
+   ! SE dycore:
    use se_dyn_time_mod,        only: TimeLevel_Qdp   !  dynamics typestep
    use control_mod,            only: qsplit
    use hybrid_mod,             only: config_thread_region, get_loop_ranges
    use hybrid_mod,             only: hybrid_t
    use dimensions_mod,         only: np, npsq, nc, nhc, fv_nphys, qsize, ntrac, nlev
-   use dimensions_mod,         only: cnst_name_gll
+   use dimensions_mod,         only: cnst_name_gll, nelemd
    use element_mod,            only: element_t
+   use parallel_mod,           only: par
    use fvm_control_volume_mod, only: fvm_struct
    use fvm_mapping,            only: fvm2dyn
 
