@@ -15,7 +15,7 @@
     </variable>
     <variable local_name="eddy_len" standard_name="eddy_length_scale"
               units="m" type="real" kind="kind_phys"  allocatable="pointer">
-      <dimensions>horizontal_dimension</dimensions>
+      <dimensions>horizontal_dimension vertical_layer_dimension timestep_for_physics vertical_layer_dimension</dimensions>
       <ic_file_input_names>eddy_len</ic_file_input_names>
     </variable>
   </file>

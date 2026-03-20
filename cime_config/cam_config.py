@@ -186,8 +186,9 @@ class ConfigCAM:
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
         self.__caseroot = case.get_value("CASEROOT")
-        self.__bldroot = os.path.join(exeroot, "atm", "obj")
+        self.__bldroot  = os.path.join(exeroot, "atm", "obj")
         self.__atm_name = case.get_value("COMP_ATM")
+        self.__gpu_flag = case.get_value("OPENACC_GPU_OFFLOAD") #Returns a Boolean
 
         # Save CPP definitions as a list:
         self.__cppdefs = [x for x in case.get_value("CAM_CPPDEFS").split() if x]
@@ -879,7 +880,7 @@ class ConfigCAM:
                                           self.__atm_name, phys_suites,
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
-                                          force_ccpp)
+                                          self.__gpu_flag, force_ccpp)
         phys_dirs, force_init, _, nml_fils, capgen_db, scheme_names = retvals
 
         # Add namelist definition files to dictionary:

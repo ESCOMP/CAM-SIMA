@@ -657,6 +657,7 @@ CONTAINS
               default_value=0._kind_phys,                                               &
               vertical_dim="vertical_layer_dimension",                                  &
               advected=.true.,                                                          &
+              diag_name="Q",                                                            &
            errcode=errflg, errmsg=errmsg)
 
          if (errflg /= 0) then

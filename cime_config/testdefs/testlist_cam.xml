@@ -115,6 +115,15 @@
       <option name="comment">Snapshot test for RRTMGP</option>
     </options>
   </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_rrtmgp_derecho_gpu">
+    <machines>
+      <machine name="derecho" compiler="nvhpc" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">GPU snapshot test for RRTMGP</option>
+    </options>
+  </test>
 
   <!-- Derecho dycore tests -->
   <test compset="FKESSLER" grid="mpasa480_mpasa480" name="SMS_Ln9" testmods="cam/outfrq_kessler_mpas_derecho">
@@ -176,6 +185,17 @@
     <options>
       <option name="wallclock">00:10:00</option>
       <option name="comment">Test for SE-CSLAM dycore (with Kessler physics) with multiple history tapes</option>
+    </options>
+  </test>
+
+  <!-- tracer_data chemistry and aerosols input utility test -->
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_trcdata_bam_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for tracer_data chemistry and aerosols input utilities using prescribed ozone and BAM bulk aerosol input datasets</option>
     </options>
   </test>
 

@@ -1863,8 +1863,7 @@ def gen_registry(registry_file, dycore, outdir, indent,
     try:
         emsg = f"Invalid registry file, {registry_file}"
         file_ok = validate_xml_file(registry_file, 'registry', version,
-                                    logger, schema_path=schema_dir,
-                                    error_on_noxmllint=error_on_no_validate)
+                                    logger, schema_path=schema_dir)
     except CCPPError as ccpperr:
         emsg += f"\n{ccpperr}"
         file_ok = False

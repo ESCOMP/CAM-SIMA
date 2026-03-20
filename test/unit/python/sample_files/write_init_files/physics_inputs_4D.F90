@@ -40,7 +40,7 @@ CONTAINS
       use phys_vars_init_check_4D,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_logfile,               only: iulog
-      use physics_types_4D,          only: slp, theta
+      use physics_types_4D,          only: eddy_len, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -150,7 +150,10 @@ CONTAINS
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call endrun('Cannot read slp from file'//', slp has unsupported dimension, timestep_for_physics.')
+                        call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), 'lev', timestep, slp)
+
+                     case ('eddy_length_scale')
+                        call endrun('Cannot read eddy_len from file'//', eddy_len has unsupported dimension, vertical_layer_dimension (dimension 4).')
 
                   end select !read variables
                end select !special indices
@@ -225,6 +228,7 @@ CONTAINS
       use cam_abortutils,            only: endrun
       use shr_kind_mod,              only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,              only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,              only: flush_check_field_verbose
       use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_advected_constituents_array, cam_model_const_properties
       use cam_constituents,          only: const_get_index
       use ccpp_kinds,                only: kind_phys
@@ -379,11 +383,14 @@ CONTAINS
             end if
          end if
       end do
+      ! Flush verbose check_field entries (printed after diffs):
+      call flush_check_field_verbose()
+
       ! Close check file:
       call cam_pio_closefile(file)
       deallocate(file)
       nullify(file)
-      if (is_first) then
+      if (.not. overall_diff_found) then
          if (masterproc) then
             write(iulog,*) ''
             write(iulog,*) 'No differences found!'

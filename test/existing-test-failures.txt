@@ -1,2 +1,5 @@
 SMS_Ln9.ne3pg3_ne3pg3_mg37.FKESSLER.derecho_intel.cam-outfrq_se_cslam_multitape
   - known NLFAIL due to cime validation error on multiple history tapes (#430)
+
+SMS_Ln9.ne3pg3_ne3pg3_mg37.FADIAB.derecho_gnu.cam-outfrq_se_cslam
+  - known FAIL on shr_reprosum_calc call from src/dynamics/se/dycore/global_norms_mod.F90
