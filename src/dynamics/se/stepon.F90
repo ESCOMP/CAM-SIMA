@@ -20,17 +20,19 @@ contains
 !=========================================================================================
 
 subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
-   use cam_constituents,    only: num_constituents, const_name
+   use cam_constituents,    only: num_constituents
    use cam_constituents,    only: const_longname
+   use cam_constituents,    only: const_diag_name
    use runtime_obj,         only: runtime_options
    use cam_history,         only: history_add_field
    use cam_history_support, only: horiz_only
 
    ! SE/CAM interface:
    use dyn_comp,            only: dyn_import_t, dyn_export_t
+   use dyn_comp,            only: cnst_diag_name_gll
 
    ! SE dycore:
-   use dimensions_mod, only: fv_nphys, cnst_name_gll, cnst_longname_gll, qsize
+   use dimensions_mod, only: fv_nphys, cnst_longname_gll, qsize
 
    ! Dummy arguments
    type(runtime_options), intent(in) :: cam_runtime_opts ! Runtime settings object
@@ -43,9 +45,9 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
    !----------------------------------------------------------------------------
    ! These fields on dynamics grid are output before the call to d_p_coupling.
    do m_cnst = 1, qsize
-     call history_add_field(trim(cnst_name_gll(m_cnst))//'_gll',  trim(cnst_longname_gll(m_cnst)), &
+     call history_add_field(trim(cnst_diag_name_gll(m_cnst))//'_gll',  trim(cnst_longname_gll(m_cnst)), &
          'lev', 'inst', 'kg kg-1', gridname='GLL')
-     call history_add_field(trim(cnst_name_gll(m_cnst))//'dp_gll', trim(cnst_longname_gll(m_cnst))//'*dp', &
+     call history_add_field(trim(cnst_diag_name_gll(m_cnst))//'dp_gll', trim(cnst_longname_gll(m_cnst))//'*dp', &
          'lev', 'inst', 'kg kg-1', gridname='GLL')
    end do
 
@@ -76,12 +78,12 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
    !call add_default('T&IC',  0, 'inst')
 
    do m_cnst = 1, num_constituents
-      call history_add_field(trim(const_name(m_cnst))//'&IC', trim(const_longname(m_cnst)), &
+      call history_add_field(trim(const_diag_name(m_cnst))//'&IC', trim(const_longname(m_cnst)), &
                   'lev', 'inst', 'kg kg-1', gridname='GLL')
 
       !Uncomment or delete once history output "groups" have been
       !implemented in CAM-SIMA -JN:
-      !call add_default(trim(const_name(m_cnst))//'&IC', 0, 'inst')
+      !call add_default(trim(const_diag_name(m_cnst))//'&IC', 0, 'inst')
    end do
 
 end subroutine stepon_init
@@ -310,7 +312,8 @@ end subroutine stepon_final
 subroutine diag_dynvar_ic(elem, fvm)
 
    use shr_kind_mod,           only: r8=>shr_kind_r8, cl=>shr_kind_cl
-   use cam_constituents,       only: const_is_wet, const_name
+   use cam_constituents,       only: const_is_wet
+   use cam_constituents,       only: const_diag_name
    use cam_history,            only: is_history_field_active, history_out_field
    !use cam_history,           only: write_inithist
    use cam_history_support,    only: fieldname_len
@@ -322,6 +325,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    ! SE/CAM interface:
    use dyn_grid,               only: TimeLevel
+   use dyn_comp,               only: cnst_diag_name_gll
 
    ! SE dycore:
    use se_dyn_time_mod,        only: TimeLevel_Qdp   !  dynamics typestep
@@ -329,7 +333,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    use hybrid_mod,             only: config_thread_region, get_loop_ranges
    use hybrid_mod,             only: hybrid_t
    use dimensions_mod,         only: np, npsq, nc, nhc, fv_nphys, qsize, ntrac, nlev
-   use dimensions_mod,         only: cnst_name_gll, nelemd
+   use dimensions_mod,         only: nelemd
    use element_mod,            only: element_t
    use parallel_mod,           only: par
    use fvm_control_volume_mod, only: fvm_struct
@@ -368,7 +372,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    ! Output tracer fields for analysis of advection schemes
    do m_cnst = 1, qsize
-     tfname = trim(cnst_name_gll(m_cnst))//'_gll'
+     tfname = trim(cnst_diag_name_gll(m_cnst))//'_gll'
      if (is_history_field_active(tfname)) then
        do ie = 1, nelemd
          qtmp(:,:,:) =  elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
@@ -385,7 +389,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    end do
 
    do m_cnst = 1, qsize
-     tfname = trim(cnst_name_gll(m_cnst))//'dp_gll'
+     tfname = trim(cnst_diag_name_gll(m_cnst))//'dp_gll'
      if (is_history_field_active(tfname)) then
        do ie = 1, nelemd
          do j = 1, np
@@ -505,11 +509,11 @@ subroutine diag_dynvar_ic(elem, fvm)
             factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
             do m_cnst = 1, qsize
                if (const_is_wet(m_cnst)) then
-                  call history_out_field(trim(const_name(m_cnst))//'&IC', &
+                  call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(factor_array(:,:,:)*elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
                        elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
                else
-                  call history_out_field(trim(const_name(m_cnst))//'&IC', &
+                  call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
                        elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
                end if
@@ -560,7 +564,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
          do ie = nets, nete
             do m_cnst = 1, ntrac
-               call history_out_field(trim(const_name(m_cnst))//'&IC', &
+               call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                     RESHAPE(fld_gll(:,:,:,m_cnst,ie), (/npsq,nlev/)))
             end do
          end do

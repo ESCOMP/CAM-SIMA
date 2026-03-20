@@ -2,7 +2,7 @@ module dyn_comp
 
 ! CAM interfaces to the SE Dynamical Core
 
-use shr_kind_mod,           only: r8=>shr_kind_r8
+use shr_kind_mod,           only: r8=>shr_kind_r8, cl=>shr_kind_cl
 use dynconst,               only: pi
 
 !SE dycore:
@@ -48,6 +48,10 @@ end interface read_dyn_var
 real(r8), parameter :: rad2deg = 180.0_r8 / pi
 real(r8), parameter :: deg2rad = pi / 180.0_r8
 
+! Character array used to hold diagnostic names for constituent
+! fields on GLL grid:
+character(len=cl), allocatable, public, protected :: cnst_diag_name_gll(:)
+
 !===============================================================================
 contains
 !===============================================================================
@@ -56,7 +60,6 @@ subroutine dyn_readnl(NLFileName)
    use mpi,              only: mpi_real8, mpi_integer, mpi_character, mpi_logical
    use air_composition,  only: thermodynamic_active_species_num
    use shr_nl_mod,       only: find_group_name => shr_nl_find_group_name
-   use shr_kind_mod,     only: shr_kind_cl
    use spmd_utils,       only: masterproc, masterprocid, mpicom, npes
    use dyn_grid,         only: se_write_grid_file, se_grid_filename, se_write_gll_corners
    use native_mapping,   only: native_mapping_readnl
@@ -107,7 +110,7 @@ subroutine dyn_readnl(NLFileName)
    integer                      :: se_hypervis_subcycle_q
    integer                      :: se_limiter_option
    real(r8)                     :: se_max_hypervis_courant
-   character(len=shr_kind_cl)   :: se_mesh_file
+   character(len=cl)            :: se_mesh_file
    integer                      :: se_ne
    integer                      :: se_npes
    integer                      :: se_nsplit
@@ -222,7 +225,7 @@ subroutine dyn_readnl(NLFileName)
    call MPI_bcast(se_hypervis_subcycle_q, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_limiter_option, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_max_hypervis_courant, 1, mpi_real8, masterprocid, mpicom, ierr)
-   call MPI_bcast(se_mesh_file, shr_kind_cl,  mpi_character, masterprocid, mpicom, ierr)
+   call MPI_bcast(se_mesh_file, cl,  mpi_character, masterprocid, mpicom, ierr)
    call MPI_bcast(se_ne, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_npes, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_nsplit, 1, mpi_integer, masterprocid, mpicom, ierr)
@@ -243,7 +246,7 @@ subroutine dyn_readnl(NLFileName)
    call MPI_bcast(se_vert_remap_tracer_alg, 32, mpi_character, masterprocid, mpicom, ierr)
    call MPI_bcast(se_fv_nphys, 1, mpi_integer, masterprocid, mpicom, ierr)
    call MPI_bcast(se_write_grid_file, 16,  mpi_character, masterprocid, mpicom, ierr)
-   call MPI_bcast(se_grid_filename, shr_kind_cl, mpi_character, masterprocid, mpicom, ierr)
+   call MPI_bcast(se_grid_filename, cl, mpi_character, masterprocid, mpicom, ierr)
    call MPI_bcast(se_write_gll_corners, 1,  mpi_logical, masterprocid, mpicom, ierr)
    call MPI_bcast(se_horz_num_threads, 1, MPI_integer, masterprocid, mpicom,ierr)
    call MPI_bcast(se_vert_num_threads, 1, MPI_integer, masterprocid, mpicom,ierr)
@@ -517,7 +520,6 @@ end subroutine dyn_readnl
 !=========================================================================================
 
 subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-   use shr_kind_mod,        only: cl=>shr_kind_cl
    use runtime_obj,         only: runtime_options
    use cam_logfile,         only: iulog
    use dyn_grid,            only: elem, fvm, hvcoord
@@ -525,8 +527,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use cam_pio_utils,       only: clean_iodesc_list
    use cam_abortutils,      only: check_allocate
    use spmd_utils,          only: iam, masterproc
-   use cam_constituents,    only: const_name, const_longname, num_advected, &
-                                  const_get_index, const_is_wet, const_qmin
+   use cam_constituents,    only: const_name, const_longname, num_advected
+   use cam_constituents,    only: const_get_index, const_is_wet, const_qmin
+   use cam_constituents,    only: const_diag_name
    use cam_initfiles,       only: initial_file_get_id, topo_file_get_id
    use cam_control_mod,     only: initial_run
    use air_composition,     only: thermodynamic_active_species_num, thermodynamic_active_species_idx
@@ -624,6 +627,11 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    call check_allocate(iret, subname, 'cnst_longname_gll(qsize)', &
                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
+   allocate(cnst_diag_name_gll(qsize), stat=iret, errmsg=errmsg)
+   call check_allocate(iret, subname, 'cnst_diag_name_gll(qsize)', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+
    allocate(kord_tr(qsize), stat=iret, errmsg=errmsg)
    call check_allocate(iret, subname, 'kord_tr(qsize)', &
                        file=__FILE__, line=__LINE__, errmsg=errmsg)
@@ -658,6 +666,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
        kord_tr(m)                                 = vert_remap_uvTq_alg
        cnst_name_gll    (m)                       = const_name    (thermodynamic_active_species_idx(m))
        cnst_longname_gll(m)                       = const_longname(thermodynamic_active_species_idx(m))
+       cnst_diag_name_gll(m)                      = const_diag_name(thermodynamic_active_species_idx(m))
      else
        !
        ! if not running with CSLAM then the condensate-loading water tracers are not necessarily
@@ -667,9 +676,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
          thermodynamic_active_species_idx_dycore(m) = thermodynamic_active_species_idx(m)
          kord_tr(thermodynamic_active_species_idx_dycore(m)) = vert_remap_uvTq_alg
        end if
-       cnst_name_gll    (m)                = const_name    (m)
-       cnst_longname_gll(m)                = const_longname(m)
-
+       cnst_name_gll(m)      = const_name(m)
+       cnst_longname_gll(m)  = const_longname(m)
+       cnst_diag_name_gll(m) = const_diag_name(m)
      end if
    end do
 #ifdef energy_budget_code
@@ -867,10 +876,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! Tracer forcing on fvm (CSLAM) grid and internal CSLAM pressure fields
    if (use_cslam) then
       do m = 1, ntrac
-         call history_add_field (trim(const_name(m))//'_fvm', trim(const_longname(m)), 'lev', 'inst', 'kg/kg',   &
+         call history_add_field (trim(const_diag_name(m))//'_fvm', trim(const_longname(m)), 'lev', 'inst', 'kg/kg',   &
             gridname='FVM')
 
-         call history_add_field ('F'//trim(const_name(m))//'_fvm', &
+         call history_add_field ('F'//trim(const_diag_name(m))//'_fvm', &
            trim(const_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
            'lev', 'inst', 'kg kg-1 s-1', gridname='FVM')
       end do
@@ -880,7 +889,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    end if
 
    do m_cnst = 1, qsize
-     call history_add_field ('F'//trim(cnst_name_gll(m_cnst))//'_gll',  &
+     call history_add_field ('F'//trim(cnst_diag_name_gll(m_cnst))//'_gll',  &
           trim(cnst_longname_gll(m_cnst))//' mixing ratio forcing term (q_new-q_old) on GLL grid', &
           'lev', 'inst', 'kg kg-1 s-1', gridname='GLL')
    end do
@@ -1029,7 +1038,6 @@ end subroutine dyn_init
 !=========================================================================================
 
 subroutine dyn_run(dyn_state)
-   use shr_kind_mod,     only: cl=>shr_kind_cl
    use air_composition,  only: thermodynamic_active_species_num, dry_air_species_num
    use air_composition,  only: thermodynamic_active_species_idx_dycore
    use cam_history,      only: is_history_field_active, history_out_field
@@ -1128,9 +1136,9 @@ subroutine dyn_run(dyn_state)
    end if
 
    do m = 1, qsize
-     if (is_history_field_active('F'//trim(cnst_name_gll(m))//'_gll')) then
+     if (is_history_field_active('F'//trim(cnst_diag_name_gll(m))//'_gll')) then
        do ie = nets, nete
-         call history_out_field('F'//trim(cnst_name_gll(m))//'_gll',&
+         call history_out_field('F'//trim(cnst_diag_name_gll(m))//'_gll',&
               RESHAPE(dyn_state%elem(ie)%derived%FQ(:,:,:,m), (/np*np,nlev/)))
        end do
      end if
@@ -1252,7 +1260,6 @@ end subroutine dyn_final
 !===============================================================================
 
 subroutine read_inidat(dyn_in)
-   use shr_kind_mod,         only: cl=>shr_kind_cl
    use pio,                  only: file_desc_t
    use pio,                  only: pio_seterrorhandling, PIO_BCAST_ERROR
    use air_composition,      only: thermodynamic_active_species_num, dry_air_species_num
@@ -2008,7 +2015,6 @@ subroutine set_phis(dyn_in)
 
    use pio,                  only: file_desc_t, pio_inq_dimid, pio_inq_dimlen
    use pio,                  only: pio_seterrorhandling, PIO_NOERR, PIO_BCAST_ERROR
-   use shr_kind_mod,         only: cl=>shr_kind_cl
    use cam_abortutils,       only: endrun, check_allocate
    use cam_logfile,          only: iulog
    use phys_vars_init_check, only: mark_as_initialized
@@ -2551,7 +2557,6 @@ end subroutine read_phys_field_2d
 
 subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
 
-   use shr_kind_mod,       only: cl=>shr_kind_cl
    use cam_abortutils,     only: check_allocate
 
    !SE dycore:
@@ -2624,6 +2629,7 @@ subroutine write_dyn_vars(dyn_out)
    use cam_history_support, only: fieldname_len
    use cam_history,         only: history_out_field
    use cam_constituents,    only: const_name
+   use cam_constituents,    only: const_diag_name
 
    !SE dycore:
    use dimensions_mod,      only: nlev, ntrac, nc, nelemd, use_cslam
@@ -2641,11 +2647,11 @@ subroutine write_dyn_vars(dyn_out)
          call history_out_field('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc),     &
                                           (/nc*nc/)))
          do m = 1, ntrac
-            tfname = trim(const_name(m))//'_fvm'
+            tfname = trim(const_diag_name(m))//'_fvm'
             call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m),     &
                                         (/nc*nc,nlev/)))
 
-            tfname = 'F'//trim(const_name(m))//'_fvm'
+            tfname = 'F'//trim(const_diag_name(m))//'_fvm'
             call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),    &
                                         (/nc*nc,nlev/)))
          end do

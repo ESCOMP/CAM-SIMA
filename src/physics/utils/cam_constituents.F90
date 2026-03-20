@@ -12,6 +12,7 @@ module cam_constituents
    ! Public accessor functions
    public :: const_name     ! Constituent standard name
    public :: const_longname
+   public :: const_diag_name ! Constituent diagnostic (file output) name
    public :: const_molec_weight
    public :: const_get_index
    public :: const_is_advected
@@ -285,6 +286,32 @@ CONTAINS
       end if
 
    end function const_longname
+
+   !#######################################################################
+   function const_diag_name(const_ind)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+      use shr_kind_mod,   only: CL => shr_kind_cl
+
+      ! Return the diagnostic name of the constituent at <const_ind>.
+      ! Dummy arguments
+      integer, intent(in)         :: const_ind
+      character(len=CL)           :: const_diag_name
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_diag_name: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         call const_props(const_ind)%diagnostic_name(const_diag_name,        &
+              err_code, err_msg)
+         if (err_code /= 0) then
+            call endrun(subname//"Error "//to_str(err_code)//": "//           &
+                 trim(err_msg), file=__FILE__, line=__LINE__)
+         end if
+      end if
+
+   end function const_diag_name
 
    !#######################################################################
 
