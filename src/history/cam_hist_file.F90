@@ -1820,14 +1820,10 @@ CONTAINS
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_min > 0) then
-         call endrun(subname//"ERROR, minimum fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_min_fields(:), max_fldlen*num_fields_min, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_max > 0) then
-         call endrun(subname//"ERROR, maximum fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_max_fields(:), max_fldlen*num_fields_max, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
