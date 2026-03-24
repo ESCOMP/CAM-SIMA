@@ -1,0 +1,158 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for bulk_aerosol_state_mod.
+!
+! Tests the bulk aerosol state type, which extends abstract aerosol_state.
+! Uses real bulk_aerosol_properties (via mock radiative_aerosol) to test
+! the interaction between properties and state:
+! mocking is done at the external dependency boundary (to avoid PIO at
+! aerosol_physical_properties)
+!
+! Mock boundaries:
+!   - radiative_aerosol (rad_aer_get_info, rad_aer_get_props) for properties
+!   - aerosol_mmr_ccpp (rad_cnst_get_aer_mmr) for state MMR retrieval
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_constructor()
+    use funit
+    use ccpp_kinds, only: kind_phys
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+
+    type(bulk_aerosol_state), pointer :: state
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+
+    allocate(constituents(2, 3, 1))
+    constituents = 1.0e-6_kind_phys
+    cptr => constituents
+
+    state => bulk_aerosol_state(cptr)
+
+    @assertTrue(associated(state))
+
+    deallocate(state)
+    deallocate(constituents)
+end subroutine test_constructor
+
+@test
+subroutine test_get_ambient_mmr()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+
+    type(bulk_aerosol_state), pointer :: state
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8), pointer :: mmr(:,:)
+    integer, parameter :: ncol = 2, nlev = 3, naero = 2
+
+    allocate(constituents(ncol, nlev, naero))
+    constituents(:, :, 1) = 1.0e-6_kind_phys  ! dust
+    constituents(:, :, 2) = 2.0e-6_kind_phys  ! sulfate
+    cptr => constituents
+
+    state => bulk_aerosol_state(cptr)
+
+    ! Get MMR for aerosol 1 (dust)
+    call state%get_ambient_mmr(species_ndx=1, bin_ndx=1, mmr=mmr)
+    @assertTrue(associated(mmr))
+    @assertEqual(1.0e-6_r8, mmr(1, 1), 1.0e-20_r8)
+
+    ! Get MMR for aerosol 2 (sulfate)
+    call state%get_ambient_mmr(species_ndx=1, bin_ndx=2, mmr=mmr)
+    @assertEqual(2.0e-6_r8, mmr(1, 1), 1.0e-20_r8)
+
+    deallocate(state)
+    deallocate(constituents)
+end subroutine test_get_ambient_mmr
+
+@test
+subroutine test_dry_volume()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_state), pointer :: state
+    type(bulk_aerosol_properties), pointer :: props
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8) :: vol(1, 1)
+    integer, parameter :: ncol = 1, nlev = 1, naero = 1
+
+    ! Set up mock aerosol: density = 2000 kg/m3
+    call setup_mock_rad_aer( &
+         naero = naero, &
+         density = [2000._r8], &
+         hygro = [0.0_r8], &
+         dispersion = [2.0_r8], &
+         aername = [character(len=20) :: 'dust1'], &
+         opticstype = [character(len=32) :: 'nonhygro'] )
+
+    props => bulk_aerosol_properties()
+
+    ! Constituents: MMR = 1.0e-6 kg/kg
+    allocate(constituents(ncol, nlev, naero))
+    constituents(:, :, 1) = 1.0e-6_kind_phys
+    cptr => constituents
+
+    state => bulk_aerosol_state(cptr)
+
+    ! dry_volume = mmr / density = 1e-6 / 2000 = 5e-10 m3/kg
+    vol = state%dry_volume(props, bin_idx=1, ncol=ncol, nlev=nlev)
+    @assertEqual(5.0e-10_r8, vol(1,1), 1.0e-24_r8)
+
+    deallocate(state)
+    deallocate(props)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_dry_volume
+
+@test
+subroutine test_ambient_total_bin_mmr()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_state), pointer :: state
+    type(bulk_aerosol_properties), pointer :: props
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8) :: mmr_tot
+    integer, parameter :: ncol = 2, nlev = 3, naero = 2
+
+    call setup_mock_rad_aer( &
+         naero = naero, &
+         density = [1000._r8, 1700._r8], &
+         hygro = [0.0_r8, 0.5_r8], &
+         dispersion = [2.0_r8, 1.6_r8], &
+         aername = [character(len=20) :: 'dust1', 'sulfate'], &
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro'] )
+
+    props => bulk_aerosol_properties()
+
+    allocate(constituents(ncol, nlev, naero))
+    constituents(:, :, 1) = 3.0e-6_kind_phys
+    constituents(:, :, 2) = 7.0e-6_kind_phys
+    cptr => constituents
+
+    state => bulk_aerosol_state(cptr)
+
+    ! For bulk aerosols, each bin has 1 species, so total = that species
+    mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=1, col_ndx=1, lyr_ndx=1)
+    @assertEqual(3.0e-6_r8, mmr_tot, 1.0e-20_r8)
+
+    mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=2, col_ndx=1, lyr_ndx=1)
+    @assertEqual(7.0e-6_r8, mmr_tot, 1.0e-20_r8)
+
+    deallocate(state)
+    deallocate(props)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_ambient_total_bin_mmr

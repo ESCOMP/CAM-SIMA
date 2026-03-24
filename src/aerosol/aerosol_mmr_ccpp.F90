@@ -5,7 +5,7 @@ module aerosol_mmr_ccpp
 ! CAM-SIMA (CCPP) aerosol MMR retrieval routines.  These routines use
 ! the CCPP constituents array to return mixing ratio pointers.
 !
-! Ported from aerosol_mmr_cam — replaces pbuf/state%q with CCPP constituents.
+! Ported from aerosol_mmr_cam: replaces pbuf/state%q with CCPP constituents.
 !
 !------------------------------------------------------------------------------------------------
 

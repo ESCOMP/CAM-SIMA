@@ -1,0 +1,141 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for parse_rad_specifier in radiative_aerosol_definitions.
+!
+! Tests parsing of radiation namelist specifier strings into the
+! rad_cnst_namelist_t structure. The specifier format is:
+!   "source:camname:radname"
+! where source is A (advected), N (non-advected), M (mode), B (bin), Z (zero).
+! Type is determined by source and radname extension:
+!   'M' if source='M', 'B' if source='B', 'A' if radname has .nc, else 'G'
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_parse_bulk_aerosol()
+    use funit
+    use radiative_aerosol_definitions, only: parse_rad_specifier, rad_cnst_namelist_t, n_rad_cnst
+
+    type(rad_cnst_namelist_t) :: nml_data
+    character(len=256) :: specifier(n_rad_cnst)
+
+    specifier = ''
+    specifier(1) = 'A:dust1:/path/to/dust.nc'
+
+    call parse_rad_specifier(specifier, nml_data)
+
+    @assertEqual(1, nml_data%ncnst)
+    @assertEqual('A', nml_data%source(1))
+    @assertEqual('dust1', trim(nml_data%camname(1)))
+    @assertEqual('/path/to/dust.nc', trim(nml_data%radname(1)))
+    @assertEqual('A', nml_data%type(1))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+end subroutine test_parse_bulk_aerosol
+
+@test
+subroutine test_parse_mode()
+    use funit
+    use radiative_aerosol_definitions, only: parse_rad_specifier, rad_cnst_namelist_t, n_rad_cnst
+
+    type(rad_cnst_namelist_t) :: nml_data
+    character(len=256) :: specifier(n_rad_cnst)
+
+    specifier = ''
+    specifier(1) = 'M:accum:accum_mode'
+
+    call parse_rad_specifier(specifier, nml_data)
+
+    @assertEqual(1, nml_data%ncnst)
+    @assertEqual('M', nml_data%source(1))
+    @assertEqual('accum', trim(nml_data%camname(1)))
+    @assertEqual('accum_mode', trim(nml_data%radname(1)))
+    @assertEqual('M', nml_data%type(1))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+end subroutine test_parse_mode
+
+@test
+subroutine test_parse_bin()
+    use funit
+    use radiative_aerosol_definitions, only: parse_rad_specifier, rad_cnst_namelist_t, n_rad_cnst
+
+    type(rad_cnst_namelist_t) :: nml_data
+    character(len=256) :: specifier(n_rad_cnst)
+
+    specifier = ''
+    specifier(1) = 'B:bin1:bin1_mode'
+
+    call parse_rad_specifier(specifier, nml_data)
+
+    @assertEqual(1, nml_data%ncnst)
+    @assertEqual('B', nml_data%source(1))
+    @assertEqual('bin1', trim(nml_data%camname(1)))
+    @assertEqual('bin1_mode', trim(nml_data%radname(1)))
+    @assertEqual('B', nml_data%type(1))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+end subroutine test_parse_bin
+
+@test
+subroutine test_parse_multiple()
+    use funit
+    use radiative_aerosol_definitions, only: parse_rad_specifier, rad_cnst_namelist_t, n_rad_cnst
+
+    type(rad_cnst_namelist_t) :: nml_data
+    character(len=256) :: specifier(n_rad_cnst)
+
+    specifier = ''
+    ! note: even though gases are not parsed in radiative_aerosol in CAM-SIMA
+    ! 'G' type could be recognized so the namelist entries are skipped
+    ! (see radiative_aerosol_definitions.F90::list_populate)
+    !
+    ! when CAM is retired we can remove the 'G' parsing logic.
+    specifier(1) = 'A:H2O:H2O'
+    specifier(2) = 'A:dust1:/path/dust.nc'
+    specifier(3) = 'M:accum:accum_mode'
+
+    call parse_rad_specifier(specifier, nml_data)
+
+    @assertEqual(3, nml_data%ncnst)
+    @assertEqual('G', nml_data%type(1))
+    @assertEqual('A', nml_data%type(2))
+    @assertEqual('M', nml_data%type(3))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+end subroutine test_parse_multiple
+
+@test
+subroutine test_parse_empty()
+    use funit
+    use radiative_aerosol_definitions, only: parse_rad_specifier, rad_cnst_namelist_t, n_rad_cnst
+
+    type(rad_cnst_namelist_t) :: nml_data
+    character(len=256) :: specifier(n_rad_cnst)
+
+    specifier = ''
+
+    call parse_rad_specifier(specifier, nml_data)
+
+    @assertEqual(0, nml_data%ncnst)
+end subroutine test_parse_empty
+
+@test
+subroutine test_parse_strips_spaces()
+    use funit
+    use radiative_aerosol_definitions, only: parse_rad_specifier, rad_cnst_namelist_t, n_rad_cnst
+
+    type(rad_cnst_namelist_t) :: nml_data
+    character(len=256) :: specifier(n_rad_cnst)
+
+    specifier = ''
+    specifier(1) = 'A : dust1 : /path/to/dust.nc'
+
+    call parse_rad_specifier(specifier, nml_data)
+
+    @assertEqual(1, nml_data%ncnst)
+    @assertEqual('A', nml_data%source(1))
+    @assertEqual('dust1', trim(nml_data%camname(1)))
+    @assertEqual('/path/to/dust.nc', trim(nml_data%radname(1)))
+    @assertEqual('A', nml_data%type(1))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+end subroutine test_parse_strips_spaces

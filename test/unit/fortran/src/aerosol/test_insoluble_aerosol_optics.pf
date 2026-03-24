@@ -1,0 +1,150 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for insoluble_aerosol_optics_mod.
+!
+! Tests the insoluble (non-hygroscopic) aerosol optics, which is the
+! simplest optics type (no RH dependence). Uses real bulk_aerosol_properties
+! and bulk_aerosol_state with mock radiative_aerosol providing canned
+! optics tables.
+!
+! The insoluble optics computes:
+!   sw_props: pext = ext(iwav) * mmr, palb = ssa(iwav), pasm = asm(iwav)
+!             pabs = pext * (1 - palb)
+!   lw_props: pabs = abs(iwav) * mmr
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_sw_props()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use insoluble_aerosol_optics_mod, only: insoluble_aerosol_optics
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_optics_mod, only: aerosol_optics
+    use radiative_aerosol, only: setup_mock_rad_aer, setup_mock_optics_tables, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+    type(bulk_aerosol_state), pointer :: state
+    class(aerosol_optics), pointer :: optics
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8) :: pext(1), pabs(1), palb(1), pasm(1)
+
+    integer, parameter :: ncol = 1, nlev = 1, naero = 1
+    integer, parameter :: nswbands = 2, nlwbands = 1
+
+    real(r8) :: sw_ext(nswbands, naero), sw_ssa(nswbands, naero), sw_asm(nswbands, naero)
+    real(r8) :: lw_abs(nlwbands, naero)
+
+    ! Set up mock aerosol
+    call setup_mock_rad_aer( &
+         naero = naero, &
+         density = [2600._r8], &
+         hygro = [0.0_r8], &
+         dispersion = [2.0_r8], &
+         aername = [character(len=20) :: 'dust1'], &
+         opticstype = [character(len=32) :: 'nonhygro'] )
+
+    ! Set up mock optics tables
+    sw_ext(:, 1) = [100._r8, 200._r8]   ! extinction at 2 SW bands
+    sw_ssa(:, 1) = [0.9_r8, 0.8_r8]     ! single-scatter albedo
+    sw_asm(:, 1) = [0.7_r8, 0.6_r8]     ! asymmetry
+    lw_abs(:, 1) = [50._r8]             ! LW absorption
+    call setup_mock_optics_tables(nswbands, nlwbands, &
+         sw_ext=sw_ext, sw_ssa=sw_ssa, sw_asm=sw_asm, lw_abs=lw_abs)
+
+    ! Create properties and state
+    props => bulk_aerosol_properties()
+
+    allocate(constituents(ncol, nlev, naero))
+    constituents(:, :, 1) = 1.0e-6_kind_phys  ! MMR = 1e-6 kg/kg
+    cptr => constituents
+    state => bulk_aerosol_state(cptr)
+
+    ! Create insoluble optics object
+    optics => insoluble_aerosol_optics(props, state, ibin=1)
+    @assertTrue(associated(optics))
+
+    ! Test SW band 1: pext = 100 * 1e-6 = 1e-4
+    call optics%sw_props(ncol=1, ilev=1, iwav=1, pext=pext, pabs=pabs, palb=palb, pasm=pasm)
+    @assertEqual(1.0e-4_r8, pext(1), 1.0e-18_r8)
+    @assertEqual(0.9_r8, palb(1), 1.0e-14_r8)
+    @assertEqual(0.7_r8, pasm(1), 1.0e-14_r8)
+    ! pabs = pext * (1 - palb) = 1e-4 * 0.1 = 1e-5
+    @assertEqual(1.0e-5_r8, pabs(1), 1.0e-19_r8)
+
+    ! Test SW band 2: pext = 200 * 1e-6 = 2e-4
+    call optics%sw_props(ncol=1, ilev=1, iwav=2, pext=pext, pabs=pabs, palb=palb, pasm=pasm)
+    @assertEqual(2.0e-4_r8, pext(1), 1.0e-18_r8)
+    @assertEqual(0.8_r8, palb(1), 1.0e-14_r8)
+    @assertEqual(0.6_r8, pasm(1), 1.0e-14_r8)
+
+    deallocate(optics)
+    deallocate(state)
+    deallocate(props)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_sw_props
+
+@test
+subroutine test_lw_props()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use insoluble_aerosol_optics_mod, only: insoluble_aerosol_optics
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_optics_mod, only: aerosol_optics
+    use radiative_aerosol, only: setup_mock_rad_aer, setup_mock_optics_tables, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+    type(bulk_aerosol_state), pointer :: state
+    class(aerosol_optics), pointer :: optics
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8) :: pabs(1)
+
+    integer, parameter :: ncol = 1, nlev = 1, naero = 1
+    integer, parameter :: nswbands = 1, nlwbands = 2
+
+    real(r8) :: sw_ext(nswbands, naero), sw_ssa(nswbands, naero), sw_asm(nswbands, naero)
+    real(r8) :: lw_abs(nlwbands, naero)
+
+    call setup_mock_rad_aer( &
+         naero = naero, &
+         density = [2600._r8], &
+         hygro = [0.0_r8], &
+         dispersion = [2.0_r8], &
+         aername = [character(len=20) :: 'dust1'], &
+         opticstype = [character(len=32) :: 'nonhygro'] )
+
+    sw_ext(:, 1) = [100._r8]
+    sw_ssa(:, 1) = [0.9_r8]
+    sw_asm(:, 1) = [0.7_r8]
+    lw_abs(:, 1) = [30._r8, 60._r8]   ! LW absorption at 2 bands
+    call setup_mock_optics_tables(nswbands, nlwbands, &
+         sw_ext=sw_ext, sw_ssa=sw_ssa, sw_asm=sw_asm, lw_abs=lw_abs)
+
+    props => bulk_aerosol_properties()
+
+    allocate(constituents(ncol, nlev, naero))
+    constituents(:, :, 1) = 2.0e-6_kind_phys  ! MMR = 2e-6
+    cptr => constituents
+    state => bulk_aerosol_state(cptr)
+
+    optics => insoluble_aerosol_optics(props, state, ibin=1)
+
+    ! LW band 1: pabs = 30 * 2e-6 = 6e-5
+    call optics%lw_props(ncol=1, ilev=1, iwav=1, pabs=pabs)
+    @assertEqual(6.0e-5_r8, pabs(1), 1.0e-19_r8)
+
+    ! LW band 2: pabs = 60 * 2e-6 = 1.2e-4
+    call optics%lw_props(ncol=1, ilev=1, iwav=2, pabs=pabs)
+    @assertEqual(1.2e-4_r8, pabs(1), 1.0e-18_r8)
+
+    deallocate(optics)
+    deallocate(state)
+    deallocate(props)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_lw_props
