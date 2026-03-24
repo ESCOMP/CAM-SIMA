@@ -1627,6 +1627,86 @@
       <ic_file_input_names>pbuf_clubbtop</ic_file_input_names>
     </variable>
 
+    <!-- Test for tracer_data / aerosols / BAM -->
+    <variable local_name="sulf"
+              standard_name="sulf"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>sulf pbuf_sulf cnst_sulf </ic_file_input_names>
+    </variable>
+    <variable local_name="bcar1"
+              standard_name="bcar1"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>bcar1 pbuf_bcar1 cnst_bcar1</ic_file_input_names>
+    </variable>
+    <variable local_name="bcar2"
+              standard_name="bcar2"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>bcar2 pbuf_bcar2 cnst_bcar2</ic_file_input_names>
+    </variable>
+    <variable local_name="ocar1"
+              standard_name="ocar1"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>ocar1 pbuf_ocar1 cnst_ocar1</ic_file_input_names>
+    </variable>
+    <variable local_name="ocar2"
+              standard_name="ocar2"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>ocar2 pbuf_ocar2 cnst_ocar2</ic_file_input_names>
+    </variable>
+    <variable local_name="sslt1"
+              standard_name="sslt1"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>sslt1 pbuf_sslt1 cnst_sslt1</ic_file_input_names>
+    </variable>
+    <variable local_name="sslt2"
+              standard_name="sslt2"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>sslt2 pbuf_sslt2 cnst_sslt2</ic_file_input_names>
+    </variable>
+    <variable local_name="sslt3"
+              standard_name="sslt3"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>sslt3 pbuf_sslt3 cnst_sslt3</ic_file_input_names>
+    </variable>
+    <variable local_name="sslt4"
+              standard_name="sslt4"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>sslt4 pbuf_sslt4 cnst_sslt4</ic_file_input_names>
+    </variable>
+    <variable local_name="dust1"
+              standard_name="dust1"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dust1 pbuf_dust1 cnst_dust1</ic_file_input_names>
+    </variable>
+    <variable local_name="dust2"
+              standard_name="dust2"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dust2 pbuf_dust2 cnst_dust2</ic_file_input_names>
+    </variable>
+    <variable local_name="dust3"
+              standard_name="dust3"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dust3 pbuf_dust3 cnst_dust3</ic_file_input_names>
+    </variable>
+    <variable local_name="dust4"
+              standard_name="dust4"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>dust4 pbuf_dust4 cnst_dust4</ic_file_input_names>
+    </variable>
+
     <!-- Zhang McFarlane (ZM) Variables -->
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"

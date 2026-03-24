@@ -554,7 +554,10 @@ CONTAINS
          cell_methods = ''
       end if
 
-      ! peverwhee - TODO: handle fill values
+      ! Fill values: flag_xyfill is propagated to the hist file field_list
+      ! and _FillValue / missing_value attributes are written in
+      ! config_define_file (cam_hist_file.F90).
+      ! TODO: fill-aware accumulation for averaged output.
 
       allocate(mdim_indices(size(dimnames)), stat=ierr)
       call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1)

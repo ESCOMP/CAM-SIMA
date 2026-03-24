@@ -772,7 +772,9 @@ CONTAINS
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
             dimensions, this%accumulate_types(idx), field_ptr%num_levels(), &
             field_shape, beg_dims=beg_dim, end_dims=end_dim,     &
-            mixing_ratio=field_ptr%mixing_ratio())
+            mixing_ratio=field_ptr%mixing_ratio(),               &
+            flag_xyfill=field_ptr%flag_xyfill(),                 &
+            sampling_seq=field_ptr%sampling_sequence())
          call hist_new_buffer(field_info, field_shape, &
             this%rl_kind, 1, this%accumulate_types(idx), 1, errors=errors)
          if (masterproc) then
@@ -912,6 +914,8 @@ CONTAINS
       use cam_history_support, only: write_hist_coord_attrs
       use cam_history_support, only: write_hist_coord_vars
       use cam_history_support, only: max_chars
+      use cam_history_support, only: fillvalue
+      use shr_kind_mod,        only: r4 => shr_kind_r4
       use time_manager,        only: get_ref_date, timemgr_get_calendar_cf
       use time_manager,        only: get_step_size
       use string_utils,        only: date2yyyymmdd, sec2hms, stringify
@@ -1285,8 +1289,20 @@ CONTAINS
                   call cam_pio_handle_error(ierr, 'config_define_file: cannot define Sampling_Sequence for '//trim(fname_tmp))
                end if
                if (this%field_list(field_index)%flag_xyfill()) then
-                  ! peverwhee - TODO: implement fill values!
-                  call endrun('config_define_file: fill values not yet implemented!', file=__FILE__, line=__LINE__)
+                  ! Write _FillValue and missing_value attributes so that
+                  ! netCDF-aware tools (ncview, ncdump, etc.) recognise fill
+                  ! values.  The attribute type must match the variable type.
+                  if (ncreal == pio_double) then
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', fillvalue)
+                     call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', fillvalue)
+                     call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
+                  else
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', real(fillvalue, r4))
+                     call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', real(fillvalue, r4))
+                     call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
+                  end if
                end if
                str = this%field_list(field_index)%units()
                if (len_trim(str) > 0) then

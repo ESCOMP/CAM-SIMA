@@ -20,7 +20,7 @@
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
 	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = 87e76a6ce90767d1d32259ff3f11dec9c9a03b03
+	fxtag         = 3f5435e8a9a53eb00f14a6b14975f92580b525d4
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "rrtmgp-data"]
@@ -32,7 +32,7 @@
 [submodule "ccs_config"]
         path          = ccs_config
         url           = https://github.com/ESMCI/ccs_config_cesm.git
-        fxtag         = ccs_config_cesm1.0.72
+        fxtag         = ccs_config_cesm1.0.76
         fxrequired    = ToplevelRequired
         fxDONOTUSEurl = https://github.com/ESMCI/ccs_config_cesm.git
 [submodule "cdeps"]
