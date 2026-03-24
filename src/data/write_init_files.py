@@ -1288,7 +1288,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["check_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
-                                   "prot_no_init_idx", "const_idx"]],
+                                   "prot_no_init_idx", "const_idx",
+                                   "flush_check_field_verbose"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
                                    "cam_advected_constituents_array",
                                    "cam_model_const_properties"]],
@@ -1501,6 +1502,11 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end if", 3)
     outfile.write("end do", 2)
 
+    # Flush any buffered verbose entries (printed after all diff entries):
+    outfile.comment("Flush verbose check_field entries (printed after diffs):", 2)
+    outfile.write("call flush_check_field_verbose()", 2)
+    outfile.blank_line()
+
     # Close check file
     outfile.comment("Close check file:", 2)
     outfile.write("call cam_pio_closefile(file)", 2)
@@ -1508,7 +1514,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("nullify(file)", 2)
 
     # Check if no differences were found
-    outfile.write("if (is_first) then", 2)
+    outfile.write("if (.not. overall_diff_found) then", 2)
     outfile.write("if (masterproc) then", 3)
     outfile.write("write(iulog,*) ''", 4)
     outfile.write("write(iulog,*) 'No differences found!'", 4)
