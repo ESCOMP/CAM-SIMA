@@ -1,6 +1,6 @@
 module carma_aerosol_properties_mod
   !-----------------------------------------------------------------------------
-  ! Stub module for CARMA aerosol properties — not yet implemented in CAM-SIMA.
+  ! Stub module for CARMA aerosol properties not yet implemented in CAM-SIMA.
   ! Exports the constructor interface so aerosol_instances_mod compiles.
   !-----------------------------------------------------------------------------
   use shr_kind_mod, only: r8 => shr_kind_r8

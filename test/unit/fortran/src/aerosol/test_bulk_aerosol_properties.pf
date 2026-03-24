@@ -1,0 +1,179 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for bulk_aerosol_properties_mod.
+!
+! Tests the bulk aerosol properties type, which extends abstract
+! aerosol_properties. The radiative_aerosol module is mocked to
+! provide configurable in-memory data (no file I/O).
+!
+! Mock boundary: radiative_aerosol (rad_aer_get_info, rad_aer_get_props)
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_constructor_nbins()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+
+    ! Set up 3 mock aerosols
+    call setup_mock_rad_aer( &
+         naero = 3, &
+         density = [1000._r8, 1700._r8, 2600._r8], &
+         hygro = [0.1_r8, 0.5_r8, 0.0_r8], &
+         dispersion = [2.0_r8, 1.6_r8, 1.8_r8], &
+         aername = [character(len=20) :: 'dust1', 'sulfate', 'bcphi'], &
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro', 'nonhygro'] )
+
+    props => bulk_aerosol_properties()
+
+    @assertTrue(associated(props))
+    @assertEqual(3, props%nbins())
+    ! Bulk: 1 species per bin
+    @assertEqual(1, props%nspecies(1))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_constructor_nbins
+
+@test
+subroutine test_get_density()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+    real(r8) :: dens
+
+    call setup_mock_rad_aer( &
+         naero = 2, &
+         density = [1000._r8, 1700._r8], &
+         hygro = [0.1_r8, 0.5_r8], &
+         dispersion = [2.0_r8, 1.6_r8], &
+         aername = [character(len=20) :: 'dust1', 'sulfate'], &
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro'] )
+
+    props => bulk_aerosol_properties()
+
+    call props%get(bin_ndx=1, species_ndx=1, density=dens)
+    @assertEqual(1000._r8, dens, 1.0e-14_r8)
+
+    call props%get(bin_ndx=2, species_ndx=1, density=dens)
+    @assertEqual(1700._r8, dens, 1.0e-14_r8)
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_get_density
+
+@test
+subroutine test_get_hygro()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+    real(r8) :: hygro
+
+    call setup_mock_rad_aer( &
+         naero = 1, &
+         density = [1700._r8], &
+         hygro = [0.65_r8], &
+         dispersion = [1.6_r8], &
+         aername = [character(len=20) :: 'sulfate'], &
+         opticstype = [character(len=32) :: 'hygro'] )
+
+    props => bulk_aerosol_properties()
+
+    call props%get(bin_ndx=1, species_ndx=1, hygro=hygro)
+    @assertEqual(0.65_r8, hygro, 1.0e-14_r8)
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_get_hygro
+
+@test
+subroutine test_species_type_dust()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+    character(len=32) :: spectype
+
+    ! spectype is determined by aername(:4) 'dust' -> 'dust'
+    call setup_mock_rad_aer( &
+         naero = 1, &
+         density = [2600._r8], &
+         hygro = [0.0_r8], &
+         dispersion = [2.0_r8], &
+         aername = [character(len=20) :: 'dust1'], &
+         opticstype = [character(len=32) :: 'nonhygro'] )
+
+    props => bulk_aerosol_properties()
+
+    call props%get(bin_ndx=1, species_ndx=1, spectype=spectype)
+    @assertEqual('dust', trim(spectype))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_species_type_dust
+
+@test
+subroutine test_species_type_sulfate()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+    character(len=32) :: spectype
+
+    ! spectype is determined by aername(:4) 'sulf' -> 'sulfate'
+    call setup_mock_rad_aer( &
+         naero = 1, &
+         density = [1700._r8], &
+         hygro = [0.5_r8], &
+         dispersion = [1.6_r8], &
+         aername = [character(len=20) :: 'sulfate'], &
+         opticstype = [character(len=32) :: 'hygro'] )
+
+    props => bulk_aerosol_properties()
+
+    call props%get(bin_ndx=1, species_ndx=1, spectype=spectype)
+    @assertEqual('sulfate', trim(spectype))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_species_type_sulfate
+
+@test
+subroutine test_model_is()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
+
+    type(bulk_aerosol_properties), pointer :: props
+
+    call setup_mock_rad_aer( &
+         naero = 1, &
+         density = [1000._r8], &
+         hygro = [0.0_r8], &
+         dispersion = [2.0_r8], &
+         aername = [character(len=20) :: 'dust1'], &
+         opticstype = [character(len=32) :: 'nonhygro'] )
+
+    props => bulk_aerosol_properties()
+
+    @assertTrue(props%model_is('BAM'))
+    @assertTrue(props%model_is('bam'))
+    @assertTrue(props%model_is('bulk_model'))
+    @assertFalse(props%model_is('MAM'))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_model_is

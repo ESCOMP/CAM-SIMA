@@ -1,0 +1,119 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for list_populate in radiative_aerosol_definitions.
+!
+! Tests population of aerosol list structures from parsed namelist data.
+! list_populate takes a rad_cnst_namelist_t and fills aerlist_t (bulk),
+! modelist_t (modal), and binlist_t (sectional) structures.
+!
+! Note: Tests here focus on bulk aerosol entries (type='A'), which do not
+! require the module-level modes/bins definitions to be initialized.
+! Modal/bin tests would need those set up, which is more complex.
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_populate_bulk_only()
+    use funit
+    use radiative_aerosol_definitions, only: list_populate, &
+         rad_cnst_namelist_t, aerlist_t, modelist_t, binlist_t
+
+    type(rad_cnst_namelist_t) :: nml_data
+    type(aerlist_t) :: aerlist
+    type(modelist_t) :: modal_list
+    type(binlist_t) :: sectional_list
+
+    ! Set up parsed namelist with 2 bulk aerosols
+    nml_data%ncnst = 2
+    allocate(nml_data%source(2), nml_data%camname(2), nml_data%radname(2), nml_data%type(2))
+    nml_data%source(1)  = 'A'
+    nml_data%camname(1) = 'dust1'
+    nml_data%radname(1) = '/path/to/dust.nc'
+    nml_data%type(1)    = 'A'
+    nml_data%source(2)  = 'A'
+    nml_data%camname(2) = 'sulfate'
+    nml_data%radname(2) = '/path/to/sulfate.nc'
+    nml_data%type(2)    = 'A'
+
+    aerlist%list_id = '  '
+
+    call list_populate(nml_data, aerlist, modal_list, sectional_list)
+
+    @assertEqual(2, aerlist%numaerosols)
+    @assertEqual(0, modal_list%nmodes)
+    @assertEqual(0, sectional_list%nbins)
+    @assertEqual('dust1', trim(aerlist%aer(1)%camname))
+    @assertEqual('/path/to/dust.nc', trim(aerlist%aer(1)%physprop_file))
+    @assertEqual('A', aerlist%aer(1)%source)
+    @assertEqual('sulfate', trim(aerlist%aer(2)%camname))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+    deallocate(aerlist%aer)
+    deallocate(modal_list%idx, modal_list%physprop_files, modal_list%idx_props)
+    deallocate(sectional_list%idx, sectional_list%physprop_files, sectional_list%idx_props)
+end subroutine test_populate_bulk_only
+
+@test
+subroutine test_populate_mixed_with_gas()
+    use funit
+    use radiative_aerosol_definitions, only: list_populate, &
+         rad_cnst_namelist_t, aerlist_t, modelist_t, binlist_t
+
+    type(rad_cnst_namelist_t) :: nml_data
+    type(aerlist_t) :: aerlist
+    type(modelist_t) :: modal_list
+    type(binlist_t) :: sectional_list
+
+    ! Set up: 1 gas + 1 aerosol; gas entries should be skipped
+    nml_data%ncnst = 2
+    allocate(nml_data%source(2), nml_data%camname(2), nml_data%radname(2), nml_data%type(2))
+    nml_data%source(1)  = 'A'
+    nml_data%camname(1) = 'H2O'
+    nml_data%radname(1) = 'H2O'
+    nml_data%type(1)    = 'G'
+    nml_data%source(2)  = 'A'
+    nml_data%camname(2) = 'dust1'
+    nml_data%radname(2) = '/path/dust.nc'
+    nml_data%type(2)    = 'A'
+
+    aerlist%list_id = '  '
+
+    call list_populate(nml_data, aerlist, modal_list, sectional_list)
+
+    ! Only the aerosol should be counted; gas is skipped
+    @assertEqual(1, aerlist%numaerosols)
+    @assertEqual(0, modal_list%nmodes)
+    @assertEqual('dust1', trim(aerlist%aer(1)%camname))
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+    deallocate(aerlist%aer)
+    deallocate(modal_list%idx, modal_list%physprop_files, modal_list%idx_props)
+    deallocate(sectional_list%idx, sectional_list%physprop_files, sectional_list%idx_props)
+end subroutine test_populate_mixed_with_gas
+
+@test
+subroutine test_populate_empty()
+    use funit
+    use radiative_aerosol_definitions, only: list_populate, &
+         rad_cnst_namelist_t, aerlist_t, modelist_t, binlist_t
+
+    type(rad_cnst_namelist_t) :: nml_data
+    type(aerlist_t) :: aerlist
+    type(modelist_t) :: modal_list
+    type(binlist_t) :: sectional_list
+
+    ! Empty namelist
+    nml_data%ncnst = 0
+    allocate(nml_data%source(0), nml_data%camname(0), nml_data%radname(0), nml_data%type(0))
+
+    aerlist%list_id = '  '
+
+    call list_populate(nml_data, aerlist, modal_list, sectional_list)
+
+    @assertEqual(0, aerlist%numaerosols)
+    @assertEqual(0, modal_list%nmodes)
+    @assertEqual(0, sectional_list%nbins)
+
+    deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
+    deallocate(aerlist%aer)
+    deallocate(modal_list%idx, modal_list%physprop_files, modal_list%idx_props)
+    deallocate(sectional_list%idx, sectional_list%physprop_files, sectional_list%idx_props)
+end subroutine test_populate_empty

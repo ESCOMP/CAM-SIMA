@@ -1,0 +1,236 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for table_interp_mod
+!
+! Tests the pure interpolation functions: table_interp_calcwghts,
+! interp1d (via table_interp), interp2d, and interp4d.
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_calcwghts_midpoint()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp_calcwghts, table_interp_wghts
+
+    ! Grid: [0.0, 1.0, 2.0], column value at 0.5 (midpoint of first interval)
+    integer, parameter :: ngrid = 3, ncols = 1
+    real(r8) :: xgrid(ngrid), xcols(ncols)
+    type(table_interp_wghts) :: wghts(ncols)
+
+    xgrid = [0.0_r8, 1.0_r8, 2.0_r8]
+    xcols = [0.5_r8]
+
+    wghts = table_interp_calcwghts(ngrid, xgrid, ncols, xcols)
+
+    @assertEqual(1, wghts(1)%ix1)
+    @assertEqual(2, wghts(1)%ix2)
+    @assertEqual(0.5_r8, wghts(1)%wt1, 1.0e-14_r8)
+    @assertEqual(0.5_r8, wghts(1)%wt2, 1.0e-14_r8)
+end subroutine test_calcwghts_midpoint
+
+@test
+subroutine test_calcwghts_at_node()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp_calcwghts, table_interp_wghts
+
+    ! Grid: [0.0, 1.0, 2.0], column value exactly at node 1.0
+    integer, parameter :: ngrid = 3, ncols = 1
+    real(r8) :: xgrid(ngrid), xcols(ncols)
+    type(table_interp_wghts) :: wghts(ncols)
+
+    xgrid = [0.0_r8, 1.0_r8, 2.0_r8]
+    xcols = [1.0_r8]
+
+    wghts = table_interp_calcwghts(ngrid, xgrid, ncols, xcols)
+
+    ! At node 1.0: ix2=2 (the node), wt1=0.0 (weight on left), wt2=1.0 (weight on right=node)
+    @assertEqual(1, wghts(1)%ix1)
+    @assertEqual(2, wghts(1)%ix2)
+    @assertEqual(0.0_r8, wghts(1)%wt1, 1.0e-14_r8)
+    @assertEqual(1.0_r8, wghts(1)%wt2, 1.0e-14_r8)
+end subroutine test_calcwghts_at_node
+
+@test
+subroutine test_calcwghts_clamped_below()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp_calcwghts, table_interp_wghts
+
+    ! Grid: [1.0, 2.0, 3.0], column value -1.0 (below grid range)
+    integer, parameter :: ngrid = 3, ncols = 1
+    real(r8) :: xgrid(ngrid), xcols(ncols)
+    type(table_interp_wghts) :: wghts(ncols)
+
+    xgrid = [1.0_r8, 2.0_r8, 3.0_r8]
+    xcols = [-1.0_r8]
+
+    wghts = table_interp_calcwghts(ngrid, xgrid, ncols, xcols)
+
+    ! Should be clamped to first node: ix1=1, ix2=2, wt2=0 (all weight on left edge)
+    @assertEqual(1, wghts(1)%ix1)
+    @assertEqual(2, wghts(1)%ix2)
+    @assertEqual(1.0_r8, wghts(1)%wt1, 1.0e-14_r8)
+    @assertEqual(0.0_r8, wghts(1)%wt2, 1.0e-14_r8)
+end subroutine test_calcwghts_clamped_below
+
+@test
+subroutine test_calcwghts_clamped_above()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp_calcwghts, table_interp_wghts
+
+    ! Grid: [1.0, 2.0, 3.0], column value 99.0 (above grid range)
+    integer, parameter :: ngrid = 3, ncols = 1
+    real(r8) :: xgrid(ngrid), xcols(ncols)
+    type(table_interp_wghts) :: wghts(ncols)
+
+    xgrid = [1.0_r8, 2.0_r8, 3.0_r8]
+    xcols = [99.0_r8]
+
+    wghts = table_interp_calcwghts(ngrid, xgrid, ncols, xcols)
+
+    ! Should be clamped to last node: ix1=2, ix2=3, wt1=0, wt2=1 (all weight on right edge)
+    @assertEqual(2, wghts(1)%ix1)
+    @assertEqual(3, wghts(1)%ix2)
+    @assertEqual(0.0_r8, wghts(1)%wt1, 1.0e-14_r8)
+    @assertEqual(1.0_r8, wghts(1)%wt2, 1.0e-14_r8)
+end subroutine test_calcwghts_clamped_above
+
+@test
+subroutine test_interp1d_midpoint()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp, table_interp_calcwghts, table_interp_wghts
+
+    ! Table: [10.0, 20.0, 30.0], interpolate at midpoint of interval [10, 20] -> expect 15
+    integer, parameter :: nxs = 3, ncol = 1
+    real(r8) :: xgrid(nxs), xcols(ncol), tbl(nxs), res(ncol)
+    type(table_interp_wghts) :: wghts(ncol)
+
+    xgrid = [0.0_r8, 1.0_r8, 2.0_r8]
+    xcols = [0.5_r8]
+    tbl   = [10.0_r8, 20.0_r8, 30.0_r8]
+
+    wghts = table_interp_calcwghts(nxs, xgrid, ncol, xcols)
+    res = table_interp(ncol, nxs, wghts, tbl)
+
+    @assertEqual(15.0_r8, res(1), 1.0e-14_r8)
+end subroutine test_interp1d_midpoint
+
+@test
+subroutine test_interp1d_at_node()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp, table_interp_calcwghts, table_interp_wghts
+
+    ! Table: [10.0, 20.0, 30.0], interpolate exactly at second node -> expect 20
+    integer, parameter :: nxs = 3, ncol = 1
+    real(r8) :: xgrid(nxs), xcols(ncol), tbl(nxs), res(ncol)
+    type(table_interp_wghts) :: wghts(ncol)
+
+    xgrid = [0.0_r8, 1.0_r8, 2.0_r8]
+    xcols = [1.0_r8]
+    tbl   = [10.0_r8, 20.0_r8, 30.0_r8]
+
+    wghts = table_interp_calcwghts(nxs, xgrid, ncol, xcols)
+    res = table_interp(ncol, nxs, wghts, tbl)
+
+    @assertEqual(20.0_r8, res(1), 1.0e-14_r8)
+end subroutine test_interp1d_at_node
+
+@test
+subroutine test_interp2d_bilinear()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp, table_interp_calcwghts, table_interp_wghts
+
+    ! 2D table (ncoef=1, nx=2, ny=2), bilinear interpolation at center
+    ! tbl(1, 1:2, 1:2) = [[1, 3], [2, 4]]
+    ! At center (0.5, 0.5): result = 0.25*(1+2+3+4) = 2.5
+    integer, parameter :: ncoef = 1, ncol = 1, nxs = 2, nys = 2
+    real(r8) :: xgrid(nxs), ygrid(nys), xcols(ncol), ycols(ncol)
+    real(r8) :: tbl(ncoef, nxs, nys), res(ncoef, ncol)
+    type(table_interp_wghts) :: xwghts(ncol), ywghts(ncol)
+
+    xgrid = [0.0_r8, 1.0_r8]
+    ygrid = [0.0_r8, 1.0_r8]
+    xcols = [0.5_r8]
+    ycols = [0.5_r8]
+
+    tbl(1, 1, 1) = 1.0_r8  ! x=0, y=0
+    tbl(1, 2, 1) = 2.0_r8  ! x=1, y=0
+    tbl(1, 1, 2) = 3.0_r8  ! x=0, y=1
+    tbl(1, 2, 2) = 4.0_r8  ! x=1, y=1
+
+    xwghts = table_interp_calcwghts(nxs, xgrid, ncol, xcols)
+    ywghts = table_interp_calcwghts(nys, ygrid, ncol, ycols)
+
+    res = table_interp(ncoef, ncol, nxs, nys, xwghts, ywghts, tbl)
+
+    @assertEqual(2.5_r8, res(1, 1), 1.0e-14_r8)
+end subroutine test_interp2d_bilinear
+
+@test
+subroutine test_interp4d_corner()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp, table_interp_calcwghts, table_interp_wghts
+
+    ! 4D table (2x2x2x2), interpolate at exact corner (0,0,0,0)
+    ! All table values = 0 except tbl(1,1,1,1) = 42.0
+    ! At corner (0,0,0,0) with all wt2=1 on ix2=2 at node 0.0:
+    ! Actually, weights at node 0.0: ix1=1, ix2=2, wt1=0, wt2=1 -> picks tbl(ix2,...)
+    ! Let's use a different approach: set all entries, interpolate at center
+    ! Simpler: just set tbl to known value at the lower-left corner
+    integer, parameter :: ncol = 1, nxs = 2, nys = 2, nzs = 2, nts = 2
+    real(r8) :: xgrid(nxs), ygrid(nys), zgrid(nzs), tgrid(nts)
+    real(r8) :: xcols(ncol), ycols(ncol), zcols(ncol), tcols(ncol)
+    real(r8) :: tbl(nxs, nys, nzs, nts), res(ncol)
+    type(table_interp_wghts) :: xw(ncol), yw(ncol), zw(ncol), tw(ncol)
+
+    xgrid = [0.0_r8, 1.0_r8]
+    ygrid = [0.0_r8, 1.0_r8]
+    zgrid = [0.0_r8, 1.0_r8]
+    tgrid = [0.0_r8, 1.0_r8]
+
+    ! Interpolate at (0.5, 0.5, 0.5, 0.5): center of 4D hypercube
+    ! Set all 16 corner values to same value -> result must equal that value
+    xcols = [0.5_r8]
+    ycols = [0.5_r8]
+    zcols = [0.5_r8]
+    tcols = [0.5_r8]
+
+    tbl = 7.0_r8  ! All corners = 7.0
+
+    xw = table_interp_calcwghts(nxs, xgrid, ncol, xcols)
+    yw = table_interp_calcwghts(nys, ygrid, ncol, ycols)
+    zw = table_interp_calcwghts(nzs, zgrid, ncol, zcols)
+    tw = table_interp_calcwghts(nts, tgrid, ncol, tcols)
+
+    res = table_interp(ncol, nxs, nys, nzs, nts, xw, yw, zw, tw, tbl)
+
+    @assertEqual(7.0_r8, res(1), 1.0e-14_r8)
+end subroutine test_interp4d_corner
+
+@test
+subroutine test_interp1d_multiple_columns()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use table_interp_mod, only: table_interp, table_interp_calcwghts, table_interp_wghts
+
+    ! Test with multiple columns simultaneously
+    integer, parameter :: nxs = 3, ncol = 3
+    real(r8) :: xgrid(nxs), xcols(ncol), tbl(nxs), res(ncol)
+    type(table_interp_wghts) :: wghts(ncol)
+
+    xgrid = [0.0_r8, 1.0_r8, 2.0_r8]
+    xcols = [0.0_r8, 1.0_r8, 1.5_r8]  ! at left edge, at middle node, at 3/4 point
+    tbl   = [10.0_r8, 20.0_r8, 30.0_r8]
+
+    wghts = table_interp_calcwghts(nxs, xgrid, ncol, xcols)
+    res = table_interp(ncol, nxs, wghts, tbl)
+
+    @assertEqual(10.0_r8, res(1), 1.0e-14_r8)
+    @assertEqual(20.0_r8, res(2), 1.0e-14_r8)
+    @assertEqual(25.0_r8, res(3), 1.0e-14_r8)
+end subroutine test_interp1d_multiple_columns
