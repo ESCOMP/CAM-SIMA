@@ -24,16 +24,15 @@ contains
     module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
-        use cam_constituents, only: num_constituents, num_advected
-        use cam_constituents, only: const_is_dry, const_is_water_species, const_is_advected
+        use cam_constituents, only: const_is_dry, const_is_water_species, &
+                                    num_advected
         use cam_logfile, only: debugout_debug, debugout_info
-        use dyn_comp, only: dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
+        use dyn_comp, only: advected_constituent_index, dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
         use dyn_grid, only: ncells_solve
         use dyn_procedures, only: reverse
         use physics_types, only: phys_state
         use vert_coord, only: pver
         ! Module(s) from CCPP.
-        use cam_ccpp_cap, only: cam_constituents_array
         use cam_ccpp_cap, only: cam_advected_constituents_array
         use ccpp_kinds, only: kind_phys
         ! Module(s) from CESM Share.
@@ -91,20 +90,11 @@ contains
             'is_water_species(num_advected)', &
             file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-
-        j = 1
-        do i = 1, num_constituents
+        do i = 1, num_advected
             ! All constituent mixing ratios in MPAS are dry.
             ! Therefore, conversion in between is needed for any constituent mixing ratios that are not dry in CAM-SIMA.
-            if (const_is_advected(i)) then
-                is_conversion_needed(j) = .not. const_is_dry(i)
-                is_water_species(j) = const_is_water_species(i)
-                if (i == num_advected) then
-                    exit !All advected constituents accounted for, so exit loop.
-                else
-                    j = j + 1
-                end if
-            end if
+            is_conversion_needed(i) = .not. const_is_dry(advected_constituent_index(i))
+            is_water_species(i) = const_is_water_species(advected_constituent_index(i))
         end do
 
         allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
@@ -264,16 +254,16 @@ contains
         subroutine init_shared_variables()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
-            use cam_constituents, only: num_constituents, num_advected
-            use cam_constituents, only: const_is_water_species, const_is_advected
-            use dyn_comp, only: mpas_dynamical_core
+            use cam_constituents, only: const_is_water_species, &
+                                        num_advected
+            use dyn_comp, only: advected_constituent_index, mpas_dynamical_core
             use vert_coord, only: pver, pverp
             ! Module(s) from CESM Share.
             use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_coupling::dynamics_to_physics_coupling::init_shared_variables'
             character(len_cx) :: cerr
-            integer :: i, j
+            integer :: i
             integer :: ierr
             logical, allocatable :: is_water_species(:)
 
@@ -293,16 +283,8 @@ contains
                 'is_water_species(num_advected)', &
                 file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            j = 1
-            do i = 1, num_constituents
-                if (const_is_advected(i)) then
-                    is_water_species(j) = const_is_water_species(i)
-                    if (j == num_advected) then
-                        exit !All advected species accounted for, so exit loop
-                    else
-                        j = j + 1
-                    end if
-                end if
+            do i = 1, num_advected
+                is_water_species(i) = const_is_water_species(advected_constituent_index(i))
             end do
 
             allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
@@ -512,7 +494,8 @@ contains
         subroutine set_physics_state_external()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate, endrun
-            use cam_constituents, only: const_qmin, num_constituents
+            use cam_constituents, only: const_qmin, &
+                                        num_constituents
             use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
             use cam_thermo_formula, only: energy_formula_dycore_mpas
             use dyn_comp, only: mpas_dynamical_core
