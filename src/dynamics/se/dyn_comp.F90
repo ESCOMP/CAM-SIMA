@@ -1277,7 +1277,7 @@ subroutine read_inidat(dyn_in)
    use cam_grid_support,     only: cam_grid_get_lonvals, cam_grid_dimensions, max_hcoordname_len
    use inic_analytic,        only: analytic_ic_active, analytic_ic_set_ic
    use cam_initfiles,        only: pertlim, initial_file_get_id, topo_file_get_id
-   use cam_constituents,     only: readtrace, num_advected, const_name
+   use cam_constituents,     only: num_advected, const_name
    use cam_constituents,     only: const_is_water_species, const_qmin, const_is_wet
    use dyn_tests_utils,      only: vcoord=>vc_dry_pressure
 
@@ -1697,7 +1697,7 @@ subroutine read_inidat(dyn_in)
    ! ratios.
 
    do m_cnst = 1, num_advected
-      if (readtrace .and. .not. const_is_water_species(m_cnst)) then
+      if (.not. const_is_water_species(m_cnst)) then
          if (dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
             exit
@@ -1713,10 +1713,7 @@ subroutine read_inidat(dyn_in)
 
       if (analytic_ic_active() .and. const_is_water_species(m_cnst)) cycle
 
-      found = .false.
-      if (readtrace) then
-         found = dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)
-      end if
+      found = dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)
 
       if (found) then
          call read_dyn_var(trim(const_ic_name(m_cnst)), fh_ini, dimname, dbuf3)
