@@ -1281,6 +1281,12 @@ subroutine read_inidat(dyn_in)
    use cam_constituents,     only: const_is_water_species, const_qmin, const_is_wet
    use dyn_tests_utils,      only: vcoord=>vc_dry_pressure
 
+   !This should eventually be replaced with the "const_diag_name" function from "cam_constituents".
+   !The only issue is that right now atmospheric_physics doesn't add diagnostic names for all water
+   !species variables.
+   use phys_vars_init_check, only: phys_var_num, phys_var_stdnames, input_var_names
+   use physics_data,         only: find_input_name_idx
+
    !SE-dycore:
    use parallel_mod,         only: par
    use element_mod,          only: timelevels
@@ -1338,6 +1344,10 @@ subroutine read_inidat(dyn_in)
    integer                          :: dyn_cols
    character(len=cl)                :: errmsg
    character(len=*), parameter      :: subname='READ_INIDAT'
+
+   character(len=cl), allocatable   :: const_ic_name(:)
+   character(len=cl)                :: std_name
+   integer                          :: const_ic_names_idx
 
    ! fvm vars
    real(r8), allocatable            :: inv_dp_darea_fvm(:,:,:)
@@ -1648,12 +1658,47 @@ subroutine read_inidat(dyn_in)
       call endrun(trim(subname)//errmsg)
    end if
 
+   ! Generate list of all advected constituent input names.  Note that the CCPP
+   ! Constituents array automatically packs all advected species to the beginning
+   ! of the list:
+   !------------
+   allocate(const_ic_name(num_advected), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, subname, 'const_ic_name(num_advected)', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+   ! Initialize to variable name that will likely never be found in the IC file:
+   const_ic_name(:) = 'NONAME_NEVERFOUND'
+
+   do m_cnst = 1, num_advected
+
+      ! Extract constituent standard name:
+      std_name = const_name(m_cnst)
+
+      ! Find input name array index to extract correct input names:
+      const_ic_names_idx = -1
+      do k=1, phys_var_num
+         if(trim(phys_var_stdnames(k)) == trim(std_name)) then
+            const_ic_names_idx = k
+            exit
+         end if
+      end do
+
+      ! Skip to next constituent if not found in input names list:
+      if (const_ic_names_idx < 0) cycle
+
+      ! The first name in IC names list should be the correct
+      ! name for standard CAM IC (ncdata) files:
+      const_ic_name(m_cnst) = input_var_names(1, const_ic_names_idx)
+   end do
+   !-------------
+
    ! If using analytic ICs the initial file only needs the horizonal grid
    ! dimension checked in the case that the file contains constituent mixing
    ! ratios.
+
    do m_cnst = 1, num_advected
       if (readtrace .and. .not. const_is_water_species(m_cnst)) then
-         if (dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)) then
+         if (dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
             exit
          end if
@@ -1670,13 +1715,11 @@ subroutine read_inidat(dyn_in)
 
       found = .false.
       if (readtrace) then
-         found = dyn_field_exists(fh_ini, trim(const_name(m_cnst)), required=.false.)
+         found = dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)
       end if
 
       if (found) then
-         call read_dyn_var(trim(const_name(m_cnst)), fh_ini, dimname, dbuf3)
-      else
-         !call cnst_init_default(m_cnst, latvals, lonvals, dbuf3, pmask)
+         call read_dyn_var(trim(const_ic_name(m_cnst)), fh_ini, dimname, dbuf3)
       end if
 
       do ie = 1, nelemd
