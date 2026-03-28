@@ -127,9 +127,12 @@ contains
                 ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
                 do j = 1, num_advected
                     if (exchange) then
+                        scalars(j, :, i) = &
+                            real(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)), kind_dyn_mpas)
+
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         scalars(j, :, i) = &
-                            real(reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
+                            reverse(scalars(j, :, i))
                     end if
 
                     if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
@@ -152,9 +155,12 @@ contains
                 ! `j` is indexing into `constituents`, so it is regarded as constituent index.
                 do j = 1, num_advected
                     if (exchange) then
+                        constituents(i, :, j) = &
+                            real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8)
+
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         constituents(i, :, j) = &
-                            reverse(real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8))
+                            reverse(constituents(i, :, j))
                     end if
 
                     if (conversion .and. is_conversion_needed(j)) then

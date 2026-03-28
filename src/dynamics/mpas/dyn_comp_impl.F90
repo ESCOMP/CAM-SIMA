@@ -711,9 +711,12 @@ contains
             do i = 1, ncells_solve
                 ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
                 do j = 1, num_advected
+                    scalars(j, :, i) = &
+                        real(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j)), kind_dyn_mpas)
+
                     ! Vertical index order is reversed between CAM-SIMA and MPAS.
                     scalars(j, :, i) = &
-                        real(reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
+                        reverse(scalars(j, :, i))
                 end do
             end do
 
