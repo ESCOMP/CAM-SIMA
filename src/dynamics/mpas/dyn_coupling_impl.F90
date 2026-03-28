@@ -504,7 +504,7 @@ contains
                                         num_constituents
             use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
             use cam_thermo_formula, only: energy_formula_dycore_mpas
-            use dyn_comp, only: mpas_dynamical_core
+            use dyn_comp, only: advected_constituent_index, mpas_dynamical_core
             use dyn_procedures, only: exner_function
             use dynconst, only: constant_g => gravit
             use physics_types, only: cappav, cp_or_cv_dycore, cpairv, lagrangian_vertical, phys_state, rairv, zvirv
@@ -585,13 +585,18 @@ contains
                     subname, __LINE__)
             end if
 
+            ! The `mpas_dynamical_core % map_constituent_index` type-bound function maps MPAS scalar index to
+            ! CAM-SIMA *advected* constituent index. Then, the `advected_constituent_index` lookup table maps
+            ! *advected* constituent index to *all* constituent index.
+            i = advected_constituent_index(mpas_dynamical_core % map_constituent_index(index_qv))
+
             ! Set `zi` (i.e., geopotential height at layer interfaces) and `zm` (i.e., geopotential height at layer midpoints).
             ! Note that `rairv` and `zvirv` are updated externally by `cam_thermo_dry_air_update`.
             call geopotential_temp_run( &
                 pver, lagrangian_vertical, pver, 1, pverp, 1, num_constituents, &
                 phys_state % lnpint, phys_state % pint, phys_state % pmid, phys_state % pdel, phys_state % rpdel, phys_state % t, &
-                constituents(:, :, mpas_dynamical_core % map_constituent_index(index_qv)), constituents, &
-                constituent_properties, rairv, constant_g, zvirv, phys_state % zi, phys_state % zm, ncells_solve, ierr, cerr)
+                constituents(:, :, i), constituents, constituent_properties, &
+                rairv, constant_g, zvirv, phys_state % zi, phys_state % zm, ncells_solve, ierr, cerr)
 
             if (ierr /= 0) then
                 call endrun('Failed to set variable "zi" and "zm" externally' // new_line('') // &
