@@ -1187,8 +1187,12 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end do", 4)
     outfile.write("call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
     outfile.write("else", 3)
-    outfile.comment("If not in standard names list, then just use constituent name as input file name:",4)
-    outfile.write("call read_field(file, std_name, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
+    outfile.comment("If not in standard names list, then attempt constituent name",4)
+    outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:",4)
+    # The <std_name>, cnst_<std_name>, pbuf_<std_name> prefix default fallbacks
+    # allows us to not enumerate all needed constituents from snapshots in the
+    # registry, yet allow reading their values from CAM snapshots.
+    outfile.write("call read_field(file, std_name, [std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
     outfile.write("end if", 3)
     outfile.write("if(.not. var_found) then", 3)
     outfile.write("constituent_has_default = .false.", 4)

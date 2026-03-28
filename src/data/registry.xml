@@ -628,35 +628,10 @@
 	      units="kg kg-1" type="real" constituent="true">
       <ic_file_input_names>Q cnst_Q</ic_file_input_names>
     </variable>
-    <variable local_name="CO2"
-	      standard_name="CO2"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>CO2 cnst_CO2</ic_file_input_names>
-    </variable>
-    <variable local_name="N2O"
-	      standard_name="N2O"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>N2O cnst_N2O</ic_file_input_names>
-    </variable>
-    <variable local_name="CH4"
-	      standard_name="CH4"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>CH4 cnst_CH4</ic_file_input_names>
-    </variable>
-    <variable local_name="CFC12"
-	      standard_name="CFC12"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>CFC12 cnst_CFC12</ic_file_input_names>
-    </variable>
     <variable local_name="CFC11"
 	      standard_name="CFC11"
 	      units="kg kg-1" type="real" constituent="true">
       <ic_file_input_names>CFC11STAR pbuf_CFC11STAR</ic_file_input_names>
-    </variable>
-    <variable local_name="O2"
-	      standard_name="O2"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>O2 pbuf_O2</ic_file_input_names>
     </variable>
     <variable local_name="O3"
 	      standard_name="O3"
