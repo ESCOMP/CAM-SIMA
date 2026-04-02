@@ -770,9 +770,10 @@ CONTAINS
          field_info => hist_new_field(this%field_names(idx),     &
             field_ptr%standard_name(), field_ptr%long_name(),    &
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
-            dimensions, this%accumulate_types(idx), field_ptr%num_levels(), &
-            field_shape, beg_dims=beg_dim, end_dims=end_dim,     &
-            mixing_ratio=field_ptr%mixing_ratio(),               &
+            dimensions, this%accumulate_types(idx),              &
+            field_ptr%num_levels(), field_shape,                 &
+            field_ptr%fill_value(), beg_dims=beg_dim,            &
+            end_dims=end_dim, mixing_ratio=field_ptr%mixing_ratio(), &
             flag_xyfill=field_ptr%flag_xyfill(),                 &
             sampling_seq=field_ptr%sampling_sequence())
          call hist_new_buffer(field_info, field_shape, &
@@ -914,7 +915,6 @@ CONTAINS
       use cam_history_support, only: write_hist_coord_attrs
       use cam_history_support, only: write_hist_coord_vars
       use cam_history_support, only: max_chars
-      use cam_history_support, only: fillvalue
       use shr_kind_mod,        only: r4 => shr_kind_r4
       use time_manager,        only: get_ref_date, timemgr_get_calendar_cf
       use time_manager,        only: get_step_size
@@ -1293,14 +1293,14 @@ CONTAINS
                   ! netCDF-aware tools (ncview, ncdump, etc.) recognise fill
                   ! values.  The attribute type must match the variable type.
                   if (ncreal == pio_double) then
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', fillvalue)
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', this%field_list(field_index)%fill_value())
                      call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', fillvalue)
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', this%field_list(field_index)%fill_value())
                      call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
                   else
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', real(fillvalue, r4))
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', real(this%field_list(field_index)%fill_value(), r4))
                      call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', real(fillvalue, r4))
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', real(this%field_list(field_index)%fill_value(), r4))
                      call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
                   end if
                end if
@@ -1522,6 +1522,8 @@ CONTAINS
       use hist_field,          only: hist_field_info_t
       use shr_kind_mod,        only: r4 => shr_kind_r4
       use hist_msg_handler,    only: hist_log_messages
+      use cam_logfile,         only: iulog
+      use cam_abortutils,      only: endrun
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
       type(hist_field_info_t), intent(inout) :: field
@@ -1591,21 +1593,42 @@ CONTAINS
          buff_ptr => field%buffers
          if (frank == 1) then
             if (trim(field_precision) == 'REAL32') then
-               call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1))
+               call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1), logger=errors)
+               if (errors%num_errors() > 0) then
+                  call errors%output(iulog)
+                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+                  call endrun(errmsg)
+               end if
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r4(:,1), varid)
             else
-               call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1))
+               call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1), logger=errors)
+               if (errors%num_errors() > 0) then
+                  call errors%output(iulog)
+                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+                  call endrun(errmsg)
+               end if
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r8(:,1), varid)
             end if
          else
             if (trim(field_precision) == 'REAL32') then
-               call hist_buffer_norm_value(buff_ptr, field_data_r4)
+               call hist_buffer_norm_value(buff_ptr, field_data_r4, logger=errors)
+               if (errors%num_errors() > 0) then
+                  call errors%output(iulog)
+                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+                  call endrun(errmsg)
+               end if
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r4, varid)
             else
-               call hist_buffer_norm_value(buff_ptr, field_data_r8)
+               call hist_buffer_norm_value(buff_ptr, field_data_r8, logger=errors)
+               call errors%output(iulog)
+               if (errors%num_errors() > 0) then
+                  call errors%output(iulog)
+                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+                  call endrun(errmsg)
+               end if
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r8, varid)
             end if
