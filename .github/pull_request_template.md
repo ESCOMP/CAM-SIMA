@@ -1,7 +1,8 @@
 Tag name (required for release branches):
 Originator(s):
-AI agent used (if applicable):
-*If AI was used to generate code for this PR, please add the "AI-generated code" label to this PR*
+AI tools used (if applicable; please also add the "AI-generated code" label to the PR):
+  What:
+  How:
 
 Description (include the issue title, and the keyword ['closes', 'fixes', 'resolves'] followed by the issue number):
 
