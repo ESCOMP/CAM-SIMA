@@ -1,5 +1,8 @@
 Tag name (required for release branches):
 Originator(s):
+AI tools used (if applicable; please also add the "AI-generated code" label to the PR):
+  What:
+  How:
 
 Description (include the issue title, and the keyword ['closes', 'fixes', 'resolves'] followed by the issue number):
 
@@ -25,7 +28,7 @@ derecho/intel/aux_sima:
 
 derecho/gnu/aux_sima:
 
-derecho/nvhpc/aux_sima:
+derecho/nvhpc/aux_sima (test is run via Github workflow. Only run the test manually if we need to save new baselines):
 
 If this changes climate describe any run(s) done to evaluate the new
 climate in enough detail that it(they) could be reproduced:
