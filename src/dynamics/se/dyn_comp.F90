@@ -868,10 +868,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    call history_add_field ('nu_kmcnd_dp', 'Thermal conductivity like Laplacian coefficient on dp', 'lev', 'avg', '1', gridname='GLL')
 
    ! Forcing from physics on the GLL grid
-   call history_add_field ('FU', 'Zonal wind forcing term on GLL grid', 'lev', 'avg', 'm s-2',      gridname='GLL')
-   call history_add_field ('FV', 'Meridional wind forcing term on GLL grid', 'lev', 'avg', 'm s-2', gridname='GLL')
+   call history_add_field ('FU', 'Zonal wind forcing term on GLL grid', 'lev', 'avg', 'm s-2',      gridname='GLL_hist')
+   call history_add_field ('FV', 'Meridional wind forcing term on GLL grid', 'lev', 'avg', 'm s-2', gridname='GLL_hist')
    !call register_vector_field('FU', 'FV') !<-For interpolated history output (not yet implemented)
-   call history_add_field ('FT', 'Temperature forcing term on GLL grid', 'lev', 'avg', 'K s-1',     gridname='GLL')
+   call history_add_field ('FT', 'Temperature forcing term on GLL grid', 'lev', 'avg', 'K s-1',     gridname='GLL_hist')
 
    ! Tracer forcing on fvm (CSLAM) grid and internal CSLAM pressure fields
    if (use_cslam) then
@@ -1076,7 +1076,7 @@ subroutine dyn_run(dyn_state)
    logical           :: ldiag
    character(len=cl) :: errmsg
 
-   real(r8) :: ftmp(npsq,nlev,3)
+   real(r8), allocatable :: ftmp(:,:,:)
    real(r8) :: dtime
    real(r8) :: rec2dt, pdel
 
@@ -1118,21 +1118,35 @@ subroutine dyn_run(dyn_state)
 
    ! output physics forcing
    if (is_history_field_active('FU') .or. is_history_field_active('FV') .or. is_history_field_active('FT')) then
+
+      allocate(ftmp(npsq*nelemd,nlev,3),stat=iret, errmsg=errmsg)
+      call check_allocate(iret, subname, 'ftmp(npsq*nelemd,nlev,3)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+      n = 0
       do ie = nets, nete
          do k = 1, nlev
             do j = 1, np
                do i = 1, np
-                  ftmp(i+(j-1)*np,k,1) = dyn_state%elem(ie)%derived%FM(i,j,1,k)
-                  ftmp(i+(j-1)*np,k,2) = dyn_state%elem(ie)%derived%FM(i,j,2,k)
-                  ftmp(i+(j-1)*np,k,3) = dyn_state%elem(ie)%derived%FT(i,j,k)
+                  ftmp(n+(i+(j-1)*np),k,1) = dyn_state%elem(ie)%derived%FM(i,j,1,k)
+                  ftmp(n+(i+(j-1)*np),k,2) = dyn_state%elem(ie)%derived%FM(i,j,2,k)
+                  ftmp(n+(i+(j-1)*np),k,3) = dyn_state%elem(ie)%derived%FT(i,j,k)
                end do
             end do
          end do
 
-         call history_out_field('FU', ftmp(:,:,1))
-         call history_out_field('FV', ftmp(:,:,2))
-         call history_out_field('FT', ftmp(:,:,3))
+         !Update element count:
+         n = n + npsq
       end do
+
+      ! Write fields to history tape:
+      call history_out_field('FU', ftmp(:,:,1))
+      call history_out_field('FV', ftmp(:,:,2))
+      call history_out_field('FT', ftmp(:,:,3))
+
+      ! Deallocate temporary output variable:
+      deallocate(ftmp)
+
    end if
 
    do m = 1, qsize

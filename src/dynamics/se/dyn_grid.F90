@@ -44,6 +44,7 @@ integer, parameter :: dyn_decomp = 101 ! The SE dynamics grid
 integer, parameter :: fvm_decomp = 102 ! The FVM (CSLAM) grid
 integer, parameter :: physgrid_d = 103 ! physics grid on dynamics decomp
 integer, parameter :: ini_decomp = 104 ! alternate dynamics grid for reading initial file
+integer, parameter :: dyn_hist_decomp = 105 ! The SE dynamics grid configured for history output.
 integer, parameter :: ini_decomp_scm = 205 ! alternate dynamics grid for reading initial file
                                            ! in single colum (SCAM) mode.
 
@@ -788,6 +789,9 @@ subroutine define_cam_grids()
    integer(iMap),       pointer :: grid_map(:,:)
    integer(iMap),       pointer :: grid_map_scm(:,:) !grid_map decomp for single column mode
 
+   !DEBUG -JN:
+   integer(iMap),       pointer :: grid_map_hist(:,:)
+
    real(r8),        allocatable :: pelat_deg(:)  ! pe-local latitudes (degrees)
    real(r8),        allocatable :: pelon_deg(:)  ! pe-local longitudes (degrees)
    real(r8),        pointer     :: pearea(:) => null()  ! pe-local areas
@@ -897,6 +901,31 @@ subroutine define_cam_grids()
          trim(ncolname), pearea, map=pemap)
    call cam_grid_attribute_register('GLL', 'np', '', np)
    call cam_grid_attribute_register('GLL', 'ne', '', ne)
+
+   ! Register a second "GLL hist" grid that is needed for history output:
+   !--------------------------------------------------------------------
+   allocate(grid_map_hist(3,npsq*nelemd), stat=ierr)
+   call check_allocate(ierr, subname, 'grid_map_hist(3,npsq*nelemd)', &
+                       file=__FILE__, line=__LINE__)
+
+   grid_map_hist = 0_iMap
+   mapind = 1
+   do j = 1, nelemd
+      do i = 1, npsq
+         grid_map_hist(1, mapind) = mapind
+         grid_map_hist(2, mapind) = 0
+         grid_map_hist(3, mapind) = pemap(mapind)
+         mapind = mapind + 1
+      end do
+   end do
+
+   call cam_grid_register('GLL_hist', dyn_hist_decomp, lat_coord, lon_coord,           &
+         grid_map_hist, src_in=[1,0], block_indexed=.false., unstruct=.true.)
+   call cam_grid_attribute_register('GLL_hist', trim(areaname), 'gll grid areas', &
+         trim(ncolname), pearea, map=pemap)
+   call cam_grid_attribute_register('GLL_hist', 'np', '', np)
+   call cam_grid_attribute_register('GLL_hist', 'ne', '', ne)
+   !--------------------------------------------------------------------
 
    ! With CSLAM if the initial file uses the horizontal dimension 'ncol' rather than
    ! 'ncol_d' then we need a grid object with the names ncol,lat,lon to read it.
