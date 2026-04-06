@@ -781,9 +781,6 @@ CONTAINS
          if (masterproc) then
             call errors%output(iulog)
          end if
-         ! peverwhee - TODO: create additional buffer(s) for other accum types
-!         call hist_new_buffer(field_info, field_shape, &
-!            this%rl_kind, 1, this%accumulate_types(idx), 1)
          ! Add to field list array and hash table
          this%field_list(idx) = field_info
          call this%field_list_hash_table%add_hash_key(field_info)
@@ -1867,8 +1864,6 @@ CONTAINS
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_var > 0) then
-         call endrun(subname//"ERROR, standard deviation fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_var_fields(:), max_fldlen*num_fields_var, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
