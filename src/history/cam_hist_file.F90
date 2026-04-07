@@ -778,8 +778,9 @@ CONTAINS
             sampling_seq=field_ptr%sampling_sequence())
          call hist_new_buffer(field_info, field_shape, &
             this%rl_kind, 1, this%accumulate_types(idx), 1, errors=errors)
-         if (masterproc) then
+         if (masterproc .and. errors%num_errors() > 0) then
             call errors%output(iulog)
+            call endrun(subname//' error(s) during buffer creation')
          end if
          ! Add to field list array and hash table
          this%field_list(idx) = field_info
@@ -1559,6 +1560,8 @@ CONTAINS
          if (trim(field_precision) == 'REAL32') then
             allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          else
             allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
@@ -1567,6 +1570,8 @@ CONTAINS
          if (trim(field_precision) == 'REAL32') then
             allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          else
             allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
@@ -1589,43 +1594,32 @@ CONTAINS
          call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
          buff_ptr => field%buffers
          if (frank == 1) then
+            call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1), logger=errors)
+            if (errors%num_errors() > 0) then
+               call errors%output(iulog)
+               write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+               call endrun(errmsg)
+            end if
             if (trim(field_precision) == 'REAL32') then
-               call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1), logger=errors)
-               if (errors%num_errors() > 0) then
-                  call errors%output(iulog)
-                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
-                  call endrun(errmsg)
-               end if
+               field_data_r4(:,1) = field_data_r8(:,1)
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r4(:,1), varid)
             else
-               call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1), logger=errors)
-               if (errors%num_errors() > 0) then
-                  call errors%output(iulog)
-                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
-                  call endrun(errmsg)
-               end if
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r8(:,1), varid)
             end if
          else
+            call hist_buffer_norm_value(buff_ptr, field_data_r8, logger=errors)
+            if (errors%num_errors() > 0) then
+               call errors%output(iulog)
+               write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+               call endrun(errmsg)
+            end if
             if (trim(field_precision) == 'REAL32') then
-               call hist_buffer_norm_value(buff_ptr, field_data_r4, logger=errors)
-               if (errors%num_errors() > 0) then
-                  call errors%output(iulog)
-                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
-                  call endrun(errmsg)
-               end if
+               field_data_r4 = field_data_r8
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r4, varid)
             else
-               call hist_buffer_norm_value(buff_ptr, field_data_r8, logger=errors)
-               call errors%output(iulog)
-               if (errors%num_errors() > 0) then
-                  call errors%output(iulog)
-                  write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
-                  call endrun(errmsg)
-               end if
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r8, varid)
             end if
