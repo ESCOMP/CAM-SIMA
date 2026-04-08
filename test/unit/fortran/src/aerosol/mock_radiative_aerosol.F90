@@ -2,7 +2,7 @@
 ! Mock radiative_aerosol module for unit testing bulk_aerosol_properties.
 !
 ! This mock replaces the real radiative_aerosol facade module. The real
-! module delegates to aerosol_physical_properties (which reads NetCDF
+! module delegates to phys_prop (which reads NetCDF
 ! physprop files via PIO). This mock provides configurable in-memory data
 ! via setup_mock_rad_aer(), removing all file I/O dependencies.
 !
@@ -60,6 +60,7 @@ module radiative_aerosol
   public :: setup_mock_rad_aer
   public :: setup_mock_optics_tables
   public :: cleanup_mock_rad_aer
+  public :: rad_aer_bulk_physprop_id
 
 contains
 
@@ -295,5 +296,16 @@ contains
     if (present(sw_nonhygro_ascat)) nullify(sw_nonhygro_ascat)
 
   end subroutine rad_aer_get_props_by_idx
+
+  !-----------------------------------------------------------------------
+  ! Mock rad_aer_bulk_physprop_id: return the aer_idx as the physprop ID.
+  ! In the real module this looks up the physprop index from the bin list.
+  !-----------------------------------------------------------------------
+  integer function rad_aer_bulk_physprop_id(list_idx, aer_idx)
+    integer, intent(in) :: list_idx
+    integer, intent(in) :: aer_idx
+
+    rad_aer_bulk_physprop_id = aer_idx
+  end function rad_aer_bulk_physprop_id
 
 end module radiative_aerosol

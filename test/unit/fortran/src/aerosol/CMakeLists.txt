@@ -53,7 +53,7 @@ add_pfunit_ctest(test_table_interp
 # Tier 2: radiative_aerosol_definitions parsing and list population
 # ========================================================================
 add_library(rad_aer_defs_testlib
-    mock_aerosol_physical_properties.F90
+    mock_phys_prop.F90
     ${AEROSOL_SRC}/radiative_aerosol_definitions.F90
 )
 target_link_libraries(rad_aer_defs_testlib PUBLIC aerosol_test_mocks)
@@ -77,6 +77,7 @@ add_library(bulk_aero_testlib
     ${AEROSOL_SRC}/bulk_aerosol_state_mod.F90
     ${UTILS_SRC}/string_utils.F90
     ${CORE_UTILS}/string_core_utils.F90
+    mock_phys_prop.F90
     mock_radiative_aerosol.F90
     mock_aerosol_mmr_ccpp.F90
     ${CCPP_STUB}
