@@ -238,13 +238,13 @@ module aerosol_state_mod
      end subroutine aero_water_uptake
 
      !------------------------------------------------------------------------------
-     ! aerosol weight precent of H2SO4/H2O solution
+     ! aerosol weight percent of H2SO4/H2O solution
      !------------------------------------------------------------------------------
      function aero_wgtpct(self, ncol, nlev) result(wtp)
        import :: aerosol_state, r8
        class(aerosol_state), intent(in) :: self
        integer, intent(in) ::  ncol,nlev
-       real(r8) :: wtp(ncol,nlev)  ! weight precent of H2SO4/H2O solution for given icol, ilev
+       real(r8) :: wtp(ncol,nlev)  ! weight percent of H2SO4/H2O solution for given icol, ilev
 
      end function aero_wgtpct
 
@@ -348,7 +348,7 @@ contains
     do l = 1, aero_props%nspecies(m)
 
        call self%get_ambient_mmr(species_ndx=l, bin_ndx=m, mmr=raer)
-       call self%get_cldbrne_mmr(l,m, qqcw)
+       call self%get_cldbrne_mmr(species_ndx=l, bin_ndx=m, mmr=qqcw)
        call aero_props%get(m,l, density=specdens, hygro=spechygro, spectype=spectype)
        if (present(pom_hygro)) then
           if (spectype=='p-organic'.and.pom_hygro>0._r8) then
@@ -514,7 +514,7 @@ contains
     do ispc = 1, aero_props%nspecies(bin_ndx)
 
        if (cldbrne) then
-          call self%get_cldbrne_mmr(ispc, bin_ndx, aer_bin)
+          call self%get_cldbrne_mmr(species_ndx=ispc, bin_ndx=bin_ndx, mmr=aer_bin)
        else
           call self%get_ambient_mmr(species_ndx=ispc, bin_ndx=bin_ndx, mmr=aer_bin)
        end if
@@ -896,9 +896,10 @@ contains
   !------------------------------------------------------------------------------
   ! prescribed aerosol activation fraction for convective cloud
   !------------------------------------------------------------------------------
-  function convcld_actfrac(self, ibin, ispc, ncol, nlev) result(frac)
+  function convcld_actfrac(self, aero_props, ibin, ispc, ncol, nlev) result(frac)
 
     class(aerosol_state), intent(in) :: self
+    class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
     integer, intent(in) :: ibin   ! bin index
     integer, intent(in) :: ispc   ! species index
     integer, intent(in) :: ncol   ! number of columns
