@@ -30,7 +30,7 @@ contains
                                         relh, sulfwtpct, crefwsw, crefwlw, &
                                         geometric_radius) result(aero_optics)
 
-    use aerosol_physical_properties, only: ot_length
+    use phys_prop, only: ot_length
 
     use aerosol_properties_mod, only: aerosol_properties
     use aerosol_state_mod, only: aerosol_state

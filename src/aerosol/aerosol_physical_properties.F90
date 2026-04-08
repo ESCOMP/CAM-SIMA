@@ -4,7 +4,7 @@
 ! here are meant to be accessed via that module.  This module knows nothing about how
 ! this data is associated with the constituents that are radiatively active or those that
 ! are being used for diagnostic calculations.
-module aerosol_physical_properties
+module phys_prop
   use shr_kind_mod,   only: r8 => shr_kind_r8
   use pio,            only: file_desc_t, var_desc_t, pio_get_var, pio_inq_varid, &
                             pio_inq_dimlen, pio_inq_dimid
@@ -1666,4 +1666,4 @@ contains
 
   end subroutine hygroscopic_wtp_optics_init
 
-end module aerosol_physical_properties
+end module phys_prop

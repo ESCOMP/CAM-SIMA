@@ -94,7 +94,7 @@ subroutine resolve_mode_idx(modes)
    ! Initialize the mode definitions by looking up the relevant indices in the
    ! CCPP constituents array, and getting the physprop IDs
 
-   use aerosol_physical_properties,      only: physprop_get_id
+   use phys_prop,      only: physprop_get_id
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: modes_t
 
@@ -147,7 +147,7 @@ subroutine resolve_bin_idx(bins)
    ! Initialize the bin definitions by looking up the relevant indices in the
    ! CCPP constituents array, and getting the physprop IDs
 
-   use aerosol_physical_properties,      only: physprop_get_id
+   use phys_prop,      only: physprop_get_id
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: bins_t
 

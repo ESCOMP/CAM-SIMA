@@ -4,7 +4,7 @@ module bulk_aerosol_state_mod
   use aerosol_mmr_ccpp, only: rad_cnst_get_aer_mmr
   use cam_abortutils,   only: endrun
 
-  use aerosol_state_mod, only: aerosol_state, ptr2d_t
+  use aerosol_state_mod,      only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
 
   implicit none
@@ -381,9 +381,10 @@ contains
   !------------------------------------------------------------------------------
   ! prescribed aerosol activation fraction for convective cloud
   !------------------------------------------------------------------------------
-  function convcld_actfrac(self, ibin, ispc, ncol, nlev) result(frac)
+  function convcld_actfrac(self, aero_props, ibin, ispc, ncol, nlev) result(frac)
 
     class(bulk_aerosol_state), intent(in) :: self
+    class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
     integer, intent(in) :: ibin   ! bin index
     integer, intent(in) :: ispc   ! species index
     integer, intent(in) :: ncol   ! number of columns
@@ -396,12 +397,12 @@ contains
   end function convcld_actfrac
 
   !------------------------------------------------------------------------------
-  ! aerosol weight precent of H2SO4/H2O solution
+  ! aerosol weight percent of H2SO4/H2O solution
   !------------------------------------------------------------------------------
   function wgtpct(self, ncol, nlev) result(wtp)
     class(bulk_aerosol_state), intent(in) :: self
     integer, intent(in) ::  ncol, nlev
-    real(r8) :: wtp(ncol,nlev)  ! weight precent of H2SO4/H2O solution for given icol, ilev
+    real(r8) :: wtp(ncol,nlev)  ! weight percent of H2SO4/H2O solution for given icol, ilev
 
     wtp = -huge(1._r8)
 
