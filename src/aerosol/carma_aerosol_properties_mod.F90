@@ -28,7 +28,7 @@ module carma_aerosol_properties_mod
      procedure :: icenuc_updates_mmr
      procedure :: apply_number_limits
      procedure :: hetfrz_species
-     procedure :: optics_params
+     procedure :: physprop_id
      procedure :: soluble
      procedure :: min_mass_mean_rad
      procedure :: bin_name
@@ -148,36 +148,12 @@ contains
     res = .false.
   end function hetfrz_species
 
-  subroutine optics_params(self, bin_ndx, opticstype, extpsw, abspsw, asmpsw, absplw, &
-       refrtabsw, refitabsw, refrtablw, refitablw, ncoef, prefr, prefi, sw_hygro_ext_wtp, &
-       sw_hygro_ssa_wtp, sw_hygro_asm_wtp, lw_hygro_ext_wtp, wgtpct, nwtp, &
-       sw_hygro_coreshell_ext, sw_hygro_coreshell_ssa, sw_hygro_coreshell_asm, lw_hygro_coreshell_ext, &
-       corefrac, bcdust, kap, relh, nfrac, nbcdust, nkap, nrelh, &
-       sw_hygroscopic_ext, sw_hygroscopic_ssa, sw_hygroscopic_asm, lw_hygroscopic_ext, &
-       sw_insoluble_ext, sw_insoluble_ssa, sw_insoluble_asm, lw_insoluble_ext, &
-       r_sw_ext, r_sw_scat, r_sw_ascat, r_mu, r_lw_abs)
+  integer function physprop_id(self, bin_ndx)
     class(carma_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx
-    character(len=*), optional, intent(out) :: opticstype
-    real(r8), optional, pointer :: extpsw(:,:,:,:), abspsw(:,:,:,:), asmpsw(:,:,:,:), absplw(:,:,:,:)
-    real(r8), optional, pointer :: refrtabsw(:,:), refitabsw(:,:), refrtablw(:,:), refitablw(:,:)
-    integer, optional, intent(out) :: ncoef, prefr, prefi
-    real(r8), optional, pointer :: sw_hygro_ext_wtp(:,:), sw_hygro_ssa_wtp(:,:)
-    real(r8), optional, pointer :: sw_hygro_asm_wtp(:,:), lw_hygro_ext_wtp(:,:)
-    real(r8), optional, pointer :: wgtpct(:)
-    integer, optional, intent(out) :: nwtp
-    real(r8), optional, pointer :: sw_hygro_coreshell_ext(:,:,:,:,:), sw_hygro_coreshell_ssa(:,:,:,:,:)
-    real(r8), optional, pointer :: sw_hygro_coreshell_asm(:,:,:,:,:), lw_hygro_coreshell_ext(:,:,:,:,:)
-    real(r8), optional, pointer :: corefrac(:), bcdust(:), kap(:), relh(:)
-    integer, optional, intent(out) :: nfrac, nbcdust, nkap, nrelh
-    real(r8), optional, pointer :: sw_hygroscopic_ext(:,:), sw_hygroscopic_ssa(:,:)
-    real(r8), optional, pointer :: sw_hygroscopic_asm(:,:), lw_hygroscopic_ext(:,:)
-    real(r8), optional, pointer :: sw_insoluble_ext(:), sw_insoluble_ssa(:)
-    real(r8), optional, pointer :: sw_insoluble_asm(:), lw_insoluble_ext(:)
-    real(r8), optional, pointer :: r_sw_ext(:,:), r_sw_scat(:,:), r_sw_ascat(:,:)
-    real(r8), optional, pointer :: r_mu(:), r_lw_abs(:,:)
-    call endrun('carma_aerosol_properties%optics_params: not implemented')
-  end subroutine optics_params
+    physprop_id = -1
+    call endrun('carma_aerosol_properties%physprop_id: not implemented')
+  end function physprop_id
 
   logical function soluble(self, bin_ndx)
     class(carma_aerosol_properties), intent(in) :: self

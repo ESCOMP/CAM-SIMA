@@ -5,7 +5,7 @@
 ! Uses real bulk_aerosol_properties (via mock radiative_aerosol) to test
 ! the interaction between properties and state:
 ! mocking is done at the external dependency boundary (to avoid PIO at
-! aerosol_physical_properties)
+! phys_prop)
 !
 ! Mock boundaries:
 !   - radiative_aerosol (rad_aer_get_info, rad_aer_get_props) for properties
