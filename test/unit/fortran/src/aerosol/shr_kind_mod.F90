@@ -11,5 +11,8 @@ module shr_kind_mod
   private
 
   public :: shr_kind_r8
+  public :: shr_kind_cl
+
+  integer, parameter :: shr_kind_cl = 256
 
 end module shr_kind_mod
