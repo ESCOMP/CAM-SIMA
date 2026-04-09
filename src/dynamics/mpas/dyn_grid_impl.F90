@@ -135,6 +135,7 @@ contains
         use cam_history_support, only: add_vert_coord
         use cam_logfile, only: debugout_debug, debugout_verbose
         use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
+        use dyn_procedures, only: reverse
         use dynconst, only: constant_p0 => pref
         use ref_pres, only: ref_pres_init
         use std_atm_profile, only: std_atm_pres
@@ -143,6 +144,8 @@ contains
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
                                 len_cx => shr_kind_cx
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: dzw_of_rdzw, zu_of_dzw, zw_of_dzw
 
         character(*), parameter :: subname = 'dyn_grid::init_reference_pressure'
         character(len_cx) :: cerr
@@ -178,7 +181,7 @@ contains
         call check_allocate(ierr, subname, 'dzw(pver)', &
             file='dyn_grid', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        dzw(:) = 1.0_kind_r8 / real(rdzw(:), kind_r8)
+        dzw(:) = dzw_of_rdzw(real(rdzw, kind_r8))
 
         nullify(rdzw)
 
@@ -191,13 +194,8 @@ contains
 
         ! In MPAS, zeta coordinates are stored in increasing order (i.e., bottom to top of atmosphere).
         ! In CAM-SIMA, however, index order is reversed (i.e., top to bottom of atmosphere).
-        ! Compute in reverse below.
-        zw(pverp) = 0.0_kind_r8
-
-        do k = pver, 1, -1
-            zw(k) = zw(k + 1) + dzw(pver - k + 1)
-            zu(k) = 0.5_kind_r8 * (zw(k + 1) + zw(k))
-        end do
+        zw(:) = reverse(zw_of_dzw(dzw))
+        zu(:) = reverse(zu_of_dzw(dzw))
 
         deallocate(dzw)
 
