@@ -777,7 +777,7 @@ CONTAINS
             flag_xyfill=field_ptr%flag_xyfill(),                 &
             sampling_seq=field_ptr%sampling_sequence())
          call hist_new_buffer(field_info, field_shape, &
-            this%rl_kind, 1, this%accumulate_types(idx), 1, errors=errors)
+            1, this%accumulate_types(idx), 1, errors=errors)
          if (masterproc .and. errors%num_errors() > 0) then
             call errors%output(iulog)
             call endrun(subname//' error(s) during buffer creation')
@@ -1513,8 +1513,7 @@ CONTAINS
    subroutine config_write_field(this, field, split_file_index, restart, &
       sample_index, field_index, field_precision)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
-      use hist_buffer,         only: hist_buffer_t
-      use hist_api,            only: hist_buffer_norm_value
+      use hist_api,            only: hist_field_norm_value
       use cam_grid_support,    only: cam_grid_write_dist_array
       use cam_abortutils,      only: check_allocate, endrun
       use hist_field,          only: hist_field_info_t
@@ -1545,7 +1544,6 @@ CONTAINS
       integer                        :: idx
       real(r8), allocatable          :: field_data_r8(:,:)
       real(r4), allocatable          :: field_data_r4(:,:)
-      class(hist_buffer_t), pointer  :: buff_ptr
       type(hist_log_messages)        :: errors
       character(len=CL)              :: errmsg
       character(len=*), parameter    :: subname = 'config_write_field: '
@@ -1592,9 +1590,8 @@ CONTAINS
       do patch_idx = 1, num_patches
          varid = this%file_varids(field_index, patch_idx)
          call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
-         buff_ptr => field%buffers
          if (frank == 1) then
-            call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1), logger=errors)
+            call hist_field_norm_value(field, field_data_r8(:,1), logger=errors)
             if (errors%num_errors() > 0) then
                call errors%output(iulog)
                write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
@@ -1609,7 +1606,7 @@ CONTAINS
                     field_shape, field_data_r8(:,1), varid)
             end if
          else
-            call hist_buffer_norm_value(buff_ptr, field_data_r8, logger=errors)
+            call hist_field_norm_value(field, field_data_r8, logger=errors)
             if (errors%num_errors() > 0) then
                call errors%output(iulog)
                write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
