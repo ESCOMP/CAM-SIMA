@@ -84,13 +84,12 @@ jobs:
           fi
 
       - name: Upload logs to GitHub artifacts when the CI test fails
-        if: failure() 
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: logs.${{ matrix.test_type }}.${{ matrix.compset }}.${{ matrix.compiler }}.${{ matrix.runner }}
           path: |
-            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/bld/atm.bldlog*
-            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/bld/cesm.bldlog*
-            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/run/cesm.log*
-            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/run/atm.log*
+            /${{ env.TMP_DIR }}/ci_test/${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*/bld/*.bldlog*
+            /${{ env.TMP_DIR }}/ci_test/${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*/run/cesm.log*
+            /${{ env.TMP_DIR }}/ci_test/${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*/run/atm.log*
           retention-days: 7
