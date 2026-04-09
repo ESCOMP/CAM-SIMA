@@ -1,0 +1,272 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for modal_aerosol_properties_mod.
+!
+! Tests the modal aerosol properties type using a minimal 2-mode MAM config:
+!   Mode 1 "accum": 2 species (sulfate, black-c)
+!   Mode 2 "coarse": 1 species (dust)
+!
+! Mock boundary: radiative_aerosol (modal mock interfaces)
+!-----------------------------------------------------------------------
+
+! Helper module to set up and tear down the 2-mode mock config
+module modal_test_helpers
+  use shr_kind_mod, only: r8 => shr_kind_r8
+  use radiative_aerosol, only: setup_mock_modal_rad_aer, cleanup_mock_rad_aer
+  implicit none
+
+  ! Mode properties
+  real(r8), parameter :: sigmag_accum  = 1.8_r8
+  real(r8), parameter :: sigmag_coarse = 2.0_r8
+  real(r8), parameter :: dgnum_accum   = 0.11e-6_r8
+  real(r8), parameter :: dgnum_coarse  = 2.0e-6_r8
+
+  ! Species densities
+  real(r8), parameter :: dens_sulfate = 1770._r8
+  real(r8), parameter :: dens_bc      = 1700._r8
+  real(r8), parameter :: dens_dust    = 2600._r8
+
+  ! Species hygroscopicities
+  real(r8), parameter :: hygro_sulfate = 0.507_r8
+  real(r8), parameter :: hygro_bc      = 1.0e-10_r8
+  real(r8), parameter :: hygro_dust    = 0.14_r8
+
+contains
+
+  subroutine setup_2mode_mock()
+    character(len=32) :: spec_type(2,2), spec_name(2,2), spec_name_cw(2,2)
+    real(r8) :: spec_density(2,2), spec_hygro(2,2)
+
+    spec_type(1,1) = 'sulfate';   spec_type(1,2) = 'black-c'
+    spec_type(2,1) = 'dust';      spec_type(2,2) = ''
+
+    spec_name(1,1) = 'so4_a1';    spec_name(1,2) = 'bc_a1'
+    spec_name(2,1) = 'dst_a2';    spec_name(2,2) = ''
+    spec_name_cw(1,1) = 'so4_c1'; spec_name_cw(1,2) = 'bc_c1'
+    spec_name_cw(2,1) = 'dst_c2'; spec_name_cw(2,2) = ''
+
+    spec_density(1,1) = dens_sulfate; spec_density(1,2) = dens_bc
+    spec_density(2,1) = dens_dust;    spec_density(2,2) = 0._r8
+
+    spec_hygro(1,1) = hygro_sulfate; spec_hygro(1,2) = hygro_bc
+    spec_hygro(2,1) = hygro_dust;    spec_hygro(2,2) = 0._r8
+
+    call setup_mock_modal_rad_aer( &
+         nmodes = 2, &
+         nspec = [2, 1], &
+         mode_type = [character(len=32) :: 'accum', 'coarse'], &
+         num_name = [character(len=32) :: 'num_a1', 'num_a2'], &
+         num_name_cw = [character(len=32) :: 'num_c1', 'num_c2'], &
+         sigmag = [sigmag_accum, sigmag_coarse], &
+         dgnum = [dgnum_accum, dgnum_coarse], &
+         dgnumlo = [dgnum_accum * 0.1_r8, dgnum_coarse * 0.1_r8], &
+         dgnumhi = [dgnum_accum * 10._r8, dgnum_coarse * 10._r8], &
+         rhcrystal = [0.35_r8, 0.35_r8], &
+         rhdeliques = [0.80_r8, 0.80_r8], &
+         spec_type = spec_type, &
+         spec_name = spec_name, &
+         spec_name_cw = spec_name_cw, &
+         spec_density = spec_density, &
+         spec_hygro = spec_hygro )
+  end subroutine setup_2mode_mock
+
+end module modal_test_helpers
+
+@test
+subroutine test_constructor_and_sizes()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_properties), pointer :: props
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    @assertTrue(associated(props))
+    @assertEqual(2, props%nbins())
+    @assertEqual(2, props%nspecies(1))
+    @assertEqual(1, props%nspecies(2))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_constructor_and_sizes
+
+@test
+subroutine test_model_is()
+    use funit
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_properties), pointer :: props
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    @assertTrue(props%model_is('MAM'))
+    @assertTrue(props%model_is('mam'))
+    @assertTrue(props%model_is('modal'))
+    @assertFalse(props%model_is('bulk'))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_model_is
+
+@test
+subroutine test_amcube()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use physconst, only: pi
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock, sigmag_accum
+
+    type(modal_aerosol_properties), pointer :: props
+    real(r8) :: volconc, numconc, result, expected
+    real(r8) :: alogsig, exp45
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    ! Test amcube: R^3 = 3*V / (4*pi*exp45logsig*N)
+    volconc = 1.0e-15_r8  ! m3/m3
+    numconc = 1.0e9_r8    ! 1/m3
+
+    alogsig = log(sigmag_accum)
+    exp45 = exp(4.5_r8 * alogsig * alogsig)
+    expected = 3._r8 * volconc / (4._r8 * pi * exp45 * numconc)
+
+    result = props%amcube(1, volconc, numconc)
+
+    @assertEqual(expected, result, abs(expected) * 1.0e-12_r8)
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_amcube
+
+@test
+subroutine test_species_type()
+    use funit
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_properties), pointer :: props
+    character(len=32) :: stype
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    call props%species_type(1, 1, stype)
+    @assertEqual('sulfate', trim(stype))
+
+    call props%species_type(1, 2, stype)
+    @assertEqual('black-c', trim(stype))
+
+    call props%species_type(2, 1, stype)
+    @assertEqual('dust', trim(stype))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_species_type
+
+@test
+subroutine test_soluble()
+    use funit
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_properties), pointer :: props
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    ! accum and coarse are both soluble (not 'primary_carbon')
+    @assertTrue(props%soluble(1))
+    @assertTrue(props%soluble(2))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_soluble
+
+@test
+subroutine test_bin_name()
+    use funit
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_properties), pointer :: props
+    character(len=32) :: bname
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    bname = props%bin_name(1)
+    @assertEqual('accum', trim(bname))
+
+    bname = props%bin_name(2)
+    @assertEqual('coarse', trim(bname))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_bin_name
+
+@test
+subroutine test_num_names()
+    use funit
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_properties), pointer :: props
+    character(len=32) :: name_a, name_c
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    call props%num_names(1, name_a, name_c)
+    @assertEqual('num_a1', trim(name_a))
+    @assertEqual('num_c1', trim(name_c))
+
+    call props%num_names(2, name_a, name_c)
+    @assertEqual('num_a2', trim(name_a))
+    @assertEqual('num_c2', trim(name_c))
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_num_names
+
+@test
+subroutine test_get_density_hygro()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock, dens_sulfate, hygro_sulfate, &
+         dens_bc, hygro_bc, dens_dust, hygro_dust
+
+    type(modal_aerosol_properties), pointer :: props
+    real(r8) :: d, h
+
+    call setup_2mode_mock()
+    props => modal_aerosol_properties()
+
+    call props%get(1, 1, density=d, hygro=h)
+    @assertEqual(dens_sulfate, d, 1.0e-10_r8)
+    @assertEqual(hygro_sulfate, h, 1.0e-10_r8)
+
+    call props%get(1, 2, density=d, hygro=h)
+    @assertEqual(dens_bc, d, 1.0e-10_r8)
+    @assertEqual(hygro_bc, h, 1.0e-10_r8)
+
+    call props%get(2, 1, density=d, hygro=h)
+    @assertEqual(dens_dust, d, 1.0e-10_r8)
+    @assertEqual(hygro_dust, h, 1.0e-10_r8)
+
+    deallocate(props)
+    call cleanup_mock_rad_aer()
+end subroutine test_get_density_hygro
