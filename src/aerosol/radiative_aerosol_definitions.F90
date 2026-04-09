@@ -8,8 +8,6 @@
 !-----------------------------------------------------------------------------
 module radiative_aerosol_definitions
 
-  use shr_kind_mod,   only: 256
-
   implicit none
   private
   save
