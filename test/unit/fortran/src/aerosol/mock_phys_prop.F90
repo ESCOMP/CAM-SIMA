@@ -1,7 +1,10 @@
 module phys_prop
   ! Mock stub for unit tests.
   ! Provides physprop_get_id (returns a deterministic index)
-  ! and a no-op physprop_get so that aerosol_properties_mod compiles.
+  ! and physprop_get that returns mock optics data when configured.
+  !
+  ! For tests that need optics data (e.g. insoluble_aerosol_optics),
+  ! call setup_mock_physprop_optics() before constructing optics objects.
   use shr_kind_mod, only: r8 => shr_kind_r8
 
   implicit none
@@ -11,10 +14,64 @@ module phys_prop
 
   public :: physprop_get_id
   public :: physprop_get
+  public :: setup_mock_physprop_optics
+  public :: cleanup_mock_physprop
 
   integer, save :: next_id = 0
 
+  ! Mock optics data storage, indexed as (nwavbands, naero).
+  ! The id passed to physprop_get is used as the aerosol index.
+  integer, save :: mock_nswbands = 0
+  integer, save :: mock_nlwbands = 0
+  real(r8), allocatable, target, save :: mock_sw_nonhygro_ext(:,:)
+  real(r8), allocatable, target, save :: mock_sw_nonhygro_ssa(:,:)
+  real(r8), allocatable, target, save :: mock_sw_nonhygro_asm(:,:)
+  real(r8), allocatable, target, save :: mock_lw_abs(:,:)
+
 contains
+
+  !-----------------------------------------------------------------------
+  ! Configure mock optics tables for physprop_get to return.
+  ! Arrays are dimensioned (nbands, naero).
+  !-----------------------------------------------------------------------
+  subroutine setup_mock_physprop_optics(nswbands, nlwbands, naero, &
+       sw_ext, sw_ssa, sw_asm, lw_abs)
+    integer, intent(in) :: nswbands, nlwbands, naero
+    real(r8), intent(in), optional :: sw_ext(:,:)
+    real(r8), intent(in), optional :: sw_ssa(:,:)
+    real(r8), intent(in), optional :: sw_asm(:,:)
+    real(r8), intent(in), optional :: lw_abs(:,:)
+
+    call cleanup_mock_physprop()
+    mock_nswbands = nswbands
+    mock_nlwbands = nlwbands
+
+    allocate(mock_sw_nonhygro_ext(nswbands, naero))
+    allocate(mock_sw_nonhygro_ssa(nswbands, naero))
+    allocate(mock_sw_nonhygro_asm(nswbands, naero))
+    allocate(mock_lw_abs(nlwbands, naero))
+    mock_sw_nonhygro_ext = 0._r8
+    mock_sw_nonhygro_ssa = 0._r8
+    mock_sw_nonhygro_asm = 0._r8
+    mock_lw_abs = 0._r8
+
+    if (present(sw_ext)) mock_sw_nonhygro_ext(:, 1:naero) = sw_ext
+    if (present(sw_ssa)) mock_sw_nonhygro_ssa(:, 1:naero) = sw_ssa
+    if (present(sw_asm)) mock_sw_nonhygro_asm(:, 1:naero) = sw_asm
+    if (present(lw_abs)) mock_lw_abs(:, 1:naero)           = lw_abs
+  end subroutine setup_mock_physprop_optics
+
+  !-----------------------------------------------------------------------
+  ! Clean up mock optics data.
+  !-----------------------------------------------------------------------
+  subroutine cleanup_mock_physprop()
+    if (allocated(mock_sw_nonhygro_ext)) deallocate(mock_sw_nonhygro_ext)
+    if (allocated(mock_sw_nonhygro_ssa)) deallocate(mock_sw_nonhygro_ssa)
+    if (allocated(mock_sw_nonhygro_asm)) deallocate(mock_sw_nonhygro_asm)
+    if (allocated(mock_lw_abs))          deallocate(mock_lw_abs)
+    mock_nswbands = 0
+    mock_nlwbands = 0
+  end subroutine cleanup_mock_physprop
 
   integer function physprop_get_id(filename)
     character(len=*), intent(in) :: filename
@@ -107,7 +164,36 @@ contains
     real(r8),          optional, pointer     :: sw_hygro_coreshell_asm(:,:,:,:,:)
     real(r8),          optional, pointer     :: lw_hygro_coreshell_abs(:,:,:,:,:)
 
-    ! No-op: mock does not populate any fields
+    ! Return mock optics data when available.
+    ! The id maps to the aerosol index (1-based).
+    if (present(sw_nonhygro_ext)) then
+       if (allocated(mock_sw_nonhygro_ext)) then
+          sw_nonhygro_ext => mock_sw_nonhygro_ext(:, id)
+       else
+          nullify(sw_nonhygro_ext)
+       end if
+    end if
+    if (present(sw_nonhygro_ssa)) then
+       if (allocated(mock_sw_nonhygro_ssa)) then
+          sw_nonhygro_ssa => mock_sw_nonhygro_ssa(:, id)
+       else
+          nullify(sw_nonhygro_ssa)
+       end if
+    end if
+    if (present(sw_nonhygro_asm)) then
+       if (allocated(mock_sw_nonhygro_asm)) then
+          sw_nonhygro_asm => mock_sw_nonhygro_asm(:, id)
+       else
+          nullify(sw_nonhygro_asm)
+       end if
+    end if
+    if (present(lw_abs)) then
+       if (allocated(mock_lw_abs)) then
+          lw_abs => mock_lw_abs(:, id)
+       else
+          nullify(lw_abs)
+       end if
+    end if
   end subroutine physprop_get
 
 end module phys_prop

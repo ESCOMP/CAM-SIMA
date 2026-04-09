@@ -22,6 +22,7 @@ subroutine test_sw_props()
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
     use aerosol_optics_mod, only: aerosol_optics
     use radiative_aerosol, only: setup_mock_rad_aer, setup_mock_optics_tables, cleanup_mock_rad_aer
+    use phys_prop, only: setup_mock_physprop_optics, cleanup_mock_physprop
 
     type(bulk_aerosol_properties), pointer :: props
     type(bulk_aerosol_state), pointer :: state
@@ -51,6 +52,8 @@ subroutine test_sw_props()
     sw_asm(:, 1) = [0.7_r8, 0.6_r8]     ! asymmetry
     lw_abs(:, 1) = [50._r8]             ! LW absorption
     call setup_mock_optics_tables(nswbands, nlwbands, &
+         sw_ext=sw_ext, sw_ssa=sw_ssa, sw_asm=sw_asm, lw_abs=lw_abs)
+    call setup_mock_physprop_optics(nswbands, nlwbands, naero, &
          sw_ext=sw_ext, sw_ssa=sw_ssa, sw_asm=sw_asm, lw_abs=lw_abs)
 
     ! Create properties and state
@@ -83,6 +86,7 @@ subroutine test_sw_props()
     deallocate(state)
     deallocate(props)
     deallocate(constituents)
+    call cleanup_mock_physprop()
     call cleanup_mock_rad_aer()
 end subroutine test_sw_props
 
@@ -96,6 +100,7 @@ subroutine test_lw_props()
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
     use aerosol_optics_mod, only: aerosol_optics
     use radiative_aerosol, only: setup_mock_rad_aer, setup_mock_optics_tables, cleanup_mock_rad_aer
+    use phys_prop, only: setup_mock_physprop_optics, cleanup_mock_physprop
 
     type(bulk_aerosol_properties), pointer :: props
     type(bulk_aerosol_state), pointer :: state
@@ -124,6 +129,8 @@ subroutine test_lw_props()
     lw_abs(:, 1) = [30._r8, 60._r8]   ! LW absorption at 2 bands
     call setup_mock_optics_tables(nswbands, nlwbands, &
          sw_ext=sw_ext, sw_ssa=sw_ssa, sw_asm=sw_asm, lw_abs=lw_abs)
+    call setup_mock_physprop_optics(nswbands, nlwbands, naero, &
+         sw_ext=sw_ext, sw_ssa=sw_ssa, sw_asm=sw_asm, lw_abs=lw_abs)
 
     props => bulk_aerosol_properties()
 
@@ -146,5 +153,6 @@ subroutine test_lw_props()
     deallocate(state)
     deallocate(props)
     deallocate(constituents)
+    call cleanup_mock_physprop()
     call cleanup_mock_rad_aer()
 end subroutine test_lw_props
