@@ -1,4 +1,4 @@
-test/unit/fortran/src/aerosol/mock_phys_prop.F90module modal_aerosol_properties_mod
+module modal_aerosol_properties_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
   use physconst, only: pi
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len

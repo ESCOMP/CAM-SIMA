@@ -1,16 +1,11 @@
 module modal_aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
+  use ccpp_kinds, only: kind_phys
   use shr_spfn_mod, only: erf => shr_spfn_erf
   use aerosol_state_mod, only: aerosol_state, ptr2d_t
   use radiative_aerosol, only: rad_aer_get_info, rad_aer_get_mode_props
-  !REMOVECAM
-  use aerosol_mmr_cam, only: rad_cnst_get_aer_mmr, rad_cnst_get_mode_num
-  !REMOVECAM_END
-  !REMOVECAM: no longer need pbuf and state after CAM is retired
-  use physics_buffer, only: physics_buffer_desc, pbuf_get_field, pbuf_get_index
-  use physics_types, only: physics_state
-  !REMOVECAM_END
-  use aerosol_properties_mod, only: aerosol_properties, aero_name_len
+  use aerosol_mmr_ccpp, only: rad_cnst_get_aer_mmr, rad_cnst_get_mode_num
+  use aerosol_properties_mod, only: aerosol_properties
   use physconst,  only: rhoh2o
   use cam_abortutils, only: endrun
 
@@ -22,10 +17,7 @@ module modal_aerosol_state_mod
 
   type, extends(aerosol_state) :: modal_aerosol_state
      private
-     !REMOVECAM: state and pbuf will be replaced by SIMA MMR API
-     type(physics_state), pointer :: state => null()
-     type(physics_buffer_desc), pointer :: pbuf(:) => null()
-     !REMOVECAM_END
+     real(kind_phys), pointer :: constituents(:,:,:) => null()
    contains
 
      procedure :: get_transported
@@ -64,9 +56,8 @@ contains
 
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
-  function constructor(state,pbuf,list_idx) result(newobj)
-    type(physics_state), target :: state
-    type(physics_buffer_desc), pointer :: pbuf(:)
+  function constructor(constituents, list_idx) result(newobj)
+    real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
     integer, intent(in), optional :: list_idx
 
     type(modal_aerosol_state), pointer :: newobj
@@ -79,8 +70,7 @@ contains
        return
     end if
 
-    newobj%state => state
-    newobj%pbuf => pbuf
+    newobj%constituents => constituents
 
     if (present(list_idx)) call newobj%set_list_idx(list_idx)
 
@@ -91,8 +81,7 @@ contains
   subroutine destructor(self)
     type(modal_aerosol_state), intent(inout) :: self
 
-    nullify(self%state)
-    nullify(self%pbuf)
+    nullify(self%constituents)
 
   end subroutine destructor
 
@@ -135,7 +124,7 @@ contains
     mmr_tot = 0._r8
 
     do spec_ndx=1,aero_props%nspecies(bin_ndx)
-       call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, spec_ndx, 'a', self%state, self%pbuf, mmrptr)
+       call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, spec_ndx, 'a', self%constituents, mmrptr)
        mmr_tot = mmr_tot + mmrptr(col_ndx,lyr_ndx)
     end do
 
@@ -150,7 +139,7 @@ contains
     integer, intent(in) :: bin_ndx      ! bin index
     real(r8), pointer :: mmr(:,:)       ! mass mixing ratios (ncol,nlev)
 
-    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'a', self%state, self%pbuf, mmr)
+    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'a', self%constituents, mmr)
   end subroutine get_ambient_mmr
 
   !------------------------------------------------------------------------------
@@ -162,7 +151,7 @@ contains
     integer, intent(in) :: bin_ndx      ! bin index
     real(r8), pointer :: mmr(:,:)       ! mass mixing ratios (ncol,nlev)
 
-    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'c', self%state, self%pbuf, mmr)
+    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'c', self%constituents, mmr)
   end subroutine get_cldbrne_mmr
 
   !------------------------------------------------------------------------------
@@ -173,7 +162,7 @@ contains
     integer, intent(in) :: bin_ndx     ! bin index
     real(r8), pointer   :: num(:,:)    ! number densities
 
-    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'a', self%state, self%pbuf, num)
+    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'a', self%constituents, num)
   end subroutine get_ambient_num
 
   !------------------------------------------------------------------------------
@@ -184,7 +173,7 @@ contains
     integer, intent(in) :: bin_ndx             ! bin index
     real(r8), pointer :: num(:,:)
 
-    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'c', self%state, self%pbuf, num)
+    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'c', self%constituents, num)
   end subroutine get_cldbrne_num
 
   !------------------------------------------------------------------------------
@@ -215,6 +204,9 @@ contains
   ! return aerosol bin size weights for a given bin
   !------------------------------------------------------------------------------
   subroutine icenuc_size_wght_arr(self, bin_ndx, ncol, nlev, species_type, use_preexisting_ice, wght)
+    use aerosol_properties_mod, only: aero_name_len
+    use cam_constituents, only: const_get_index
+
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
     integer, intent(in) :: ncol                ! number of columns
@@ -224,9 +216,10 @@ contains
     real(r8), intent(out) :: wght(:,:)
 
     character(len=aero_name_len) :: modetype
-    real(r8), pointer :: dgnum(:,:,:)    ! mode dry radius
     real(r8) :: sigmag_aitken
     integer :: i,k
+    integer :: idx_dgnum
+    character(len=64) :: cname
 
     if (self%list_idx_ /= 0) then
        call endrun('modal_aerosol_state::icenuc_size_wght_arr: only valid for climate list (list_idx=0)')
@@ -246,14 +239,18 @@ contains
           if ( use_preexisting_ice ) then
              wght(:ncol,:) = 1._r8
           else
+             ! The CAM DGNUM pbuf field (i,k,<bin_ndx>) is replaced by dgnum_m<bin_ndx> in SIMA.
+             ! It should be registered by the aerosol model.
+             ! If not found, the model will endrun when calling this subroutine.
              call rad_aer_get_mode_props(0, bin_ndx, sigmag=sigmag_aitken)
-             call pbuf_get_field(self%pbuf, pbuf_get_index('DGNUM' ), dgnum)
-             do k = 1,nlev
-                do i = 1,ncol
-                   if (dgnum(i,k,bin_ndx) > 0._r8) then
+             write(cname, '(a,i2.2)') 'dgnum_m', bin_ndx
+             call const_get_index(trim(cname), idx_dgnum)
+             do k = 1, nlev
+                do i = 1, ncol
+                   if (self%constituents(i,k,idx_dgnum) > 0._r8) then
                       ! only allow so4 with D>0.1 um in ice nucleation
                       wght(i,k) = max(0._r8,(0.5_r8 - 0.5_r8* &
-                           erf(log(0.1e-6_r8/dgnum(i,k,bin_ndx))/ &
+                           erf(log(0.1e-6_r8 / self%constituents(i,k,idx_dgnum)) / &
                            (2._r8**0.5_r8*log(sigmag_aitken)))  ))
                    end if
                 end do
@@ -276,6 +273,9 @@ contains
   ! return aerosol bin size weights for a given bin, column and vertical layer
   !------------------------------------------------------------------------------
   subroutine icenuc_size_wght_val(self, bin_ndx, col_ndx, lyr_ndx, species_type, use_preexisting_ice, wght)
+    use aerosol_properties_mod, only: aero_name_len
+    use cam_constituents, only: const_get_index
+
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
     integer, intent(in) :: col_ndx                ! column index
@@ -285,8 +285,9 @@ contains
     real(r8), intent(out) :: wght
 
     character(len=aero_name_len) :: modetype
-    real(r8), pointer :: dgnum(:,:,:)    ! mode dry radius
     real(r8) :: sigmag_aitken
+    integer :: idx_dgnum
+    character(len=64) :: cname
 
     if (self%list_idx_ /= 0) then
        call endrun('modal_aerosol_state::icenuc_size_wght_val: only valid for climate list (list_idx=0)')
@@ -307,14 +308,14 @@ contains
              wght = 1._r8
           else
              call rad_aer_get_mode_props(0, bin_ndx, sigmag=sigmag_aitken)
-             call pbuf_get_field(self%pbuf, pbuf_get_index('DGNUM' ), dgnum)
+             write(cname, '(a,i2.2)') 'dgnum_m', bin_ndx
+             call const_get_index(trim(cname), idx_dgnum)
 
-             if (dgnum(col_ndx,lyr_ndx,bin_ndx) > 0._r8) then
+             if (self%constituents(col_ndx, lyr_ndx, idx_dgnum) > 0._r8) then
                 ! only allow so4 with D>0.1 um in ice nucleation
                 wght = max(0._r8,(0.5_r8 - 0.5_r8* &
-                     erf(log(0.1e-6_r8/dgnum(col_ndx,lyr_ndx,bin_ndx))/ &
+                     erf(log(0.1e-6_r8 / self%constituents(col_ndx, lyr_ndx, idx_dgnum)) / &
                      (2._r8**0.5_r8*log(sigmag_aitken)))  ))
-
              end if
           endif
        endif
@@ -336,6 +337,7 @@ contains
   subroutine icenuc_type_wght(self, bin_ndx, ncol, nlev, species_type, aero_props, rho, wght, cloud_borne)
 
     use aerosol_properties_mod, only: aerosol_properties
+    use aerosol_properties_mod, only: aero_name_len
 
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
@@ -413,6 +415,8 @@ contains
   ! as heterogeneous freezing nuclei
   !------------------------------------------------------------------------------
   function hetfrz_size_wght(self, bin_ndx, ncol, nlev) result(wght)
+    use aerosol_properties_mod, only: aero_name_len
+
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx             ! bin number
     integer, intent(in) :: ncol                ! number of columns
@@ -450,13 +454,21 @@ contains
   end subroutine hygroscopicity
 
   !------------------------------------------------------------------------------
-  ! returns aerosol wet diameter and aerosol water concentration for a given
-  ! radiation diagnostic list number and bin number
+  ! returns aerosol wet diameter and aerosol water concentration for a given mode
+  !
+  ! In CAM, the climate list (list_idx==0) retrieves pre-computed DGNUMWET
+  ! and QAERWAT from the physics buffer (third dimension is bin index);
+  ! diagnostic lists recompute via modal_aero_calcsize/wateruptake.
+  !
+  ! CAM-SIMA: for the climate list, DGNUMWET and QAERWAT are retrieved from
+  ! non-advected CCPP constituents dgnumwet_m<bin_ndx>, qaerwat_m<bin_ndx).
+  ! These must be registered by the CCPPized modal water uptake scheme.
+  ! const_get_index will endrun if they are not found.
+  ! Diagnostic-list recomputation is not yet available (it requires the eventual
+  ! CCPPized schemes)
   !------------------------------------------------------------------------------
-  !REMOVECAM - under CAM-SIMA, water uptake computed by CCPP scheme; results passed via constituent interface
   subroutine water_uptake(self, aero_props, bin_idx, ncol, nlev, dgnumwet, qaerwat)
-    use modal_aero_wateruptake, only: modal_aero_wateruptake_dr
-    use modal_aero_calcsize,    only: modal_aero_calcsize_diag
+    use cam_constituents, only: const_get_index
 
     class(modal_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props
@@ -466,62 +478,25 @@ contains
     real(r8),intent(out) :: dgnumwet(ncol,nlev) ! aerosol wet diameter (m)
     real(r8),intent(out) :: qaerwat(ncol,nlev)  ! aerosol water concentration (g/g)
 
-    integer :: istat, nmodes
-    real(r8), pointer :: dgnumdry_m(:,:,:) ! number mode dry diameter for all modes
-    real(r8), pointer :: dgnumwet_m(:,:,:) ! number mode wet diameter for all modes
-    real(r8), pointer :: qaerwat_m(:,:,:)  ! aerosol water (g/g) for all modes
-    real(r8), pointer :: wetdens_m(:,:,:)  !
-    real(r8), pointer :: hygro_m(:,:,:)  !
-    real(r8), pointer :: dryvol_m(:,:,:)  !
-    real(r8), pointer :: dryrad_m(:,:,:)  !
-    real(r8), pointer :: drymass_m(:,:,:)  !
-    real(r8), pointer :: so4dryvol_m(:,:,:)  !
-    real(r8), pointer :: naer_m(:,:,:)  !
-
-    nmodes = aero_props%nbins()
+    integer :: idx_wet, idx_qaw
+    character(len=64) :: cname
 
     if (self%list_idx_ == 0) then
-       ! water uptake and wet radius for the climate list has already been calculated
-       call pbuf_get_field(self%pbuf, pbuf_get_index('DGNUMWET'), dgnumwet_m)
-       call pbuf_get_field(self%pbuf, pbuf_get_index('QAERWAT'),  qaerwat_m)
+       ! Climate list: retrieve pre-computed fields from constituents
+       ! by the modal water uptake CCPPized scheme.
+       write(cname, '(a,i2.2)') 'dgnumwet_m', bin_idx
+       call const_get_index(trim(cname), idx_wet)
+       dgnumwet(:ncol,:nlev) = self%constituents(:ncol,:nlev,idx_wet)
 
-       dgnumwet(:ncol,:nlev) = dgnumwet_m(:ncol,:nlev,bin_idx)
-       qaerwat (:ncol,:nlev) =  qaerwat_m(:ncol,:nlev,bin_idx)
-
+       write(cname, '(a,i2.2)') 'qaerwat_m', bin_idx
+       call const_get_index(trim(cname), idx_qaw)
+       qaerwat(:ncol,:nlev) = self%constituents(:ncol,:nlev,idx_qaw)
     else
-       ! If doing a diagnostic calculation then need to calculate the wet radius
-       ! and water uptake for the diagnostic modes
-       allocate(dgnumdry_m(ncol,nlev,nmodes),  dgnumwet_m(ncol,nlev,nmodes), &
-                qaerwat_m(ncol,nlev,nmodes),   wetdens_m(ncol,nlev,nmodes), &
-                hygro_m(ncol,nlev,nmodes),     dryvol_m(ncol,nlev,nmodes), &
-                dryrad_m(ncol,nlev,nmodes),    drymass_m(ncol,nlev,nmodes),  &
-                so4dryvol_m(ncol,nlev,nmodes), naer_m(ncol,nlev,nmodes), stat=istat)
-       if (istat > 0) then
-          dgnumwet = -huge(1._r8)
-          qaerwat = -huge(1._r8)
-          return
-       end if
-       call modal_aero_calcsize_diag(self%state, self%pbuf, aero_props, self, dgnumdry_m, hygro_m, &
-                                     dryvol_m, dryrad_m, drymass_m, so4dryvol_m, naer_m)
-       call modal_aero_wateruptake_dr(self%state, self%pbuf, aero_props, self, dgnumdry_m, dgnumwet_m, &
-                                      qaerwat_m, wetdens_m, hygro_m, dryvol_m, dryrad_m, &
-                                      drymass_m, so4dryvol_m, naer_m)
-
-       dgnumwet(:ncol,:nlev) = dgnumwet_m(:ncol,:nlev,bin_idx)
-       qaerwat (:ncol,:nlev) =  qaerwat_m(:ncol,:nlev,bin_idx)
-
-       deallocate(dgnumdry_m)
-       deallocate(dgnumwet_m)
-       deallocate(qaerwat_m)
-       deallocate(wetdens_m)
-       deallocate(hygro_m)
-       deallocate(dryvol_m)
-       deallocate(dryrad_m)
-       deallocate(drymass_m)
-       deallocate(so4dryvol_m)
-       deallocate(naer_m)
-    endif
-
+       ! Diagnostic lists: recomputation requires modal_aero_calcsize and
+       ! modal_aero_wateruptake, which are not yet CCPPized.
+       call endrun('modal_aerosol_state::water_uptake: diagnostic-list water uptake ' // &
+            'not yet available in CAM-SIMA (requires CCPPized modal_aero_calcsize/wateruptake)')
+    end if
 
   end subroutine water_uptake
 
@@ -605,10 +580,11 @@ contains
   end function water_volume
 
   !------------------------------------------------------------------------------
-  ! aerosol wet diameter
+  ! aerosol wet diameter for a given mode
   !------------------------------------------------------------------------------
-  !REMOVECAM - under CAM-SIMA, wet diameter provided by CCPP scheme output
   function wet_diameter(self, bin_idx, ncol, nlev) result(diam)
+    use cam_constituents, only: const_get_index
+
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_idx   ! bin number
     integer, intent(in) :: ncol      ! number of columns
@@ -616,11 +592,12 @@ contains
 
     real(r8) :: diam(ncol,nlev)
 
-    real(r8), pointer :: dgnumwet(:,:,:)
+    integer :: idx_wet
+    character(len=64) :: cname
 
-    call pbuf_get_field(self%pbuf, pbuf_get_index('DGNUMWET'), dgnumwet)
-
-    diam(:ncol,:nlev) = dgnumwet(:ncol,:nlev,bin_idx)
+    write(cname, '(a,i2.2)') 'dgnumwet_m', bin_idx
+    call const_get_index(trim(cname), idx_wet)
+    diam(:ncol,:nlev) = self%constituents(:ncol,:nlev,idx_wet)
 
   end function wet_diameter
 
@@ -628,6 +605,7 @@ contains
   ! prescribed aerosol activation fraction for convective cloud
   !------------------------------------------------------------------------------
   function convcld_actfrac(self, aero_props, ibin, ispc, ncol, nlev) result(frac)
+    use aerosol_properties_mod, only: aero_name_len
 
     class(modal_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
