@@ -8,7 +8,7 @@
 !-----------------------------------------------------------------------------
 module radiative_aerosol_definitions
 
-  use shr_kind_mod,   only: shr_kind_cl
+  use shr_kind_mod,   only: 256
 
   implicit none
   private
@@ -56,7 +56,7 @@ module radiative_aerosol_definitions
      character(len=  1),         pointer :: source(:)  ! 'A' for state (advected), 'N' for pbuf (non-advected),
                                                ! 'M' for mode, 'Z' for zero
      character(len= 64),         pointer :: camname(:) ! name registered in pbuf or constituents
-     character(len=shr_kind_cl), pointer :: radname(:) ! radname is the name as identfied in radiation,
+     character(len=256),         pointer :: radname(:) ! radname is the name as identfied in radiation,
                                                ! must be one of (rgaslist if a gas) or
                                                ! (/fullpath/filename.nc if an aerosol)
      character(len=  1),         pointer :: type(:)    ! 'A' if aerosol, 'G' if gas, 'M' if mode
@@ -90,7 +90,7 @@ module radiative_aerosol_definitions
      ! specie type (as used in MAM code)
      character(len= 32),         pointer :: type(:)
      ! file containing specie properties
-     character(len=shr_kind_cl), pointer :: props(:)
+     character(len=256),         pointer :: props(:)
 
      ! index in pbuf or constituents for number mixing ratio of interstitial species
      integer          :: idx_num_a
@@ -145,7 +145,7 @@ module radiative_aerosol_definitions
      ! species morphology
      character(len= 32),         pointer :: morph(:)
      ! file containing specie properties
-     character(len=shr_kind_cl), pointer :: props(:)
+     character(len=256),         pointer :: props(:)
 
      ! index in pbuf or constituents for number mixing ratio of interstitial species
      integer          :: idx_num_a
@@ -179,7 +179,7 @@ module radiative_aerosol_definitions
   type, public :: aerosol_t
      character(len=1)           :: source         ! A for state (advected), N for pbuf (non-advected), Z for zero
      character(len=64)          :: camname        ! name of constituent in physics state or buffer
-     character(len=shr_kind_cl) :: physprop_file  ! physprop filename
+     character(len=256)         :: physprop_file  ! physprop filename
      character(len=32)          :: mass_name      ! name for mass per layer field in history output
      integer                    :: idx            ! index of constituent in physics state or buffer
      integer                    :: physprop_id    ! ID used to access physical properties from phys_prop module
@@ -209,7 +209,7 @@ module radiative_aerosol_definitions
      ! index of the mode in the mode definition object
      integer,                    pointer :: idx(:)
      ! physprop filename
-     character(len=shr_kind_cl), pointer :: physprop_files(:)
+     character(len=256),         pointer :: physprop_files(:)
      ! index of the mode properties in the physprop object
      integer,                    pointer :: idx_props(:)
   end type modelist_t
@@ -229,7 +229,7 @@ module radiative_aerosol_definitions
      ! index of the bin in the bin definition object
      integer,   pointer :: idx(:)
      ! physprop filename
-     character(len=shr_kind_cl), pointer :: physprop_files(:)
+     character(len=256), pointer :: physprop_files(:)
      ! index of the bin properties in the physprop object
      integer,   pointer :: idx_props(:)
   end type binlist_t
@@ -1116,10 +1116,10 @@ subroutine parse_rad_specifier(specifier, namelist_data)
     integer                    :: number, i, j
     integer                    :: ipos, strlen
     integer                    :: astat
-    character(len=shr_kind_cl) :: tmpstr
+    character(len=256) :: tmpstr
     character(len=1)           :: source(n_rad_cnst)
     character(len=64)          :: camname(n_rad_cnst)
-    character(len=shr_kind_cl) :: radname(n_rad_cnst)
+    character(len=256) :: radname(n_rad_cnst)
     character(len=1)           :: type(n_rad_cnst)
     !-------------------------------------------------------------------------
 
