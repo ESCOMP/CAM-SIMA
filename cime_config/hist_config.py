@@ -409,10 +409,6 @@ class HistFieldList():
         """Return the number of fields in this HistFieldList object."""
         return len(self.__field_names)
 
-    @property
-    def field_names(self):
-        return self.__field_names
-
     def output_nl_fieldlist(self, outfile, field_varname):
         """Output the field name of this HistFieldList object as a namelist
         variable that is an array of strings.
@@ -692,22 +688,26 @@ class HistoryVolConfig():
         """Move all accumulated fields to instantaneous field list"""
         if self.__var_fields.num_fields() > 0:
             self.__inst_fields.add_fields(self.__var_fields.field_names, pobj, logger)
-            self.__var_fields.remove_fields(self.__var_fields.field_names, pobj, logger)
+            var_field_list = list(self.__var_fields.field_names)
+            self.__var_fields.remove_fields(var_field_list, pobj, logger)
         # end if
 
         if self.__avg_fields.num_fields() > 0:
             self.__inst_fields.add_fields(self.__avg_fields.field_names, pobj, logger)
-            self.__avg_fields.remove_fields(self.__avg_fields.field_names, pobj, logger)
+            avg_field_list = list(self.__avg_fields.field_names)
+            self.__avg_fields.remove_fields(avg_field_list, pobj, logger)
         # end if
 
         if self.__min_fields.num_fields() > 0:
             self.__inst_fields.add_fields(self.__min_fields.field_names, pobj, logger)
-            self.__min_fields.remove_fields(self.__min_fields.field_names, pobj, logger)
+            min_field_list = list(self.__min_fields.field_names)
+            self.__min_fields.remove_fields(min_field_list.field_names, pobj, logger)
         # end if
 
         if self.__max_fields.num_fields() > 0:
             self.__inst_fields.add_fields(self.__max_fields.field_names, pobj, logger)
-            self.__max_fields.remove_fields(self.__max_fields.field_names, pobj, logger)
+            max_field_list = list(self.__max_fields.field_names)
+            self.__max_fields.remove_fields(max_field_list, pobj, logger)
         # end if
 
     @property
