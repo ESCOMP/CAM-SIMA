@@ -10,5 +10,6 @@ module physconst
 
   real(r8), public, parameter :: pi  = 3.14159265358979323846_r8
   real(r8), public, parameter :: rga = 1._r8 / 9.80616_r8
+  real(r8), public, parameter :: rhoh2o = 1000._r8
 
 end module physconst

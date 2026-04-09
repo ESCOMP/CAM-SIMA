@@ -1,0 +1,193 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for modal_aerosol_state_mod.
+!
+! Uses the same 2-mode MAM config as modal_aerosol_properties tests:
+!   Mode 1 "accum": 2 species (sulfate, black-c)
+!   Mode 2 "coarse": 1 species (dust)
+!
+! Constituent flat layout (5 entries):
+!   Index 1: num_a1  (mode 1 number)
+!   Index 2: so4_a1  (mode 1 sulfate MMR)
+!   Index 3: bc_a1   (mode 1 black-c MMR)
+!   Index 4: num_a2  (mode 2 number)
+!   Index 5: dst_a2  (mode 2 dust MMR)
+!
+! Mock boundaries:
+!   - radiative_aerosol (modal mock interfaces) for properties
+!   - aerosol_mmr_ccpp (modal overloads) for state MMR retrieval
+!-----------------------------------------------------------------------
+
+@test
+subroutine test_get_ambient_mmr()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use modal_aerosol_state_mod, only: modal_aerosol_state
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_state), pointer :: state
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8), pointer :: mmr(:,:)
+    integer, parameter :: ncol = 2, nlev = 3, ncnst = 5
+
+    call setup_2mode_mock()
+
+    allocate(constituents(ncol, nlev, ncnst))
+    constituents = 0._kind_phys
+    ! Index 2: so4_a1 (mode 1, species 1)
+    constituents(:, :, 2) = 1.0e-9_kind_phys
+    ! Index 3: bc_a1 (mode 1, species 2)
+    constituents(:, :, 3) = 2.0e-9_kind_phys
+    ! Index 5: dst_a2 (mode 2, species 1)
+    constituents(:, :, 5) = 5.0e-9_kind_phys
+    cptr => constituents
+
+    state => modal_aerosol_state(cptr)
+
+    ! get_ambient_mmr(species_ndx=1, bin_ndx=1) -> so4_a1 at index 2
+    call state%get_ambient_mmr(species_ndx=1, bin_ndx=1, mmr=mmr)
+    @assertTrue(associated(mmr))
+    @assertEqual(1.0e-9_r8, mmr(1, 1), 1.0e-20_r8)
+
+    ! get_ambient_mmr(species_ndx=2, bin_ndx=1) -> bc_a1 at index 3
+    call state%get_ambient_mmr(species_ndx=2, bin_ndx=1, mmr=mmr)
+    @assertEqual(2.0e-9_r8, mmr(1, 1), 1.0e-20_r8)
+
+    ! get_ambient_mmr(species_ndx=1, bin_ndx=2) -> dst_a2 at index 5
+    call state%get_ambient_mmr(species_ndx=1, bin_ndx=2, mmr=mmr)
+    @assertEqual(5.0e-9_r8, mmr(1, 1), 1.0e-20_r8)
+
+    deallocate(state)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_get_ambient_mmr
+
+@test
+subroutine test_get_ambient_num()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use modal_aerosol_state_mod, only: modal_aerosol_state
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_state), pointer :: state
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8), pointer :: num(:,:)
+    integer, parameter :: ncol = 2, nlev = 3, ncnst = 5
+
+    call setup_2mode_mock()
+
+    allocate(constituents(ncol, nlev, ncnst))
+    constituents = 0._kind_phys
+    ! Index 1: num_a1 (mode 1 number)
+    constituents(:, :, 1) = 1.0e8_kind_phys
+    ! Index 4: num_a2 (mode 2 number)
+    constituents(:, :, 4) = 5.0e6_kind_phys
+    cptr => constituents
+
+    state => modal_aerosol_state(cptr)
+
+    ! get_ambient_num(bin_ndx=1) -> index 1
+    call state%get_ambient_num(bin_ndx=1, num=num)
+    @assertTrue(associated(num))
+    @assertEqual(1.0e8_r8, num(1, 1), 1.0e-5_r8)
+
+    ! get_ambient_num(bin_ndx=2) -> index 4
+    call state%get_ambient_num(bin_ndx=2, num=num)
+    @assertEqual(5.0e6_r8, num(1, 1), 1.0e-5_r8)
+
+    deallocate(state)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_get_ambient_num
+
+@test
+subroutine test_ambient_total_bin_mmr()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use modal_aerosol_state_mod, only: modal_aerosol_state
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock
+
+    type(modal_aerosol_state), pointer :: state
+    type(modal_aerosol_properties), pointer :: props
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8) :: mmr_tot
+    integer, parameter :: ncol = 2, nlev = 3, ncnst = 5
+
+    call setup_2mode_mock()
+
+    allocate(constituents(ncol, nlev, ncnst))
+    constituents = 0._kind_phys
+    ! Mode 1: so4_a1 = 1e-9, bc_a1 = 2e-9
+    constituents(:, :, 2) = 1.0e-9_kind_phys
+    constituents(:, :, 3) = 2.0e-9_kind_phys
+    cptr => constituents
+
+    props => modal_aerosol_properties()
+    state => modal_aerosol_state(cptr)
+
+    ! Total for mode 1 at (col=1, lyr=1): so4 + bc = 3e-9
+    mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=1, col_ndx=1, lyr_ndx=1)
+    @assertEqual(3.0e-9_r8, mmr_tot, 1.0e-20_r8)
+
+    deallocate(state)
+    deallocate(props)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_ambient_total_bin_mmr
+
+@test
+subroutine test_dry_volume()
+    use funit
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use ccpp_kinds, only: kind_phys
+    use modal_aerosol_state_mod, only: modal_aerosol_state
+    use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use modal_test_helpers, only: setup_2mode_mock, dens_sulfate, dens_bc
+
+    type(modal_aerosol_state), pointer :: state
+    type(modal_aerosol_properties), pointer :: props
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    real(r8), allocatable :: vol(:,:)
+    real(r8) :: expected
+    real(r8) :: mmr_so4, mmr_bc
+    integer, parameter :: ncol = 2, nlev = 3, ncnst = 5
+
+    call setup_2mode_mock()
+
+    mmr_so4 = 1.0e-9_r8
+    mmr_bc  = 2.0e-9_r8
+
+    allocate(constituents(ncol, nlev, ncnst))
+    constituents = 0._kind_phys
+    constituents(:, :, 2) = real(mmr_so4, kind_phys)
+    constituents(:, :, 3) = real(mmr_bc, kind_phys)
+    cptr => constituents
+
+    props => modal_aerosol_properties()
+    state => modal_aerosol_state(cptr)
+
+    ! dry_volume for mode 1 = sum(mmr_i / density_i)
+    expected = mmr_so4 / dens_sulfate + mmr_bc / dens_bc
+
+    allocate(vol(ncol, nlev))
+    vol = state%dry_volume(props, bin_idx=1, ncol=ncol, nlev=nlev)
+
+    @assertEqual(expected, vol(1, 1), abs(expected) * 1.0e-12_r8)
+
+    deallocate(vol)
+    deallocate(state)
+    deallocate(props)
+    deallocate(constituents)
+    call cleanup_mock_rad_aer()
+end subroutine test_dry_volume

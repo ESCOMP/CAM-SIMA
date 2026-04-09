@@ -32,6 +32,8 @@ add_library(aerosol_test_mocks
     mock_physconst.F90
     mock_shr_infnan_mod.F90
     mock_shr_string_mod.F90
+    mock_shr_spfn_mod.F90
+    mock_cam_constituents.F90
 )
 target_compile_options(aerosol_test_mocks PRIVATE -ffree-line-length-none)
 target_include_directories(aerosol_test_mocks PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
@@ -106,3 +108,21 @@ target_compile_options(insoluble_optics_testlib PRIVATE -ffree-line-length-none)
 add_pfunit_ctest(test_insoluble_aerosol_optics
     TEST_SOURCES test_insoluble_aerosol_optics.pf
     LINK_LIBRARIES insoluble_optics_testlib)
+
+# ========================================================================
+# Tier 3b: Modal aerosol properties + state + mocks
+# ========================================================================
+add_library(modal_aero_testlib
+    ${AEROSOL_SRC}/modal_aerosol_properties_mod.F90
+    ${AEROSOL_SRC}/modal_aerosol_state_mod.F90
+)
+target_link_libraries(modal_aero_testlib PUBLIC bulk_aero_testlib)
+target_compile_options(modal_aero_testlib PRIVATE -ffree-line-length-none)
+
+add_pfunit_ctest(test_modal_aerosol_properties
+    TEST_SOURCES test_modal_aerosol_properties.pf
+    LINK_LIBRARIES modal_aero_testlib)
+
+add_pfunit_ctest(test_modal_aerosol_state
+    TEST_SOURCES test_modal_aerosol_state.pf
+    LINK_LIBRARIES modal_aero_testlib)
