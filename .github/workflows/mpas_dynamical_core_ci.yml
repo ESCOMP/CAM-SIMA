@@ -233,63 +233,45 @@ jobs:
           path: ${{ env.SOURCE_CODE_PATH }}/source-code-linting.log
           retention-days: 7
   unit-tests:
-    name: Build and run unit tests (GCC ${{ matrix.gcc-version }})
+    name: Build and run unit tests (${{ matrix.compiler }})
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        gcc-version:
-          - '12'
-          - '13'
-          - '14'
+        compiler:
+          - gnu-11
+          - gnu-12
+          - gnu-13
+          - gnu-14
+          - gnu-15
+          - intel-2024
+          - intel-2025
+        # The unit tests in MPAS dynamical core currently do not involve any MPI functionalities.
+        # Testing with a single MPI implementation is sufficient for now.
+        mpi:
+          - open-mpi-5
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/kuanchihwang/atm-sci-container:2026-04-12_${{ matrix.compiler }}_${{ matrix.mpi }}
     needs: conditional-check
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     env:
-      CC: gcc-${{ matrix.gcc-version }}
-      CXX: g++-${{ matrix.gcc-version }}
-      FC: gfortran-${{ matrix.gcc-version }}
-      PFUNIT_BUILD_TYPE: Release
-      PFUNIT_PATH: ${{ github.workspace }}/pFUnit
-      PFUNIT_REFERENCE: 'v4.13.0'
+      CONTAINER_ENVIRONMENT: pfunit
       UNIT_TESTS_BUILD_TYPE: Debug
       UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
     steps:
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v6
 
-      # pFUnit takes a while to build. Cache it if possible to save time on consecutive workflow runs.
-      - name: Cache pFUnit
-        id: cache-pfunit
-        uses: actions/cache@v5
-        with:
-          key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.gcc-version }}-mpas
-          path: ${{ env.PFUNIT_PATH }}/install
-
-      # If there is a cache hit, just use the cached pFUnit and skip this step.
-      - name: Checkout pFUnit
-        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
-        uses: actions/checkout@v6
-        with:
-          repository: Goddard-Fortran-Ecosystem/pFUnit
-          ref: ${{ env.PFUNIT_REFERENCE }}
-          path: pFUnit
-
-      # If there is a cache hit, just use the cached pFUnit and skip this step.
-      - name: Build pFUnit
-        if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
-        run: |
-          cmake -D CMAKE_BUILD_TYPE="$PFUNIT_BUILD_TYPE" -D CMAKE_INSTALL_PREFIX="$PFUNIT_PATH/install" -B "$PFUNIT_PATH/build" -S "$PFUNIT_PATH"
-          cmake --build "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE"
-          cmake --install "$PFUNIT_PATH/build" --config "$PFUNIT_BUILD_TYPE" --prefix "$PFUNIT_PATH/install"
-
       - name: Build unit tests
         run: |
-          cmake -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" -D CMAKE_PREFIX_PATH="$PFUNIT_PATH/install" -B "$UNIT_TESTS_PATH/build" -S "$UNIT_TESTS_PATH"
+          source "$(command -v container-entrypoint-hook.sh)"
+          cmake -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" -B "$UNIT_TESTS_PATH/build" -S "$UNIT_TESTS_PATH"
           cmake --build "$UNIT_TESTS_PATH/build" --config "$UNIT_TESTS_BUILD_TYPE"
 
       - name: Run unit tests
         run: |
+          source "$(command -v container-entrypoint-hook.sh)"
           ctest --build-config "$UNIT_TESTS_BUILD_TYPE" --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" --output-on-failure --test-dir "$UNIT_TESTS_PATH/build" --verbose
 
       - name: Upload unit tests log
@@ -297,6 +279,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           if-no-files-found: ignore
-          name: unit-tests-log-gcc-v${{ matrix.gcc-version }}
+          name: unit-tests-log-${{ matrix.compiler }}
           path: ${{ env.UNIT_TESTS_PATH }}/build/unit-tests.log
           retention-days: 7
