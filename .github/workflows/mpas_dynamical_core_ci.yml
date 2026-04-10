@@ -33,7 +33,7 @@ jobs:
       should-run: ${{ steps.conditional.outputs.result }}
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check if there are changes to MPAS dynamical core
         id: conditional
@@ -204,7 +204,7 @@ jobs:
       SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -226,7 +226,7 @@ jobs:
 
       - name: Upload Fortran source code linting log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: ignore
           name: source-code-linting-log
@@ -256,12 +256,12 @@ jobs:
       UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # pFUnit takes a while to build. Cache it if possible to save time on consecutive workflow runs.
       - name: Cache pFUnit
         id: cache-pfunit
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: cache-pfunit-${{ env.PFUNIT_REFERENCE }}-gcc-v${{ matrix.gcc-version }}-mpas
           path: ${{ env.PFUNIT_PATH }}/install
@@ -269,7 +269,7 @@ jobs:
       # If there is a cache hit, just use the cached pFUnit and skip this step.
       - name: Checkout pFUnit
         if: ${{ steps.cache-pfunit.outputs.cache-hit != 'true' }}
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: Goddard-Fortran-Ecosystem/pFUnit
           ref: ${{ env.PFUNIT_REFERENCE }}
@@ -294,7 +294,7 @@ jobs:
 
       - name: Upload unit tests log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: ignore
           name: unit-tests-log-gcc-v${{ matrix.gcc-version }}
