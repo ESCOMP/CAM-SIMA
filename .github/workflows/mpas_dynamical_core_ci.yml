@@ -11,7 +11,7 @@ on:
       - synchronize
   push:
     branches:
-      - 'staging/**'
+      - staging/**
       - development
   workflow_dispatch:
 
@@ -200,7 +200,7 @@ jobs:
     needs: conditional-check
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     env:
-      FORTITUDE_VERSION: '0.7.*'
+      FORTITUDE_VERSION: 0.7.*
       SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
     steps:
       - name: Checkout CAM-SIMA
@@ -210,7 +210,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           cache: pip
-          python-version: '3.12'
+          python-version: 3.12
 
       - name: Install Fortitude
         run: |
