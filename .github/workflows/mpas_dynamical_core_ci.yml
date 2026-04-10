@@ -28,7 +28,7 @@ jobs:
   conditional-check:
     name: Check if jobs should run
     timeout-minutes: 1
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       should-run: ${{ steps.conditional.outputs.result }}
     steps:
@@ -128,7 +128,7 @@ jobs:
   overall-status:
     name: Overall status
     timeout-minutes: 1
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     needs:
       - conditional-check
       - source-code-linting
@@ -196,7 +196,7 @@ jobs:
   source-code-linting:
     name: Lint Fortran source code
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     needs: conditional-check
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     env:
