@@ -682,7 +682,6 @@ contains
             character(len_cx) :: cerr
             integer :: i, j
             integer :: ierr
-            integer, allocatable :: constituent_index(:)
             integer, pointer :: index_qv
             real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
@@ -695,18 +694,13 @@ contains
             call check_allocate(ierr, subname, 'buffer_3d_real(ncells_solve, pver, num_advected)', &
                 file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(constituent_index(num_advected), errmsg=cerr, stat=ierr)
-            call check_allocate(ierr, subname, 'constituent_index(num_advected)', &
-                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
-
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
 
             buffer_3d_real(:, :, :) = 0.0_kind_r8
-            constituent_index(:) = [(advected_constituent_index(i), i = 1, num_advected)]
 
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, q=buffer_3d_real, &
-                m_cnst=constituent_index)
+                m_cnst=advected_constituent_index)
 
             do i = 1, ncells_solve
                 ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
@@ -734,7 +728,6 @@ contains
             end if
 
             deallocate(buffer_3d_real)
-            deallocate(constituent_index)
 
             nullify(index_qv)
             nullify(scalars)
