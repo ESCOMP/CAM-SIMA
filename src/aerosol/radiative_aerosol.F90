@@ -1106,7 +1106,7 @@ subroutine rad_aer_readnl(nlfile)
    use spmd_utils,     only: masterproc
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: &
-      cs1, verbose, N_DIAG, n_rad_cnst, n_mode_str, n_bin_str, &
+      verbose, N_DIAG, n_rad_cnst, n_mode_str, n_bin_str, &
       modes, bins, &
       active_calls, bulk_aerosol_list, modal_aerosol_list, sectional_aerosol_list, &
       radcnst_namelist, parse_rad_specifier, parse_mode_defs, parse_bin_defs, &
@@ -1123,19 +1123,19 @@ subroutine rad_aer_readnl(nlfile)
    character(len=shr_kind_cm)  :: errmsg
 
    ! Namelist variables (matching XML: group rad_aer_nl)
-   character(len=cs1), dimension(n_mode_str) :: mode_defs     = ' '
-   character(len=cs1), dimension(n_bin_str)  :: bin_defs      = ' '
-   character(len=cs1) :: rad_aer_climate(n_rad_cnst)          = ' '
-   character(len=cs1) :: rad_aer_diag_1(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_2(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_3(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_4(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_5(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_6(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_7(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_8(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_9(n_rad_cnst)           = ' '
-   character(len=cs1) :: rad_aer_diag_10(n_rad_cnst)          = ' '
+   character(len=256), dimension(n_mode_str) :: mode_defs     = ' '
+   character(len=256), dimension(n_bin_str)  :: bin_defs      = ' '
+   character(len=256) :: rad_aer_climate(n_rad_cnst)          = ' '
+   character(len=256) :: rad_aer_diag_1(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_2(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_3(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_4(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_5(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_6(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_7(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_8(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_9(n_rad_cnst)           = ' '
+   character(len=256) :: rad_aer_diag_10(n_rad_cnst)          = ' '
 
    namelist /rad_aer_nl/ mode_defs, bin_defs,          &
       rad_aer_climate,                                  &
