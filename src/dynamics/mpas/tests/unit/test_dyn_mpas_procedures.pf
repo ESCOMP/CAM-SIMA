@@ -11,6 +11,14 @@ module test_dyn_mpas_procedures
     implicit none
 
     private
+    public :: test_dzw_of_rdzw_by_known_values_real32
+    public :: test_dzw_of_rdzw_by_known_values_real64
+    public :: test_dzu_of_dzw_by_known_values_real32
+    public :: test_dzu_of_dzw_by_known_values_real64
+    public :: test_zu_of_dzw_by_known_values_real32
+    public :: test_zu_of_dzw_by_known_values_real64
+    public :: test_zw_of_dzw_by_known_values_real32
+    public :: test_zw_of_dzw_by_known_values_real64
     public :: test_almost_divisible_by_properties_real32
     public :: test_almost_divisible_by_properties_real64
     public :: test_almost_divisible_by_inexact_arithmetic_real32
@@ -47,6 +55,402 @@ module test_dyn_mpas_procedures
     public :: test_tokenize_into_tokens_separator_by_empty_string_set
     public :: test_tokenize_into_tokens_separator_by_known_string_set
 contains
+    @test
+    subroutine test_dzw_of_rdzw_by_known_values_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: dzw_of_rdzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real32), parameter :: expected_dzw(*) = [ &
+            100.0_real32, &
+            200.0_real32, &
+            300.0_real32, &
+            400.0_real32, &
+            500.0_real32, &
+            600.0_real32, &
+            700.0_real32, &
+            800.0_real32, &
+            900.0_real32, &
+            1000.0_real32, &
+            1100.0_real32, &
+            1200.0_real32, &
+            1300.0_real32, &
+            1400.0_real32, &
+            1500.0_real32 &
+        ]
+
+        integer :: i
+        real(real32) :: dzw, rdzw
+
+        do i = 1, size(expected_dzw)
+            rdzw = 1.0_real32 / expected_dzw(i)
+            dzw = dzw_of_rdzw(rdzw)
+            @assertEqual(expected_dzw(i), dzw, spacing(expected_dzw(i)) * ulp_tolerance)
+        end do
+    end subroutine test_dzw_of_rdzw_by_known_values_real32
+
+    @test
+    subroutine test_dzw_of_rdzw_by_known_values_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: dzw_of_rdzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real64), parameter :: expected_dzw(*) = [ &
+            100.0_real64, &
+            200.0_real64, &
+            300.0_real64, &
+            400.0_real64, &
+            500.0_real64, &
+            600.0_real64, &
+            700.0_real64, &
+            800.0_real64, &
+            900.0_real64, &
+            1000.0_real64, &
+            1100.0_real64, &
+            1200.0_real64, &
+            1300.0_real64, &
+            1400.0_real64, &
+            1500.0_real64 &
+        ]
+
+        integer :: i
+        real(real64) :: dzw, rdzw
+
+        do i = 1, size(expected_dzw)
+            rdzw = 1.0_real64 / expected_dzw(i)
+            dzw = dzw_of_rdzw(rdzw)
+            @assertEqual(expected_dzw(i), dzw, spacing(expected_dzw(i)) * ulp_tolerance)
+        end do
+    end subroutine test_dzw_of_rdzw_by_known_values_real64
+
+    @test
+    subroutine test_dzu_of_dzw_by_known_values_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: dzu_of_dzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real32), parameter :: dzw(*) = [ &
+            100.0_real32, &
+            200.0_real32, &
+            300.0_real32, &
+            400.0_real32, &
+            500.0_real32, &
+            600.0_real32, &
+            700.0_real32, &
+            800.0_real32, &
+            900.0_real32, &
+            1000.0_real32, &
+            1100.0_real32, &
+            1200.0_real32, &
+            1300.0_real32, &
+            1400.0_real32, &
+            1500.0_real32 &
+        ]
+        real(real32), parameter :: expected_dzu(*) = [ &
+            150.0_real32, &
+            250.0_real32, &
+            350.0_real32, &
+            450.0_real32, &
+            550.0_real32, &
+            650.0_real32, &
+            750.0_real32, &
+            850.0_real32, &
+            950.0_real32, &
+            1050.0_real32, &
+            1150.0_real32, &
+            1250.0_real32, &
+            1350.0_real32, &
+            1450.0_real32 &
+        ]
+
+        integer :: i
+        real(real32), allocatable :: dzu(:)
+
+        dzu = dzu_of_dzw(dzw)
+        @assertEqual(size(expected_dzu), size(dzu))
+
+        do i = 1, size(expected_dzu)
+            @assertEqual(expected_dzu(i), dzu(i), spacing(expected_dzu(i)) * ulp_tolerance)
+        end do
+    end subroutine test_dzu_of_dzw_by_known_values_real32
+
+    @test
+    subroutine test_dzu_of_dzw_by_known_values_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: dzu_of_dzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real64), parameter :: dzw(*) = [ &
+            100.0_real64, &
+            200.0_real64, &
+            300.0_real64, &
+            400.0_real64, &
+            500.0_real64, &
+            600.0_real64, &
+            700.0_real64, &
+            800.0_real64, &
+            900.0_real64, &
+            1000.0_real64, &
+            1100.0_real64, &
+            1200.0_real64, &
+            1300.0_real64, &
+            1400.0_real64, &
+            1500.0_real64 &
+        ]
+        real(real64), parameter :: expected_dzu(*) = [ &
+            150.0_real64, &
+            250.0_real64, &
+            350.0_real64, &
+            450.0_real64, &
+            550.0_real64, &
+            650.0_real64, &
+            750.0_real64, &
+            850.0_real64, &
+            950.0_real64, &
+            1050.0_real64, &
+            1150.0_real64, &
+            1250.0_real64, &
+            1350.0_real64, &
+            1450.0_real64 &
+        ]
+
+        integer :: i
+        real(real64), allocatable :: dzu(:)
+
+        dzu = dzu_of_dzw(dzw)
+        @assertEqual(size(expected_dzu), size(dzu))
+
+        do i = 1, size(expected_dzu)
+            @assertEqual(expected_dzu(i), dzu(i), spacing(expected_dzu(i)) * ulp_tolerance)
+        end do
+    end subroutine test_dzu_of_dzw_by_known_values_real64
+
+    @test
+    subroutine test_zu_of_dzw_by_known_values_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: zu_of_dzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real32), parameter :: dzw(*) = [ &
+            100.0_real32, &
+            200.0_real32, &
+            300.0_real32, &
+            400.0_real32, &
+            500.0_real32, &
+            600.0_real32, &
+            700.0_real32, &
+            800.0_real32, &
+            900.0_real32, &
+            1000.0_real32, &
+            1100.0_real32, &
+            1200.0_real32, &
+            1300.0_real32, &
+            1400.0_real32, &
+            1500.0_real32 &
+        ]
+        real(real32), parameter :: expected_zu(*) = [ &
+            50.0_real32, &
+            200.0_real32, &
+            450.0_real32, &
+            800.0_real32, &
+            1250.0_real32, &
+            1800.0_real32, &
+            2450.0_real32, &
+            3200.0_real32, &
+            4050.0_real32, &
+            5000.0_real32, &
+            6050.0_real32, &
+            7200.0_real32, &
+            8450.0_real32, &
+            9800.0_real32, &
+            11250.0_real32 &
+        ]
+
+        integer :: i
+        real(real32), allocatable :: zu(:)
+
+        zu = zu_of_dzw(dzw)
+        @assertEqual(size(expected_zu), size(zu))
+
+        do i = 1, size(expected_zu)
+            @assertEqual(expected_zu(i), zu(i), spacing(expected_zu(i)) * ulp_tolerance)
+        end do
+    end subroutine test_zu_of_dzw_by_known_values_real32
+
+    @test
+    subroutine test_zu_of_dzw_by_known_values_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: zu_of_dzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real64), parameter :: dzw(*) = [ &
+            100.0_real64, &
+            200.0_real64, &
+            300.0_real64, &
+            400.0_real64, &
+            500.0_real64, &
+            600.0_real64, &
+            700.0_real64, &
+            800.0_real64, &
+            900.0_real64, &
+            1000.0_real64, &
+            1100.0_real64, &
+            1200.0_real64, &
+            1300.0_real64, &
+            1400.0_real64, &
+            1500.0_real64 &
+        ]
+        real(real64), parameter :: expected_zu(*) = [ &
+            50.0_real64, &
+            200.0_real64, &
+            450.0_real64, &
+            800.0_real64, &
+            1250.0_real64, &
+            1800.0_real64, &
+            2450.0_real64, &
+            3200.0_real64, &
+            4050.0_real64, &
+            5000.0_real64, &
+            6050.0_real64, &
+            7200.0_real64, &
+            8450.0_real64, &
+            9800.0_real64, &
+            11250.0_real64 &
+        ]
+
+        integer :: i
+        real(real64), allocatable :: zu(:)
+
+        zu = zu_of_dzw(dzw)
+        @assertEqual(size(expected_zu), size(zu))
+
+        do i = 1, size(expected_zu)
+            @assertEqual(expected_zu(i), zu(i), spacing(expected_zu(i)) * ulp_tolerance)
+        end do
+    end subroutine test_zu_of_dzw_by_known_values_real64
+
+    @test
+    subroutine test_zw_of_dzw_by_known_values_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_mpas_procedures, only: zw_of_dzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real32), parameter :: dzw(*) = [ &
+            100.0_real32, &
+            200.0_real32, &
+            300.0_real32, &
+            400.0_real32, &
+            500.0_real32, &
+            600.0_real32, &
+            700.0_real32, &
+            800.0_real32, &
+            900.0_real32, &
+            1000.0_real32, &
+            1100.0_real32, &
+            1200.0_real32, &
+            1300.0_real32, &
+            1400.0_real32, &
+            1500.0_real32 &
+        ]
+        real(real32), parameter :: expected_zw(*) = [ &
+            0.0_real32, &
+            100.0_real32, &
+            300.0_real32, &
+            600.0_real32, &
+            1000.0_real32, &
+            1500.0_real32, &
+            2100.0_real32, &
+            2800.0_real32, &
+            3600.0_real32, &
+            4500.0_real32, &
+            5500.0_real32, &
+            6600.0_real32, &
+            7800.0_real32, &
+            9100.0_real32, &
+            10500.0_real32, &
+            12000.0_real32 &
+        ]
+
+        integer :: i
+        real(real32), allocatable :: zw(:)
+
+        zw = zw_of_dzw(dzw)
+        @assertEqual(size(expected_zw), size(zw))
+
+        do i = 1, size(expected_zw)
+            @assertEqual(expected_zw(i), zw(i), spacing(expected_zw(i)) * ulp_tolerance)
+        end do
+    end subroutine test_zw_of_dzw_by_known_values_real32
+
+    @test
+    subroutine test_zw_of_dzw_by_known_values_real64()
+        use, intrinsic :: iso_fortran_env, only: real64
+        use dyn_mpas_procedures, only: zw_of_dzw
+        use funit
+
+        ! Tolerance, in the number of units in the last place (ULP), to pass the test.
+        integer, parameter :: ulp_tolerance = 1
+        real(real64), parameter :: dzw(*) = [ &
+            100.0_real64, &
+            200.0_real64, &
+            300.0_real64, &
+            400.0_real64, &
+            500.0_real64, &
+            600.0_real64, &
+            700.0_real64, &
+            800.0_real64, &
+            900.0_real64, &
+            1000.0_real64, &
+            1100.0_real64, &
+            1200.0_real64, &
+            1300.0_real64, &
+            1400.0_real64, &
+            1500.0_real64 &
+        ]
+        real(real64), parameter :: expected_zw(*) = [ &
+            0.0_real64, &
+            100.0_real64, &
+            300.0_real64, &
+            600.0_real64, &
+            1000.0_real64, &
+            1500.0_real64, &
+            2100.0_real64, &
+            2800.0_real64, &
+            3600.0_real64, &
+            4500.0_real64, &
+            5500.0_real64, &
+            6600.0_real64, &
+            7800.0_real64, &
+            9100.0_real64, &
+            10500.0_real64, &
+            12000.0_real64 &
+        ]
+
+        integer :: i
+        real(real64), allocatable :: zw(:)
+
+        zw = zw_of_dzw(dzw)
+        @assertEqual(size(expected_zw), size(zw))
+
+        do i = 1, size(expected_zw)
+            @assertEqual(expected_zw(i), zw(i), spacing(expected_zw(i)) * ulp_tolerance)
+        end do
+    end subroutine test_zw_of_dzw_by_known_values_real64
+
     @test
     subroutine test_almost_divisible_by_properties_real32()
         use, intrinsic :: iso_fortran_env, only: real32
