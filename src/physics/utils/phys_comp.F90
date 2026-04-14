@@ -22,11 +22,14 @@ module phys_comp
    ! suite_name: Suite we are running
    character(len=SHR_KIND_CS), public, protected :: phys_suite_name = unset_str
 
+   ! ncdata_check: Path to file for physics_check_data to verify against
+   ! at the end of every timestep (if not unset)
+   character(len=SHR_KIND_CL), public, protected :: ncdata_check = unset_str
+
    ! Private module data
    character(len=SHR_KIND_CS), allocatable :: suite_names(:)
    character(len=SHR_KIND_CS) :: suite_parts_expect(2) = (/"physics_before_coupler", "physics_after_coupler "/)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
-   character(len=SHR_KIND_CL)              :: ncdata_check = unset_str
    logical                                 :: ncdata_check_err = .false.
    character(len=SHR_KIND_CL)              :: cam_physics_mesh = unset_str
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_before = unset_str
