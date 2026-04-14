@@ -52,6 +52,11 @@ real(r8), parameter :: deg2rad = pi / 180.0_r8
 ! fields on GLL grid:
 character(len=cl), allocatable, public, protected :: cnst_diag_name_gll(:)
 
+! Stash of namelist se_statediag_numtrac. The final HOMME statediag_numtrac
+! is computed in dyn_init once num_advected (via qsize) is valid; it cannot
+! be computed in dyn_readnl because that runs before cam_register_constituents.
+integer, private :: se_statediag_numtrac_save = 0
+
 !===============================================================================
 contains
 !===============================================================================
@@ -67,7 +72,6 @@ subroutine dyn_readnl(NLFileName)
    use cam_logfile,      only: iulog
    use cam_abortutils,   only: endrun
    use cam_control_mod,  only: initial_run
-   use cam_constituents, only: num_advected
 
    !SE dycore:
    use namelist_mod,    only: homme_set_defaults, homme_postprocess_namelist
@@ -295,7 +299,10 @@ subroutine dyn_readnl(NLFileName)
    ! Finally, set the HOMME variables which have different names
    fine_ne                  = se_fine_ne
    ftype                    = se_ftype
-   statediag_numtrac        = MIN(se_statediag_numtrac,num_advected)
+   ! Stash the raw namelist value; the MIN with num_advected must be deferred
+   ! to dyn_init (num_advected is still 0 at this point — see module header
+   ! comment on se_statediag_numtrac_save).
+   se_statediag_numtrac_save = se_statediag_numtrac
    sponge_del4_nu_fac       = se_sponge_del4_nu_fac
    sponge_del4_nu_div_fac   = se_sponge_del4_nu_div_fac
    sponge_del4_lev          = se_sponge_del4_lev
@@ -379,7 +386,7 @@ subroutine dyn_readnl(NLFileName)
 
    if (masterproc) then
       write(iulog, '(a,i0)')   'dyn_readnl: se_ftype                    = ',ftype
-      write(iulog, '(a,i0)')   'dyn_readnl: se_statediag_numtrac        = ',statediag_numtrac
+      write(iulog, '(a,i0)')   'dyn_readnl: se_statediag_numtrac        = ',se_statediag_numtrac
       write(iulog, '(a,i0)')   'dyn_readnl: se_hypervis_subcycle        = ',se_hypervis_subcycle
       write(iulog, '(a,i0)')   'dyn_readnl: se_hypervis_subcycle_sponge = ',se_hypervis_subcycle_sponge
       write(iulog, '(a,i0)')   'dyn_readnl: se_hypervis_subcycle_q      = ',se_hypervis_subcycle_q
@@ -557,6 +564,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use se_dyn_time_mod,    only: time_at
    use control_mod,        only: runtype, nu_top, molecular_diff
    use control_mod,        only: vert_remap_uvTq_alg, vert_remap_tracer_alg
+   use control_mod,        only: statediag_numtrac
    use std_atm_profile,    only: std_atm_height
 
    ! Dummy arguments:
@@ -617,6 +625,16 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
    ! Set name of dycore in runtime object
    call cam_runtime_opts%set_dycore('se')
+
+   ! Finalize HOMME statediag_numtrac now that the number of advected
+   ! constituents is known (qsize is set by dimensions_mod_init, which runs
+   ! after cam_register_constituents). The MIN against se_statediag_numtrac
+   ! cannot be taken in dyn_readnl because that precedes constituent
+   ! registration and num_advected would still be 0 there.
+   statediag_numtrac = MIN(se_statediag_numtrac_save, qsize)
+   if (masterproc) then
+      write(iulog, '(a,i0)') 'dyn_init: statediag_numtrac = ', statediag_numtrac
+   end if
 
    ! Now allocate and set condenstate vars
    allocate(cnst_name_gll(qsize), stat=iret, errmsg=errmsg)
