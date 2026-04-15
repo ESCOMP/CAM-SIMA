@@ -10,7 +10,6 @@
 ! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 !>
 !! @brief Auto-generated Module to read namelist variables for kumquat
 !!
@@ -39,7 +38,7 @@ module kumquat_namelist
    integer, public, parameter :: kq_fchar3_dimension = 7
    character(len=256), public, protected :: kq_fchar3(7) = unset_str
 
-CONTAINS
+contains
 
    subroutine autogen_kumquat_readnl(nl_unit, mpicomm, mpiroot, mpi_isroot, logunit)
       use mpi,            only: MPI_Character, MPI_Integer, MPI_Logical, MPI_Real8
@@ -72,9 +71,9 @@ CONTAINS
          if (ierr == 0) then
             read(nl_unit, kumquat_nl, iostat=ierr, iomsg=errmsg)
             if (ierr /= 0) then
-               call                                                                               &
-                    endrun(subname//                                                              &
-                    ':: ERROR reading namelist, kumquat_nl, with following error: '//errmsg)
+               call &
+                   endrun(subname// &
+                   ':: ERROR reading namelist, kumquat_nl, with following error: '//errmsg)
             end if
          else
             call endrun(subname//':: ERROR: Did not find namelist group, kumquat_nl.')
