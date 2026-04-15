@@ -1723,6 +1723,9 @@ subroutine read_inidat(dyn_in)
    call check_allocate(ierr, subname, 'dbuf3(npsq,nlev,nelemd)', &
                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
+   ! Initialize to zero to ensure that "max" call below works as expcted.
+   dbuf3(:,:,:) = 0._r8
+
    do m_cnst = 1, num_advected
 
       if (analytic_ic_active() .and. const_is_water_species(m_cnst)) cycle

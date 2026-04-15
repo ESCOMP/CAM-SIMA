@@ -15,8 +15,7 @@ hist_add_inst_fields;h1: Q, CLDLIQ, CLDICE
 hist_add_inst_fields;h1: FU, FV, FT
 
 ! history fields for CAM4 gravity waves (to match 'history_amwg' from CAM):
-! UNCOMMENT ONCE atmospheric_physics has been updated!!!!!
-!hist_add_inst_fields;h1: TAUGWX, TAUGWY
+hist_add_inst_fields;h1: TAUGWX, TAUGWY
 
 ! history fields for CAM4 RK microphysics (to match 'history_amwg' from CAM):
 hist_add_inst_fields;h1: IWC, ICIMR, ICWMR, FICE
