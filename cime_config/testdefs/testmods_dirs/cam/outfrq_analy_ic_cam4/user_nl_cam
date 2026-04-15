@@ -1,9 +1,15 @@
-hist_add_inst_fields;h1: T, Q, U, V, PS
+
+! set analytic ICs
+analytic_ic_type=held_suarez_1994
+
+! setup history output
 hist_output_frequency;h1: 1*nsteps
 hist_write_nstep0;h1: .true.
-analytic_ic_type=held_suarez_1994
 hist_precision;h1: REAL64
 hist_max_frames;h1: 1
+
+! general atmospheric state variables
+hist_add_inst_fields;h1: T, Q, U, V, PS
 
 ! history fields for CAM4 Hack shallow convection
 hist_add_inst_fields;h1:CMFDT,CMFDQ,CMFDLIQ,CMFDICE,CMFDQR,DQP,ICWMRSH,CMFSL,CMFLQ,FREQSH,EVAPTCM,FZSNTCM,EVSNTCM,HKNTPRPD,HKNTSNPD,HKFLXPRC,HKFLXSNW,HKEIHEAT,EVAPQCM,PRECSH,CMFMCSH
