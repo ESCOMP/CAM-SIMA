@@ -1,0 +1,8 @@
+debug_output=0
+hist_add_inst_fields;h3: Q,T,U,V,PS
+hist_add_avg_fields;h3: PSDRY
+hist_add_max_fields;h3: PHIS
+hist_add_min_fields;h3: PDEL, PDELDRY
+hist_add_var_fields;h3: ZM, PRECT
+hist_output_frequency;h3: 2*nsteps
+hist_write_nstep0;h3: .true.
