@@ -34,6 +34,7 @@ add_library(aerosol_test_mocks
     mock_shr_string_mod.F90
     mock_shr_spfn_mod.F90
     mock_cam_constituents.F90
+    mock_vert_coord.F90
 )
 target_compile_options(aerosol_test_mocks PRIVATE -ffree-line-length-none)
 target_include_directories(aerosol_test_mocks PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

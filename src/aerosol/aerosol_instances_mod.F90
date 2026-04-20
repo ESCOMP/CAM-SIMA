@@ -199,8 +199,10 @@ contains
     use modal_aerosol_state_mod, only: modal_aerosol_state
     use carma_aerosol_state_mod, only: carma_aerosol_state
     use bulk_aerosol_state_mod,  only: bulk_aerosol_state
+
     use ccpp_kinds,     only: kind_phys
     use cam_abortutils, only: endrun
+    use physics_grid,            only: ncol => columns_on_task
 
     real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
 
@@ -222,21 +224,21 @@ contains
           iaermod = iaermod + 1
           if (associated(aero_props_all(iaermod, ilist)%obj)) then
              aero_states_all(iaermod, ilist)%obj => &
-                  modal_aerosol_state(constituents, ilist)
+                  modal_aerosol_state(ncol, constituents, ilist)
           end if
        end if
        if (carma_active_) then
           iaermod = iaermod + 1
           if (associated(aero_props_all(iaermod, ilist)%obj)) then
              aero_states_all(iaermod, ilist)%obj => &
-                  carma_aerosol_state(constituents, ilist)
+                  carma_aerosol_state(ncol, constituents, ilist)
           end if
        end if
        if (bulk_active_) then
           iaermod = iaermod + 1
           if (associated(aero_props_all(iaermod, ilist)%obj)) then
              aero_states_all(iaermod, ilist)%obj => &
-                  bulk_aerosol_state(constituents, ilist)
+                  bulk_aerosol_state(ncol, constituents, ilist)
           end if
        end if
     end do
