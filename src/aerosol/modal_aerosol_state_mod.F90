@@ -56,7 +56,8 @@ contains
 
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
-  function constructor(constituents, list_idx) result(newobj)
+  function constructor(ncol, constituents, list_idx) result(newobj)
+    integer, intent(in) :: ncol
     real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
     integer, intent(in), optional :: list_idx
 
@@ -70,6 +71,7 @@ contains
        return
     end if
 
+    call newobj%set_ncol(ncol)
     newobj%constituents => constituents
 
     if (present(list_idx)) call newobj%set_list_idx(list_idx)

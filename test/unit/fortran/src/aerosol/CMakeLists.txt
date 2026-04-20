@@ -11,7 +11,7 @@
 #   table_interp_testlib - Tier 1 (pure functions, no mock deps)
 #   rad_aer_defs_testlib - Tier 2 (radiative_aerosol_definitions parsing)
 #   bulk_aero_testlib    - Tier 3 (BAM properties + state + all their deps)
-#   insoluble_optics_testlib — Tier 4 (adds optics module on top of Tier 3)
+#   insoluble_optics_testlib - Tier 4 (adds optics module on top of Tier 3)
 
 set(AEROSOL_SRC ${CMAKE_SOURCE_DIR}/../../../src/aerosol)
 set(UTILS_SRC   ${CMAKE_SOURCE_DIR}/../../../src/utils)
