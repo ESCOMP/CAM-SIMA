@@ -6,6 +6,8 @@ module bulk_aerosol_state_mod
 
   use aerosol_state_mod,      only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
+  use radiative_aerosol, only: rad_aer_get_props
+  use string_utils, only: to_lower
 
   implicit none
 

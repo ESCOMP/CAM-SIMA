@@ -1602,6 +1602,14 @@
     </variable>
 
     <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
+    <variable local_name="tke"
+              standard_name="specific_turbulent_kinetic_energy_at_interfaces"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tke</ic_file_input_names>
+    </variable>
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
