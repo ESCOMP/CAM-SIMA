@@ -292,8 +292,9 @@ def _find_metadata_files(source_dirs, scheme_finder):
                                 bad_xml_sources.append(xml_file)
                             # end if
                             for scheme in schemes:
-                                meta_files[scheme] = (path, source_file,
-                                                      xml_file)
+                                if scheme not in meta_files:
+                                    meta_files[scheme] = (path, source_file,
+                                                          xml_file)
                             # End for
                         else:
                             # Add meta file to list of files

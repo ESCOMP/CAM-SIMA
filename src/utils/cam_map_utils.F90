@@ -646,8 +646,9 @@ contains
   !---------------------------------------------------------------------------
   subroutine cam_filemap_get_filemap(this, fieldlens, filelens, filemap,      &
        src_in, dest_in, permutation_in)
-     use spmd_utils,  only: iam
-     use cam_logfile, only: debug_output, cam_log_multiwrite, DEBUGOUT_DEBUG
+     use shr_kind_mod, only: cl=>shr_kind_cl
+     use spmd_utils,   only: iam
+     use cam_logfile,  only: debug_output, cam_log_multiwrite, DEBUGOUT_DEBUG
 
     ! Dummy arguments
     class(cam_filemap_t)                      :: this
@@ -670,7 +671,8 @@ contains
     integer                       :: tind, tlen     ! Temporarys
     integer                       :: i1, i2, i3, i4, i5, i6, i7
     integer                       :: i(7)
-    character(len=128)            :: errmsg
+    character(len=cl)             :: errmsg
+    character(len=32)             :: errfmt
     character(len=*), parameter   :: subname = 'cam_filemap_get_filemap: '
 
     ! This shouldn't happen but, who knows what evil lurks in the hearts of SEs
@@ -731,7 +733,15 @@ contains
     !   it is still an error if the map has more elements than the array
     mapSize = this%num_elem()
     if (mapPos < this%num_mapped()) then
-      call endrun(subname//'Map size too large for array dims')
+      if (mapcnt > 1) then
+        write(errfmt, '(a,i0,2a)') "(a,i0,a,", mapcnt, '(i0,", "),")")'
+      else
+        write(errfmt, '(a,i0,2a)') '(a,i0,a,i0,")")'
+      end if
+      write(errmsg, errfmt) 'Map size (', this%num_mapped(), &
+                            ') too large for array dims (',  &
+                            srclens(mapind(1:mapcnt))
+      call endrun(subname//trim(errmsg))
     end if
 
     ! dsize is a global offset for each dimension

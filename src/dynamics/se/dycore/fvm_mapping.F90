@@ -14,7 +14,7 @@
 !#define skip_high_order_fq_map !do mass and correlation preserving phys2fvm mapping but no high-order pre-mapping of fq
 #define mass_fix
 module fvm_mapping
-  use shr_kind_mod,           only: r8=>shr_kind_r8
+  use shr_kind_mod,           only: r8=>shr_kind_r8, len_cx=>shr_kind_cx
   use dimensions_mod,         only: irecons_tracer
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
@@ -25,8 +25,8 @@ module fvm_mapping
   private
 
   public :: phys2dyn_forcings_fvm, dyn2phys, dyn2phys_vector, dyn2phys_all_vars,dyn2fvm_mass_vars
-  public :: phys2dyn,fvm2dyn,dyn2fvm
-  save
+  public :: phys2dyn,fvm2dyn,dyn2fvm,cslam2gll
+
   integer                                            :: save_max_overlap
   real(kind=r8), allocatable, dimension(:,:,:,:,:)   :: save_air_mass_overlap
   real(kind=r8), allocatable, dimension(:,:,:,:,:,:) :: save_q_overlap
@@ -35,6 +35,12 @@ module fvm_mapping
   real(kind=r8), allocatable, dimension(:,:,:,:)     :: save_overlap_area
   integer      , allocatable, dimension(:,:,:,:,:)   :: save_overlap_idx
   integer      , allocatable, dimension(:,:,:,:)     :: save_num_overlap
+
+  interface fvm2dyn
+     module procedure fvm2dynt1
+     module procedure fvm2dyntn
+  end interface fvm2dyn
+
 contains
   !
   ! map all mass variables from gll to fvm
@@ -53,8 +59,7 @@ contains
 
     integer                                             :: ie,i,j,k,m_cnst,nq
     integer                                             :: iret
-    real (kind=r8), dimension(:,:,:,:,:)  , allocatable :: fld_phys, fld_gll, fld_fvm
-    real (kind=r8), allocatable, dimension(:,:,:,:,:)   :: qgll
+    real (kind=r8), dimension(:,:,:,:,:)  , allocatable :: fld_phys, fld_gll
     real (kind=r8)  :: element_ave
     !
     ! for tensor product Lagrange interpolation
@@ -62,18 +67,8 @@ contains
     integer              :: nflds
     logical, allocatable :: llimiter(:)
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'phys2dyn_forcings_fvm (SE)'
-
-    allocate(qgll(np,np,nlev,thermodynamic_active_species_num,nets:nete), stat=iret)
-    call check_allocate(iret, subname, &
-                        'qgll(np,np,nlev,thermodynamic_active_species_num,nets:nete)', &
-                        file=__FILE__, line=__LINE__)
-
-    do ie=nets,nete
-      do nq=1,thermodynamic_active_species_num
-        qgll(:,:,:,nq,ie) = elem(ie)%state%Qdp(:,:,:,nq,tl_qdp)/elem(ie)%state%dp3d(:,:,:,tl_f)
-      end do
-    end do
 
     if (no_cslam) then
       call endrun("phys2dyn_forcings_fvm: no cslam case: NOT SUPPORTED")
@@ -87,18 +82,19 @@ contains
       !
       call t_startf('p2d-pg2:copying')
       nflds = 4+ntrac
-      allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), stat=iret)
+      allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(fld_gll(np,np,nlev,3,nets:nete), stat=iret)
+      allocate(fld_gll(np,np,nlev,3,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'fld_gll(np,np,nlev,3,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(llimiter(nflds), stat=iret)
+      allocate(llimiter(3), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'llimiter(nflds)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       fld_phys = -9.99E99_r8!xxx necessary?
 
@@ -123,7 +119,9 @@ contains
       !
       ! do mapping of fu,fv,ft
       !
-      call phys2dyn(hybrid,elem,fld_phys(:,:,:,1:3,:),fld_gll(:,:,:,1:3,:),nets,nete,nlev,3,fvm,llimiter(1:3),2,.true.)
+      call phys2dyn(hybrid,elem,fld_phys(:,:,:,1:3,:),fld_gll,nets,nete,nlev,3,fvm,llimiter, &
+                             istart_vector=2,halo_filled=.true.)
+
       do ie=nets,nete
         elem(ie)%derived%fT(:,:,:)   = fld_gll(:,:,:,1,ie)
         elem(ie)%derived%fM(:,:,1,:) = fld_gll(:,:,:,2,ie)
@@ -144,44 +142,7 @@ contains
          end do
        end do
        call t_stopf('p2d-pg2:phys2fvm')
-
-       !
-       ! overwrite SE Q with cslam Q
-       !
-       nflds = thermodynamic_active_species_num
-       allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret)
-       call check_allocate(iret, subname, 'fld_gll(np,np,nlev,nflds,nets:nete)', &
-                           file=__FILE__, line=__LINE__)
-
-       allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete), stat=iret)
-       call check_allocate(iret, subname, 'fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete)', &
-                           file=__FILE__, line=__LINE__)
-
-       do ie=nets,nete
-         !
-         ! compute cslam updated Q value
-         do m_cnst=1,thermodynamic_active_species_num
-           fld_fvm(1:nc,1:nc,:,m_cnst,ie) = fvm(ie)%c(1:nc,1:nc,:,thermodynamic_active_species_idx(m_cnst))+&
-                fvm(ie)%fc(1:nc,1:nc,:,thermodynamic_active_species_idx(m_cnst))/fvm(ie)%dp_fvm(1:nc,1:nc,:)
-         enddo
-       end do
-       call t_startf('p2d-pg2:fvm2dyn')
-       llimiter(1:nflds) = .false.
-       call fvm2dyn(fld_fvm,fld_gll(:,:,:,1:nflds,:),hybrid,nets,nete,nlev,nflds,fvm,llimiter(1:nflds))
-       call t_stopf('p2d-pg2:fvm2dyn')
-       !
-       ! fld_gll now holds q cslam value on gll grid
-       !
-       ! convert fld_gll to increment (q_new-q_old)
-       !
-       do ie=nets,nete
-         do m_cnst=1,thermodynamic_active_species_num
-           elem(ie)%derived%fq(:,:,:,m_cnst)   =&
-                fld_gll(:,:,:,m_cnst,ie)-qgll(:,:,:,m_cnst,ie)
-         end do
-       end do
-       deallocate(fld_fvm)
-              !deallocate arrays allocated in dyn2phys_all_vars
+       !deallocate arrays allocated in dyn2phys_all_vars
        deallocate(save_air_mass_overlap,save_q_phys,save_q_overlap,&
             save_overlap_area,save_num_overlap,save_overlap_idx,save_dp_phys)
      else
@@ -194,20 +155,21 @@ contains
        !*****************************************************************************************
        !
        ! nflds is ft, fu, fv, + thermo species
-       nflds = 3+thermodynamic_active_species_num
-       allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), stat=iret)
+       nflds = 3
+       allocate(fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'fld_phys(1-nhc_phys:fv_nphys+nhc_phys,1-nhc_phys:fv_nphys+nhc_phys,nlev,nflds,nets:nete)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret)
+       allocate(fld_gll(np,np,nlev,nflds,nets:nete), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'fld_gll(np,np,nlev,nflds,nets:nete)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(llimiter(nflds), stat=iret)
+       allocate(llimiter(nflds), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, ' llimiter(nflds)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        llimiter(1:nflds) = .false.
        do ie=nets,nete
@@ -217,18 +179,8 @@ contains
          fld_phys(1:fv_nphys,1:fv_nphys,:,1,ie)       = fvm(ie)%ft(1:fv_nphys,1:fv_nphys,:)
          fld_phys(1:fv_nphys,1:fv_nphys,:,2,ie)       = fvm(ie)%fm(1:fv_nphys,1:fv_nphys,1,:)
          fld_phys(1:fv_nphys,1:fv_nphys,:,3,ie)       = fvm(ie)%fm(1:fv_nphys,1:fv_nphys,2,:)
-         !
-         ! compute cslam mixing ratio with physics update
-         !
-         do m_cnst=1,thermodynamic_active_species_num
-           do k=1,nlev
-             fld_phys(1:fv_nphys,1:fv_nphys,k,m_cnst+3,ie) = &
-                  fvm(ie)%c(1:fv_nphys,1:fv_nphys,k,thermodynamic_active_species_idx(m_cnst))+&
-                  fvm(ie)%fc_phys(1:fv_nphys,1:fv_nphys,k,thermodynamic_active_species_idx(m_cnst))
-           end do
-         end do
-      end do
-         !
+       end do
+       !
        ! do mapping
        !
        call phys2dyn(hybrid,elem,fld_phys,fld_gll,nets,nete,nlev,nflds,fvm,llimiter,2)
@@ -238,22 +190,16 @@ contains
          elem(ie)%derived%fM(:,:,2,:) = fld_gll(:,:,:,3,ie)
        end do
        do ie=nets,nete
-         do m_cnst=1,thermodynamic_active_species_num
-           !
-           ! convert fq so that it will effectively overwrite SE q with CSLAM q
-           !
-           elem(ie)%derived%fq(:,:,:,m_cnst) = fld_gll(:,:,:,m_cnst+3,ie)-&
-                qgll(:,:,:,m_cnst,ie)
-         end do
          do m_cnst = 1,ntrac
            fvm(ie)%fc(1:nc,1:nc,:,m_cnst) = fvm(ie)%fc_phys(1:nc,1:nc,:,m_cnst)*fvm(ie)%dp_fvm(1:nc,1:nc,:)
          end do
        end do
      end if
-     deallocate(fld_phys,llimiter,fld_gll,qgll)
+     deallocate(fld_phys,llimiter)
   end subroutine phys2dyn_forcings_fvm
 
-  subroutine fvm2dyn(fld_fvm,fld_gll,hybrid,nets,nete,numlev,num_flds,fvm,llimiter)
+  ! for multiple fields
+  subroutine fvm2dyntn(fld_fvm,fld_gll,hybrid,nets,nete,numlev,num_flds,fvm,llimiter,halo_filled)
     use dimensions_mod, only: np, nhc, nc
     use hybrid_mod    , only: hybrid_t
     use bndry_mod     , only: ghost_exchange
@@ -266,7 +212,10 @@ contains
     type (hybrid_t)      , intent(in)    :: hybrid
     type(fvm_struct)     , intent(in)    :: fvm(nets:nete)
     logical              , intent(in)    :: llimiter(num_flds)
+    logical, optional    , intent(in)    :: halo_filled !optional if boundary exchange for fld_fvm has already been called
+
     integer                              :: ie, iwidth
+    logical                              :: fill_halo
     !
     !*********************************************
     !
@@ -274,13 +223,20 @@ contains
     !
     !*********************************************
     !
-    do ie=nets,nete
-       call ghostpack(ghostBufQnhc_s, fld_fvm(:,:,:,:,ie),numlev*num_flds,0,ie)
-    end do
-    call ghost_exchange(hybrid,ghostbufQnhc_s,location='fvm2dyn')
-    do ie=nets,nete
-       call ghostunpack(ghostbufQnhc_s, fld_fvm(:,:,:,:,ie),numlev*num_flds,0,ie)
-    end do
+    fill_halo = .true.
+    if (present(halo_filled)) then
+       fill_halo = .not. halo_filled
+    end if
+
+    if (fill_halo) then
+      do ie=nets,nete
+        call ghostpack(ghostBufQnhc_s, fld_fvm(:,:,:,:,ie),numlev*num_flds,0,ie)
+      end do
+      call ghost_exchange(hybrid,ghostbufQnhc_s,location='fvm2dyntn')
+      do ie=nets,nete
+        call ghostunpack(ghostbufQnhc_s, fld_fvm(:,:,:,:,ie),numlev*num_flds,0,ie)
+      end do
+    end if
     !
     ! mapping
     !
@@ -290,8 +246,56 @@ contains
       call tensor_lagrange_interp(fvm(ie)%cubeboundary,np,nc,nhc,numlev,num_flds,fld_fvm(:,:,:,:,ie),&
            fld_gll(:,:,:,:,ie),llimiter,iwidth,fvm(ie)%norm_elem_coord)
     end do
-  end subroutine fvm2dyn
+  end subroutine fvm2dyntn
 
+  ! for single field
+  subroutine fvm2dynt1(fld_fvm,fld_gll,hybrid,nets,nete,numlev,fvm,llimiter,halo_filled)
+    use dimensions_mod, only: np, nhc, nc
+    use hybrid_mod    , only: hybrid_t
+    use bndry_mod     , only: ghost_exchange
+    use edge_mod      , only: ghostpack,ghostunpack
+    use fvm_mod       , only: ghostBufQnhc_t1
+    !
+    integer              , intent(in)    :: nets,nete,numlev
+    real (kind=r8), intent(inout) :: fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,numlev,1,nets:nete)
+    real (kind=r8), intent(out)   :: fld_gll(np,np,numlev,1,nets:nete)
+    type (hybrid_t)      , intent(in)    :: hybrid
+    type(fvm_struct)     , intent(in)    :: fvm(nets:nete)
+    logical              , intent(in)    :: llimiter(1)
+    logical, optional    , intent(in)    :: halo_filled!optional if boundary exchange for fld_fvm has already been called
+
+    integer                              :: ie, iwidth
+    logical                              :: fill_halo
+    !
+    !*********************************************
+    !
+    ! halo exchange
+    !
+    !*********************************************
+    !
+    fill_halo = .true.
+    if (present(halo_filled)) then
+       fill_halo = .not. halo_filled
+    end if
+
+    if (fill_halo) then
+      do ie=nets,nete
+        call ghostpack(ghostBufQnhc_t1, fld_fvm(:,:,:,1,ie),numlev,0,ie)
+      end do
+      call ghost_exchange(hybrid,ghostbufQnhc_t1,location='fvm2dynt1')
+      do ie=nets,nete
+        call ghostunpack(ghostbufQnhc_t1, fld_fvm(:,:,:,1,ie),numlev,0,ie)
+      end do
+    end if
+    !
+    ! mapping
+    !
+    iwidth=2
+    do ie=nets,nete
+      call tensor_lagrange_interp(fvm(ie)%cubeboundary,np,nc,nhc,numlev,1,fld_fvm(:,:,:,:,ie),&
+           fld_gll(:,:,:,:,ie),llimiter,iwidth,fvm(ie)%norm_elem_coord)
+    end do
+  end subroutine fvm2dynt1
 
   subroutine fill_halo_phys(fld_phys,hybrid,nets,nete,num_lev,num_flds)
     use dimensions_mod, only: nhc_phys, fv_nphys
@@ -330,7 +334,7 @@ contains
   ! must call fill_halo_phys before calling this subroutine
   !
   subroutine phys2dyn(hybrid,elem,fld_phys,fld_gll,nets,nete,num_lev,num_flds,fvm,llimiter,istart_vector,halo_filled)
-    use dimensions_mod, only: np, nhc_phys, fv_nphys 
+    use dimensions_mod, only: np, nhc_phys, fv_nphys
     use hybrid_mod, only : hybrid_t
     type (hybrid_t), intent(in)   :: hybrid  ! distributed parallel structure (shared)
     integer       , intent(in)    :: nets,nete,num_flds,num_lev
@@ -466,53 +470,59 @@ contains
     integer :: k,m_cnst,ie
     integer :: iret
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'dyn2phys_all_vars'
 
     !OMP BARRIER OMP MASTER needed
     if (nc.ne.fv_nphys) then
       save_max_overlap = 4 !max number of mass overlap areas between phys and fvm grids
-      allocate(save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
+      allocate(save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_air_mass_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete), stat=iret)
+      allocate(save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_q_overlap(save_max_overlap,fv_nphys,fv_nphys,nlev,num_trac,nets:nete)', &
                           file=__FILE__, line=__LINE__)
 
-      allocate(save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete), stat=iret)
+      allocate(save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_q_phys(fv_nphys,fv_nphys,nlev,num_trac,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
+      allocate(save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_dp_phys(fv_nphys,fv_nphys,nlev,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete), stat=iret)
+      allocate(save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_overlap_area(save_max_overlap,fv_nphys,fv_nphys,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret)
+      allocate(save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_num_overlap(fv_nphys,fv_nphys,nlev,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       save_num_overlap = 0
-      allocate(save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete), stat=iret)
+      allocate(save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete), &
+               stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, &
                           'save_overlap_idx(2,save_max_overlap,fv_nphys,fv_nphys,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     end if
 
     do ie=nets,nete
       tmp = 1.0_r8
       inv_area  = 1.0_r8/dyn2phys(tmp,elem(ie)%metdet(:,:))
-      phis_phys(:,ie) = RESHAPE(fvm(ie)%phis_physgrid,SHAPE(phis_phys(:,ie)))
+      phis_phys(:,ie) = RESHAPE(dyn2phys(elem(ie)%state%phis(:,:),elem(ie)%metdet(:,:),inv_area),SHAPE(phis_phys(:,ie)))
       ps_phys(:,ie) = ptop
       if (nc.ne.fv_nphys) then
         tmp = 1.0_r8
@@ -542,7 +552,7 @@ contains
           ! no mapping needed - just copy fields into physics structure
           !
           dp3d_phys(:,k,ie) = RESHAPE(fvm(ie)%dp_fvm(1:nc,1:nc,k),SHAPE(dp3d_phys(:,k,ie)))
-          ps_phys(:,ie) = ps_phys(:,ie)+RESHAPE(fvm(ie)%dp_fvm(1:nc,1:nc,k),SHAPE(ps_phys(:,ie))) 
+          ps_phys(:,ie) = ps_phys(:,ie)+RESHAPE(fvm(ie)%dp_fvm(1:nc,1:nc,k),SHAPE(ps_phys(:,ie)))
           do m_cnst=1,num_trac
             q_phys(:,k,m_cnst,ie) = RESHAPE(fvm(ie)%c(1:nc,1:nc,k,m_cnst),SHAPE(q_phys(:,k,m_cnst,ie)))
           end do
@@ -575,7 +585,7 @@ contains
     real (kind=r8), intent(in), optional :: q_gll(np,np)
     real (kind=r8)                       :: qdp_phys(nc,nc), min_val, max_val
     integer                              :: i,j
-    
+
     call subcell_integration(qdp_gll(:,:), np, nc, metdet,qdp_phys)
     if (present(inv_dp_darea_phys)) then
       !
@@ -676,6 +686,7 @@ contains
 
     integer :: iret
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'setup_interpdata_for_gll_to_phys_vec_mapping (SE)'
 
     ngrid = fv_nphys*fv_nphys
@@ -685,17 +696,17 @@ contains
     !
     gp_quadrature = gausslobatto(np)
     call interpolate_create(gp_quadrature,interp_p)
-    allocate(interpdata%interp_xy(ngrid), stat=iret)
+    allocate(interpdata%interp_xy(ngrid), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'interpdata%interp_xy(ngrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(interpdata%ilat(ngrid), stat=iret)
+    allocate(interpdata%ilat(ngrid), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'interpdata%ilat(ngrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(interpdata%ilon(ngrid), stat=iret)
+    allocate(interpdata%ilon(ngrid), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'interpdata%ilon(ngrid)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     !
     !WARNING: THIS CODE INTERFERES WITH LAT-LON OUTPUT
@@ -1022,27 +1033,32 @@ contains
     real(kind=r8), allocatable, dimension(:,:,:) :: dq_overlap
     real(kind=r8), allocatable, dimension(:,:,:) :: fq_phys_overlap
 
+    character(len=len_cx)       :: errmsg
     character(len=*), parameter :: subname = 'phys2fvm (SE)'
 
-    allocate(dq_min_overlap       (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(dq_min_overlap       (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'dq_min_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(dq_max_overlap       (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(dq_max_overlap       (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'dq_max_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(dq_overlap           (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(dq_overlap           (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'dq_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(fq_phys_overlap      (save_max_overlap,fv_nphys,fv_nphys), stat=iret)
+    allocate(fq_phys_overlap      (save_max_overlap,fv_nphys,fv_nphys), &
+             stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, &
                         'fq_phys_overlap(save_max_overlap,fv_nphys,fv_nphys)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     do m_cnst=1,num_trac
       fqdp_fvm(:,:,m_cnst) = 0.0_r8
@@ -1057,35 +1073,27 @@ contains
       do jy=1,fv_nphys
         do jx=1,fv_nphys
           num = save_num_overlap(jx,jy,k,ie)
-#ifdef debug_coupling
-          save_q_overlap(:,jx,jy,k,m_cnst,ie) = 0.0_r8
-          save_q_phys(jx,jy,k,m_cnst,ie)      = 0.0_r8
-          tmp = save_q_phys(jx,jy,k,m_cnst,ie)+fq_phys(jx,jy,m_cnst) !updated physics grid mixing ratio
-          phys_cdp_max(jx,jy)= MAX(max_patch,tmp)
-          phys_cdp_min(jx,jy)= MIN(min_patch,tmp)
-#else
           tmp = save_q_phys(jx,jy,k,m_cnst,ie)+fq_phys(jx,jy,m_cnst) !updated physics grid mixing ratio
           phys_cdp_max(jx,jy)= MAX(MAX(MAXVAL(save_q_overlap(1:num,jx,jy,k,m_cnst,ie)),max_patch),tmp)
           phys_cdp_min(jx,jy)= MIN(MIN(MINVAL(save_q_overlap(1:num,jx,jy,k,m_cnst,ie)),min_patch),tmp)
-#endif
           !
           ! add high-order fq change when it does not violate monotonicity
           !
           mass_forcing_phys = 0.0_r8
           do h=1,num
             jdx = save_overlap_idx(1,h,jx,jy,ie); jdy = save_overlap_idx(2,h,jx,jy,ie)
-            q_prev = save_q_overlap(h,jx,jy,k,m_cnst,ie)   
+            q_prev = save_q_overlap(h,jx,jy,k,m_cnst,ie)
 #ifndef skip_high_order_fq_map
             save_q_overlap(h,jx,jy,k,m_cnst,ie) = save_q_overlap(h,jx,jy,k,m_cnst,ie)+fq_phys_overlap(h,jx,jy)
             save_q_overlap(h,jx,jy,k,m_cnst,ie) = MIN(save_q_overlap(h,jx,jy,k,m_cnst,ie),phys_cdp_max(jx,jy))
-            save_q_overlap(h,jx,jy,k,m_cnst,ie) = MAX(save_q_overlap(h,jx,jy,k,m_cnst,ie),phys_cdp_min(jx,jy))              
+            save_q_overlap(h,jx,jy,k,m_cnst,ie) = MAX(save_q_overlap(h,jx,jy,k,m_cnst,ie),phys_cdp_min(jx,jy))
             mass_forcing = (save_q_overlap(h,jx,jy,k,m_cnst,ie)-q_prev)*save_air_mass_overlap(h,jx,jy,k,ie)
             mass_forcing_phys = mass_forcing_phys + mass_forcing
             fqdp_fvm(jdx,jdy,m_cnst) = fqdp_fvm(jdx,jdy,m_cnst)+mass_forcing
 #endif
             !
             ! prepare for mass fixing algorithm
-            !       
+            !
             dq_min_overlap(h,jx,jy)   = save_q_overlap(h,jx,jy,k,m_cnst,ie)-phys_cdp_min(jx,jy)
             dq_max_overlap  (h,jx,jy) = save_q_overlap(h,jx,jy,k,m_cnst,ie)-phys_cdp_max(jx,jy)
           end do
@@ -1183,7 +1191,7 @@ contains
     use dp_mapping, only: weights_eul_index_all_fvm2phys
     use dp_mapping, only: weights_lgr_index_all_phys2fvm, weights_eul_index_all_phys2fvm,jall_phys2fvm
     use dp_mapping, only: weights_all_phys2fvm
-    
+
     integer              , intent(in)           :: ie,k
     type(fvm_struct)     , intent(in)           :: fvm
     integer              , intent(in)           :: num_trac, max_overlap
@@ -1216,7 +1224,7 @@ contains
         end if
       end do
     end do
-    
+
     llimiter_q=.false.
     call get_physgrid_recons(fvm,fq_phys,recons_q,num_trac,llimiter_q)
     !
@@ -1236,11 +1244,11 @@ contains
        do m_cnst=1,num_trac
          fq_phys_overlap(idx,jx,jy,m_cnst) = &
               (fvm%dp_fvm(jdx,jdy,k)*SUM(weights_all_phys2fvm_local(h,:)*recons_q(:,jx,jy,m_cnst))+&
-              fq_phys(jx,jy,m_cnst)*dp_tmp)/save_air_mass_overlap(idx,jx,jy,k,ie)         
+              fq_phys(jx,jy,m_cnst)*dp_tmp)/save_air_mass_overlap(idx,jx,jy,k,ie)
        end do
      end do
   end subroutine get_fq_overlap
-  
+
   subroutine get_physgrid_recons(fvm,field_phys,recons_phys,num_trac,llimiter)
     use dimensions_mod, only: fv_nphys,nhr_phys,nhc_phys,ns_phys
     use fvm_reconstruction_mod, only: reconstruction
@@ -1335,13 +1343,13 @@ contains
     num_overlap(:,:) = 0
     q_phys = 0.0_r8
     do h=1,jall_fvm2phys(ie)
-       jx  = weights_lgr_index_all_fvm2phys(h,1,ie); jy  = weights_lgr_index_all_fvm2phys(h,2,ie)       
+       jx  = weights_lgr_index_all_fvm2phys(h,1,ie); jy  = weights_lgr_index_all_fvm2phys(h,2,ie)
        jdx = weights_eul_index_all_fvm2phys(h,1,ie); jdy = weights_eul_index_all_fvm2phys(h,2,ie)
 
        num_overlap(jx,jy) = num_overlap(jx,jy)+1
        idx = num_overlap(jx,jy)
 
-       dp_fvm_tmp = fvm%dp_fvm(jdx,jdy,k)       
+       dp_fvm_tmp = fvm%dp_fvm(jdx,jdy,k)
        dp_tmp = save_air_mass_overlap(idx,jx,jy,k,ie)-dp_fvm_tmp*weights_all_fvm2phys(h,1,ie)
 #ifdef PCoM
        dp_tmp = save_air_mass_overlap(idx,jx,jy,k,ie)
@@ -1364,6 +1372,83 @@ contains
        save_q_phys(:,:,k,m_cnst,ie) = q_phys(:,:,m_cnst)
      end do
    end subroutine get_q_overlap_save
-  
+   !
+   ! Routine to overwrite thermodynamic active tracers on the GLL grid with CSLAM values
+   ! by Lagrange interpolation from 3x3 CSLAM grid to GLL grid.
+   !
+   subroutine cslam2gll(elem, fvm, hybrid,nets,nete, tl_f, tl_qdp)
+     use dimensions_mod,  only: nc,nlev,np,nhc
+     use hybrid_mod,      only: hybrid_t
+     use air_composition, only: thermodynamic_active_species_num, thermodynamic_active_species_idx
+     use fvm_mod,         only: ghostBuf_cslam2gll
+     use bndry_mod,       only: ghost_exchange
+     use edge_mod,        only: ghostpack,ghostunpack
+     use cam_logfile,     only: iulog
+     type (element_t), intent(inout):: elem(:)
+     type(fvm_struct), intent(inout):: fvm(:)
 
+     type (hybrid_t), intent(in)    :: hybrid  ! distributed parallel structure (shared)
+     integer, intent(in)            :: nets, nete, tl_f, tl_qdp
+
+     integer                                             :: ie,i,j,k,m_cnst,nq,iret
+     real (kind=r8), dimension(:,:,:,:,:)  , allocatable :: fld_fvm, fld_gll
+     character(len=len_cx)       :: errmsg
+     character(len=*), parameter :: subname = 'cslam2gll'
+     !
+     ! for tensor product Lagrange interpolation
+     !
+     integer              :: nflds
+     logical, allocatable :: llimiter(:)
+     call t_startf('cslam2gll')
+     nflds = thermodynamic_active_species_num
+
+     !Allocate variables
+     !------------------
+     allocate(fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete), stat=iret, errmsg=errmsg)
+     call check_allocate(iret, subname, 'fld_fvm(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,nflds,nets:nete)', &
+          file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+     allocate(fld_gll(np,np,nlev,thermodynamic_active_species_num,nets:nete),stat=iret, errmsg=errmsg)
+     call check_allocate(iret, subname, 'fld_gll(np,np,nlev,thermodynamic_active_species_num,nets:nete)', &
+          file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+     allocate(llimiter(nflds), stat=iret, errmsg=errmsg)
+     call check_allocate(iret, subname, 'llimiter(nflds)', &
+          file=__FILE__, line=__LINE__, errmsg=errmsg)
+     !------------------
+
+     llimiter(1:nflds) = .false.
+     do ie=nets,nete
+       do m_cnst=1,thermodynamic_active_species_num
+         do k=1,nlev
+           fld_fvm(1:nc,1:nc,k,m_cnst,ie) = &
+                  fvm(ie)%c(1:nc,1:nc,k,thermodynamic_active_species_idx(m_cnst))
+         end do
+       end do
+     end do
+     call t_startf('fvm:fill_halo_cslam2gll')
+     do ie=nets,nete
+       call ghostpack(ghostBuf_cslam2gll, fld_fvm(:,:,:,:,ie),nlev*nflds,0,ie)
+     end do
+
+     call ghost_exchange(hybrid,ghostBuf_cslam2gll,location='cslam2gll')
+
+     do ie=nets,nete
+       call ghostunpack(ghostBuf_cslam2gll, fld_fvm(:,:,:,:,ie),nlev*nflds,0,ie)
+     end do
+     call t_stopf('fvm:fill_halo_cslam2gll')
+     !
+     ! do mapping
+     !
+     call fvm2dyn(fld_fvm,fld_gll,hybrid,nets,nete,nlev,nflds,fvm,llimiter,halo_filled=.true.)
+
+     do ie=nets,nete
+       do m_cnst=1,thermodynamic_active_species_num
+         elem(ie)%state%qdp(:,:,:,m_cnst,tl_qdp) = fld_gll(:,:,:,m_cnst,ie)*&
+               elem(ie)%state%dp3d(:,:,:,tl_f)
+       end do
+     end do
+     deallocate(fld_fvm, fld_gll, llimiter)
+     call t_stopf('cslam2gll')
+   end subroutine cslam2gll
 end module fvm_mapping

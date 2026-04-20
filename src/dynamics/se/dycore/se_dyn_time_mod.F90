@@ -1,4 +1,4 @@
-module time_mod
+module se_dyn_time_mod
   !------------------
   use shr_kind_mod,   only: r8=>shr_kind_r8
   !------------------
@@ -87,6 +87,7 @@ contains
 
     integer :: i_temp
 
+!xxxx change when not double advecting
     i_temp = tl%nstep/qsplit
 
     if (mod(i_temp,2)  ==0) then
@@ -96,12 +97,10 @@ contains
        endif
     else
        n0 = 2
-       if (present(np1)) then 
+       if (present(np1)) then
           np1 = 1
        end if
     endif
-
-    !print * ,'nstep = ', tl%nstep, 'qsplit= ', qsplit, 'i_temp = ', i_temp, 'n0 = ', n0
 
   end subroutine TimeLevel_Qdp
 
@@ -123,13 +122,13 @@ contains
        ntmp    = tl%np1
        tl%np1  = tl%n0
        tl%n0   = ntmp
-    else 
+    else
        print *,'WARNING: TimeLevel_update called wint invalid uptype=',uptype
     end if
-       
+
     tl%nstep = tl%nstep+1
 !$OMP END MASTER
-!$OMP BARRIER    
+!$OMP BARRIER
   end subroutine TimeLevel_update
 
-end module time_mod
+end module se_dyn_time_mod

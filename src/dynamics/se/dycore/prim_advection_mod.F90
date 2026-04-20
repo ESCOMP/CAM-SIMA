@@ -22,7 +22,7 @@ module prim_advection_mod
   use element_mod,            only: element_t
   use fvm_control_volume_mod, only: fvm_struct
   use hybvcoord_mod,          only: hvcoord_t
-  use time_mod,               only: TimeLevel_t, TimeLevel_Qdp
+  use se_dyn_time_mod,        only: TimeLevel_t, TimeLevel_Qdp
   use control_mod,            only: nu_q, nu_p, limiter_option, hypervis_subcycle_q, rsplit
   use edge_mod,               only: edgevpack, edgevunpack, initedgebuffer, initedgesbuffer
 
@@ -44,7 +44,7 @@ module prim_advection_mod
   public :: prim_advec_tracers_fvm
   public :: vertical_remap
 
-  type (EdgeBuffer_t)      :: edgeAdv, edgeAdvp1, edgeAdvQminmax, edgeAdv1,  edgeveloc
+  type (EdgeBuffer_t)      :: edgeAdv, edgeAdvp1, edgeAdvQminmax, edgeveloc
 
   integer,parameter :: DSSeta = 1
   integer,parameter :: DSSomega = 2
@@ -62,7 +62,7 @@ contains
 
 
   subroutine Prim_Advec_Init1(par, elem)
-    use dimensions_mod, only: nlev, qsize, nelemd,ntrac
+    use dimensions_mod, only: nlev, qsize, nelemd,ntrac,use_cslam
     use parallel_mod,   only: parallel_t, boundaryCommMethod
     use cam_abortutils, only: check_allocate
     type(parallel_t)    :: par
@@ -82,7 +82,7 @@ contains
     !
     ! Set the number of threads used in the subroutine Prim_Advec_tracers_remap()
     !
-    if (ntrac>0) then
+    if (use_cslam) then
        advec_remap_num_threads = 1
     else
        advec_remap_num_threads = tracer_num_threads
@@ -91,17 +91,17 @@ contains
     ! allocate largest one first
     ! Currently this is never freed. If it was, only this first one should
     ! be freed, as only it knows the true size of the buffer.
-    call initEdgeBuffer(par,edgeAdvp1,elem,qsize*nlev + nlev,bndry_type=boundaryCommMethod,&
-                         nthreads=horz_num_threads*advec_remap_num_threads)
-    call initEdgeBuffer(par,edgeAdv,elem,qsize*nlev,bndry_type=boundaryCommMethod, &
-                         nthreads=horz_num_threads*advec_remap_num_threads)
-    ! This is a different type of buffer pointer allocation
-    ! used for determine the minimum and maximum value from
-    ! neighboring  elements
-    call initEdgeSBuffer(par,edgeAdvQminmax,elem,qsize*nlev*2,bndry_type=boundaryCommMethod, &
-                        nthreads=horz_num_threads*advec_remap_num_threads)
-
-    call initEdgeBuffer(par,edgeAdv1,elem,nlev,bndry_type=boundaryCommMethod)
+    if (.not.use_cslam) then
+      call initEdgeBuffer(par,edgeAdvp1,elem,qsize*nlev + nlev,bndry_type=boundaryCommMethod,&
+           nthreads=horz_num_threads*advec_remap_num_threads)
+      call initEdgeBuffer(par,edgeAdv,elem,qsize*nlev,bndry_type=boundaryCommMethod, &
+           nthreads=horz_num_threads*advec_remap_num_threads)
+      ! This is a different type of buffer pointer allocation
+      ! used for determine the minimum and maximum value from
+      ! neighboring  elements
+      call initEdgeSBuffer(par,edgeAdvQminmax,elem,qsize*nlev*2,bndry_type=boundaryCommMethod, &
+           nthreads=horz_num_threads*advec_remap_num_threads)
+    end if
     call initEdgeBuffer(par,edgeveloc,elem,2*nlev,bndry_type=boundaryCommMethod)
 
 
@@ -181,8 +181,6 @@ contains
     integer              , intent(in   ) :: nets
     integer              , intent(in   ) :: nete
 
-
-    !print *,'prim_Advec_Tracers_remap: qsize: ',qsize
     call Prim_Advec_Tracers_remap_rk2( elem , deriv , hvcoord , hybrid , dt , tl , nets , nete )
   end subroutine Prim_Advec_Tracers_remap
 
@@ -231,10 +229,9 @@ contains
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
   subroutine Prim_Advec_Tracers_remap_rk2( elem , deriv , hvcoord , hybrid , dt , tl , nets , nete )
-    use derivative_mod, only : divergence_sphere
-    use control_mod   , only : qsplit
-    use hybrid_mod    , only : get_loop_ranges!, PrintHybrid
-!    use thread_mod    , only : omp_set_num_threads, omp_get_thread_num
+    use derivative_mod, only: divergence_sphere
+    use control_mod   , only: qsplit
+    use hybrid_mod    , only: get_loop_ranges
 
     type (element_t)     , intent(inout) :: elem(:)
     type (derivative_t)  , intent(in   ) :: deriv
@@ -321,7 +318,7 @@ contains
     use hybrid_mod, only : hybrid_t, get_loop_ranges
     implicit none
     type(element_t)     , intent(inout) :: elem(:)
-    integer             , intent(in   ) :: rkstage , n0_qdp , np1_qdp , nets , nete 
+    integer             , intent(in   ) :: rkstage , n0_qdp , np1_qdp , nets , nete
     type(hybrid_t) :: hybrid
     integer :: i,j,ie,q,k
     integer :: kbeg,kend,qbeg,qend
@@ -333,7 +330,7 @@ contains
     do ie=nets,nete
       do q=qbeg,qend
         do k=kbeg,kend
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -363,7 +360,7 @@ contains
   !
   ! ===================================
   use dimensions_mod , only : np, nlev
-  use hybrid_mod     , only : hybrid_t!, PrintHybrid
+  use hybrid_mod     , only : hybrid_t
   use hybrid_mod     , only : get_loop_ranges, threadOwnsTracer
   use element_mod    , only : element_t
   use derivative_mod , only : derivative_t, divergence_sphere, limiter_optim_iter_full
@@ -446,7 +443,7 @@ contains
     do ie = nets, nete
       ! add hyperviscosity to RHS.  apply to Q at timelevel n0, Qdp(n0)/dp
       do k = kbeg, kend
-        !OMP_COLLAPSE_SIMD 
+        !OMP_COLLAPSE_SIMD
         !DIR_VECTOR_ALIGNED
         do j=1,np
         do i=1,np
@@ -486,7 +483,7 @@ contains
       if ( nu_p > 0 ) then
         do ie = nets, nete
           do k = kbeg, kend
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -497,7 +494,7 @@ contains
           do q = qbeg,qend
             do k = kbeg, kend
               ! NOTE: divide by dp0 since we multiply by dp0 below
-              !OMP_COLLAPSE_SIMD 
+              !OMP_COLLAPSE_SIMD
               !DIR_VECTOR_ALIGNED
               do j=1,np
               do i=1,np
@@ -521,7 +518,7 @@ contains
       do ie = nets, nete
         do q = qbeg, qend
           do k = kbeg, kend
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -543,7 +540,7 @@ contains
       do ie = nets, nete
         do q = qbeg, qend
           do k = kbeg, kend
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -572,7 +569,7 @@ contains
     do k = kbeg, kend
       ! derived variable divdp_proj() (DSS'd version of divdp) will only be correct on 2nd and 3rd stage
       ! but that's ok because rhs_multiplier=0 on the first stage:
-      !OMP_COLLAPSE_SIMD 
+      !OMP_COLLAPSE_SIMD
       !DIR_VECTOR_ALIGNED
       do j=1,np
       do i=1,np
@@ -586,7 +583,7 @@ contains
         ! Note that the term dpdissk is independent of Q
         do k = kbeg, kend
           ! UN-DSS'ed dp at timelevel n0+1:
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -597,7 +594,7 @@ contains
             ! add contribution from UN-DSS'ed PS dissipation
 !            dpdiss(:,:) = ( hvcoord%hybi(k+1) - hvcoord%hybi(k) ) *
 !            elem(ie)%derived%psdiss_biharmonic(:,:)
-            !OMP_COLLAPSE_SIMD 
+            !OMP_COLLAPSE_SIMD
             !DIR_VECTOR_ALIGNED
             do j=1,np
             do i=1,np
@@ -619,7 +616,7 @@ contains
     do q = qbeg, qend
       do k = kbeg, kend
         ! div( U dp Q),
-        !OMP_COLLAPSE_SIMD 
+        !OMP_COLLAPSE_SIMD
         !DIR_VECTOR_ALIGNED
         do j=1,np
         do i=1,np
@@ -640,8 +637,8 @@ contains
         enddo
 
         ! optionally add in hyperviscosity computed above:
-        if ( rhs_viss /= 0 ) then 
-          !OMP_COLLAPSE_SIMD 
+        if ( rhs_viss /= 0 ) then
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -662,7 +659,7 @@ contains
       ! dont do this earlier, since we allow np1_qdp == n0_qdp
       ! and we dont want to overwrite n0_qdp until we are done using it
       do k = kbeg, kend
-        !OMP_COLLAPSE_SIMD 
+        !OMP_COLLAPSE_SIMD
         !DIR_VECTOR_ALIGNED
         do j=1,np
         do i=1,np
@@ -693,7 +690,7 @@ contains
         if ( DSSopt == DSSdiv_vdp_ave ) DSSvar => elem(ie)%derived%divdp_proj(:,:,:)
         ! also DSS extra field
         do k = kbeg, kend
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -718,7 +715,7 @@ contains
         kptr = qsize*nlev + kbeg -1
         call edgeVunpack( edgeAdvp1 , DSSvar(:,:,kbeg:kend) , kblk , kptr , ie )
         do k = kbeg, kend
-           !OMP_COLLAPSE_SIMD 
+           !OMP_COLLAPSE_SIMD
            !DIR_VECTOR_ALIGNED
            do j=1,np
            do i=1,np
@@ -732,7 +729,7 @@ contains
       kptr = nlev*(q-1) + kbeg - 1
       call edgeVunpack( edgeAdvp1 , elem(ie)%state%Qdp(:,:,kbeg:kend,q,np1_qdp) , kblk , kptr , ie )
         do k = kbeg, kend
-          !OMP_COLLAPSE_SIMD 
+          !OMP_COLLAPSE_SIMD
           !DIR_VECTOR_ALIGNED
           do j=1,np
           do i=1,np
@@ -806,7 +803,7 @@ contains
   !
   !  For correct scaling, dt2 should be the same 'dt2' used in the leapfrog advace
   use dimensions_mod , only : np, nlev
-  use hybrid_mod     , only : hybrid_t!, PrintHybrid
+  use hybrid_mod     , only : hybrid_t
   use hybrid_mod     , only : get_loop_ranges
   use element_mod    , only : element_t
   use derivative_mod , only : derivative_t
@@ -948,22 +945,23 @@ contains
     !
     ! map tracers
     ! map velocity components
-    ! map temperature (either by mapping thermal energy or virtual temperature over log(p)
+    ! map temperature (either by mapping enthalpy or virtual temperature
+    ! over log(p)
     ! (controlled by vert_remap_uvTq_alg > -20 or <= -20)
     !
-    use hybvcoord_mod         , only: hvcoord_t
-    use vertremap_mod         , only: remap1
-    use hybrid_mod            , only: hybrid_t, config_thread_region,get_loop_ranges, PrintHybrid
+    use hybvcoord_mod,          only: hvcoord_t
+    use vertremap_mod,          only: remap1
+    use hybrid_mod,             only: hybrid_t, config_thread_region,get_loop_ranges
     use fvm_control_volume_mod, only: fvm_struct
-    use dimensions_mod        , only: ntrac
-    use dimensions_mod        , only: lcp_moist, kord_tr,kord_tr_cslam
-    use cam_logfile           , only: iulog
-    use dynconst              , only: pi
-    use dyn_thermo            , only: get_enthalpy, get_dp, get_virtual_temp
-    use cam_thermo            , only: MASS_MIXING_RATIO
-    use air_composition       , only: thermodynamic_active_species_idx_dycore
-    use thread_mod            , only: omp_set_nested
-    use control_mod           , only: vert_remap_uvTq_alg
+    use dimensions_mod,         only: use_cslam, ntrac
+    use dimensions_mod,         only: kord_tr,kord_tr_cslam
+    use cam_logfile,            only: iulog
+    use dynconst,               only: pi
+    use air_composition,        only: thermodynamic_active_species_idx_dycore
+    use dyn_thermo,             only: get_enthalpy, get_virtual_temp, get_dp
+    use cam_thermo,             only: MASS_MIXING_RATIO
+    use thread_mod,             only: omp_set_nested
+    use control_mod,            only: vert_remap_uvTq_alg
 
     type (hybrid_t),  intent(in)    :: hybrid  ! distributed parallel structure (shared)
     type(fvm_struct), intent(inout) :: fvm(:)
@@ -974,7 +972,7 @@ contains
     type (hvcoord_t) :: hvcoord
     integer          :: ie,i,j,k,np1,nets,nete,np1_qdp,q, m_cnst
     real (kind=r8), dimension(np,np,nlev)  :: dp_moist,dp_star_moist, dp_dry,dp_star_dry
-    real (kind=r8), dimension(np,np,nlev)  :: internal_energy_star
+    real (kind=r8), dimension(np,np,nlev)  :: enthalpy_star
     real (kind=r8), dimension(np,np,nlev,2):: ttmp
     real(r8), parameter                    :: rad2deg = 180.0_r8/pi
     integer :: region_num_threads,qbeg,qend,kord_uvT(1)
@@ -989,23 +987,20 @@ contains
       ! prepare for mapping of temperature
       !
       if (vert_remap_uvTq_alg>-20) then
-        if (lcp_moist) then
-          !
-          ! compute internal energy on Lagrangian levels
-          ! (do it here since qdp is overwritten by remap1)
-          !
-          call get_enthalpy(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
-               elem(ie)%state%t(:,:,:,np1),elem(ie)%state%dp3d(:,:,:,np1),internal_energy_star,     &
-               active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
-        end if
+        !
+        ! compute enthalpy on Lagrangian levels
+        ! (do it here since qdp is overwritten by remap1)
+        !
+        call get_enthalpy(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
+             elem(ie)%state%t(:,:,:,np1), elem(ie)%state%dp3d(:,:,:,np1), enthalpy_star,     &
+             active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
       else
         !
         ! map Tv over log(p) following FV and FV3
         !
-        call get_virtual_temp(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
-             internal_energy_star,dp_dry=elem(ie)%state%dp3d(:,:,:,np1),                        &
-             active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
-        internal_energy_star = internal_energy_star*elem(ie)%state%t(:,:,:,np1)
+        call get_virtual_temp(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), enthalpy_star, &
+             dp_dry=elem(ie)%state%dp3d(:,:,:,np1), active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
+        enthalpy_star = enthalpy_star*elem(ie)%state%t(:,:,:,np1)
       end if
       !
       ! update final psdry
@@ -1013,17 +1008,18 @@ contains
       elem(ie)%state%psdry(:,:) = ptop + &
            sum(elem(ie)%state%dp3d(:,:,:,np1),3)
       !
-      ! compute dry vertical coordinate (Lagrangian and reference levels)
+      ! compute dry vertical coordinate (Lagrangian and reference
+      ! levels)
       !
       do k=1,nlev
         dp_star_dry(:,:,k) = elem(ie)%state%dp3d(:,:,k,np1)
-        dp_dry(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
-             ( hvcoord%hybi(k+1) - hvcoord%hybi(k) )*elem(ie)%state%psdry(:,:)
+        dp_dry(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k))*hvcoord%ps0 + &
+             ( hvcoord%hybi(k+1) - hvcoord%hybi(k))*elem(ie)%state%psdry(:,:)
         elem(ie)%state%dp3d(:,:,k,np1) = dp_dry(:,:,k)
       enddo
       !
       call get_dp(elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),MASS_MIXING_RATIO,&
-         thermodynamic_active_species_idx_dycore,dp_star_dry,dp_star_moist(:,:,:))
+         thermodynamic_active_species_idx_dycore, dp_star_dry,dp_star_moist(:,:,:))
       !
       ! Check if Lagrangian leves have crossed
       !
@@ -1037,7 +1033,7 @@ contains
                    elem(ie)%spherep(i,j)%lon*rad2deg,elem(ie)%spherep(i,j)%lat*rad2deg
               write(iulog,*) " "
               do k=1,nlev
-                write(iulog,'(A21,I5,A1,f12.8,3f8.2)') "k,dp_star_moist,u,v,T: ",k," ",dp_star_moist(i,j,k)/100.0_r8,&
+                write(iulog,'(A21,I5,A1,f16.12,3f10.2)')"k,dp_star_moist,u,v,T: ",k," ",dp_star_moist(i,j,k)/100.0_r8,&
                      elem(ie)%state%v(i,j,1,k,np1),elem(ie)%state%v(i,j,2,k,np1),elem(ie)%state%T(i,j,k,np1)
               end do
             end if
@@ -1051,42 +1047,35 @@ contains
       ! compute moist reference pressure level thickness
       !
       call get_dp(elem(ie)%state%Qdp(:,:,:,1:qsize,np1_qdp),MASS_MIXING_RATIO,&
-           thermodynamic_active_species_idx_dycore,dp_dry,dp_moist(:,:,:))
+           thermodynamic_active_species_idx_dycore, dp_dry,dp_moist(:,:,:))
 
       !
       ! Remapping of temperature
       !
       if (vert_remap_uvTq_alg>-20) then
         !
-        ! remap internal energy and back out temperature
+        ! remap enthalpy energy and back out temperature
         !
-        if (lcp_moist) then
-          call remap1(internal_energy_star,np,1,1,1,dp_star_dry,dp_dry,ptop,1,.true.,kord_uvT)
-          !
-          ! compute sum c^(l)_p*m^(l)*dp on arrival (Eulerian) grid
-          !
-          ttmp(:,:,:,1) = 1.0_r8
-          call get_enthalpy(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp),   &
-               ttmp(:,:,:,1),dp_dry,ttmp(:,:,:,2), &
-               active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
-          elem(ie)%state%t(:,:,:,np1)=internal_energy_star/ttmp(:,:,:,2)
-        else
-          internal_energy_star(:,:,:)=elem(ie)%state%t(:,:,:,np1)*dp_star_moist
-          call remap1(internal_energy_star,np,1,1,1,dp_star_moist,dp_moist,ptop,1,.true.,kord_uvT)
-          elem(ie)%state%t(:,:,:,np1)=internal_energy_star/dp_moist
-        end if
+        call remap1(enthalpy_star,np,1,1,1,dp_star_dry,dp_dry,ptop,1,.true.,kord_uvT)
+        !
+        ! compute sum c^(l)_p*m^(l)*dp on arrival (Eulerian) grid
+        !
+        ttmp(:,:,:,1) = 1.0_r8
+        call get_enthalpy(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp),   &
+             ttmp(:,:,:,1), dp_dry,ttmp(:,:,:,2), &
+             active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
+        elem(ie)%state%t(:,:,:,np1)=enthalpy_star/ttmp(:,:,:,2)
       else
         !
         ! map Tv over log(p); following FV and FV3
         !
-        call remap1(internal_energy_star,np,1,1,1,dp_star_moist,dp_moist,ptop,1,.false.,kord_uvT)
-        call get_virtual_temp(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), &
-             ttmp(:,:,:,1),dp_dry=dp_dry,                                                       &
-             active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
+        call remap1(enthalpy_star,np,1,1,1,dp_star_moist,dp_moist,ptop,1,.false.,kord_uvT)
+        call get_virtual_temp(elem(ie)%state%qdp(:,:,:,1:qsize,np1_qdp), ttmp(:,:,:,1), &
+             dp_dry=dp_dry,active_species_idx_dycore=thermodynamic_active_species_idx_dycore)
         !
         ! convert new Tv to T
         !
-        elem(ie)%state%t(:,:,:,np1)=internal_energy_star/ttmp(:,:,:,1)
+        elem(ie)%state%t(:,:,:,np1)=enthalpy_star/ttmp(:,:,:,1)
       end if
       !
       ! remap velocity components
@@ -1095,7 +1084,7 @@ contains
       call remap1(elem(ie)%state%v(:,:,2,:,np1),np,1,1,1,dp_star_moist,dp_moist,ptop,-1,.false.,kord_uvT)
     enddo
 
-    if (ntrac>0) then
+    if (use_cslam) then
       !
       ! vertical remapping of CSLAM tracers
       !
@@ -1112,14 +1101,15 @@ contains
             end do
           end do
         end do
-        if(ntrac>tracer_num_threads) then 
+        if(ntrac>tracer_num_threads) then
           call omp_set_nested(.true.)
-          !$OMP PARALLEL NUM_THREADS(tracer_num_threads), DEFAULT(SHARED), PRIVATE(hybridnew2,qbeg,qend)
+          !$OMP PARALLEL NUM_THREADS(tracer_num_threads),
+          !DEFAULT(SHARED), PRIVATE(hybridnew2,qbeg,qend)
           hybridnew2 = config_thread_region(hybrid,'ctracer')
           call get_loop_ranges(hybridnew2, qbeg=qbeg, qend=qend)
           call remap1(fvm(ie)%c(1:nc,1:nc,:,1:ntrac),nc,qbeg,qend,ntrac,dpc_star, &
                       fvm(ie)%dp_fvm(1:nc,1:nc,:),ptop,0,.false.,kord_tr_cslam)
-          !$OMP END PARALLEL 
+          !$OMP END PARALLEL
           call omp_set_nested(.false.)
         else
           call remap1(fvm(ie)%c(1:nc,1:nc,:,1:ntrac),nc,1,ntrac,ntrac,dpc_star, &

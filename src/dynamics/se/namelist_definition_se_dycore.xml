@@ -74,7 +74,7 @@
     </desc>
     <values>
       <value>3</value>
-      <value hgrid="ne16np4">4</value>
+      <value hgrid="ne16np4" model_top="lt">1</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle_sponge">
@@ -89,66 +89,17 @@
       <value hgrid="ne120np4">4</value>
     </values>
   </entry>
-  <entry id="se_rayk0">
-    <type>integer</type>
-    <category>se</category>
-    <group>dyn_se_nl</group>
-    <desc>
-      Variable to specify the vertical index at which the
-      Rayleigh friction term is centered (the peak value).
-      Default: 2
-    </desc>
-    <values>
-      <value>2</value>
-    </values>
-  </entry>
-  <entry id="se_raykrange">
-    <type>real</type>
-    <category>se</category>
-    <group>dyn_se_nl</group>
-    <desc>
-      Rayleigh friction parameter to determine the width of the profile.  If set
-      to 0 then a width is chosen by the algorithm (see rayleigh_friction.F90).
-      Default: 0.5.
-    </desc>
-    <values>
-      <value>0.5</value>
-      <value waccm_phys="1">3</value>
-    </values>
-  </entry>
-  <entry id="se_raytau0">
-    <type>real</type>
-    <category>se</category>
-    <group>dyn_se_nl</group>
-    <desc>
-      Rayleigh friction parameter to determine the approximate value of the decay
-      time (days) at model top.  If 0.0 then no Rayleigh friction is applied.
-      Default: 0.
-    </desc>
-    <values>
-      <value>0.0</value>
-    </values>
-  </entry>
   <entry id="se_molecular_diff">
     <type>real</type>
     <category>se</category>
     <group>dyn_se_nl</group>
     <desc>
-      Used by SE dycore to apply sponge layer diffusion to u, v, and T for
-      stability of WACCM configurations. The diffusion is modeled on 3D molecular
-      diffusion and thermal conductivity by using actual molecular diffusion and
-      thermal conductivity coefficients multiplied by the value of
-      se_molecular_diff.
-
-      If set &lt;= 0.0 then the code is not activated.  If set &gt; 0.0 then
-      the molecular diffusion and thermal conductivity coefficients will be
-      multiplied by a factor of se_molecular_diff.
-
-      Default: 0.
+      Enable thermal conductivity and molecular diffusion in the horizontal in SE dycore.
+      Default: 1.0 for WACCM-X, 0.0 (i.e., not used) for all other configurations.
     </desc>
     <values>
       <value>0.0</value>
-      <value waccm_phys="1" waccmx="0">100.0</value>
+      <value waccmx="1">1.0</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle_q">
@@ -255,22 +206,6 @@
       <value hgrid="ne0np4TESTONLY.ne5x4">7</value>
     </values>
   </entry>
-  <entry id="se_phys_dyn_cp">
-    <type>integer</type>
-    <category>se</category>
-    <group>dyn_se_nl</group>
-    <valid_values>0,1,2</valid_values>
-    <desc>
-      Scaling of temperature increment for different levels of
-      thermal energy consistency.
-      0: no scaling
-      1: scale increment for cp consistency between dynamics and physics
-      2: do 1 as well as take into account condensate effect on thermal energy
-    </desc>
-    <values>
-      <value>1</value>
-    </values>
-  </entry>
   <entry id="se_nu">
     <type>real</type>
     <category>se</category>
@@ -281,6 +216,7 @@
     </desc>
     <values>
       <value>-1</value>
+      <value hgrid="ne16np4">6.e15</value>
       <value hypervis_type="scalar" se_refined_mesh="1">1.0e13</value>
     </values>
   </entry>
@@ -294,6 +230,7 @@
     </desc>
     <values>
       <value>-1</value>
+      <value hgrid="ne16np4">6.e15</value>
       <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
     </values>
   </entry>
@@ -307,6 +244,7 @@
     </desc>
     <values>
       <value>-1</value>
+      <value hgrid="ne16np4">6.e15</value>
       <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
     </values>
   </entry>
@@ -318,45 +256,64 @@
       Second-order viscosity applied only near the model top [m^2/s].
     </desc>
     <values>
-      <value>5.0e5</value>
-      <value waccmx="1">1.0e6</value>
-      <!-- WACCM uses molecular/thermal diffusion in sponge   -->
-      <value waccm_phys="1">0.0</value>
+      <value>1.25e5</value>
+      <value waccmx="1"    >1.0e6</value>
+      <value waccm_phys="1">1.0e6</value>
+      <value model_top="mt">1.0e6</value>
       <value se_refined_mesh="1">2.0e5</value>
     </values>
   </entry>
-  <entry id="se_hypervis_dynamic_ref_state">
-    <type>logical</type>
+  <entry id="se_sponge_del4_nu_fac">
+    <type>real</type>
     <category>se</category>
     <group>dyn_se_nl</group>
     <desc>
-      Hyperscosity for T and dp is applied to (T-Tref) and (dp-dp_ref) where
-      Xref are reference states where the effect of topography has been removed
-      (Simmons and Jiabin, 1991, QJRMS, Section 2a).
-      If TRUE dp_ref is dynamic smoothed reference state derived by Patrick Callaghan
-      (Lauritzen et al., 2018, JAMES, Appendix A.2) and temperature reference state
-      based on Simmons and Jiabin (1991) but using smoothed dp_ref.
-      If FALSE Tref is static reference state (Simmons and Jiabin) and dp_ref state
-      derived from hydrostatic balance.
+      Hyperviscosity coefficient se_nu [m^4/s] for u,v, T is increased to
+      se_nu_p*se_sponge_del4_nu_fac following a hyperbolic tangent function
+      centered around pressure at vertical index se_sponge_del4_lev:
+
+      0.5_r8*(1.0_r8+tanh(2.0_r8*log(pmid(se_sponge_del4_lev)/press)))
+
+      where press is pressure
+
+      If &lt; 0, se_sponge_del4_nu_fac is automatically set based on model top location.
     </desc>
     <values>
-      <value>.false.</value>
+      <value>-1</value>
     </values>
   </entry>
-  <entry id="se_lcp_moist">
-    <type>logical</type>
-    <category>se</category>
+  <entry id="se_sponge_del4_nu_div_fac">
+    <type>real</type>
+    <category>se></category>
     <group>dyn_se_nl</group>
     <desc>
-      If TRUE the continous equations the dynamical core is based on will conserve a
-      comprehensive moist total energy
-      If FALSE the continous equations the dynamical core is based on will conserve
-      a total energy based on cp for dry air and no condensates (same total energy as
-      CAM physics uses).
-      For more details see Lauritzen et al., (2018;DOI:10.1029/2017MS001257)
+      Divergence damping hyperviscosity coefficient se_nu_div [m^4/s] for u,v is increased to
+      se_nu_p*se_sponge_del4_nu_div_fac following a hyperbolic tangent function
+      centered around pressure at vertical index se_sponge_del4_lev:
+
+      0.5_r8*(1.0_r8+tanh(2.0_r8*log(pmid(se_sponge_del4_lev)/press)))
+
+      where press is pressure
+
+      If &lt; 0, se_sponge_del4_nu_div_fac is automatically set based on model top location.
     </desc>
     <values>
-      <value>.true.</value>
+      <value>-1</value>
+    </values>
+  </entry>
+  <entry id="se_sponge_del4_lev">
+    <type>real</type>
+    <category>se></category>
+    <group>dyn_se_nl</group>
+    <desc>
+      Level index around which increased del4 damping is centered.
+
+      See se_sponge_del4_nu_fac and se_sponge_del4_nu_div_fac
+
+      If &lt; 0, se_sponge_del4_lev is automatically set based on model top location.
+    </desc>
+    <values>
+      <value>-1</value>
     </values>
   </entry>
   <entry id="se_large_Courant_incr">
@@ -687,6 +644,46 @@
     </desc>
     <values>
       <value>0</value>
+    </values>
+  </entry>
+  <entry id="se_pgf_formulation">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <valid_values>1,2,3</valid_values>
+    <desc>
+      1: Exner version of pressure gradient force (PGF)
+      see Appendix A in Herrington et al., 2022,
+      doi: 10.1029/2022MS003192
+
+      2: Traditional pressure gradient formulation (grad p)
+
+      3: Hybrid (formulation 1 where hybm>0 else formulation 2)
+      Use hybrid PGF option for WACCM-x to make WACCM-x consistent with PGF
+      used in CAM in the troposphere and traditional PGF formulation above
+    </desc>
+    <values>
+      <value>1</value>
+      <value waccmx="1">3</value>
+    </values>
+  </entry>
+  <entry id="se_dribble_in_rsplit_loop">
+    <type>integer</type>
+    <category>se</category>
+    <group>dyn_se_nl</group>
+    <valid_values>0,1</valid_values>
+    <desc>
+      0: physics tendencies will be added every vertical remapping time-step (dt_phys/se_nsplit)
+      for se_ftype=0,2
+
+      1: physics tendencies will be added every dynamics time-step (dt_phys/se_nsplit*se_rsplit)
+      for se_ftype=0,2
+
+      If se_ftype=1 then se_dribble_in_rsplit_loop has no effect since physics tendencies are added as an adjustment
+    </desc>
+    <values>
+      <value>0</value>
+      <value hgrid="ne16np4" waccm_phys="1" waccmx="0">1</value>
     </values>
   </entry>
 </entry_id_pg>

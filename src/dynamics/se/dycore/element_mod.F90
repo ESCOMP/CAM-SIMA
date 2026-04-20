@@ -1,6 +1,6 @@
 module element_mod
 
-  use shr_kind_mod,           only: r8=>shr_kind_r8, i8=>shr_kind_i8
+  use shr_kind_mod,           only: r8=>shr_kind_r8, i8=>shr_kind_i8, len_cx => shr_kind_cx
   use coordinate_systems_mod, only: spherical_polar_t, cartesian2D_t, cartesian3D_t, distance
   use edgetype_mod,           only: edgedescriptor_t
   use gridgraph_mod,          only: gridvertex_t
@@ -45,10 +45,6 @@ module element_mod
     real(kind=r8), allocatable :: phi(:,:,:)                  ! geopotential
     real(kind=r8), allocatable :: omega(:,:,:)                ! vertical velocity
 
-    ! semi-implicit diagnostics: computed in explict-component, reused in Helmholtz-component.
-    real(kind=r8), allocatable :: zeta(:,:,:)                 ! relative vorticity
-    real(kind=r8), allocatable :: div(:,:,:,:)                ! divergence
-
     ! tracer advection fields used for consistency and limiters
     real(kind=r8), allocatable :: dp(:,:,:)                   ! for dp_tracers at physics timestep
     real(kind=r8), allocatable :: divdp(:,:,:)                ! divergence of dp
@@ -60,24 +56,10 @@ module element_mod
     real(kind=r8), allocatable :: FM(:,:,:,:)                 ! momentum forcing
     real(kind=r8), allocatable :: FDP(:,:,:)                  ! save full updated dp right after physics
     real(kind=r8), allocatable :: FT(:,:,:)                   ! temperature forcing
-    real(kind=r8), allocatable :: etadot_prescribed(:,:,:)    ! prescribed vertical tendency
-    real(kind=r8), allocatable :: u_met(:,:,:)                ! zonal component of prescribed meteorology winds
-    real(kind=r8), allocatable :: dudt_met(:,:,:)             ! rate of change of zonal component of prescribed meteorology winds
-    real(kind=r8), allocatable :: v_met(:,:,:)                ! meridional component of prescribed meteorology winds
-    real(kind=r8), allocatable :: dvdt_met(:,:,:)             ! rate of change of meridional component of prescribed meteorology winds
-    real(kind=r8), allocatable :: T_met(:,:,:)                ! prescribed meteorology temperature
-    real(kind=r8), allocatable :: dTdt_met(:,:,:)             ! rate of change of prescribed meteorology temperature
-    real(kind=r8), allocatable :: nudge_factor(:,:,:)         ! nudging factor (prescribed)
-    real(kind=r8), allocatable :: Utnd(:,:)                   ! accumulated U tendency due to nudging towards prescribed met
-    real(kind=r8), allocatable :: Vtnd(:,:)                   ! accumulated V tendency due to nudging towards prescribed met
-    real(kind=r8), allocatable :: Ttnd(:,:)                   ! accumulated T tendency due to nudging towards prescribed met
 
-    real(kind=r8), allocatable :: pecnd(:,:,:)                ! pressure perturbation from condensate
-
-    real(kind=r8) :: ps_met(np,np)     ! surface pressure of prescribed meteorology
-    real(kind=r8) :: dpsdt_met(np,np)  ! rate of change of surface pressure of prescribed meteorology
-
-
+    ! reference profiles
+    real(kind=r8), allocatable :: T_ref(:,:,:)                ! reference temperature
+    real(kind=r8), allocatable :: dp_ref(:,:,:)               ! reference pressure level thickness
   end type derived_state_t
 
   !___________________________________________________________________
@@ -363,46 +345,48 @@ contains
     type (element_t), intent(inout)   :: elem(:)
     integer                           :: num, j, i, iret
 
+    character(len=len_cx)       :: errmsg
+
     character(len=*), parameter :: subname = 'allocate_element_desc (SE)'
 
     num = SIZE(elem)
 
     do j=1,num
-       allocate(elem(j)%desc%putmapP(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%putmapP(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%putmapP(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%getmapP(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%getmapP(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%getmapP(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%putmapP_ghost(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%putmapP_ghost(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%getmapP_ghost(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%getmapP_ghost(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%putmapS(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%putmapS(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%putmapS(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%getmapS(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%getmapS(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%getmapS(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%reverse(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%reverse(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%reverse(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%globalID(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%globalID(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%globalID(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(elem(j)%desc%loc2buf(max_neigh_edges), stat=iret)
+       allocate(elem(j)%desc%loc2buf(max_neigh_edges), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, 'elem%desc%loc2buf(max_neigh_edges)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        do i=1,max_neigh_edges
           elem(j)%desc%loc2buf(i)=i
@@ -425,6 +409,8 @@ contains
     !Local arguments:
     integer :: num, i, iret
 
+    character(len=len_cx)       :: errmsg
+
     character(len=*), parameter :: subname = 'allocate_element_dims (SE)'
 
     !---------------
@@ -437,24 +423,24 @@ contains
       !--------------------------
 
       ! velocity
-      allocate(elem(i)%state%v(np,np,2,nlev,timelevels), stat=iret)
+      allocate(elem(i)%state%v(np,np,2,nlev,timelevels), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%v(np,np,2,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! temperature
-      allocate(elem(i)%state%T(np,np,nlev,timelevels), stat=iret)
+      allocate(elem(i)%state%T(np,np,nlev,timelevels), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%T(np,np,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! dry delta p on levels
-      allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret)
+      allocate(elem(i)%state%dp3d(np,np,nlev,timelevels), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%dp3d(np,np,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! Tracer mass
-      allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret)
+      allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,2)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       !--------------------------
 
@@ -462,146 +448,86 @@ contains
       !----------------------------
 
       ! velocity for SE tracer advection
-      allocate(elem(i)%derived%vn0(np,np,2,nlev), stat=iret)
+      allocate(elem(i)%derived%vn0(np,np,2,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%vn0(np,np,2,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! mean dp dissipation tendency, if nu_p>0
-      allocate(elem(i)%derived%dpdiss_biharmonic(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dpdiss_biharmonic(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dpdiss_biharmonic(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! mean dp used to compute psdiss_tens
-      allocate(elem(i)%derived%dpdiss_ave(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dpdiss_ave(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dpdiss_ave(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! geopotential
-      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%phi(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%phi(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! vertical velocity
-      allocate(elem(i)%derived%omega(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%omega(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%omega(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! relative vorticity
-      allocate(elem(i)%derived%zeta(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%zeta(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! divergence
-      allocate(elem(i)%derived%div(np,np,nlev,timelevels), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%div(np,np,nlev,timelevels)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! for dp_tracers at physics timestep
-      allocate(elem(i)%derived%dp(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%dp(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%dp(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! divergence of dp
-      allocate(elem(i)%derived%divdp(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%divdp(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%divdp(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! DSSed divdp
-      allocate(elem(i)%derived%divdp_proj(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%divdp_proj(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%divdp_proj(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! total tracer mass for diagnostics
-      allocate(elem(i)%derived%mass(max(qsize_d,ntrac)+9), stat=iret)
+      allocate(elem(i)%derived%mass(max(qsize_d,ntrac)+9), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%mass(max(qsize_d,ntrac)+9)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! tracer forcing
-      allocate(elem(i)%derived%FQ(np,np,nlev,qsize_d), stat=iret)
+      allocate(elem(i)%derived%FQ(np,np,nlev,qsize_d), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FQ(np,np,nlev,qsize_d)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! momentum forcing
-      allocate(elem(i)%derived%FM(np,np,2,nlev), stat=iret)
+      allocate(elem(i)%derived%FM(np,np,2,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FM(np,np,2,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! save full updated dp right after physics
-      allocate(elem(i)%derived%FDP(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%FDP(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FDP(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! temperature forcing
-      allocate(elem(i)%derived%FT(np,np,nlev), stat=iret)
+      allocate(elem(i)%derived%FT(np,np,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%derived%FT(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      ! prescribed vertical tendency
-      allocate(elem(i)%derived%etadot_prescribed(np,np,nlevp), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%etadot_prescribed(np,np,nlevp)', &
-                          file=__FILE__, line=__LINE__)
+      ! reference temperature profile for hyperviscosity
+      allocate(elem(i)%derived%T_ref(np,np,nlev), stat=iret, errmsg=errmsg)
+      call check_allocate(iret, subname, 'elem%derived%T_ref(np,np,nlev)', &
+           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      ! zonal component of prescribed meteorology winds
-      allocate(elem(i)%derived%u_met(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%u_met(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! rate of change of zonal component of prescribed meteorology winds
-      allocate(elem(i)%derived%dudt_met(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%dudt_met(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! meridional component of prescribed meteorology winds
-      allocate(elem(i)%derived%v_met(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%v_met(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! rate of change of meridional component of prescribed meteorology winds
-      allocate(elem(i)%derived%dvdt_met(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%dvdt_met(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! prescribed meteorology temperature
-      allocate(elem(i)%derived%T_met(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%T_met(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! rate of change of prescribed meteorology temperature
-      allocate(elem(i)%derived%dTdt_met(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%dTdt_met(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! nudging factor (prescribed)
-      allocate(elem(i)%derived%nudge_factor(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%nudge_factor(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! accumulated U tendency due to nudging towards prescribed met
-      allocate(elem(i)%derived%Utnd(npsq,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%Utnd(npsq,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! accumulated V tendency due to nudging towards prescribed met
-      allocate(elem(i)%derived%Vtnd(npsq,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%Vtnd(npsq,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! accumulated T tendency due to nudging towards prescribed met
-      allocate(elem(i)%derived%Ttnd(npsq,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%Ttnd(npsq,nlev)', &
-                          file=__FILE__, line=__LINE__)
-
-      ! pressure perturbation from condensate
-      allocate(elem(i)%derived%pecnd(np,np,nlev), stat=iret)
-      call check_allocate(iret, subname, 'elem%derived%pecnd(np,np,nlev)', &
-                          file=__FILE__, line=__LINE__)
+      ! reference pressure level thickness profile for hyperviscosity
+      allocate(elem(i)%derived%dp_ref(np,np,nlev), stat=iret, errmsg=errmsg)
+      call check_allocate(iret, subname, 'elem%derived%dp_ref(np,np,nlev)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       !----------------------------
 
       !First Coordinate:
-      allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret)
+      allocate(elem(i)%sub_elem_mass_flux(nc,nc,4,nlev), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'elem%sub_elem_mass_flux(nc,nc,4,nlev)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     end do
 

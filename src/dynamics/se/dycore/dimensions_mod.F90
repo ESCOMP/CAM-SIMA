@@ -1,5 +1,6 @@
 module dimensions_mod
   use shr_kind_mod, only: r8=>shr_kind_r8
+  use air_composition, only: thermodynamic_active_species_num
 
   implicit none
   private
@@ -19,26 +20,16 @@ module dimensions_mod
   !
   character(len=16),  allocatable, public :: cnst_name_gll(:)     ! constituent names for SE tracers
   character(len=128), allocatable, public :: cnst_longname_gll(:) ! long name of SE tracers
-  !
-  !moist cp in energy conversion term
-  !
-  ! .false.: force dycore to use cpd (cp dry) instead of moist cp
-  ! .true. : use moist cp in dycore
-  !
-  logical           , public :: lcp_moist = .true.
 
   integer, parameter, public :: np = NP
   integer, parameter, public :: nc = 3    !cslam resolution
   integer           , public :: fv_nphys  !physics-grid resolution - the "MAX" is so that the code compiles with NC=0
 
   integer, public, protected :: qsize_d   !SE tracer dimension size
+  logical, public            :: use_cslam = .false. !logical for CSLAM
   integer, public, protected :: ntrac = 0 !FVM tracer dimension size
   integer, public            :: qsize = 0 !qsize is set in dyn_comp
   !
-  ! hyperviscosity is applied on approximate pressure levels
-  ! Similar to CAM-EUL; see CAM5 scietific documentation (Note TN-486), equation (3.09), page 58.
-  !
-  logical,            public :: hypervis_dynamic_ref_state = .false.
   ! fvm dimensions:
   logical, public :: lprint!for debugging
   integer, parameter, public :: ngpc=3          !number of Gausspoints for the fvm integral approximation   !phl change from 4
@@ -62,19 +53,15 @@ module dimensions_mod
   integer, allocatable, public :: kord_tr(:), kord_tr_cslam(:)
 
   real(r8), allocatable, public :: nu_scale_top(:) ! scaling of del2 viscosity in sponge layer (initialized in dyn_comp)
-  real(r8), allocatable, public :: nu_lev(:)
-  real(r8), allocatable, public :: otau(:)
-
-  integer,  public :: ksponge_end       ! sponge is active k=1,ksponge_end
-  real (r8), allocatable, public :: nu_div_lev(:) ! scaling of viscosity in sponge layer
+  real(r8), allocatable, public :: nu_lev(:)       ! level dependent del4 (u,v) damping
+  real(r8), allocatable, public :: nu_t_lev(:)     ! level dependent del4 T damping
+  integer,               public :: ksponge_end     ! sponge is active k=1,ksponge_end
+  real(r8), allocatable, public :: nu_div_lev(:)   ! scaling of viscosity in sponge layer
 
   real(r8), allocatable, public :: kmvis_ref(:)        !reference profiles for molecular diffusion
   real(r8), allocatable, public :: kmcnd_ref(:)        !reference profiles for molecular diffusion
   real(r8), allocatable, public :: rho_ref(:)          !reference profiles for rho
   real(r8), allocatable, public :: km_sponge_factor(:) !scaling for molecular diffusion (when used as sponge)
-  real(r8), allocatable, public :: kmvisi_ref(:)       !reference profiles for molecular diffusion
-  real(r8), allocatable, public :: kmcndi_ref(:)       !reference profiles for molecular diffusion
-  real(r8), allocatable, public :: rhoi_ref(:)         !reference profiles for rho
 
   integer,  public :: nhc_phys
   integer,  public :: nhe_phys
@@ -121,21 +108,27 @@ contains
      use cam_constituents, only: num_advected
      use cam_abortutils,   only: check_allocate
 
+     ! Module(s) from CESM Share.
+     use shr_kind_mod, only: len_cx => shr_kind_cx
+
      ! Local variables:
 
-     integer :: iret
+     integer               :: iret
+     character(len=len_cx) :: errmsg
 
      character(len=*), parameter :: subname = 'dimensions_mod_init'
 
      ! Set tracer dimension variables:
      if (fv_nphys > 0) then
-        ! Use CSLAM for tracer advection
-        qsize_d = 10 ! SE tracers (currently SE supports 10 condensate loading tracers)
+       ! Use CSLAM for tracer advection
+        qsize_d = thermodynamic_active_species_num
         ntrac = num_advected
+        use_cslam = .true.
      else
         ! Use GLL for tracer advection
         qsize_d = num_advected
         ntrac = 0 ! No fvm tracers if CSLAM is off
+        use_cslam = .false.
      end if
 
      ! Set grid dimension variables:
@@ -145,53 +138,41 @@ contains
 
      ! Allocate vertically-dimensioned variables:
 
-     allocate(irecons_tracer_lev(nlev), stat=iret)
+     allocate(irecons_tracer_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'irecons_tracer_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_scale_top(nlev), stat=iret)
+     allocate(nu_scale_top(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_scale_top(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_lev(nlev), stat=iret)
+     allocate(nu_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(otau(nlev), stat=iret)
-     call check_allocate(iret, subname, 'otau(nlev)', &
-                         file=__FILE__, line=__LINE__)
+     allocate(nu_t_lev(nlev), stat=iret, errmsg=errmsg)
+     call check_allocate(iret, subname, 'nu_t_lev(nlev)', &
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(nu_div_lev(nlev), stat=iret)
+     allocate(nu_div_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_div_lev(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(kmvis_ref(nlev), stat=iret)
+     allocate(kmvis_ref(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'kmvis_ref(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(kmcnd_ref(nlev), stat=iret)
+     allocate(kmcnd_ref(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'kmcnd_ref(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(rho_ref(nlev), stat=iret)
+     allocate(rho_ref(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'rho_ref(nlev)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-     allocate(km_sponge_factor(nlev), stat=iret)
+     allocate(km_sponge_factor(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'km_sponge_factor(nlev)', &
-                         file=__FILE__, line=__LINE__)
-
-     allocate(kmvisi_ref(nlevp), stat=iret)
-     call check_allocate(iret, subname, 'kmvisi_ref(nlevp)', &
-                         file=__FILE__, line=__LINE__)
-
-     allocate(kmcndi_ref(nlevp), stat=iret)
-     call check_allocate(iret, subname, 'kmcndi_ref(nlevp)', &
-                         file=__FILE__, line=__LINE__)
-
-     allocate(rhoi_ref(nlevp), stat=iret)
-     call check_allocate(iret, subname, 'rhoi_ref(nlevp)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
   end subroutine dimensions_mod_init
 

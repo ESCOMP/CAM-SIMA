@@ -7,7 +7,7 @@ module hybrid_mod
 use parallel_mod  , only : parallel_t, copy_par
 use thread_mod    , only : omp_set_num_threads, omp_get_thread_num
 use thread_mod    , only : horz_num_threads, vert_num_threads, tracer_num_threads
-use dimensions_mod, only : nlev, qsize, ntrac
+use dimensions_mod, only : nlev, qsize, ntrac, use_cslam
 
 implicit none
 private
@@ -268,7 +268,7 @@ contains
           work_pool_trac(ith+1,2) = end_index
         end do
 
-        if(ntrac>0 .and. ntrac<tracer_num_threads) &
+        if(use_cslam .and. ntrac<tracer_num_threads) &
           print *,'WARNING: insufficient CSLAM tracer parallelism to support ',tracer_num_threads,' tracer threads'
         if ( .NOT. allocated(work_pool_ctrac) ) then
           allocate(work_pool_ctrac(tracer_num_threads,2), stat=iret)
