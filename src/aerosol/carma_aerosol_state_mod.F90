@@ -44,7 +44,8 @@ module carma_aerosol_state_mod
 
 contains
 
-  function constructor(constituents, list_idx) result(newobj)
+  function constructor(ncol, constituents, list_idx) result(newobj)
+    integer, intent(in) :: ncol
     real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
     integer, intent(in), optional :: list_idx
     type(carma_aerosol_state), pointer :: newobj

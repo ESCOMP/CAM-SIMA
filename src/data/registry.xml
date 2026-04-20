@@ -1492,6 +1492,43 @@
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
 
+    <!-- Temporary initializations for aerosol models -->
+    <variable local_name="qsatfac"
+              standard_name="subgrid_cloud_water_saturation_scaling_factor_for_microphysics"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_QSATFAC</ic_file_input_names>
+    </variable>
+    <variable local_name="aist"
+              standard_name="stratiform_cloud_ice_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_aist</ic_file_input_names>
+    </variable>
+
+    <!-- Aerosol model properties -->
+    <variable local_name="prog_modal_aero"
+              standard_name="do_prognostic_modal_aerosol"
+              units="flag" type="logical">
+      <long_name>flag indicating whether prognostic modal aerosols are present in the run</long_name>
+      <initial_value>.false.</initial_value>
+      <!-- is true when chemistry uses interactive MAM - currently not in CAM-SIMA, default to false. -->
+    </variable>
+    <variable local_name="ndust"
+              standard_name="dust_size_bin_dimension"
+              units="count" type="integer">
+      <long_name>number of dust size bins used in aerosol model</long_name>
+      <initial_value>4</initial_value>
+      <!-- this is not runtime configurable, and
+           not even easily compile-time configurable, because the assumption that
+           there are four dust bins is deeply embedded in the microphysics and
+           coupling to the land model (see dstdry1/2/3/4, dstwet1/2/3/4) -->
+    </variable>
+
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
     <variable local_name="kvt"
               standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"

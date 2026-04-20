@@ -280,7 +280,7 @@ contains
     if (present(hygro_aer))   hygro_aer   = mock_spec_hygro(mode_idx, spec_idx)
     if (present(spectype))    spectype     = mock_spec_type(mode_idx, spec_idx)
 
-    ! Optics pointers not yet mocked for modal — nullify
+    ! Optics pointers not yet mocked for modal - nullify
     if (present(sw_hygro_ext))     nullify(sw_hygro_ext)
     if (present(sw_hygro_ssa))     nullify(sw_hygro_ssa)
     if (present(sw_hygro_asm))     nullify(sw_hygro_asm)
@@ -338,7 +338,7 @@ contains
     if (present(rhcrystal))   rhcrystal   = mock_rhcrystal(mode_idx)
     if (present(rhdeliques))  rhdeliques  = mock_rhdeliques(mode_idx)
 
-    ! Pointer/optics arguments not yet mocked — nullify
+    ! Pointer/optics arguments not yet mocked - nullify
     if (present(extpsw))    nullify(extpsw)
     if (present(abspsw))    nullify(abspsw)
     if (present(asmpsw))    nullify(asmpsw)
