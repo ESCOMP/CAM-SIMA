@@ -540,9 +540,6 @@ contains
   ! use this subroutine to replicate the original behavior.
   subroutine nuclice_get_numdens_bam(self, aero_props, use_preexisting_ice, &
        ncol, nlev, rho, dust_num_col, sulf_num_col, soot_num_col, sulf_num_tot_col)
-    !REMOVECAM: host-model specific dimensions
-    use ppgrid, only: pcols, pver
-    !REMOVECAM_END
 
     class(bulk_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props

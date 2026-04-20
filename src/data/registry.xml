@@ -1800,14 +1800,15 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_NACON</ic_file_input_names>
     </variable>
-    <variable local_name="rndst"
+    <!-- this may be problematic right now:
+      <variable local_name="rndst"
               standard_name="dust_radii_by_size_bin"
               units="m" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_RNDST</ic_file_input_names>
-    </variable>
+    </variable>-->
     <!-- Zhang McFarlane (ZM) Variables -->
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
