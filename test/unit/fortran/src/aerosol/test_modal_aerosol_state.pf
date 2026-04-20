@@ -44,7 +44,7 @@ subroutine test_get_ambient_mmr()
     constituents(:, :, 5) = 5.0e-9_kind_phys
     cptr => constituents
 
-    state => modal_aerosol_state(cptr)
+    state => modal_aerosol_state(ncol, cptr)
 
     ! get_ambient_mmr(species_ndx=1, bin_ndx=1) -> so4_a1 at index 2
     call state%get_ambient_mmr(species_ndx=1, bin_ndx=1, mmr=mmr)
@@ -89,7 +89,7 @@ subroutine test_get_ambient_num()
     constituents(:, :, 4) = 5.0e6_kind_phys
     cptr => constituents
 
-    state => modal_aerosol_state(cptr)
+    state => modal_aerosol_state(ncol, cptr)
 
     ! get_ambient_num(bin_ndx=1) -> index 1
     call state%get_ambient_num(bin_ndx=1, num=num)
@@ -132,7 +132,7 @@ subroutine test_ambient_total_bin_mmr()
     cptr => constituents
 
     props => modal_aerosol_properties()
-    state => modal_aerosol_state(cptr)
+    state => modal_aerosol_state(ncol, cptr)
 
     ! Total for mode 1 at (col=1, lyr=1): so4 + bc = 3e-9
     mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=1, col_ndx=1, lyr_ndx=1)
@@ -175,7 +175,7 @@ subroutine test_dry_volume()
     cptr => constituents
 
     props => modal_aerosol_properties()
-    state => modal_aerosol_state(cptr)
+    state => modal_aerosol_state(ncol, cptr)
 
     ! dry_volume for mode 1 = sum(mmr_i / density_i)
     expected = mmr_so4 / dens_sulfate + mmr_bc / dens_bc
