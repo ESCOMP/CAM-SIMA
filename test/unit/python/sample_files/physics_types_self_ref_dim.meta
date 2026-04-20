@@ -1,0 +1,31 @@
+[ccpp-table-properties]
+  name = physics_types_self_ref_dim
+  type = module
+[ccpp-arg-table]
+  name = physics_types_self_ref_dim
+  type = module
+[ ncol ]
+  standard_name = horizontal_dimension
+  long_name = Number of horizontal columns
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ pver ]
+  standard_name = vertical_layer_dimension
+  long_name = Number of vertical layers
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ ndust ]
+  standard_name = dust_size_bin_dimension
+  long_name = Number of dust size bins
+  units = count
+  type = integer
+  dimensions = ()
+[ rndst ]
+  standard_name = dust_radii_by_size_bin
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, vertical_layer_dimension, dust_size_bin_dimension)

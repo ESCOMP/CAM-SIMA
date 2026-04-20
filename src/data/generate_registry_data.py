@@ -1405,6 +1405,15 @@ class File:
         #then this section of code will likely need to be modified:
         if ('number_of_ccpp_constituents' in self.__var_dict.known_dimensions):
             outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_constituents", 2)
+
+        # Collect self-referential dimensions (defined in this module)
+        self_ref_dims = []
+        for dim in sorted(self.__var_dict.known_dimensions):
+            if dim not in var_module_dict and dim != 'number_of_ccpp_constituents':
+                var = self.__var_dict.find_variable_by_standard_name(dim)
+                if var and var.local_name != dim:
+                    self_ref_dims.append((dim, var.local_name))
+
         outfile.blank_line()
 
         # Dummy arguments
@@ -1425,6 +1434,8 @@ class File:
         outfile.write(f'logical                     :: {reall_var}', 2)
         subn_str = f'character(len=*), parameter :: subname = "{subname}"'
         outfile.write(subn_str, 2)
+        for dim_std, _ in self_ref_dims:
+            outfile.write(f'integer                     :: {dim_std}', 2)
         outfile.write('', 0)
         outfile.write('! Set optional argument values', 2)
         outfile.write(f'if (present({init_var}_in)) then', 2)
@@ -1437,6 +1448,11 @@ class File:
         outfile.write('else', 2)
         outfile.write(f'{reall_var} = .false.', 3)
         outfile.write('end if', 2)
+        if self_ref_dims:
+            outfile.blank_line()
+            outfile.write('! Set self-referential dimension variables', 2)
+            for dim_std, dim_loc in self_ref_dims:
+                outfile.write(f'{dim_std} = {dim_loc}', 2)
         outfile.write('', 0)
         for var in self.__var_dict.variable_list():
             var.write_allocate_routine(outfile, 2, init_var, reall_var, '', physconst_vars)

@@ -50,6 +50,7 @@ contains
     logical                     :: set_init_val
     logical                     :: reallocate
     character(len=*), parameter :: subname = "allocate_physics_types_simple_fields"
+    integer                     :: horizontal_dimension
 
     ! Set optional argument values
     if (present(set_init_val_in)) then
@@ -62,6 +63,9 @@ contains
     else
       reallocate = .false.
     end if
+
+    ! Set self-referential dimension variables
+    horizontal_dimension = ncol
 
     if (set_init_val) then
       ncol = 0
