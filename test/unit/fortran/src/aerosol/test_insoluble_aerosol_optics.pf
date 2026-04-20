@@ -62,7 +62,7 @@ subroutine test_sw_props()
     allocate(constituents(ncol, nlev, naero))
     constituents(:, :, 1) = 1.0e-6_kind_phys  ! MMR = 1e-6 kg/kg
     cptr => constituents
-    state => bulk_aerosol_state(cptr)
+    state => bulk_aerosol_state(ncol, cptr)
 
     ! Create insoluble optics object
     optics => insoluble_aerosol_optics(props, state, ibin=1)
@@ -137,7 +137,7 @@ subroutine test_lw_props()
     allocate(constituents(ncol, nlev, naero))
     constituents(:, :, 1) = 2.0e-6_kind_phys  ! MMR = 2e-6
     cptr => constituents
-    state => bulk_aerosol_state(cptr)
+    state => bulk_aerosol_state(ncol, cptr)
 
     optics => insoluble_aerosol_optics(props, state, ibin=1)
 

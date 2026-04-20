@@ -26,7 +26,7 @@ subroutine test_constructor()
     constituents = 1.0e-6_kind_phys
     cptr => constituents
 
-    state => bulk_aerosol_state(cptr)
+    state => bulk_aerosol_state(2, cptr)
 
     @assertTrue(associated(state))
 
@@ -52,7 +52,7 @@ subroutine test_get_ambient_mmr()
     constituents(:, :, 2) = 2.0e-6_kind_phys  ! sulfate
     cptr => constituents
 
-    state => bulk_aerosol_state(cptr)
+    state => bulk_aerosol_state(ncol, cptr)
 
     ! Get MMR for aerosol 1 (dust)
     call state%get_ambient_mmr(species_ndx=1, bin_ndx=1, mmr=mmr)
@@ -99,7 +99,7 @@ subroutine test_dry_volume()
     constituents(:, :, 1) = 1.0e-6_kind_phys
     cptr => constituents
 
-    state => bulk_aerosol_state(cptr)
+    state => bulk_aerosol_state(ncol, cptr)
 
     ! dry_volume = mmr / density = 1e-6 / 2000 = 5e-10 m3/kg
     vol = state%dry_volume(props, bin_idx=1, ncol=ncol, nlev=nlev)
@@ -142,7 +142,7 @@ subroutine test_ambient_total_bin_mmr()
     constituents(:, :, 2) = 7.0e-6_kind_phys
     cptr => constituents
 
-    state => bulk_aerosol_state(cptr)
+    state => bulk_aerosol_state(ncol, cptr)
 
     ! For bulk aerosols, each bin has 1 species, so total = that species
     mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=1, col_ndx=1, lyr_ndx=1)
