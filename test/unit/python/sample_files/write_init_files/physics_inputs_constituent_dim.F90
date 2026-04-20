@@ -10,7 +10,6 @@
 ! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 !>
 !! @brief Auto-generated Initial conditions source file, physics_inputs_constituent_dim.F90
 !!
@@ -26,7 +25,7 @@ module physics_inputs_constituent_dim
    public :: physics_read_data
    public :: physics_check_data
 
-CONTAINS
+contains
 
    subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
       use pio,                                  only: file_desc_t
@@ -153,12 +152,12 @@ CONTAINS
                         call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, slp)
 
                      case ('super_cool_cat_every_const')
-                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_every_const', input_var_names(:,name_idx),          &
-                             timestep, cool_cat_for_each_const)
+                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_every_const', input_var_names(:,name_idx), &
+                            timestep, cool_cat_for_each_const)
 
                      case ('super_cool_cat_with_default_every_const')
-                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_with_default_every_const',                          &
-                             input_var_names(:,name_idx), timestep, cool_default_cat_for_each_const, error_on_not_found=.false.)
+                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_with_default_every_const', &
+                            input_var_names(:,name_idx), timestep, cool_default_cat_for_each_const, error_on_not_found=.false.)
 
                   end select !read variables
                end select !special indices
@@ -202,12 +201,12 @@ CONTAINS
                   exit
                end if
             end do
-            call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                  &
-                 mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+            call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+                mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          else
             ! If not in standard names list, then just use constituent name as input file name:
-            call read_field(file, std_name, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.,                    &
-                 error_on_not_found=.false., var_found=var_found)
+            call read_field(file, std_name, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., &
+                error_on_not_found=.false., var_found=var_found)
          end if
          if(.not. var_found) then
             constituent_has_default = .false.
@@ -343,8 +342,8 @@ CONTAINS
 
                   select case (trim(phys_var_stdnames(name_idx)))
                   case ('potential_temperature')
-                     call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,              &
-                          min_relative_value, is_first, diff_found)
+                     call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference, &
+                         min_relative_value, is_first, diff_found)
 
                   end select !check variables
                   if (diff_found) then
@@ -374,15 +373,15 @@ CONTAINS
                   exit
                end if
             end do
-            call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name,                 &
-                 min_difference, min_relative_value, is_first, diff_found)
+            call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, &
+                min_difference, min_relative_value, is_first, diff_found)
             if (diff_found) then
                overall_diff_found = .true.
             end if
          else
             ! If not in standard names list, then just use constituent name as input file name:
-            call check_field(file, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value,     &
-                 is_first, diff_found)
+            call check_field(file, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, &
+                is_first, diff_found)
             if (diff_found) then
                overall_diff_found = .true.
             end if

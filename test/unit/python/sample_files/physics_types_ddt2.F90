@@ -10,7 +10,6 @@
 ! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 !>
 !! @brief Auto-generated Variables for registry source file, physics_types_ddt2
 !!
@@ -61,7 +60,7 @@ module physics_types_ddt2
   public :: allocate_physics_types_ddt2_fields
   public :: physics_types_ddt2_tstep_init
 
-CONTAINS
+contains
 
   subroutine allocate_physics_types_ddt2_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)

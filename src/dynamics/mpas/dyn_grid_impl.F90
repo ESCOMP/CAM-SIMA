@@ -99,7 +99,7 @@ contains
 
     !> Inquire local and global mesh dimensions. Save them as protected module variables.
     !> (KCW, 2024-11-21)
-    module subroutine dyn_inquire_mesh_dimensions()
+    subroutine dyn_inquire_mesh_dimensions()
         ! Module(s) from CAM-SIMA.
         use cam_logfile, only: debugout_debug
         use dyn_comp, only: dyn_debug_print, mpas_dynamical_core
