@@ -33,9 +33,12 @@ module test_dyn_procedures
     public :: test_t_of_tm_qv_and_vice_versa_by_typical_values
     public :: test_tm_of_tv_qv_and_vice_versa_by_known_values
     public :: test_tm_of_tv_qv_and_vice_versa_by_typical_values
-    public :: test_reverse_by_empty_arrays
-    public :: test_reverse_by_single_element_arrays
-    public :: test_reverse_by_multiple_element_arrays
+    public :: test_reverse_by_empty_arrays_real32
+    public :: test_reverse_by_empty_arrays_real64
+    public :: test_reverse_by_single_element_arrays_real32
+    public :: test_reverse_by_single_element_arrays_real64
+    public :: test_reverse_by_multiple_element_arrays_real32
+    public :: test_reverse_by_multiple_element_arrays_real64
     public :: test_sec_to_hour_min_sec_by_positive_time
     public :: test_sec_to_hour_min_sec_by_negative_time
     public :: test_sec_to_hour_min_sec_by_extreme_time
@@ -1348,7 +1351,23 @@ contains
     end subroutine test_tm_of_tv_qv_and_vice_versa_by_typical_values
 
     @test
-    subroutine test_reverse_by_empty_arrays()
+    subroutine test_reverse_by_empty_arrays_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_procedures, only: reverse
+        use funit
+
+        real(real32), allocatable :: array(:), reversed(:)
+
+        allocate(array(0))
+
+        reversed = reverse(array)
+
+        @assertTrue(allocated(reversed))
+        @assertEqual(0, size(reversed))
+    end subroutine test_reverse_by_empty_arrays_real32
+
+    @test
+    subroutine test_reverse_by_empty_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: reverse
         use funit
@@ -1361,10 +1380,31 @@ contains
 
         @assertTrue(allocated(reversed))
         @assertEqual(0, size(reversed))
-    end subroutine test_reverse_by_empty_arrays
+    end subroutine test_reverse_by_empty_arrays_real64
 
     @test
-    subroutine test_reverse_by_single_element_arrays()
+    subroutine test_reverse_by_single_element_arrays_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_procedures, only: reverse
+        use funit
+
+        real(real32), parameter :: expected(*) = [ &
+            1.0_real32 &
+        ]
+
+        real(real32), allocatable :: array(:), reversed(:)
+
+        allocate(array(1))
+
+        array(1) = 1.0_real32
+        reversed = reverse(array)
+
+        @assertTrue(allocated(reversed))
+        @assertEqual(expected, reversed)
+    end subroutine test_reverse_by_single_element_arrays_real32
+
+    @test
+    subroutine test_reverse_by_single_element_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: reverse
         use funit
@@ -1382,10 +1422,39 @@ contains
 
         @assertTrue(allocated(reversed))
         @assertEqual(expected, reversed)
-    end subroutine test_reverse_by_single_element_arrays
+    end subroutine test_reverse_by_single_element_arrays_real64
 
     @test
-    subroutine test_reverse_by_multiple_element_arrays()
+    subroutine test_reverse_by_multiple_element_arrays_real32()
+        use, intrinsic :: iso_fortran_env, only: real32
+        use dyn_procedures, only: reverse
+        use funit
+
+        real(real32), parameter :: expected(*) = [ &
+            5.0_real32, &
+            4.0_real32, &
+            3.0_real32, &
+            2.0_real32, &
+            1.0_real32 &
+        ]
+
+        real(real32), allocatable :: array(:), reversed(:)
+
+        allocate(array(5))
+
+        array(1) = 1.0_real32
+        array(2) = 2.0_real32
+        array(3) = 3.0_real32
+        array(4) = 4.0_real32
+        array(5) = 5.0_real32
+        reversed = reverse(array)
+
+        @assertTrue(allocated(reversed))
+        @assertEqual(expected, reversed)
+    end subroutine test_reverse_by_multiple_element_arrays_real32
+
+    @test
+    subroutine test_reverse_by_multiple_element_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: reverse
         use funit
@@ -1411,7 +1480,7 @@ contains
 
         @assertTrue(allocated(reversed))
         @assertEqual(expected, reversed)
-    end subroutine test_reverse_by_multiple_element_arrays
+    end subroutine test_reverse_by_multiple_element_arrays_real64
 
     @test
     subroutine test_sec_to_hour_min_sec_by_positive_time()

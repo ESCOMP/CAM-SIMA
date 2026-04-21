@@ -736,7 +736,7 @@ class WriteInitTest(unittest.TestCase):
                                          error_on_no_validate=True)
 
         # Generate CCPP capgen files:
-        kind_types = ["kind_phys={REAL64}"]
+        kind_types = ["kind_phys=REAL64"]
         run_env = CCPPFrameworkEnv(logger, host_files=host_files,
                                    scheme_files=scheme_files, suites=sdf,
                                    preproc_directives='',

@@ -15,7 +15,7 @@ module dyn_mpas_procedures
 
     private
     ! Computational procedures.
-    ! None in this group for now.
+    public :: dzw_of_rdzw, dzu_of_dzw, zu_of_dzw, zw_of_dzw
     ! Utility procedures.
     public :: almost_divisible
     public :: almost_equal
@@ -24,6 +24,26 @@ module dyn_mpas_procedures
     public :: split
     public :: stringify
     public :: tokenize
+
+    interface dzw_of_rdzw
+        module procedure dzw_of_rdzw_real32
+        module procedure dzw_of_rdzw_real64
+    end interface dzw_of_rdzw
+
+    interface dzu_of_dzw
+        module procedure dzu_of_dzw_real32
+        module procedure dzu_of_dzw_real64
+    end interface dzu_of_dzw
+
+    interface zu_of_dzw
+        module procedure zu_of_dzw_real32
+        module procedure zu_of_dzw_real64
+    end interface zu_of_dzw
+
+    interface zw_of_dzw
+        module procedure zw_of_dzw_real32
+        module procedure zw_of_dzw_real64
+    end interface zw_of_dzw
 
     interface almost_divisible
         module procedure almost_divisible_real32
@@ -47,6 +67,138 @@ module dyn_mpas_procedures
         module procedure tokenize_into_tokens_separator
     end interface tokenize
 contains
+    !> Compute the differences in \( \zeta \) between w-wind levels `dzw` from the reciprocal differences in \( \zeta \) between
+    !> w-wind levels `rdzw`, where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces
+    !> in MPAS.
+    !> (KCW, 2025-10-20)
+    pure elemental function dzw_of_rdzw_real32(rdzw) result(dzw)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: rdzw
+        real(real32) :: dzw
+
+        dzw = 1.0_real32 / rdzw
+    end function dzw_of_rdzw_real32
+
+    !> Compute the differences in \( \zeta \) between w-wind levels `dzw` from the reciprocal differences in \( \zeta \) between
+    !> w-wind levels `rdzw`, where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces
+    !> in MPAS.
+    !> (KCW, 2025-10-20)
+    pure elemental function dzw_of_rdzw_real64(rdzw) result(dzw)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: rdzw
+        real(real64) :: dzw
+
+        dzw = 1.0_real64 / rdzw
+    end function dzw_of_rdzw_real64
+
+    !> Compute the differences in \( \zeta \) between u-wind levels `dzu` from the differences in \( \zeta \) between
+    !> w-wind levels `dzw`, where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with
+    !> layer midpoints and interfaces in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function dzu_of_dzw_real32(dzw) result(dzu)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: dzw(:)
+        real(real32) :: dzu(size(dzw) - 1)
+
+        integer :: k
+
+        do k = 1, size(dzu)
+            dzu(k) = 0.5_real32 * (dzw(k) + dzw(k + 1))
+        end do
+    end function dzu_of_dzw_real32
+
+    !> Compute the differences in \( \zeta \) between u-wind levels `dzu` from the differences in \( \zeta \) between
+    !> w-wind levels `dzw`, where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with
+    !> layer midpoints and interfaces in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function dzu_of_dzw_real64(dzw) result(dzu)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: dzw(:)
+        real(real64) :: dzu(size(dzw) - 1)
+
+        integer :: k
+
+        do k = 1, size(dzu)
+            dzu(k) = 0.5_real64 * (dzw(k) + dzw(k + 1))
+        end do
+    end function dzu_of_dzw_real64
+
+    !> Compute the \( \zeta \) coordinates at u-wind levels `zu` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with layer midpoints and interfaces
+    !> in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function zu_of_dzw_real32(dzw) result(zu)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: dzw(:)
+        real(real32) :: zu(size(dzw))
+
+        integer :: k
+        real(real32) :: zw(size(dzw) + 1)
+
+        zw(:) = zw_of_dzw(dzw)
+
+        do k = 1, size(zu)
+            zu(k) = 0.5_real32 * (zw(k) + zw(k + 1))
+        end do
+    end function zu_of_dzw_real32
+
+    !> Compute the \( \zeta \) coordinates at u-wind levels `zu` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with layer midpoints and interfaces
+    !> in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function zu_of_dzw_real64(dzw) result(zu)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: dzw(:)
+        real(real64) :: zu(size(dzw))
+
+        integer :: k
+        real(real64) :: zw(size(dzw) + 1)
+
+        zw(:) = zw_of_dzw(dzw)
+
+        do k = 1, size(zu)
+            zu(k) = 0.5_real64 * (zw(k) + zw(k + 1))
+        end do
+    end function zu_of_dzw_real64
+
+    !> Compute the \( \zeta \) coordinates at w-wind levels `zw` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces in MPAS.
+    !> (KCW, 2025-10-20)
+    pure function zw_of_dzw_real32(dzw) result(zw)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: dzw(:)
+        real(real32) :: zw(size(dzw) + 1)
+
+        integer :: k
+
+        do k = 1, size(zw)
+            zw(k) = sum(dzw(1:k - 1))
+        end do
+    end function zw_of_dzw_real32
+
+    !> Compute the \( \zeta \) coordinates at w-wind levels `zw` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces in MPAS.
+    !> (KCW, 2025-10-20)
+    pure function zw_of_dzw_real64(dzw) result(zw)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: dzw(:)
+        real(real64) :: zw(size(dzw) + 1)
+
+        integer :: k
+
+        do k = 1, size(zw)
+            zw(k) = sum(dzw(1:k - 1))
+        end do
+    end function zw_of_dzw_real64
+
     !> Test if `a` is divisible by `b`, where `a` and `b` are both reals.
     !> (KCW, 2024-05-25)
     pure elemental function almost_divisible_real32(a, b) result(almost_divisible)

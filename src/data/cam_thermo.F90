@@ -1684,16 +1684,16 @@ CONTAINS
 
       if (present(dycore_idx))then
          if (dycore_idx) then
-            species_idx(:) = thermodynamic_active_species_idx_dycore(:)
+            species_idx(:) = thermodynamic_active_species_idx_dycore(1:thermodynamic_active_species_num)
             species_liq_idx(:) = thermodynamic_active_species_liq_idx_dycore(:)
             species_ice_idx(:) = thermodynamic_active_species_ice_idx_dycore(:)
          else
-            species_idx(:) = thermodynamic_active_species_idx(1:)
+            species_idx(:) = thermodynamic_active_species_idx(1:thermodynamic_active_species_num)
             species_liq_idx(:) = thermodynamic_active_species_liq_idx(:)
             species_ice_idx(:) = thermodynamic_active_species_ice_idx(:)
          end if
       else
-         species_idx(:) = thermodynamic_active_species_idx(1:)
+         species_idx(:) = thermodynamic_active_species_idx(1:thermodynamic_active_species_num)
          species_liq_idx(:) = thermodynamic_active_species_liq_idx(:)
          species_ice_idx(:) = thermodynamic_active_species_ice_idx(:)
       end if
