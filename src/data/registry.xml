@@ -1478,6 +1478,14 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>pbuf_WSEDL</ic_file_input_names>
     </variable>
+    <variable local_name="wp2_nadv"
+              standard_name="advected_variance_of_vertical_velocity_at_interfaces"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_WP2_nadv</ic_file_input_names>
+    </variable>
 
     <!-- Temporary initializations for gravity wave parameterizations -->
     <variable local_name="ttend_clubb"
@@ -1520,7 +1528,7 @@
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>pbuf_aist</ic_file_input_names>
+      <ic_file_input_names>pbuf_AIST</ic_file_input_names>
     </variable>
 
     <!-- Aerosol model properties -->
