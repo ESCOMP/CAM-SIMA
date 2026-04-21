@@ -605,6 +605,20 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
+    <variable local_name="numliq"
+              standard_name="mass_number_concentration_of_cloud_liquid_wrt_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>Cloud liquid number with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMLIQ cnst_NUMLIQ</ic_file_input_names>
+    </variable>
+    <variable local_name="numice"
+              standard_name="mass_number_concentration_of_ice_wrt_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>Cloud ice number with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMICE cnst_NUMICE</ic_file_input_names>
+    </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
@@ -1769,7 +1783,7 @@
 
     <!-- Aerosol nucleation/activation data into microphysics -->
     <variable local_name="naai"
-              standard_name="tendency_of_number_of_activated_aerosol_for_ice_nucleation"
+              standard_name="tendency_of_number_concentration_of_activated_ice_nuclei"
               units="kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1777,7 +1791,7 @@
       <ic_file_input_names>pbuf_NAAI</ic_file_input_names>
     </variable>
     <variable local_name="naai_hom"
-              standard_name="tendency_of_number_of_activated_aerosol_for_homogeneous_freezing_ice_nucleation"
+              standard_name="tendency_of_number_concentration_of_activated_ice_nuclei_due_to_homogenous_freezing"
               units="kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1785,7 +1799,7 @@
       <ic_file_input_names>pbuf_NAAI_HOM</ic_file_input_names>
     </variable>
     <variable local_name="npccn"
-              standard_name="tendency_of_cloud_droplet_number_from_aerosol_activation"
+              standard_name="tendency_of_activated_cloud_condensation_nuclei_mass_number_concentration"
               units="kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1794,7 +1808,7 @@
     </variable>
     <!-- the below dust size bin dimensions are problematic: -->
 <!--     <variable local_name="nacon"
-              standard_name="number_concentration_of_contact_freezing_dust_by_bin"
+              standard_name="dust_number_concentration_by_size_bin_for_contact_freezing"
               units="m-3" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
