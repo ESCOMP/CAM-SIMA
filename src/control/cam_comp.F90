@@ -269,6 +269,11 @@ CONTAINS
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)
 
+      ! Aerosol optics infrastructure init:
+      ! physics init phases will already query aerosol objects so this should
+      ! be run before phys_init (hplin, 4/20/26)
+      call rad_aer_init_all()
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -276,9 +281,6 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
 
       call stepon_init(cam_runtime_opts, dyn_in, dyn_out)
-
-      ! Aerosol optics infrastructure init (after phys_init, before history_init_files)
-      call rad_aer_init_all()
 
       ! if (single_column) then
       !    call scm_intht()
@@ -655,7 +657,7 @@ CONTAINS
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
               std_name=wv_stdname,              &
-              long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
+              long_name=wv_stdname, &
               units="kg kg-1",                                                          &
               default_value=0._kind_phys,                                               &
               vertical_dim="vertical_layer_dimension",                                  &
