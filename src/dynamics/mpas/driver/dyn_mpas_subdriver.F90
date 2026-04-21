@@ -722,19 +722,39 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_init_phase3'
         character(strkind) :: mesh_filename
+        character(strkind), pointer :: config_les_model
         integer :: mesh_format
         integer, pointer :: num_scalars
+        logical :: mpas_without_les
         type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(log_level_debug, subname // ' entered')
 
+        nullify(config_les_model)
         nullify(mpas_pool)
         nullify(num_scalars)
+
+        call self % get_variable_pointer(config_les_model, 'cfg', 'config_les_model')
+
+        mpas_without_les = (trim(adjustl(config_les_model)) == 'none')
+
+        nullify(config_les_model)
 
         ! In MPAS, there must be at least one constituent, `qv`, which denotes water vapor mixing ratio.
         ! Because MPAS has some hard-coded array accesses through the `index_qv` index, it will crash
         ! (i.e., segmentation fault due to invalid memory access) if `qv` is not allocated.
-        self % number_of_constituents = max(1, number_of_constituents)
+        !
+        ! Since version 8.4.0, if the large eddy simulation (LES) capability is enabled, two additional constituents,
+        ! `qc` and `tke`, must also exist.
+        !
+        ! Such capability is implemented provided that:
+        ! 1. `qc` must be one of the constituents just like `qv`;
+        ! 2. `tke` is treated as an extra "phantom" constituent that is internal to MPAS only.
+        if (mpas_without_les) then
+            self % number_of_constituents = max(1, number_of_constituents) ! "1" is for `qv`.
+        else
+            self % number_of_constituents = max(2, number_of_constituents) ! "2" is for `qv` and `qc`.
+        end if
 
         call self % debug_print(log_level_info, 'Number of constituents is ' // stringify([self % number_of_constituents]))
 
@@ -742,7 +762,14 @@ contains
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
         ! from other Registry-defined fields. The special logic is located in `atm_setup_block`.
         ! This must be done before calling `mpas_bootstrap_framework_phase1`.
-        call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents)
+        if (mpas_without_les) then
+            ! No need to add an extra "phantom" constituent, `tke`.
+            call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents)
+        else
+            ! Need to add an extra "phantom" constituent, `tke`. There is additional logic
+            ! for it in `dyn_mpas_define_scalar`.
+            call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents + 1)
+        end if
 
         ! Not actually used because a PIO file descriptor is directly supplied.
         mesh_filename = 'external mesh'
@@ -779,8 +806,14 @@ contains
         end if
 
         ! While we are at it, check if its value is consistent.
-        if (num_scalars /= self % number_of_constituents) then
-            call self % model_error('Failed to allocate constituents', subname, __LINE__)
+        if (mpas_without_les) then
+            if (num_scalars /= self % number_of_constituents) then
+                call self % model_error('Failed to allocate constituents', subname, __LINE__)
+            end if
+        else
+            if (num_scalars /= self % number_of_constituents + 1) then
+                call self % model_error('Failed to allocate constituents', subname, __LINE__)
+            end if
         end if
 
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'num_scalars', num_scalars)
@@ -838,23 +871,58 @@ contains
             'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water' &
         ]
 
+        !> Possible CCPP standard names of `qc`, which denotes cloud liquid water mixing ratio.
+        !> They are hard-coded here because MPAS needs to know where `qc` is.
+        !> Index 1 is exactly what MPAS wants. Others also work, but need to be converted.
+        character(*), parameter :: mpas_scalar_qc_standard_name(*) = [character(strkind) :: &
+            'cloud_liquid_water_mixing_ratio_wrt_dry_air', &
+            'cloud_liquid_water_mixing_ratio_wrt_moist_air', &
+            'cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water' &
+        ]
+
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar'
         character(strkind) :: cerr
+        character(strkind), pointer :: config_les_model
         integer :: i, j
         integer :: ierr
-        integer :: index_qv, index_water_start, index_water_end
+        integer :: index_qv, index_qc, index_tke, index_water_start, index_water_end
         integer :: time_level
+        logical :: mpas_without_les
         type(field3dreal), pointer :: field_3d_real
         type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(log_level_debug, subname // ' entered')
 
+        nullify(config_les_model)
         nullify(field_3d_real)
         nullify(mpas_pool)
 
+        ! `dyn_mpas_init_phase3` must be called before this subroutine.
         if (self % number_of_constituents == 0) then
             call self % model_error('Constituents must be allocated before being defined', subname, __LINE__)
         end if
+
+        allocate(self % constituent_name(self % number_of_constituents), errmsg=cerr, stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate constituent_name' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
+        end if
+
+        allocate(self % is_water_species(self % number_of_constituents), errmsg=cerr, stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate is_water_species' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
+        end if
+
+        call self % get_variable_pointer(config_les_model, 'cfg', 'config_les_model')
+
+        mpas_without_les = (trim(adjustl(config_les_model)) == 'none')
+
+        nullify(config_les_model)
 
         ! Input sanitization.
 
@@ -862,27 +930,34 @@ contains
             call self % model_error('Mismatch between numbers of constituent names and their waterness', subname, __LINE__)
         end if
 
-        if (size(constituent_name) == 0 .and. self % number_of_constituents == 1) then
-            ! If constituent definitions are empty, `qv` is the only constituent per MPAS requirements.
-            ! See `dyn_mpas_init_phase3` for details.
-            allocate(self % constituent_name(1), errmsg=cerr, stat=ierr)
+        if (size(constituent_name) == 0) then
+            if (mpas_without_les) then
+                ! If constituent definitions are empty and LES is disabled, `qv` is the only
+                ! one constituent as per MPAS requirements.
+                ! See `dyn_mpas_init_phase3` for details.
+                if (self % number_of_constituents /= 1) then
+                    call self % model_error( &
+                        'Number of constituents must be 1 if no definitions are provided', subname, __LINE__)
+                end if
 
-            if (ierr /= 0) then
-                call self % model_error('Failed to allocate constituent_name' // new_line('') // &
-                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
-                    subname, __LINE__)
+                self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
+                self % is_water_species(1) = .true.
+            else
+                ! If constituent definitions are empty and LES is enabled, `qv`, `qc`, and `tke` are the only
+                ! three constituents as per MPAS requirements. However, `tke` is excepted because it is
+                ! internal to MPAS only.
+                ! See `dyn_mpas_init_phase3` for details.
+                if (self % number_of_constituents /= 2) then
+                    call self % model_error( &
+                        'Number of constituents must be 2 if no definitions are provided', subname, __LINE__)
+                end if
+
+                self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
+                self % is_water_species(1) = .true.
+
+                self % constituent_name(2) = mpas_scalar_qc_standard_name(1)
+                self % is_water_species(2) = .true.
             end if
-
-            allocate(self % is_water_species(1), errmsg=cerr, stat=ierr)
-
-            if (ierr /= 0) then
-                call self % model_error('Failed to allocate is_water_species' // new_line('') // &
-                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
-                    subname, __LINE__)
-            end if
-
-            self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
-            self % is_water_species(1) = .true.
         else
             if (size(constituent_name) /= self % number_of_constituents) then
                 call self % model_error('Mismatch between numbers of constituents and their names', subname, __LINE__)
@@ -892,50 +967,62 @@ contains
                 call self % model_error('Constituent names are too long', subname, __LINE__)
             end if
 
-            allocate(self % constituent_name(self % number_of_constituents), errmsg=cerr, stat=ierr)
-
-            if (ierr /= 0) then
-                call self % model_error('Failed to allocate constituent_name' // new_line('') // &
-                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
-                    subname, __LINE__)
-            end if
-
             self % constituent_name(:) = adjustl(constituent_name)
-
-            allocate(self % is_water_species(self % number_of_constituents), errmsg=cerr, stat=ierr)
-
-            if (ierr /= 0) then
-                call self % model_error('Failed to allocate is_water_species' // new_line('') // &
-                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
-                    subname, __LINE__)
-            end if
-
             self % is_water_species(:) = is_water_species(:)
 
             if (size(self % constituent_name) /= size(index_unique(self % constituent_name))) then
                 call self % model_error('Constituent names must be unique', subname, __LINE__)
             end if
+        end if
 
-            ! `qv` must be present in constituents per MPAS requirements. It is a water species by definition.
-            ! See `dyn_mpas_init_phase3` for details.
-            index_qv = 0
+        index_qv = 0
 
-            ! Lower index in `mpas_scalar_qv_standard_name` has higher precedence, with index 1 being exactly what MPAS wants.
-            set_index_qv: do i = 1, size(mpas_scalar_qv_standard_name)
-                do j = 1, self % number_of_constituents
-                    if (self % constituent_name(j) == mpas_scalar_qv_standard_name(i) .and. self % is_water_species(j)) then
-                        index_qv = j
+        ! Lower index in `mpas_scalar_qv_standard_name` has higher precedence, with index 1 being exactly what MPAS wants.
+        set_index_qv: do i = 1, size(mpas_scalar_qv_standard_name)
+            do j = 1, self % number_of_constituents
+                if (trim(adjustl(self % constituent_name(j))) == trim(adjustl(mpas_scalar_qv_standard_name(i))) .and. &
+                    self % is_water_species(j)) then
+                    index_qv = j
 
-                        ! The best candidate of `qv` has been found. Exit prematurely.
-                        exit set_index_qv
-                    end if
-                end do
-            end do set_index_qv
+                    ! The best candidate of `qv` has been found. Exit prematurely.
+                    exit set_index_qv
+                end if
+            end do
+        end do set_index_qv
 
-            if (index_qv == 0) then
+        ! `qv` must be present in constituents as per MPAS requirements. It is a water species by definition.
+        ! See `dyn_mpas_init_phase3` for details.
+        if (index_qv == 0) then
+            call self % model_error('Constituent names must contain one of: ' // &
+                stringify(mpas_scalar_qv_standard_name) // ', and it must be a water species', subname, __LINE__)
+        end if
+
+        index_qc = 0
+        index_tke = 0
+
+        ! Lower index in `mpas_scalar_qc_standard_name` has higher precedence, with index 1 being exactly what MPAS wants.
+        set_index_qc: do i = 1, size(mpas_scalar_qc_standard_name)
+            do j = 1, self % number_of_constituents
+                if (trim(adjustl(self % constituent_name(j))) == trim(adjustl(mpas_scalar_qc_standard_name(i))) .and. &
+                    self % is_water_species(j)) then
+                    index_qc = j
+
+                    ! The best candidate of `qc` has been found. Exit prematurely.
+                    exit set_index_qc
+                end if
+            end do
+        end do set_index_qc
+
+        ! If LES is enabled, `qc` and `tke` must be present in constituents as per MPAS requirements.
+        ! Otherwise, it is fine to not have them.
+        ! See `dyn_mpas_init_phase3` for details.
+        if (.not. mpas_without_les) then
+            if (index_qc == 0) then
                 call self % model_error('Constituent names must contain one of: ' // &
-                    stringify(mpas_scalar_qv_standard_name) // ', and it must be a water species', subname, __LINE__)
+                    stringify(mpas_scalar_qc_standard_name) // ', and it must be a water species', subname, __LINE__)
             end if
+
+            index_tke = self % number_of_constituents + 1
         end if
 
         ! Create index mapping between MPAS scalars and constituent names. For example,
@@ -954,7 +1041,7 @@ contains
         self % index_mpas_scalar_to_constituent(:) = 0
         j = 1
 
-        ! Place water species first per MPAS requirements.
+        ! Place water species first as per MPAS requirements.
         do i = 1, self % number_of_constituents
             if (self % is_water_species(i)) then
                 self % index_mpas_scalar_to_constituent(j) = i
@@ -965,7 +1052,7 @@ contains
         index_water_start = 1
         index_water_end = count(self % is_water_species)
 
-        ! Place non-water species second per MPAS requirements.
+        ! Place non-water species second as per MPAS requirements.
         do i = 1, self % number_of_constituents
             if (.not. self % is_water_species(i)) then
                 self % index_mpas_scalar_to_constituent(j) = i
@@ -995,6 +1082,11 @@ contains
         ! Set the index of `qv` in terms of MPAS scalars.
         index_qv = self % index_constituent_to_mpas_scalar(index_qv)
 
+        ! Set the index of `qc`, if present, in terms of MPAS scalars.
+        if (index_qc > 0) then
+            index_qc = self % index_constituent_to_mpas_scalar(index_qc)
+        end if
+
         ! Print information about constituents.
         do i = 1, self % number_of_constituents
             call self % debug_print(log_level_verbose, 'Constituent index ' // stringify([i]))
@@ -1013,6 +1105,8 @@ contains
         call self % get_pool_pointer(mpas_pool, 'state')
 
         call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(mpas_pool, 'index_qc', index_qc)
+        call mpas_pool_add_dimension(mpas_pool, 'index_tke', index_tke)
         call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
         call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
 
@@ -1042,6 +1136,10 @@ contains
                 end if
             end do
 
+            if (index_tke > 0) then
+                field_3d_real % constituentnames(index_tke) = 'tke_for_les'
+            end if
+
             nullify(field_3d_real)
         end do
 
@@ -1054,6 +1152,8 @@ contains
         call self % get_pool_pointer(mpas_pool, 'tend')
 
         call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(mpas_pool, 'index_qc', index_qc)
+        call mpas_pool_add_dimension(mpas_pool, 'index_tke', index_tke)
         call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
         call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
 
@@ -1083,6 +1183,10 @@ contains
                 end if
             end do
 
+            if (index_tke > 0) then
+                field_3d_real % constituentnames(index_tke) = 'tendency_of_tke_for_les'
+            end if
+
             nullify(field_3d_real)
         end do
 
@@ -1091,10 +1195,14 @@ contains
         ! For consistency, also add dimension variables to MPAS "dimension" pool.
 
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_qc', index_qc)
+        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_tke', index_tke)
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_start', index_water_start)
         call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_end', index_water_end)
 
         call self % debug_print(log_level_debug, 'index_qv = ' // stringify([index_qv]))
+        call self % debug_print(log_level_debug, 'index_qc = ' // stringify([index_qc]))
+        call self % debug_print(log_level_debug, 'index_tke = ' // stringify([index_tke]))
         call self % debug_print(log_level_debug, 'moist_start = ' // stringify([index_water_start]))
         call self % debug_print(log_level_debug, 'moist_end = ' // stringify([index_water_end]))
 
