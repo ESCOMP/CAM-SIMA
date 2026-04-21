@@ -106,7 +106,51 @@
         <group>mpas_nhyd_model</group>
         <type>real</type>
         <values>
+            <value>0.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_maximum">
+        <category>mpas</category>
+        <desc>
+            Value of epssm above transition zone
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <values>
+            <value>0.5</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_minimum">
+        <category>mpas</category>
+        <desc>
+            Value of epssm below transition zone
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <values>
             <value>0.1</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_transition_bottom_z">
+        <category>mpas</category>
+        <desc>
+            Height MSL of bottom of transition zone for epssm
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <values>
+            <value>30000.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_transition_top_z">
+        <category>mpas</category>
+        <desc>
+            Height MSL of top of transition zone for epssm
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <values>
+            <value>50000.0</value>
         </values>
     </entry>
     <entry id="mpas_explicit_proc_decomp">
@@ -115,6 +159,18 @@
             Whether to use an explicit mapping of blocks to MPI tasks
         </desc>
         <group>mpas_decomposition</group>
+        <type>logical</type>
+        <values>
+            <value>.false.</value>
+        </values>
+    </entry>
+    <entry id="mpas_gpu_aware_mpi">
+        <category>mpas</category>
+        <desc>
+            Whether to use GPU-aware MPI for halo exchanges. GPU-aware MPI is
+            only implemented for config_halo_exch_method='mpas_halo'
+        </desc>
+        <group>mpas_development</group>
         <type>logical</type>
         <values>
             <value>.false.</value>
@@ -213,6 +269,28 @@
             <value hgrid="mpasa30">30000.0</value>
         </values>
     </entry>
+    <entry id="mpas_les_model">
+        <category>mpas</category>
+        <desc>
+            LES dissipation model
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>char*256</type>
+        <values>
+            <value>none</value>
+        </values>
+    </entry>
+    <entry id="mpas_les_surface">
+        <category>mpas</category>
+        <desc>
+            LES surface flux option
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>char*256</type>
+        <values>
+            <value>none</value>
+        </values>
+    </entry>
     <entry id="mpas_mix_full">
         <category>mpas</category>
         <desc>
@@ -223,6 +301,17 @@
         <type>logical</type>
         <values>
             <value>.true.</value>
+        </values>
+    </entry>
+    <entry id="mpas_mix_scalars">
+        <category>mpas</category>
+        <desc>
+            Whether to enable horizontal and vertical mixing for scalars
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>logical</type>
+        <values>
+            <value>.false.</value>
         </values>
     </entry>
     <entry id="mpas_monotonic">
@@ -492,6 +581,39 @@
             <value>.true.</value>
         </values>
     </entry>
+    <entry id="mpas_surface_drag_coefficient">
+        <category>mpas</category>
+        <desc>
+            Cd 10m drag coefficient
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>real</type>
+        <values>
+            <value>0.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_surface_heat_flux">
+        <category>mpas</category>
+        <desc>
+            Specified surface heat flux w'theta'
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>real</type>
+        <values>
+            <value>0.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_surface_moisture_flux">
+        <category>mpas</category>
+        <desc>
+            Specified surface moisture flux w'q'
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>real</type>
+        <values>
+            <value>0.0</value>
+        </values>
+    </entry>
     <entry id="mpas_theta_adv_order">
         <category>mpas</category>
         <desc>
@@ -572,8 +694,8 @@
     <entry id="mpas_visc4_2dsmag">
         <category>mpas</category>
         <desc>
-            Scaling coefficient of $\delta x^3$ to obtain $\nabla^4$ diffusion
-            coefficient
+            Coefficient multiplied by $\delta x^3$ to obtain $\nabla^4$ physical
+            hyperviscosity
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
