@@ -202,8 +202,6 @@ module dyn_mpas_subdriver
         var_info_type('bdyMaskEdge'                     , 'integer'   , 1), &
         var_info_type('bdyMaskVertex'                   , 'integer'   , 1), &
         var_info_type('cellTangentPlane'                , 'real'      , 3), &
-        var_info_type('cell_gradient_coef_x'            , 'real'      , 2), &
-        var_info_type('cell_gradient_coef_y'            , 'real'      , 2), &
         var_info_type('cellsOnCell'                     , 'integer'   , 2), &
         var_info_type('cellsOnEdge'                     , 'integer'   , 2), &
         var_info_type('cellsOnVertex'                   , 'integer'   , 2), &
@@ -212,8 +210,6 @@ module dyn_mpas_subdriver
         var_info_type('cf3'                             , 'real'      , 0), &
         var_info_type('coeffs_reconstruct'              , 'real'      , 3), &
         var_info_type('dcEdge'                          , 'real'      , 1), &
-        var_info_type('defc_a'                          , 'real'      , 2), &
-        var_info_type('defc_b'                          , 'real'      , 2), &
         var_info_type('deriv_two'                       , 'real'      , 3), &
         var_info_type('dss'                             , 'real'      , 2), &
         var_info_type('dvEdge'                          , 'real'      , 1), &
