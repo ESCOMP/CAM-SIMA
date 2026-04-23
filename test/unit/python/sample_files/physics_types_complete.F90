@@ -57,8 +57,6 @@ module physics_types_complete
 
 !> \section arg_table_physics_types_complete  Argument Table
 !! \htmlinclude physics_types_complete.html
-  ! test_dim: Local dimension to the registry
-  integer,             public, parameter            :: test_dim = 3
   ! ix_qv: Index of water vapor specific humidity
   integer,             public                       :: ix_qv = 1
   ! ix_cld_liq: Index of cloud liquid water mixing ratio of moist air
@@ -69,7 +67,7 @@ module physics_types_complete
   real,                public                       :: standard_var
   ! cappav: Composition-dependent ratio of dry air gas constant to specific heat at constant
   ! pressure
-  real(kind_phys),     public, allocatable          :: cappav(:, :, :)
+  real(kind_phys),     public, allocatable          :: cappav(:, :)
   ! phys_state: Physics state variables updated by dynamical core
   type(physics_state), public                       :: phys_state
 
@@ -124,7 +122,7 @@ contains
         call endrun(subname//": cappav is already allocated, cannot allocate")
       end if
     end if
-    allocate(cappav(horizontal_dimension, vertical_layer_dimension, test_dim))
+    allocate(cappav(horizontal_dimension, vertical_layer_dimension))
     if (set_init_val) then
       cappav = 1 + rair/cpair - rair * 2
       call &

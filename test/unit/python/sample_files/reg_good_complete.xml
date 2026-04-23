@@ -17,11 +17,6 @@
       <long_name>Number of vertical layers</long_name>
       <initial_value>0</initial_value>
     </variable>
-    <variable local_name="test_dim" standard_name="test_dimension"
-              units="count" type="integer" allocatable="parameter">
-      <long_name>Local dimension to the registry</long_name>
-      <initial_value>3</initial_value>
-    </variable>
     <variable local_name="ix_qv"
               standard_name="index_of_water_vapor_specific_humidity"
               units="count" type="integer">
@@ -71,7 +66,7 @@
               units="1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <long_name>Composition-dependent ratio of dry air gas constant to specific heat at constant pressure</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension test_dimension</dimensions>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>1 + rair/cpair - rair * 2</initial_value>
     </variable>
     <array local_name="q" standard_name="constituent_mixing_ratio"
