@@ -2416,10 +2416,10 @@ contains
          errcode = pio_get_msg_err
       else
          if (file_msg_flag) then
-            write(errmsg, '(a,a,a,a)') "Error for file '", varname, "' - message: ", trim(pio_error)
+            write(errmsg, '(a,a,a,a)') "Error for file '", trim(varname), "' - message: ", trim(pio_error)
          else
             !Variable error message
-            write(errmsg, '(a,a,a,a)') "Error for variable '", varname, "' - message: ", trim(pio_error)
+            write(errmsg, '(a,a,a,a)') "Error for variable '", trim(varname), "' - message: ", trim(pio_error)
          end if
          errcode = caller_errcode
       end if
@@ -2546,7 +2546,7 @@ contains
       end if
 
       !If both start and count are not present,
-      !then set alloc_dims to have the same 
+      !then set alloc_dims to have the same
       !dimensionality as the file variable:
       if (.not. present(start) .and. .not. present(count)) then
          allocate(alloc_dims, source=dim_sizes, stat=errcode, errmsg=errmsg)

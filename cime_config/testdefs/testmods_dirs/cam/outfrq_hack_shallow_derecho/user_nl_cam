@@ -21,7 +21,7 @@ zmconv_momcu           =  0.4000D0
 zmconv_num_cin         =  5
 zmconv_parcel_pbl              = .false.
 zmconv_tau             =  3600.0
-zmconv_tiedke_add              =  0.5
+zmconv_tiedtke_add              =  0.5
 
 ! snapshot is sourced from SE dycore
 hkconv_c0 = 1.0e-4

@@ -1438,7 +1438,7 @@ class File:
         #supports a separation between total and advected constituents
         #then this section of code will likely need to be modified:
         if ('number_of_ccpp_constituents' in self.__var_dict.known_dimensions):
-            outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_advected", 2)
+            outfile.write("use cam_constituents,   only: number_of_ccpp_constituents=>num_constituents", 2)
         outfile.blank_line()
 
         # Dummy arguments
@@ -1897,8 +1897,7 @@ def gen_registry(registry_file, dycore, outdir, indent,
     try:
         emsg = f"Invalid registry file, {registry_file}"
         file_ok = validate_xml_file(registry_file, 'registry', version,
-                                    logger, schema_path=schema_dir,
-                                    error_on_noxmllint=error_on_no_validate)
+                                    logger, schema_path=schema_dir)
     except CCPPError as ccpperr:
         emsg += f"\n{ccpperr}"
         file_ok = False

@@ -10,7 +10,6 @@
 ! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 !>
 !! @brief Auto-generated Module to read namelist variables for banana
 !!
@@ -31,7 +30,7 @@ module banana_namelist
    real(kind_phys), public, protected :: raykrange = -HUGE(1.0_kind_phys)
    real(kind_phys), public, protected :: raytau0 = -HUGE(1.0_kind_phys)
 
-CONTAINS
+contains
 
    subroutine autogen_banana_readnl(nl_unit, mpicomm, mpiroot, mpi_isroot, logunit)
       use mpi,            only: MPI_Integer, MPI_Real8
@@ -61,9 +60,9 @@ CONTAINS
          if (ierr == 0) then
             read(nl_unit, banana_nl, iostat=ierr, iomsg=errmsg)
             if (ierr /= 0) then
-               call                                                                               &
-                    endrun(subname//                                                              &
-                    ':: ERROR reading namelist, banana_nl, with following error: '//errmsg)
+               call &
+                   endrun(subname// &
+                   ':: ERROR reading namelist, banana_nl, with following error: '//errmsg)
             end if
          else
             call endrun(subname//':: ERROR: Did not find namelist group, banana_nl.')

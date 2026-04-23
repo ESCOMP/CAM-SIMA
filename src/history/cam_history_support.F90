@@ -585,6 +585,7 @@ module cam_history_support
     integer,        pointer                         :: local_int_values(:)
     real(r8),       pointer                         :: local_bounds(:,:)
     type(formula_terms_t)                           :: local_formula_terms
+    real(r8),       pointer                         :: r_ptr(:)
 
     nullify(local_int_values)
     nullify(local_bounds)
@@ -626,8 +627,9 @@ module cam_history_support
     end if
 
     ! First, check to see if it is OK to add this coord
+    r_ptr => values
     i = check_hist_coord(name, vlen, long_name, units, local_bounds,     &
-            local_int_values, values, local_bounds_name, local_positive,           &
+            local_int_values, r_ptr, local_bounds_name, local_positive,           &
             local_standard_name, local_formula_terms)
 
     ! Register the name if necessary

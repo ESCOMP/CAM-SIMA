@@ -789,20 +789,34 @@ def get_dimension_info(hvar):
         # based on constituent name.
         # This case will be handled separately.
         legal_dims = True
-    elif (ldims > 2) or ((ldims > 1) and (not levnm)):
+    elif (ldims > 3) or ((ldims > 1) and (not levnm)):
         # The regular case where the second dimension must be vertical,
-        # and higher dimensions are unsupported.
+        # and dimensions greater than three are unsupported.
         legal_dims = False
         unsupp = []
-        for dim in dims:
-            if ((not is_horizontal_dimension(dim)) and
-                (not is_vertical_dimension(dim))):
-                if dim[0:18] == "ccpp_constant_one:":
-                    rdim = dim[18:]
+        vert_idx = -1
+        for dim_idx, dim in enumerate(dims):
+            # Skip the first dimension if it is horizontal:
+            if (not is_horizontal_dimension(dim) or dim_idx > 0):
+                # Save (and skip) the vertical dimension index,
+                # which must be the second dimension present:
+                if (is_vertical_dimension(dim) and dim_idx == 1):
+                    vert_idx = dim_idx
                 else:
-                    rdim = dim
+                    # An extra, non-horizontal dimension is allowed
+                    # immediately after the vertical dimension,
+                    # so check if this is not the case:
+                    if (vert_idx < 0) or (dim_idx != (vert_idx + 1)):
+                        if dim[0:18] == "ccpp_constant_one:":
+                            rdim = dim[18:]
+                        else:
+                            rdim = dim
+                        # end if
+                        #Update dimension string with dimension index:
+                        rdim = rdim + f" (dimension {dim_idx+1})"
+                        unsupp.append(rdim)
+                    # end if
                 # end if
-                unsupp.append(rdim)
             # end if
         # end for
         if len(unsupp) > 1:
@@ -949,8 +963,8 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx",
                                    "read_constituent_dimensioned_field"]],
-                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables", 
-                                   "cam_constituents_array", 
+                 ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
+                                   "cam_constituents_array",
                                    "cam_model_const_properties"]],
                  ["ccpp_kinds", ["kind_phys"]],
                  [phys_check_fname_str, ["phys_var_num", "phys_var_stdnames",
@@ -1149,7 +1163,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # End suite loop:
     outfile.write(" end do !CCPP suites", 2)
     outfile.blank_line()
-    
+
     # Read in constituent data
     outfile.comment("Read in constituent variables if not using init variables", 2)
     outfile.write("field_data_ptr => cam_constituents_array()", 2)
@@ -1274,9 +1288,10 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["check_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
-                                   "prot_no_init_idx", "const_idx"]],
+                                   "prot_no_init_idx", "const_idx",
+                                   "flush_check_field_verbose"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
-                                   "cam_advected_constituents_array",
+                                   "cam_constituents_array",
                                    "cam_model_const_properties"]],
                  ["cam_constituents", ["const_get_index"]],
                  ["ccpp_kinds", ["kind_phys"]],
@@ -1460,7 +1475,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end do !CCPP suites", 2)
     outfile.blank_line()
     outfile.comment("Check constituent variables", 2)
-    outfile.write("field_data_ptr => cam_advected_constituents_array()", 2)
+    outfile.write("field_data_ptr => cam_constituents_array()", 2)
     outfile.write("const_props => cam_model_const_properties()", 2)
     outfile.blank_line()
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
@@ -1487,6 +1502,11 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end if", 3)
     outfile.write("end do", 2)
 
+    # Flush any buffered verbose entries (printed after all diff entries):
+    outfile.comment("Flush verbose check_field entries (printed after diffs):", 2)
+    outfile.write("call flush_check_field_verbose()", 2)
+    outfile.blank_line()
+
     # Close check file
     outfile.comment("Close check file:", 2)
     outfile.write("call cam_pio_closefile(file)", 2)
@@ -1494,7 +1514,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("nullify(file)", 2)
 
     # Check if no differences were found
-    outfile.write("if (is_first) then", 2)
+    outfile.write("if (.not. overall_diff_found) then", 2)
     outfile.write("if (masterproc) then", 3)
     outfile.write("write(iulog,*) ''", 4)
     outfile.write("write(iulog,*) 'No differences found!'", 4)

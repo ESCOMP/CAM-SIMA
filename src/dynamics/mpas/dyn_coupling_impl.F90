@@ -24,15 +24,16 @@ contains
     module subroutine dyn_exchange_constituent_states(direction, exchange, conversion)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate, endrun
-        use cam_constituents, only: const_is_dry, const_is_water_species, num_advected
+        use cam_constituents, only: const_is_dry, const_is_water_species, &
+                                    num_advected
         use cam_logfile, only: debugout_debug, debugout_info
-        use dyn_comp, only: dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
+        use dyn_comp, only: advected_constituent_index, dyn_debug_print, kind_dyn_mpas, mpas_dynamical_core
         use dyn_grid, only: ncells_solve
         use dyn_procedures, only: reverse
         use physics_types, only: phys_state
         use vert_coord, only: pver
         ! Module(s) from CCPP.
-        use cam_ccpp_cap, only: cam_constituents_array
+        use cam_ccpp_cap, only: cam_advected_constituents_array
         use ccpp_kinds, only: kind_phys
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
@@ -89,11 +90,11 @@ contains
             'is_water_species(num_advected)', &
             file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        do j = 1, num_advected
+        do i = 1, num_advected
             ! All constituent mixing ratios in MPAS are dry.
             ! Therefore, conversion in between is needed for any constituent mixing ratios that are not dry in CAM-SIMA.
-            is_conversion_needed(j) = .not. const_is_dry(j)
-            is_water_species(j) = const_is_water_species(j)
+            is_conversion_needed(i) = .not. const_is_dry(advected_constituent_index(i))
+            is_water_species(i) = const_is_water_species(advected_constituent_index(i))
         end do
 
         allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
@@ -106,7 +107,7 @@ contains
             'sigma_all_q(pver)', &
             file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        constituents => cam_constituents_array()
+        constituents => cam_advected_constituents_array()
 
         if (.not. associated(constituents)) then
             call endrun('Failed to find variable "constituents"', subname, __LINE__)
@@ -126,9 +127,12 @@ contains
                 ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
                 do j = 1, num_advected
                     if (exchange) then
+                        scalars(j, :, i) = &
+                            real(constituents(i, :, mpas_dynamical_core % map_constituent_index(j)), kind_dyn_mpas)
+
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         scalars(j, :, i) = &
-                            real(reverse(constituents(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
+                            reverse(scalars(j, :, i))
                     end if
 
                     if (conversion .and. is_conversion_needed(mpas_dynamical_core % map_constituent_index(j))) then
@@ -151,9 +155,12 @@ contains
                 ! `j` is indexing into `constituents`, so it is regarded as constituent index.
                 do j = 1, num_advected
                     if (exchange) then
+                        constituents(i, :, j) = &
+                            real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8)
+
                         ! Vertical index order is reversed between CAM-SIMA and MPAS.
                         constituents(i, :, j) = &
-                            reverse(real(scalars(mpas_dynamical_core % map_mpas_scalar_index(j), :, i), kind_r8))
+                            reverse(constituents(i, :, j))
                     end if
 
                     if (conversion .and. is_conversion_needed(j)) then
@@ -253,8 +260,9 @@ contains
         subroutine init_shared_variables()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate
-            use cam_constituents, only: const_is_water_species, num_advected
-            use dyn_comp, only: mpas_dynamical_core
+            use cam_constituents, only: const_is_water_species, &
+                                        num_advected
+            use dyn_comp, only: advected_constituent_index, mpas_dynamical_core
             use vert_coord, only: pver, pverp
             ! Module(s) from CESM Share.
             use shr_kind_mod, only: len_cx => shr_kind_cx
@@ -282,7 +290,7 @@ contains
                 file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             do i = 1, num_advected
-                is_water_species(i) = const_is_water_species(i)
+                is_water_species(i) = const_is_water_species(advected_constituent_index(i))
             end do
 
             allocate(is_water_species_index(count(is_water_species)), errmsg=cerr, stat=ierr)
@@ -492,10 +500,11 @@ contains
         subroutine set_physics_state_external()
             ! Module(s) from CAM-SIMA.
             use cam_abortutils, only: check_allocate, endrun
-            use cam_constituents, only: const_qmin, num_advected
+            use cam_constituents, only: const_qmin, &
+                                        num_constituents
             use cam_thermo, only: cam_thermo_dry_air_update, cam_thermo_water_update
             use cam_thermo_formula, only: energy_formula_dycore_mpas
-            use dyn_comp, only: mpas_dynamical_core
+            use dyn_comp, only: advected_constituent_index, mpas_dynamical_core
             use dyn_procedures, only: exner_function
             use dynconst, only: constant_g => gravit
             use physics_types, only: cappav, cp_or_cv_dycore, cpairv, lagrangian_vertical, phys_state, rairv, zvirv
@@ -525,12 +534,12 @@ contains
             nullify(constituents)
             nullify(constituent_properties)
 
-            allocate(minimum_constituents(num_advected), errmsg=cerr, stat=ierr)
+            allocate(minimum_constituents(num_constituents), errmsg=cerr, stat=ierr)
             call check_allocate(ierr, subname, &
-                'minimum_constituents(num_advected)', &
+                'minimum_constituents(num_constituents)', &
                 file='dyn_coupling', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            do i = 1, num_advected
+            do i = 1, num_constituents
                 minimum_constituents(i) = const_qmin(i)
             end do
 
@@ -576,13 +585,18 @@ contains
                     subname, __LINE__)
             end if
 
+            ! The `mpas_dynamical_core % map_constituent_index` type-bound function maps MPAS scalar index to
+            ! CAM-SIMA *advected* constituent index. Then, the `advected_constituent_index` lookup table maps
+            ! *advected* constituent index to *all* constituent index.
+            i = advected_constituent_index(mpas_dynamical_core % map_constituent_index(index_qv))
+
             ! Set `zi` (i.e., geopotential height at layer interfaces) and `zm` (i.e., geopotential height at layer midpoints).
             ! Note that `rairv` and `zvirv` are updated externally by `cam_thermo_dry_air_update`.
             call geopotential_temp_run( &
-                pver, lagrangian_vertical, pver, 1, pverp, 1, num_advected, &
+                pver, lagrangian_vertical, pver, 1, pverp, 1, num_constituents, &
                 phys_state % lnpint, phys_state % pint, phys_state % pmid, phys_state % pdel, phys_state % rpdel, phys_state % t, &
-                constituents(:, :, mpas_dynamical_core % map_constituent_index(index_qv)), constituents, &
-                constituent_properties, rairv, constant_g, zvirv, phys_state % zi, phys_state % zm, ncells_solve, ierr, cerr)
+                constituents(:, :, i), constituents, constituent_properties, &
+                rairv, constant_g, zvirv, phys_state % zi, phys_state % zm, ncells_solve, ierr, cerr)
 
             if (ierr /= 0) then
                 call endrun('Failed to set variable "zi" and "zm" externally' // new_line('') // &
@@ -762,7 +776,7 @@ contains
             use dyn_comp, only: mpas_dynamical_core
             use dyn_grid, only: ncells_solve
             use dyn_procedures, only: t_of_theta_rhod_qv, t_of_tm_qv, theta_of_t_rhod_qv, tm_of_t_qv, &
-                                     reverse
+                                      reverse
             use dynconst, only: constant_cpd => cpair, constant_p0 => pref, &
                                 constant_rd => rair, constant_rv => rh2o
             use physics_types, only: dtime_phys, phys_tend

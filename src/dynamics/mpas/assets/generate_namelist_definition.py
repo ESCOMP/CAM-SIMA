@@ -151,7 +151,7 @@ def translate_element_tree(reg_xml_et: ET.ElementTree) -> ET.ElementTree:
     '''
 
     # `entry_id_pg` is the root element in namelist definition.
-    entry_id_pg_element = ET.Element('entry_id_pg', {'version': '0.1'})
+    entry_id_pg_element = ET.Element('entry_id_pg', {'version': '2.0'})
 
     comment_element = ET.Comment(
         '\n' +

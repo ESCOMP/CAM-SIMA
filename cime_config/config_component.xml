@@ -13,6 +13,7 @@
     <desc atm="CAM50[%CCTS][%CLB][%PORT][%RCO2][%SCAM][%SDYN][%WCSC][%WCTS]"              >CAM cam5 physics:</desc>
     <desc atm="CAM40[%PORT][%RCO2][%SCAM][%SDYN][%TMOZ][%WXIE][%WXIED][%WCMD]"                   >CAM cam4 physics:</desc>
     <desc atm="CAM[%ADIAB][%PHYSTEST][%DABIP04][%TJ16][%HS94][%KESSLER][%RCO2][%SPCAMS][%SPCAMCLBS][%SPCAMM][%SPCAMCLBM]">CAM simplified and non-versioned physics:</desc>
+    <desc atm="CAM%MPASCP">CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL)</desc>
 
   <!--
     ===============
@@ -169,11 +170,15 @@
       <value compset="_CAM%PHYSTEST">--dyn none --physics-suites adiabatic</value>
 
       <!-- Aquaplanet -->
-<!--      <value compset="_DOCN%SOMAQP">-aquaplanet</value>
-      <value compset="_DOCN%AQP"   >-aquaplanet</value> -->
+      <value compset="_DOCN%SOMAQP">--aquaplanet</value>
+      <value compset="_DOCN%AQP"   >--aquaplanet</value>
 
       <!-- PORT -->
 <!--      <value compset="%PORT">-offline_drv rad</value> -->
+
+      <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
+      <!-- Temporarily using analytic initial condition during development -->
+      <value compset="CAM%MPASCP">--physics-suites convection_permitting --analytic-ic</value>
     </values>
     <group>build_component_cam</group>
     <file>env_build.xml</file>
@@ -292,9 +297,9 @@
     <valid_values></valid_values>
     <default_value></default_value>
     <values match="last">
-    <value compset="DOCN%AQP">$SRCROOT/components/cam/cime_config/usermods_dirs/aquap</value>
-    <value compset="DOCN%SOMAQP">$SRCROOT/components/cam/cime_config/usermods_dirs/aquap</value>
-    <value compset="CAM[456]0%SCAM" >$SRCROOT/components/cam/cime_config/usermods_dirs/scam_mandatory</value>
+    <value compset="DOCN%AQP">$COMP_ROOT_DIR_ATM/cime_config/usermods_dirs/aquap</value>
+    <value compset="DOCN%SOMAQP">$COMP_ROOT_DIR_ATM/cime_config/usermods_dirs/aquap</value>
+<!--    <value compset="CAM[456]0%SCAM" >$COMP_ROOT_DIR_ATM/cime_config/usermods_dirs/scam_mandatory</value> -->
     </values>
     <group>run_component_cam</group>
     <file>env_case.xml</file>

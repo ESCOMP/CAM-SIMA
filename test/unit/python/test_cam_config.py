@@ -72,7 +72,8 @@ class FakeCase:
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
             "RUN_STARTDATE" : "101",
-            "DEBUG" : False
+            "DEBUG" : False,
+            "OPENACC_GPU_OFFLOAD": False
             }
 
     def get_value(self, key):
@@ -373,13 +374,9 @@ class CamConfigTestRoutine(unittest.TestCase):
                   'DEBUG:print_config:# Switch to turn on analytic initial conditions for the dynamics state: \n#'+\
                   '    0 => no \n#    1 => yes.',
                   'DEBUG:print_config:analytic_ic = 0',
-                  'DEBUG:print_config:# The ocean model being used.\n#'+\
-                  '    Valid values include prognostic ocean models (POP or MOM),\n#'+\
-                  '    data ocean models (DOCN or DOM), a stub ocean (SOCN), \n#'+\
-                  '    and an aqua planet ocean (aquaplanet).\n#'+\
-                  '    This does not impact how the case is built, only how\n#'+\
-                  '    attributes are matched when searching for namelist defaults.',
-                  'DEBUG:print_config:ocn = socn',
+                  'DEBUG:print_config:# Switch to use aquaplanet configuration: \n#'+\
+                  '    0 => no \n#    1 => yes.',
+                  'DEBUG:print_config:aquaplanet = 0',
                   "DEBUG:print_config:# A semicolon-separated list of physics suite definition file (SDF) names.\n#"+\
                   "    To specify the Kessler and Held-Suarez suites as \n#"+\
                   "    run time options, use '--physics-suites kessler;held_suarez_1994'.",
@@ -768,6 +765,10 @@ class CamConfigTestRoutine(unittest.TestCase):
         data_path = os.path.join(CAM_CONF_DIR, os.pardir,
                                  "src", "data")
 
+        #Create path to "src/cpl/nuopc" directory:
+        cpl_path = os.path.join(CAM_CONF_DIR, os.pardir,
+                                "src", "cpl", "nuopc")
+
         #These files will always be present:
         xml_fil_list['namelist_definition_cam.xml'] = os.path.join(CAM_CONF_DIR,
                                                'namelist_definition_cam.xml')
@@ -775,6 +776,8 @@ class CamConfigTestRoutine(unittest.TestCase):
                                                'namelist_definition_physconst.xml')
         xml_fil_list['namelist_definition_ref_pres.xml'] = os.path.join(data_path,
                                                'namelist_definition_ref_pres.xml')
+        xml_fil_list['namelist_definition_atm_stream_ndep.xml'] = os.path.join(cpl_path,
+                                               'namelist_definition_atm_stream_ndep.xml')
 
         #This is the file being added:
         xml_fil_list['test_file.xml'] = '/fake/path/test_file.xml'
