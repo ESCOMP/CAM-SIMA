@@ -29,7 +29,7 @@ module physics_types_self_ref_dim
   ! pver: Number of vertical layers
   integer,         public,              protected :: pver = 0
   ! ndust: Number of dust size bins
-  integer,         public                       :: ndust = 4
+  integer,         public, parameter            :: ndust = 4
   ! rndst: Dust radii by size bin
   real(kind_phys), public, allocatable          :: rndst(:, :, :)
 
@@ -71,9 +71,6 @@ contains
     if (set_init_val) then
       pver = 0
     end if
-    if (set_init_val) then
-      ndust = 4
-    end if
     if (allocated(rndst)) then
       if (reallocate) then
         deallocate(rndst)
@@ -81,7 +78,7 @@ contains
         call endrun(subname//": rndst is already allocated, cannot allocate")
       end if
     end if
-    allocate(rndst(horizontal_dimension, vertical_layer_dimension, dust_size_bin_dimension))
+    allocate(rndst(horizontal_dimension, vertical_layer_dimension, ndust))
     if (set_init_val) then
       rndst = 0.0_kind_phys
     end if
