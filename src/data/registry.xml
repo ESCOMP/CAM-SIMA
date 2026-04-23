@@ -1491,6 +1491,18 @@
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
 
+    <!-- Aerosol model properties -->
+    <variable local_name="ndust"
+              standard_name="dust_size_bin_dimension"
+              units="count" type="integer">
+      <long_name>number of dust size bins used in aerosol model</long_name>
+      <initial_value>4</initial_value>
+      <!-- this is not runtime configurable, and
+           not even easily compile-time configurable, because the assumption that
+           there are four dust bins is deeply embedded in the microphysics and
+           coupling to the land model (see dstdry1/2/3/4, dstwet1/2/3/4) -->
+    </variable>
+
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
     <variable local_name="kvt"
               standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"
@@ -1705,6 +1717,48 @@
               units="kg kg-1" type="real" constituent="true">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dust4 pbuf_dust4 cnst_dust4</ic_file_input_names>
+    </variable>
+
+    <!-- Aerosol nucleation/activation data into microphysics -->
+    <variable local_name="naai"
+              standard_name="tendency_of_number_concentration_of_activated_ice_nuclei"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NAAI</ic_file_input_names>
+    </variable>
+    <variable local_name="naai_hom"
+              standard_name="tendency_of_number_concentration_of_activated_ice_nuclei_due_to_homogenous_freezing"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NAAI_HOM</ic_file_input_names>
+    </variable>
+    <variable local_name="npccn"
+              standard_name="tendency_of_activated_cloud_condensation_nuclei_mass_number_concentration"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NPCCN</ic_file_input_names>
+    </variable>
+    <variable local_name="nacon"
+              standard_name="dust_number_concentration_by_size_bin_for_contact_freezing"
+              units="m-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NACON</ic_file_input_names>
+    </variable>
+    <variable local_name="rndst"
+              standard_name="dust_radii_by_size_bin"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_RNDST</ic_file_input_names>
     </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->
