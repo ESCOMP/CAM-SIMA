@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry name="cam_registry" version="1.0">
+  <file name="physics_types_self_ref_dim" type="module">
+    <use module="ccpp_kinds" reference="kind_phys"/>
+    <variable local_name="ncol" standard_name="horizontal_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of horizontal columns</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="pver" standard_name="vertical_layer_dimension"
+              units="count" type="integer" access="protected">
+      <long_name>Number of vertical layers</long_name>
+      <initial_value>0</initial_value>
+    </variable>
+    <variable local_name="ndust" standard_name="dust_size_bin_dimension"
+              units="count" type="integer" allocatable="parameter">
+      <long_name>Number of dust size bins</long_name>
+      <initial_value>4</initial_value>
+    </variable>
+    <variable local_name="rndst" standard_name="dust_radii_by_size_bin"
+              units="m" type="real" kind="kind_phys" allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+  </file>
+</registry>
