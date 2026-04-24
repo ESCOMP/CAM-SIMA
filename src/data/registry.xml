@@ -1542,7 +1542,7 @@
     </variable>
     <variable local_name="ndust"
               standard_name="dust_size_bin_dimension"
-              units="count" type="integer">
+              units="count" type="integer" allocatable="parameter">
       <long_name>number of dust size bins used in aerosol model</long_name>
       <initial_value>4</initial_value>
       <!-- this is not runtime configurable, and
