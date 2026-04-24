@@ -225,7 +225,7 @@ contains
       use shr_kind_mod,                 only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,                 only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
       use physics_data,                 only: flush_check_field_verbose
-      use cam_ccpp_cap,                 only: ccpp_physics_suite_variables, cam_advected_constituents_array, cam_model_const_properties
+      use cam_ccpp_cap,                 only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use cam_constituents,             only: const_get_index
       use ccpp_kinds,                   only: kind_phys
       use cam_logfile,                  only: iulog
@@ -351,7 +351,7 @@ contains
       end do !CCPP suites
 
       ! Check constituent variables
-      field_data_ptr => cam_advected_constituents_array()
+      field_data_ptr => cam_constituents_array()
       const_props => cam_model_const_properties()
 
       do constituent_idx = 1, size(const_props)
