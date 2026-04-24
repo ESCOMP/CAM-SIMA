@@ -8,6 +8,8 @@
 !> units in the last place (ULP). Otherwise, tolerance should be chosen based on significant figures.
 !> For utility procedures, standard unit testing practices apply.
 module test_dyn_procedures
+    use funit
+
     implicit none
 
     private
@@ -132,7 +134,6 @@ contains
         use dyn_procedures, only: p_by_equation_of_state, &
                                   rho_by_equation_of_state, &
                                   t_by_equation_of_state
-        use funit
 
         real(real64), parameter :: constant_rd = 287.04_real64
 
@@ -173,7 +174,6 @@ contains
         use dyn_procedures, only: p_by_equation_of_state, &
                                   rho_by_equation_of_state, &
                                   t_by_equation_of_state
-        use funit
 
         real(real64), parameter :: constant_rd = 287.04_real64
 
@@ -245,7 +245,6 @@ contains
     subroutine test_exner_function_family_by_known_values()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: exner_function
-        use funit
 
         real(real64), parameter :: constant_cpd = 1004.64_real64
         real(real64), parameter :: constant_p0 = 100000.0_real64
@@ -297,7 +296,6 @@ contains
     subroutine test_exner_function_family_by_typical_values()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: exner_function
-        use funit
 
         real(real64), parameter :: constant_cpd = 1004.64_real64
         real(real64), parameter :: constant_p0 = 100000.0_real64
@@ -361,7 +359,6 @@ contains
     subroutine test_hydrostatic_equation_family_by_known_values()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: dp_by_hydrostatic_equation
-        use funit
 
         real(real64), parameter :: constant_g = 9.80665_real64
 
@@ -400,7 +397,6 @@ contains
     subroutine test_hydrostatic_equation_family_by_typical_values()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: dp_by_hydrostatic_equation
-        use funit
 
         real(real64), parameter :: constant_g = 9.80665_real64
 
@@ -471,7 +467,6 @@ contains
     subroutine test_hypsometric_equation_family_by_known_values()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: p_by_hypsometric_equation
-        use funit
 
         real(real64), parameter :: constant_g = 9.80665_real64
         real(real64), parameter :: constant_rd = 287.04_real64
@@ -520,7 +515,6 @@ contains
     subroutine test_hypsometric_equation_family_by_typical_values()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: p_by_hypsometric_equation
-        use funit
 
         real(real64), parameter :: constant_g = 9.80665_real64
         real(real64), parameter :: constant_rd = 287.04_real64
@@ -604,7 +598,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: t_by_poisson_equation, &
                                   theta_by_poisson_equation
-        use funit
 
         real(real64), parameter :: constant_cpd = 1004.64_real64
         real(real64), parameter :: constant_p0 = 100000.0_real64
@@ -658,7 +651,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: t_by_poisson_equation, &
                                   theta_by_poisson_equation
-        use funit
 
         real(real64), parameter :: constant_cpd = 1004.64_real64
         real(real64), parameter :: constant_p0 = 100000.0_real64
@@ -735,7 +727,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: omega_of_w_rho, &
                                   w_of_omega_rho
-        use funit
 
         real(real64), parameter :: constant_g = 9.80665_real64
 
@@ -783,7 +774,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: omega_of_w_rho, &
                                   w_of_omega_rho
-        use funit
 
         real(real64), parameter :: constant_g = 9.80665_real64
 
@@ -863,7 +853,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: qv_of_sh, &
                                   sh_of_qv
-        use funit
 
         ! Significant figures and relative tolerance to pass the test.
         integer, parameter :: significant_figures = 12
@@ -908,7 +897,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: qv_of_sh, &
                                   sh_of_qv
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 2
@@ -958,7 +946,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: t_of_theta_rhod_qv, &
                                   theta_of_t_rhod_qv
-        use funit
 
         real(real64), parameter :: constant_cpd = 1004.64_real64
         real(real64), parameter :: constant_p0 = 100000.0_real64
@@ -1014,7 +1001,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: t_of_theta_rhod_qv, &
                                   theta_of_t_rhod_qv
-        use funit
 
         real(real64), parameter :: constant_cpd = 1004.64_real64
         real(real64), parameter :: constant_p0 = 100000.0_real64
@@ -1110,7 +1096,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: t_of_tm_qv, &
                                   tm_of_t_qv
-        use funit
 
         real(real64), parameter :: constant_rd = 287.04_real64
         real(real64), parameter :: constant_rv = 461.52_real64
@@ -1163,7 +1148,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: t_of_tm_qv, &
                                   tm_of_t_qv
-        use funit
 
         real(real64), parameter :: constant_rd = 287.04_real64
         real(real64), parameter :: constant_rv = 461.52_real64
@@ -1237,7 +1221,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: tm_of_tv_qv, &
                                   tv_of_tm_qv
-        use funit
 
         ! Significant figures and relative tolerance to pass the test.
         integer, parameter :: significant_figures = 12
@@ -1287,7 +1270,6 @@ contains
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: tm_of_tv_qv, &
                                   tv_of_tm_qv
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 2
@@ -1354,7 +1336,6 @@ contains
     subroutine test_reverse_by_empty_arrays_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_procedures, only: reverse
-        use funit
 
         real(real32), allocatable :: array(:), reversed(:)
 
@@ -1370,7 +1351,6 @@ contains
     subroutine test_reverse_by_empty_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: reverse
-        use funit
 
         real(real64), allocatable :: array(:), reversed(:)
 
@@ -1386,7 +1366,6 @@ contains
     subroutine test_reverse_by_single_element_arrays_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_procedures, only: reverse
-        use funit
 
         real(real32), parameter :: expected(*) = [ &
             1.0_real32 &
@@ -1407,7 +1386,6 @@ contains
     subroutine test_reverse_by_single_element_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: reverse
-        use funit
 
         real(real64), parameter :: expected(*) = [ &
             1.0_real64 &
@@ -1428,7 +1406,6 @@ contains
     subroutine test_reverse_by_multiple_element_arrays_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_procedures, only: reverse
-        use funit
 
         real(real32), parameter :: expected(*) = [ &
             5.0_real32, &
@@ -1457,7 +1434,6 @@ contains
     subroutine test_reverse_by_multiple_element_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_procedures, only: reverse
-        use funit
 
         real(real64), parameter :: expected(*) = [ &
             5.0_real64, &
@@ -1486,7 +1462,6 @@ contains
     subroutine test_sec_to_hour_min_sec_by_positive_time()
         use, intrinsic :: iso_fortran_env, only: int32
         use dyn_procedures, only: sec_to_hour_min_sec
-        use funit
 
         integer(int32) :: sec
         integer(int32) :: hour_min_sec(3)
@@ -1566,7 +1541,6 @@ contains
     subroutine test_sec_to_hour_min_sec_by_negative_time()
         use, intrinsic :: iso_fortran_env, only: int32
         use dyn_procedures, only: sec_to_hour_min_sec
-        use funit
 
         integer(int32) :: sec
         integer(int32) :: hour_min_sec(3)
@@ -1646,7 +1620,6 @@ contains
     subroutine test_sec_to_hour_min_sec_by_extreme_time()
         use, intrinsic :: iso_fortran_env, only: int32
         use dyn_procedures, only: sec_to_hour_min_sec
-        use funit
 
         integer(int32) :: sec
         integer(int32) :: hour_min_sec(3)
