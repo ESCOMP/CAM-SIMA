@@ -315,6 +315,32 @@
 
 <!-- Radiation -->
 
+  <entry id="nswbands">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <units>count</units>
+    <desc>
+       Number of shortwave bands.
+       Units: count
+    </desc>
+    <values>
+      <value>14</value><!-- rrtmgp -->
+    </values>
+  </entry>
+  <entry id="nlwbands">
+    <type>integer</type>
+    <category>radiation</category>
+    <group>radiation_nl</group>
+    <units>count</units>
+    <desc>
+       Number of longwave bands.
+       Units: count
+    </desc>
+    <values>
+      <value>16</value><!-- rrtmgp -->
+    </values>
+  </entry>
   <entry id="iradsw">
     <type>integer</type>
     <category>radiation</category>

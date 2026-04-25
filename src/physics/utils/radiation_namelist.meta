@@ -5,6 +5,18 @@
 [ccpp-arg-table]
   name  = radiation_namelist
   type  = module
+[ nlwbands ]
+  standard_name = number_of_bands_for_longwave_radiation
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
+[ nswbands ]
+  standard_name = number_of_bands_for_shortwave_radiation
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
 [ iradsw ]
   standard_name = frequency_of_shortwave_radiation_calculation
   units = 1
