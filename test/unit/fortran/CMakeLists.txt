@@ -32,6 +32,7 @@ if(CAM_SIMA_ENABLE_TESTS OR CAM_SIMA_ENABLE_CODE_COVERAGE OR CAM_SIMA_ENABLE_IO_
 
   if(CAM_SIMA_ENABLE_TESTS)
     add_subdirectory(src/core_utils)
+    add_subdirectory(src/aerosol)
   endif()
   if(CAM_SIMA_ENABLE_IO_TESTS)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

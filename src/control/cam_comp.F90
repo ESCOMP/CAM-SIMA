@@ -269,6 +269,11 @@ CONTAINS
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)
 
+      ! Aerosol optics infrastructure init:
+      ! physics init phases will already query aerosol objects so this should
+      ! be run before phys_init (hplin, 4/20/26)
+      call rad_aer_init_all()
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -652,7 +657,7 @@ CONTAINS
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
               std_name=wv_stdname,              &
-              long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
+              long_name=wv_stdname, &
               units="kg kg-1",                                                          &
               default_value=0._kind_phys,                                               &
               vertical_dim="vertical_layer_dimension",                                  &
@@ -711,6 +716,43 @@ CONTAINS
 
 
    end subroutine cam_register_constituents
+
+!-----------------------------------------------------------------------
+
+   subroutine rad_aer_init_all()
+      ! Initialize aerosol optics infrastructure.
+      ! Called after phys_init and before history_init_files.
+      use radiative_aerosol,     only: rad_aer_init
+      use aerosol_instances_mod, only: aerosol_instances_init, aerosol_instances_init_states
+      use cam_ccpp_cap,          only: cam_constituents_array
+      use ccpp_kinds,            only: kind_phys
+      use phys_vars_init_check, only: mark_as_initialized
+
+      real(kind_phys), pointer :: constituents(:,:,:)
+
+      ! Phase 2 init: read physprop, resolve CCPP constituent indices
+      call rad_aer_init()
+
+      ! Create aerosol properties objects
+      call aerosol_instances_init()
+
+      ! Wire constituents pointer into aerosol state objects
+      constituents => cam_constituents_array()
+      call aerosol_instances_init_states(constituents)
+
+      ! Mark module vars part of radiative_aerosol_definitions as initialized.
+      call mark_as_initialized('number_of_radiative_aerosol_diagnostic_lists')
+      call mark_as_initialized('maximum_number_of_radiative_constituents')
+      call mark_as_initialized('index_of_climate_radiative_aerosol_list')
+      call mark_as_initialized('radiative_constituent_namelist_data')
+      call mark_as_initialized('flag_for_active_radiative_aerosol_diagnostic_list')
+      call mark_as_initialized('modal_aerosol_mode_definitions')
+      call mark_as_initialized('sectional_aerosol_bin_definitions')
+      call mark_as_initialized('bulk_aerosol_list_for_radiative_calculations')
+      call mark_as_initialized('modal_aerosol_list_for_radiative_calculations')
+      call mark_as_initialized('sectional_aerosol_list_for_radiative_calculations')
+
+   end subroutine rad_aer_init_all
 
 !-----------------------------------------------------------------------
 
