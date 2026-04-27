@@ -117,7 +117,7 @@ class HistConfigTest(unittest.TestCase):
         self._test_config(hconfig, 'h1', 'REAL32', 30, (14, 'hours'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         self.assertTrue('h3' in hist_configs, msg="'h3' not in hist_configs")
         hconfig = hist_configs['h3']
-        self._test_config(hconfig, 'h3', 'REAL64', 24, (2, 'nsteps'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
+        self._test_config(hconfig, 'h3', 'REAL64', 24, (1, 'nsteps'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         _LOGGER.setLevel(logging.DEBUG)
         # Write out the namelist file
         with open(out_source, 'w', encoding='utf-8') as nl_file:

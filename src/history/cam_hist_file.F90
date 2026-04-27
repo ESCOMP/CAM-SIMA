@@ -126,6 +126,7 @@ module cam_hist_file
       procedure :: write_field => config_write_field
       procedure :: close_files => config_close_files
       procedure :: clear_buffers => config_clear_buffers
+      procedure :: reset_samples => config_reset_samples
    end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
@@ -762,7 +763,6 @@ CONTAINS
             write(errmsg,'(3a)') 'ERROR Field : ',trim(this%field_names(idx)),' not available'
             call endrun(subname//errmsg, file=__FILE__, line=__LINE__)
          end select
-         !call field_ptr%dimensions(dimensions)
          dimensions = field_ptr%dimensions()
          field_shape = field_ptr%shape()
          beg_dim = field_ptr%beg_dims()
@@ -770,19 +770,18 @@ CONTAINS
          field_info => hist_new_field(this%field_names(idx),     &
             field_ptr%standard_name(), field_ptr%long_name(),    &
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
-            dimensions, this%accumulate_types(idx), field_ptr%num_levels(), &
-            field_shape, beg_dims=beg_dim, end_dims=end_dim,     &
-            mixing_ratio=field_ptr%mixing_ratio(),               &
+            dimensions, this%accumulate_types(idx),              &
+            field_ptr%num_levels(), field_shape,                 &
+            field_ptr%fill_value(), beg_dims=beg_dim,            &
+            end_dims=end_dim, mixing_ratio=field_ptr%mixing_ratio(), &
             flag_xyfill=field_ptr%flag_xyfill(),                 &
             sampling_seq=field_ptr%sampling_sequence())
          call hist_new_buffer(field_info, field_shape, &
-            this%rl_kind, 1, this%accumulate_types(idx), 1, errors=errors)
-         if (masterproc) then
+            1, this%accumulate_types(idx), 1, errors=errors)
+         if (masterproc .and. errors%num_errors() > 0) then
             call errors%output(iulog)
+            call endrun(subname//' error(s) during buffer creation')
          end if
-         ! peverwhee - TODO: create additional buffer(s) for other accum types
-!         call hist_new_buffer(field_info, field_shape, &
-!            this%rl_kind, 1, this%accumulate_types(idx), 1)
          ! Add to field list array and hash table
          this%field_list(idx) = field_info
          call this%field_list_hash_table%add_hash_key(field_info)
@@ -914,7 +913,6 @@ CONTAINS
       use cam_history_support, only: write_hist_coord_attrs
       use cam_history_support, only: write_hist_coord_vars
       use cam_history_support, only: max_chars
-      use cam_history_support, only: fillvalue
       use shr_kind_mod,        only: r4 => shr_kind_r4
       use time_manager,        only: get_ref_date, timemgr_get_calendar_cf
       use time_manager,        only: get_step_size
@@ -1293,14 +1291,14 @@ CONTAINS
                   ! netCDF-aware tools (ncview, ncdump, etc.) recognise fill
                   ! values.  The attribute type must match the variable type.
                   if (ncreal == pio_double) then
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', fillvalue)
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', this%field_list(field_index)%fill_value())
                      call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', fillvalue)
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', this%field_list(field_index)%fill_value())
                      call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
                   else
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', real(fillvalue, r4))
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', real(this%field_list(field_index)%fill_value(), r4))
                      call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', real(fillvalue, r4))
+                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', real(this%field_list(field_index)%fill_value(), r4))
                      call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
                   end if
                end if
@@ -1515,12 +1513,14 @@ CONTAINS
    subroutine config_write_field(this, field, split_file_index, restart, &
       sample_index, field_index, field_precision)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
-      use hist_buffer,         only: hist_buffer_t
-      use hist_api,            only: hist_buffer_norm_value
+      use hist_api,            only: hist_field_norm_value
       use cam_grid_support,    only: cam_grid_write_dist_array
       use cam_abortutils,      only: check_allocate, endrun
       use hist_field,          only: hist_field_info_t
       use shr_kind_mod,        only: r4 => shr_kind_r4
+      use hist_msg_handler,    only: hist_log_messages
+      use cam_logfile,         only: iulog
+      use cam_abortutils,      only: endrun
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
       type(hist_field_info_t), intent(inout) :: field
@@ -1544,7 +1544,7 @@ CONTAINS
       integer                        :: idx
       real(r8), allocatable          :: field_data_r8(:,:)
       real(r4), allocatable          :: field_data_r4(:,:)
-      class(hist_buffer_t), pointer  :: buff_ptr
+      type(hist_log_messages)        :: errors
       character(len=CL)              :: errmsg
       character(len=*), parameter    :: subname = 'config_write_field: '
 
@@ -1558,6 +1558,8 @@ CONTAINS
          if (trim(field_precision) == 'REAL32') then
             allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          else
             allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
@@ -1566,6 +1568,8 @@ CONTAINS
          if (trim(field_precision) == 'REAL32') then
             allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          else
             allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
             call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
@@ -1586,29 +1590,41 @@ CONTAINS
       do patch_idx = 1, num_patches
          varid = this%file_varids(field_index, patch_idx)
          call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
-         buff_ptr => field%buffers
          if (frank == 1) then
+            call hist_field_norm_value(field, field_data_r8(:,1), logger=errors)
+            if (errors%num_errors() > 0) then
+               call errors%output(iulog)
+               write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+               call endrun(errmsg)
+            end if
             if (trim(field_precision) == 'REAL32') then
-               call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1))
+               field_data_r4(:,1) = field_data_r8(:,1)
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r4(:,1), varid)
             else
-               call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1))
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r8(:,1), varid)
             end if
          else
+            call hist_field_norm_value(field, field_data_r8, logger=errors)
+            if (errors%num_errors() > 0) then
+               call errors%output(iulog)
+               write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+               call endrun(errmsg)
+            end if
             if (trim(field_precision) == 'REAL32') then
-               call hist_buffer_norm_value(buff_ptr, field_data_r4)
+               field_data_r4 = field_data_r8
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r4, varid)
             else
-               call hist_buffer_norm_value(buff_ptr, field_data_r8)
                call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r8, varid)
             end if
          end if
       end do
+
+      ! Clear the buffers after writing
+      call field%clear_buffers(logger=errors)
 
    end subroutine config_write_field
 
@@ -1659,7 +1675,6 @@ CONTAINS
       integer :: field_idx
       type(hist_log_messages) :: errors
 
-
       do field_idx = 1, size(this%field_list)
          call this%field_list(field_idx)%clear_buffers(logger=errors)
          if (masterproc) then
@@ -1670,6 +1685,16 @@ CONTAINS
    end subroutine config_clear_buffers
 
    ! ========================================================================
+
+   subroutine config_reset_samples(this)
+
+      class(hist_file_t), intent(inout) :: this
+
+      this%num_samples = 0
+
+   end subroutine config_reset_samples
+
+! ========================================================================
 
    pure function count_array(arr_in) result(arr_count)
       ! Dummy arguments
@@ -1818,26 +1843,18 @@ CONTAINS
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_avg > 0) then
-         call endrun(subname//"ERROR, average fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_avg_fields(:), max_fldlen*num_fields_avg, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_min > 0) then
-         call endrun(subname//"ERROR, minimum fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_min_fields(:), max_fldlen*num_fields_min, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_max > 0) then
-         call endrun(subname//"ERROR, maximum fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_max_fields(:), max_fldlen*num_fields_max, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
       if (num_fields_var > 0) then
-         call endrun(subname//"ERROR, standard deviation fields not yet implemented",     &
-               file=__FILE__, line=__LINE__)
          call MPI_Bcast(hist_var_fields(:), max_fldlen*num_fields_var, MPI_CHARACTER,        &
               masterprocid, mpicom, ierr)
       end if
