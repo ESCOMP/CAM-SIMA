@@ -8,6 +8,8 @@
 !> units in the last place (ULP). Otherwise, tolerance should be chosen based on significant figures.
 !> For utility procedures, standard unit testing practices apply.
 module test_dyn_mpas_procedures
+    use funit
+
     implicit none
 
     private
@@ -59,7 +61,6 @@ contains
     subroutine test_dzw_of_rdzw_by_known_values_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: dzw_of_rdzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -95,7 +96,6 @@ contains
     subroutine test_dzw_of_rdzw_by_known_values_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: dzw_of_rdzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -131,7 +131,6 @@ contains
     subroutine test_dzu_of_dzw_by_known_values_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: dzu_of_dzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -184,7 +183,6 @@ contains
     subroutine test_dzu_of_dzw_by_known_values_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: dzu_of_dzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -237,7 +235,6 @@ contains
     subroutine test_zu_of_dzw_by_known_values_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: zu_of_dzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -291,7 +288,6 @@ contains
     subroutine test_zu_of_dzw_by_known_values_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: zu_of_dzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -345,7 +341,6 @@ contains
     subroutine test_zw_of_dzw_by_known_values_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: zw_of_dzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -400,7 +395,6 @@ contains
     subroutine test_zw_of_dzw_by_known_values_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: zw_of_dzw
-        use funit
 
         ! Tolerance, in the number of units in the last place (ULP), to pass the test.
         integer, parameter :: ulp_tolerance = 1
@@ -455,7 +449,6 @@ contains
     subroutine test_almost_divisible_by_properties_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: almost_divisible
-        use funit
 
         ! Division of zero.
         @assertTrue(almost_divisible(0.0_real32, 1776.0_real32))
@@ -505,7 +498,6 @@ contains
     subroutine test_almost_divisible_by_properties_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: almost_divisible
-        use funit
 
         ! Division of zero.
         @assertTrue(almost_divisible(0.0_real64, 1776.0_real64))
@@ -555,7 +547,6 @@ contains
     subroutine test_almost_divisible_by_inexact_arithmetic_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: almost_divisible
-        use funit
 
         integer :: i
         real(real32) :: a, b
@@ -582,7 +573,6 @@ contains
     subroutine test_almost_divisible_by_inexact_arithmetic_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: almost_divisible
-        use funit
 
         integer :: i
         real(real64) :: a, b
@@ -609,7 +599,6 @@ contains
     subroutine test_almost_divisible_by_precision_limits_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: almost_divisible
-        use funit
 
         @assertFalse(almost_divisible(1776.0_real32, 1776.1_real32))
         @assertFalse(almost_divisible(1776.0_real32, 1776.01_real32))
@@ -628,7 +617,6 @@ contains
     subroutine test_almost_divisible_by_precision_limits_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: almost_divisible
-        use funit
 
         @assertFalse(almost_divisible(1776.0_real64, 1776.1_real64))
         @assertFalse(almost_divisible(1776.0_real64, 1776.01_real64))
@@ -665,7 +653,6 @@ contains
     subroutine test_almost_equal_by_properties_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: almost_equal
-        use funit
 
         real(real32) :: a, b
 
@@ -775,7 +762,6 @@ contains
     subroutine test_almost_equal_by_properties_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: almost_equal
-        use funit
 
         real(real64) :: a, b
 
@@ -885,7 +871,6 @@ contains
     subroutine test_almost_equal_by_optional_tolerance_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: almost_equal
-        use funit
 
         @assertTrue(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.11_real32))
         @assertFalse(almost_equal(0.9_real32, 1.0_real32, absolute_tolerance=0.09_real32))
@@ -904,7 +889,6 @@ contains
     subroutine test_almost_equal_by_optional_tolerance_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: almost_equal
-        use funit
 
         @assertTrue(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.11_real64))
         @assertFalse(almost_equal(0.9_real64, 1.0_real64, absolute_tolerance=0.09_real64))
@@ -926,7 +910,6 @@ contains
                                                  ieee_value
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: almost_equal
-        use funit
 
         real(real32) :: a, b
 
@@ -984,7 +967,6 @@ contains
                                                  ieee_value
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: almost_equal
-        use funit
 
         real(real64) :: a, b
 
@@ -1039,7 +1021,6 @@ contains
     subroutine test_clamp_by_properties_int32()
         use, intrinsic :: iso_fortran_env, only: int32
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3_int32, clamp(-5_int32, -3_int32, 3_int32))
         @assertEqual(-3_int32, clamp(-4_int32, -3_int32, 3_int32))
@@ -1071,7 +1052,6 @@ contains
     subroutine test_clamp_by_properties_int64()
         use, intrinsic :: iso_fortran_env, only: int64
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3_int64, clamp(-5_int64, -3_int64, 3_int64))
         @assertEqual(-3_int64, clamp(-4_int64, -3_int64, 3_int64))
@@ -1103,7 +1083,6 @@ contains
     subroutine test_clamp_by_properties_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3.0_real32, clamp(-5.0_real32, -3.0_real32, 3.0_real32))
         @assertEqual(-3.0_real32, clamp(-4.0_real32, -3.0_real32, 3.0_real32))
@@ -1135,7 +1114,6 @@ contains
     subroutine test_clamp_by_properties_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3.0_real64, clamp(-5.0_real64, -3.0_real64, 3.0_real64))
         @assertEqual(-3.0_real64, clamp(-4.0_real64, -3.0_real64, 3.0_real64))
@@ -1167,7 +1145,6 @@ contains
     subroutine test_clamp_by_extreme_values_int32()
         use, intrinsic :: iso_fortran_env, only: int32
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3_int32, clamp(-huge(0_int32), -3_int32, 3_int32))
         @assertEqual(3_int32, clamp(huge(0_int32), -3_int32, 3_int32))
@@ -1181,7 +1158,6 @@ contains
     subroutine test_clamp_by_extreme_values_int64()
         use, intrinsic :: iso_fortran_env, only: int64
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3_int64, clamp(-huge(0_int64), -3_int64, 3_int64))
         @assertEqual(3_int64, clamp(huge(0_int64), -3_int64, 3_int64))
@@ -1198,7 +1174,6 @@ contains
                                                  ieee_value
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3.0_real32, clamp(-huge(0.0_real32), -3.0_real32, 3.0_real32))
         @assertEqual(3.0_real32, clamp(huge(0.0_real32), -3.0_real32, 3.0_real32))
@@ -1224,7 +1199,6 @@ contains
                                                  ieee_value
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: clamp
-        use funit
 
         @assertEqual(-3.0_real64, clamp(-huge(0.0_real64), -3.0_real64, 3.0_real64))
         @assertEqual(3.0_real64, clamp(huge(0.0_real64), -3.0_real64, 3.0_real64))
@@ -1247,7 +1221,6 @@ contains
     subroutine test_index_unique_by_empty_arrays()
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         character(128), allocatable :: test_data_carr(:)
         integer(int32), allocatable :: test_data_i32arr(:)
@@ -1293,7 +1266,6 @@ contains
     @test
     subroutine test_index_unique_by_character_arrays()
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         character(*), parameter :: test_data_letters(*) = [character(1) :: &
             'T', 'H', 'E', &
@@ -1336,7 +1308,6 @@ contains
     subroutine test_index_unique_by_integer_arrays_int32()
         use, intrinsic :: iso_fortran_env, only: int32
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         integer(int32), parameter :: test_data(*) = [ &
             1_int32, 7_int32, 7_int32, 6_int32, 0_int32, 7_int32, 0_int32, 4_int32 &
@@ -1364,7 +1335,6 @@ contains
     subroutine test_index_unique_by_integer_arrays_int64()
         use, intrinsic :: iso_fortran_env, only: int64
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         integer(int64), parameter :: test_data(*) = [ &
             1_int64, 7_int64, 7_int64, 6_int64, 0_int64, 7_int64, 0_int64, 4_int64 &
@@ -1391,7 +1361,6 @@ contains
     @test
     subroutine test_index_unique_by_logical_arrays()
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         logical, parameter :: test_data(*) = [ &
             .false., .false., .true., .false., .false., .true. &
@@ -1413,7 +1382,6 @@ contains
     subroutine test_index_unique_by_real_arrays_real32()
         use, intrinsic :: iso_fortran_env, only: real32
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         real(real32), parameter :: test_data(*) = [ &
             1.0_real32, 7.0_real32, 7.0_real32, 6.0_real32, 0.0_real32, 7.0_real32, 0.0_real32, 4.0_real32 &
@@ -1441,7 +1409,6 @@ contains
     subroutine test_index_unique_by_real_arrays_real64()
         use, intrinsic :: iso_fortran_env, only: real64
         use dyn_mpas_procedures, only: index_unique
-        use funit
 
         real(real64), parameter :: test_data(*) = [ &
             1.0_real64, 7.0_real64, 7.0_real64, 6.0_real64, 0.0_real64, 7.0_real64, 0.0_real64, 4.0_real64 &
@@ -1468,7 +1435,6 @@ contains
     @test
     subroutine test_split_by_empty_string_set()
         use dyn_mpas_procedures, only: split
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1504,7 +1470,6 @@ contains
     @test
     subroutine test_split_by_forward_searches()
         use dyn_mpas_procedures, only: split
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1539,7 +1504,6 @@ contains
     @test
     subroutine test_split_by_backward_searches()
         use dyn_mpas_procedures, only: split
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1574,7 +1538,6 @@ contains
     @test
     subroutine test_split_by_out_of_bounds_searches()
         use dyn_mpas_procedures, only: split
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1622,7 +1585,6 @@ contains
     @test
     subroutine test_tokenize_into_first_last_by_empty_string_set()
         use dyn_mpas_procedures, only: tokenize
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1654,7 +1616,6 @@ contains
     @test
     subroutine test_tokenize_into_first_last_by_known_string_set()
         use dyn_mpas_procedures, only: tokenize
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1689,7 +1650,6 @@ contains
     @test
     subroutine test_tokenize_into_tokens_separator_by_empty_string_set()
         use dyn_mpas_procedures, only: tokenize
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
@@ -1745,7 +1705,6 @@ contains
     @test
     subroutine test_tokenize_into_tokens_separator_by_known_string_set()
         use dyn_mpas_procedures, only: tokenize
-        use funit
 
         character(*), parameter :: test_string_comma_separated = &
             ',,,Mercury,,Venus,Earth,,Mars,,,Jupiter,,Saturn,Uranus,,Neptune,,,'
