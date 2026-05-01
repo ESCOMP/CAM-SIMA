@@ -14,6 +14,7 @@ EXCLUDED_NAMELIST_GROUP = [
     'assimilation',
     'iau',
     'limited_area',
+    'musica',
     'physics',
     'restart'
 ]

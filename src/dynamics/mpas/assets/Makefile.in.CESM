@@ -37,7 +37,7 @@ export BUILD_TARGET    := N/A
 export CORE            := atmosphere
 export EXE_NAME        := atmosphere_model
 export GEN_F90         := false
-export GIT_VERSION     := $(shell git -C "$(MPAS_SRC_ROOT)" describe --always --dirty --tags || echo "N/A")
+export GIT_VERSION     := $(shell git -C "$(MPAS_SRC_ROOT)" describe --always --dirty --tags 2>/dev/null || echo "N/A")
 export NAMELIST_SUFFIX := atmosphere
 
 # Customize variables (e.g., build options) for use with CESM.
@@ -101,7 +101,7 @@ libmpas-prepare: libmpas-apply-patch libmpas-archiver-script.txt libmpas-preview
 .PHONY: libmpas-apply-patch
 libmpas-apply-patch:
 	@for file in *.patch; do \
-		if git apply --check -p2 "$${file}"; then \
+		if [ -f "$${file}" ] && git apply --check -p2 "$${file}" 1>/dev/null 2>&1; then \
 			echo "Applying $${file}"; \
 			git apply -p2 "$${file}"; \
 		fi; \
