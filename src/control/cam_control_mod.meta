@@ -3,31 +3,54 @@
   type = module
 
 [ccpp-arg-table]
-  name  = cam_control_mod
-  type  = module
+  name = cam_control_mod
+  type = module
+[ initial_run ]
+  standard_name = is_initial
+  units = flag
+  type = logical
+  dimensions = ()
+  protected = True
+[ restart_run ]
+  standard_name = is_restart
+  units = flag
+  type = logical
+  dimensions = ()
+  protected = True
+[ branch_run ]
+  standard_name = is_branch
+  units = flag
+  type = logical
+  dimensions = ()
+  protected = True
 [ aqua_planet ]
   standard_name = is_aqua_planet
   units = flag
   type = logical
   dimensions = ()
+  protected = True
 [ eccen ]
   standard_name = planet_orbital_eccentricity_factor
   units = 1
   type = real | kind = r8
   dimensions = ()
+  protected = True
 [ obliqr ]
   standard_name = planet_obliquity
   long_name = planet's axial tilt (obliquity)
   units = rad
   type = real | kind = r8
   dimensions = ()
+  protected = True
 [ lambm0 ]
   standard_name = mean_longitude_of_perihelion_at_vernal_equinox
   units = rad
   type = real | kind = r8
   dimensions = ()
+  protected = True
 [ mvelpp ]
   standard_name = moving_vernal_equinox_longitude_of_perihelion_plus_pi
   units = rad
   type = real | kind = r8
   dimensions = ()
+  protected = True
