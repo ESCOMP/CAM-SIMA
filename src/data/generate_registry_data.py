@@ -140,13 +140,14 @@ class VarBase:
     __pointer_def_init = "NULL()"
     __pointer_type_str = "pointer"
 
-    def __init__(self, elem_node, local_name, dimensions, known_types,
-                 type_default, units_default="", kind_default='', dycore='',
-                 protected=False, index_name='', local_index_name='',
+    def __init__(self, elem_node, local_name, dimensions, allocation_dimensions,
+                 known_types, type_default, units_default="", kind_default='',
+                 dycore='', protected=False, index_name='', local_index_name='',
                  local_index_name_str='', alloc_default='none',
                  tstep_init_default=False):
         self.__local_name = local_name
         self.__dimensions = dimensions
+        self.__allocation_dimensions = allocation_dimensions
         self.__units = elem_node.get('units', default=units_default)
         ttype = elem_node.get('type', default=type_default)
         self.__type = known_types.known_type(ttype)
@@ -349,9 +350,19 @@ class VarBase:
         return self.__dimensions
 
     @property
+    def allocation_dimensions(self):
+        """Return the dimensions for this variable to be used for allocation"""
+        return self.__allocation_dimensions
+
+    @property
     def dimension_string(self):
         """Return the dimension_string for this variable"""
         return '(' + ', '.join(self.dimensions) + ')'
+
+    @property
+    def allocation_dimension_string(self):
+        """Return the dimension string for allocating this variable"""
+        return '(' + ', '.join(self.allocation_dimensions) + ')'
 
     @property
     def long_name(self):
@@ -486,7 +497,7 @@ class ArrayElement(VarBase):
                                         ', '.join(dimensions)))
         # end if
         local_name = f'{parent_name}({self.index_string})'
-        super().__init__(elem_node, local_name, my_dimensions,
+        super().__init__(elem_node, local_name, my_dimensions, [],
                                            known_types, parent_type,
                                            units_default=parent_units,
                                            kind_default=parent_kind,
@@ -556,6 +567,7 @@ class Variable(VarBase):
             protected = False
         # end if
         my_dimensions = []
+        allocation_dimensions = []
         self.__def_dims_str = ""
         for attrib in var_node:
             if attrib.tag == 'dimensions':
@@ -567,10 +579,10 @@ class Variable(VarBase):
                         emsg += ', step not allowed.'
                         raise CCPPError(emsg.format(dim, local_name))
                     # end if
+                    dimstrs = [x.strip() for x in dim.split(':')]
+                    ldimstrs = []
                     if allocatable in ("", "parameter", "target"):
                         # We need to find a local variable for every dimension
-                        dimstrs = [x.strip() for x in dim.split(':')]
-                        ldimstrs = []
                         for ddim in dimstrs:
                             lname = Variable.constant_dimension(ddim)
                             if not lname:
@@ -587,9 +599,30 @@ class Variable(VarBase):
                             ldimstrs.append(lname)
                         # end for
                         def_dims.append(':'.join(ldimstrs))
+                        allocation_dimensions.append(dim)
                     else:
                         # We need to allocate this array
                         def_dims.append(':')
+                        # For variables that are parameters in the registry,
+                        # we need to use the local name
+                        for ddim in dimstrs:
+                            lname = Variable.constant_dimension(ddim)
+                            if not lname:
+                                var = vdict.find_variable_by_standard_name(ddim)
+                                if var:
+                                    if var.allocatable == 'parameter':
+                                        ldimstrs.append(var.local_name)
+                                    else:
+                                        ldimstrs.append(ddim)
+                                    # end if
+                                else:
+                                    ldimstrs.append(ddim)
+                                # end if
+                            else:
+                                ldimstrs.append(ddim)
+                            # end if
+                        # end for
+                        allocation_dimensions.append(':'.join(ldimstrs))
                     # end if
                 # end for
                 if def_dims:
@@ -611,7 +644,8 @@ class Variable(VarBase):
         # end for
         # Initialize the base class
         super().__init__(var_node, local_name,
-                                       my_dimensions, known_types, ttype,
+                                       my_dimensions, allocation_dimensions,
+                                       known_types, ttype,
                                        dycore=dycore, protected=protected)
 
         for attrib in var_node:
@@ -752,7 +786,7 @@ class Variable(VarBase):
         # end if
         # Be careful about dimensions, scalars have none, not '()'
         if self.dimensions:
-            dimension_string = self.dimension_string
+            dimension_string = self.allocation_dimension_string
         else:
             dimension_string = ''
         # end if
@@ -807,7 +841,7 @@ class Variable(VarBase):
     def write_tstep_init_routine(self, outfile, indent,
                                  ddt_str, physconst_vars, init_val=False):
         """
-        Write the code to iniitialize this variable to zero at the
+        Write the code to initialize this variable to zero at the
         start of each physics timestep.
 
         <ddt_str> is a prefix string (e.g., state%).
@@ -822,7 +856,7 @@ class Variable(VarBase):
         # end if
         # Be careful about dimensions, scalars have none, not '()'
         if self.dimensions:
-            dimension_string = self.dimension_string
+            dimension_string = self.allocation_dimension_string
         else:
             dimension_string = ''
         # end if
