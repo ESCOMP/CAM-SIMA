@@ -14,7 +14,7 @@
 [ boltz ]
   standard_name = boltzmann_constant
   long_name = Boltzmann's Constant
-  units = J K-1 molecule-1
+  units = J K-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True

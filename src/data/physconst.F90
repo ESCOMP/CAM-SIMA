@@ -46,7 +46,7 @@ module physconst
    !! \htmlinclude physconst.html
    ! Constants based off share code or defined in physconst
    real(kind_phys), public, parameter :: avogad      = real(shr_const_avogad, kind_phys)     ! Avogadro's number (molecules kmole-1)
-   real(kind_phys), public, parameter :: boltz       = real(shr_const_boltz, kind_phys)      ! Boltzman's constant (J K-1 molecule-1)
+   real(kind_phys), public, parameter :: boltz       = real(shr_const_boltz, kind_phys)      ! Boltzmann's constant (J K-1)
    real(kind_phys), public, parameter :: cday        = real(shr_const_cday, kind_phys)       ! sec in calendar day (seconds)
    real(kind_phys), public, parameter :: cpliq       = real(shr_const_cpfw, kind_phys)       ! specific heat of fresh h2o (J K-1 kg-1)
    real(kind_phys), public, parameter :: cpice       = real(shr_const_cpice, kind_phys)      ! specific heat of ice (J K-1 kg-1)
