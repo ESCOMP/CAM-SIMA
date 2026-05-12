@@ -32,7 +32,8 @@ module cam_history
    public :: history_add_field      ! Write to list of possible history fields for this run
    public :: history_out_field      ! Accumulate field if its in use by one or more tapes
    public :: history_wrap_up        ! Process history files at end of timestep or run
-   public :: history_restart_init   ! Initialize restart files, if necessary
+   public :: history_restart_init   ! Initialize history fields on restart file, if necessary
+   public :: history_restart_write  ! Write restart files, if necessary
 
    interface history_out_field
       module procedure history_out_field_1d
@@ -869,16 +870,35 @@ CONTAINS
 
 !#######################################################################
 
-   subroutine history_restart_init()
-      use cam_hist_restart_file, only: set_restart_variable_names, set_restart_dimension_names
-      ! Local variables
-      write(iulog,*) 'peverwhee - which have we just written'
-      write(iulog,*) just_wrote
-      write(iulog,*) max_num_fields
-      call set_restart_variable_names()
-      call set_restart_dimension_names(size(hist_configs), max_num_fields)
+   subroutine history_restart_init(restart_file)
+      use cam_hist_restart, only: hist_restart_init
+      use pio,              only: file_desc_t
+      type(file_desc_t), intent(inout) :: restart_file
+
+      if (max_num_fields > 0) then
+         call hist_restart_init(restart_file, size(hist_configs), max_num_fields)
+      end if
+
+      ! Create restart files for history tapes if necessary (.rhX.)
+
+      ! Add history restart variables to overall restart file (.r.)
    end subroutine history_restart_init
 
+!#######################################################################
+
+   subroutine history_restart_write(restart_file)
+      use pio,              only: file_desc_t
+      use cam_hist_restart, only: hist_restart_write
+!      use cam_hist_file, only: hist_file_restart_write
+      type(file_desc_t), intent(inout) :: restart_file
+
+      if (max_num_fields == 0) then
+         ! Don't do anything if there aren't any history fields
+         return
+      end if
+      call hist_restart_write(restart_file, hist_configs, max_num_fields, just_wrote)
+
+   end subroutine history_restart_write
 !#######################################################################
 
    recursive function get_entry_by_name(listentry, name) result(entry)

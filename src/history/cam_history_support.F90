@@ -9,6 +9,7 @@ module cam_history_support
 
    use shr_kind_mod,     only: r8=>shr_kind_r8, shr_kind_cl, shr_kind_cxx
    use cam_grid_support, only: max_hcoordname_len
+   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -118,6 +119,7 @@ module cam_history_support
   public     :: lookup_hist_coord_indices
   public     :: hist_coord_find_levels
   public     :: get_hist_coord_index
+  public     :: get_hist_coord_names
   public     :: parse_multiplier     ! Parse a repeat count and a token from input
 
   interface add_hist_coord
@@ -161,6 +163,24 @@ module cam_history_support
     end do
 
   end function get_hist_coord_index
+
+  function get_hist_coord_names() result(mdimnames)
+     use cam_abortutils, only: endrun
+     character(len=max_hcoordname_len), allocatable :: mdimnames(:)
+     character(len=512) :: errmsg
+     integer :: ierr, idx
+
+     allocate(mdimnames(registeredmdims), stat=ierr, errmsg=errmsg)
+     if (ierr /= 0) then
+        call endrun('get_hist_coord_names: failed to allocate mdimnames; errmsg = '//trim(errmsg))
+     end if
+     write(iulog,*) "peverwhee - num hist coords"
+     write(iulog,*) registeredmdims
+     do idx = 1, registeredmdims
+        mdimnames(idx) = hist_coords(idx)%name
+     end do
+
+  end function get_hist_coord_names
 
 
   ! Functions to check consistent term definition for hist coords

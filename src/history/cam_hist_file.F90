@@ -14,6 +14,7 @@ module cam_hist_file
    use runtime_obj,         only: UNSET_I => unset_int
    use runtime_obj,         only: UNSET_C => unset_str
    use runtime_obj,         only: UNSET_R8 => unset_real
+   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -101,6 +102,18 @@ module cam_hist_file
       procedure :: max_frame => config_max_frame
       procedure :: get_num_samples => config_get_num_samples
       procedure :: get_beg_time => config_get_beg_time
+      procedure :: get_field_list => config_get_field_list
+      procedure :: get_averaging_flags => config_get_averaging_flags
+      procedure :: get_decompositions => config_get_decompositions
+      procedure :: get_num_levels => config_get_num_levels
+      procedure :: get_cell_methods => config_get_cell_methods
+      procedure :: get_long_names => config_get_long_names
+      procedure :: get_units => config_get_units
+      procedure :: get_fill_flags => config_get_fill_flags
+      procedure :: get_fill_values => config_get_fill_values
+      procedure :: get_dimension_indices => config_get_dimension_indices
+      procedure :: get_num_dimensions => config_get_num_dimensions
+      procedure :: get_num_fields => config_get_num_fields
       procedure :: output_freq => config_output_freq
       procedure :: output_freq_separate => config_output_freq_separate
       procedure :: is_history_file => config_history_file
@@ -110,6 +123,7 @@ module cam_hist_file
       procedure :: do_write_nstep0 => config_do_write_nstep0
       procedure :: file_is_setup => config_file_is_setup
       procedure :: are_files_open => config_files_open
+      procedure :: has_accumulated_fields => config_has_accumulated_fields
       ! Actions
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
@@ -314,6 +328,238 @@ CONTAINS
 
    ! ========================================================================
 
+   function config_get_field_list(this) result(field_list)
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=max_fldlen), allocatable :: field_list(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: ierr, idx
+
+      allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         field_list(idx) = this%field_list(idx)%diag_name()
+      end do
+
+   end function config_get_field_list
+
+   ! ========================================================================
+
+   function config_get_averaging_flags(this) result(avgflags)
+      use cam_abortutils, only: endrun
+      use cam_history_support, only: max_chars
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=max_chars), allocatable :: avgflags(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: ierr, idx
+
+      allocate(avgflags(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         avgflags(idx) = this%field_list(idx)%accumulate_type()
+      end do
+   end function config_get_averaging_flags
+
+   ! ========================================================================
+
+   function config_get_decompositions(this) result(decomps)
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      integer,           allocatable :: decomps(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: ierr, idx
+      allocate(decomps(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_decompositions: failed to allocate decomps; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         decomps(idx) = this%field_list(idx)%decomp()
+      end do
+   end function config_get_decompositions
+
+   ! ========================================================================
+
+   function config_get_num_levels(this) result(numlevs)
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      integer,           allocatable :: numlevs(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: ierr, idx
+      allocate(numlevs(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_num_levels: failed to allocate numlevs; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         numlevs(idx) = this%field_list(idx)%num_levels()
+      end do
+   end function config_get_num_levels
+
+   ! ========================================================================
+
+   function config_get_cell_methods(this) result(cell_methods)
+      use cam_abortutils, only: endrun
+      use cam_history_support, only: max_chars
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=max_chars), allocatable :: cell_methods(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: ierr, idx
+      allocate(cell_methods(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_cell_methods: failed to allocate cell_methods; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         cell_methods(idx) = this%field_list(idx)%cell_methods()
+      end do
+   end function config_get_cell_methods
+
+   ! ========================================================================
+
+   function config_get_long_names(this) result(long_names)
+      use cam_abortutils, only: endrun
+      use cam_history_support, only: max_chars
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=max_chars), allocatable :: long_names(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: idx, ierr
+      allocate(long_names(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_long_names: failed to allocate long_names; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         long_names(idx) = this%field_list(idx)%long_name()
+      end do
+   end function config_get_long_names
+
+   ! ========================================================================
+
+   function config_get_units(this) result(units)
+      use cam_abortutils, only: endrun
+      use cam_history_support, only: max_chars
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=max_chars), allocatable :: units(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: idx, ierr
+      allocate(units(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_units: failed to allocate units; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         units(idx) = this%field_list(idx)%units()
+      end do
+   end function config_get_units
+
+   ! ========================================================================
+
+   function config_get_fill_flags(this) result(flags)
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      integer,           allocatable :: flags(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: idx, ierr
+      allocate(flags(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_fill_flags: failed to allocate flags; errmsg = '//errmsg)
+      end if
+      flags = 0
+      do idx = 1, size(this%field_list)
+         if (this%field_list(idx)%flag_xyfill()) then
+            flags(idx) = 1
+         end if
+      end do
+   end function config_get_fill_flags
+
+   ! ========================================================================
+
+   function config_get_fill_values(this) result(fill_values)
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      real(r8),          allocatable :: fill_values(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: idx, ierr
+      allocate(fill_values(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_fill_values: failed to allocate fill_values; errmsg = '//errmsg)
+      end if
+!      do idx = 1, size(this%field_list)
+!         fill_values(idx) = this%field_list(idx)%fill_value()
+!      end do
+      fill_values = 0._r8
+   end function config_get_fill_values
+
+   ! ========================================================================
+
+   function config_get_dimension_indices(this) result(dimids)
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      integer,           allocatable :: dimids(:,:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: idx, ierr
+      allocate(dimids(4, size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_dimension_indices: failed to allocate dimids; errmsg = '//errmsg)
+      end if
+      dimids = 0
+      do idx = 1, size(this%field_list)
+         if (size(this%field_list(idx)%dimensions()) > 0) then
+            dimids(1:size(this%field_list(idx)%dimensions()), idx) = this%field_list(idx)%dimensions()
+         end if
+      end do
+   end function config_get_dimension_indices
+
+   ! ========================================================================
+
+   function config_get_num_dimensions(this) result (ndims)
+      use cam_abortutils, only: endrun
+      class(hist_file_t), intent(in) :: this
+      integer,           allocatable :: ndims(:)
+      ! Local variables
+      character(len=512) :: errmsg
+      integer :: ierr, idx
+
+      allocate(ndims(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      if (ierr /= 0) then
+         call endrun('config_get_num_dimensions: failed to allocate ndims; errmsg = '//errmsg)
+      end if
+      do idx = 1, size(this%field_list)
+         ndims(idx) = size(this%field_list(idx)%dimensions())
+      end do
+   end function config_get_num_dimensions
+
+   ! ========================================================================
+
+   pure function config_get_num_fields(this) result(nflds)
+      class(hist_file_t), intent(in)  :: this
+      integer                         :: nflds
+
+      nflds = size(this%field_list)
+      
+   end function config_get_num_fields
+   ! ========================================================================
+
    function config_output_freq(this) result(out_freq)
       use shr_kind_mod,   only: CS => SHR_KIND_CS
       use shr_string_mod, only: to_lower => shr_string_toLower
@@ -429,6 +675,16 @@ CONTAINS
       files_open = this%files_open
 
    end function config_files_open
+
+   ! ========================================================================
+
+   pure function config_has_accumulated_fields(this) result(has_accum)
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      logical                        :: has_accum
+
+      has_accum = this%has_accumulated
+   end function config_has_accumulated_fields
 
    ! ========================================================================
 
@@ -762,7 +1018,6 @@ CONTAINS
             write(errmsg,'(3a)') 'ERROR Field : ',trim(this%field_names(idx)),' not available'
             call endrun(subname//errmsg, file=__FILE__, line=__LINE__)
          end select
-         !call field_ptr%dimensions(dimensions)
          dimensions = field_ptr%dimensions()
          field_shape = field_ptr%shape()
          beg_dim = field_ptr%beg_dims()
