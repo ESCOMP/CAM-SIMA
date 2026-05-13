@@ -566,7 +566,7 @@ contains
             call cam_thermo_water_update( &
                 constituents, ncells_solve, pver, energy_formula_dycore_mpas, cp_or_cv_dycore)
 
-            cp_or_cv_dycore_at_start_of_physics_timestep(:ncells_solve, :) = cp_or_cv_dycore(:ncells_solve, :)
+            cp_or_cv_dycore_at_start_of_physics_timestep(:, :) = cp_or_cv_dycore(:, :)
 
             ! This variable name is really misleading. It actually represents the reciprocal of Exner function
             ! with respect to surface pressure. This definition is sometimes used for boundary layer work. See
