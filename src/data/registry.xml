@@ -583,12 +583,10 @@
               standard_name="specific_heat_of_air_used_in_dycore_at_start_of_physics_timestep"
               units="J kg-1 K-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <long_name>Specific heat of air used in the dynamical core (enthalpy for
-                 pressure-based dynamical cores and internal energy for z-based
-                 dynamical cores), at start of physics timestep, for energy-consistency scaling and energy checker</long_name>
+      <long_name>Specific heat of air used in the dynamical core (enthalpy for pressure-based dynamical cores and internal energy for z-based dynamical cores), at start of physics timestep, for energy-consistency scaling and energy checker</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- Note: this quantity is read from CAM snapshot from the dycore value
-           since the CAM fix in cam6_4_xxx (CAM#1554) restores the mid-physics update
+           since the CAM fix in cam6_4_173 (CAM#1554) restores the mid-physics update
            value (for total energy diagnostics) to the start of physics timestep
            (d_p_coupling) value. It is used for running the energy checker for
            individual physics scheme tests. -->
