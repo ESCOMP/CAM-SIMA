@@ -507,7 +507,8 @@ contains
             use dyn_comp, only: advected_constituent_index, mpas_dynamical_core
             use dyn_procedures, only: exner_function
             use dynconst, only: constant_g => gravit
-            use physics_types, only: cappav, cp_or_cv_dycore, cp_or_cv_dycore_at_start_of_physics_timestep, cpairv, lagrangian_vertical, phys_state, rairv, zvirv
+            use physics_types, only: cappav, cp_or_cv_dycore, cp_or_cv_dycore_at_start_of_physics_timestep, &
+                                     cpairv, lagrangian_vertical, phys_state, rairv, zvirv
             use runtime_obj, only: cam_runtime_opts
             use string_utils, only: stringify
             use vert_coord, only: pver, pverp
