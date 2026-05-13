@@ -588,6 +588,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use air_composition,   only: dry_air_species_num
    use physics_types,     only: cpairv, rairv, zvirv, cappav
    use physics_types,     only: cp_or_cv_dycore
+   use physics_types,     only: cp_or_cv_dycore_at_start_of_physics_timestep
    use physics_grid,      only: columns_on_task
    use geopotential_temp, only: geopotential_temp_run
    use static_energy,     only: update_dry_static_energy_run
@@ -806,6 +807,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
         energy_formula  = ENERGY_FORMULA_DYCORE_SE, &
         cp_or_cv_dycore = cp_or_cv_dycore           &
    )
+
+   cp_or_cv_dycore_at_start_of_physics_timestep(:,:) = cp_or_cv_dycore(:,:)
 
    !$omp parallel do num_threads(horz_num_threads) private (k, i)
    do k = 1, nlev
