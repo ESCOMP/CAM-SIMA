@@ -133,11 +133,13 @@ contains
     res = .false.
   end function icenuc_updates_mmr
 
-  subroutine apply_number_limits(self, naerosol, vaerosol, istart, istop, m)
+  subroutine apply_number_limits( self, naerosol, vaerosol, ncol, nlev, m )
     class(carma_aerosol_properties), intent(in) :: self
-    real(r8), intent(inout) :: naerosol(:)
-    real(r8), intent(in) :: vaerosol(:)
-    integer, intent(in) :: istart, istop, m
+    real(r8), intent(inout) :: naerosol(:,:)  ! number conc (1/m3)
+    real(r8), intent(in)    :: vaerosol(:,:)  ! volume conc (m3/m3)
+    integer,  intent(in) :: ncol            ! number of columns
+    integer,  intent(in) :: nlev            ! number of vert levels
+    integer, intent(in) :: m
     call endrun('carma_aerosol_properties%apply_number_limits: not implemented')
   end subroutine apply_number_limits
 
