@@ -1291,7 +1291,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "prot_no_init_idx", "const_idx",
                                    "flush_check_field_verbose"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
-                                   "cam_advected_constituents_array",
+                                   "cam_constituents_array",
                                    "cam_model_const_properties"]],
                  ["cam_constituents", ["const_get_index"]],
                  ["ccpp_kinds", ["kind_phys"]],
@@ -1475,7 +1475,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end do !CCPP suites", 2)
     outfile.blank_line()
     outfile.comment("Check constituent variables", 2)
-    outfile.write("field_data_ptr => cam_advected_constituents_array()", 2)
+    outfile.write("field_data_ptr => cam_constituents_array()", 2)
     outfile.write("const_props => cam_model_const_properties()", 2)
     outfile.blank_line()
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
