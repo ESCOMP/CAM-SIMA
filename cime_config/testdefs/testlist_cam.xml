@@ -178,7 +178,7 @@
   </test>
 
   <!-- History output test -->
-  <test compset="FKESSLER" grid="mpasa120_mpasa120" name="SMS_Ln9" testmods="cam/outfrq_kessler_mpas_derecho_history">
+  <test compset="FKESSLER" grid="mpasa480_mpasa480" name="SMS_Ln9" testmods="cam/outfrq_kessler_mpas_derecho_history">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
