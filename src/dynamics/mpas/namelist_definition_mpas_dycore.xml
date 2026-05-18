@@ -14,6 +14,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.5</value>
         </values>
@@ -26,6 +27,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value hgrid="mpasa480">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa480.graph.info.part.</value>
             <value hgrid="mpasa120">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120.graph.info.part.</value>
@@ -44,6 +46,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>m s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -55,6 +58,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>1.0</value>
         </values>
@@ -67,6 +71,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>10.0</value>
         </values>
@@ -78,6 +83,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>s</units>
         <values>
             <value hgrid="mpasa480">1800.0</value>
             <value hgrid="mpasa120">900.0</value>
@@ -93,6 +99,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -105,6 +112,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.0</value>
         </values>
@@ -116,6 +124,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.5</value>
         </values>
@@ -127,6 +136,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.1</value>
         </values>
@@ -138,6 +148,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>m</units>
         <values>
             <value>30000.0</value>
         </values>
@@ -149,6 +160,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>m</units>
         <values>
             <value>50000.0</value>
         </values>
@@ -160,6 +172,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -172,6 +185,7 @@
         </desc>
         <group>mpas_development</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -183,6 +197,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -194,6 +209,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m4 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -206,6 +222,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -217,6 +234,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -228,6 +246,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m4 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -239,6 +258,7 @@
         </desc>
         <group>mpas_development</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>mpas_halo</value>
         </values>
@@ -250,6 +270,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>2d_smagorinsky</value>
         </values>
@@ -262,6 +283,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m</units>
         <values>
             <value hgrid="mpasa480">480000.0</value>
             <value hgrid="mpasa120">120000.0</value>
@@ -276,6 +298,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>none</value>
         </values>
@@ -287,6 +310,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>none</value>
         </values>
@@ -299,6 +323,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -310,6 +335,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -321,6 +347,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -332,6 +359,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>2</value>
         </values>
@@ -345,6 +373,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>0</value>
         </values>
@@ -356,6 +385,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>0</value>
         </values>
@@ -367,6 +397,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>2</value>
         </values>
@@ -380,6 +411,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>5</value>
         </values>
@@ -391,6 +423,7 @@
         </desc>
         <group>mpas_io</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>0</value>
         </values>
@@ -402,6 +435,7 @@
         </desc>
         <group>mpas_io</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>1</value>
         </values>
@@ -413,6 +447,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -426,6 +461,7 @@
         </desc>
         <group>mpas_printout</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -437,6 +473,7 @@
         </desc>
         <group>mpas_printout</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -449,6 +486,7 @@
         </desc>
         <group>mpas_printout</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -460,6 +498,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>graph.info.part.</value>
         </values>
@@ -475,6 +514,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -487,6 +527,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>days</units>
         <values>
             <value>5.0</value>
         </values>
@@ -499,6 +540,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>6.0</value>
         </values>
@@ -510,6 +552,7 @@
         </desc>
         <group>mpas_io</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>restart_timestamp</value>
         </values>
@@ -521,6 +564,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -532,6 +576,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -543,6 +588,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -555,6 +601,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.125</value>
         </values>
@@ -566,6 +613,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.1</value>
         </values>
@@ -577,6 +625,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -588,6 +637,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.0</value>
         </values>
@@ -599,6 +649,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>K m s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -610,6 +661,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>kg m s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -621,6 +673,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -632,6 +685,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -643,6 +697,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>SRK3</value>
         </values>
@@ -654,6 +709,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>2</value>
         </values>
@@ -665,6 +721,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -676,6 +733,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -687,6 +745,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -699,6 +758,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m s-1</units>
         <values>
             <value>0.05</value>
         </values>
@@ -710,6 +770,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -721,6 +782,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -732,6 +794,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>s-1</units>
         <values>
             <value>0.2</value>
         </values>
@@ -743,6 +806,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>m</units>
         <values>
             <value>22000.0</value>
         </values>
