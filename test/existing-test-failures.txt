@@ -3,3 +3,7 @@ SMS_Ln9.ne3pg3_ne3pg3_mg37.FKESSLER.derecho_intel.cam-outfrq_se_cslam_multitape
 
 SMS_Ln9.ne3pg3_ne3pg3_mg37.FADIAB.derecho_gnu.cam-outfrq_se_cslam
   - known FAIL on shr_reprosum_calc call from src/dynamics/se/dycore/global_norms_mod.F90
+
+SMS_Ln2.ne3pg3_ne3pg3_mg37.FPHYStest.derecho_gnu.cam-outfrq_zm_derecho (Overall: DIFF) details:
+  - known failure due to ZM science update after merging atmos_phys #392
+  - CAM-SIMA issue #502: need to update ZM snapshot in CAM

@@ -721,6 +721,7 @@ CONTAINS
       ! Mark other energy variables calculated by check_energy_timestep_init
       ! here since it will always run when required
       call mark_as_initialized("specific_heat_of_air_used_in_dycore")
+      call mark_as_initialized("specific_heat_of_air_used_in_dycore_at_start_of_physics_timestep")
       call mark_as_initialized("vertically_integrated_total_energy_using_physics_energy_formula_at_start_of_physics_timestep")
       call mark_as_initialized("vertically_integrated_total_energy_using_physics_energy_formula")
       call mark_as_initialized("vertically_integrated_total_energy_using_dycore_energy_formula_at_start_of_physics_timestep")

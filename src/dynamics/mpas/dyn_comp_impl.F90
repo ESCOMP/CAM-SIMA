@@ -1000,6 +1000,7 @@ contains
         call mark_as_initialized('reciprocal_of_air_pressure_thickness_of_dry_air')
         call mark_as_initialized('reciprocal_of_dimensionless_exner_function_wrt_surface_air_pressure')
         call mark_as_initialized('specific_heat_of_air_used_in_dycore')
+        call mark_as_initialized('specific_heat_of_air_used_in_dycore_at_start_of_physics_timestep')
         call mark_as_initialized('surface_air_pressure')
         call mark_as_initialized('surface_geopotential')
         call mark_as_initialized('surface_pressure_of_dry_air')
