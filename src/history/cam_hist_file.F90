@@ -1554,21 +1554,11 @@ CONTAINS
       end_dims = field%end_dims()
       frank = size(field_shape)
       if (frank == 1) then
-         if (trim(field_precision) == 'REAL32') then
-            allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
-            call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
-         else
-            allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
-            call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
-         end if
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       else
-         if (trim(field_precision) == 'REAL32') then
-            allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
-            call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
-         else
-            allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
-            call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
-         end if
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       end if
       ! Shape of array
       dimind = field%dimensions()
