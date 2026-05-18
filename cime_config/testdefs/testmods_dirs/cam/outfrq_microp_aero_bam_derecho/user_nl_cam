@@ -42,3 +42,27 @@ rad_aer_climate = 'N:sulf:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physpr
          'N:ocar2:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/ocphi_rrtmg_c080918.nc', 'N:sslt1:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt1_rrtmg_c080918.nc',
          'N:sslt2:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt2_rrtmg_c080918.nc', 'N:sslt3:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt3_rrtmg_c080918.nc',
          'N:sslt4:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt4_rrtmg_c080918.nc'
+
+! diagnostics for microp_aero BAM suite
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
+
+! scale_subgrid_vertical_velocity diagnostics
+hist_add_inst_fields;h1: WSUB,WSUBI
+
+! nucleate_ice diagnostics
+hist_add_inst_fields;h1: NIHFTEN,NIIMMTEN,NIDEPTEN,NIMEYTEN
+hist_add_inst_fields;h1: NIREGM,NISUBGRID,NITROP_PD
+hist_add_inst_fields;h1: FHOM,WICE,WEFF
+hist_add_inst_fields;h1: INnso4TEN,INnbcTEN,INndustTEN,INondustTEN,INhetTEN,INhomTEN
+hist_add_inst_fields;h1: INFrehom,INFreIN
+
+! ndrop_bam diagnostics: CCN at fixed supersaturation levels
+hist_add_inst_fields;h1: CCN1,CCN2,CCN3,CCN4,CCN5,CCN6
+
+! ndrop_bam diagnostics: aerosol number concentration (names from physprops files)
+hist_add_inst_fields;h1: SULFATE_m3,DUST1_m3,DUST2_m3,DUST3_m3,DUST4_m3
+hist_add_inst_fields;h1: BCPHO_m3,BCPHI_m3,OCPHO_m3,OCPHI_m3
+hist_add_inst_fields;h1: SEASALT1_m3,SEASALT2_m3,SEASALT3_m3,SEASALT4_m3
