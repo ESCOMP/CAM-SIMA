@@ -85,6 +85,7 @@ module dyn_mpas_subdriver
         type(domain_type), pointer :: domain_ptr => null()
 
         ! Initialized by `dyn_mpas_init_phase3`.
+        logical :: les_model = .false.
         integer :: number_of_constituents = 0
 
         ! Initialized by `dyn_mpas_define_scalar`.
@@ -725,7 +726,6 @@ contains
         character(strkind), pointer :: config_les_model
         integer :: mesh_format
         integer, pointer :: num_scalars
-        logical :: mpas_without_les
         type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(log_level_debug, subname // ' entered')
@@ -736,7 +736,7 @@ contains
 
         call self % get_variable_pointer(config_les_model, 'cfg', 'config_les_model')
 
-        mpas_without_les = (trim(adjustl(config_les_model)) == 'none')
+        self % les_model = (trim(adjustl(config_les_model)) /= 'none')
 
         nullify(config_les_model)
 
@@ -750,7 +750,7 @@ contains
         ! Such capability is implemented provided that:
         ! 1. `qc` must be one of the constituents just like `qv`;
         ! 2. `tke` is treated as an extra "phantom" constituent that is internal to MPAS only.
-        if (mpas_without_les) then
+        if (.not. self % les_model) then
             self % number_of_constituents = max(1, number_of_constituents) ! "1" is for `qv`.
         else
             self % number_of_constituents = max(2, number_of_constituents) ! "2" is for `qv` and `qc`.
@@ -762,7 +762,7 @@ contains
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
         ! from other Registry-defined fields. The special logic is located in `atm_setup_block`.
         ! This must be done before calling `mpas_bootstrap_framework_phase1`.
-        if (mpas_without_les) then
+        if (.not. self % les_model) then
             ! No need to add an extra "phantom" constituent, `tke`.
             call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents)
         else
@@ -806,7 +806,7 @@ contains
         end if
 
         ! While we are at it, check if its value is consistent.
-        if (mpas_without_les) then
+        if (.not. self % les_model) then
             if (num_scalars /= self % number_of_constituents) then
                 call self % model_error('Failed to allocate constituents', subname, __LINE__)
             end if
@@ -882,18 +882,15 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar'
         character(strkind) :: cerr
-        character(strkind), pointer :: config_les_model
         integer :: i, j
         integer :: ierr
         integer :: index_qv, index_qc, index_tke, index_water_start, index_water_end
         integer :: time_level
-        logical :: mpas_without_les
         type(field3dreal), pointer :: field_3d_real
         type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(log_level_debug, subname // ' entered')
 
-        nullify(config_les_model)
         nullify(field_3d_real)
         nullify(mpas_pool)
 
@@ -918,12 +915,6 @@ contains
                 subname, __LINE__)
         end if
 
-        call self % get_variable_pointer(config_les_model, 'cfg', 'config_les_model')
-
-        mpas_without_les = (trim(adjustl(config_les_model)) == 'none')
-
-        nullify(config_les_model)
-
         ! Input sanitization.
 
         if (size(constituent_name) /= size(is_water_species)) then
@@ -931,7 +922,7 @@ contains
         end if
 
         if (size(constituent_name) == 0) then
-            if (mpas_without_les) then
+            if (.not. self % les_model) then
                 ! If constituent definitions are empty and LES is disabled, `qv` is the only
                 ! one constituent as per MPAS requirements.
                 ! See `dyn_mpas_init_phase3` for details.
@@ -1016,7 +1007,7 @@ contains
         ! If LES is enabled, `qc` and `tke` must be present in constituents as per MPAS requirements.
         ! Otherwise, it is fine to not have them.
         ! See `dyn_mpas_init_phase3` for details.
-        if (.not. mpas_without_les) then
+        if (self % les_model) then
             if (index_qc == 0) then
                 call self % model_error('Constituent names must contain one of: ' // &
                     stringify(mpas_scalar_qc_standard_name) // ', and it must be a water species', subname, __LINE__)
