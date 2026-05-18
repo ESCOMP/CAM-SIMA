@@ -1707,6 +1707,20 @@
       <ic_file_input_names>dust4 pbuf_dust4 cnst_dust4</ic_file_input_names>
     </variable>
 
+    <!-- Prescribed volcanic aerosol (CAM4, CAM5) -->
+    <variable local_name="VOLC_MMR"
+              standard_name="VOLC_MMR"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>VOLC_MMR pbuf_VOLC_MMR</ic_file_input_names>
+    </variable>
+    <variable local_name="VOLC_RAD_GEOM"
+              standard_name="VOLC_RAD_GEOM"
+              units="m" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>VOLC_RAD_GEOM pbuf_VOLC_RAD_GEOM</ic_file_input_names>
+    </variable>
+
     <!-- Zhang McFarlane (ZM) Variables -->
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
