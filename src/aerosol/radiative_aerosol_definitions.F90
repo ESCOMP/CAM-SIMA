@@ -186,10 +186,10 @@ module radiative_aerosol_definitions
 !! \section arg_table_aerlist_t
 !! \htmlinclude aerlist_t.html
   type, public :: aerlist_t
-     integer                  :: numaerosols  ! number of aerosols
+     integer                  :: numaerosols = 0  ! number of aerosols
      character(len=2)         :: list_id      ! set to "  " for climate list, or two character integer
                                               ! (include leading zero) to identify diagnostic list
-     type(aerosol_t), pointer :: aer(:)       ! dimension(numaerosols)
+     type(aerosol_t), pointer :: aer(:) => null()  ! dimension(numaerosols)
   end type aerlist_t
 
 !! \section arg_table_modelist_t
@@ -197,7 +197,7 @@ module radiative_aerosol_definitions
   ! storage for modal aerosol components in the climate/diagnostic lists
   type, public :: modelist_t
      ! number of modes
-     integer                             :: nmodes
+     integer                             :: nmodes = 0
 
      ! set to "  " for climate list, or two character integer
      ! (include leading zero) to identify diagnostic list
@@ -205,11 +205,11 @@ module radiative_aerosol_definitions
      character(len=2)                    :: list_id
 
      ! index of the mode in the mode definition object
-     integer,                    pointer :: idx(:)
+     integer,                    pointer :: idx(:) => null()
      ! physprop filename
-     character(len=256),         pointer :: physprop_files(:)
+     character(len=256),         pointer :: physprop_files(:) => null()
      ! index of the mode properties in the physprop object
-     integer,                    pointer :: idx_props(:)
+     integer,                    pointer :: idx_props(:) => null()
   end type modelist_t
 
 !! \section arg_table_binlist_t
@@ -217,7 +217,7 @@ module radiative_aerosol_definitions
   ! storage for bin aerosol components in the climate/diagnostic lists
   type, public :: binlist_t
      ! number of bins
-     integer            :: nbins
+     integer            :: nbins = 0
 
      ! set to "  " for climate list, or two character integer
      ! (include leading zero) to identify diagnostic list
@@ -225,11 +225,11 @@ module radiative_aerosol_definitions
      character(len=2)   :: list_id
 
      ! index of the bin in the bin definition object
-     integer,   pointer :: idx(:)
+     integer,   pointer :: idx(:) => null()
      ! physprop filename
-     character(len=256), pointer :: physprop_files(:)
+     character(len=256), pointer :: physprop_files(:) => null()
      ! index of the bin properties in the physprop object
-     integer,   pointer :: idx_props(:)
+     integer,   pointer :: idx_props(:) => null()
   end type binlist_t
 
   ! max number of strings in mode definitions
