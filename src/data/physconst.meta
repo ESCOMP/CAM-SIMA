@@ -7,7 +7,7 @@
 [ avogad ]
   standard_name = avogadro_number
   long_name = Avogadro's Number
-  units = molecules mole-1
+  units = molecules kmol-1
   type = real | kind = kind_phys
   dimensions = ()
   protected = True

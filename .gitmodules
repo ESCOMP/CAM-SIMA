@@ -5,9 +5,9 @@
         fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/NCAR/ccpp-framework
 [submodule "history"]
-	path = src/history/buffers
-	url = https://github.com/ESMCI/history_output
-	fxtag         = history01_00
+	path          = src/history/buffers
+	url           = https://github.com/ESMCI/history_output
+	fxtag         = history01_01
 	fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
@@ -20,12 +20,12 @@
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
 	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = 3f5435e8a9a53eb00f14a6b14975f92580b525d4
+	fxtag         = 26f4f553da47fc4b347f0ee80ea1041dd0da7988
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "rrtmgp-data"]
-	path = src/physics/utils/rrtmgp-data
-	url = https://github.com/earth-system-radiation/rrtmgp-data.git
+	path          = src/physics/utils/rrtmgp-data
+	url           = https://github.com/earth-system-radiation/rrtmgp-data.git
         fxrequired    = AlwaysRequired
         fxtag         = v1.8
         fxDONOTUSEurl = https://github.com/earth-system-radiation/rrtmgp-data.git
@@ -102,8 +102,8 @@
         fxrequired    = ToplevelRequired
 	fxDONOTUSEurl = https://github.com/ESCOMP/CESM_share
 [submodule "tools/CUPiD"]
-	path = tools/CUPiD
-	url = https://github.com/NCAR/CUPiD.git
+	path          = tools/CUPiD
+	url           = https://github.com/NCAR/CUPiD.git
 	fxtag         = v0.4.0
 	fxrequired    = ToplevelRequired
 	fxDONOTUSEurl = https://github.com/NCAR/CUPiD.git

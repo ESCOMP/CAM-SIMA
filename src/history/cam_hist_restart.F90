@@ -92,7 +92,7 @@ CONTAINS
    subroutine hist_restart_write(restart_file, hist_configs, max_num_fields, just_written)
       use pio,                 only: file_desc_t, pio_put_var
       use cam_hist_file,       only: hist_file_t
-      use cam_history_support, only: max_chars, max_string_len, get_hist_coord_names
+      use cam_history_support, only: max_chars, max_string_len, get_hist_coord_names, registeredmdims
       use cam_grid_support,    only: max_split_files, max_hcoordname_len
       use cam_abortutils,      only: endrun
       type(file_desc_t), intent(inout) :: restart_file
@@ -120,7 +120,7 @@ CONTAINS
       character(len=max_chars) :: long_name(max_num_fields, size(hist_configs))
       character(len=max_chars) :: cell_methods(max_num_fields, size(hist_configs))
       character(len=max_chars) :: units(max_num_fields, size(hist_configs))
-      character(len=max_hcoordname_len) :: dim_names(max_dimensions)
+      character(len=max_hcoordname_len) :: dim_names(registeredmdims)
       real(r8) :: beg_time(size(hist_configs))
       real(r8) :: fill_value(max_num_fields, size(hist_configs))
       logical :: has_accum
@@ -184,8 +184,6 @@ CONTAINS
 
       ! Grab the dimension names
       dim_names = get_hist_coord_names()
-      write(iulog,*) 'peverwhee - dim_names'
-      write(iulog,*) dim_names
 
       ! Loop over the restart vars and write them to the file
       do idx = 1, num_restart_vars
@@ -229,6 +227,7 @@ CONTAINS
          case ('dimension_names')
             ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, dim_names)
          case ('history_restart_path')
+            ! PEVERWHEE Needs accumulated fields to properly implement
          case default
          end select
          if (ierr /= 0) then
