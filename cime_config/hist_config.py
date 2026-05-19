@@ -713,7 +713,7 @@ class HistoryVolConfig():
         if self.__min_fields.num_fields() > 0:
             self.__inst_fields.add_fields(self.__min_fields.field_names, pobj, [self.__inst_fields], logger)
             min_field_list = list(self.__min_fields.field_names)
-            self.__min_fields.remove_fields(min_field_list.field_names, pobj, logger)
+            self.__min_fields.remove_fields(min_field_list, pobj, logger)
         # end if
 
         if self.__max_fields.num_fields() > 0:
@@ -833,7 +833,9 @@ class HistoryVolConfig():
             # end if
             # Convert accumulated fields to instantaneous fields if we're set
             # to output every timestep
-            if self.__output_freq == (1, 'nsteps'):
+            if (self.__output_freq == (1, 'nsteps') or
+                self.__output_freq == (1, 'nstep' ) or
+                self.__output_freq == (1, 'steps')):
                 self.convert_accumulated_fields(pobj, logger)
             # end if
             return True

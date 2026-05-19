@@ -1520,7 +1520,6 @@ CONTAINS
       use shr_kind_mod,        only: r4 => shr_kind_r4
       use hist_msg_handler,    only: hist_log_messages
       use cam_logfile,         only: iulog
-      use cam_abortutils,      only: endrun
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
       type(hist_field_info_t), intent(inout) :: field
