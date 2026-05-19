@@ -430,7 +430,7 @@ def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
             # Add this variable to the ic_names dictionary
             ic_names[stdname] = [locname]
         # end if
-    # end if
+    # end for
     # Also check registry constituents for longer IC names
     for const in registry_constituents:
         if const in ic_names:
