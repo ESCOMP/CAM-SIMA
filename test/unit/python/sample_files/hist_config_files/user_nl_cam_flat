@@ -13,7 +13,9 @@ use_topo_file = .false.
 
 ! More history configuration
 hist_add_inst_fields;h3: T, U, V
-hist_output_frequency;h3: 2*nsteps
+! This avg field will be converted to inst because output freq = 1*nsteps
+hist_add_avg_fields;h3: PS
+hist_output_frequency;h3: 1*nsteps
 hist_precision;h3: REAL64
 hist_max_frames;h3: 24
 
