@@ -345,23 +345,34 @@ class HistFieldList():
         self.__field_names = []
         self.__max_namelen = 0
 
-    def _add_item(self, item, pobj, logger):
+    def _add_item(self, item, pobj, full_field_list, logger):
         """Add field name, <item> to this object and return True if this
            field name was added.
         <item> is a single item to be added.
         <pobj> is the ParseObject source of <items>.
+        <full_field_list> is the list of all fields for this volume
         """
         if not _is_string(item)[0]:
             errmsg = f"Bad diagnostic name, '{item}'"
             pobj.add_syntax_err(errmsg)
             return False
         # end if
-        if item in self.__field_names:
-            # Field is a duplicate
-            ctx = context_string(pobj)
-            logger.warning(f"Field, '{item}' already in {self.desc} fields for hist volume, {self.volume}{ctx}")
-            return False
-        # end if
+        for field_list in full_field_list:
+            if item in field_list.__field_names:
+                if self == field_list:
+                    # Field is a duplicate, same flag (so this is just a warning)
+                    ctx = context_string(pobj)
+                    logger.warning(f"Field, '{item}' already in {self.desc} fields for hist volume, {self.volume}{ctx}")
+                    return False
+                else:
+                    # Field is a duplicate, different flag (this is an error)
+                    ctx = context_string(pobj)
+                    emsg = f"Field, '{item}' already in {field_list.desc} fields for hist volume, {self.volume}. Cannot also add to {self.desc} fields for the same volume{ctx}"
+                    pobj.add_syntax_err(emsg)
+                    return False
+                # end if
+            # end if
+        # end for
         self.__field_names.append(item)
         self.__max_namelen = max(len(item), self.__max_namelen)
         if logger.getEffectiveLevel() <= logging.DEBUG:
@@ -370,18 +381,19 @@ class HistFieldList():
         # end if
         return True
 
-    def add_fields(self, items, pobj, logger):
+    def add_fields(self, items, pobj, full_field_list, logger):
         """Add <items> to this object and return True if all items were added.
         <items> can be a single item or a list.
         <pobj> is the ParseObject source of <items>
+        <full_field_list> is the list of all fields for this volume
         """
         if isinstance(items, list):
             do_add = True
             for item in items:
-                do_add &= self._add_item(item, pobj, logger)
+                do_add &= self._add_item(item, pobj, full_field_list, logger)
             # end for
         else:
-            do_add = self._add_item(items, pobj, logger)
+            do_add = self._add_item(items, pobj, full_field_list, logger)
         # end if
         return do_add
 
@@ -408,7 +420,6 @@ class HistFieldList():
     def num_fields(self):
         """Return the number of fields in this HistFieldList object."""
         return len(self.__field_names)
-
 
     def output_nl_fieldlist(self, outfile, field_varname):
         """Output the field name of this HistFieldList object as a namelist
@@ -633,7 +644,7 @@ class HistoryVolConfig():
            HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of last fields.
         """
-        add_ok = self.__inst_fields.add_fields(fields, pobj, logger)
+        add_ok = self.__inst_fields.add_fields(fields, pobj, self.__all_fields, logger)
         return add_ok
 
     def add_avg_fields(self, fields, pobj, logger):
@@ -641,28 +652,28 @@ class HistoryVolConfig():
         object.
         Return True if it was okay to add <fields> to list of avg fields.
         """
-        add_ok = self.__avg_fields.add_fields(fields, pobj, logger)
+        add_ok = self.__avg_fields.add_fields(fields, pobj, self.__all_fields, logger)
         return add_ok
 
     def add_min_fields(self, fields, pobj, logger):
         """Add one or more min_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of min fields.
         """
-        add_ok = self.__min_fields.add_fields(fields, pobj, logger)
+        add_ok = self.__min_fields.add_fields(fields, pobj, self.__all_fields, logger)
         return add_ok
 
     def add_max_fields(self, fields, pobj, logger):
         """Add one or more max_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of max fields.
         """
-        add_ok = self.__max_fields.add_fields(fields, pobj, logger)
+        add_ok = self.__max_fields.add_fields(fields, pobj, self.__all_fields, logger)
         return add_ok
 
     def add_var_fields(self, fields, pobj, logger):
         """Add one or more var_fields to this HistoryVolConfig object.
         Return True if it was okay to add <fields> to list of var fields.
         """
-        add_ok = self.__var_fields.add_fields(fields, pobj, logger)
+        add_ok = self.__var_fields.add_fields(fields, pobj, self.__all_fields, logger)
         return add_ok
 
     def remove_fields(self, fields, pobj, logger):
@@ -684,6 +695,32 @@ class HistoryVolConfig():
             logger.warning(errmsg)
         # end if
         return all_removed
+
+    def convert_accumulated_fields(self, pobj, logger):
+        """Move all accumulated fields to instantaneous field list"""
+        if self.__var_fields.num_fields() > 0:
+            self.__inst_fields.add_fields(self.__var_fields.field_names, pobj, [self.__inst_fields], logger)
+            var_field_list = list(self.__var_fields.field_names)
+            self.__var_fields.remove_fields(var_field_list, pobj, logger)
+        # end if
+
+        if self.__avg_fields.num_fields() > 0:
+            self.__inst_fields.add_fields(self.__avg_fields.field_names, pobj, [self.__inst_fields], logger)
+            avg_field_list = list(self.__avg_fields.field_names)
+            self.__avg_fields.remove_fields(avg_field_list, pobj, logger)
+        # end if
+
+        if self.__min_fields.num_fields() > 0:
+            self.__inst_fields.add_fields(self.__min_fields.field_names, pobj, [self.__inst_fields], logger)
+            min_field_list = list(self.__min_fields.field_names)
+            self.__min_fields.remove_fields(min_field_list, pobj, logger)
+        # end if
+
+        if self.__max_fields.num_fields() > 0:
+            self.__inst_fields.add_fields(self.__max_fields.field_names, pobj, [self.__inst_fields], logger)
+            max_field_list = list(self.__max_fields.field_names)
+            self.__max_fields.remove_fields(max_field_list, pobj, logger)
+        # end if
 
     @property
     def volume(self):
@@ -793,6 +830,13 @@ class HistoryVolConfig():
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 ctx = context_string(pobj)
                 logger.debug(f"Setting output_frequency to '{ofreq}'{ctx}")
+            # end if
+            # Convert accumulated fields to instantaneous fields if we're set
+            # to output every timestep
+            if (self.__output_freq == (1, 'nsteps') or
+                self.__output_freq == (1, 'nstep' ) or
+                self.__output_freq == (1, 'steps')):
+                self.convert_accumulated_fields(pobj, logger)
             # end if
             return True
         # end if
