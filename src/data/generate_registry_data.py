@@ -300,7 +300,7 @@ class VarBase:
                 else:
                     outfile.write(f'{var_name} = (0.0, 0.0)', indent)
             elif self.var_type.lower() == 'logical':
-                outfile.write('{var_name} = .false.', indent)
+                outfile.write(f'{var_name} = .false.', indent)
             else:
                 emsg = 'Variable "{}" is of type "{}", which is not a supported type\n'
                 emsg += 'for use with "phys_timestep_init_zero".'

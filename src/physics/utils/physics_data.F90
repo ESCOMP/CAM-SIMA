@@ -826,11 +826,12 @@ CONTAINS
                   diff_found = .true.
                end if
                ! Store verbose entry for later printing (after all diffs)
-               if ((debug_output >= DEBUGOUT_INFO) .and.                 &
-                   diff_count_gl == 0 .and. global_count > 0) then
-                  call store_verbose_entry(stdname, global_count,           &
-                                           global_avg_model,               &
-                                           global_avg_snapshot)
+               if (debug_output >= DEBUGOUT_INFO) then
+                  if (diff_count_gl == 0 .and. global_count > 0) then
+                     call store_verbose_entry(stdname, global_count,        &
+                                              global_avg_model,             &
+                                              global_avg_snapshot)
+                  end if
                end if
             end if
          end if
@@ -872,7 +873,7 @@ CONTAINS
       logical,           intent(out)   :: diff_found
 
       !Local variables:
-      logical                          :: var_found = .true.
+      logical                          :: var_found
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_3d'
@@ -1099,7 +1100,7 @@ CONTAINS
       logical,           intent(out)   :: diff_found
 
       !Local variables:
-      logical                          :: var_found = .true.
+      logical                          :: var_found
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_4d'
@@ -1303,11 +1304,12 @@ CONTAINS
                end if
 
                ! Store verbose entry for later printing (after all diffs)
-               if ((debug_output >= DEBUGOUT_INFO) .and.                 &
-                   diff_count_gl == 0 .and. global_count > 0) then
-                  call store_verbose_entry(stdname, global_count,          &
-                                           global_avg_model,               &
-                                           global_avg_snapshot)
+               if (debug_output >= DEBUGOUT_INFO) then
+                  if(diff_count_gl == 0 .and. global_count > 0) then
+                     call store_verbose_entry(stdname, global_count,          &
+                                              global_avg_model,               &
+                                              global_avg_snapshot)
+                  end if
                end if
             end if
          end if

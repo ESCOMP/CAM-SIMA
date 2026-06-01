@@ -268,6 +268,7 @@ CONTAINS
             else
                write(errormsg, '(4a)') subname, "Unknown dimension, '",       &
                     trim(dimnames(lindex)), "'"
+               call endrun(errormsg)
             end if
          end do
       else

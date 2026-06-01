@@ -915,7 +915,7 @@ class SchemeNamelistInfo:
     def nlread_file(self):
         """Return the generated namelist read filename for this
         SchemeNamelistInfo object"""
-        return self._nlread_file
+        return self.__nlread_file
 
     @property
     def nlread_module(self):

@@ -284,10 +284,10 @@ CONTAINS
 
          ! We need a global minimum longitude and latitude
          temp = lonmin
-         call MPI_allreduce(temp, lonmin, 1, MPI_INTEGER, MPI_MIN,         &
+         call MPI_allreduce(temp, lonmin, 1, MPI_REAL8, MPI_MIN,         &
               mpicom, ierr)
          temp = latmin
-         call MPI_allreduce(temp, latmin, 1, MPI_INTEGER, MPI_MIN,         &
+         call MPI_allreduce(temp, latmin, 1, MPI_REAL8, MPI_MIN,         &
               mpicom, ierr)
          ! Create lon coord map which only writes from one of each unique lon
          where(latvals == latmin)

@@ -143,6 +143,9 @@ contains
     errmsg = ''
     errflg = 0
 
+    nullify(fh_topo)
+    nullify(fh_rdggm)
+
     has_gbxar_from_topo = .false.
     call mark_as_initialized('number_of_ridges_in_ridge_gravity_wave_drag')
 
@@ -265,7 +268,7 @@ contains
       call cam_pio_openfile(fh_rdggm, bnd_rdggm_loc, pio_nowrite)
 
       if(masterproc) then
-        write (iulog,*) trim(subname)//': Reading meso-Gamma ridge data from ', trim(bnd_topo_loc)
+        write (iulog,*) trim(subname)//': Reading meso-Gamma ridge data from ', trim(bnd_rdggm_loc)
       endif
 
       ! Allocate meso-Gamma ridge data arrays
