@@ -74,11 +74,13 @@ CONTAINS
       ! to test read_from_file status
       logical                       :: is_read
       logical                       :: is_constituent
+      logical                       :: found_in_phys_vars
 
       !Initialize function:
       find_input_name_idx = no_exist_idx
       constituent_index = no_exist_idx
       is_constituent = .false.
+      found_in_phys_vars = .false.
 
       !First check if quantity is a constituent:
       call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
@@ -93,6 +95,7 @@ CONTAINS
       do idx = 1, phys_var_num
          !Check if provided name is in required names array:
          if (trim(phys_var_stdnames(idx)) == trim(stdname)) then
+            found_in_phys_vars = .true.
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
             if (is_initialized(stdname)) then
@@ -126,6 +129,14 @@ CONTAINS
             exit
          end if
       end do
+      ! If the variable was not found in phys_var_stdnames but is a known
+      ! constituent, return const_idx so the caller handles it via the
+      ! constituent path.  Without this, the raw constituent index from
+      ! const_get_index would leak through as a phys_var_stdnames array
+      ! index, causing an unrelated variable to be accessed.
+      if (.not. found_in_phys_vars .and. is_constituent) then
+         find_input_name_idx = const_idx
+      end if
       ! If not found, loop through the excluded variable standard names
       if (find_input_name_idx == no_exist_idx) then
          do idx = 1, phys_const_num
