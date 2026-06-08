@@ -14,6 +14,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.5</value>
         </values>
@@ -26,6 +27,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value hgrid="mpasa480">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa480.graph.info.part.</value>
             <value hgrid="mpasa120">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120.graph.info.part.</value>
@@ -44,6 +46,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>m s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -55,6 +58,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>1.0</value>
         </values>
@@ -67,6 +71,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>10.0</value>
         </values>
@@ -78,6 +83,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>s</units>
         <values>
             <value hgrid="mpasa480">1800.0</value>
             <value hgrid="mpasa120">900.0</value>
@@ -93,6 +99,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -105,8 +112,57 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
+        <values>
+            <value>0.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_maximum">
+        <category>mpas</category>
+        <desc>
+            Value of epssm above transition zone
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <units>none</units>
+        <values>
+            <value>0.5</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_minimum">
+        <category>mpas</category>
+        <desc>
+            Value of epssm below transition zone
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <units>none</units>
         <values>
             <value>0.1</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_transition_bottom_z">
+        <category>mpas</category>
+        <desc>
+            Height MSL of bottom of transition zone for epssm
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <units>m</units>
+        <values>
+            <value>30000.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_epssm_transition_top_z">
+        <category>mpas</category>
+        <desc>
+            Height MSL of top of transition zone for epssm
+        </desc>
+        <group>mpas_damping</group>
+        <type>real</type>
+        <units>m</units>
+        <values>
+            <value>50000.0</value>
         </values>
     </entry>
     <entry id="mpas_explicit_proc_decomp">
@@ -116,6 +172,20 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>logical</type>
+        <units>flag</units>
+        <values>
+            <value>.false.</value>
+        </values>
+    </entry>
+    <entry id="mpas_gpu_aware_mpi">
+        <category>mpas</category>
+        <desc>
+            Whether to use GPU-aware MPI for halo exchanges. GPU-aware MPI is
+            only implemented for config_halo_exch_method='mpas_halo'
+        </desc>
+        <group>mpas_development</group>
+        <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -127,6 +197,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -138,6 +209,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m4 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -150,6 +222,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -161,6 +234,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -172,6 +246,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m4 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -183,6 +258,7 @@
         </desc>
         <group>mpas_development</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>mpas_halo</value>
         </values>
@@ -194,6 +270,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>2d_smagorinsky</value>
         </values>
@@ -206,11 +283,36 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m</units>
         <values>
             <value hgrid="mpasa480">480000.0</value>
             <value hgrid="mpasa120">120000.0</value>
             <value hgrid="mpasa60">60000.0</value>
             <value hgrid="mpasa30">30000.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_les_model">
+        <category>mpas</category>
+        <desc>
+            LES dissipation model
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>char*256</type>
+        <units>none</units>
+        <values>
+            <value>none</value>
+        </values>
+    </entry>
+    <entry id="mpas_les_surface">
+        <category>mpas</category>
+        <desc>
+            LES surface flux option
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>char*256</type>
+        <units>none</units>
+        <values>
+            <value>none</value>
         </values>
     </entry>
     <entry id="mpas_mix_full">
@@ -221,8 +323,21 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
+        </values>
+    </entry>
+    <entry id="mpas_mix_scalars">
+        <category>mpas</category>
+        <desc>
+            Whether to enable horizontal and vertical mixing for scalars
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>logical</type>
+        <units>flag</units>
+        <values>
+            <value>.false.</value>
         </values>
     </entry>
     <entry id="mpas_monotonic">
@@ -232,6 +347,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -243,6 +359,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>2</value>
         </values>
@@ -256,6 +373,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>0</value>
         </values>
@@ -267,6 +385,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>0</value>
         </values>
@@ -278,6 +397,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>2</value>
         </values>
@@ -291,6 +411,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>5</value>
         </values>
@@ -302,6 +423,7 @@
         </desc>
         <group>mpas_io</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>0</value>
         </values>
@@ -313,6 +435,7 @@
         </desc>
         <group>mpas_io</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>1</value>
         </values>
@@ -324,6 +447,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -337,6 +461,7 @@
         </desc>
         <group>mpas_printout</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -348,6 +473,7 @@
         </desc>
         <group>mpas_printout</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.false.</value>
         </values>
@@ -360,6 +486,7 @@
         </desc>
         <group>mpas_printout</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -371,6 +498,7 @@
         </desc>
         <group>mpas_decomposition</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>graph.info.part.</value>
         </values>
@@ -386,6 +514,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -398,6 +527,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>days</units>
         <values>
             <value>5.0</value>
         </values>
@@ -410,6 +540,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>6.0</value>
         </values>
@@ -421,6 +552,7 @@
         </desc>
         <group>mpas_io</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>restart_timestamp</value>
         </values>
@@ -432,6 +564,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -443,6 +576,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
         </values>
@@ -454,6 +588,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -466,6 +601,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.125</value>
         </values>
@@ -477,6 +613,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>none</units>
         <values>
             <value>0.1</value>
         </values>
@@ -488,8 +625,45 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>logical</type>
+        <units>flag</units>
         <values>
             <value>.true.</value>
+        </values>
+    </entry>
+    <entry id="mpas_surface_drag_coefficient">
+        <category>mpas</category>
+        <desc>
+            Cd 10m drag coefficient
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>real</type>
+        <units>none</units>
+        <values>
+            <value>0.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_surface_heat_flux">
+        <category>mpas</category>
+        <desc>
+            Specified surface heat flux w'theta'
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>real</type>
+        <units>K m s-1</units>
+        <values>
+            <value>0.0</value>
+        </values>
+    </entry>
+    <entry id="mpas_surface_moisture_flux">
+        <category>mpas</category>
+        <desc>
+            Specified surface moisture flux w'q'
+        </desc>
+        <group>mpas_nhyd_model</group>
+        <type>real</type>
+        <units>kg m s-1</units>
+        <values>
+            <value>0.0</value>
         </values>
     </entry>
     <entry id="mpas_theta_adv_order">
@@ -499,6 +673,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -510,6 +685,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -521,6 +697,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>char*256</type>
+        <units>none</units>
         <values>
             <value>SRK3</value>
         </values>
@@ -532,6 +709,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>2</value>
         </values>
@@ -543,6 +721,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -554,6 +733,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -565,6 +745,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m2 s-1</units>
         <values>
             <value>0.0</value>
         </values>
@@ -572,11 +753,12 @@
     <entry id="mpas_visc4_2dsmag">
         <category>mpas</category>
         <desc>
-            Scaling coefficient of $\delta x^3$ to obtain $\nabla^4$ diffusion
-            coefficient
+            Coefficient multiplied by $\delta x^3$ to obtain $\nabla^4$ physical
+            hyperviscosity
         </desc>
         <group>mpas_nhyd_model</group>
         <type>real</type>
+        <units>m s-1</units>
         <values>
             <value>0.05</value>
         </values>
@@ -588,6 +770,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -599,6 +782,7 @@
         </desc>
         <group>mpas_nhyd_model</group>
         <type>integer</type>
+        <units>none</units>
         <values>
             <value>3</value>
         </values>
@@ -610,6 +794,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>s-1</units>
         <values>
             <value>0.2</value>
         </values>
@@ -621,6 +806,7 @@
         </desc>
         <group>mpas_damping</group>
         <type>real</type>
+        <units>m</units>
         <values>
             <value>22000.0</value>
         </values>
