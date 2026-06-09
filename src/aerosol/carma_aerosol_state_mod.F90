@@ -35,6 +35,7 @@ module carma_aerosol_state_mod
      procedure :: wet_volume
      procedure :: water_volume
      procedure :: wet_diameter
+     procedure :: aqu_gain_binfraction
      procedure :: wgtpct
   end type carma_aerosol_state
 
@@ -198,5 +199,17 @@ contains
     real(r8) :: wtp(ncol,nlev)
     wtp = -huge(1._r8)
   end function wgtpct
+
+  subroutine aqu_gain_binfraction(self, aero_props, type, qcw, delso4_o3rxn, faqgain)
+
+    class(carma_aerosol_state), intent(in) :: self
+    class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
+    character(len=*), intent(in) :: type                ! aerosol species type
+    real(r8), intent(in) :: qcw(:,:,:)                  ! cloud-borne aerosol volume mixing ratio
+    real(r8), intent(in) :: delso4_o3rxn(:,:)           ! sulfate concentration change due to oxidation
+    real(r8), intent(out) :: faqgain(:,:,:)             ! fraction gain in each mode / bin
+
+    call endrun('carma_aerosol_state%aqu_gain_binfraction: not implemented')
+  end subroutine aqu_gain_binfraction
 
 end module carma_aerosol_state_mod

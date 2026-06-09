@@ -58,11 +58,12 @@ contains
     call endrun('carma_aerosol_properties%number_transported: not implemented')
   end function number_transported
 
-  subroutine get(self, bin_ndx, species_ndx, density, hygro, &
+  subroutine get(self, bin_ndx, species_ndx, density, hygro, spec_mw, &
        spectype, specname, specmorph, refindex_sw, refindex_lw, num_to_mass_aer, dryrad)
     class(carma_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx, species_ndx
     real(r8), optional, intent(out) :: density, hygro
+    real(r8), optional, intent(out) :: spec_mw ! species molecular weight
     character(len=*), optional, intent(out) :: spectype, specname, specmorph
     complex(r8), pointer, optional, intent(out) :: refindex_sw(:), refindex_lw(:)
     real(r8), optional, intent(out) :: num_to_mass_aer, dryrad
