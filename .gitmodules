@@ -7,14 +7,14 @@
 [submodule "history"]
 	path          = src/history/buffers
 	url           = https://github.com/ESMCI/history_output
-	fxtag         = history01_01
+	fxtag         = history01_02
 	fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
         path          = src/dynamics/mpas/dycore
         url           = https://github.com/MPAS-Dev/MPAS-Model.git
         fxsparse      = ../.mpas_sparse_checkout
-        fxtag         = v8.3.1
+        fxtag         = v8.4.0
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/MPAS-Dev/MPAS-Model.git
 [submodule "ncar-physics"]
