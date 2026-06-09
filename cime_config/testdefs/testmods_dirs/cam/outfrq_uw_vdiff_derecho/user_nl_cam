@@ -32,7 +32,7 @@ hist_add_inst_fields;h1:UW_n2,UW_s2,UW_ri
 hist_add_inst_fields;h1:UW_sfuh,UW_sflh,UW_cldn,UW_qrl,UW_ql
 hist_add_inst_fields;h1:BPROD,SFI,SPROD
 hist_add_inst_fields;h1:UW_sfi,UW_chu,UW_chs,UW_cmu,UW_cms
-hist_add_inst_fields;h1:UW_tke,UW_wcap,UW_bprod,UW_sprod
+hist_add_inst_fields;h1:UW_tke,UW_wcap
 hist_add_inst_fields;h1:UW_kvh,UW_kvm,UW_turbtype
 hist_add_inst_fields;h1:UW_gh,UW_sh,UW_sm,UW_ria,UW_leng
 hist_add_inst_fields;h1:UW_kbase_o,UW_ktop_o,UW_kbase_mg,UW_ktop_mg
