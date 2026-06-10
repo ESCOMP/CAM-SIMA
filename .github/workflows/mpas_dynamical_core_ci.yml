@@ -27,10 +27,10 @@ jobs:
   # A pull request that requires those checks to be successful will be blocked from merging."
   conditional-check:
     name: Check if jobs should run
-    timeout-minutes: 1
     runs-on: ubuntu-slim
     outputs:
       should-run: ${{ steps.conditional.outputs.result }}
+    timeout-minutes: 1
     steps:
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v6
@@ -127,13 +127,13 @@ jobs:
   # blocked from merging.
   overall-status:
     name: Overall status
-    timeout-minutes: 1
-    runs-on: ubuntu-slim
     needs:
       - conditional-check
       - source-code-linting
       - unit-tests
     if: ${{ always() }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 1
     steps:
       - name: Evaluate overall status
         run: |
@@ -195,13 +195,13 @@ jobs:
           write_result_and_exit true
   source-code-linting:
     name: Lint Fortran source code
-    timeout-minutes: 10
-    runs-on: ubuntu-slim
     needs: conditional-check
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    runs-on: ubuntu-slim
     env:
       FORTITUDE_VERSION: 0.7.*
       SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v6
@@ -240,7 +240,15 @@ jobs:
           retention-days: 7
   unit-tests:
     name: Build and run unit tests (${{ matrix.compiler }})
-    timeout-minutes: 10
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/kuanchihwang/atm-sci-container:2026-04-12_${{ matrix.compiler }}_${{ matrix.mpi }}
+    env:
+      CONTAINER_ENVIRONMENT: pfunit
+      UNIT_TESTS_BUILD_TYPE: Debug
+      UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
     strategy:
       fail-fast: false
       matrix:
@@ -256,15 +264,7 @@ jobs:
         # Testing with a single MPI implementation is sufficient for now.
         mpi:
           - open-mpi-5
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/kuanchihwang/atm-sci-container:2026-04-12_${{ matrix.compiler }}_${{ matrix.mpi }}
-    needs: conditional-check
-    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
-    env:
-      CONTAINER_ENVIRONMENT: pfunit
-      UNIT_TESTS_BUILD_TYPE: Debug
-      UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v6
