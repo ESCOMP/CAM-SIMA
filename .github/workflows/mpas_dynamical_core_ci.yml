@@ -221,7 +221,13 @@ jobs:
       - name: Lint Fortran source code
         run: |
           source venv-fortitude/bin/activate
-          fortitude --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" check --exit-zero --output-file "$SOURCE_CODE_PATH/source-code-linting.log" --preview "$SOURCE_CODE_PATH"
+          fortitude \
+            --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" \
+            check \
+            --exit-zero \
+            --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
+            --preview \
+            "$SOURCE_CODE_PATH"
           cat "$SOURCE_CODE_PATH/source-code-linting.log"
 
       - name: Upload Fortran source code linting log
@@ -266,13 +272,23 @@ jobs:
       - name: Build unit tests
         run: |
           source "$(command -v container-entrypoint-hook.sh)"
-          cmake -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" -B "$UNIT_TESTS_PATH/build" -S "$UNIT_TESTS_PATH"
-          cmake --build "$UNIT_TESTS_PATH/build" --config "$UNIT_TESTS_BUILD_TYPE"
+          cmake \
+            -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" \
+            -B "$UNIT_TESTS_PATH/build" \
+            -S "$UNIT_TESTS_PATH"
+          cmake \
+            --build "$UNIT_TESTS_PATH/build" \
+            --config "$UNIT_TESTS_BUILD_TYPE"
 
       - name: Run unit tests
         run: |
           source "$(command -v container-entrypoint-hook.sh)"
-          ctest --build-config "$UNIT_TESTS_BUILD_TYPE" --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" --output-on-failure --test-dir "$UNIT_TESTS_PATH/build" --verbose
+          ctest \
+            --build-config "$UNIT_TESTS_BUILD_TYPE" \
+            --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" \
+            --output-on-failure \
+            --test-dir "$UNIT_TESTS_PATH/build" \
+            --verbose
 
       - name: Upload unit tests log
         if: ${{ always() }}
