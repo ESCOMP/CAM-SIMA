@@ -575,8 +575,21 @@
               standard_name="specific_heat_of_air_used_in_dycore"
               units="J kg-1 K-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <long_name>specific heat of air used in the dynamical core (enthalpy for pressure-based dynamical cores and internal energy for z-based dynamical cores)</long_name>
+      <long_name>specific heat of air used in the dynamical core (enthalpy for pressure-based dynamical cores and internal energy for z-based dynamical cores), updated mid-physics for post-mass-adjustment total energy diagnostics</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="cp_or_cv_dycore_at_start_of_physics_timestep"
+              standard_name="specific_heat_of_air_used_in_dycore_at_start_of_physics_timestep"
+              units="J kg-1 K-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>Specific heat of air used in the dynamical core (enthalpy for pressure-based dynamical cores and internal energy for z-based dynamical cores), at start of physics timestep, for energy-consistency scaling and energy checker</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- Note: this quantity is read from CAM snapshot from the dycore value
+           since the CAM fix in cam6_4_173 (CAM#1554) restores the mid-physics update
+           value (for total energy diagnostics) to the start of physics timestep
+           (d_p_coupling) value. It is used for running the energy checker for
+           individual physics scheme tests. -->
       <ic_file_input_names>cp_or_cv_dycore</ic_file_input_names>
     </variable>
 
@@ -1464,6 +1477,13 @@
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
+    <variable local_name="wsedl"
+              standard_name="sedimentation_velocity_of_liquid_stratus_cloud_droplet"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>pbuf_WSEDL</ic_file_input_names>
+    </variable>
 
     <!-- Temporary initializations for gravity wave parameterizations -->
     <variable local_name="ttend_clubb"
@@ -1564,6 +1584,23 @@
     </variable>
 
     <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
+    <variable local_name="kvm"
+              standard_name="eddy_momentum_diffusivity_at_interfaces"
+              units="m2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_kvm</ic_file_input_names>
+    </variable>
+    <variable local_name="kvh"
+              standard_name="eddy_heat_diffusivity_at_interfaces"
+              units="m2 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_kvh</ic_file_input_names>
+    </variable>
+
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
@@ -1590,7 +1627,7 @@
     </variable>
     <!-- REMOVECAM: the final standard name for these quantities below are
          {east,north}ward_turbulent_orographic_form_drag_stress_at_surface.
-         however, it is shared with tautmsx; in order to distinguish between these two in CAM snapshots,
+         however, it is shared with tautms{x,y}; in order to distinguish between these two in CAM snapshots,
          an alternate standard name is currently used. When CAM snapshots are retired, only either
          Beljaars or TMS (which are mutually exclusive) provide the {east,north}ward_orographic_form_drag_stress_at_surface. -->
     <variable local_name="taubljx"
@@ -1609,6 +1646,36 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_taubljy</ic_file_input_names>
     </variable>
+    <!-- REMOVECAM: the final standard name for these quantities below are
+         {east,north}ward_turbulent_orographic_form_drag_stress_at_surface.
+         however, it is shared with taublj{x,y}; in order to distinguish between these two in CAM snapshots,
+         an alternate standard name is currently used. When CAM snapshots are retired, only either
+         Beljaars or TMS (which are mutually exclusive) provide the {east,north}ward_orographic_form_drag_stress_at_surface. -->
+    <variable local_name="tautmsx"
+              standard_name="eastward_turbulent_mountain_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tautmsx</ic_file_input_names>
+    </variable>
+    <variable local_name="tautmsy"
+              standard_name="northward_turbulent_mountain_surface_stress_tbd"
+              units="N m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tautmsy</ic_file_input_names>
+    </variable>
+    <variable local_name="ksrftms"
+              standard_name="turbulent_orographic_form_drag_coefficent_at_surface"
+              units="kg s-1 m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ksrftms</ic_file_input_names>
+    </variable>
+
     <variable local_name="apply_non_wv_cflx_in_free_atm_vdiff"
               standard_name="do_apply_ccpp_constituent_fluxes_excluding_water_vapor_in_vertical_diffusion"
               units="flag" type="logical">
@@ -1705,6 +1772,20 @@
               units="kg kg-1" type="real" constituent="true">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dust4 pbuf_dust4 cnst_dust4</ic_file_input_names>
+    </variable>
+
+    <!-- Prescribed volcanic aerosol (CAM4, CAM5) -->
+    <variable local_name="VOLC_MMR"
+              standard_name="VOLC_MMR"
+              units="kg kg-1" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>VOLC_MMR pbuf_VOLC_MMR</ic_file_input_names>
+    </variable>
+    <variable local_name="VOLC_RAD_GEOM"
+              standard_name="VOLC_RAD_GEOM"
+              units="m" type="real" constituent="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>VOLC_RAD_GEOM pbuf_VOLC_RAD_GEOM</ic_file_input_names>
     </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->

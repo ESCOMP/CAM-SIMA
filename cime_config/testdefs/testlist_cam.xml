@@ -88,6 +88,15 @@
       <option name="comment">Test for Holtslag-Boville boundary layer scheme and vertical diffusion</option>
     </options>
   </test>
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_uw_vdiff_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for Bretherton-Park (UW) boundary layer scheme and vertical diffusion</option>
+    </options>
+  </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_gw_cam4_derecho">
     <machines>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -174,6 +183,18 @@
     <options>
       <option name="wallclock">00:10:00</option>
       <option name="comment">Test for SE-CSLAM dycore with dry adiabatic settings (no physics forcings)</option>
+    </options>
+  </test>
+
+  <!-- History output test -->
+  <test compset="FKESSLER" grid="mpasa480_mpasa480" name="SMS_Ln9" testmods="cam/outfrq_kessler_mpas_derecho_history">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for both instantaneous and accumulated output.</option>
     </options>
   </test>
 

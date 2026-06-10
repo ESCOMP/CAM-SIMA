@@ -477,6 +477,41 @@ class RegistryTest(unittest.TestCase):
         amsg = f"Expected 14 metadata variables, found {num_vars}"
         self.assertEqual(num_vars, 14, msg=amsg)
 
+    def test_good_self_ref_dim_registry(self):
+        """Test that a registry with self-referential dimensions
+        (dimensions defined as variables in the same module) generates
+        correct local aliases in the allocate subroutine."""
+        # Setup test
+        filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_self_ref_dim.xml")
+        out_source_name = "physics_types_self_ref_dim"
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        remove_files([out_source, out_meta])
+        # Run test
+        retcode, files, _, _, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
+                                               _SRC_MOD_DIR, _CAM_ROOT,
+                                               loglevel=logging.ERROR,
+                                               error_on_no_validate=True)
+        # Check return code
+        amsg = f"Test failure: retcode={retcode}"
+        self.assertEqual(retcode, 0, msg=amsg)
+        flen = len(files)
+        amsg = f"Test failure: Found {flen} files, expected 1"
+        self.assertEqual(flen, 1, msg=amsg)
+        # Make sure each output file was created
+        amsg = f"{out_meta} does not exist"
+        self.assertTrue(os.path.exists(out_meta), msg=amsg)
+        amsg = f"{out_source} does not exist"
+        self.assertTrue(os.path.exists(out_source), msg=amsg)
+        # For each output file, make sure it matches input file
+        amsg = f"{out_meta} does not match {in_meta}"
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
+        amsg = f"{out_source} does not match {in_source}"
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
+                        msg=amsg)
+
     def test_no_metadata_file_registry(self):
         """Test code and metadata generation from a good registry with
         a non-existent metadata file.

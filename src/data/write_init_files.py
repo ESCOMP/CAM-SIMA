@@ -430,7 +430,14 @@ def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
             # Add this variable to the ic_names dictionary
             ic_names[stdname] = [locname]
         # end if
-    # end if
+    # end for
+    # Also check registry constituents for longer IC names
+    for const in registry_constituents:
+        if const in ic_names:
+            max_loclen = max(max_loclen,
+                             max(len(x) for x in ic_names[const]))
+        # end if
+    # end for
     outfile.write(f"integer, public, parameter :: ic_name_len = {max_loclen}",
                   1)
 
@@ -1291,7 +1298,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "prot_no_init_idx", "const_idx",
                                    "flush_check_field_verbose"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
-                                   "cam_advected_constituents_array",
+                                   "cam_constituents_array",
                                    "cam_model_const_properties"]],
                  ["cam_constituents", ["const_get_index"]],
                  ["ccpp_kinds", ["kind_phys"]],
@@ -1475,7 +1482,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end do !CCPP suites", 2)
     outfile.blank_line()
     outfile.comment("Check constituent variables", 2)
-    outfile.write("field_data_ptr => cam_advected_constituents_array()", 2)
+    outfile.write("field_data_ptr => cam_constituents_array()", 2)
     outfile.write("const_props => cam_model_const_properties()", 2)
     outfile.blank_line()
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
