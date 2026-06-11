@@ -65,6 +65,7 @@ module aerosol_state_mod
      procedure :: convcld_actfrac
      procedure :: sol_factb_interstitial
      procedure(aero_aqu_gain_binfraction), deferred :: aqu_gain_binfraction
+
   end type aerosol_state
 
   ! for state fields

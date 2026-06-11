@@ -2,17 +2,18 @@ module bulk_aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
   use aerosol_mmr_host, only: rad_cnst_get_aer_mmr, aero_host_binding_t
   use cam_abortutils,   only: endrun
+  use radiative_aerosol, only: rad_aer_get_props
+  use string_utils, only: to_lower
 
   use aerosol_state_mod,      only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
-  use radiative_aerosol, only: rad_aer_get_props
-  use string_utils, only: to_lower
 
   implicit none
 
   private
 
   ! BAM sulfate scaling factor:
+  ! former microp_aero_bulk_scale namelist parameter (always 2.0).
   real(r8), parameter :: bam_sulfate_scale = 2.0_r8
 
   public :: bulk_aerosol_state
@@ -198,7 +199,7 @@ contains
   subroutine get_ambient_num(self, bin_ndx, num)
     class(bulk_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx     ! bin index
-    real(r8), pointer   :: num(:,:)    ! number densities
+    real(r8), pointer   :: num(:,:)    ! number mixing ratio (#/kg)
 
     real(r8), pointer :: mmr(:,:)
     real(r8)          :: ntm

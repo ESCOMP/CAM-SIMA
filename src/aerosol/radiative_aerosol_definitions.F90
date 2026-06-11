@@ -422,8 +422,8 @@ subroutine list_resolve_physprops(aerlist, modal_aerosol_list, sectional_aerosol
    ! physprop_get_id requires physprop files to have been read.
    ! Do NOT merge with list_populate.
    !
-   ! Host-specific index resolution (get_cam_idx) is handled
-   ! separately by the host module (e.g. aerosol_mmr_cam).
+   ! Host-specific index resolution (get_host_idx) is handled
+   ! separately by the host module (e.g. aerosol_mmr_host).
 
    use phys_prop, only: physprop_get_id
 

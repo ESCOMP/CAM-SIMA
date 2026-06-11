@@ -1291,7 +1291,7 @@ subroutine rad_aer_init()
    ! Read physical properties from data files
    call physprop_init()
 
-   ! Resolve host-specific CCPP constituent indices
+   ! Resolve host-specific indices
    call resolve_mode_idx(modes)
    call resolve_bin_idx(bins)
 

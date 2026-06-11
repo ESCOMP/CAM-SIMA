@@ -209,7 +209,6 @@ contains
   ! return aerosol bin size weights for a given bin
   !------------------------------------------------------------------------------
   subroutine icenuc_size_wght_arr(self, bin_ndx, ncol, nlev, species_type, use_preexisting_ice, wght)
-    use aerosol_properties_mod, only: aero_name_len
     use cam_constituents, only: const_get_index
 
     class(modal_aerosol_state), intent(in) :: self
@@ -278,7 +277,6 @@ contains
   ! return aerosol bin size weights for a given bin, column and vertical layer
   !------------------------------------------------------------------------------
   subroutine icenuc_size_wght_val(self, bin_ndx, col_ndx, lyr_ndx, species_type, use_preexisting_ice, wght)
-    use aerosol_properties_mod, only: aero_name_len
     use cam_constituents, only: const_get_index
 
     class(modal_aerosol_state), intent(in) :: self
@@ -340,9 +338,6 @@ contains
   ! returns aerosol type weights for a given aerosol type and bin
   !------------------------------------------------------------------------------
   subroutine icenuc_type_wght(self, bin_ndx, ncol, nlev, species_type, aero_props, rho, wght, cloud_borne)
-
-    use aerosol_properties_mod, only: aerosol_properties
-    use aerosol_properties_mod, only: aero_name_len
 
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
@@ -420,7 +415,6 @@ contains
   ! as heterogeneous freezing nuclei
   !------------------------------------------------------------------------------
   function hetfrz_size_wght(self, bin_ndx, ncol, nlev) result(wght)
-    use aerosol_properties_mod, only: aero_name_len
 
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx             ! bin number
@@ -610,7 +604,6 @@ contains
   ! prescribed aerosol activation fraction for convective cloud
   !------------------------------------------------------------------------------
   function convcld_actfrac(self, aero_props, ibin, ispc, ncol, nlev) result(frac)
-    use aerosol_properties_mod, only: aero_name_len
 
     class(modal_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
