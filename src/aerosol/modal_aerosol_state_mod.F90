@@ -718,7 +718,7 @@ contains
     real(r8) :: sumf
     real(r8), allocatable :: qnum_c(:)
 
-    ncol = self%state%ncol
+    ncol = self%ncol()
     nbins = aero_props%nbins()
 
     !-------------------------------------------------------------------------
