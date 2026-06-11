@@ -20,6 +20,7 @@ subroutine test_sw_props()
     use insoluble_aerosol_optics_mod, only: insoluble_aerosol_optics
     use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use aerosol_optics_mod, only: aerosol_optics
     use radiative_aerosol, only: setup_mock_rad_aer, setup_mock_optics_tables, cleanup_mock_rad_aer
     use phys_prop, only: setup_mock_physprop_optics, cleanup_mock_physprop
@@ -62,7 +63,7 @@ subroutine test_sw_props()
     allocate(constituents(ncol, nlev, naero))
     constituents(:, :, 1) = 1.0e-6_kind_phys  ! MMR = 1e-6 kg/kg
     cptr => constituents
-    state => bulk_aerosol_state(ncol, cptr)
+    state => bulk_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! Create insoluble optics object
     optics => insoluble_aerosol_optics(props, state, ibin=1)
@@ -98,6 +99,7 @@ subroutine test_lw_props()
     use insoluble_aerosol_optics_mod, only: insoluble_aerosol_optics
     use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use aerosol_optics_mod, only: aerosol_optics
     use radiative_aerosol, only: setup_mock_rad_aer, setup_mock_optics_tables, cleanup_mock_rad_aer
     use phys_prop, only: setup_mock_physprop_optics, cleanup_mock_physprop
@@ -137,7 +139,7 @@ subroutine test_lw_props()
     allocate(constituents(ncol, nlev, naero))
     constituents(:, :, 1) = 2.0e-6_kind_phys  ! MMR = 2e-6
     cptr => constituents
-    state => bulk_aerosol_state(ncol, cptr)
+    state => bulk_aerosol_state(ncol, aero_host_binding(cptr))
 
     optics => insoluble_aerosol_optics(props, state, ibin=1)
 
