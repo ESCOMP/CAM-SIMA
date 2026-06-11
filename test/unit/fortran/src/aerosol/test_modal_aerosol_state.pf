@@ -14,7 +14,7 @@
 !
 ! Mock boundaries:
 !   - radiative_aerosol (modal mock interfaces) for properties
-!   - aerosol_mmr_ccpp (modal overloads) for state MMR retrieval
+!   - aerosol_mmr_host (modal overloads) for state MMR retrieval
 !-----------------------------------------------------------------------
 
 @test
@@ -23,6 +23,7 @@ subroutine test_get_ambient_mmr()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use modal_aerosol_state_mod, only: modal_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use radiative_aerosol, only: cleanup_mock_rad_aer
     use modal_test_helpers, only: setup_2mode_mock
 
@@ -44,7 +45,7 @@ subroutine test_get_ambient_mmr()
     constituents(:, :, 5) = 5.0e-9_kind_phys
     cptr => constituents
 
-    state => modal_aerosol_state(ncol, cptr)
+    state => modal_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! get_ambient_mmr(species_ndx=1, bin_ndx=1) -> so4_a1 at index 2
     call state%get_ambient_mmr(species_ndx=1, bin_ndx=1, mmr=mmr)
@@ -70,6 +71,7 @@ subroutine test_get_ambient_num()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use modal_aerosol_state_mod, only: modal_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use radiative_aerosol, only: cleanup_mock_rad_aer
     use modal_test_helpers, only: setup_2mode_mock
 
@@ -89,7 +91,7 @@ subroutine test_get_ambient_num()
     constituents(:, :, 4) = 5.0e6_kind_phys
     cptr => constituents
 
-    state => modal_aerosol_state(ncol, cptr)
+    state => modal_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! get_ambient_num(bin_ndx=1) -> index 1
     call state%get_ambient_num(bin_ndx=1, num=num)
@@ -111,6 +113,7 @@ subroutine test_ambient_total_bin_mmr()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use modal_aerosol_state_mod, only: modal_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use modal_aerosol_properties_mod, only: modal_aerosol_properties
     use radiative_aerosol, only: cleanup_mock_rad_aer
     use modal_test_helpers, only: setup_2mode_mock
@@ -132,7 +135,7 @@ subroutine test_ambient_total_bin_mmr()
     cptr => constituents
 
     props => modal_aerosol_properties()
-    state => modal_aerosol_state(ncol, cptr)
+    state => modal_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! Total for mode 1 at (col=1, lyr=1): so4 + bc = 3e-9
     mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=1, col_ndx=1, lyr_ndx=1)
@@ -150,6 +153,7 @@ subroutine test_dry_volume()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use modal_aerosol_state_mod, only: modal_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use modal_aerosol_properties_mod, only: modal_aerosol_properties
     use radiative_aerosol, only: cleanup_mock_rad_aer
     use modal_test_helpers, only: setup_2mode_mock, dens_sulfate, dens_bc
@@ -175,7 +179,7 @@ subroutine test_dry_volume()
     cptr => constituents
 
     props => modal_aerosol_properties()
-    state => modal_aerosol_state(ncol, cptr)
+    state => modal_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! dry_volume for mode 1 = sum(mmr_i / density_i)
     expected = mmr_so4 / dens_sulfate + mmr_bc / dens_bc

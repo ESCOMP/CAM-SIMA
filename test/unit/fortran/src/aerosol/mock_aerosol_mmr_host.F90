@@ -1,5 +1,5 @@
 !-----------------------------------------------------------------------
-! Mock aerosol_mmr_ccpp module for unit testing bulk_aerosol_state.
+! Mock aerosol_mmr_host module for unit testing bulk_aerosol_state.
 !
 ! The real module retrieves aerosol mixing ratios from the CCPP
 ! constituents array by looking up indices that were resolved during
@@ -8,8 +8,11 @@
 !
 ! This means the test constituents array should be set up so that
 ! constituents(:,:,i) contains the MMR for aerosol i.
+!
+! Mirrors the real module's host-binding handle surface: states hold an
+! opaque aero_host_binding_t built from the constituents array.
 !-----------------------------------------------------------------------
-module aerosol_mmr_ccpp
+module aerosol_mmr_host
 
   use shr_kind_mod, only: r8 => shr_kind_r8
   use ccpp_kinds,   only: kind_phys
@@ -17,16 +20,40 @@ module aerosol_mmr_ccpp
   implicit none
   private
 
+  ! Opaque host-binding handle matching the real module
+  type :: aero_host_binding_t
+     real(kind_phys), pointer :: constituents(:,:,:) => null()
+  end type aero_host_binding_t
+
   ! Generic interface matching the real module
   interface rad_cnst_get_aer_mmr
      module procedure rad_cnst_get_aer_mmr_by_idx
      module procedure rad_cnst_get_mam_mmr_by_idx
+     module procedure rad_cnst_get_aer_mmr_by_idx_host
+     module procedure rad_cnst_get_mam_mmr_by_idx_host
   end interface
 
+  interface rad_cnst_get_mode_num
+     module procedure rad_cnst_get_mode_num_ccpp
+     module procedure rad_cnst_get_mode_num_host
+  end interface
+
+  public :: aero_host_binding_t
+  public :: aero_host_binding
   public :: rad_cnst_get_aer_mmr
   public :: rad_cnst_get_mode_num
 
 contains
+
+  !-----------------------------------------------------------------------
+  ! Build a host-binding handle from the test constituents array.
+  !-----------------------------------------------------------------------
+  function aero_host_binding(constituents) result(host)
+    real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
+    type(aero_host_binding_t) :: host
+
+    host%constituents => constituents
+  end function aero_host_binding
 
   !-----------------------------------------------------------------------
   ! Mock rad_cnst_get_aer_mmr (bulk): directly index into constituents(:,:,aer_idx).
@@ -39,6 +66,15 @@ contains
 
     mmr => constituents(:, :, aer_idx)
   end subroutine rad_cnst_get_aer_mmr_by_idx
+
+  subroutine rad_cnst_get_aer_mmr_by_idx_host(list_idx, aer_idx, host, mmr)
+    integer,                   intent(in) :: list_idx
+    integer,                   intent(in) :: aer_idx
+    type(aero_host_binding_t), intent(in) :: host
+    real(r8),                  pointer    :: mmr(:,:)
+
+    call rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, host%constituents, mmr)
+  end subroutine rad_cnst_get_aer_mmr_by_idx_host
 
   !-----------------------------------------------------------------------
   ! Mock rad_cnst_get_mam_mmr_by_idx (modal): compute flat index from
@@ -70,11 +106,22 @@ contains
     mmr => constituents(:, :, flat_idx)
   end subroutine rad_cnst_get_mam_mmr_by_idx
 
+  subroutine rad_cnst_get_mam_mmr_by_idx_host(list_idx, mode_idx, spec_idx, phase, host, mmr)
+    integer,                   intent(in) :: list_idx
+    integer,                   intent(in) :: mode_idx
+    integer,                   intent(in) :: spec_idx
+    character(len=1),          intent(in) :: phase
+    type(aero_host_binding_t), intent(in) :: host
+    real(r8),                  pointer    :: mmr(:,:)
+
+    call rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, host%constituents, mmr)
+  end subroutine rad_cnst_get_mam_mmr_by_idx_host
+
   !-----------------------------------------------------------------------
   ! Mock rad_cnst_get_mode_num (modal): return number mixing ratio for mode.
   ! Number is at the start of each mode's block in the flat layout.
   !-----------------------------------------------------------------------
-  subroutine rad_cnst_get_mode_num(list_idx, mode_idx, phase, constituents, num)
+  subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, num)
     use radiative_aerosol, only: mock_nmodes, mock_nspec
 
     integer,                        intent(in)  :: list_idx
@@ -91,6 +138,16 @@ contains
     end do
 
     num => constituents(:, :, flat_idx)
-  end subroutine rad_cnst_get_mode_num
+  end subroutine rad_cnst_get_mode_num_ccpp
 
-end module aerosol_mmr_ccpp
+  subroutine rad_cnst_get_mode_num_host(list_idx, mode_idx, phase, host, num)
+    integer,                   intent(in) :: list_idx
+    integer,                   intent(in) :: mode_idx
+    character(len=1),          intent(in) :: phase
+    type(aero_host_binding_t), intent(in) :: host
+    real(r8),                  pointer    :: num(:,:)
+
+    call rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, host%constituents, num)
+  end subroutine rad_cnst_get_mode_num_host
+
+end module aerosol_mmr_host

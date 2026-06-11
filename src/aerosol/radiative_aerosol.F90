@@ -1277,7 +1277,7 @@ subroutine rad_aer_init()
       N_DIAG, modes, bins, active_calls, &
       bulk_aerosol_list, modal_aerosol_list, sectional_aerosol_list, list_resolve_physprops
 
-   use aerosol_mmr_ccpp, only: aerosol_mmr_init, &
+   use aerosol_mmr_host, only: aerosol_mmr_init, &
       resolve_mode_idx, resolve_bin_idx, resolve_bulk_idx, &
       rad_aer_diag_init
 

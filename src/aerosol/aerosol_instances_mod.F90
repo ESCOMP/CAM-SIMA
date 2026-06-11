@@ -199,6 +199,7 @@ contains
     use modal_aerosol_state_mod, only: modal_aerosol_state
     use carma_aerosol_state_mod, only: carma_aerosol_state
     use bulk_aerosol_state_mod,  only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding, aero_host_binding_t
 
     use ccpp_kinds,     only: kind_phys
     use cam_abortutils, only: endrun
@@ -207,6 +208,7 @@ contains
     real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
 
     integer :: iaermod, ilist, istat
+    type(aero_host_binding_t) :: host
     character(len=*), parameter :: subname = 'aerosol_instances_init_states: '
 
     if (num_aero_models_ < 1) return
@@ -216,6 +218,8 @@ contains
        call endrun(subname//'allocation error: aero_states_all')
     end if
 
+    host = aero_host_binding(constituents)
+
     do ilist = 0, N_DIAG
        if (.not. active_calls(ilist)) cycle
 
@@ -224,21 +228,21 @@ contains
           iaermod = iaermod + 1
           if (associated(aero_props_all(iaermod, ilist)%obj)) then
              aero_states_all(iaermod, ilist)%obj => &
-                  modal_aerosol_state(ncol, constituents, ilist)
+                  modal_aerosol_state(ncol, host, ilist)
           end if
        end if
        if (carma_active_) then
           iaermod = iaermod + 1
           if (associated(aero_props_all(iaermod, ilist)%obj)) then
              aero_states_all(iaermod, ilist)%obj => &
-                  carma_aerosol_state(ncol, constituents, ilist)
+                  carma_aerosol_state(ncol, host, ilist)
           end if
        end if
        if (bulk_active_) then
           iaermod = iaermod + 1
           if (associated(aero_props_all(iaermod, ilist)%obj)) then
              aero_states_all(iaermod, ilist)%obj => &
-                  bulk_aerosol_state(ncol, constituents, ilist)
+                  bulk_aerosol_state(ncol, host, ilist)
           end if
        end if
     end do

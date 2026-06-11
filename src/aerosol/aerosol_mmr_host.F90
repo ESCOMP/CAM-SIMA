@@ -1,11 +1,17 @@
-module aerosol_mmr_ccpp
+module aerosol_mmr_host
 
 !------------------------------------------------------------------------------------------------
 !
-! CAM-SIMA (CCPP) aerosol MMR retrieval routines.  These routines use
-! the CCPP constituents array to return mixing ratio pointers.
+! Host-binding module for aerosol MMR retrieval (CAM-SIMA flavor).
 !
-! Ported from aerosol_mmr_cam: replaces pbuf/state%q with CCPP constituents.
+! This is the CAM-SIMA side of a per-host module pair: CAM provides a module
+! of the same name backed by physics_state and the physics buffer. The pair
+! owns the opaque aero_host_binding_t handle; shared aerosol interface code
+! stores and passes the handle without referencing host-model data structures
+! directly. Here the routines access the CCPP constituents array to return
+! mixing ratio pointers.
+!
+! Ported from the CAM flavor: replaces pbuf/state%q with CCPP constituents.
 !
 !------------------------------------------------------------------------------------------------
 
@@ -16,17 +22,47 @@ implicit none
 private
 save
 
+! Opaque host-binding handle: aggregates the host-model data references
+! (for CAM-SIMA: the CCPP constituents array) needed to retrieve aerosol
+! fields. Shared aerosol interface code stores and passes this handle
+! without referencing host-model data structures directly; only this
+! module looks inside it.
+type :: aero_host_binding_t
+   real(kind_phys), pointer :: constituents(:,:,:) => null()
+end type aero_host_binding_t
+
 ! define generic interface for MMR retrieval
 interface rad_cnst_get_aer_mmr
    module procedure rad_cnst_get_aer_mmr_by_idx
    module procedure rad_cnst_get_mam_mmr_by_idx
+   module procedure rad_cnst_get_aer_mmr_by_idx_host
+   module procedure rad_cnst_get_mam_mmr_by_idx_host
+end interface
+
+! generic interfaces dispatching between the legacy (constituents) variants
+! and the host-binding handle variants
+interface rad_cnst_get_mode_num
+   module procedure rad_cnst_get_mode_num_ccpp
+   module procedure rad_cnst_get_mode_num_host
+end interface
+
+interface rad_cnst_get_bin_num
+   module procedure rad_cnst_get_bin_num_ccpp
+   module procedure rad_cnst_get_bin_num_host
+end interface
+
+interface rad_cnst_get_bin_mmr_by_idx
+   module procedure rad_cnst_get_bin_mmr_by_idx_ccpp
+   module procedure rad_cnst_get_bin_mmr_by_idx_host
 end interface
 
 ! values for constituents with requested value of zero
 real(r8), allocatable, target :: zero_cols(:,:)
 
+public :: aero_host_binding_t
+public :: aero_host_binding   ! build a handle from host data structures
 public :: aerosol_mmr_init    ! allocate zero_cols
-public :: get_ccpp_idx
+public :: get_host_idx
 public :: resolve_mode_idx, resolve_bin_idx
 public :: resolve_bulk_idx
 public :: rad_cnst_get_aer_mmr
@@ -57,7 +93,22 @@ end subroutine aerosol_mmr_init
 
 !================================================================================================
 
-integer function get_ccpp_idx(source, name, routine)
+function aero_host_binding(constituents) result(host)
+
+   ! Build a host-binding handle from CAM-SIMA host data structures.
+   ! Called from host-side wiring only (aerosol_instances_mod); the
+   ! resulting handle is stored opaquely by the aerosol_state objects.
+
+   real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
+   type(aero_host_binding_t) :: host
+
+   host%constituents => constituents
+
+end function aero_host_binding
+
+!================================================================================================
+
+integer function get_host_idx(source, name, routine)
 
    ! Get index of name in the CCPP constituents array.
    ! Both 'A' (advected) and 'N' (non-advected) sources resolve through
@@ -83,9 +134,9 @@ integer function get_ccpp_idx(source, name, routine)
       call endrun(routine//' ERROR: invalid source for specie '//trim(name))
    end if
 
-   get_ccpp_idx = idx
+   get_host_idx = idx
 
-end function get_ccpp_idx
+end function get_host_idx
 
 !===========================
 
@@ -110,8 +161,8 @@ subroutine resolve_mode_idx(modes)
    do m = 1, modes%nmodes
 
       ! indices for number mixing ratio components
-      modes%comps(m)%idx_num_a = get_ccpp_idx(modes%comps(m)%source_num_a, modes%comps(m)%camname_num_a, routine)
-      modes%comps(m)%idx_num_c = get_ccpp_idx(modes%comps(m)%source_num_c, modes%comps(m)%camname_num_c, routine)
+      modes%comps(m)%idx_num_a = get_host_idx(modes%comps(m)%source_num_a, modes%comps(m)%camname_num_a, routine)
+      modes%comps(m)%idx_num_c = get_host_idx(modes%comps(m)%source_num_c, modes%comps(m)%camname_num_c, routine)
 
       ! allocate memory for species
       nspec = modes%comps(m)%nspec
@@ -123,9 +174,9 @@ subroutine resolve_mode_idx(modes)
       do ispec = 1, nspec
 
          ! indices for species mixing ratio components
-         modes%comps(m)%idx_mmr_a(ispec) = get_ccpp_idx(modes%comps(m)%source_mmr_a(ispec), &
+         modes%comps(m)%idx_mmr_a(ispec) = get_host_idx(modes%comps(m)%source_mmr_a(ispec), &
                                                    modes%comps(m)%camname_mmr_a(ispec), routine)
-         modes%comps(m)%idx_mmr_c(ispec) = get_ccpp_idx(modes%comps(m)%source_mmr_c(ispec), &
+         modes%comps(m)%idx_mmr_c(ispec) = get_host_idx(modes%comps(m)%source_mmr_c(ispec), &
                                                    modes%comps(m)%camname_mmr_c(ispec), routine)
 
          ! get physprop ID
@@ -163,13 +214,13 @@ subroutine resolve_bin_idx(bins)
    do m = 1, bins%nbins
 
       ! indices for number mixing ratio components
-      bins%comps(m)%idx_num_a = get_ccpp_idx(bins%comps(m)%source_num_a, bins%comps(m)%camname_num_a, routine)
-      bins%comps(m)%idx_num_c = get_ccpp_idx(bins%comps(m)%source_num_c, bins%comps(m)%camname_num_c, routine)
+      bins%comps(m)%idx_num_a = get_host_idx(bins%comps(m)%source_num_a, bins%comps(m)%camname_num_a, routine)
+      bins%comps(m)%idx_num_c = get_host_idx(bins%comps(m)%source_num_c, bins%comps(m)%camname_num_c, routine)
       if ( bins%comps(m)%source_mass_a /= 'NOTSET' .and. bins%comps(m)%camname_mass_a /= 'NOTSET' ) then
-         bins%comps(m)%idx_mass_a = get_ccpp_idx(bins%comps(m)%source_mass_a, bins%comps(m)%camname_mass_a, routine)
+         bins%comps(m)%idx_mass_a = get_host_idx(bins%comps(m)%source_mass_a, bins%comps(m)%camname_mass_a, routine)
       endif
       if ( bins%comps(m)%source_mass_c /= 'NOTSET' .and. bins%comps(m)%camname_mass_c /= 'NOTSET' ) then
-         bins%comps(m)%idx_mass_c = get_ccpp_idx(bins%comps(m)%source_mass_c, bins%comps(m)%camname_mass_c, routine)
+         bins%comps(m)%idx_mass_c = get_host_idx(bins%comps(m)%source_mass_c, bins%comps(m)%camname_mass_c, routine)
       endif
 
       ! allocate memory for species
@@ -182,9 +233,9 @@ subroutine resolve_bin_idx(bins)
       do ispec = 1, nspec
 
          ! indices for species mixing ratio components
-         bins%comps(m)%idx_mmr_a(ispec) = get_ccpp_idx(bins%comps(m)%source_mmr_a(ispec), &
+         bins%comps(m)%idx_mmr_a(ispec) = get_host_idx(bins%comps(m)%source_mmr_a(ispec), &
                                                    bins%comps(m)%camname_mmr_a(ispec), routine)
-         bins%comps(m)%idx_mmr_c(ispec) = get_ccpp_idx(bins%comps(m)%source_mmr_c(ispec), &
+         bins%comps(m)%idx_mmr_c(ispec) = get_host_idx(bins%comps(m)%source_mmr_c(ispec), &
                                                    bins%comps(m)%camname_mmr_c(ispec), routine)
 
          ! get physprop ID
@@ -216,7 +267,7 @@ subroutine resolve_bulk_idx(aerlist)
    !-----------------------------------------------------------------------------
 
    do i = 1, aerlist%numaerosols
-      aerlist%aer(i)%idx = get_ccpp_idx(aerlist%aer(i)%source, aerlist%aer(i)%camname, routine)
+      aerlist%aer(i)%idx = get_host_idx(aerlist%aer(i)%source, aerlist%aer(i)%camname, routine)
    end do
 
 end subroutine resolve_bulk_idx
@@ -269,6 +320,21 @@ subroutine rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, constituents, mmr)
    end select
 
 end subroutine rad_cnst_get_aer_mmr_by_idx
+
+!================================================================================================
+
+subroutine rad_cnst_get_aer_mmr_by_idx_host(list_idx, aer_idx, host, mmr)
+
+   ! Host-binding handle variant: unpack the handle and delegate.
+
+   integer,                   intent(in) :: list_idx    ! index of the climate or a diagnostic list
+   integer,                   intent(in) :: aer_idx
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: mmr(:,:)
+
+   call rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, host%constituents, mmr)
+
+end subroutine rad_cnst_get_aer_mmr_by_idx_host
 
 !================================================================================================
 
@@ -342,7 +408,24 @@ end subroutine rad_cnst_get_mam_mmr_by_idx
 
 !================================================================================================
 
-subroutine rad_cnst_get_bin_mmr_by_idx(list_idx, bin_idx, spec_idx, phase, constituents, mmr)
+subroutine rad_cnst_get_mam_mmr_by_idx_host(list_idx, mode_idx, spec_idx, phase, host, mmr)
+
+   ! Host-binding handle variant: unpack the handle and delegate.
+
+   integer,                   intent(in) :: list_idx    ! index of the climate or a diagnostic list
+   integer,                   intent(in) :: mode_idx    ! mode index
+   integer,                   intent(in) :: spec_idx    ! index of specie in the mode
+   character(len=1),          intent(in) :: phase       ! 'a' for interstitial, 'c' for cloud borne
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: mmr(:,:)
+
+   call rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, host%constituents, mmr)
+
+end subroutine rad_cnst_get_mam_mmr_by_idx_host
+
+!================================================================================================
+
+subroutine rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, constituents, mmr)
 
    ! Return pointer to mass mixing ratio for the sectional aerosol specie.
 
@@ -402,7 +485,24 @@ subroutine rad_cnst_get_bin_mmr_by_idx(list_idx, bin_idx, spec_idx, phase, const
       mmr => zero_cols
    end select
 
-end subroutine rad_cnst_get_bin_mmr_by_idx
+end subroutine rad_cnst_get_bin_mmr_by_idx_ccpp
+
+!================================================================================================
+
+subroutine rad_cnst_get_bin_mmr_by_idx_host(list_idx, bin_idx, spec_idx, phase, host, mmr)
+
+   ! Host-binding handle variant: unpack the handle and delegate.
+
+   integer,                   intent(in) :: list_idx    ! index of the climate or a diagnostic list
+   integer,                   intent(in) :: bin_idx     ! bin index
+   integer,                   intent(in) :: spec_idx    ! index of specie in the bin
+   character(len=1),          intent(in) :: phase       ! 'a' for interstitial, 'c' for cloud borne
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: mmr(:,:)
+
+   call rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, host%constituents, mmr)
+
+end subroutine rad_cnst_get_bin_mmr_by_idx_host
 
 !================================================================================================
 
@@ -533,7 +633,7 @@ end subroutine rad_cnst_get_bin_mmr
 
 !================================================================================================
 
-subroutine rad_cnst_get_mode_num(list_idx, mode_idx, phase, constituents, num)
+subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, num)
 
    use cam_logfile,    only: iulog
    use cam_abortutils, only: endrun
@@ -583,11 +683,27 @@ subroutine rad_cnst_get_mode_num(list_idx, mode_idx, phase, constituents, num)
       num => zero_cols
    end select
 
-end subroutine rad_cnst_get_mode_num
+end subroutine rad_cnst_get_mode_num_ccpp
 
 !================================================================================================
 
-subroutine rad_cnst_get_bin_num(list_idx, bin_idx, phase, constituents, num)
+subroutine rad_cnst_get_mode_num_host(list_idx, mode_idx, phase, host, num)
+
+   ! Host-binding handle variant: unpack the handle and delegate.
+
+   integer,                   intent(in) :: list_idx    ! index of the climate or a diagnostic list
+   integer,                   intent(in) :: mode_idx    ! mode index
+   character(len=1),          intent(in) :: phase       ! 'a' for interstitial, 'c' for cloud borne
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: num(:,:)
+
+   call rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, host%constituents, num)
+
+end subroutine rad_cnst_get_mode_num_host
+
+!================================================================================================
+
+subroutine rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, constituents, num)
 
    use cam_logfile,    only: iulog
    use cam_abortutils, only: endrun
@@ -637,7 +753,23 @@ subroutine rad_cnst_get_bin_num(list_idx, bin_idx, phase, constituents, num)
       num => zero_cols
    end select
 
-end subroutine rad_cnst_get_bin_num
+end subroutine rad_cnst_get_bin_num_ccpp
+
+!================================================================================================
+
+subroutine rad_cnst_get_bin_num_host(list_idx, bin_idx, phase, host, num)
+
+   ! Host-binding handle variant: unpack the handle and delegate.
+
+   integer,                   intent(in) :: list_idx    ! index of the climate or a diagnostic list
+   integer,                   intent(in) :: bin_idx     ! bin index
+   character(len=1),          intent(in) :: phase       ! 'a' for interstitial, 'c' for cloud borne
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: num(:,:)
+
+   call rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, host%constituents, num)
+
+end subroutine rad_cnst_get_bin_num_host
 
 !================================================================================================
 
@@ -846,4 +978,4 @@ end subroutine rad_aer_diag_out
 
 !================================================================================================
 
-end module aerosol_mmr_ccpp
+end module aerosol_mmr_host

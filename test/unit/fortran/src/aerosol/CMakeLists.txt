@@ -82,7 +82,7 @@ add_library(bulk_aero_testlib
     ${CORE_UTILS}/string_core_utils.F90
     mock_phys_prop.F90
     mock_radiative_aerosol.F90
-    mock_aerosol_mmr_ccpp.F90
+    mock_aerosol_mmr_host.F90
     ${CCPP_STUB}
 )
 target_link_libraries(bulk_aero_testlib PUBLIC aerosol_test_mocks)

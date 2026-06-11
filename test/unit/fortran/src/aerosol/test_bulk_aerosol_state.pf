@@ -9,7 +9,7 @@
 !
 ! Mock boundaries:
 !   - radiative_aerosol (rad_aer_get_info, rad_aer_get_props) for properties
-!   - aerosol_mmr_ccpp (rad_cnst_get_aer_mmr) for state MMR retrieval
+!   - aerosol_mmr_host (rad_cnst_get_aer_mmr) for state MMR retrieval
 !-----------------------------------------------------------------------
 
 @test
@@ -17,6 +17,7 @@ subroutine test_constructor()
     use funit
     use ccpp_kinds, only: kind_phys
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
 
     type(bulk_aerosol_state), pointer :: state
     real(kind_phys), allocatable, target :: constituents(:,:,:)
@@ -26,7 +27,7 @@ subroutine test_constructor()
     constituents = 1.0e-6_kind_phys
     cptr => constituents
 
-    state => bulk_aerosol_state(2, cptr)
+    state => bulk_aerosol_state(2, aero_host_binding(cptr))
 
     @assertTrue(associated(state))
 
@@ -40,6 +41,7 @@ subroutine test_get_ambient_mmr()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
 
     type(bulk_aerosol_state), pointer :: state
     real(kind_phys), allocatable, target :: constituents(:,:,:)
@@ -52,7 +54,7 @@ subroutine test_get_ambient_mmr()
     constituents(:, :, 2) = 2.0e-6_kind_phys  ! sulfate
     cptr => constituents
 
-    state => bulk_aerosol_state(ncol, cptr)
+    state => bulk_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! Get MMR for aerosol 1 (dust)
     call state%get_ambient_mmr(species_ndx=1, bin_ndx=1, mmr=mmr)
@@ -73,6 +75,7 @@ subroutine test_dry_volume()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
     use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
 
@@ -99,7 +102,7 @@ subroutine test_dry_volume()
     constituents(:, :, 1) = 1.0e-6_kind_phys
     cptr => constituents
 
-    state => bulk_aerosol_state(ncol, cptr)
+    state => bulk_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! dry_volume = mmr / density = 1e-6 / 2000 = 5e-10 m3/kg
     vol = state%dry_volume(props, bin_idx=1, ncol=ncol, nlev=nlev)
@@ -117,6 +120,7 @@ subroutine test_ambient_total_bin_mmr()
     use shr_kind_mod, only: r8 => shr_kind_r8
     use ccpp_kinds, only: kind_phys
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_mmr_host, only: aero_host_binding
     use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
     use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
 
@@ -142,7 +146,7 @@ subroutine test_ambient_total_bin_mmr()
     constituents(:, :, 2) = 7.0e-6_kind_phys
     cptr => constituents
 
-    state => bulk_aerosol_state(ncol, cptr)
+    state => bulk_aerosol_state(ncol, aero_host_binding(cptr))
 
     ! For bulk aerosols, each bin has 1 species, so total = that species
     mmr_tot = state%ambient_total_bin_mmr(props, bin_ndx=1, col_ndx=1, lyr_ndx=1)

@@ -4,8 +4,8 @@ module carma_aerosol_state_mod
   ! Exports the constructor interface so aerosol_instances_mod compiles.
   !-----------------------------------------------------------------------------
   use shr_kind_mod, only: r8 => shr_kind_r8
-  use ccpp_kinds, only: kind_phys
   use cam_abortutils, only: endrun
+  use aerosol_mmr_host, only: aero_host_binding_t
   use aerosol_state_mod, only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
 
@@ -45,9 +45,9 @@ module carma_aerosol_state_mod
 
 contains
 
-  function constructor(ncol, constituents, list_idx) result(newobj)
+  function constructor(ncol, host, list_idx) result(newobj)
     integer, intent(in) :: ncol
-    real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
+    type(aero_host_binding_t), intent(in) :: host
     integer, intent(in), optional :: list_idx
     type(carma_aerosol_state), pointer :: newobj
     nullify(newobj)

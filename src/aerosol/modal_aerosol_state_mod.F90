@@ -1,10 +1,9 @@
 module modal_aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
-  use ccpp_kinds, only: kind_phys
   use shr_spfn_mod, only: erf => shr_spfn_erf
   use aerosol_state_mod, only: aerosol_state, ptr2d_t
   use radiative_aerosol, only: rad_aer_get_info, rad_aer_get_mode_props
-  use aerosol_mmr_ccpp, only: rad_cnst_get_aer_mmr, rad_cnst_get_mode_num
+  use aerosol_mmr_host, only: rad_cnst_get_aer_mmr, rad_cnst_get_mode_num, aero_host_binding_t
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len
   use physconst,  only: rhoh2o
   use cam_abortutils, only: endrun
@@ -17,7 +16,9 @@ module modal_aerosol_state_mod
 
   type, extends(aerosol_state) :: modal_aerosol_state
      private
-     real(kind_phys), pointer :: constituents(:,:,:) => null()
+     ! Opaque host-binding handle used to retrieve aerosol fields from
+     ! host model data; built by host-side wiring (aerosol_instances_mod)
+     type(aero_host_binding_t) :: host_
    contains
 
      procedure :: get_transported
@@ -57,9 +58,9 @@ contains
 
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
-  function constructor(ncol, constituents, list_idx) result(newobj)
+  function constructor(ncol, host, list_idx) result(newobj)
     integer, intent(in) :: ncol
-    real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
+    type(aero_host_binding_t), intent(in) :: host
     integer, intent(in), optional :: list_idx
 
     type(modal_aerosol_state), pointer :: newobj
@@ -73,7 +74,7 @@ contains
     end if
 
     call newobj%set_ncol(ncol)
-    newobj%constituents => constituents
+    newobj%host_ = host
 
     if (present(list_idx)) call newobj%set_list_idx(list_idx)
 
@@ -84,7 +85,8 @@ contains
   subroutine destructor(self)
     type(modal_aerosol_state), intent(inout) :: self
 
-    nullify(self%constituents)
+    ! disassociate the host binding (data referenced within is not owned here)
+    self%host_ = aero_host_binding_t()
 
   end subroutine destructor
 
@@ -127,7 +129,7 @@ contains
     mmr_tot = 0._r8
 
     do spec_ndx=1,aero_props%nspecies(bin_ndx)
-       call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, spec_ndx, 'a', self%constituents, mmrptr)
+       call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, spec_ndx, 'a', self%host_, mmrptr)
        mmr_tot = mmr_tot + mmrptr(col_ndx,lyr_ndx)
     end do
 
@@ -142,7 +144,7 @@ contains
     integer, intent(in) :: bin_ndx      ! bin index
     real(r8), pointer :: mmr(:,:)       ! mass mixing ratios (ncol,nlev)
 
-    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'a', self%constituents, mmr)
+    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'a', self%host_, mmr)
   end subroutine get_ambient_mmr
 
   !------------------------------------------------------------------------------
@@ -154,7 +156,7 @@ contains
     integer, intent(in) :: bin_ndx      ! bin index
     real(r8), pointer :: mmr(:,:)       ! mass mixing ratios (ncol,nlev)
 
-    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'c', self%constituents, mmr)
+    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, species_ndx, 'c', self%host_, mmr)
   end subroutine get_cldbrne_mmr
 
   !------------------------------------------------------------------------------
@@ -165,7 +167,7 @@ contains
     integer, intent(in) :: bin_ndx     ! bin index
     real(r8), pointer   :: num(:,:)    ! number densities
 
-    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'a', self%constituents, num)
+    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'a', self%host_, num)
   end subroutine get_ambient_num
 
   !------------------------------------------------------------------------------
@@ -176,7 +178,7 @@ contains
     integer, intent(in) :: bin_ndx             ! bin index
     real(r8), pointer :: num(:,:)
 
-    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'c', self%constituents, num)
+    call rad_cnst_get_mode_num(self%list_idx_, bin_ndx, 'c', self%host_, num)
   end subroutine get_cldbrne_num
 
   !------------------------------------------------------------------------------
@@ -250,10 +252,10 @@ contains
              call const_get_index(trim(cname), idx_dgnum)
              do k = 1, nlev
                 do i = 1, ncol
-                   if (self%constituents(i,k,idx_dgnum) > 0._r8) then
+                   if (self%host_%constituents(i,k,idx_dgnum) > 0._r8) then
                       ! only allow so4 with D>0.1 um in ice nucleation
                       wght(i,k) = max(0._r8,(0.5_r8 - 0.5_r8* &
-                           erf(log(0.1e-6_r8 / self%constituents(i,k,idx_dgnum)) / &
+                           erf(log(0.1e-6_r8 / self%host_%constituents(i,k,idx_dgnum)) / &
                            (2._r8**0.5_r8*log(sigmag_aitken)))  ))
                    end if
                 end do
@@ -314,10 +316,10 @@ contains
              write(cname, '(a,i2.2)') 'dgnum_m', bin_ndx
              call const_get_index(trim(cname), idx_dgnum)
 
-             if (self%constituents(col_ndx, lyr_ndx, idx_dgnum) > 0._r8) then
+             if (self%host_%constituents(col_ndx, lyr_ndx, idx_dgnum) > 0._r8) then
                 ! only allow so4 with D>0.1 um in ice nucleation
                 wght = max(0._r8,(0.5_r8 - 0.5_r8* &
-                     erf(log(0.1e-6_r8 / self%constituents(col_ndx, lyr_ndx, idx_dgnum)) / &
+                     erf(log(0.1e-6_r8 / self%host_%constituents(col_ndx, lyr_ndx, idx_dgnum)) / &
                      (2._r8**0.5_r8*log(sigmag_aitken)))  ))
              end if
           endif
@@ -489,11 +491,11 @@ contains
        ! by the modal water uptake CCPPized scheme.
        write(cname, '(a,i2.2)') 'dgnumwet_m', bin_idx
        call const_get_index(trim(cname), idx_wet)
-       dgnumwet(:ncol,:nlev) = self%constituents(:ncol,:nlev,idx_wet)
+       dgnumwet(:ncol,:nlev) = self%host_%constituents(:ncol,:nlev,idx_wet)
 
        write(cname, '(a,i2.2)') 'qaerwat_m', bin_idx
        call const_get_index(trim(cname), idx_qaw)
-       qaerwat(:ncol,:nlev) = self%constituents(:ncol,:nlev,idx_qaw)
+       qaerwat(:ncol,:nlev) = self%host_%constituents(:ncol,:nlev,idx_qaw)
     else
        ! Diagnostic lists: recomputation requires modal_aero_calcsize and
        ! modal_aero_wateruptake, which are not yet CCPPized.
@@ -600,7 +602,7 @@ contains
 
     write(cname, '(a,i2.2)') 'dgnumwet_m', bin_idx
     call const_get_index(trim(cname), idx_wet)
-    diam(:ncol,:nlev) = self%constituents(:ncol,:nlev,idx_wet)
+    diam(:ncol,:nlev) = self%host_%constituents(:ncol,:nlev,idx_wet)
 
   end function wet_diameter
 

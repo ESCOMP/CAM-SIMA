@@ -1,7 +1,6 @@
 module bulk_aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
-  use ccpp_kinds, only: kind_phys
-  use aerosol_mmr_ccpp, only: rad_cnst_get_aer_mmr
+  use aerosol_mmr_host, only: rad_cnst_get_aer_mmr, aero_host_binding_t
   use cam_abortutils,   only: endrun
 
   use aerosol_state_mod,      only: aerosol_state, ptr2d_t
@@ -21,7 +20,9 @@ module bulk_aerosol_state_mod
   type, extends(aerosol_state) :: bulk_aerosol_state
      private
 
-      real(kind_phys), pointer :: constituents(:,:,:) => null()
+      ! Opaque host-binding handle used to retrieve aerosol fields from
+      ! host model data; built by host-side wiring (aerosol_instances_mod)
+      type(aero_host_binding_t) :: host_
 
       ! Per-object workspace for derived number mixing ratio.
       ! Allocated in constructor, deallocated in destructor.
@@ -68,11 +69,11 @@ contains
 
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
-  function constructor(ncol, constituents, list_idx) result(newobj)
+  function constructor(ncol, host, list_idx) result(newobj)
     use vert_coord, only: pver
 
     integer, intent(in) :: ncol
-    real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
+    type(aero_host_binding_t), intent(in) :: host
     integer, intent(in), optional :: list_idx
     type(bulk_aerosol_state), pointer :: newobj
 
@@ -84,7 +85,7 @@ contains
        return
     end if
 
-    newobj%constituents => constituents
+    newobj%host_ = host
 
     ! set number of active columns internally to prevent loops from accessing beyond
     ! meaningful data in arrays
@@ -107,7 +108,8 @@ contains
   subroutine destructor(self)
     type(bulk_aerosol_state), intent(inout) :: self
 
-    nullify(self%constituents)
+    ! disassociate the host binding (data referenced within is not owned here)
+    self%host_ = aero_host_binding_t()
 
     if (associated(self%num_work_)) then
        deallocate(self%num_work_)
@@ -172,7 +174,7 @@ contains
 
     ! species_ndx is ignored in the bulk implementation.
     ! bin_ndx is used to identify each individual bulk aerosol.
-    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, self%constituents, mmr)
+    call rad_cnst_get_aer_mmr(self%list_idx_, bin_ndx, self%host_, mmr)
 
   end subroutine get_ambient_mmr
 
