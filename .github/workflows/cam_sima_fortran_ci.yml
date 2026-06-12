@@ -1,4 +1,4 @@
-name: Fortran Unit Tests
+name: CAM-SIMA Fortran CI
 
 on:
   push:
