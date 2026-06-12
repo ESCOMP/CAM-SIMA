@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     # acquire github action routines
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     # acquire specific version of python
     - name: Set up Python 3.10
       uses: actions/setup-python@v6
