@@ -18,7 +18,7 @@ jobs:
   #to branch involved in PR).
   python_unit_tests:
     if: github.event_name == 'pull_request' || github.repository == 'ESCOMP/CAM-SIMA' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     strategy:
       matrix:
         #All of these python versions will be used to run tests:

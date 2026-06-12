@@ -17,7 +17,7 @@ jobs:
   #in the body of a pull request merged into a non-default branch.
   issue_closer:
     if: github.repository == 'ESCOMP/CAM-SIMA' # Only run on main repo
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
     # Acquire github action routines
     - uses: actions/checkout@v5
