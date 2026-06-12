@@ -20,23 +20,42 @@ concurrency:
   group: ${{ github.workflow }} - ${{ github.ref }}
 
 jobs:
-  gcc-toolchain:
-    name: Build and run with GCC ${{ matrix.version }}
+  unit-tests:
+    name: Build and run unit tests (${{ matrix.compiler }})
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        version: [12, 13, 14]
+    container:
+      image: ghcr.io/kuanchihwang/atm-sci-container:2026-06-12_${{ matrix.compiler }}_${{ matrix.mpi }}
     env:
-      CC: gcc-${{ matrix.version }}
-      CXX: g++-${{ matrix.version }}
-      FC: gfortran-${{ matrix.version }}
-      PFUNIT_BUILD_TYPE: Release
-      PFUNIT_PATH: ${{ github.workspace }}/pFUnit
-      PFUNIT_REFERENCE: 'v4.13.0'
-      PIO_BUILD_TYPE: Release
-      PIO_PATH: ${{ github.workspace }}/ParallelIO
-      PIO_REFERENCE: 'pio2_6_7'
-      RRTMGP_DATA_REFERENCE: 'v1.9'
+      CONTAINER_PRESET: cesm
+      CONTAINER_ENVIRONMENT: pfunit
+      RRTMGP_DATA_REFERENCE: v1.9
+      UNIT_TESTS_BUILD_TYPE: Debug
+      UNIT_TESTS_PATH: ${{ github.workspace }}/test/unit/fortran
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - gnu-11
+          - gnu-12
+          - gnu-13
+          - gnu-14
+          - gnu-15
+          - intel-2024
+          - intel-2025
+        # Uncomment the following lines to test with more MPI implementations. Currently only `open-mpi-5`
+        # (Open MPI 5.0.x series) is enabled. We may expand this matrix as our test coverage grows in the future.
+        mpi:
+          # - mpich-4
+          # - open-mpi-4
+          - open-mpi-5
+        # include:
+        #   - compiler: intel-2024
+        #     mpi: intel-mpi
+        #   - compiler: intel-2025
+        #     mpi: intel-mpi
+    timeout-minutes: 10
     steps:
       - name: Install dependencies
         run: |
