@@ -1,16 +1,23 @@
 name: CAM-SIMA Fortran CI
 
+permissions:
+  contents: read
+
 on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
   push:
     branches:
-      - 'staging/**'
+      - staging/**
       - development
-  pull_request:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
   cancel-in-progress: true
+  group: ${{ github.workflow }} - ${{ github.ref }}
 
 jobs:
   gcc-toolchain:
