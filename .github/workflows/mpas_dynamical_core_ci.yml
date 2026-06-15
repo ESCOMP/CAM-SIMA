@@ -244,7 +244,7 @@ jobs:
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/kuanchihwang/atm-sci-container:2026-04-12_${{ matrix.compiler }}_${{ matrix.mpi }}
+      image: ghcr.io/kuanchihwang/atm-sci-container:2026-06-12_${{ matrix.compiler }}_${{ matrix.mpi }}
     env:
       CONTAINER_ENVIRONMENT: pfunit
       UNIT_TESTS_BUILD_TYPE: Debug
