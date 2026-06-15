@@ -16,11 +16,11 @@ endif()
 # Overwrite the init flags chosen by CMake
 if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU")
   add_compile_options(-ffree-line-length-none)
-endif()
 
-if(CAM_SIMA_ENABLE_CODE_COVERAGE)
-  add_compile_options(-O0 --coverage)
-  add_link_options(--coverage)
+  if(CAM_SIMA_ENABLE_CODE_COVERAGE)
+    add_compile_options(--coverage)
+    add_link_options(--coverage)
+  endif()
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../../../src/core_utils ${CMAKE_BINARY_DIR}/src)
