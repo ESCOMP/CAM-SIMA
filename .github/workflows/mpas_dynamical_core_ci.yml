@@ -126,7 +126,7 @@ jobs:
   # when a matrix job is set as a required status check, skipping it due to the conditional will cause a pull request to be
   # blocked from merging.
   overall-status:
-    name: Overall status
+    name: Overall status (MPAS Dynamical Core CI)
     needs:
       - conditional-check
       - source-code-linting
