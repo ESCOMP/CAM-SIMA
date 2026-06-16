@@ -35,7 +35,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    use spmd_dyn,                  only: local_dp_map
    use spmd_utils,                only: iam
    use dyn_grid,                  only: TimeLevel
-   use dyn_comp,                  only: dyn_export_t
+   use dyn_comp,                  only: dyn_export_t, advected_constituent_index
    use runtime_obj,               only: runtime_options
    use physics_types,             only: physics_state, physics_tend
    use physics_grid,              only: pcols => columns_on_task, get_dyn_col_p
@@ -51,7 +51,8 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    use fvm_mapping,               only: dyn2phys_vector, dyn2phys_all_vars
    use se_dyn_time_mod,           only: timelevel_qdp
    use control_mod,               only: qsplit
-   use dimensions_mod,            only: np, nelemd, nlev, qsize, fv_nphys
+   use dimensions_mod,            only: np, nelemd, nlev, qsize
+   use dimensions_mod,            only: fv_nphys, use_cslam
    use dof_mod,                   only: UniquePoints
    use element_mod,               only: element_t
 
@@ -108,7 +109,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
    tl_f = TimeLevel%n0
    call TimeLevel_Qdp(TimeLevel, qsplit, tl_qdp_np0,tl_qdp_np1)
 
-   if (fv_nphys > 0) then
+   if (use_cslam) then
       nphys = fv_nphys
    else
      allocate(qgll(np,np,nlev,num_advected), stat=ierr, errmsg=errmsg)
@@ -175,7 +176,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
       ! Calculate vorticity for moving mountain gravity wave parameterization.
       call gws_src_vort(elem, tl_f, tl_qdp_np0, vort4gw, nphys)
 
-      if (fv_nphys > 0) then
+      if (use_cslam) then
          !******************************************************************
          ! physics runs on an FVM grid: map GLL vars to physics grid
          !******************************************************************
@@ -223,7 +224,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
          end do
          call t_stopf('UniquePoints')
 
-      end if ! if fv_nphys>0
+      end if ! if use_cslam
 
    else
 
@@ -239,7 +240,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    end if ! iam < par%nprocs
 
-   if (fv_nphys < 1) then
+   if (.not.use_cslam) then
       deallocate(qgll)
    end if
 
@@ -270,7 +271,7 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
       do m = 1, num_advected
          do ilyr = 1, pver
-            const_data_ptr(icol, ilyr, m) = real(q_tmp(blk_ind(1), ilyr, m, ie), kind_phys)
+            const_data_ptr(icol, ilyr, advected_constituent_index(m)) = real(q_tmp(blk_ind(1), ilyr, m, ie), kind_phys)
          end do
       end do
    end do
@@ -279,7 +280,9 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    ! Save the tracer fields input to physics package for calculating tendencies
    ! The mixing ratios are all dry at this point.
-   q_prev(1:pcols,1:pver,:) = real(const_data_ptr(1:pcols,1:pver,1:num_advected), r8)
+   do m = 1, num_advected
+     q_prev(1:pcols,1:pver,m) = real(const_data_ptr(1:pcols,1:pver,advected_constituent_index(m)), r8)
+   end do
 
    ! Deallocate the temporary arrays
    deallocate(ps_tmp)
@@ -310,7 +313,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    use spmd_dyn,         only: local_dp_map
    use spmd_utils,       only: iam
    use dyn_grid,         only: edgebuf
-   use dyn_comp,         only: dyn_import_t
+   use dyn_comp,         only: dyn_import_t, advected_constituent_index
    use runtime_obj,      only: runtime_options
    use physics_types,    only: physics_state, physics_tend
    use physics_grid,     only: pcols => columns_on_task, get_dyn_col_p
@@ -350,7 +353,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    real(r8),  allocatable   :: T_tmp(:,:,:)     ! temp array to hold T
    real(r8),  allocatable   :: dq_tmp(:,:,:,:)  ! temp array to hold q
    real(r8),  allocatable   :: uv_tmp(:,:,:,:)  ! temp array to hold uv
-   integer                  :: m, i, j, k
+   integer                  :: m, m_cnst, i, j, k
 
    real(kind_phys)          :: factor
    integer                  :: num_trac
@@ -406,8 +409,9 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
          factor = phys_state%pdel(icol,ilyr)/phys_state%pdeldry(icol,ilyr)
 
          do m=1, num_advected
-            if (const_is_wet(m)) then
-               const_data_ptr(icol,ilyr,m) = factor*const_data_ptr(icol,ilyr,m)
+            m_cnst = advected_constituent_index(m)
+            if (const_is_wet(m_cnst)) then
+               const_data_ptr(icol,ilyr,m_cnst) = factor*const_data_ptr(icol,ilyr,m_cnst)
             end if
          end do
 
@@ -429,7 +433,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
          uv_tmp(blk_ind(1),2,ilyr,ie) = real(phys_tend%dvdt_total(icol,ilyr), r8)
          do m = 1, num_advected
             dq_tmp(blk_ind(1),ilyr,m,ie) =                                    &
-                 (real(const_data_ptr(icol,ilyr,m), r8) - q_prev(icol,ilyr,m))
+                 (real(const_data_ptr(icol,ilyr,advected_constituent_index(m)), r8) - q_prev(icol,ilyr,m))
          end do
       end do
    end do
@@ -574,7 +578,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use cam_ccpp_cap,      only: cam_constituents_array
    use cam_ccpp_cap,      only: cam_model_const_properties
-   use cam_constituents,  only: num_advected
+   use cam_constituents,  only: num_advected, num_constituents
    use cam_constituents,  only: const_is_wet
    use cam_constituents,  only: const_get_index
    use cam_constituents,  only: const_qmin
@@ -599,7 +603,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    use cam_abortutils,    only: check_allocate
    use thread_mod,        only: horz_num_threads
    use dimensions_mod,    only: nlev
-   use dyn_comp,          only: ixo, ixo2, ixh, ixh2
+   use dyn_comp,          only: ixo, ixo2, ixh, ixh2, advected_constituent_index
    use cam_thermo_formula,only: ENERGY_FORMULA_DYCORE_SE
 
    ! arguments
@@ -832,8 +836,9 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    do m = 1, num_advected
       do k = 1, nlev
          do i = 1, pcols
-            if (const_is_wet(m)) then
-              const_data_ptr(i,k,m) = factor_array(i,k)*const_data_ptr(i,k,m)
+            if (const_is_wet(advected_constituent_index(m))) then
+              const_data_ptr(i,k,advected_constituent_index(m)) = factor_array(i,k)*&
+                                                                  const_data_ptr(i,k,advected_constituent_index(m))
             end if
          end do
       end do
@@ -841,7 +846,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
    ! Call geopotential_temp CCPP scheme:
    call geopotential_temp_run(pver, lagrangian_vertical, pver, 1,                        &
-                              pverp, 1, num_advected, phys_state%lnpint,                 &
+                              pverp, 1, num_constituents, phys_state%lnpint,             &
                               phys_state%pint, phys_state%pmid, phys_state%pdel,         &
                               phys_state%rpdel, phys_state%t, const_data_ptr(:,:,ix_q),  &
                               const_data_ptr, const_prop_ptr, rairv, gravit, zvirv,      &

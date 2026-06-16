@@ -160,13 +160,6 @@ subroutine model_grid_init()
    character(len=*), parameter :: subname = 'model_grid_init'
    !----------------------------------------------------------------------------
 
-   if (fv_nphys > 0) then
-      ! Use CSLAM for tracer advection
-      qsize = thermodynamic_active_species_num ! number tracers advected by GLL
-   else
-      ! Use GLL for tracer advection
-      qsize = num_advected
-   end if
    ! Get file handle for initial file and first consistency check
    fh_ini => initial_file_get_id()
 
@@ -177,8 +170,16 @@ subroutine model_grid_init()
    ! note that this must be done before "nlev" can be used:
    call dimensions_mod_init()
 
+   if (use_cslam) then
+      ! Use CSLAM for tracer advection
+      qsize = thermodynamic_active_species_num ! number tracers advected by GLL
+   else
+      ! Use GLL for tracer advection
+      qsize = num_advected
+   end if
+
    ! Initialize total number of physics points per spectral element:
-   if (fv_nphys > 0) then
+   if (use_cslam) then
       ! Use finite volume physics grid
       nphys_pts = fv_nphys*fv_nphys
    else
@@ -248,7 +249,7 @@ subroutine model_grid_init()
          call dp_init(elem, fvm)
       end if
 
-      if (fv_nphys > 0) then
+      if (use_cslam) then
          qsize_local = thermodynamic_active_species_num + 3
       else
          qsize_local = num_advected + 3
@@ -292,7 +293,7 @@ subroutine model_grid_init()
    ! Physics grid on the physics decomposition is defined in phys_grid_init.
    call define_cam_grids()
 
-   if (fv_nphys > 0) then
+   if (use_cslam) then
 
       ! ================================================
       ! finish fvm initialization
@@ -316,7 +317,7 @@ subroutine model_grid_init()
    end if
 
    if (trim(se_write_grid_file) /= "no") then
-      if (fv_nphys > 0) then
+      if (use_cslam) then
          call dp_write(elem, fvm, trim(se_write_grid_file), trim(se_grid_filename))
       else
          call gll_grid_write(elem, trim(se_write_grid_file), trim(se_grid_filename))
@@ -347,7 +348,7 @@ subroutine model_grid_init()
    end if
 
    ! Calculate number of of local columns:
-   if (fv_nphys > 0) then ! physics uses an FVM grid
+   if (use_cslam) then ! physics uses an FVM grid
       num_local_columns = nelemd * fv_nphys * fv_nphys
    else
       num_local_columns = 0
@@ -368,14 +369,14 @@ subroutine model_grid_init()
    call set_dyn_col_values()
 
    ! Calculate horizontal dimensions (needed for physics grid):
-   if (fv_nphys > 0) then ! physics uses an FVM grid
+   if (use_cslam) then ! physics uses an FVM grid
       hdim1_d = nelem * fv_nphys * fv_nphys
    else
       hdim1_d = ngcols_d
    end if
 
    ! Determine grid name and attributes:
-   if (fv_nphys > 0) then
+   if (use_cslam) then
       gridname = 'physgrid_d'
 
       allocate(grid_attribute_names(2), stat=ierr)
@@ -426,7 +427,7 @@ subroutine set_dyn_col_values()
    use cam_abortutils,         only: check_allocate
 
    !SE dycore:
-   use dimensions_mod,         only: nelemd, fv_nphys
+   use dimensions_mod,         only: nelemd, fv_nphys, use_cslam
    use coordinate_systems_mod, only: spherical_polar_t
 
    ! Local variables
@@ -444,7 +445,7 @@ subroutine set_dyn_col_values()
 
    lindex = 0
    do elem_ind = 1, nelemd
-      if (fv_nphys > 0) then ! physics uses an FVM grid
+      if (use_cslam) then ! physics uses an FVM grid
          do col_ind = 0, (fv_nphys * fv_nphys) - 1
             lindex = lindex + 1
             ii = MOD(col_ind, fv_nphys) + 1

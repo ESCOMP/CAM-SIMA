@@ -57,6 +57,10 @@ character(len=cl), allocatable, public, protected :: cnst_diag_name_gll(:)
 ! be computed in dyn_readnl because that runs before cam_register_constituents.
 integer, private :: se_statediag_numtrac_save = 0
 
+!Index array to map CCPP constituent array indices to an array of
+!only advected constituents (which is what the dycore needs):
+integer, allocatable, public, protected :: advected_constituent_index(:)
+
 !===============================================================================
 contains
 !===============================================================================
@@ -534,9 +538,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use cam_pio_utils,       only: clean_iodesc_list
    use cam_abortutils,      only: check_allocate
    use spmd_utils,          only: iam, masterproc
-   use cam_constituents,    only: const_name, const_longname, num_advected
-   use cam_constituents,    only: const_get_index, const_is_wet, const_qmin
-   use cam_constituents,    only: const_diag_name
+   use cam_constituents,    only: num_advected, num_constituents
+   use cam_constituents,    only: const_name, const_longname, const_diag_name
+   use cam_constituents,    only: const_get_index, const_qmin
+   use cam_constituents,    only: const_is_wet, const_is_advected
    use cam_initfiles,       only: initial_file_get_id, topo_file_get_id
    use cam_control_mod,     only: initial_run
    use air_composition,     only: thermodynamic_active_species_num, thermodynamic_active_species_idx
@@ -626,6 +631,24 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! Set name of dycore in runtime object
    call cam_runtime_opts%set_dycore('se')
 
+   ! Allocate and populate advected constituent index map:
+   allocate(advected_constituent_index(num_advected), stat=iret, errmsg=errmsg)
+   call check_allocate(iret, subname, 'advected_constituent_index(num_advected)', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+   m_cnst = 1
+   do m=1, num_constituents
+     if (const_is_advected(m)) then
+       advected_constituent_index(m_cnst) = m
+       m_cnst = m_cnst + 1
+     end if
+   end do
+
+   ! DEBUG -JN:
+   do m=1, num_advected
+     write(iulog, *) 'DEBUG -JN adv_const_dx: ', advected_constituent_index(m), m
+   end do
+
    ! Finalize statediag_numtrac now that the number of advected
    ! constituents is known (qsize is set by dimensions_mod_init, which runs
    ! after cam_register_constituents).
@@ -692,9 +715,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
          thermodynamic_active_species_idx_dycore(m) = thermodynamic_active_species_idx(m)
          kord_tr(thermodynamic_active_species_idx_dycore(m)) = vert_remap_uvTq_alg
        end if
-       cnst_name_gll(m)      = const_name(m)
-       cnst_longname_gll(m)  = const_longname(m)
-       cnst_diag_name_gll(m) = const_diag_name(m)
+       cnst_name_gll(m)      = const_name(advected_constituent_index(m))
+       cnst_longname_gll(m)  = const_longname(advected_constituent_index(m))
+       cnst_diag_name_gll(m) = const_diag_name(advected_constituent_index(m))
      end if
    end do
 #ifdef energy_budget_code
@@ -892,10 +915,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! Tracer forcing on fvm (CSLAM) grid and internal CSLAM pressure fields
    if (use_cslam) then
       do m = 1, ntrac
-         call history_add_field (trim(const_diag_name(m))//'_fvm', trim(const_longname(m)), 'lev', 'inst', 'kg/kg',   &
-            gridname='FVM')
+         call history_add_field (trim(const_diag_name(advected_constituent_index(m)))//'_fvm', trim(const_longname(m)), &
+                                 'lev', 'inst', 'kg/kg', gridname='FVM')
 
-         call history_add_field ('F'//trim(const_diag_name(m))//'_fvm', &
+         call history_add_field ('F'//trim(const_diag_name(advected_constituent_index(m)))//'_fvm', &
            trim(const_longname(m))//' mixing ratio forcing term (q_new-q_old) on fvm grid', &
            'lev', 'inst', 'kg kg-1 s-1', gridname='FVM')
       end do
@@ -950,12 +973,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    !
    if (use_cslam) then
      do m = 1, num_advected
-       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg','kg kg-1 s-1',  &
-            gridname='FVM')
+       call history_add_field(tottnam(m), trim(const_name(advected_constituent_index(m)))//&
+                              ' horz + vert', 'lev','avg','kg kg-1 s-1', gridname='FVM')
      end do
    else
      do m = 1, num_advected
-       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg','kg kg-1 s-1',  &
+       call history_add_field(tottnam(m), trim(const_name(advected_constituent_index(m)))//&
+                              ' horz + vert', 'lev','avg','kg kg-1 s-1',  &
             gridname='GLL')
      end do
    end if
@@ -1024,13 +1048,13 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! add dynamical core tracer tendency output
    !
    if (use_cslam) then
-     do m = 1, pcnst
-       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg', &
+     do m = 1, num_advected
+       call history_add_field(tottnam(m), trim(const_name(advected_constituent_index(m)))//' horz + vert', 'lev','avg', &
            'kg kg-1 s-1', gridname='FVM')
      end do
    else
-     do m = 1, pcnst
-       call history_add_field(tottnam(m), trim(const_name(m))//' horz + vert', 'lev','avg', &
+     do m = 1, num_advected
+       call history_add_field(tottnam(m), trim(const_name(advected_constituent_index(m)))//' horz + vert', 'lev','avg', &
             'kg kg-1 s-1', gridname='GLL')
      end do
    end if
@@ -1688,9 +1712,7 @@ subroutine read_inidat(dyn_in)
       call endrun(trim(subname)//errmsg)
    end if
 
-   ! Generate list of all advected constituent input names.  Note that the CCPP
-   ! Constituents array automatically packs all advected species to the beginning
-   ! of the list:
+   ! Generate list of all advected constituent input names:
    !------------
    allocate(const_ic_name(num_advected), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'const_ic_name(num_advected)', &
@@ -1702,7 +1724,7 @@ subroutine read_inidat(dyn_in)
    do m_cnst = 1, num_advected
 
       ! Extract constituent standard name:
-      std_name = const_name(m_cnst)
+      std_name = const_name(advected_constituent_index(m_cnst))
 
       ! Find input name array index to extract correct input names:
       const_ic_names_idx = -1
@@ -1727,7 +1749,7 @@ subroutine read_inidat(dyn_in)
    ! ratios.
 
    do m_cnst = 1, num_advected
-      if (.not. const_is_water_species(m_cnst)) then
+      if (.not. const_is_water_species(advected_constituent_index(m_cnst))) then
          if (dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
             exit
@@ -1744,7 +1766,7 @@ subroutine read_inidat(dyn_in)
 
    do m_cnst = 1, num_advected
 
-      if (analytic_ic_active() .and. const_is_water_species(m_cnst)) cycle
+      if (analytic_ic_active() .and. const_is_water_species(advected_constituent_index(m_cnst))) cycle
 
       found = dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)
 
@@ -1761,7 +1783,7 @@ subroutine read_inidat(dyn_in)
                do i = 1, np
                   ! Set qtmp at the unique columns only: zero non-unique columns
                   if (pmask(((ie - 1) * npsq) + indx)) then
-                     qtmp(i,j, k, ie, m_cnst) = max(const_qmin(m_cnst),dbuf3(indx,k,ie))
+                     qtmp(i,j, k, ie, m_cnst) = max(const_qmin(advected_constituent_index(m_cnst)),dbuf3(indx,k,ie))
                   else
                      qtmp(i,j, k, ie, m_cnst) = 0.0_r8
                   end if
@@ -1846,7 +1868,7 @@ subroutine read_inidat(dyn_in)
       factor_array(:,:,:,:) = 1.0_r8/factor_array(:,:,:,:)
 
       do m_cnst = 1, num_advected
-         if (const_is_wet(m_cnst)) then
+         if (const_is_wet(advected_constituent_index(m_cnst))) then
             do ie = 1, nelemd
                do k = 1, nlev
                   do j = 1, np
@@ -1856,7 +1878,7 @@ subroutine read_inidat(dyn_in)
 
                         ! truncate negative values if they were not analytically specified
                         if (.not. analytic_ic_active()) then
-                           qtmp(i,j,k,ie,m_cnst) = max(const_qmin(m_cnst), qtmp(i,j,k,ie,m_cnst))
+                           qtmp(i,j,k,ie,m_cnst) = max(const_qmin(advected_constituent_index(m_cnst)), qtmp(i,j,k,ie,m_cnst))
                         end if
                      end do
                   end do
@@ -2025,7 +2047,7 @@ subroutine read_inidat(dyn_in)
 
    !Mark all advected constituents as initialized
    do m_cnst = 1, num_advected
-      call mark_as_initialized(const_name(m_cnst))
+      call mark_as_initialized(const_name(advected_constituent_index(m_cnst)))
    end do
 
    !These calls may be removed if geopotential_t is only allowed to run
@@ -2721,11 +2743,11 @@ subroutine write_dyn_vars(dyn_out)
          call history_out_field('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc),     &
                                           (/nc*nc/)))
          do m = 1, ntrac
-            tfname = trim(const_diag_name(m))//'_fvm'
+            tfname = trim(const_diag_name(advected_constituent_index(m)))//'_fvm'
             call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m),     &
                                         (/nc*nc,nlev/)))
 
-            tfname = 'F'//trim(const_diag_name(m))//'_fvm'
+            tfname = 'F'//trim(const_diag_name(advected_constituent_index(m)))//'_fvm'
             call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),    &
                                         (/nc*nc,nlev/)))
          end do

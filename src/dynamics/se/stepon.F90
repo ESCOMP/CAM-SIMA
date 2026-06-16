@@ -325,7 +325,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    ! SE/CAM interface:
    use dyn_grid,               only: TimeLevel
-   use dyn_comp,               only: cnst_diag_name_gll
+   use dyn_comp,               only: cnst_diag_name_gll, advected_constituent_index
 
    ! SE dycore:
    use se_dyn_time_mod,        only: TimeLevel_Qdp   !  dynamics typestep
@@ -508,7 +508,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                thermodynamic_active_species_idx_dycore, factor_array,dp_dry=elem(ie)%state%dp3d(:,:,:,tl_f))
             factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
             do m_cnst = 1, qsize
-               if (const_is_wet(m_cnst)) then
+               if (const_is_wet(advected_constituent_index(m_cnst))) then
                   call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(factor_array(:,:,:)*elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
                        elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
@@ -552,7 +552,7 @@ subroutine diag_dynvar_ic(elem, fvm)
            call get_sum_species(fvm(ie)%c(1:nc,1:nc,:,:),thermodynamic_active_species_idx,factor_array)
            factor_array(:,:,:) = 1.0_r8/factor_array(:,:,:)
            do m_cnst = 1, ntrac
-             if (const_is_wet(m_cnst)) then
+             if (const_is_wet(advected_constituent_index(m_cnst))) then
                fld_fvm(1:nc,1:nc,:,m_cnst,ie) = fvm(ie)%c(1:nc,1:nc,:,m_cnst)*factor_array(:,:,:)
              else
                fld_fvm(1:nc,1:nc,:,m_cnst,ie) = fvm(ie)%c(1:nc,1:nc,:,m_cnst)
