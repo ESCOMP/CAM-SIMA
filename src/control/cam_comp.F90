@@ -321,16 +321,6 @@ CONTAINS
       nstep = get_nstep()
 
       !----------------------------------------------------------
-      ! First phase of dynamics (at least couple from dynamics to physics)
-      ! Return time-step for physics from dynamics.
-      !----------------------------------------------------------
-      call t_barrierf('sync_stepon_timestep_init', mpicom)
-      call t_startf('stepon_timestep_init')
-      call stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
-           dyn_in, dyn_out)
-      call t_stopf('stepon_timestep_init')
-
-      !----------------------------------------------------------
       ! TEMPORARY:  Set initial MUSICA constituent values
       !
       !            This is a temporary workaround to initialize
@@ -345,6 +335,16 @@ CONTAINS
          call set_initial_musica_concentrations(constituents_array, &
               constituent_properties)
       end if
+
+      !----------------------------------------------------------
+      ! First phase of dynamics (at least couple from dynamics to physics)
+      ! Return time-step for physics from dynamics.
+      !----------------------------------------------------------
+      call t_barrierf('sync_stepon_timestep_init', mpicom)
+      call t_startf('stepon_timestep_init')
+      call stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
+           dyn_in, dyn_out)
+      call t_stopf('stepon_timestep_init')
 
       !
       !----------------------------------------------------------
